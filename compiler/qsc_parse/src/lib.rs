@@ -83,6 +83,9 @@ enum ErrorKind {
     #[error("file name could not be converted into valid namespace name")]
     #[diagnostic(code("Qsc.Parse.InvalidFileName"))]
     InvalidFileName(#[label] Span),
+    #[error("expected an item or EOF, found {0}")]
+    #[diagnostic(code("Qsc.Parse.ExpectedItem"))]
+    ExpectedItem(TokenKind, #[label] Span),
 }
 
 impl ErrorKind {
@@ -102,6 +105,7 @@ impl ErrorKind {
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
             Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
             Self::InvalidFileName(span) => Self::InvalidFileName(span + offset),
+            Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
         }
     }
 }
@@ -115,7 +119,7 @@ impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 #[must_use]
 pub fn namespaces(
     input: &str,
-    file_name: Option<&str>,
+    source_name: Option<&str>,
     language_features: LanguageFeatures,
 ) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features);
@@ -123,11 +127,11 @@ pub fn namespaces(
     let doc = Rc::from(doc.unwrap_or_default());
     #[allow(clippy::unnecessary_unwrap)]
     let result: Result<_> = (|| {
-        if file_name.is_some_and(|x| !x.is_empty())
+        if source_name.is_some_and(|x| !x.is_empty())
             && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace)
         {
             let mut ns = item::parse_implicit_namespace(
-                file_name.expect("invariant checked above via `.is_some()`"),
+                source_name.expect("invariant checked above via `.is_some()`"),
                 &mut scanner,
             )
             .map(|x| vec![x])?;

@@ -134,11 +134,15 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
-pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Result<Namespace> {
+pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    if items.is_empty() || s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
+    }
     let span = s.span(lo);
-    let namespace_name = file_name_to_namespace_name(file_name, span)?;
+    let namespace_name = source_name_to_namespace_name(source_name, span)?;
+
     Ok(Namespace {
         id: NodeId::default(),
         span,
@@ -150,7 +154,7 @@ pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Resul
 
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
-fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
+fn source_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
     for component in path.components() {

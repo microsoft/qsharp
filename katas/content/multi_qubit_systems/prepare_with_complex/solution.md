@@ -1,12 +1,12 @@
 ﻿The start state is the same as the previous exercises:
-$$ \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix} = |0\rangle \otimes |0\rangle $$
+$$ \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \ket{0} \otimes \ket{0} $$
 
 The goal state, factored as a tensor product, looks like this (remember that $e^{3i\pi/4} = e^{i\pi/4} e^{i\pi/2}$):
 
 $$
 \frac{1}{2}\begin{bmatrix} 1 \\ e^{i\pi/4} \\ e^{i\pi/2} \\ e^{3i\pi/4} \end{bmatrix} =
 \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/2} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ e^{i\pi/4} \end{bmatrix} =
-\frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/2}|1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/4}|1\rangle\big) $$
+\frac{1}{\sqrt2}\big(\ket{0} + e^{i\pi/2}\ket{1}\big) \otimes \frac{1}{\sqrt2}\big(\ket{0} + e^{i\pi/4}\ket{1}\big) $$
 
 We will again need to adjust the states of both qubits independently.
 

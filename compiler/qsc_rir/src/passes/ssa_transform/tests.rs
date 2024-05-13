@@ -2055,3 +2055,169 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
+
+#[test]
+fn ssa_transform_propagates_updates_from_multiple_predecessors_to_later_single_successors() {
+    let mut program = new_program();
+    program.callables.insert(
+        CallableId(1),
+        Callable {
+            name: "dynamic_bool".to_string(),
+            input_type: Vec::new(),
+            output_type: Some(Ty::Boolean),
+            body: None,
+            call_type: CallableType::Regular,
+        },
+    );
+
+    // Create a program that has a middle block with multiple predecessors and does not update a value from
+    // the dominating entry block (in this case, the bool value for the first branch).
+    // All successors of the middle block should have the same value for this variable, even if it isn't used,
+    // avoiding a panic in the SSA transformation if the value is not propagated through the variable
+    // maps used for updates.
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program
+        .blocks
+        .insert(BlockId(1), Block(vec![Instruction::Jump(BlockId(2))]));
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+                BlockId(3),
+                BlockId(4),
+            ),
+        ]),
+    );
+    program
+        .blocks
+        .insert(BlockId(3), Block(vec![Instruction::Jump(BlockId(4))]));
+    program
+        .blocks
+        .insert(BlockId(4), Block(vec![Instruction::Return]));
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Variable(1, Boolean) = Store Variable(0, Boolean)
+                    Branch Variable(1, Boolean), 1, 2
+                Block 1: Block:
+                    Jump(2)
+                Block 2: Block:
+                    Variable(2, Boolean) = Call id(1), args( )
+                    Variable(3, Boolean) = Store Variable(2, Boolean)
+                    Branch Variable(3, Boolean), 3, 4
+                Block 3: Block:
+                    Jump(4)
+                Block 4: Block:
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 0
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    transform_program(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Jump(2)
+                Block 2: Block:
+                    Variable(2, Boolean) = Call id(1), args( )
+                    Branch Variable(2, Boolean), 3, 4
+                Block 3: Block:
+                    Jump(4)
+                Block 4: Block:
+                    Return
+            config: Config:
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
+            num_qubits: 0
+            num_results: 0"#]].assert_eq(&program.to_string());
+}

@@ -1,9 +1,9 @@
 **Inputs:**
 
-1. A qubit in the $|0\rangle$ state.
+1. A qubit in the $\ket{0}$ state.
 2. Angle $\alpha$, in radians, represented as `Double`.
 
-**Goal**: Change the state of the qubit to $\cos{α} |0\rangle + \sin{α} |1\rangle$.
+**Goal**: Change the state of the qubit to $\cos{α} \ket{0} + \sin{α} \ket{1}$.
 
 <details>
   <summary><b>Need a hint?</b></summary>

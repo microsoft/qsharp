@@ -52,7 +52,7 @@ async fn single_document() {
                         offset: 0,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "foo.qs",
                 ),
                 entry: None,
@@ -102,7 +102,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "foo.qs",
                 ),
                 entry: None,
@@ -143,7 +143,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "foo.qs",
                 ),
                 entry: None,
@@ -206,7 +206,7 @@ async fn document_in_project() {
                         offset: 52,
                     },
                 ],
-                project_root_dir: None,
+                common_prefix: None,
                 entry: None,
             }
         "#]],

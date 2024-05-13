@@ -1,4 +1,4 @@
-We need to apply a gate which applies a global phase of $i$, i.e. $|\psi\rangle \rightarrow i|\psi\rangle$.
+We need to apply a gate which applies a global phase of $i$, i.e. $\ket{\psi} \rightarrow i\ket{\psi}$.
 The matrix representation of such a gate is $\begin{bmatrix} i & 0 \\ 0 & i \end{bmatrix} = i\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = iI$.
 Since we are restricted to the Pauli gates, we use the property that a product of any two distinct Pauli gates equals the third gate with a $+i$ or a $-i$ global phase, therefore the product of all three Pauli gates is $XYZ = iI$.
 $$

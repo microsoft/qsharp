@@ -2837,6 +2837,40 @@ namespace Kata.Verification {
 }
 
 #[test]
+fn open_can_access_parent_scope() {
+    check(
+        indoc! {r#"
+namespace Foo.Bar {
+    operation Hello() : Unit {
+
+    }
+}
+
+namespace Foo {
+    open Bar;
+    @EntryPoint()
+    operation Main() : Unit {
+        Hello();
+    }
+}"#},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {
+
+                }
+            }
+
+            namespace namespace7 {
+                open Bar;
+                @EntryPoint()
+                operation item3() : Unit {
+                    item1();
+                }
+            }"#]],
+    );
+}
+
+#[test]
 fn test_export_statement() {
     check(
         indoc! {"namespace Foo {

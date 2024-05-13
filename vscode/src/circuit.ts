@@ -315,7 +315,7 @@ function errorsToHtml(
 
     const location = documentHtml(document, diag.range);
     const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
-      "\n",
+      /\n/g,
       "<br/><br/>",
     );
 

@@ -18,7 +18,7 @@ If we do the same basis state split for $N = 3$ qubits, the pattern becomes more
   <tr><td> <b>11</b>0 </td><td> <b>11</b>1</td></tr>
 </table>
 
-The two leftmost qubits go through all possible basis states for `isEven = true` and for `isEven = false`, and the rightmost qubit stays in the $|0\rangle$ state for `isEven = true` and in the $|1\rangle$ state for `isEven = false`. 
+The two leftmost qubits go through all possible basis states for `isEven = true` and for `isEven = false`, and the rightmost qubit stays in the $\ket{0}$ state for `isEven = true` and in the $\ket{1}$ state for `isEven = false`. 
 
 A quick sanity check for $N = 4$ qubits re-confirms the pattern.
 
@@ -39,7 +39,7 @@ A quick sanity check for $N = 4$ qubits re-confirms the pattern.
  
 Again, the three leftmost qubits go through all possible basis states in both columns, and the rightmost qubit stays in the same state in each column. 
 
-The solution is to put all qubits except the rightmost one into an equal superposition (similar to what we did in the 'Superposition of all basis vectors' task) and to set the rightmost qubit to $|0\rangle$ or $|1\rangle$ depending on the `isEven` flag, using the X operator to convert $|0\rangle$ to $|1\rangle$ if `isEven = false`.
+The solution is to put all qubits except the rightmost one into an equal superposition (similar to what we did in the 'Superposition of all basis vectors' task) and to set the rightmost qubit to $\ket{0}$ or $\ket{1}$ depending on the `isEven` flag, using the X operator to convert $\ket{0}$ to $\ket{1}$ if `isEven = false`.
  
 
 @[solution]({
