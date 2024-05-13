@@ -17,18 +17,18 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
     // Ensure that the graph is acyclic before proceeding. Current approach does not support cycles.
     ensure_acyclic(preds);
 
-    // First, remove store instructions and propagate variables through individual blocks.
-    // This produces a per-block map of dynamic variables to their values.
-    // Orphan variables may be left behind where a variable is defined in one block and used in another, which
-    // will be resolved by inserting phi nodes.
-    let mut block_var_map = map_store_to_dominated_ssa(program, preds);
-
     // Get the next available variable ID for use in newly generated phi nodes.
     let mut next_var_id = get_variable_assignments(program)
         .iter()
         .last()
         .map(|(var_id, _)| var_id.successor())
         .unwrap_or_default();
+
+    // First, remove store instructions and propagate variables through individual blocks.
+    // This produces a per-block map of dynamic variables to their values.
+    // Orphan variables may be left behind where a variable is defined in one block and used in another, which
+    // will be resolved by inserting phi nodes.
+    let mut block_var_map = map_store_to_dominated_ssa(program, preds);
 
     // Insert phi nodes where necessary, mapping any remaining orphaned uses to the new variable
     // created by the phi node.
@@ -160,14 +160,14 @@ fn map_store_to_dominated_ssa(
 
 // Propagates stored variables through a block, tracking the latest stored value and replacing
 // usage of the variable with the stored value.
-fn map_variable_use_in_block(block: &mut Block, var_map: &mut impl VariableMapper) {
+fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<VariableId, Operand>) {
     let instrs = block.0.drain(..).collect::<Vec<_>>();
 
     for mut instr in instrs {
         match &mut instr {
             // Track the new value of the variable and omit the store instruction.
             Instruction::Store(operand, var) => {
-                var_map.insert(*var, *operand);
+                var_map.insert(var.variable_id, *operand);
                 continue;
             }
 
@@ -176,7 +176,7 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut impl VariableMappe
                 *args = args
                     .iter()
                     .map(|arg| match arg {
-                        Operand::Variable(var) => var_map.to_operand(*var),
+                        Operand::Variable(var) => var.map_to_operand(var_map),
                         Operand::Literal(_) => *arg,
                     })
                     .collect();
@@ -184,7 +184,7 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut impl VariableMappe
 
             // Replace the branch condition with the new value of the variable.
             Instruction::Branch(var, _, _) => {
-                *var = var_map.to_variable(*var);
+                *var = var.map_to_variable(var_map);
             }
 
             // Two variable instructions, replace left and right operands with new values.
@@ -219,37 +219,35 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut impl VariableMappe
 }
 
 impl Operand {
-    fn mapped(&self, var_map: &impl VariableMapper) -> Operand {
+    fn mapped(&self, var_map: &FxHashMap<VariableId, Operand>) -> Operand {
         match self {
             Operand::Literal(_) => *self,
-            Operand::Variable(var) => var_map.to_operand(*var),
+            Operand::Variable(var) => var.map_to_operand(var_map),
         }
     }
 }
 
-trait VariableMapper {
-    fn insert(&mut self, var: Variable, operand: Operand);
-    fn to_operand(&self, var: Variable) -> Operand;
-    fn to_variable(&self, var: Variable) -> Variable;
-}
-
-impl VariableMapper for FxHashMap<VariableId, Operand> {
-    fn insert(&mut self, var: Variable, operand: Operand) {
-        self.insert(var.variable_id, operand);
+impl Variable {
+    fn map_to_operand(self, var_map: &FxHashMap<VariableId, Operand>) -> Operand {
+        let mut var = self;
+        while let Some(operand) = var_map.get(&var.variable_id) {
+            if let Operand::Variable(new_var) = operand {
+                var = *new_var;
+            } else {
+                return *operand;
+            }
+        }
+        Operand::Variable(var)
     }
 
-    fn to_operand(&self, var: Variable) -> Operand {
-        self.get(&var.variable_id)
-            .copied()
-            .unwrap_or(Operand::Variable(var))
-    }
-
-    fn to_variable(&self, var: Variable) -> Variable {
-        self.get(&var.variable_id)
-            .copied()
-            .map_or(var, |operand| match operand {
-                Operand::Literal(_) => panic!("literal not supported in this context"),
-                Operand::Variable(var) => var,
-            })
+    fn map_to_variable(self, var_map: &FxHashMap<VariableId, Operand>) -> Variable {
+        let mut var = self;
+        while let Some(operand) = var_map.get(&var.variable_id) {
+            let Operand::Variable(new_var) = operand else {
+                panic!("literal not supported in this context");
+            };
+            var = *new_var;
+        }
+        var
     }
 }

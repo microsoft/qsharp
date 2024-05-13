@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, ops::Sub};
 
 use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashMap;
@@ -47,7 +47,11 @@ pub fn reindex_qubits(program: &mut Program) {
         used_cx,
         cx_id,
         mresetz_id,
-        highest_used_id: program.num_qubits - 1,
+        // For this calculation, qubit IDs can never be lower than zero but a program may not use
+        // any qubits. Since `highest_used_id` is only needed for remapping pass and a program without any
+        // qubits won't do any remapping, it's safe to treat this as 1 and let `highest_used_id` default
+        // to zero.
+        highest_used_id: program.num_qubits.max(1).sub(1),
     };
 
     let pred_map = build_predecessors_map(program);

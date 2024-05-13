@@ -9,7 +9,10 @@ use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, Error, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
-use qsc_rir::rir::{BlockId, CallableId, Program};
+use qsc_rir::{
+    passes::check_and_transform,
+    rir::{BlockId, CallableId, Program},
+};
 
 pub fn assert_block_instructions(program: &Program, block_id: BlockId, expected_insts: &Expect) {
     let block = program.get_block(block_id);
@@ -60,7 +63,11 @@ pub fn get_partial_evaluation_error_with_capabilities(
 pub fn get_rir_program(source: &str) -> Program {
     let maybe_program = compile_and_partially_evaluate(source, TargetCapabilityFlags::all());
     match maybe_program {
-        Ok(program) => program,
+        Ok(program) => {
+            // Verify the program can go through transformations.
+            check_and_transform(&mut program.clone());
+            program
+        }
         Err(error) => panic!("partial evaluation failed: {error:?}"),
     }
 }
