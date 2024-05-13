@@ -252,10 +252,9 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
-    let mut program = get_rir_program(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -272,5 +271,74 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
         }
         "#,
     });
-    check_and_transform(&mut program);
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__integer_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Variable(0, Integer) = Store Integer(0)
+            Variable(1, Integer) = Store Integer(0)
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(2, Boolean) = Call id(2), args( Result(0), )
+            Variable(3, Boolean) = Store Variable(2, Boolean)
+            Branch Variable(3, Boolean), 2, 1
+        Block 1:Block:
+            Variable(1, Integer) = Store Integer(1)
+            Call id(1), args( Qubit(0), Result(1), )
+            Variable(4, Boolean) = Call id(2), args( Result(1), )
+            Variable(5, Boolean) = Store Variable(4, Boolean)
+            Branch Variable(5, Boolean), 4, 3
+        Block 2:Block:
+            Variable(0, Integer) = Store Integer(1)
+            Jump(1)
+        Block 3:Block:
+            Variable(1, Integer) = Store Integer(2)
+            Call id(3), args( Variable(0, Integer), Pointer, )
+            Return
+        Block 4:Block:
+            Variable(6, Integer) = BitwiseOr Variable(0, Integer), Integer(2)
+            Variable(0, Integer) = Store Variable(6, Integer)
+            Jump(3)"#]],
+    );
 }
