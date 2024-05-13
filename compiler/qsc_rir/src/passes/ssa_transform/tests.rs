@@ -2308,7 +2308,8 @@ fn ssa_transform_maps_store_instrs_that_use_values_from_other_store_instrs() {
             config: Config:
                 capabilities: Base
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 
     // After
     transform_program(&mut program);
