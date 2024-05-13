@@ -17,7 +17,7 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function StateTable(props: { dump: Dump; latexDump: string }) {
+export function StateTable(props: { dump: Dump; latexDump: string | null }) {
   return (
     <div>
       <table class="state-table">
@@ -55,7 +55,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           })}
         </tbody>
       </table>
-      <Markdown markdown={props.latexDump} />
+      <Markdown markdown={props.latexDump ?? ""} />
       <br></br>
     </div>
   );

@@ -36,7 +36,7 @@ $$
 \begin{bmatrix}
 \alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \color{red}\eta \\ \color{red}\zeta \\ \theta
 \end{bmatrix} =
-\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + {\color{red}\eta}|101\rangle + {\color{red}\zeta}|110\rangle + \theta|111\rangle
+\alpha \ket{000} + \beta \ket{001} + \gamma \ket{010} + \delta \ket{011} + \epsilon \ket{100} + {\color{red}\eta}\ket{101} + {\color{red}\zeta}\ket{110} + \theta\ket{111}
 $$
 
 Notice carefully how the qubits are passed to the gate: `[qs[0]], (qs[1], [qs[2])`. The `Controlled` functor produces an operation that takes two parameters: the first one is an array of control qubits (in this case a single-element array consisting of the first qubit), and the second parameter is a tuple of all parameters you'd pass to the original gate (in this gate two individual qubit parameters that would be arguments to a $SWAP$ gate).

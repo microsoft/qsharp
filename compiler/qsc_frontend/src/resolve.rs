@@ -127,7 +127,7 @@ pub struct Scope {
     ///
     /// Bug: Because we keep track of only one `valid_at` offset per name,
     /// when a variable is later shadowed in the same scope,
-    /// it is missed in the list. https://github.com/microsoft/qsharp/issues/897
+    /// it is missed in the list. <a href=https://github.com/microsoft/qsharp/issues/897 />
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
     ty_vars: FxHashMap<Rc<str>, ParamId>,

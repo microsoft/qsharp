@@ -397,20 +397,6 @@ impl Display for UdtDef<'_> {
     }
 }
 
-struct FunctorSet<'a> {
-    functor_set: &'a ty::FunctorSet,
-}
-
-impl<'a> Display for FunctorSet<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if *self.functor_set == ty::FunctorSet::Value(ty::FunctorSetValue::Empty) {
-            Ok(())
-        } else {
-            write!(f, " is {}", self.functor_set)
-        }
-    }
-}
-
 struct FunctorSetValue {
     functors: ty::FunctorSetValue,
 }

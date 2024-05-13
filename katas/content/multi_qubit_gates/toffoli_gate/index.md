@@ -1,4 +1,4 @@
 **Input:** Three qubits (stored in an array of length 3) in an arbitrary three-qubit state 
-$\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + \zeta|101\rangle + {\color{blue}\eta}|110\rangle + {\color{blue}\theta}|111\rangle$.
+$\alpha \ket{000} + \beta \ket{001} + \gamma \ket{010} + \delta \ket{011} + \epsilon \ket{100} + \zeta\ket{101} + {\color{blue}\eta}\ket{110} + {\color{blue}\theta}\ket{111}$.
 
-**Goal:** Flip the state of the third qubit if the state of the first two is $|11\rangle$, i.e., change the three-qubit state to $\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + \zeta|101\rangle + {\color{red}\theta}|110\rangle + {\color{red}\eta}|111\rangle$.
+**Goal:** Flip the state of the third qubit if the state of the first two is $\ket{11}$, i.e., change the three-qubit state to $\alpha \ket{000} + \beta \ket{001} + \gamma \ket{010} + \delta \ket{011} + \epsilon \ket{100} + \zeta\ket{101} + {\color{red}\theta}\ket{110} + {\color{red}\eta}\ket{111}$.

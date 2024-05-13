@@ -32,6 +32,14 @@ This kata is designed to get you familiar with the concept of measurements and u
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_states__plus_minus",
+    "title": "|+〉 or |-〉?",
+    "path": "./plus_minus/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",

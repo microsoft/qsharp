@@ -23,16 +23,25 @@ namespace MyQuantumApp {
 
         // A basic Int Array literal
         let intArray : Int[] = [1, 2, 3, 4];
+        Message($"Integer Array : {intArray} of length {Length(intArray)}");
+
         // A basic String Array literal
         let stringArray = ["a", "string", "array"];
+        Message($"{stringArray}");
 
         // A new array expression creating the array `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]`
-        let repeatedArray = Repeated(0, 10);
+        let repeatedArray = [0, size = 10];
+        Message($"{repeatedArray}");
+        let repeatedArray = Repeated(0, 10);  // contains [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        Message($"{repeatedArray}");
 
         // Arrays can be sliced with ranges.
         let slice = intArray[1..2..4];  // contains [2,4]
+        Message($"{slice}");
         let slice = intArray[2..-1..0]; // contains [3,2,1]
+        Message($"{slice}");
         let slice = intArray[...]; // contains [1, 2, 3, 4];
+        Message($"{slice}");
 
         return intArray;
     }

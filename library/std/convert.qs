@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.Convert {
             set result += [(runningValue &&& 1) != 0];
             set runningValue >>>= 1;
         }
-        Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
+        Fact(runningValue == 0, "`number` is too large to fit into array of length `bits`.");
 
         result
     }

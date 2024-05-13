@@ -1404,17 +1404,22 @@ impl<'a> Analyzer<'a> {
                     panic!("expected a local variable");
                 };
 
-                // The updated compute kind is based on the compute kind of the value expression.
+                // The updated compute kind is the aggregation of the compute kind of the local variable and the
+                // assigned value.
+                // Start by initializing the updated compute kind with the compute kind of the local variable.
                 let application_instance = self.get_current_application_instance();
-                let value_expr_compute_kind =
-                    *application_instance.get_expr_compute_kind(value_expr_id);
-
-                // Since the local variable compute kind is what will be updated, the value kind must match the local
-                // variable's type. In some cases, there might be some loss of granularity on the value kind (e.g.
-                // assigning an array to a UDT variable field since we do not track individual UDT fields).
                 let local_var_compute_kind = application_instance
                     .locals_map
                     .get_local_compute_kind(*local_var_id);
+                let mut updated_compute_kind = local_var_compute_kind.compute_kind;
+
+                // Since the local variable compute kind is what will be updated, the value kind must match the local
+                // variable's type. That is why before aggregating the compute kind of the assigned value we need to get
+                // a default value kind of the matching type.
+                // In some cases, there might be some loss of granularity on the value kind (e.g. assigning an array to
+                // a UDT variable field since we do not track individual UDT fields).
+                let value_expr_compute_kind =
+                    *application_instance.get_expr_compute_kind(value_expr_id);
                 let mut value_kind =
                     ValueKind::new_static_from_type(&local_var_compute_kind.local.ty);
                 if let ComputeKind::Quantum(value_expr_quantum_properties) = value_expr_compute_kind
@@ -1423,8 +1428,6 @@ impl<'a> Analyzer<'a> {
                         .value_kind
                         .project_onto_variant(&mut value_kind);
                 }
-
-                let mut updated_compute_kind = ComputeKind::Classical;
                 updated_compute_kind = updated_compute_kind
                     .aggregate_runtime_features(value_expr_compute_kind, value_kind);
 
