@@ -13,12 +13,13 @@ $$P_{correct} = P(0) P(a|0) + P(+) P(b|+) = \frac{1}{2} (P(a|0) + P(b|+))$$
 
 We can represent our measurement as a von Neumann measurement of the following form:
 
-$\ket{E_a} = R_y(2\alpha) \begin{bmatrix} 1\\0\end{bmatrix} = \begin{bmatrix}\cos(\alpha) \\ \sin(\alpha)\end{bmatrix}, \ket{E_b} = R_y(2\alpha) \begin{bmatrix} 0\\1\end{bmatrix} = \begin{bmatrix}-\sin(\alpha) \\ \cos(\alpha)\end{bmatrix}$
+$\ket{E_a} = R_y(2\alpha) \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} \cos(\alpha) \\ \sin(\alpha) \end{bmatrix},
+\ket{E_b} = R_y(2\alpha) \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} -\sin(\alpha) \\ \cos(\alpha) \end{bmatrix}$
 
-\
+<br>
 @[svg]({"path": "../media/Task201_Rotation.svg"})
+<br>
 
-\
 Using this representation, we can express our probabilities as follows:
 
 $$P(a|0) = |\braket{E_a|0}|^2 = \cos^2(\alpha)$$
