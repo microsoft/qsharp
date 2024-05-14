@@ -379,7 +379,7 @@ function registerConfigurationChangeHandlers(
   formatterHandle: any,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration("Q#.targetProfile")) {
+    if (event.affectsConfiguration("Q#.qir.targetProfile")) {
       updateLanguageServiceProfile(languageService);
     } else if (event.affectsConfiguration("Q#.enableFormatting")) {
       updateLanguageServiceEnableFormatting(languageService, formatterHandle);
