@@ -30,6 +30,7 @@ use qsc_fir::{
     },
     ty::Ty,
 };
+use rustc_hash::FxHashSet;
 
 use std::{
     cmp::Ord,
@@ -140,6 +141,13 @@ impl PackageStoreComputeProperties {
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
     }
+
+    #[must_use]
+    pub fn is_unresolved_callee_expr(&self, id: StoreExprId) -> bool {
+        self.get(id.package)
+            .unresolved_callee_exprs
+            .contains(&id.expr)
+    }
 }
 
 /// The compute properties of a package.
@@ -153,6 +161,8 @@ pub struct PackageComputeProperties {
     pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
     /// The application generator sets of the package expressions.
     pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
+    /// The expressions that were unresolved callees at analysis time.
+    pub unresolved_callee_exprs: FxHashSet<ExprId>,
 }
 
 impl Default for PackageComputeProperties {
@@ -162,6 +172,7 @@ impl Default for PackageComputeProperties {
             blocks: IndexMap::new(),
             stmts: IndexMap::new(),
             exprs: IndexMap::new(),
+            unresolved_callee_exprs: FxHashSet::default(),
         }
     }
 }

@@ -511,6 +511,9 @@ impl<'a> Analyzer<'a> {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
             });
+            self.get_current_application_instance_mut()
+                .unresolved_callee_exprs
+                .push(callee_expr_id);
             return CallComputeKind::Regular(compute_kind);
         };
 
