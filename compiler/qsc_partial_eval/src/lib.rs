@@ -981,13 +981,7 @@ impl<'a> PartialEvaluator<'a> {
         // Now that we are in evaluation, we have a distinct callable resolved and can perform runtime capability check
         // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
         // by the target.
-        let call_expr_compute_kind = self.get_expr_compute_kind(call_expr_id);
-        let call_was_unresolved = match call_expr_compute_kind {
-            ComputeKind::Quantum(props) => props
-                .runtime_features
-                .contains(RuntimeFeatureFlags::CallToUnresolvedCallee),
-            ComputeKind::Classical => false,
-        };
+        let call_was_unresolved = self.is_unresolved_callee_expr(callee_expr_id);
         if call_was_unresolved {
             let call_compute_kind = self.get_call_compute_kind(&call_scope);
             if let ComputeKind::Quantum(QuantumProperties {
@@ -1646,6 +1640,13 @@ impl<'a> PartialEvaluator<'a> {
         let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
         let callable_scope = self.eval_context.get_current_scope();
         expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
+    }
+
+    fn is_unresolved_callee_expr(&self, expr_id: ExprId) -> bool {
+        let current_package_id = self.get_current_package_id();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        self.compute_properties
+            .is_unresolved_callee_expr(store_expr_id)
     }
 
     fn get_call_compute_kind(&self, callable_scope: &Scope) -> ComputeKind {

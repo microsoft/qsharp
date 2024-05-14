@@ -1314,3 +1314,35 @@ fn call_to_unresolved_callee_via_closure_with_dynamic_arg_fails() {
         &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 302, hi: 309 }))"],
     );
 }
+
+#[test]
+fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Unit {
+                Rx(IntAsDouble(i), q);
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                let f = [Op][0];
+                f(1, q);
+                MResetZ(q)
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(3), args( Result(0), Pointer, )
+                Return"#]],
+    );
+}
