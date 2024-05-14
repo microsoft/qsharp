@@ -76,15 +76,14 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                     // Start with the first predecessor's value and block id, then add the values from the other predecessors.
                     let mut phi_args = vec![(*operand, *first_pred)];
                     for pred in rest_preds {
-                        phi_args.push((
-                            block_var_map
-                                .get(*pred)
-                                .expect("block should have variable map")
-                                .get(var_id)
-                                .copied()
-                                .expect("variable should be defined in all predecessors"),
-                            *pred,
-                        ));
+                        let pred_var_map = block_var_map
+                            .get(*pred)
+                            .expect("block should have variable map");
+                        let mut pred_operand = *pred_var_map
+                            .get(var_id)
+                            .expect("variable should be in predecessor's variable map");
+                        pred_operand = pred_operand.mapped(pred_var_map);
+                        phi_args.push((pred_operand, *pred));
                     }
                     phi_nodes.insert(*var_id, phi_args);
                 } else {

@@ -43,7 +43,18 @@ pub fn remap_block_ids(program: &mut Program) {
         }
         block_id_map.push(block_id);
 
-        blocks_to_visit.extend(get_block_successors(program.get_block(block_id)));
+        let successors = get_block_successors(program.get_block(block_id));
+        if blocks_to_visit.len() >= successors.len()
+            && blocks_to_visit
+                .iter()
+                .skip(blocks_to_visit.len() - successors.len())
+                .eq(successors.iter())
+        {
+            // All successors are already at the end of the queue in same order, so avoid adding them and reprocessing
+            // the same blocks back-to-back.
+            continue;
+        }
+        blocks_to_visit.extend(successors);
     }
 
     let block_id_map = block_id_map
