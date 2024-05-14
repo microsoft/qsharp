@@ -673,8 +673,6 @@ impl Resolver {
                             ) {
                                 Ok(res) => TermOrTy::Ty(res),
                                 Err(err) => {
-                                    // try to see if it is a namespace
-
                                     self.errors.push(err);
                                     continue;
                                 }
@@ -697,7 +695,9 @@ impl Resolver {
                         _ => self.errors.push(Error::ImportedNonItem(item.path.span)),
                     }
 
-                    if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item { self.names.insert(item.path.id, res); }
+                    if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item {
+                        self.names.insert(item.path.id, res);
+                    }
 
                 }
 

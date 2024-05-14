@@ -7,15 +7,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{
-    expr::expr,
-    keyword::Keyword,
-    prim::{ident, many, opt, pat, seq, token},
-    scan::ParserContext,
-    stmt,
-    ty::{self, ty},
-    Error, Result,
-};
+use super::{expr::expr, keyword::Keyword, prim::{ident, many, opt, pat, comma_separated_seq, token}, scan::ParserContext, stmt, ty::{self, ty}, Error, Result, Parser};
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -26,6 +18,7 @@ use crate::{
 use qsc_ast::ast::{Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind, ImportDecl, ImportItem};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
+use crate::prim::seq;
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -132,6 +125,7 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
+
 pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
@@ -332,7 +326,7 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (defs, final_sep) = seq(s, parse_ty_def)?;
+        let (defs, final_sep) = comma_separated_seq(s, parse_ty_def)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         final_sep.reify(defs, TyDefKind::Paren, TyDefKind::Tuple)
     } else {
@@ -388,7 +382,7 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let name = ident(s)?;
     let generics = if token(s, TokenKind::Lt).is_ok() {
         throw_away_doc(s);
-        let params = seq(s, ty::param)?.0;
+        let params = comma_separated_seq(s, ty::param)?.0;
         token(s, TokenKind::Gt)?;
         params
     } else {
@@ -496,6 +490,7 @@ fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
         )))
     }
 }
+
 /// Checks that the inputs of the callable are surrounded by parens
 pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     if matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
@@ -519,7 +514,7 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Export))?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = seq(s, path)?;
+    let items = comma_separated_seq(s, path)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     token(s, TokenKind::Semi)?;
 
@@ -540,7 +535,13 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Import))?;
-    let items = parse_import_items(s)?;
+    let items = parse_import_content(s)?;
+
+    // DEBUG PRINT REMOVE ME TODO
+    for item in &items {
+        println!("Imported item: {:?}.{}", item.path.namespace.as_ref(), item.path.name);
+    }
+
     token(s, TokenKind::Semi)?;
 
     Ok(ImportDecl {
@@ -549,32 +550,158 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     })
 }
 
-fn parse_import_items(s: &mut ParserContext) -> Result<Vec<ImportItem>> {
-    let mut items = Vec::new();
 
-    if token(s, TokenKind::Open(Delim::Brace)).is_ok() {
-        // Parse nested import items
-        loop {
-            items.push(parse_import_item(s)?);
-
-            match s.peek().kind {
-                TokenKind::Comma => {
-                    s.advance();
-                }
-                TokenKind::Close(Delim::Brace) => {
-                    s.advance();
-                    break;
-                }
-                _ => return todo!("error"),
-            }
-        }
-    } else {
-        // Parse single import item
-        items.push(parse_import_item(s)?);
+// Parse a single import statement
+fn parse_import_content(s: &mut ParserContext) -> Result<Vec<ImportItem>>{
+    let base_import = seq(s, ident, TokenKind::Dot)?.0.into_iter().map(|x| *x).collect();
+    match s.peek().kind {
+        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, base_import),
+        // TODO aliases
+        //Some('a'..='z' | 'A'..='Z') => self.parse_alias_import(import_type),
+        TokenKind::Eof => todo!("Unexpected end of input"),
+        _ => todo!("unexpected token")
     }
-
-    Ok(items)
 }
+
+// Parse multiple imports
+fn parse_multiple_imports(s: &mut ParserContext, parent: Vec<Ident> ) -> Result< Vec<ImportItem >>{
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let mut imports = Vec::new();
+    let mut just_closed = false;
+    loop {
+        let mut full_path = parent.clone();
+        let mut import =  seq(s, ident, TokenKind::Dot)?.0.into_iter().map(|x| *x).collect();
+        full_path.append(&mut import);
+
+        match s.peek().kind {
+            TokenKind::Comma => {
+                let full_path: Path = full_path.into();
+                imports.push(
+                    ImportItem {
+                        span: full_path.span,
+                        path: full_path.into(),
+                        alias: None,
+                    }
+                );
+                token(s, TokenKind::Comma)?;
+                continue;
+            }
+            TokenKind::Close(Delim::Brace) => {
+                if !just_closed {
+                    let full_path: Path = full_path.into();
+
+                    imports.push(
+                        ImportItem {
+                            span: full_path.span,
+                            path: dbg!(full_path.into()),
+                            alias: None,
+                        }
+                    );
+                }
+                token(s, TokenKind::Close(Delim::Brace))?;
+
+                just_closed = false;
+                    break;
+            }
+            TokenKind::Open(Delim::Brace) => {
+                just_closed = true;
+                let nested_imports = parse_multiple_imports(s, full_path)?;
+                imports.extend(nested_imports);
+            }
+            a => return Err(Error(ErrorKind::Rule("comma or close brace", a, s.peek().span)))
+        }
+    }
+    Ok(imports)
+}
+
+//
+// fn parse_import_items_olddd(s: &mut ParserContext) -> Result<Vec<ImportItem>> {
+//     let mut path_thus_far: Path = Path::default();
+//     let mut items = vec![];
+//     let mut open_braces_seen = 0;
+//     let mut current_braces_buf: Vec<Path> = vec![];
+//     loop {
+//         let tok = s.peek();
+//         match tok.kind {
+//             TokenKind::Semi => {
+//                 s.advance();
+//                 break; },
+//             TokenKind::Open(Delim::Brace) => {
+//                 s.advance();
+//                 open_braces_seen += 1 },
+//             kind @ TokenKind::Close(Delim::Brace) => {
+//                 s.advance();
+//                 open_braces_seen -= 1;
+//                 if open_braces_seen < 0 {
+//                     return Err(Error(ErrorKind::Rule("open brace, item, or semicolon", kind , tok.span)));
+//                 }
+//                 for item in current_braces_buf.drain(..) {
+//                     let fully_qualified_item = path_thus_far.clone().append(item);
+//                     items.push(fully_qualified_item)
+//                 }
+//             }
+//             TokenKind::Ident => {
+//                 if open_braces_seen > 0 {
+//                     current_braces_buf.push(*path(s)?);
+//                 }
+//                 else {
+//                     path_thus_far.append(*path(s)?);
+//                 }
+//                 todo!("figure out nested paths")
+//             }
+//             _ => todo!("unexpected token")
+//
+//
+//         }
+//     }
+//
+//     let items_imported =
+//         if items.is_empty() { vec![path_thus_far] } else { items }
+//     ;
+//     let items_imported = items_imported.into_iter().map(|x| ImportItem {
+//         span: x.span,
+//         path: x,
+//         alias: None,
+//     }).collect();
+//
+//     return Ok(items_imported)
+//
+// }
+//
+// fn parse_import_items_old(s: &mut ParserContext) -> Result<Vec<ImportItem>> {
+//     let mut items = Vec::new();
+//     // first there will be at least one ident,
+//     // and then either a dot or a brace.
+//     let mut path_thus_far = vec![*ident(s)?];
+//
+//     if token(s, TokenKind::Dot).is_ok() {
+//         if token(s, TokenKind::Open(Delim::Brace)).is_ok() {
+//             let debug_str = format!("{:?}", s.peek());
+//             // parse any nested items up until the next closing brace
+//             let local_items = parse_import_items(s)?;
+//             for local_item in local_items {
+//                 let span = local_item.span.clone();
+//                 let mut full_item_path = [path_thus_far.clone(), Into::<Idents>::into(local_item.path).0.to_vec()].concat();
+//                 let name = Box::new(full_item_path.pop().expect("invariant: parser guarantees imports have at least one item"));
+//                 // prepend the path thus far to the local item and insert it into the items
+//                 items.push(ImportItem {
+//                     span,
+//                     path: Path {
+//                         id: NodeId::default(),
+//                         span,
+//                         namespace: Some(full_item_path.into()),
+//                         name,
+//                     },
+//                     alias: None,
+//                 });
+//             }
+//             token(s, TokenKind::Close(Delim::Brace))?;
+//         } else {
+//             path_thus_far.push(*(ident(s)?));
+//         }
+//     }
+//     Ok(items)
+// }
 
 fn parse_import_item(s: &mut ParserContext) -> Result<ImportItem> {
     let lo = s.peek().span.lo;

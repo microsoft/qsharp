@@ -33,6 +33,7 @@ use std::rc::Rc;
 enum Change {
     Res(Res),
     NamespaceId(NamespaceId),
+    Import(Vec<Res>)
 }
 
 impl From<Res> for Change {
@@ -67,19 +68,24 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, change) in self.changes.iter().rev() {
             let name = match change {
-                Change::Res(res) => match res {
-                    Res::Item(item, _) => match item.package {
-                        None => format!("item{}", item.item),
-                        Some(package) => format!("package{package}_item{}", item.item),
-                    },
-                    Res::Local(node) => format!("local{node}"),
-                    Res::PrimTy(prim) => format!("{prim:?}"),
-                    Res::UnitTy => "Unit".to_string(),
-                    Res::Param(id) => format!("param{id}"),
-                },
+                Change::Res(res) => Self::format_res(res),
                 Change::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
+                Change::Import(resolutions) => format!("import {{{}}}", resolutions.iter().map(|res| Self::format_res(res)).collect::<Vec<_>>().join(", "))
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
+        }
+    }
+
+    fn format_res(res: &Res) -> String {
+        match res {
+            Res::Item(item, _) => match item.package {
+                None => format!("item{}", item.item),
+                Some(package) => format!("package{package}_item{}", item.item),
+            },
+            Res::Local(node) => format!("local{node}"),
+            Res::PrimTy(prim) => format!("{prim:?}"),
+            Res::UnitTy => "Unit".to_string(),
+            Res::Param(id) => format!("param{id}"),
         }
     }
 }
@@ -115,6 +121,17 @@ impl Visitor<'_> for Renamer<'_> {
                 }
                 return;
             }
+            ItemKind::Import(import) =>
+                {
+                    let mut replacement_buffer = vec![];
+                    for qsc_ast::ast::ImportItem { path, .. } in &import.items {
+                        let resolved_path = self.names.get(path.id).unwrap();
+                        replacement_buffer.push(resolved_path.clone());
+                    }
+                    self.changes.push((import.span, Change::Import(replacement_buffer))  );
+                    return;
+
+                }
             _ => (),
         }
         visit::walk_item(self, item);
@@ -3431,7 +3448,7 @@ fn import_non_existent_namespace() {
                 }
             }
 
-            // NotFound("NonExistent", Span { lo: 50, hi: 61 })
+            // NotFound("NonExistent", Span { lo: 62, hi: 73 })
         "#]],
     );
 }
@@ -3501,7 +3518,9 @@ fn import_tree_single_level() {
                 operation item2() : Unit {}
             }
             namespace namespace8 {
-                operation item5() : Unit {
+                import {item1, item2}
+
+                operation item4() : Unit {
                     item1();
                     item2();
                 }
@@ -3587,9 +3606,11 @@ fn import_tree_shadowing() {
                 operation item1() : Unit {}
             }
             namespace namespace8 {
-                operation item2() : Unit {}
+                operation item3() : Unit {}
+                import {item1}
+
                 operation item4() : Unit {
-                    item2();
+                    item1();
                 }
             }
         "#]],

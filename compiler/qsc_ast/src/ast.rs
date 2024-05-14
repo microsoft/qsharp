@@ -1296,6 +1296,55 @@ pub struct Path {
     pub name: Box<Ident>,
 }
 
+impl Path {
+    /// Appends another path to this path.
+    /// Notably, uses the span of the latter path.
+    /// This is useful for more readable error messages when dealing with nested imports.
+    /// For example:
+    /// `Foo.{Bar, Baz}` produces two paths: `Foo.Bar` and `Foo.Baz`. The span for these would be
+    /// just `Bar` and `Baz`, because if the span for `Baz` went all the way from `Foo` to `Baz`,
+    /// it would not be very useful in error reporting. E.g.,
+    /// ```
+    /// import Foo.{Bar, Baz}'
+    ///        ^^^^^^^^^^^^^ `Foo.Baz` not found
+    /// ```
+    /// is less intuitive than
+    /// ```
+    /// import Foo.{Bar, Baz}'
+    ///                  ^^^ `Foo.Baz` not found
+    /// ```
+    pub fn append(self, other: Path) -> Path {
+        Path {
+            namespace: match self.namespace {
+                Some(ns) => Some([&*ns.0, &[*self.name.clone()][..], &other.namespace.unwrap_or_default().0].concat().into()),
+                None => Some(vec![*self.name].into())
+            },
+            id: Default::default(),
+            span: other.span,
+            name: other.name,
+        }
+    }
+}
+
+impl Into<Vec<Ident>> for Path {
+    fn into(self) -> Vec<Ident> {
+        let mut buf = self.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*self.name);
+        buf
+    }
+}
+
+impl From<Vec<Ident>> for Path {
+    fn from(mut v: Vec<Ident>) -> Self {
+        let name = v.pop().unwrap();
+        Self {
+            namespace: if v.is_empty() { None } else { Some(v.into()) },
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+}
+
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(ns) = &self.namespace {
@@ -1329,6 +1378,10 @@ pub struct Ident {
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Idents(pub Box<[Ident]>);
+
+impl Idents {
+
+}
 
 impl From<Idents> for Vec<Rc<str>> {
     fn from(v: Idents) -> Self {
@@ -1764,8 +1817,7 @@ impl Display for ImportDecl {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct ImportItem {
     /// The span.
     pub span: Span,
@@ -1779,5 +1831,11 @@ impl Display for ImportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let alias_str = self.alias.as_ref().map(|a| a.name.as_ref()).unwrap_or("");
         write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
+    }
+}
+
+impl WithSpan for ImportItem {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }

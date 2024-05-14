@@ -1826,3 +1826,37 @@ fn parse_import_with_nested_alias() {
         "#]],
     );
 }
+
+#[test]
+fn import_with_too_many_closing_braces() {
+    check(
+        parse,
+        "import Foo.{Bar as Baz}};",
+        &expect![[r#"
+            ["Foo.Bar as Baz"]
+        "#]],
+    );
+}
+
+#[test]
+fn import_with_too_many_open_braces() {
+    check(
+        parse,
+        "import Foo.{{Bar as Baz};",
+        &expect![[r#"
+            ["Foo.Bar as Baz"]
+        "#]],
+    );
+}
+
+
+#[test]
+fn import_with_misplaced_closing_brace() {
+    check(
+        parse,
+        "import Foo.}Bar;",
+        &expect![[r#"
+            ["Foo.Bar as Baz"]
+        "#]],
+    );
+}
