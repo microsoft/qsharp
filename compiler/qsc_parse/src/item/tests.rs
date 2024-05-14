@@ -1826,7 +1826,20 @@ fn import_with_too_many_closing_braces() {
     check(
         parse_import,
         "import Foo.{Bar}};",
-        &expect![[r#""#]],
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace, item, or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
@@ -1835,7 +1848,18 @@ fn import_with_too_many_open_braces() {
     check(
         parse_import,
         "import Foo.{{Bar};",
-        &expect![[r#""#]],
+        &expect![[r#"
+            Error(
+                Rule(
+                    "close brace",
+                    Semi,
+                    Span {
+                        lo: 17,
+                        hi: 18,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
@@ -1845,7 +1869,20 @@ fn import_with_misplaced_closing_brace() {
     check(
         parse_import,
         "import Foo.}Bar;",
-        &expect![[r#""#]],
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 11,
+                        hi: 12,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
