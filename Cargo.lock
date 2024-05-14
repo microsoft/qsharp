@@ -1195,6 +1195,7 @@ dependencies = [
  "bitflags 2.4.2",
  "expect-test",
  "indenter",
+ "miette",
  "qsc",
  "qsc_data_structures",
  "qsc_fir",
@@ -1202,6 +1203,7 @@ dependencies = [
  "qsc_lowerer",
  "qsc_passes",
  "rustc-hash",
+ "thiserror",
 ]
 
 [[package]]

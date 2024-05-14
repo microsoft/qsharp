@@ -8,7 +8,7 @@ use expect_test::expect;
 
 #[test]
 fn docs_generation() {
-    let files = generate_docs();
+    let files = generate_docs(None, None, None);
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Microsoft.Quantum.Core/Length.md")
