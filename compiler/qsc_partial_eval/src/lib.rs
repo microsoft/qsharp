@@ -533,8 +533,6 @@ impl<'a> PartialEvaluator<'a> {
         lhs_eval_var: Var,
         rhs_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // In all cases we need to create a variable to hold the result of the binary operation.
-
         match bin_op {
             //
             BinOp::Eq | BinOp::Neq => {
@@ -547,8 +545,9 @@ impl<'a> PartialEvaluator<'a> {
                         rhs_expr.span,
                     ));
                 };
-
                 let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+                //
                 let eval_var = match (bin_op, rhs_operand) {
                     //
                     (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
@@ -578,7 +577,77 @@ impl<'a> PartialEvaluator<'a> {
                 Ok(EvalControlFlow::Continue(Value::Var(eval_var)))
             }
             BinOp::AndL => {
-                unimplemented!();
+                // ...
+                let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+
+                // ... continuation block.
+                let current_block_node = self.eval_context.pop_block_node();
+                let continuation_block_id = self.create_program_block();
+                let continuation_block_node = BlockNode {
+                    id: continuation_block_id,
+                    successor: current_block_node.successor,
+                };
+                self.eval_context.push_block_node(continuation_block_node);
+
+                // ... variable.
+                let variable_id = self.resource_manager.next_var();
+                let rir_variable = rir::Variable {
+                    variable_id,
+                    ty: rir::Ty::Boolean,
+                };
+
+                // ... true block.
+                let true_block_id = self.create_program_block();
+                let true_block_node = BlockNode {
+                    id: true_block_id,
+                    successor: Some(continuation_block_id),
+                };
+                self.eval_context.push_block_node(true_block_node);
+
+                // ... RHS eval.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "embedded return in RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+                // ... store and jump.
+                let store_ins = Instruction::Store(rhs_operand, rir_variable);
+                self.get_current_rir_block_mut().0.push(store_ins);
+                let jump_ins = Instruction::Jump(continuation_block_id);
+                self.get_current_rir_block_mut().0.push(jump_ins);
+
+                // ... pop true block.
+                let _ = self.eval_context.pop_block_node();
+
+                // ... else block.
+                let false_block_id = self.create_program_block();
+                let false_block_node = BlockNode {
+                    id: false_block_id,
+                    successor: Some(continuation_block_id),
+                };
+                self.eval_context.push_block_node(false_block_node);
+
+                // ... store and jump.
+                let lhs_operand = Operand::Variable(lhs_rir_var);
+                let store_ins = Instruction::Store(lhs_operand, rir_variable);
+                self.get_current_rir_block_mut().0.push(store_ins);
+                let jump_ins = Instruction::Jump(continuation_block_id);
+                self.get_current_rir_block_mut().0.push(jump_ins);
+
+                // ... branch instruction.
+                let branch_ins = Instruction::Branch(lhs_rir_var, true_block_id, false_block_id);
+                self.get_program_block_mut(current_block_node.id)
+                    .0
+                    .push(branch_ins);
+
+                // ... return the variable
+                let eval_var = map_rir_var_to_eval_var(rir_variable);
+                Ok(EvalControlFlow::Continue(Value::Var(eval_var)))
             }
             BinOp::OrL => {
                 unimplemented!();
