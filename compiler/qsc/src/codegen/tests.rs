@@ -626,7 +626,7 @@ mod adaptive_ri_profile {
               br label %block_3
             block_3:
               %var_3 = phi i64 [0, %block_1], [1, %block_2]
-              call void @__quantum__rt__integer_record_output(i64 %var_3, i8* null)
+              call void @__quantum__rt__int_record_output(i64 %var_3, i8* null)
               ret void
             }
 
