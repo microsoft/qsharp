@@ -100,7 +100,7 @@ namespace Sample {
 
         // Measure the n qubits and reset them to zero so that they can be
         // safely deallocated at the end of the block.
-        return ForEach(MResetZ, qubits);
+        return MResetEachZ(qubits);
     }
 
     /// # Summary
