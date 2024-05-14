@@ -527,6 +527,66 @@ impl<'a> PartialEvaluator<'a> {
         Ok(EvalControlFlow::Continue(value))
     }
 
+    fn eval_bin_op_with_lhs_dynamic_bool_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // In all cases we need to create a variable to hold the result of the binary operation.
+
+        match bin_op {
+            //
+            BinOp::Eq | BinOp::Neq => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "embedded return in RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+
+                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+                let eval_var = match (bin_op, rhs_operand) {
+                    //
+                    (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
+                    | (BinOp::Eq, Operand::Literal(Literal::Bool(true))) => lhs_eval_var,
+                    //
+                    (BinOp::Eq | BinOp::Neq, _) => {
+                        let rir_variable =
+                            rir::Variable::new_boolean(self.resource_manager.next_var());
+                        let lhs_operand = Operand::Variable(map_eval_var_to_rir_var(lhs_eval_var));
+                        let condition_code = match bin_op {
+                            BinOp::Eq => ConditionCode::Eq,
+                            BinOp::Neq => ConditionCode::Ne,
+                            _ => panic!("invalid Boolean comparison operator {bin_op:?}"),
+                        };
+                        let cmp_inst = Instruction::Icmp(
+                            condition_code,
+                            lhs_operand,
+                            rhs_operand,
+                            rir_variable,
+                        );
+                        self.get_current_rir_block_mut().0.push(cmp_inst);
+                        map_rir_var_to_eval_var(rir_variable)
+                    }
+                    (_, _) => panic!("invalid Boolean comparison operator {bin_op:?}"),
+                };
+
+                Ok(EvalControlFlow::Continue(Value::Var(eval_var)))
+            }
+            BinOp::AndL => {
+                unimplemented!();
+            }
+            BinOp::OrL => {
+                unimplemented!();
+            }
+            _ => panic!("invalid Boolean operator {bin_op:?}"),
+        }
+    }
+
     fn eval_bin_op_with_lhs_integer_operand(
         &mut self,
         bin_op: BinOp,
@@ -592,10 +652,9 @@ impl<'a> PartialEvaluator<'a> {
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         match lhs_eval_var.ty {
-            VarTy::Boolean => Err(Error::Unimplemented(
-                "bool binary operation with dynamic LHS".to_string(),
-                bin_op_expr_span,
-            )),
+            VarTy::Boolean => {
+                self.eval_bin_op_with_lhs_dynamic_bool_operand(bin_op, lhs_eval_var, rhs_expr_id)
+            }
             VarTy::Integer => {
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
                 let lhs_operand = Operand::Variable(lhs_rir_var);
