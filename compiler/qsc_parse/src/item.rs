@@ -537,8 +537,9 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     token(s, TokenKind::Keyword(Keyword::Import))?;
     let (base_path, _) = seq(s, ident, TokenKind::Dot)?;
     let base_path = base_path.into_iter().map(|x| *x).collect();
+    let mut brace_stack = 0;
    let items =  match s.peek().kind {
-        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, base_path)?,
+        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, base_path, &mut brace_stack )?,
          TokenKind::Semi => {
              vec![ImportItem {
                  span: s.span(lo),
@@ -566,7 +567,7 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
 
 
 // Parse multiple imports
-fn parse_multiple_imports(s: &mut ParserContext, parent: Vec<Ident>) -> Result< Vec<ImportItem >>{
+fn parse_multiple_imports(s: &mut ParserContext, parent: Vec<Ident>, brace_stack: &mut usize) -> Result< Vec<ImportItem >>{
     let mut imports = Vec::new();
     loop {
         let mut full_path = parent.clone();
@@ -593,6 +594,10 @@ fn parse_multiple_imports(s: &mut ParserContext, parent: Vec<Ident>) -> Result< 
                 continue;
             }
             TokenKind::Close(Delim::Brace) => {
+                *brace_stack -= 1;
+                if *brace_stack < 0 {
+                    return Err(Error(ErrorKind::Rule("open brace, item, or semicolon", s.peek().kind, s.peek().span)));
+                }
                     let full_path: Path = full_path.into();
 
                     imports.push(
@@ -610,8 +615,9 @@ fn parse_multiple_imports(s: &mut ParserContext, parent: Vec<Ident>) -> Result< 
                 break;
             }
             TokenKind::Open(Delim::Brace) => {
+                *brace_stack += 1;
                 token(s, TokenKind::Open(Delim::Brace))?;
-                let nested_imports = parse_multiple_imports(s, full_path)?;
+                let nested_imports = parse_multiple_imports(s, full_path, brace_stack)?;
                 imports.extend(nested_imports);
             }
             TokenKind::Semi => break,

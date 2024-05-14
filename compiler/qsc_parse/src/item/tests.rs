@@ -1826,9 +1826,7 @@ fn import_with_too_many_closing_braces() {
     check(
         parse_import,
         "import Foo.{Bar}};",
-        &expect![[r#"
-            ["Foo.Bar as Baz"]
-        "#]],
+        &expect![[r#""#]],
     );
 }
 
@@ -1837,9 +1835,7 @@ fn import_with_too_many_open_braces() {
     check(
         parse_import,
         "import Foo.{{Bar};",
-        &expect![[r#"
-            ["Foo.Bar as Baz"]
-        "#]],
+        &expect![[r#""#]],
     );
 }
 
@@ -1849,9 +1845,7 @@ fn import_with_misplaced_closing_brace() {
     check(
         parse_import,
         "import Foo.}Bar;",
-        &expect![[r#"
-            ["Foo.Bar as Baz"]
-        "#]],
+        &expect![[r#""#]],
     );
 }
 
