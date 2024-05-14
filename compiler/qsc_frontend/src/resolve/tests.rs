@@ -3192,7 +3192,7 @@ fn import_single_item() {
                 function item1() : Unit {}
             }
             namespace namespace8 {
-                import item1;
+                import {item1}
                 operation item3() : Unit {
                     item1();
                 }
@@ -3310,7 +3310,7 @@ fn import_with_alias() {
                 function item1() : Unit {}
             }
             namespace namespace8 {
-                import item1 as Baz;
+                import {item1}
                 operation item3() : Unit {
                     item1();
                 }
