@@ -1804,9 +1804,7 @@ fn parse_import_with_alias() {
     check(
         parse_import,
         "import Foo as Bar;",
-        &expect![[r#"
-            ["Foo as Bar"]
-        "#]],
+        &expect![[r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [0-0] (Ident _id_ [7-10] "Foo") as Bar]"#]],
     );
 }
 
@@ -1815,9 +1813,7 @@ fn parse_import_with_nested_alias() {
     check(
         parse_import,
         "import Foo.{Bar as Baz};",
-        &expect![[r#"
-            ["Foo.Bar as Baz"]
-        "#]],
+        &expect![[r#"ImportDecl [0-24]: [ImportItem [0-0]: Path _id_ [0-0] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#]],
     );
 }
 
