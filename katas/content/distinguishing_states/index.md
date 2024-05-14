@@ -46,6 +46,16 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Distinguishing Non-orthogonal States"
 })
 
+@[exercise]({
+    "id": "distinguishing_states__zero_plus",
+    "title": "|0〉 or |+〉?",
+    "path": "./zero_plus/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_states__conclusion",
     "title": "Conclusion"
