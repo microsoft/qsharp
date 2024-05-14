@@ -50,11 +50,11 @@ pub fn remap_block_ids(program: &mut Program) {
                 .skip(blocks_to_visit.len() - successors.len())
                 .eq(successors.iter())
         {
-            // All successors are already in the queue in same order, so avoid adding them and reprocessing
+            // All successors are already at the end of the queue in same order, so avoid adding them and reprocessing
             // the same blocks back-to-back.
             continue;
         }
-        blocks_to_visit.extend(get_block_successors(program.get_block(block_id)));
+        blocks_to_visit.extend(successors);
     }
 
     let block_id_map = block_id_map
