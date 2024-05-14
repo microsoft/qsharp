@@ -125,7 +125,7 @@ impl Visitor<'_> for Renamer<'_> {
                 {
                     let mut replacement_buffer = vec![];
                     for qsc_ast::ast::ImportItem { path, .. } in &import.items {
-                        let resolved_path = self.names.get(path.id).unwrap();
+                        let Some(resolved_path) = self.names.get(path.id) else { return };
                         replacement_buffer.push(resolved_path.clone());
                     }
                     self.changes.push((import.span, Change::Import(replacement_buffer))  );
@@ -3546,11 +3546,13 @@ fn import_tree_multi_level() {
         "},
         &expect![[r#"
             namespace namespace8 {
-                operation item2() : Unit {}
+                operation item1() : Unit {}
             }
             namespace namespace9 {
-                operation item4() : Unit {
-                    item2();
+                import {item1}
+
+                operation item3() : Unit {
+                    item1();
                 }
             }
         "#]],
@@ -3577,10 +3579,15 @@ fn import_tree_non_existent_item() {
                 operation item1() : Unit {}
             }
             namespace namespace8 {
+                import Foo.{Baz};
+
                 operation item3() : Unit {
-                    // NotFound("Baz", Span { lo: 50, hi: 53 })
+                    Baz();
                 }
             }
+
+            // NotFound("Baz", Span { lo: 81, hi: 84 })
+            // NotFound("Baz", Span { lo: 126, hi: 129 })
         "#]],
     );
 }
