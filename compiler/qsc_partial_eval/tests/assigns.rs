@@ -217,7 +217,7 @@ fn assigning_classical_int_updates_value_and_adds_store_instructions() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -283,7 +283,7 @@ fn assigning_dynamic_int_updates_value_and_adds_store_instructions() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -439,7 +439,7 @@ fn assigning_classical_int_within_dynamic_if_else_expression_adds_store_instruct
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1170,7 +1170,7 @@ fn integer_assign_add_with_lhs_classical_integer_and_rhs_dynamic_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1250,7 +1250,7 @@ fn integer_assign_sub_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1330,7 +1330,7 @@ fn integer_assign_mul_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1421,7 +1421,7 @@ fn integer_assign_div_with_lhs_classical_integer_and_rhs_dynamic_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1501,7 +1501,7 @@ fn integer_assign_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1653,7 +1653,7 @@ fn integer_assign_bitwise_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer()
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1744,7 +1744,7 @@ fn integer_assign_bitwise_or_with_lhs_classical_integer_and_rhs_dynamic_integer(
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1824,7 +1824,7 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1904,7 +1904,7 @@ fn integer_assign_bitwise_left_shift_with_lhs_dynamic_integer_and_rhs_dynamic_in
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -1995,7 +1995,7 @@ fn integer_assign_bitwise_right_shift_with_lhs_classical_integer_and_rhs_dynamic
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer

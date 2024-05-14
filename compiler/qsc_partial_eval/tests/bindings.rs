@@ -294,7 +294,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -368,7 +368,7 @@ fn mutable_int_binding_does_generate_store_instruction() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer

@@ -301,7 +301,7 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
