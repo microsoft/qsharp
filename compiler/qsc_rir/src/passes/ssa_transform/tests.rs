@@ -2457,7 +2457,8 @@ fn ssa_transform_maps_store_with_variable_from_store_in_conditional_to_phi_node(
             config: Config:
                 capabilities: Base
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 
     // After
     transform_program(&mut program);
