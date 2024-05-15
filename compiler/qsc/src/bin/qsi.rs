@@ -130,7 +130,11 @@ fn main() -> miette::Result<ExitCode> {
         ));
     }
 
-    let mut interpreter = match Interpreter::new(
+    let mut interpreter = match (if cli.debug {
+        Interpreter::new_with_debug
+    } else {
+        Interpreter::new
+    })(
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
