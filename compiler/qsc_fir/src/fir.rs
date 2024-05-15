@@ -1689,24 +1689,3 @@ pub enum BinOp {
     /// Bitwise XOR: `^^^`.
     XorB,
 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-/// Represents an export declaration.
-pub struct ExportDecl {
-    /// The span.
-    pub span: Span,
-    /// The items being exported from this namespace.
-    pub items: Vec<Idents>,
-}
-
-impl Display for ExportDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self
-            .items
-            .iter()
-            .map(Idents::name)
-            .collect::<Vec<_>>()
-            .join(", ");
-        write!(f, "ExportDecl {}: [{items_str}]", self.span)
-    }
-}

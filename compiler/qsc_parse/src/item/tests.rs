@@ -1771,3 +1771,59 @@ fn parse_export_list() {
                     Export (ExportDecl [72-155]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar"), Path _id_ [86-94] (Ident _id_ [86-89] "Baz") (Ident _id_ [90-94] "Quux"), Path _id_ [96-120] ([Ident _id_ [96-100] "Math", Ident _id_ [101-108] "Quantum", Ident _id_ [109-113] "Some"]) (Ident _id_ [114-120] "Nested"), Path _id_ [122-152] ([Ident _id_ [122-126] "Math", Ident _id_ [127-134] "Quantum", Ident _id_ [135-139] "Some", Ident _id_ [140-145] "Other"]) (Ident _id_ [146-152] "Nested")])"#]],
     );
 }
+#[test]
+fn parse_export_missing_braces() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Err
+
+            [
+                Error(
+                    Token(
+                        Open(
+                            Brace,
+                        ),
+                        Ident,
+                        Span {
+                            lo: 79,
+                            hi: 82,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn parse_export_empty() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export { };
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Export (ExportDecl [72-83]: [])"#]],
+    );
+}
