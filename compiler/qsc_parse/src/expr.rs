@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, path, comma_separated_seq, shorten, token},
+    prim::{comma_separated_seq, ident, opt, pat, path, shorten, token},
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };

@@ -160,10 +160,15 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
         xs.push(x);
     }
     Ok(xs)
-}/// Parses a sequence of items separated by `tok`.
-pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>, tok: TokenKind) -> Result<(Vec<T>, FinalSep)>
-    where
-        T: Default + WithSpan,
+}
+/// Parses a sequence of items separated by `tok`.
+pub(super) fn seq<T>(
+    s: &mut ParserContext,
+    mut p: impl Parser<T>,
+    tok: TokenKind,
+) -> Result<(Vec<T>, FinalSep)>
+where
+    T: Default + WithSpan,
 {
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
@@ -194,12 +199,14 @@ pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>, tok: TokenKin
 }
 
 /// Parses a sequence of items separated by commas.
-pub(super) fn comma_separated_seq<T>(s: &mut ParserContext,  p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
+pub(super) fn comma_separated_seq<T>(
+    s: &mut ParserContext,
+    p: impl Parser<T>,
+) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
 {
     seq(s, p, TokenKind::Comma)
-
 }
 
 pub(super) fn recovering<T>(

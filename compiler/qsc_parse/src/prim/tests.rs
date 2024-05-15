@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{ident, opt, pat, path, comma_separated_seq};
+use super::{comma_separated_seq, ident, opt, pat, path};
 use crate::{
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
@@ -306,7 +306,11 @@ fn opt_fail_consume() {
 
 #[test]
 fn seq_empty() {
-    check_seq(|s| comma_separated_seq(s, ident), "", &expect!["(, Missing)"]);
+    check_seq(
+        |s| comma_separated_seq(s, ident),
+        "",
+        &expect!["(, Missing)"],
+    );
 }
 
 #[test]

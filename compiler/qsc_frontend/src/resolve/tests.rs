@@ -30,10 +30,16 @@ use std::fmt::Write;
 use std::rc::Rc;
 
 #[derive(Debug)]
+enum ImportItem {
+    Res(Res),
+    NamespaceId(NamespaceId),
+}
+
+#[derive(Debug)]
 enum Change {
     Res(Res),
     NamespaceId(NamespaceId),
-    Import(Vec<Res>)
+    Import(Vec<ImportItem>),
 }
 
 impl From<Res> for Change {
@@ -70,7 +76,14 @@ impl<'a> Renamer<'a> {
             let name = match change {
                 Change::Res(res) => Self::format_res(res),
                 Change::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
-                Change::Import(resolutions) => format!("import {{{}}}", resolutions.iter().map(|res| Self::format_res(res)).collect::<Vec<_>>().join(", "))
+                Change::Import(resolutions) => format!(
+                    "import {{{}}}",
+                    resolutions
+                        .iter()
+                        .map(|res| Self::format_import_item(res))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
@@ -86,6 +99,13 @@ impl<'a> Renamer<'a> {
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
             Res::Param(id) => format!("param{id}"),
+        }
+    }
+
+    fn format_import_item(item: &ImportItem) -> String {
+        match item {
+            ImportItem::Res(res) => Self::format_res(res),
+            ImportItem::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
         }
     }
 }
@@ -121,17 +141,27 @@ impl Visitor<'_> for Renamer<'_> {
                 }
                 return;
             }
-            ItemKind::Import(import) =>
-                {
-                    let mut replacement_buffer = vec![];
-                    for qsc_ast::ast::ImportItem { path, .. } in &import.items {
-                        let Some(resolved_path) = self.names.get(path.id) else { return };
-                        replacement_buffer.push(resolved_path.clone());
-                    }
-                    self.changes.push((import.span, Change::Import(replacement_buffer))  );
-                    return;
+            ItemKind::Import(import) => {
+                let mut replacement_buffer = vec![];
+                for qsc_ast::ast::ImportItem { path, .. } in &import.items {
+                    let Some(resolved_path) = self.names.get(path.id) else {
+                        if let Some(ns_id) = self
+                            .namespaces
+                            .get_namespace_id(Into::<Idents>::into(path.clone()).str_iter())
+                        {
+                            replacement_buffer.push(ImportItem::NamespaceId(ns_id));
+                        }
+                        continue;
+                    };
 
+                    replacement_buffer.push(ImportItem::Res(resolved_path.clone()));
                 }
+                if !replacement_buffer.is_empty() {
+                    self.changes
+                        .push((import.span, Change::Import(replacement_buffer)));
+                }
+                return;
+            }
             _ => (),
         }
         visit::walk_item(self, item);
@@ -3220,14 +3250,11 @@ fn import_namespace() {
                 function item1() : Unit {}
             }
             namespace namespace9 {
-                import namespace7.Bar;
+                import {namespace8}
                 operation item3() : Unit {
-                    Bar.Baz();
+                    item1();
                 }
             }
-
-            // NotFound("Bar", Span { lo: 83, hi: 86 })
-            // NotFound("Baz", Span { lo: 130, hi: 133 })
         "#]],
     );
 }
@@ -3359,13 +3386,12 @@ fn import_namespace_nested() {
                 operation item1() : Unit {}
             }
             namespace namespace10 {
-                import namespace7.Bar;
+                import {namespace8}
                 operation item3() : Unit {
                     Bar.Baz.Quux();
                 }
             }
 
-            // NotFound("Bar", Span { lo: 89, hi: 92 })
             // NotFound("Quux", Span { lo: 140, hi: 144 })
         "#]],
     );

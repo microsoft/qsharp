@@ -6,7 +6,7 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{apos_ident, opt, path, comma_separated_seq, token},
+    prim::{apos_ident, comma_separated_seq, opt, path, token},
     scan::ParserContext,
     Error, Parser, Result,
 };

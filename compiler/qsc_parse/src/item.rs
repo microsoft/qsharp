@@ -579,19 +579,6 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
         }
     };
 
-    // DEBUG PRINT REMOVE ME TODO
-    for item in &items {
-        println!(
-            "Imported item: {}.{}",
-            item.path
-                .namespace
-                .as_ref()
-                .map(|x| x.name())
-                .unwrap_or_else(|| std::rc::Rc::from(String::new())),
-            item.path.name.name
-        );
-    }
-
     if brace_stack > 0 {
         return Err(Error(ErrorKind::Rule(
             "close brace",
@@ -667,7 +654,6 @@ fn parse_multiple_imports(
                     alias,
                 });
                 reduce_closing_tokens(s, brace_stack)?;
-
             }
             a => {
                 return Err(Error(ErrorKind::Rule(

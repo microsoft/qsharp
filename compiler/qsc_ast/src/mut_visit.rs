@@ -122,7 +122,10 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         }
         ItemKind::Import(import) => {
             vis.visit_span(&mut import.span);
-            import.items.iter_mut().for_each(|i| vis.visit_path(&mut i.path));
+            import
+                .items
+                .iter_mut()
+                .for_each(|i| vis.visit_path(&mut i.path));
         }
     }
 }

@@ -8,7 +8,7 @@ use super::{
     expr::{self, expr, expr_stmt},
     item,
     keyword::Keyword,
-    prim::{ident, many, opt, pat, comma_separated_seq, token},
+    prim::{comma_separated_seq, ident, many, opt, pat, token},
     scan::ParserContext,
     Error, Result,
 };

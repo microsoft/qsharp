@@ -1316,8 +1316,16 @@ impl Path {
     pub fn append(self, other: Path) -> Path {
         Path {
             namespace: match self.namespace {
-                Some(ns) => Some([&*ns.0, &[*self.name.clone()][..], &other.namespace.unwrap_or_default().0].concat().into()),
-                None => Some(vec![*self.name].into())
+                Some(ns) => Some(
+                    [
+                        &*ns.0,
+                        &[*self.name.clone()][..],
+                        &other.namespace.unwrap_or_default().0,
+                    ]
+                    .concat()
+                    .into(),
+                ),
+                None => Some(vec![*self.name].into()),
             },
             id: Default::default(),
             span: other.span,
@@ -1339,14 +1347,17 @@ impl From<Vec<Ident>> for Path {
         let name = v.pop().unwrap();
         let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
         let span = Span {
-            lo: namespace.as_ref().map(|ns| ns.span().lo).unwrap_or(name.span.lo),
+            lo: namespace
+                .as_ref()
+                .map(|ns| ns.span().lo)
+                .unwrap_or(name.span.lo),
             hi: name.span.hi,
         };
         Self {
             namespace,
             name: name.into(),
             span,
-            id: Default::default()
+            id: Default::default(),
         }
     }
 }
@@ -1797,7 +1808,6 @@ impl ExportDecl {
         self.items.iter()
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportDecl {

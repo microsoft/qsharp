@@ -650,7 +650,10 @@ impl Resolver {
                 }
             }
             ast::ItemKind::Import(import) => {
-                enum TermOrTy { Term(Res), Ty(Res)}
+                enum TermOrTy {
+                    Term(Res),
+                    Ty(Res),
+                }
                 // resolve the imported item and insert the vec ident into the names table, so we can access it in
                 // lowering
                 for item in import.items.iter() {
@@ -673,7 +676,19 @@ impl Resolver {
                             ) {
                                 Ok(res) => TermOrTy::Ty(res),
                                 Err(err) => {
-                                    self.errors.push(err);
+                                    // try to see if it is a namespace
+                                    let items = Into::<Idents>::into(item.path.clone());
+                                    let ns = self.globals.find_namespace(items.str_iter());
+                                    let alias = item
+                                        .alias
+                                        .as_ref()
+                                        .map(|x| Box::new(x.clone()))
+                                        .or(Some(item.path.name.clone()));
+                                    if let Some(ns) = ns {
+                                        self.bind_open(&items, &alias, ns);
+                                    } else {
+                                        self.errors.push(err);
+                                    }
                                     continue;
                                 }
                             }
@@ -688,7 +703,7 @@ impl Resolver {
                     match resolved_item {
                         TermOrTy::Term(Res::Item(id, _)) => {
                             scope.terms.insert(Rc::clone(&local_name.name), id);
-                        },
+                        }
                         TermOrTy::Ty(Res::Item(id, _)) => {
                             scope.tys.insert(Rc::clone(&local_name.name), id);
                         }
@@ -698,10 +713,8 @@ impl Resolver {
                     if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item {
                         self.names.insert(item.path.id, res);
                     }
-
                 }
-
-            },
+            }
             ast::ItemKind::Err => {}
         }
     }
@@ -805,7 +818,7 @@ impl AstVisitor<'_> for With<'_> {
                     ast::ItemKind::Open(name, alias) => {
                         visitor.resolver.bind_open(name, alias, ns);
                     }
-                    ast::ItemKind::Export(_) | ast::ItemKind::Import(_)  => {
+                    ast::ItemKind::Export(_) | ast::ItemKind::Import(_) => {
                         visitor
                             .resolver
                             .bind_local_item(visitor.assigner, item, Some(ns));
@@ -1208,7 +1221,10 @@ fn bind_global_item(
                 }
             }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) | ast::ItemKind::Import(..) => Ok(()),
+        ast::ItemKind::Err
+        | ast::ItemKind::Open(..)
+        | ast::ItemKind::Export(..)
+        | ast::ItemKind::Import(..) => Ok(()),
     }
 }
 
