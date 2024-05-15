@@ -62,7 +62,7 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
             let first_pred_map = block_var_map
                 .get(*first_pred)
                 .expect("block should have variable map");
-            for (var_id, operand) in first_pred_map {
+            'var_loop: for (var_id, operand) in first_pred_map {
                 let mut phi_nodes = FxHashMap::default();
 
                 if rest_preds.iter().any(|pred| {
@@ -85,7 +85,7 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                                 // If the variable is not defined in this predecessor, it does not dominate this block.
                                 // Assume it is not used and skip creating a phi node for this variable. If the variable is used,
                                 // the ssa check will detect it and panic later.
-                                continue;
+                                continue 'var_loop;
                             }
                         };
                         pred_operand = pred_operand.mapped(pred_var_map);
