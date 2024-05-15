@@ -42,7 +42,7 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
-    #[error("this is not a callable or type")]
+    #[error("not a callable or type")]
     #[diagnostic(code("Qsc.LowerAst.ExportedNonItem"))]
     ExportedNonItem(#[label] Span),
     #[error("exporting items from external packages is not yet supported")]
