@@ -45,7 +45,7 @@ pub(super) enum Error {
     #[error("not a callable or type")]
     #[diagnostic(code("Qsc.LowerAst.ExportedNonItem"))]
     ExportedNonItem(#[label] Span),
-    #[error("exporting items from external packages is not yet supported")]
+    #[error("exporting items from an external package is not supported")]
     #[diagnostic(code("Qsc.LowerAst.ExportedExternalItem"))]
     ExportedExternalItem(#[label] Span),
 }
