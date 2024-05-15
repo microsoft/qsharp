@@ -350,8 +350,10 @@ fn large_loop_with_inner_if_completes_eval_and_transform() {
                 use q = Qubit();
                 mutable i = 0;
                 for idx in 0..99 {
-                    if MResetZ(q) == One {
-                        set i += 1;
+                    if i == 0 {
+                        if MResetZ(q) == One {
+                            set i += 1;
+                        }
                     }
                 }
                 return i;
@@ -362,10 +364,10 @@ fn large_loop_with_inner_if_completes_eval_and_transform() {
 
     // Program is expected to be too large to reasonably print out here, so instead verify the last block
     // and the total number of blocks.
-    assert_eq!(program.blocks.iter().count(), 201);
+    assert_eq!(program.blocks.iter().count(), 399);
     assert_block_instructions(
         &program,
-        BlockId(199),
+        BlockId(395),
         &expect![[r#"
             Block:
                 Variable(1, Integer) = Store Integer(100)
