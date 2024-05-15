@@ -2085,6 +2085,7 @@ fn import_tree_missing_opening_brace() {
     );
 }
 
+#[test]
 fn parse_export_empty() {
     check_vec(
         parse_namespaces,
