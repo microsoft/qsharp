@@ -1409,6 +1409,7 @@ fn reject_bad_filename_implicit_namespace() {
 fn test_longest_common_prefix_1() {
     assert_eq!(longest_common_prefix(&["/a/b/c", "/a/b/d"]), "/a/b/");
 }
+
 #[test]
 fn test_longest_common_prefix_2() {
     assert_eq!(longest_common_prefix(&["foo", "bar"]), "");
