@@ -3396,36 +3396,36 @@ fn import_namespace_nested() {
         "#]],
     );
 }
-// TODO
-// #[test]
-// fn import_single_namespace() {
-//     check(
-//         indoc! {"
-//             namespace Foo {
-//                 operation Bar() : Unit {}
-//             }
-//             namespace Main {
-//                 import Foo;
-//
-//                 operation Main() : Unit {
-//                     Foo.Bar();
-//                 }
-//             }
-//         "},
-//         &expect![[r#"
-//             namespace namespace7 {
-//                 operation item1() : Unit {}
-//             }
-//             namespace namespace8 {
-//                 operation item3() : Unit {
-//                     let item4 = 5;
-//                     import namespace7;
-//                     item1();
-//                 }
-//             }
-//         "#]],
-//     );
-// }
+
+#[test]
+fn import_single_namespace() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo;
+
+                operation Main() : Unit {
+                    Foo.Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {namespace7}
+
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
 
 #[test]
 fn import_shadowing_function() {
