@@ -616,7 +616,7 @@ fn parse_multiple_imports(
 ) -> Result<Vec<ImportItem>> {
     let mut imports = Vec::new();
 
-    'outer: loop {
+    loop {
         let mut full_path = parent.clone();
         let (import, _final_sep) = seq(s, ident, TokenKind::Dot)?;
         let mut import: Vec<_> = import.into_iter().map(|x| *x).collect();
@@ -640,15 +640,15 @@ fn parse_multiple_imports(
 
                 let full_path: Path = full_path.into();
 
-                imports.push(dbg!(ImportItem {
+                imports.push(ImportItem {
                     span: full_path.span,
                     path: full_path.into(),
                     alias: None,
-                }));
+                });
                 token(s, TokenKind::Close(Delim::Brace))?;
                 reduce_closing_tokens(s, brace_stack)?;
 
-                break 'outer;
+                break;
             }
             TokenKind::Open(Delim::Brace) => {
                 *brace_stack += 1;
@@ -682,14 +682,14 @@ fn parse_multiple_imports(
 }
 
 fn reduce_closing_tokens(s: &mut ParserContext, brace_stack: &mut i32) -> Result<()> {
-    'inner: loop {
+    loop {
         match s.peek().kind {
             TokenKind::Comma => s.advance(),
             TokenKind::Close(Delim::Brace) => {
                 decrement_brace_stack(s, brace_stack)?;
                 s.advance();
             }
-            _ => break 'inner,
+            _ => break,
         }
     }
     Ok(())

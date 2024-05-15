@@ -3249,7 +3249,7 @@ fn import_non_existent_item() {
             namespace namespace7 {
             }
             namespace namespace8 {
-                import namespace7.Bar;
+                import Foo.Bar;
                 operation item2() : Unit {
                     Bar();
                 }
@@ -3282,7 +3282,7 @@ fn import_shadowing() {
             }
             namespace namespace8 {
                 function item3() : Unit {}
-                import item1;
+                import {item1}
                 operation item4() : Unit {
                     item1();
                 }
@@ -3330,7 +3330,7 @@ fn import_non_item() {
         "},
         &expect![[r#"
             namespace namespace7 {
-                import Unit;
+                import {Unit}
                 operation item1() : Unit {
                 }
             }
@@ -3411,7 +3411,7 @@ fn import_shadowing_function() {
             namespace Main {
                 operation Bar() : Unit {}
                 operation Main() : Unit {
-                    import Foo;
+                    import Foo.Bar;
                     Bar();
                 }
             }
@@ -3423,7 +3423,7 @@ fn import_shadowing_function() {
             namespace namespace8 {
                 operation item3() : Unit {}
                 operation item4() : Unit {
-                    import namespace7;
+                    import {item1}
                     item1();
                 }
             }
@@ -3454,41 +3454,19 @@ fn import_non_existent_namespace() {
 }
 
 #[test]
-fn import_empty_namespace() {
-    check(
-        indoc! {"
-            namespace Foo {}
-            namespace Main {
-                operation Main() : Unit {
-                    import Foo;
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace namespace7 {}
-            namespace namespace8 {
-                operation item2() : Unit {
-                    import namespace7;
-                }
-            }
-        "#]],
-    );
-}
-
-#[test]
 fn import_self() {
     check(
         indoc! {"
             namespace Main {
-                operation Main() : Unit {
-                    import Main;
+                operation Foo() : Unit {
+                    import Foo;
                 }
             }
         "},
         &expect![[r#"
             namespace namespace7 {
                 operation item1() : Unit {
-                    import namespace7;
+                    import {item1}
                 }
             }
         "#]],

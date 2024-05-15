@@ -1337,10 +1337,16 @@ impl Into<Vec<Ident>> for Path {
 impl From<Vec<Ident>> for Path {
     fn from(mut v: Vec<Ident>) -> Self {
         let name = v.pop().unwrap();
+        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
+        let span = Span {
+            lo: namespace.as_ref().map(|ns| ns.span().lo).unwrap_or(name.span.lo),
+            hi: name.span.hi,
+        };
         Self {
-            namespace: if v.is_empty() { None } else { Some(v.into()) },
+            namespace,
             name: name.into(),
-            ..Default::default()
+            span,
+            id: Default::default()
         }
     }
 }
@@ -1378,10 +1384,6 @@ pub struct Ident {
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Idents(pub Box<[Ident]>);
-
-impl Idents {
-
-}
 
 impl From<Idents> for Vec<Rc<str>> {
     fn from(v: Idents) -> Self {
