@@ -288,12 +288,11 @@ async fn compile_error() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             Ident,
                                             Span {
                                                 lo: 0,
-                                                hi: 9,
+                                                hi: 0,
                                             },
                                         ),
                                     ),
@@ -1124,7 +1123,7 @@ async fn delete_manifest() {
                     },
                 ],
                 common_prefix: Some(
-                    "project/src/this_file.qs",
+                    "project/src/",
                 ),
                 entry: None,
             }

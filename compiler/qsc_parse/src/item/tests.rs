@@ -199,6 +199,7 @@ fn udt_item_doc() {
                         Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
+
 #[test]
 fn callable_param_doc() {
     check(
@@ -220,6 +221,7 @@ fn callable_param_doc() {
                     body: Block: Block _id_ [74-76]: <empty>"#]],
     );
 }
+
 #[test]
 fn callable_return_doc() {
     check(
@@ -1850,6 +1852,42 @@ fn import_with_too_many_closing_braces() {
 }
 
 #[test]
+fn parse_export_missing_braces() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Err
+
+            [
+                Error(
+                    Token(
+                        Open(
+                            Brace,
+                        ),
+                        Ident,
+                        Span {
+                            lo: 79,
+                            hi: 82,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn import_with_too_many_open_braces() {
     check(
         parse_import,
@@ -1903,6 +1941,7 @@ fn complex_import_tree() {
         ]],
     );
 }
+
 #[test]
 fn ignore_extra_commas_in_list() {
     check(
@@ -1915,6 +1954,7 @@ fn ignore_extra_commas_in_list() {
         ]],
     );
 }
+
 #[test]
 fn ignore_extra_commas_after_brace() {
     check(
@@ -2042,5 +2082,25 @@ fn import_tree_missing_opening_brace() {
                 ),
             )
         "#]],
+    );
+}
+
+fn parse_export_empty() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export { };
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Export (ExportDecl [72-83]: [])"#]],
     );
 }

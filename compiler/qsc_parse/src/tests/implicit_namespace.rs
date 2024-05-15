@@ -58,7 +58,7 @@ fn reject_bad_namespace_name_1() {
             LanguageFeatures::default()
         )
     );
-    expect![[r"
+    expect![[r#"
         (
             [],
             [
@@ -68,10 +68,11 @@ fn reject_bad_namespace_name_1() {
                             lo: 0,
                             hi: 26,
                         },
+                        "Foo-Bar",
                     ),
                 ),
             ],
-        )"]]
+        )"#]]
     .assert_eq(&result);
 }
 
@@ -85,7 +86,7 @@ fn reject_bad_namespace_name_2() {
             LanguageFeatures::default()
         )
     );
-    expect![[r"
+    expect![[r#"
         (
             [],
             [
@@ -95,9 +96,10 @@ fn reject_bad_namespace_name_2() {
                             lo: 0,
                             hi: 26,
                         },
+                        "123Bar",
                     ),
                 ),
             ],
-        )"]]
+        )"#]]
     .assert_eq(&result);
 }

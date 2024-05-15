@@ -146,11 +146,11 @@ impl SourceMap {
 
     /// Returns the sources as an iter, but with the project root directory subtracted
     /// from the individual source names.
-    pub(crate) fn relative_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
+    pub(crate) fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
             let relative_name = if let Some(common_prefix) = &self.common_prefix {
-                name.strip_prefix(&*common_prefix.clone()).unwrap_or(name)
+                name.strip_prefix(common_prefix.as_ref()).unwrap_or(name)
             } else {
                 name
             };
@@ -462,7 +462,7 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in sources.relative_project_sources() {
+    for source in sources.relative_sources() {
         let (source_namespaces, source_errors) =
             qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
@@ -574,24 +574,11 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 }
 
 #[must_use]
-pub fn longest_common_prefix_old<'a>(strs: &'a [&'a str]) -> &'a str {
-    let Some(common_prefix_so_far) = strs.first() else {
-        return "";
-    };
-
-    for (i, character) in common_prefix_so_far.chars().enumerate() {
-        for string in strs {
-            if string.chars().nth(i) != Some(character) {
-                return &common_prefix_so_far[0..i];
-            }
-        }
+pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    if strs.len() == 1 {
+        return truncate_to_path_separator(strs[0]);
     }
 
-    common_prefix_so_far
-}
-
-#[must_use]
-pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
     let Some(common_prefix_so_far) = strs.first() else {
         return "";
     };
@@ -601,17 +588,19 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
             if string.chars().nth(i) != Some(character) {
                 let prefix = &common_prefix_so_far[0..i];
                 // Find the last occurrence of the path separator in the prefix
-                let last_separator_index = common_prefix_so_far
-                    .rfind('/')
-                    .or_else(|| common_prefix_so_far.rfind('\\'));
-                if let Some(last_separator_index) = last_separator_index {
-                    // Return the prefix up to and including the last path separator
-                    return &prefix[0..=last_separator_index];
-                }
-                // If there's no path separator in the prefix, return an empty string
-                return "";
+                return truncate_to_path_separator(prefix);
             }
         }
     }
     common_prefix_so_far
+}
+
+fn truncate_to_path_separator(prefix: &str) -> &str {
+    let last_separator_index = prefix.rfind('/').or_else(|| prefix.rfind('\\'));
+    if let Some(last_separator_index) = last_separator_index {
+        // Return the prefix up to and including the last path separator
+        return &prefix[0..=last_separator_index];
+    }
+    // If there's no path separator in the prefix, return an empty string
+    ""
 }
