@@ -58,7 +58,7 @@ fn reject_bad_namespace_name_1() {
             LanguageFeatures::default()
         )
     );
-    expect![[r#"
+    expect![[r"
         (
             [],
             [
@@ -71,7 +71,7 @@ fn reject_bad_namespace_name_1() {
                     ),
                 ),
             ],
-        )"#]]
+        )"]]
     .assert_eq(&result);
 }
 
@@ -85,7 +85,7 @@ fn reject_bad_namespace_name_2() {
             LanguageFeatures::default()
         )
     );
-    expect![[r#"
+    expect![[r"
         (
             [],
             [
@@ -98,6 +98,6 @@ fn reject_bad_namespace_name_2() {
                     ),
                 ),
             ],
-        )"#]]
+        )"]]
     .assert_eq(&result);
 }

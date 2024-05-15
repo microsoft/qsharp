@@ -1777,7 +1777,9 @@ fn parse_single_import() {
     check(
         parse_import,
         "import Foo;",
-        &expect![[r#"ImportDecl [0-11]: [ImportItem [0-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-11]: [ImportItem [0-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#
+        ]],
     );
 }
 
@@ -1786,7 +1788,9 @@ fn parse_multiple_imports() {
     check(
         parse_import,
         "import Foo.{Bar, Baz};",
-        &expect![[r#"ImportDecl [0-22]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-20]: Path _id_ [7-20] (Ident _id_ [7-10] "Foo") (Ident _id_ [17-20] "Baz") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-22]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-20]: Path _id_ [7-20] (Ident _id_ [7-10] "Foo") (Ident _id_ [17-20] "Baz") as ]"#
+        ]],
     );
 }
 
@@ -1795,7 +1799,9 @@ fn parse_nested_imports() {
     check(
         parse_import,
         "import Foo.{Bar, Baz.{Quux, Corge}};",
-        &expect![[r#"ImportDecl [0-36]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-26]: Path _id_ [7-26] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [22-26] "Quux") as , ImportItem [7-33]: Path _id_ [7-33] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [28-33] "Corge") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-36]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-26]: Path _id_ [7-26] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [22-26] "Quux") as , ImportItem [7-33]: Path _id_ [7-33] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [28-33] "Corge") as ]"#
+        ]],
     );
 }
 
@@ -1804,7 +1810,9 @@ fn parse_import_with_alias() {
     check(
         parse_import,
         "import Foo as Bar;",
-        &expect![[r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#]],
+        &expect![[
+            r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#
+        ]],
     );
 }
 
@@ -1813,7 +1821,9 @@ fn parse_import_with_nested_alias() {
     check(
         parse_import,
         "import Foo.{Bar as Baz};",
-        &expect![[r#"ImportDecl [0-24]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#]],
+        &expect![[
+            r#"ImportDecl [0-24]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#
+        ]],
     );
 }
 
@@ -1888,7 +1898,9 @@ fn complex_import_tree() {
         r#"
     import A.B.Foo.{Bar.{Baz, Quux}, Graule};
     "#,
-        &expect![[r#"ImportDecl [5-46]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [38-44] "Graule") as ]"#]],
+        &expect![[
+            r#"ImportDecl [5-46]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [38-44] "Graule") as ]"#
+        ]],
     );
 }
 #[test]
@@ -1898,7 +1910,9 @@ fn ignore_extra_commas_in_list() {
         r#"
     import A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule};
     "#,
-        &expect![[r#"ImportDecl [5-55]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [40-44] "Quux") as , ImportItem [12-53]: Path _id_ [12-53] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [47-53] "Graule") as ]"#]],
+        &expect![[
+            r#"ImportDecl [5-55]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [40-44] "Quux") as , ImportItem [12-53]: Path _id_ [12-53] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [47-53] "Graule") as ]"#
+        ]],
     );
 }
 #[test]
@@ -1908,7 +1922,9 @@ fn ignore_extra_commas_after_brace() {
         r#"
     import A.B.Foo.{Bar.{Baz, Quux},,, Graule};
     "#,
-        &expect![[r#"ImportDecl [5-48]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-46]: Path _id_ [12-46] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [40-46] "Graule") as ]"#]],
+        &expect![[
+            r#"ImportDecl [5-48]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-46]: Path _id_ [12-46] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [40-46] "Graule") as ]"#
+        ]],
     );
 }
 
@@ -1930,7 +1946,6 @@ fn empty_import_statement() {
             )
         "#]],
     );
-
 }
 
 #[test]
@@ -1938,27 +1953,94 @@ fn import_tree_nested_basic() {
     check(
         parse_import,
         "import Foo.Bar.{Baz};",
-        &expect![[r#"ImportDecl [0-21]: [ImportItem [7-19]: Path _id_ [7-19] ([Ident _id_ [7-10] "Foo", Ident _id_ [11-14] "Bar"]) (Ident _id_ [16-19] "Baz") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-21]: [ImportItem [7-19]: Path _id_ [7-19] ([Ident _id_ [7-10] "Foo", Ident _id_ [11-14] "Bar"]) (Ident _id_ [16-19] "Baz") as ]"#
+        ]],
     );
 }
-
-
 
 #[test]
 fn import_tree_shadowing_self() {
     check(
         parse_import,
         "import Foo.{Bar};",
-        &expect![[r#"ImportDecl [0-17]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-17]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as ]"#
+        ]],
     );
 }
-
 
 #[test]
 fn import_tree_shadowing_self_nested() {
     check(
         parse_import,
         "import Foo.{Bar.{Baz}};",
-        &expect![[r#"ImportDecl [0-23]: [ImportItem [7-20]: Path _id_ [7-20] ([Ident _id_ [7-10] "Foo", Ident _id_ [12-15] "Bar"]) (Ident _id_ [17-20] "Baz") as ]"#]],
+        &expect![[
+            r#"ImportDecl [0-23]: [ImportItem [7-20]: Path _id_ [7-20] ([Ident _id_ [7-10] "Foo", Ident _id_ [12-15] "Bar"]) (Ident _id_ [17-20] "Baz") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn import_tree_unexpected_token() {
+    check(
+        parse_import,
+        "import Foo.{Bar 123};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "comma or close brace",
+                    Int(
+                        Decimal,
+                    ),
+                    Span {
+                        lo: 16,
+                        hi: 19,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_missing_closing_brace() {
+    check(
+        parse_import,
+        "import Foo.{Bar.{Baz;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "close brace",
+                    Semi,
+                    Span {
+                        lo: 20,
+                        hi: 21,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_missing_opening_brace() {
+    check(
+        parse_import,
+        "import Foo.Bar.Baz};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 18,
+                        hi: 19,
+                    },
+                ),
+            )
+        "#]],
     );
 }

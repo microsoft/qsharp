@@ -277,6 +277,7 @@ pub enum ItemKind {
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
     Export(ExportDecl),
+    /// An import declaration.
     Import(ImportDecl),
 }
 
@@ -1313,6 +1314,7 @@ impl Path {
     /// import Foo.{Bar, Baz}'
     ///                  ^^^ `Foo.Baz` not found
     /// ```
+    #[must_use]
     pub fn append(self, other: Path) -> Path {
         Path {
             namespace: match self.namespace {
@@ -1327,37 +1329,36 @@ impl Path {
                 ),
                 None => Some(vec![*self.name].into()),
             },
-            id: Default::default(),
+            id: NodeId::default(),
             span: other.span,
             name: other.name,
         }
     }
 }
 
-impl Into<Vec<Ident>> for Path {
-    fn into(self) -> Vec<Ident> {
-        let mut buf = self.namespace.unwrap_or_default().0.to_vec();
-        buf.push(*self.name);
+impl From<Path> for Vec<Ident> {
+    fn from(val: Path) -> Self {
+        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*val.name);
         buf
     }
 }
 
 impl From<Vec<Ident>> for Path {
     fn from(mut v: Vec<Ident>) -> Self {
-        let name = v.pop().unwrap();
+        let name = v
+            .pop()
+            .expect("parser should never produce empty vector of idents");
         let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
         let span = Span {
-            lo: namespace
-                .as_ref()
-                .map(|ns| ns.span().lo)
-                .unwrap_or(name.span.lo),
+            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
             hi: name.span.hi,
         };
         Self {
             namespace,
             name: name.into(),
             span,
-            id: Default::default(),
+            id: NodeId::default(),
         }
     }
 }
@@ -1809,6 +1810,8 @@ impl ExportDecl {
     }
 }
 
+/// An import declaration, which is used to pull in individual symbols into the current
+/// scope.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportDecl {
     /// The span.
@@ -1829,7 +1832,10 @@ impl Display for ImportDecl {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+/// An individual item being imported by an import statement.
+/// e.g. `import Foo.{Bar, Baz}` is two import items:
+/// one for `Foo.Bar` and one for `Foo.Baz`.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportItem {
     /// The span.
     pub span: Span,
@@ -1841,7 +1847,7 @@ pub struct ImportItem {
 
 impl Display for ImportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let alias_str = self.alias.as_ref().map(|a| a.name.as_ref()).unwrap_or("");
+        let alias_str = self.alias.as_ref().map_or("", |a| a.name.as_ref());
         write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
     }
 }

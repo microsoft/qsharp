@@ -12,6 +12,7 @@ use qsc_ast::{
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 
+use qsc_ast::ast::{ExportDecl, ImportDecl};
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
@@ -592,142 +593,153 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
-            ast::ItemKind::Export(export) => {
-                // resolve the exported item and insert the vec ident into the names table, so we can access it in
-                // lowering
-                for item in export.items() {
-                    let resolved_item = match resolve(
-                        NameKind::Term,
+            ast::ItemKind::Export(export) => self.bind_export(namespace, export),
+            ast::ItemKind::Import(import) => self.bind_import(import),
+            ast::ItemKind::Err => {}
+        }
+    }
+
+    fn bind_export(&mut self, namespace: Option<NamespaceId>, export: &ExportDecl) {
+        // resolve the exported item and insert the vec ident into the names table, so we can access it in
+        // lowering
+        for item in export.items() {
+            let resolved_item = match resolve(
+                NameKind::Term,
+                &self.globals,
+                self.locals.get_scopes(&self.curr_scope_chain),
+                &item.name,
+                &item.namespace,
+            ) {
+                Ok(res) => res,
+                Err(_) => {
+                    // try to see if it is a type
+                    match resolve(
+                        NameKind::Ty,
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
                         &item.name,
                         &item.namespace,
                     ) {
                         Ok(res) => res,
-                        Err(_) => {
-                            // try to see if it is a type
-                            match resolve(
-                                NameKind::Ty,
-                                &self.globals,
-                                self.locals.get_scopes(&self.curr_scope_chain),
-                                &item.name,
-                                &item.namespace,
-                            ) {
-                                Ok(res) => res,
-                                Err(err) => {
-                                    self.errors.push(err);
-                                    continue;
-                                }
-                            }
-                        }
-                    };
-
-                    let scope = self.current_scope_mut();
-
-                    let resolved_item_id = match resolved_item {
-                        Res::Item(
-                            ItemId {
-                                package: Some(_), ..
-                            },
-                            _,
-                        ) => {
-                            self.errors.push(Error::ExportedExternalItem(item.span));
+                        Err(err) => {
+                            self.errors.push(err);
                             continue;
                         }
-                        Res::Item(id, _) => id,
-                        _ => {
-                            self.errors.push(Error::ExportedNonItem(item.span));
-                            continue;
-                        }
-                    };
-
-                    scope
-                        .terms
-                        .insert(Rc::clone(&item.name.name), resolved_item_id);
-                    // just insert the id for the name ident
-                    self.names.insert(item.id, resolved_item);
-                    if let Some(namespace) = namespace {
-                        self.globals.terms.get_mut_or_default(namespace).insert(
-                            item.name.name.clone(),
-                            Res::Item(resolved_item_id, ItemStatus::Available),
-                        );
                     }
                 }
-            }
-            ast::ItemKind::Import(import) => {
-                enum TermOrTy {
-                    Term(Res),
-                    Ty(Res),
+            };
+
+            let scope = self.current_scope_mut();
+
+            let resolved_item_id = match resolved_item {
+                Res::Item(
+                    ItemId {
+                        package: Some(_), ..
+                    },
+                    _,
+                ) => {
+                    self.errors.push(Error::ExportedExternalItem(item.span));
+                    continue;
                 }
-                // resolve the imported item and insert the vec ident into the names table, so we can access it in
-                // lowering
-                for item in import.items.iter() {
-                    let resolved_item = match resolve(
-                        NameKind::Term,
+                Res::Item(id, _) => id,
+                _ => {
+                    self.errors.push(Error::ExportedNonItem(item.span));
+                    continue;
+                }
+            };
+
+            scope
+                .terms
+                .insert(Rc::clone(&item.name.name), resolved_item_id);
+            // just insert the id for the name ident
+            self.names.insert(item.id, resolved_item);
+            if let Some(namespace) = namespace {
+                self.globals.terms.get_mut_or_default(namespace).insert(
+                    item.name.name.clone(),
+                    Res::Item(resolved_item_id, ItemStatus::Available),
+                );
+            }
+        }
+    }
+
+    fn bind_import(&mut self, import: &ImportDecl) {
+        enum TermOrTy {
+            Term(Res),
+            Ty(Res),
+        }
+        // resolve the imported item and insert the vec ident into the names table, so we can access it in
+        // lowering
+        for item in &import.items {
+            let resolved_item = match resolve(
+                NameKind::Term,
+                &self.globals,
+                self.locals.get_scopes(&self.curr_scope_chain),
+                &item.path.name,
+                &item.path.namespace,
+            ) {
+                Ok(res) => TermOrTy::Term(res),
+                Err(_) => {
+                    // try to see if it is a type
+                    match resolve(
+                        NameKind::Ty,
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
                         &item.path.name,
                         &item.path.namespace,
                     ) {
-                        Ok(res) => TermOrTy::Term(res),
-                        Err(_) => {
-                            // try to see if it is a type
-                            match resolve(
-                                NameKind::Ty,
-                                &self.globals,
-                                self.locals.get_scopes(&self.curr_scope_chain),
-                                &item.path.name,
-                                &item.path.namespace,
-                            ) {
-                                Ok(res) => TermOrTy::Ty(res),
-                                Err(err) => {
-                                    // try to see if it is a namespace
-                                    let items = Into::<Idents>::into(item.path.clone());
-                                    let ns = self.globals.find_namespace(items.str_iter());
-                                    let alias = item
-                                        .alias
-                                        .as_ref()
-                                        .map(|x| Box::new(x.clone()))
-                                        .or(Some(item.path.name.clone()));
-                                    if let Some(ns) = ns {
-                                        self.bind_open(&items, &alias, ns);
-                                    } else {
-                                        self.errors.push(err);
-                                    }
-                                    continue;
-                                }
+                        Ok(res) => TermOrTy::Ty(res),
+                        Err(err) => {
+                            // try to see if it is a namespace
+                            let items = Into::<Idents>::into(item.path.clone());
+                            let ns = self.globals.find_namespace(items.str_iter());
+                            let alias = item
+                                .alias
+                                .as_ref()
+                                .map(|x| Box::new(x.clone()))
+                                .or(Some(item.path.name.clone()));
+                            if let Some(ns) = ns {
+                                self.bind_open(&items, &alias, ns);
+                            } else {
+                                self.errors.push(err);
                             }
+                            continue;
                         }
-                    };
-
-                    let scope = self.current_scope_mut();
-
-                    let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
-
-                    // if the item already exists in the scope, return a duplicate error
-                    dbg!(&scope.terms);
-                    if scope.terms.contains_key(&local_name.name) || scope.tys.contains_key(&local_name.name) {
-                        self.errors.push(Error::ImportedDuplicate(local_name.name.to_string(), local_name.span));
-                        continue;
-                    }
-
-                    // insert the item into the local scope
-                    match resolved_item {
-                        TermOrTy::Term(Res::Item(id, _)) => {
-                            scope.terms.insert(Rc::clone(&local_name.name), id);
-                        }
-                        TermOrTy::Ty(Res::Item(id, _)) => {
-                            scope.tys.insert(Rc::clone(&local_name.name), id);
-                        }
-                        _ => self.errors.push(Error::ImportedNonItem(item.path.span)),
-                    }
-
-                    if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item {
-                        self.names.insert(item.path.id, res);
                     }
                 }
+            };
+
+            let scope = self.current_scope_mut();
+
+            let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
+
+            // if the item already exists in the scope, return a duplicate error
+            if scope.terms.contains_key(&local_name.name)
+                || scope.tys.contains_key(&local_name.name)
+            {
+                self.errors.push(Error::ImportedDuplicate(
+                    local_name.name.to_string(),
+                    local_name.span,
+                ));
+                continue;
             }
-            ast::ItemKind::Err => {}
+
+            // insert the item into the local scope
+            match resolved_item {
+                TermOrTy::Term(Res::Item(id, _)) => {
+                    scope.terms.insert(Rc::clone(&local_name.name), id);
+                }
+                TermOrTy::Ty(Res::Item(id, _)) => {
+                    scope.tys.insert(Rc::clone(&local_name.name), id);
+                }
+                _ => self.errors.push(Error::ImportedNonItem(item.path.span)),
+            }
+
+            // have to tell clippy to allow this -- the below if let is used for destructuring,
+            // not control flow
+            #[allow(irrefutable_let_patterns)]
+            if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item {
+                self.names.insert(item.path.id, res);
+            }
         }
     }
 

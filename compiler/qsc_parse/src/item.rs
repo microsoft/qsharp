@@ -14,9 +14,9 @@ use super::{
     scan::ParserContext,
     stmt,
     ty::{self, ty},
-    Error, Parser, Result,
+    Error, Result,
 };
-use crate::prim::{seq, FinalSep};
+use crate::prim::seq;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -555,10 +555,10 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
             s.peek().span,
         )));
     }
-    let base_path = base_path.into_iter().map(|x| *x).collect();
+    let base_path: Vec<Ident> = base_path.into_iter().map(|x| *x).collect();
     let mut brace_stack = 0;
     let items = match s.peek().kind {
-        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, base_path, &mut brace_stack)?,
+        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, &base_path, &mut brace_stack)?,
         TokenKind::Semi => {
             vec![ImportItem {
                 span: s.span(lo),
@@ -603,13 +603,13 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
 // Parse multiple imports
 fn parse_multiple_imports(
     s: &mut ParserContext,
-    parent: Vec<Ident>,
+    parent: &[Ident],
     brace_stack: &mut i32,
 ) -> Result<Vec<ImportItem>> {
     let mut imports = Vec::new();
 
     loop {
-        let mut full_path = parent.clone();
+        let mut full_path = parent.to_owned();
         let (import, _final_sep) = seq(s, ident, TokenKind::Dot)?;
         let mut import: Vec<_> = import.into_iter().map(|x| *x).collect();
 
@@ -620,7 +620,7 @@ fn parse_multiple_imports(
                 let full_path: Path = full_path.into();
                 imports.push(ImportItem {
                     span: full_path.span,
-                    path: full_path.into(),
+                    path: full_path,
                     alias: None,
                 });
                 token(s, TokenKind::Comma)?;
@@ -634,7 +634,7 @@ fn parse_multiple_imports(
 
                 imports.push(ImportItem {
                     span: full_path.span,
-                    path: full_path.into(),
+                    path: full_path,
                     alias: None,
                 });
                 token(s, TokenKind::Close(Delim::Brace))?;
@@ -645,7 +645,7 @@ fn parse_multiple_imports(
             TokenKind::Open(Delim::Brace) => {
                 *brace_stack += 1;
                 token(s, TokenKind::Open(Delim::Brace))?;
-                let nested_imports = parse_multiple_imports(s, full_path, brace_stack)?;
+                let nested_imports = parse_multiple_imports(s, &full_path, brace_stack)?;
                 imports.extend(nested_imports);
             }
             TokenKind::Semi => break,
@@ -696,20 +696,4 @@ fn decrement_brace_stack(s: &mut ParserContext, brace_stack: &mut i32) -> Result
         )));
     }
     Ok(())
-}
-
-fn parse_import_item(s: &mut ParserContext) -> Result<ImportItem> {
-    let lo = s.peek().span.lo;
-    let path = path(s)?;
-    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
-        Some(ident(s)?)
-    } else {
-        None
-    };
-
-    Ok(ImportItem {
-        span: s.span(lo),
-        path: (*path).into(),
-        alias: alias.map(|x| (*x)),
-    })
 }

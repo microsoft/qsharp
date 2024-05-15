@@ -80,7 +80,7 @@ impl<'a> Renamer<'a> {
                     "import {{{}}}",
                     resolutions
                         .iter()
-                        .map(|res| Self::format_import_item(res))
+                        .map(Self::format_import_item)
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
@@ -154,7 +154,7 @@ impl Visitor<'_> for Renamer<'_> {
                         continue;
                     };
 
-                    replacement_buffer.push(ImportItem::Res(resolved_path.clone()));
+                    replacement_buffer.push(ImportItem::Res(*resolved_path));
                 }
                 if !replacement_buffer.is_empty() {
                     self.changes
