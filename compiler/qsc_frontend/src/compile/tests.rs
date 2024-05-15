@@ -1439,3 +1439,23 @@ fn test_longest_common_prefix_6() {
         "code/project/src/"
     );
 }
+
+#[test]
+fn test_longest_common_prefix_two_relative_paths() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b", "a/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_relative_path() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_file_name() {
+    expect![""].assert_eq(longest_common_prefix(&["a"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common() {
+    expect![""].assert_eq(longest_common_prefix(&["/a/b", "/b/c"]));
+}

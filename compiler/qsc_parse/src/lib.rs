@@ -27,7 +27,7 @@ use std::rc::Rc;
 use std::result;
 use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
+#[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
 #[diagnostic(transparent)]
 pub struct Error(ErrorKind);
@@ -39,7 +39,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
+#[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
@@ -80,9 +80,9 @@ enum ErrorKind {
     #[error("dotted namespace aliases are not allowed")]
     #[diagnostic(code("Qsc.Parse.DotIdentAlias"))]
     DotIdentAlias(#[label] Span),
-    #[error("file name could not be converted into valid namespace name")]
+    #[error("file name {1} could not be converted into valid namespace name")]
     #[diagnostic(code("Qsc.Parse.InvalidFileName"))]
-    InvalidFileName(#[label] Span),
+    InvalidFileName(#[label] Span, String),
     #[error("expected an item or EOF, found {0}")]
     #[diagnostic(code("Qsc.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
@@ -104,7 +104,7 @@ impl ErrorKind {
             Self::FloatingVisibility(span) => Self::FloatingVisibility(span + offset),
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
             Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
-            Self::InvalidFileName(span) => Self::InvalidFileName(span + offset),
+            Self::InvalidFileName(span, name) => Self::InvalidFileName(span + offset, name),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
         }
     }
@@ -127,7 +127,7 @@ pub fn namespaces(
     let doc = Rc::from(doc.unwrap_or_default());
     #[allow(clippy::unnecessary_unwrap)]
     let result: Result<_> = (|| {
-        if source_name.is_some_and(|x| !x.is_empty())
+        if source_name.is_some()
             && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace)
         {
             let mut ns = item::parse_implicit_namespace(
@@ -137,6 +137,7 @@ pub fn namespaces(
             .map(|x| vec![x])?;
             if let Some(ref mut ns) = ns.get_mut(0) {
                 if let Some(x) = ns.items.get_mut(0) {
+                    x.span.lo = 0;
                     x.doc = doc;
                 };
             }
@@ -144,6 +145,7 @@ pub fn namespaces(
         } else {
             let mut ns = item::parse_namespaces(&mut scanner)?;
             if let Some(x) = ns.get_mut(0) {
+                x.span.lo = 0;
                 x.doc = doc;
             };
             Ok(ns)
