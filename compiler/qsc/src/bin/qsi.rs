@@ -52,6 +52,10 @@ struct Cli {
     /// Language features to compile with
     #[arg(short, long)]
     features: Vec<String>,
+
+    /// Compile the given files and interactive snippets in debug mode.
+    #[arg(long)]
+    debug: bool,
 }
 
 struct TerminalReceiver;
@@ -102,7 +106,11 @@ fn main() -> miette::Result<ExitCode> {
         }
     }
     if cli.exec {
-        let mut interpreter = match Interpreter::new(
+        let mut interpreter = match (if cli.debug {
+            Interpreter::new_with_debug
+        } else {
+            Interpreter::new
+        })(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
