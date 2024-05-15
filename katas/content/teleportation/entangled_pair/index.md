@@ -1,5 +1,5 @@
 **Input:** 
-Two qubits qAlice and qBob, each in $|0\rangle$ state.
+Two qubits `qAlice` and `qBob`, each in $\ket{0}$ state.
 
 **Goal:**  
-Prepare a Bell state $|\Phi^{+}\rangle = \frac{1}{\sqrt{2}}(|00\rangle + |11\rangle)$ on these qubits.
+Prepare a Bell state $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}}(\ket{00} + \ket{11})$ on these qubits.
