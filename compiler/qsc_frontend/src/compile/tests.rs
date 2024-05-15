@@ -1369,6 +1369,7 @@ fn reject_bad_filename_implicit_namespace() {
                                 lo: 0,
                                 hi: 25,
                             },
+                            "123Test",
                         ),
                     ),
                 ),
@@ -1381,6 +1382,7 @@ fn reject_bad_filename_implicit_namespace() {
                                 lo: 27,
                                 hi: 53,
                             },
+                            "Test-File",
                         ),
                     ),
                 ),
@@ -1393,6 +1395,7 @@ fn reject_bad_filename_implicit_namespace() {
                                 lo: 55,
                                 hi: 80,
                             },
+                            "Namespace.Foo",
                         ),
                     ),
                 ),
@@ -1438,4 +1441,29 @@ fn test_longest_common_prefix_6() {
         longest_common_prefix(&["code/project/src/Bar.qs", "code/project/src/Baz.qs"]),
         "code/project/src/"
     );
+}
+
+#[test]
+fn test_longest_common_prefix_two_relative_paths() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b", "a/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_relative_path() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_file_name() {
+    expect![""].assert_eq(longest_common_prefix(&["a"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common() {
+    expect!["/"].assert_eq(longest_common_prefix(&["/a/b", "/b/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common_no_leading() {
+    expect![""].assert_eq(longest_common_prefix(&["a/b", "b/c"]));
 }

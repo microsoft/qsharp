@@ -28,7 +28,6 @@ use qsc::{
 };
 use resource_estimator::{self as re, estimate_expr};
 use std::fmt::Write;
-use std::sync::Arc;
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -142,12 +141,7 @@ impl Interpreter {
             )
             .load_project(&manifest_descriptor.0)
             .map_py_err()?;
-            SourceMap::new(
-                project.sources,
-                Some(Arc::from(
-                    manifest_descriptor.0.manifest_dir.to_string_lossy(),
-                )),
-            )
+            SourceMap::new(project.sources, None)
         } else {
             SourceMap::default()
         };
