@@ -715,7 +715,10 @@ fn comparing_lhs_dynamic_boolean_against_rhs_dynamic_boolean_for_equality() {
             output_type: <VOID>
             body: <NONE>"#]],
     );
-    assert_block_instructions(&program, BlockId(0), &expect![[r#"
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
         Block:
             Call id(1), args( Qubit(0), Result(0), )
             Variable(0, Boolean) = Call id(2), args( Result(0), )
@@ -725,7 +728,8 @@ fn comparing_lhs_dynamic_boolean_against_rhs_dynamic_boolean_for_equality() {
             Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
             Variable(4, Boolean) = Icmp Eq, Variable(1, Boolean), Variable(3, Boolean)
             Call id(3), args( Variable(4, Boolean), Pointer, )
-            Return"#]]);
+            Return"#]],
+    );
 }
 
 #[test]
@@ -798,24 +802,73 @@ fn comparing_lhs_classical_boolean_against_rhs_dynamic_boolean_for_inequality() 
 }
 
 #[test]
-fn comparing_lhs_dynamic_boolean_against_rhs_dynamic_boolean_for_inequality_raises_error() {
-    let error = get_partial_evaluation_error(indoc! {
+fn comparing_lhs_dynamic_boolean_against_rhs_dynamic_boolean_for_inequality() {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
             operation Main() : Bool {
                 use q = Qubit();
-                (MResetZ(q) == Zero) != (MResetZ(q) == One)
+                (MResetZ(q) == Zero) != (MResetZ(q) == Zero)
             }
         }
         "#,
     });
-    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
-    assert_error(
-        &error,
-        &expect![[
-            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 99, hi: 142 })"#
-        ]],
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__bool_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Boolean
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Call id(1), args( Qubit(0), Result(1), )
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
+            Variable(4, Boolean) = Icmp Ne, Variable(1, Boolean), Variable(3, Boolean)
+            Call id(3), args( Variable(4, Boolean), Pointer, )
+            Return"#]],
     );
 }
 
@@ -956,8 +1009,8 @@ fn logical_and_with_lhs_classical_false_short_circuits_evaluation() {
 }
 
 #[test]
-fn logical_and_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
-    let error = get_partial_evaluation_error(indoc! {
+fn logical_and_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_lhs_is_false() {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -968,13 +1021,7 @@ fn logical_and_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
         }
         "#,
     });
-    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
-    assert_error(
-        &error,
-        &expect![[
-            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 99, hi: 143 })"#
-        ]],
-    );
+    println!("{program}");
 }
 
 #[test]

@@ -639,6 +639,9 @@ impl<'a> PartialEvaluator<'a> {
                 let jump_ins = Instruction::Jump(continuation_block_id);
                 self.get_current_rir_block_mut().0.push(jump_ins);
 
+                // ... pop else block.
+                let _ = self.eval_context.pop_block_node();
+
                 // ... branch instruction.
                 let branch_ins = Instruction::Branch(lhs_rir_var, true_block_id, false_block_id);
                 self.get_program_block_mut(current_block_node.id)

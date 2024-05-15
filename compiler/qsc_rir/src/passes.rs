@@ -35,12 +35,18 @@ use crate::{rir::Program, utils::build_predecessors_map};
 /// - If the target has no reset capability, reindexing qubit IDs and removing resets.
 /// - If the target has no mid-program measurement capability, deferring measurements to the end of the program.
 pub fn check_and_transform(program: &mut Program) {
+    println!("+ PARTIALLY EVALUATED:");
+    println!("{program}");
     simplify_control_flow(program);
     check_unreachable_code(program);
     check_types(program);
     remap_block_ids(program);
+    println!("+ SIMPLIFIED AND REMAPPED:");
+    println!("{program}");
     let preds = build_predecessors_map(program);
     transform_to_ssa(program, &preds);
+    println!("+ POST SSA:");
+    println!("{program}");
     let doms = build_dominator_graph(program, &preds);
     check_ssa_form(program, &preds, &doms);
     check_unreachable_code(program);

@@ -79,9 +79,9 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                         let pred_var_map = block_var_map
                             .get(*pred)
                             .expect("block should have variable map");
-                        let mut pred_operand = *pred_var_map
-                            .get(var_id)
-                            .expect("variable should be in predecessor's variable map");
+                        let mut pred_operand = *pred_var_map.get(var_id).unwrap_or_else(|| {
+                            panic!("variable {var_id:?} should be in predecessor's variable map")
+                        });
                         pred_operand = pred_operand.mapped(pred_var_map);
                         phi_args.push((pred_operand, *pred));
                     }
