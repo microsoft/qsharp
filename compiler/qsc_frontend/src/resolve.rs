@@ -121,6 +121,11 @@ pub(super) enum Error {
     #[diagnostic(help("only callables, namespaces, and non-primitive types can be imported"))]
     #[diagnostic(code("Qsc.Resolve.ImportedNonItem"))]
     ImportedNonItem(Span),
+
+    #[error("imported symbol that already exists in scope")]
+    #[diagnostic(help("alias this import or rename the existing symbol"))]
+    #[diagnostic(code("Qsc.Resolve.ImportedDuplicate"))]
+    ImportedDuplicate(String, Span),
 }
 
 #[derive(Debug, Clone)]
@@ -698,6 +703,13 @@ impl Resolver {
                     let scope = self.current_scope_mut();
 
                     let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
+
+                    // if the item already exists in the scope, return a duplicate error
+                    dbg!(&scope.terms);
+                    if scope.terms.contains_key(&local_name.name) || scope.tys.contains_key(&local_name.name) {
+                        self.errors.push(Error::ImportedDuplicate(local_name.name.to_string(), local_name.span));
+                        continue;
+                    }
 
                     // insert the item into the local scope
                     match resolved_item {

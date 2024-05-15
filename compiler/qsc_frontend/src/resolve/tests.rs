@@ -3627,3 +3627,61 @@ fn import_tree_shadowing() {
         "#]],
     );
 }
+
+#[test]
+fn import_duplicate_symbol() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            import Foo.{Bar.{Baz}, Bar.{Baz}};
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+                import {item2}
+            }
+            namespace namespace9 {
+                operation item2() : Unit {}
+            }
+
+            // ImportedDuplicate("Baz", Span { lo: 49, hi: 52 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_takes_precedence_over_local_decl() {
+    check(
+        indoc! { r#"
+        namespace Main {
+
+            operation Baz() : Unit {
+                import Foo.Bar.Baz;
+                Baz();
+            }
+
+        }
+
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+
+                operation item1() : Unit {
+                    import {item3}
+                    item3();
+                }
+
+            }
+
+            namespace namespace9 {
+                operation item3() : Unit {}
+            }
+        "#]],
+    );
+}

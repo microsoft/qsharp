@@ -543,13 +543,18 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
 /// import Foo.{Baz, Quux};
 /// import Foo.{Bar.{Baz, Quux}, Corge as Grault};
 /// ```
-///
-///
 fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Import))?;
     let (base_path, _) = seq(s, ident, TokenKind::Dot)?;
+    if base_path.is_empty() {
+        return Err(Error(ErrorKind::Rule(
+            "identifier",
+            s.peek().kind,
+            s.peek().span,
+        )));
+    }
     let base_path = base_path.into_iter().map(|x| *x).collect();
     let mut brace_stack = 0;
     let items = match s.peek().kind {
