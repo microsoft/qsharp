@@ -171,6 +171,28 @@ pub enum Error {
     #[diagnostic(help("closures are not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
     UseOfClosure(#[label] Span),
+
+    #[error("cannot use a bool value as an output")]
+    #[diagnostic(help("using a bool value as an output is not supported by the current target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfBoolOutput"))]
+    UseOfBoolOutput(#[label] Span),
+
+    #[error("cannot use a double value as an output")]
+    #[diagnostic(help("using a Double as an output is not supported by the current target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDoubleOutput"))]
+    UseOfDoubleOutput(#[label] Span),
+
+    #[error("cannot use an integer value as an output")]
+    #[diagnostic(help("using an integer as an output is not supported by the current target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfIntOutput"))]
+    UseOfIntOutput(#[label] Span),
+
+    #[error("cannot use value with advanced type as an output")]
+    #[diagnostic(help(
+        "using a value of type callable, range, big integer, Pauli, Qubit or string as an output is not supported by the current target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfAdvancedOutput"))]
+    UseOfAdvancedOutput(#[label] Span),
 }
 
 /// Lower a package store from `qsc_frontend` HIR store to a `qsc_fir` FIR store.
@@ -577,6 +599,18 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfClosure) {
         errors.push(Error::UseOfClosure(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
+        errors.push(Error::UseOfBoolOutput(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDoubleOutput) {
+        errors.push(Error::UseOfDoubleOutput(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfIntOutput) {
+        errors.push(Error::UseOfIntOutput(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
+        errors.push(Error::UseOfAdvancedOutput(span));
     }
     errors
 }

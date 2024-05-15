@@ -20,7 +20,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
-            ShowQuantumStateComparison(3, PrepRandomState, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
+            ShowQuantumStateComparison(3, PrepDemoState, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
         }
         isCorrect
     }

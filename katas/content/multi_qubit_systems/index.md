@@ -33,7 +33,7 @@ Let's start by examining a system of two classical bits. Each bit can be in two 
 A system of $N$ qubits can also be in any of the $2^N$ classical states, but, unlike the classical bits, it can also be in a **superposition** of all these states.
 
 Similarly to single-qubit systems, a state of an $N$-qubit system can be represented as a complex vector of size $2^N$:
-$$\begin{bmatrix} x_0 \\\ x_1 \\\ \vdots \\\ x_{2^N-1}\end{bmatrix}$$
+$$\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1}\end{bmatrix}$$
 
 ## Basis States
 
@@ -42,23 +42,19 @@ The computational basis for an $N$-qubit system is a set of $2^N$ vectors, in ea
 
 For example, this is the **computational basis** for a two-qubit system:
 
-$$\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix},
-\begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix},
-\begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix},
-\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}$$
+$$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix},
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix},
+\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix},
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
 
 It is easy to see that these vectors form an orthonormal basis. Note that each of these basis states can be represented as a tensor product of some combination of single-qubit basis states:
 
 <table>
     <tr>
-        <td>$\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
-        <td>$\begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} \otimes \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
-        <td>$\begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
-        <td>$\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix} =
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix} \otimes \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \otimes \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
     </tr>
 </table>
 
@@ -67,20 +63,20 @@ Any two-qubit system can be expressed as some linear combination of those tensor
 Similar logic applies to systems of more than two qubits. In general case,
 
 $$
-\begin{bmatrix} x_0 \\\ x_1 \\\ \vdots \\\ x_{2^N-1} \end{bmatrix} =
-x_0 \begin{bmatrix} 1 \\\ 0 \\\ \vdots \\\ 0 \end{bmatrix} +
-x_1 \begin{bmatrix} 0 \\\ 1 \\\ \vdots \\\ 0 \end{bmatrix} + \dotsb +
-x_{2^N-1} \begin{bmatrix} 0 \\\ 0 \\\ \vdots \\\ 1 \end{bmatrix}
+\begin{bmatrix} x_0 \\ x_1 \\ \vdots \\ x_{2^N-1} \end{bmatrix} =
+x_0 \begin{bmatrix} 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} +
+x_1 \begin{bmatrix} 0 \\ 1 \\ \vdots \\ 0 \end{bmatrix} + \dotsb +
+x_{2^N-1} \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 1 \end{bmatrix}
 $$
 
 The coefficients of the basis vectors define how "close" is the system state to the corresponding basis vector.
 
 > Just like with single-qubit systems, there exist other orthonormal bases states for multi-qubit systems. An example for a two-qubit system is the **Bell basis**:
 >
-> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ -1 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ 1 \\\ 0 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ -1 \\\ 0 \end{bmatrix}$$
+> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix},
+\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ -1 \end{bmatrix},
+\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\ 1 \\ 1 \\ 0 \end{bmatrix},
+\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\ 1 \\ -1 \\ 0 \end{bmatrix}$$
 >
 > You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
 
@@ -92,8 +88,8 @@ The coefficients of the basis vectors define how "close" is the system state to 
 Sometimes the global state of a multi-qubit system can be separated into the states of individual qubits or subsystems. To do this, you would express the vector state of the global system as a tensor product of the vectors representing each individual qubit/subsystem. Here is an example of a two-qubit state:
 
 $$
-\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ 0 \\\ \frac{1}{\sqrt{2}} \\\ 0 \end{bmatrix} =
-\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix}
+\begin{bmatrix} \frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{\sqrt{2}} \\ 0 \end{bmatrix} =
+\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}
 $$
 
 You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and the second qubit is in state $|0\rangle$. The multi-qubit states that allow such representation are known as **separable states**, or product states, because you can separate the global state into the tensor product of individual subsystems.
@@ -102,8 +98,8 @@ You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(|0\rangle +
 
 Show that the state is separable:
 $$
-\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
-\begin{bmatrix} ? \\\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\\ ? \end{bmatrix}
+\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
+\begin{bmatrix} ? \\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\ ? \end{bmatrix}
 $$
 
 <details>
@@ -111,15 +107,15 @@ $$
 To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
 
 $$
-\begin{bmatrix} \alpha \gamma \\\ \alpha \delta \\\ \beta \gamma \\\ \beta \delta \end{bmatrix} =
-\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} \otimes \begin{bmatrix} \gamma \\\ \delta \end{bmatrix}
+\begin{bmatrix} \alpha \gamma \\ \alpha \delta \\ \beta \gamma \\ \beta \delta \end{bmatrix} =
+\begin{bmatrix} \alpha \\ \beta \end{bmatrix} \otimes \begin{bmatrix} \gamma \\ \delta \end{bmatrix}
 $$
 
 This brings us to a system of equations:
 
 $$
 \begin{cases}
-\alpha\gamma = \frac{1}{2} \\\ \alpha\delta = \frac{i}{2} \\\ \beta \gamma = \frac{-i}{2} \\\ \beta \delta = \frac{1}{2}
+\alpha\gamma = \frac{1}{2} \\ \alpha\delta = \frac{i}{2} \\ \beta \gamma = \frac{-i}{2} \\ \beta \delta = \frac{1}{2}
 \end{cases}
 $$
 
@@ -128,8 +124,8 @@ Solving this system of equations gives us the answer:
 $$\alpha = \frac{1}{\sqrt2}, \beta = \frac{-i}{\sqrt2}, \gamma = \frac{1}{\sqrt2}, \delta = \frac{i}{\sqrt2}$$
 
 $$
-\frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
-\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ i \end{bmatrix}
+\frac{1}{2} \begin{bmatrix} 1 \\ i \\ -i \\ 1 \end{bmatrix} =
+\frac{1}{\sqrt2} \begin{bmatrix} 1 \\ -i \end{bmatrix} \otimes \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ i \end{bmatrix}
 $$
 
 Note that finding such representation is not always possible, as you will see in the next exercise.
@@ -139,7 +135,7 @@ Note that finding such representation is not always possible, as you will see in
 
 Is this state separable?
 
-$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}$$
+$$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}$$
 
 <details>
 <summary><b>Solution</b></summary>
@@ -147,7 +143,7 @@ Let's assume that this state is separable and write down the system of equations
 
 $$
 \begin{cases}
-\alpha\gamma = \frac{1}{\sqrt2} \\\ \alpha\delta = 0 \\\ \beta \gamma = 0 \\\ \beta \delta = \frac{1}{\sqrt2}
+\alpha\gamma = \frac{1}{\sqrt2} \\ \alpha\delta = 0 \\ \beta \gamma = 0 \\ \beta \delta = \frac{1}{\sqrt2}
 \end{cases}
 $$
 
@@ -155,7 +151,7 @@ Now let's multiply the first and the last equations, and the second and the thir
 
 $$
 \begin{cases}
-\alpha\beta\gamma\delta = \frac{1}{2} \\\ \alpha\beta\gamma\delta = 0
+\alpha\beta\gamma\delta = \frac{1}{2} \\ \alpha\beta\gamma\delta = 0
 \end{cases}
 $$
 
@@ -193,11 +189,11 @@ Just like with single qubits, Dirac notation provides a useful shorthand for wri
 As we've seen earlier, multi-qubit systems have their own canonical bases, and the basis states can be represented as tensor products of single-qubit basis states. Any multi-qubit system can be represented as a linear combination of these basis states:
 
 $$
-\begin{bmatrix} x_0 \\\ x_1 \\\ x_2 \\\ x_3 \end{bmatrix} =
-x_0\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} +
-x_1\begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix} +
-x_2\begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix} +
-x_3\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix} =
+\begin{bmatrix} x_0 \\ x_1 \\ x_2 \\ x_3 \end{bmatrix} =
+x_0\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} +
+x_1\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} +
+x_2\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} +
+x_3\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
 x_0|0\rangle \otimes |0\rangle +
 x_1|0\rangle \otimes |1\rangle +
 x_2|1\rangle \otimes |0\rangle +
@@ -222,7 +218,7 @@ $$|i_0\rangle \otimes |i_1\rangle \otimes \dotsb \otimes |i_n\rangle = |i_0i_1..
 Using this notation simplifies our example:
 
 $$
-\begin{bmatrix} x_0 \\\ x_1 \\\ x_2 \\\ x_3 \end{bmatrix} =
+\begin{bmatrix} x_0 \\ x_1 \\ x_2 \\ x_3 \end{bmatrix} =
 x_0|00\rangle + x_1|01\rangle + x_2|10\rangle + x_3|11\rangle
 $$
 

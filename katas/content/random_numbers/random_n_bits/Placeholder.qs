@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
     operation RandomNBits(N : Int) : Int {
         // Implement your solution here...
 

@@ -18,7 +18,7 @@ namespace Kata.Verification {
                 Message("Incorrect.");
                 Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                     $"transformation for the {N}-bit oracle");
-                ShowQuantumStateComparison(N + 1, qs => PrepRandomState(qs[...N - 1]), sol, ref);
+                ShowQuantumStateComparison(N + 1, qs => PrepDemoState(qs[...N - 1]), sol, ref);
                 return false;
             }
         }

@@ -1,0 +1,4 @@
+**Input:** Three qubits (stored in an array of length 3) in an arbitrary three-qubit state 
+$\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + {\color{blue}\zeta}|101\rangle + {\color{blue}\eta}|110\rangle + \theta|111\rangle$.
+
+**Goal:** Swap the states of second and third qubit if and only if the state of the first qubit is $|1\rangle$, i.e., change the three-qubit state to $\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + {\color{red}\eta}|101\rangle + {\color{red}\zeta}|110\rangle + \theta|111\rangle$.
