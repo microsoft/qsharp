@@ -575,6 +575,10 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 
 #[must_use]
 pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    if strs.len() == 1 {
+        return truncate_to_path_separator(strs[0]);
+    }
+
     let Some(common_prefix_so_far) = strs.first() else {
         return "";
     };
@@ -584,17 +588,19 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
             if string.chars().nth(i) != Some(character) {
                 let prefix = &common_prefix_so_far[0..i];
                 // Find the last occurrence of the path separator in the prefix
-                let last_separator_index = common_prefix_so_far
-                    .rfind('/')
-                    .or_else(|| common_prefix_so_far.rfind('\\'));
-                if let Some(last_separator_index) = last_separator_index {
-                    // Return the prefix up to and including the last path separator
-                    return &prefix[0..=last_separator_index];
-                }
-                // If there's no path separator in the prefix, return an empty string
-                return "";
+                return truncate_to_path_separator(prefix);
             }
         }
     }
     common_prefix_so_far
+}
+
+fn truncate_to_path_separator(prefix: &str) -> &str {
+    let last_separator_index = prefix.rfind('/').or_else(|| prefix.rfind('\\'));
+    if let Some(last_separator_index) = last_separator_index {
+        // Return the prefix up to and including the last path separator
+        return &prefix[0..=last_separator_index];
+    }
+    // If there's no path separator in the prefix, return an empty string
+    ""
 }

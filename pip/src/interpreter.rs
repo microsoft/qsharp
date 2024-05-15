@@ -141,10 +141,7 @@ impl Interpreter {
             )
             .load_project(&manifest_descriptor.0)
             .map_py_err()?;
-            SourceMap::new(
-                project.sources,
-                None,
-            )
+            SourceMap::new(project.sources, None)
         } else {
             SourceMap::default()
         };

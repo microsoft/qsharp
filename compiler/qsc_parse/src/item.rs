@@ -133,6 +133,15 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
     }
 }
 pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
+    if s.peek().kind == TokenKind::Eof {
+        return Ok(Namespace {
+            id: NodeId::default(),
+            span: s.span(0),
+            doc: "".into(),
+            name: source_name_to_namespace_name(source_name, s.span(0))?,
+            items: Vec::new().into_boxed_slice(),
+        });
+    }
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
     if items.is_empty() || s.peek().kind != TokenKind::Eof {
@@ -159,9 +168,10 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
         match component {
             std::path::Component::Normal(name) => {
                 // strip the extension off, if there is one
-                let mut name = name
-                    .to_str()
-                    .ok_or(Error(ErrorKind::InvalidFileName(span, name.to_string_lossy().to_string())))?;
+                let mut name = name.to_str().ok_or(Error(ErrorKind::InvalidFileName(
+                    span,
+                    name.to_string_lossy().to_string(),
+                )))?;
 
                 if let Some(dot) = name.rfind('.') {
                     name = name[..dot].into();
@@ -186,9 +196,13 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
     // if it could be a valid identifier, then it is a valid namespace name
     // we just directly use the ident parser here instead of trying to recreate
     // validation rules
-    let ident = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span, name.to_string())))?;
+    let ident = ident(&mut s)
+        .map_err(|_| Error(ErrorKind::InvalidFileName(error_span, name.to_string())))?;
     if s.peek().kind != TokenKind::Eof {
-        return Err(Error(ErrorKind::InvalidFileName(error_span, name.to_string())));
+        return Err(Error(ErrorKind::InvalidFileName(
+            error_span,
+            name.to_string(),
+        )));
     }
     Ok(*ident)
 }

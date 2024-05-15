@@ -52,9 +52,7 @@ async fn single_document() {
                         offset: 0,
                     },
                 ],
-                common_prefix: Some(
-                    "foo.qs",
-                ),
+                common_prefix: None,
                 entry: None,
             }
         "#]]),
@@ -102,9 +100,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
-                common_prefix: Some(
-                    "foo.qs",
-                ),
+                common_prefix: None,
                 entry: None,
             }
         "#]]),
@@ -143,9 +139,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
-                common_prefix: Some(
-                    "foo.qs",
-                ),
+                common_prefix: None,
                 entry: None,
             }
         "#]]),

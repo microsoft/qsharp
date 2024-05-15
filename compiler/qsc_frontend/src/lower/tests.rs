@@ -1913,7 +1913,7 @@ fn item_docs() {
         }",
         &expect![[r#"
             Package:
-                Item 0 [33-268] (Public):
+                Item 0 [0-268] (Public):
                     Doc:
                         This is a namespace.
                     Namespace (Ident 11 [43-44] "A"): Item 1, Item 2, Item 3

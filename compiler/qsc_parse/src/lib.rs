@@ -127,9 +127,7 @@ pub fn namespaces(
     let doc = Rc::from(doc.unwrap_or_default());
     #[allow(clippy::unnecessary_unwrap)]
     let result: Result<_> = (|| {
-        if source_name.is_some()
-            && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace)
-        {
+        if source_name.is_some() && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace) {
             let mut ns = item::parse_implicit_namespace(
                 source_name.expect("invariant checked above via `.is_some()`"),
                 &mut scanner,
