@@ -37,7 +37,7 @@ pub fn remap_block_ids(program: &mut Program) {
         // This effectively remaps all the blocks in the list and updates the mapped id of the current block.
         // This is only safe without cycles, so on a cyclic graph the node is skipped and not remapped.
         if is_acyclic {
-            block_id_map.retain_mut(|id| *id != block_id);
+            block_id_map.retain(|id| *id != block_id);
         } else if block_id_map.contains(&block_id) {
             continue;
         }
@@ -54,6 +54,7 @@ pub fn remap_block_ids(program: &mut Program) {
             // the same blocks back-to-back.
             continue;
         }
+        blocks_to_visit.retain(|id| !successors.contains(id));
         blocks_to_visit.extend(successors);
     }
 
