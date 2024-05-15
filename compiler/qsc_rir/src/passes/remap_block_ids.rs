@@ -54,6 +54,9 @@ pub fn remap_block_ids(program: &mut Program) {
             // the same blocks back-to-back.
             continue;
         }
+        // Since we are going to extend the blocks to visit using the successors of the current block, we can remove them from
+        // anywhere else in the list to visit so we avoid visiting them multiple times (only the last visit to a block is
+        // significant, so others can be skipped).
         blocks_to_visit.retain(|id| !successors.contains(id));
         blocks_to_visit.extend(successors);
     }
