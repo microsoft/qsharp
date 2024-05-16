@@ -35,13 +35,14 @@ namespace Sample {
     }
 
     /// # Summary
-    /// This operation prepares a generalized GHZ state (or cat state)
-    /// across a register of qubits `qs`. All qubits are assumed to be
-    /// in |0〉 state on input. 
+    /// Prepares state (|000〉 + |111〉) / √2 (GHZ state) across a register
+    /// of three qubits `qs`.
+    /// All qubits are assumed to be in |0〉 state on input.
     operation PrepareGHZState(qs : Qubit[]) : Unit {
-        Fact(Length(qs) > 0, "`qs` length must be greater than zero");
+        Fact(Length(qs) == 3, "`qs` length be 3.");
 
         H(qs[0]);
-        ApplyToEach(CNOT(qs[0], _), Rest(qs));
+        CNOT(qs[0], qs[1]);
+        CNOT(qs[0], qs[2]);
     }
 }
