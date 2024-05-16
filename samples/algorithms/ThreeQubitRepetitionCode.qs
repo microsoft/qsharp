@@ -5,13 +5,12 @@ namespace Microsoft.Quantum.Samples {
 
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
     operation ThreeQubitRepetitionCode() : (Bool, Int) {
         // Use two qubit registers, one for encoding and an auxiliary one for syndrome measurements.
         use encodedRegister = Qubit[3];
-        use auxiliaryRegister = Qubit[2];
 
         // Initialize the first qubit in the register to a |-〉 state.
         H(encodedRegister[0]);
@@ -30,7 +29,7 @@ namespace Microsoft.Quantum.Samples {
                 ApplyRotationalIdentity(encodedRegister);
 
                 // Measure the bit flip error syndrome, revert the bit flip if needed, and increase the count if a bit flip occurred.
-                let (parity01, parity12) = MeasureBitFlipSyndrome(encodedRegister, auxiliaryRegister);
+                let (parity01, parity12) = MeasureBitFlipSyndrome(encodedRegister);
                 let bitFlipReverted = RevertBitFlip(encodedRegister, parity01, parity12);
                 if (bitFlipReverted) {
                     set bitFlipCount += 1;
@@ -94,13 +93,18 @@ namespace Microsoft.Quantum.Samples {
         CNOT(register[0], register[2]);
     }
 
-    operation MeasureBitFlipSyndrome(encodedRegister : Qubit[], auxiliaryRegister : Qubit[]) : (Result, Result) {
-        // Measure the bit flip syndrome by checking the parities between qubits 0 and 1, and between qubits 1 and 2.
-        ResetAll(auxiliaryRegister);
+    /// # Summary
+    /// Measures the bit flip syndrome by checking the parities between
+    /// qubits 0 and 1, and between qubits 1 and 2.
+    operation MeasureBitFlipSyndrome(encodedRegister : Qubit[]) : (Result, Result) {
+        Fact(Length(encodedRegister) == 3, "Encoded register must be of length 3.");
+        use auxiliaryRegister = Qubit[2];
+
         CNOT(encodedRegister[0], auxiliaryRegister[0]);
         CNOT(encodedRegister[1], auxiliaryRegister[0]);
         CNOT(encodedRegister[1], auxiliaryRegister[1]);
         CNOT(encodedRegister[2], auxiliaryRegister[1]);
+
         let parity01 = MResetZ(auxiliaryRegister[0]);
         let parity12 = MResetZ(auxiliaryRegister[1]);
         return (parity01, parity12);
