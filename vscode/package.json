@@ -301,6 +301,11 @@
         "category": "Q#"
       },
       {
+        "command": "qsharp-vscode.noisy",
+        "title": "Run the noisy simulator",
+        "category": "Q#"
+      },
+      {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
         "category": "Q#"

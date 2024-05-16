@@ -15,6 +15,7 @@ import {
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
+import { Noisy } from "./noisy";
 import { DocumentationView } from "./docview";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -61,6 +62,7 @@ type State =
   | HistogramState
   | EstimatesState
   | CircuitState
+  | { viewType: "noisy" }
   | DocumentationState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
@@ -181,6 +183,9 @@ function onMessage(event: any) {
         };
       }
       break;
+    case "noisy":
+      state = { viewType: "noisy" };
+      break;
     case "showDocumentationCommand":
       {
         state = {
@@ -244,6 +249,8 @@ function App({ state }: { state: State }) {
       );
     case "circuit":
       return <CircuitPanel {...state.props}></CircuitPanel>;
+    case "noisy":
+      return <Noisy />;
     case "help":
       return <HelpPage />;
     case "documentation":

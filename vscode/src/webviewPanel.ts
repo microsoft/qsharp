@@ -42,6 +42,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.noisy", async () => {
+      sendMessageToPanel("noisy", true, { command: "noisy" });
+    }),
+  );
+  context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showRe", async () => {
       const associationId = getRandomGuid();
       sendTelemetryEvent(
@@ -393,6 +398,7 @@ type PanelType =
   | "estimates"
   | "help"
   | "circuit"
+  | "noisy"
   | "documentation";
 
 const panelTypeToPanel: Record<
@@ -402,6 +408,7 @@ const panelTypeToPanel: Record<
   histogram: { title: "Q# Histogram", panel: undefined, state: {} },
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
   circuit: { title: "Q# Circuit", panel: undefined, state: {} },
+  noisy: { title: "Noisy Simulator", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
   documentation: {
     title: "Q# Documentation",
@@ -547,6 +554,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "circuit" &&
       panelType !== "help" &&
+      panelType !== "noisy" &&
       panelType != "documentation"
     ) {
       // If it was loading when closed, that's fine
