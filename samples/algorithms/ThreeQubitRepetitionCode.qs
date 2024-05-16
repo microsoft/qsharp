@@ -23,10 +23,9 @@ namespace Microsoft.Quantum.Samples {
         within {
             // The 3 qubit register is used as a repetition code.
             Encode(encodedRegister);
-        }
-        apply {
+        } apply {
             let iterations = 5;
-            for _ in 1 .. iterations {
+            for _ in 1..iterations {
                 // Apply a sequence of rotations to the encoded register that effectively perform an identity operation.
                 ApplyRotationalIdentity(encodedRegister);
 
@@ -50,23 +49,20 @@ namespace Microsoft.Quantum.Samples {
         return (result, bitFlipCount);
     }
 
-    operation ApplyRotationalIdentity(register : Qubit[]) : Unit is Adj
-    {
+    operation ApplyRotationalIdentity(register : Qubit[]) : Unit is Adj {
         // This operation implements an identity operation using rotations about the x-axis.
         // The Rx operation has a period of 2𝜋 (given that it is not possible to measure the difference between
         // states |Ψ⟩ and -|Ψ⟩). Using it to apply four 𝜋/2 rotations about the x-axis, effectively
         // leaves the qubit register in its original state.
         let theta = PI() * 0.5;
-        for i in 1 .. 4 {
-            for qubit in register
-            {
+        for i in 1..4 {
+            for qubit in register {
                 Rx(theta, qubit);
             }
         }
     }
 
-    operation RevertBitFlip(register : Qubit[], parity01 : Result, parity12 : Result) : Bool
-    {
+    operation RevertBitFlip(register : Qubit[], parity01 : Result, parity12 : Result) : Bool {
         if parity01 == One {
             if parity12 == Zero {
                 X(register[0]);
@@ -93,14 +89,12 @@ namespace Microsoft.Quantum.Samples {
         result
     }
 
-    operation Encode(register : Qubit[]) : Unit is Adj
-    {
+    operation Encode(register : Qubit[]) : Unit is Adj {
         CNOT(register[0], register[1]);
         CNOT(register[0], register[2]);
     }
 
-    operation MeasureBitFlipSyndrome(encodedRegister : Qubit[], auxiliaryRegister : Qubit[]) : (Result, Result)
-    {
+    operation MeasureBitFlipSyndrome(encodedRegister : Qubit[], auxiliaryRegister : Qubit[]) : (Result, Result) {
         // Measure the bit flip syndrome by checking the parities between qubits 0 and 1, and between qubits 1 and 2.
         ResetAll(auxiliaryRegister);
         CNOT(encodedRegister[0], auxiliaryRegister[0]);
