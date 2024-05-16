@@ -18,6 +18,7 @@
 namespace Sample {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Arrays;
 
     @EntryPoint()
     operation Main() : Result[] {
@@ -30,23 +31,17 @@ namespace Sample {
         DumpMachine();
 
         // Measure and reset qubits before releasing them.
-        let results = MeasureEachZ(qs);
-        ResetAll(qs);
-        return results;
+        MResetEachZ(qs)
     }
 
     /// # Summary
-    /// This operation prepares a generalized GHZ state across a register of qubits.
-    ///
-    /// # Input
-    /// ## qs
-    /// The given register of qubits to be transformed into the GHZ state. It is assumed
-    /// that these qubits are in their default |0〉 state.
+    /// This operation prepares a generalized GHZ state (or cat state)
+    /// across a register of qubits `qs`. All qubits are assumed to be
+    /// in |0〉 state on input. 
     operation PrepareGHZState(qs : Qubit[]) : Unit {
         Fact(Length(qs) > 0, "`qs` length must be greater than zero");
-        Fact(CheckAllZero(qs), "All qubits must be in the |0〉 state");
 
         H(qs[0]);
-        ApplyToEach(CNOT(qs[0], _), qs[1...]);
+        ApplyToEach(CNOT(qs[0], _), Rest(qs));
     }
 }
