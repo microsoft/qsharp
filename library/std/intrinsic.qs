@@ -91,7 +91,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
     /// \end{align}
     /// $$
-    /// where $P_i$ is the $i$th element of `paulis`, and where
+    /// where $P_i$ is the $i$-th element of `paulis`, and where
     /// $N = $`Length(paulis)`.
     operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
         body ... {
