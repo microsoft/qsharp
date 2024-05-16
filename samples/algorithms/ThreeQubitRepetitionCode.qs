@@ -62,30 +62,21 @@ namespace Microsoft.Quantum.Samples {
     }
 
     operation RevertBitFlip(register : Qubit[], parity01 : Result, parity12 : Result) : Bool {
-        if parity01 == One {
-            if parity12 == Zero {
-                X(register[0]);
-            }
-        }
+        mutable result = true;
         if parity01 == One {
             if parity12 == One {
                 X(register[1]);
+            } else {
+                X(register[0]);
             }
-        }
-        if parity01 == Zero {
+        } else {
             if parity12 == One {
                 X(register[2]);
-            }
-        }
-
-        mutable result = true;
-        if parity01 == Zero {
-            if parity12 == Zero {
+            } else {
                 set result = false;
             }
         }
-
-        result
+        return result;
     }
 
     operation Encode(register : Qubit[]) : Unit is Adj {
