@@ -2,22 +2,20 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Samples {
-
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
     operation ThreeQubitRepetitionCode() : (Bool, Int) {
-        // Use two qubit registers, one for encoding and an auxiliary one for syndrome measurements.
+        // A qubit register that will be used for encoding.
         use encodedRegister = Qubit[3];
 
         // Initialize the first qubit in the register to a |-〉 state.
         H(encodedRegister[0]);
         Z(encodedRegister[0]);
 
-        // Apply several unitary operations to the encoded qubits performing bit flip detection and correction between
-        // each application.
+        // Apply several unitary operations to the encoded qubits
+        // performing bit flip detection and correction between each application.
         mutable bitFlipCount = 0;
         within {
             // The 3 qubit register is used as a repetition code.
@@ -25,10 +23,13 @@ namespace Microsoft.Quantum.Samples {
         } apply {
             let iterations = 5;
             for _ in 1..iterations {
-                // Apply a sequence of rotations to the encoded register that effectively perform an identity operation.
+                // Apply a unitary operatyion to the encoded register that shuold
+                // effectively perform an identity operation but may be noisy
+                // on the quantum hardware and introduce errors.
                 ApplyRotationalIdentity(encodedRegister);
 
-                // Measure the bit flip error syndrome, revert the bit flip if needed, and increase the count if a bit flip occurred.
+                // Measure the bit flip error syndrome, revert the bit flip if needed,
+                // and increase the count if a bit flip occurred.
                 let (parity01, parity12) = MeasureBitFlipSyndrome(encodedRegister);
                 let bitFlipReverted = RevertBitFlip(encodedRegister, parity01, parity12);
                 if (bitFlipReverted) {
@@ -42,17 +43,22 @@ namespace Microsoft.Quantum.Samples {
         let result = MResetZ(encodedRegister[0]) == One;
         ResetAll(encodedRegister);
 
-        // The output of the program is a boolean-integer tuple where the boolean represents whether the qubit
-        // measurement result was the expected one and the integer represents the number of times bit flips occurred
+        // The output of the program is a boolean-integer tuple where the boolean
+        // represents whether the qubit measurement result was the expected one
+        // and the integer represents the number of times bit flips occurred
         // throughout the program.
         return (result, bitFlipCount);
     }
 
+    /// # Summary
+    /// Apply four 𝜋/2 rotations about the x-axis to all qubits in the `register`.
+    ///
+    /// # Description
+    /// This operation implements an identity operation using rotations about the x-axis.
+    /// The Rx operation has a period of 2𝜋. Using it to apply four 𝜋/2 rotations
+    /// about the x-axis, effectively leaves the qubit register in its original state.
+    /// However it is likely to be very noisy on a quantum hardware.
     operation ApplyRotationalIdentity(register : Qubit[]) : Unit is Adj {
-        // This operation implements an identity operation using rotations about the x-axis.
-        // The Rx operation has a period of 2𝜋 (given that it is not possible to measure the difference between
-        // states |Ψ⟩ and -|Ψ⟩). Using it to apply four 𝜋/2 rotations about the x-axis, effectively
-        // leaves the qubit register in its original state.
         let theta = PI() * 0.5;
         for i in 1..4 {
             for qubit in register {
@@ -61,6 +67,8 @@ namespace Microsoft.Quantum.Samples {
         }
     }
 
+    /// # Summary
+    /// Reverts bit flips in the `register` based on `parity01` and `parity12`.
     operation RevertBitFlip(register : Qubit[], parity01 : Result, parity12 : Result) : Bool {
         mutable result = true;
         if parity01 == One {
