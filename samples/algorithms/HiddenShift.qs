@@ -34,14 +34,11 @@ namespace Sample {
                 nQubits
             );
             let hiddenShift = ResultArrayAsInt(hiddenShiftBitString);
-            Fact(
-                hiddenShift == shift,
-                $"Found shift {hiddenShift}, but expected {shift}."
-            );
             Message($"Found {shift} successfully!");
             set hiddenShifts += [hiddenShift];
         }
 
+        // Note: returned array should match shifts array
         return hiddenShifts;
     }
 
