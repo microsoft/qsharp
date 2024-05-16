@@ -9,10 +9,6 @@
 /// This Q# program implements superdense coding to send two classical bits of
 /// information.
 namespace Sample {
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Random;
-
     @EntryPoint()
     operation Main() : ((Bool, Bool), (Bool, Bool)) {
         use (aliceQubit, bobQubit) = (Qubit(), Qubit());
@@ -37,7 +33,7 @@ namespace Sample {
     operation DrawRandomBit() : Bool {
         use q = Qubit();
         H(q);
-        MResetZ(q) == One
+        return MResetZ(q) == One;
     }
 
     // Prepares an entangled state: 1/sqrt(2)(|00〉 + |11〉)
