@@ -884,8 +884,6 @@ pub enum ExecGraphNode {
     Bind(PatId),
     /// An expression to execute.
     Expr(ExprId),
-    /// A statement to track for debugging.
-    Stmt(StmtId),
     /// An unconditional jump with to given location.
     Jump(u32),
     /// A conditional jump with to given location, where the jump is only taken if the condition is
@@ -900,6 +898,11 @@ pub enum ExecGraphNode {
     Unit,
     /// The end of the control flow graph.
     Ret,
+    /// The end of the control flow graph plus a pop of the current debug frame. Used instead of `Ret`
+    /// when debugging.
+    RetFrame,
+    /// A statement to track for debugging.
+    Stmt(StmtId),
     /// A push of a new scope, used when tracking variables for debugging.
     PushScope,
     /// A pop of the current scope, used when tracking variables for debugging.

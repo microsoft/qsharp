@@ -59,10 +59,10 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
         } else {
             // Check each variable in the first predecessor's variable map, and if any other
             // predecessor has a different value for the variable, a phi node is needed.
-            for (var_id, operand) in block_var_map
+            let first_pred_map = block_var_map
                 .get(*first_pred)
-                .expect("block should have variable map")
-            {
+                .expect("block should have variable map");
+            'var_loop: for (var_id, operand) in first_pred_map {
                 let mut phi_nodes = FxHashMap::default();
 
                 if rest_preds.iter().any(|pred| {
@@ -74,14 +74,20 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                 }) {
                     // Some predecessors have different values for this variable, so a phi node is needed.
                     // Start with the first predecessor's value and block id, then add the values from the other predecessors.
-                    let mut phi_args = vec![(*operand, *first_pred)];
+                    let mut phi_args = vec![(operand.mapped(first_pred_map), *first_pred)];
                     for pred in rest_preds {
                         let pred_var_map = block_var_map
                             .get(*pred)
                             .expect("block should have variable map");
-                        let mut pred_operand = *pred_var_map.get(var_id).unwrap_or_else(|| {
-                            panic!("variable {var_id:?} should be in predecessor's variable map")
-                        });
+                        let mut pred_operand = match pred_var_map.get(var_id) {
+                            Some(operand) => *operand,
+                            None => {
+                                // If the variable is not defined in this predecessor, it does not dominate this block.
+                                // Assume it is not used and skip creating a phi node for this variable. If the variable is used,
+                                // the ssa check will detect it and panic later.
+                                continue 'var_loop;
+                            }
+                        };
                         pred_operand = pred_operand.mapped(pred_var_map);
                         phi_args.push((pred_operand, *pred));
                     }

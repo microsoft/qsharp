@@ -1581,6 +1581,99 @@ mod given_interpreter {
         }
 
         #[test]
+        fn debugger_simple_execution_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                function Hello() : Unit {
+                    Message("hello there...");
+                }
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    Hello()
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn debugger_execution_with_call_to_library_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                open Microsoft.Quantum.Math;
+                @EntryPoint()
+                operation Main() : Int {
+                    Binom(31, 7)
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(&result, &output, &Value::Int(2_629_575));
+        }
+
+        #[test]
+        fn debugger_execution_with_early_return_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                open Microsoft.Quantum.Arrays;
+
+                operation Max20(i : Int) : Int {
+                    if (i > 20) {
+                        return 20;
+                    }
+                    return i;
+                }
+
+                @EntryPoint()
+                operation Main() : Int[] {
+                    ForEach(Max20, [10, 20, 30, 40, 50])
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Array(
+                    vec![
+                        Value::Int(10),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                    ]
+                    .into(),
+                ),
+            );
+        }
+
+        #[test]
         fn multiple_namespaces_are_loaded_from_sources_into_eval_context() {
             let source = indoc! { r#"
             namespace Test {

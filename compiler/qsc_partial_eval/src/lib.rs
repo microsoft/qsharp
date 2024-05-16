@@ -69,11 +69,9 @@ pub enum Error {
     #[diagnostic(transparent)]
     CapabilityError(CapabilityError),
 
-    #[error("use of unanalyzed dynamic value")]
+    #[error("cannot use a dynamic value returned from a runtime-resolved callable")]
     #[diagnostic(code("Qsc.PartialEval.UnexpectedDynamicValue"))]
-    #[diagnostic(help(
-        "analysis is limited for callables that cannot be uniquely resolved at compile time, try invoking the desired callable directly"
-    ))]
+    #[diagnostic(help("try invoking the desired callable directly"))]
     UnexpectedDynamicValue(#[label] Span),
 
     #[error("partial evaluation failed with error: {0}")]
