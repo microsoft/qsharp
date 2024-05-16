@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Description
     /// The probability of getting `Zero` is
-    /// $\langle \psi | \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} | \psi \rangle$
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
     /// where $P_i$ is the $i$-th element of `bases`, and where
     /// $N$ is the `Length(bases)`.
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
