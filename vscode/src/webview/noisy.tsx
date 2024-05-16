@@ -13,7 +13,9 @@ async function runSimulator(): Promise<Float32Array> {
   // navigator.gpu isn't typed currently
   const gpu = (navigator as any).gpu;
 
-  const adapter = await gpu.requestAdapter();
+  const adapter = await gpu.requestAdapter({
+    powerPreference: "high-performance",
+  });
   if (!adapter) {
     throw "gpu.requestAdapter failed";
   }
