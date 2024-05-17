@@ -525,6 +525,143 @@ impl<'a> PartialEvaluator<'a> {
         Ok(EvalControlFlow::Continue(value))
     }
 
+    fn eval_bin_op_with_lhs_dynamic_bool_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        let result_var = match bin_op {
+            BinOp::Eq | BinOp::Neq => {
+                self.eval_comparison_bool_bin_op(bin_op, lhs_eval_var, rhs_expr_id)?
+            }
+            BinOp::AndL => {
+                // Logical AND Boolean operations short-circuit on false.
+                let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+                self.eval_logical_bool_bin_op(false, lhs_rir_var, rhs_expr_id)?
+            }
+            BinOp::OrL => {
+                // Logical OR Boolean operations short-circuit on true.
+                let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+                self.eval_logical_bool_bin_op(true, lhs_rir_var, rhs_expr_id)?
+            }
+            _ => panic!("invalid Boolean operator {bin_op:?}"),
+        };
+        Ok(EvalControlFlow::Continue(Value::Var(result_var)))
+    }
+
+    fn eval_comparison_bool_bin_op(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+    ) -> Result<Var, Error> {
+        // Try to evaluate the RHS expression to get its value and create a RHS operand.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+        // Get the comparison result depending on the operator and the RHS value.
+        let result_var = match (bin_op, rhs_operand) {
+            // If the RHS value is a literal, depending on the operand, the result of the Boolean comparison is just the
+            // LHS value.
+            (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
+            | (BinOp::Eq, Operand::Literal(Literal::Bool(true))) => lhs_eval_var,
+            // In other cases we have to actually generate the comparison instruction.
+            (BinOp::Eq | BinOp::Neq, _) => {
+                let rir_variable = rir::Variable::new_boolean(self.resource_manager.next_var());
+                let lhs_operand = Operand::Variable(map_eval_var_to_rir_var(lhs_eval_var));
+                let condition_code = match bin_op {
+                    BinOp::Eq => ConditionCode::Eq,
+                    BinOp::Neq => ConditionCode::Ne,
+                    _ => panic!("invalid Boolean comparison operator {bin_op:?}"),
+                };
+                let cmp_inst =
+                    Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable);
+                self.get_current_rir_block_mut().0.push(cmp_inst);
+                map_rir_var_to_eval_var(rir_variable)
+            }
+            (_, _) => panic!("invalid Boolean comparison operator {bin_op:?}"),
+        };
+        Ok(result_var)
+    }
+
+    fn eval_logical_bool_bin_op(
+        &mut self,
+        short_circuit_on_true: bool,
+        lhs_rir_var: rir::Variable,
+        rhs_expr_id: ExprId,
+    ) -> Result<Var, Error> {
+        // Create the variable where we will store the result of the Boolean operation and store a default value in it,
+        // which will only be changed inside the conditional block where the RHS expression is evaluated.
+        let result_var_id = self.resource_manager.next_var();
+        let result_rir_var = rir::Variable {
+            variable_id: result_var_id,
+            ty: rir::Ty::Boolean,
+        };
+        let init_var_ins = Instruction::Store(
+            Operand::Literal(Literal::Bool(short_circuit_on_true)),
+            result_rir_var,
+        );
+        self.get_current_rir_block_mut().0.push(init_var_ins);
+
+        // Pop the current block and insert the continuation block.
+        let current_block_node = self.eval_context.pop_block_node();
+        let continuation_block_id = self.create_program_block();
+        let continuation_block_node = BlockNode {
+            id: continuation_block_id,
+            successor: current_block_node.successor,
+        };
+        self.eval_context.push_block_node(continuation_block_node);
+
+        // Now insert the conditional block.
+        let rhs_eval_block_id = self.create_program_block();
+        let rhs_eval_block_node = BlockNode {
+            id: rhs_eval_block_id,
+            successor: Some(continuation_block_id),
+        };
+        self.eval_context.push_block_node(rhs_eval_block_node);
+
+        // Evaluate the RHS expression
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+        // Store the RHS value into the the variable that represents the result of the Boolean operation.
+        let store_ins = Instruction::Store(rhs_operand, result_rir_var);
+        self.get_current_rir_block_mut().0.push(store_ins);
+        let jump_ins = Instruction::Jump(continuation_block_id);
+        self.get_current_rir_block_mut().0.push(jump_ins);
+        let _ = self.eval_context.pop_block_node();
+
+        // Now that we have constructed both the conditional and continuation blocks, insert the jump instruction and
+        // return the variable that stores the result of the Boolean operation.
+        // The branching blocks depend on whether we short-circuit on true or false.
+        let (true_block_id, false_block_id) = if short_circuit_on_true {
+            (continuation_block_id, rhs_eval_block_id)
+        } else {
+            (rhs_eval_block_id, continuation_block_id)
+        };
+        let branch_ins = Instruction::Branch(lhs_rir_var, true_block_id, false_block_id);
+        self.get_program_block_mut(current_block_node.id)
+            .0
+            .push(branch_ins);
+        let result_eval_var = map_rir_var_to_eval_var(result_rir_var);
+        Ok(result_eval_var)
+    }
+
     fn eval_bin_op_with_lhs_integer_operand(
         &mut self,
         bin_op: BinOp,
@@ -585,10 +722,9 @@ impl<'a> PartialEvaluator<'a> {
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         match lhs_eval_var.ty {
-            VarTy::Boolean => Err(Error::Unimplemented(
-                "bool binary operation with dynamic LHS".to_string(),
-                bin_op_expr_span,
-            )),
+            VarTy::Boolean => {
+                self.eval_bin_op_with_lhs_dynamic_bool_operand(bin_op, lhs_eval_var, rhs_expr_id)
+            }
             VarTy::Integer => {
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
                 let lhs_operand = Operand::Variable(lhs_rir_var);

@@ -931,26 +931,82 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
 }
 
 #[test]
-fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
-    let error = get_partial_evaluation_error(indoc! {
+fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is_false() {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
             operation Main() : Bool {
                 use q = Qubit();
-                mutable b = MResetZ(q) == Zero;
-                set b and= MResetZ(q) == One;
+                mutable b = MResetZ(q) != One;
+                set b and= MResetZ(q) != One;
                 b
             }
         }
         "#,
     });
-    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
-    assert_error(
-        &error,
-        &expect![[
-            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 167 })"#
-        ]],
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__bool_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Boolean
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Variable(3, Boolean) = Store Bool(false)
+                Branch Variable(2, Boolean), 2, 1
+            Block 1:Block:
+                Variable(2, Boolean) = Store Variable(3, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
+                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Jump(1)"#]],
     );
 }
 
@@ -1099,26 +1155,82 @@ fn logical_or_assign_with_lhs_classical_false_is_optimized_as_store() {
 }
 
 #[test]
-fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
-    let error = get_partial_evaluation_error(indoc! {
+fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is_true() {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
             operation Main() : Bool {
                 use q = Qubit();
-                mutable b = MResetZ(q) == Zero;
-                set b or= MResetZ(q) == One;
+                mutable b = MResetZ(q) != One;
+                set b or= MResetZ(q) != One;
                 b
             }
         }
         "#,
     });
-    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
-    assert_error(
-        &error,
-        &expect![[
-            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 166 })"#
-        ]],
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__bool_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Boolean
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Variable(3, Boolean) = Store Bool(true)
+                Branch Variable(2, Boolean), 1, 2
+            Block 1:Block:
+                Variable(2, Boolean) = Store Variable(3, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
+                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Jump(1)"#]],
     );
 }
 
