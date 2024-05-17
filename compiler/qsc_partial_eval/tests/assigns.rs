@@ -1573,7 +1573,9 @@ fn integer_assign_exp_with_lhs_classical_integer_and_rhs_classical_negative_inte
     });
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("negative integers cannot be used here: -1", Span { lo: 130, hi: 132 })"#]],
+        &expect![[
+            r#"EvaluationFailed("negative integers cannot be used here: -1", Span { lo: 130, hi: 132 })"#
+        ]],
     );
 }
 
