@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
+#![allow(clippy::needless_raw_string_hashes, clippy::similar_names)]
 
 pub mod test_utils;
 
@@ -373,5 +373,216 @@ fn large_loop_with_inner_if_completes_eval_and_transform() {
                 Variable(1, Integer) = Store Integer(100)
                 Call id(3), args( Variable(0, Integer), Pointer, )
                 Return"#]],
+    );
+}
+
+#[test]
+fn if_else_expression_with_dynamic_logical_and_condition() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            operation opA(q : Qubit) : Unit { body intrinsic; }
+            operation opB(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (q0, q1, q2) = (Qubit(), Qubit(), Qubit());
+                if MResetZ(q0) == One and MResetZ(q1) == One {
+                    opA(q2);
+                } else {
+                    opB(q2);
+                }
+            }
+        }
+        "#,
+    });
+
+    // Verify the callables added to the program.
+    let mresetz_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_a_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let op_b_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Variable(2, Boolean) = Store Bool(false)
+                Branch Variable(1, Boolean), 2, 1
+            Block 1:Block:
+                Branch Variable(2, Boolean), 4, 5
+            Block 2:Block:
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(3, Boolean) = Call id(2), args( Result(1), )
+                Variable(4, Boolean) = Store Variable(3, Boolean)
+                Variable(2, Boolean) = Store Variable(4, Boolean)
+                Jump(1)
+            Block 3:Block:
+                Call id(5), args( Integer(0), Pointer, )
+                Return
+            Block 4:Block:
+                Call id(3), args( Qubit(2), )
+                Jump(3)
+            Block 5:Block:
+                Call id(4), args( Qubit(2), )
+                Jump(3)"#]],
+    );
+}
+
+#[test]
+fn if_else_expression_with_dynamic_logical_or_condition() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            operation opA(q : Qubit) : Unit { body intrinsic; }
+            operation opB(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (q0, q1, q2) = (Qubit(), Qubit(), Qubit());
+                if MResetZ(q0) == One or MResetZ(q1) == One {
+                    opA(q2);
+                } else {
+                    opB(q2);
+                }
+            }
+        }
+        "#,
+    });
+
+    // Verify the callables added to the program.
+    let mresetz_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_a_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let op_b_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
+                Variable(3, Boolean) = Store Bool(true)
+                Branch Variable(2, Boolean), 2, 1
+            Block 1:Block:
+                Branch Variable(3, Boolean), 4, 5
+            Block 2:Block:
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Store Variable(4, Boolean)
+                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Jump(1)
+            Block 3:Block:
+                Call id(5), args( Integer(0), Pointer, )
+                Return
+            Block 4:Block:
+                Call id(3), args( Qubit(2), )
+                Jump(3)
+            Block 5:Block:
+                Call id(4), args( Qubit(2), )
+                Jump(3)"#]],
     );
 }
