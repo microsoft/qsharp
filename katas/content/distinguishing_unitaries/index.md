@@ -33,6 +33,16 @@ This kata offers you a series of tasks in which you are given one unitary from t
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_unitaries__i_z",
+    "title": "Identity or Z?",
+    "path": "./i_z/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_unitaries__multi_qubit",
     "title": "Distinguishing Multi-Qubit Gates"
