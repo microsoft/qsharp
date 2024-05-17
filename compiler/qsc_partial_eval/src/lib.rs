@@ -531,57 +531,15 @@ impl<'a> PartialEvaluator<'a> {
         lhs_eval_var: Var,
         rhs_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        match bin_op {
+        let result_var = match bin_op {
             //
             BinOp::Eq | BinOp::Neq => {
-                // Try to evaluate the RHS expression to get its value.
-                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
-                    let rhs_expr = self.get_expr(rhs_expr_id);
-                    return Err(Error::Unexpected(
-                        "embedded return in RHS expression".to_string(),
-                        rhs_expr.span,
-                    ));
-                };
-                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
-
-                //
-                let eval_var = match (bin_op, rhs_operand) {
-                    //
-                    (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
-                    | (BinOp::Eq, Operand::Literal(Literal::Bool(true))) => lhs_eval_var,
-                    //
-                    (BinOp::Eq | BinOp::Neq, _) => {
-                        let rir_variable =
-                            rir::Variable::new_boolean(self.resource_manager.next_var());
-                        let lhs_operand = Operand::Variable(map_eval_var_to_rir_var(lhs_eval_var));
-                        let condition_code = match bin_op {
-                            BinOp::Eq => ConditionCode::Eq,
-                            BinOp::Neq => ConditionCode::Ne,
-                            _ => panic!("invalid Boolean comparison operator {bin_op:?}"),
-                        };
-                        let cmp_inst = Instruction::Icmp(
-                            condition_code,
-                            lhs_operand,
-                            rhs_operand,
-                            rir_variable,
-                        );
-                        self.get_current_rir_block_mut().0.push(cmp_inst);
-                        map_rir_var_to_eval_var(rir_variable)
-                    }
-                    (_, _) => panic!("invalid Boolean comparison operator {bin_op:?}"),
-                };
-
-                Ok(EvalControlFlow::Continue(Value::Var(eval_var)))
+                self.eval_comparison_bool_bin_op(bin_op, lhs_eval_var, rhs_expr_id)?
             }
             BinOp::AndL => {
                 // ...
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
-                self.eval_boolean_operation_with_conditional_rhs_eval(
-                    false,
-                    lhs_rir_var,
-                    rhs_expr_id,
-                )
+                self.eval_logical_bool_bin_op(false, lhs_rir_var, rhs_expr_id)?
             }
             BinOp::OrL => {
                 // ...
@@ -600,22 +558,60 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_current_rir_block_mut()
                     .0
                     .push(rhs_eval_condition_ins);
-                self.eval_boolean_operation_with_conditional_rhs_eval(
-                    true,
-                    rhs_eval_condition_rir_var,
-                    rhs_expr_id,
-                )
+                self.eval_logical_bool_bin_op(true, rhs_eval_condition_rir_var, rhs_expr_id)?
             }
             _ => panic!("invalid Boolean operator {bin_op:?}"),
-        }
+        };
+        Ok(EvalControlFlow::Continue(Value::Var(result_var)))
     }
 
-    fn eval_boolean_operation_with_conditional_rhs_eval(
+    fn eval_comparison_bool_bin_op(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+    ) -> Result<Var, Error> {
+        // Try to evaluate the RHS expression to get its value and create a RHS operand.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+        //
+        let result_var = match (bin_op, rhs_operand) {
+            //
+            (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
+            | (BinOp::Eq, Operand::Literal(Literal::Bool(true))) => lhs_eval_var,
+            //
+            (BinOp::Eq | BinOp::Neq, _) => {
+                let rir_variable = rir::Variable::new_boolean(self.resource_manager.next_var());
+                let lhs_operand = Operand::Variable(map_eval_var_to_rir_var(lhs_eval_var));
+                let condition_code = match bin_op {
+                    BinOp::Eq => ConditionCode::Eq,
+                    BinOp::Neq => ConditionCode::Ne,
+                    _ => panic!("invalid Boolean comparison operator {bin_op:?}"),
+                };
+                let cmp_inst =
+                    Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable);
+                self.get_current_rir_block_mut().0.push(cmp_inst);
+                map_rir_var_to_eval_var(rir_variable)
+            }
+            (_, _) => panic!("invalid Boolean comparison operator {bin_op:?}"),
+        };
+        Ok(result_var)
+    }
+
+    fn eval_logical_bool_bin_op(
         &mut self,
         default_result: bool,
         rhs_eval_condition_var: rir::Variable,
         rhs_expr_id: ExprId,
-    ) -> Result<EvalControlFlow, Error> {
+    ) -> Result<Var, Error> {
         // ... variable.
         let result_var_id = self.resource_manager.next_var();
         let result_rir_var = rir::Variable {
@@ -679,7 +675,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // ... return the variable
         let result_eval_var = map_rir_var_to_eval_var(result_rir_var);
-        Ok(EvalControlFlow::Continue(Value::Var(result_eval_var)))
+        Ok(result_eval_var)
     }
 
     fn eval_bin_op_with_lhs_integer_operand(
