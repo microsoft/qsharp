@@ -224,7 +224,7 @@ Another, equivalent definition highlights what makes this an interesting propert
 $$A^{-1}(AB) = A(A^{-1}B) = B$$
 $$(CA)A^{-1} = (CA^{-1})A = C$$
 
-A square matrix has a property called the **determinant**, with the determinant of matrix $A$ being written as $|A|$. A matrix is invertible if and only if, its determinant isn't equal to $0$.
+A square matrix has a property called the **determinant**, with the determinant of matrix $A$ being written as $|A|$. A matrix is invertible if, and only if, its determinant isn't equal to $0$.
 
 For a $2 \times 2$ matrix $A$, the determinant is defined as $|A| = A_{0,0} \cdot A_{1,1} - A_{0,1} \cdot A_{1,0}$.
 
