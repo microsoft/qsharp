@@ -532,17 +532,20 @@ impl<'a> PartialEvaluator<'a> {
         rhs_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
         let result_var = match bin_op {
-            //
             BinOp::Eq | BinOp::Neq => {
                 self.eval_comparison_bool_bin_op(bin_op, lhs_eval_var, rhs_expr_id)?
             }
             BinOp::AndL => {
-                // ...
+                // Logical AND Boolean operations short-circuit, so their default result is false which only changes
+                // in the branch that is evaluated when LHS is true.
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
                 self.eval_logical_bool_bin_op(false, lhs_rir_var, rhs_expr_id)?
             }
             BinOp::OrL => {
-                // ...
+                // Logical OR Boolean operations short-circuit, so their default result is true which only changes in
+                // the branch that is evaluated when LHS is false. We cannot use LHS directly as the condition because
+                // the condition to go into the evaluating branch is 'LHS == false', so we need a comparison instruction
+                // whose bound variable will be used as the condition to go into the evaluating branch.
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
                 let rhs_eval_condition_var_id = self.resource_manager.next_var();
                 let rhs_eval_condition_rir_var = rir::Variable {
@@ -582,12 +585,13 @@ impl<'a> PartialEvaluator<'a> {
         };
         let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
 
-        //
+        // Get the comparison result depending on the operator and the RHS value.
         let result_var = match (bin_op, rhs_operand) {
-            //
+            // If the RHS value is a literal, depending on the operand, the result of the Boolean comparison is just the
+            // LHS value.
             (BinOp::Neq, Operand::Literal(Literal::Bool(false)))
             | (BinOp::Eq, Operand::Literal(Literal::Bool(true))) => lhs_eval_var,
-            //
+            // In other cases we have to actually generate the comparison instruction.
             (BinOp::Eq | BinOp::Neq, _) => {
                 let rir_variable = rir::Variable::new_boolean(self.resource_manager.next_var());
                 let lhs_operand = Operand::Variable(map_eval_var_to_rir_var(lhs_eval_var));
@@ -612,21 +616,20 @@ impl<'a> PartialEvaluator<'a> {
         rhs_eval_condition_var: rir::Variable,
         rhs_expr_id: ExprId,
     ) -> Result<Var, Error> {
-        // ... variable.
+        // Create the variable where we will store the result of the Boolean operation and store a default value in it,
+        // which will only be changed inside the conditional block where the RHS expression is evaluated.
         let result_var_id = self.resource_manager.next_var();
         let result_rir_var = rir::Variable {
             variable_id: result_var_id,
             ty: rir::Ty::Boolean,
         };
-
-        // ... store default.
         let init_var_ins = Instruction::Store(
             Operand::Literal(Literal::Bool(default_result)),
             result_rir_var,
         );
         self.get_current_rir_block_mut().0.push(init_var_ins);
 
-        // ... continuation block.
+        // Pop the current block and insert the continuation block.
         let current_block_node = self.eval_context.pop_block_node();
         let continuation_block_id = self.create_program_block();
         let continuation_block_node = BlockNode {
@@ -635,7 +638,7 @@ impl<'a> PartialEvaluator<'a> {
         };
         self.eval_context.push_block_node(continuation_block_node);
 
-        // ... RHS eval block.
+        // Now insert the conditional block.
         let rhs_eval_block_id = self.create_program_block();
         let rhs_eval_block_node = BlockNode {
             id: rhs_eval_block_id,
@@ -643,7 +646,7 @@ impl<'a> PartialEvaluator<'a> {
         };
         self.eval_context.push_block_node(rhs_eval_block_node);
 
-        // ... RHS eval.
+        // Evaluate the RHS expression
         let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
         let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
             let rhs_expr = self.get_expr(rhs_expr_id);
@@ -654,16 +657,15 @@ impl<'a> PartialEvaluator<'a> {
         };
         let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
 
-        // ... store and jump.
+        // Store the RHS value into the the variable that represents the result of the Boolean operation.
         let store_ins = Instruction::Store(rhs_operand, result_rir_var);
         self.get_current_rir_block_mut().0.push(store_ins);
         let jump_ins = Instruction::Jump(continuation_block_id);
         self.get_current_rir_block_mut().0.push(jump_ins);
-
-        // ... pop RHS eval block.
         let _ = self.eval_context.pop_block_node();
 
-        // ... branch instruction.
+        // Now that we have constructed both the conditional and continuation blocks, insert the jump instruction and
+        // return the variable that stores the result of the Boolean operation.
         let branch_ins = Instruction::Branch(
             rhs_eval_condition_var,
             rhs_eval_block_id,
@@ -672,8 +674,6 @@ impl<'a> PartialEvaluator<'a> {
         self.get_program_block_mut(current_block_node.id)
             .0
             .push(branch_ins);
-
-        // ... return the variable
         let result_eval_var = map_rir_var_to_eval_var(result_rir_var);
         Ok(result_eval_var)
     }
