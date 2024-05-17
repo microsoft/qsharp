@@ -1,17 +1,17 @@
-**Inputs:** $3$ qubits in an arbitrary superposition state $|\\psi\\rangle$, stored in an array of length $3$.
+**Inputs:** $3$ qubits in an arbitrary superposition state $\ket{\psi}$, stored in an array of length $3$.
 
 **Goal:** Apply the following matrix to the system. This matrix can be represented as applying $3$ single-qubit gates.
 
 $$
 Q =
 \begin{bmatrix}
-0 & -i & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-i & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-0 & 0 & 0 & -i & 0 & 0 & 0 & 0 \\\ 
-0 & 0 & i & 0 & 0 & 0 & 0 & 0 \\\ 
-0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\\ 
-0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+0 & -i & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+i & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+0 & 0 & 0 & -i & 0 & 0 & 0 & 0 \\ 
+0 & 0 & i & 0 & 0 & 0 & 0 & 0 \\ 
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
+0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\ 
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 
 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0
 \end{bmatrix}
 $$

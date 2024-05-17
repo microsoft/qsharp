@@ -108,7 +108,7 @@ fn open_no_alias() {
         "open Foo.Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-17]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz")"#]],
+                Open ([Ident _id_ [5-8] "Foo", Ident _id_ [9-12] "Bar", Ident _id_ [13-16] "Baz"])"#]],
     );
 }
 
@@ -119,18 +119,7 @@ fn open_alias() {
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
             Item _id_ [0-24]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-23] "Baz")"#]],
-    );
-}
-
-#[test]
-fn open_alias_dot() {
-    check(
-        parse,
-        "open Foo.Bar.Baz as Bar.Baz;",
-        &expect![[r#"
-            Item _id_ [0-28]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-27] "Bar.Baz")"#]],
+                Open ([Ident _id_ [5-8] "Foo", Ident _id_ [9-12] "Bar", Ident _id_ [13-16] "Baz"]) (Ident _id_ [20-23] "Baz")"#]],
     );
 }
 
@@ -1691,5 +1680,39 @@ fn namespace_with_conflicting_names() {
                 Item _id_ [72-91]:
                     New Type (Ident _id_ [80-84] "Item"): TyDef _id_ [87-90]: Field:
                         Type _id_ [87-90]: Path: Path _id_ [87-90] (Ident _id_ [87-90] "Int")"#]],
+    );
+}
+
+// We technically broke this syntax as of May 2024. Although we don't think anybody was using it,
+// we want to make sure we provide a helpful error message.
+#[test]
+fn helpful_error_on_dotted_alias() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            open Microsoft.Quantum.Math as Foo.Bar.Baz;
+            operation Main() : Unit {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-118] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-69]:
+                    Err
+                Item _id_ [82-108]:
+                    Callable _id_ [82-108] (Operation):
+                        name: Ident _id_ [92-96] "Main"
+                        input: Pat _id_ [96-98]: Unit
+                        output: Type _id_ [101-105]: Path: Path _id_ [101-105] (Ident _id_ [101-105] "Unit")
+                        body: Block: Block _id_ [106-108]: <empty>
+
+            [
+                Error(
+                    DotIdentAlias(
+                        Span {
+                            lo: 60,
+                            hi: 61,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

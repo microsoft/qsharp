@@ -61,9 +61,13 @@ export function copyWasmToVsCode() {
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
 
-function copyKatex() {
+/**
+ *
+ * @param {string} [destDir]
+ */
+export function copyKatex(destDir) {
   let katexBase = join(libsDir, `katex/dist`);
-  let katexDest = join(thisDir, `out/katex`);
+  let katexDest = destDir ?? join(thisDir, `out/katex`);
 
   console.log("Copying the Katex files over from: " + katexBase);
   mkdirSync(katexDest, { recursive: true });
@@ -74,8 +78,12 @@ function copyKatex() {
 
   // Also copy the GitHub markdown CSS
   copyFileSync(
-    join(libsDir, "github-markdown-css/github-markdown.css"),
-    join(katexDest, "github-markdown.css"),
+    join(libsDir, `github-markdown-css/github-markdown-light.css`),
+    join(katexDest, "github-markdown-light.css"),
+  );
+  copyFileSync(
+    join(libsDir, `github-markdown-css/github-markdown-dark.css`),
+    join(katexDest, "github-markdown-dark.css"),
   );
 
   const fontsDir = join(katexBase, "fonts");

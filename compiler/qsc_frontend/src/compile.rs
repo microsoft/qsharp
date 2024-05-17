@@ -12,7 +12,7 @@ use crate::{
     resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
-use bitflags::bitflags;
+
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -26,46 +26,17 @@ use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    global,
+    global::{self},
     hir::{self, PackageId},
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, str::FromStr, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
-
-bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct TargetCapabilityFlags: u32 {
-        const Adaptive = 0b0000_0001;
-        const IntegerComputations = 0b0000_0010;
-        const FloatingPointComputations = 0b0000_0100;
-        const BackwardsBranching = 0b0000_1000;
-        const HigherLevelConstructs = 0b0001_0000;
-        const QubitReset = 0b0010_0000;
-    }
-}
-
-impl FromStr for TargetCapabilityFlags {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Base" => Ok(TargetCapabilityFlags::empty()),
-            "Adaptive" => Ok(TargetCapabilityFlags::Adaptive),
-            "IntegerComputations" => Ok(TargetCapabilityFlags::IntegerComputations),
-            "FloatingPointComputations" => Ok(TargetCapabilityFlags::FloatingPointComputations),
-            "BackwardsBranching" => Ok(TargetCapabilityFlags::BackwardsBranching),
-            "HigherLevelConstructs" => Ok(TargetCapabilityFlags::HigherLevelConstructs),
-            "QubitReset" => Ok(TargetCapabilityFlags::QubitReset),
-            "Unrestricted" => Ok(TargetCapabilityFlags::all()),
-            _ => Err(()),
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct CompileUnit {
@@ -504,7 +475,7 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
     (names, locals, errors)
 }

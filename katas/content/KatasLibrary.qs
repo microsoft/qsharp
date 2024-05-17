@@ -8,41 +8,18 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Random;
 
     /// # Summary
-    /// Given two operations, checks whether they act identically for all input states.
-    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    operation CheckOperationsEquivalence(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
-        within {
-            EntangleRegisters(control, target);
-        }
-        apply {
-            op(target);
-            Adjoint reference(target);
-        }
-
-        let areEquivalent = CheckAllZero(control + target);
-        ResetAll(control + target);
-        areEquivalent
-    }
-
-    /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
     /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
     /// into a relative phase that can be detected.
-    operation CheckOperationsEquivalenceStrict(
+    operation CheckOperationsAreEqualStrict(
+        inputSize : Int,
         op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
+        reference : (Qubit[] => Unit is Adj + Ctl))
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
-        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
+        let areEquivalent = CheckOperationsAreEqual(inputSize + 1, controlledOp, controlledReference);
         areEquivalent
     }
 
@@ -63,21 +40,22 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
+
     /// # Summary
-    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
-    /// `inputSize` qubits.
-    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
-    /// it.
-    operation CheckOperationsEquivalenceOnZeroStateStrict(
+    /// Given two operations, checks whether they act identically on the given initial state composed of `inputSize` qubits.
+    /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
+    /// `initialState` operation should be deterministic.
+    operation CheckOperationsEquivalenceOnInitialStateStrict(
+        initialState : Qubit[] => Unit is Adj,
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use control = Qubit();
-        use target = Qubit[inputSize];
+        inputSize : Int
+    ) : Bool {
+        use (control, target) = (Qubit(), Qubit[inputSize]);
         within {
             H(control);
+            initialState(target);
         }
         apply {
             Controlled op([control], target);
@@ -91,7 +69,23 @@ namespace Microsoft.Quantum.Katas {
 
 
     /// # Summary
-    /// Shows the comparison of the quantum state between a specific operation and a reference operation.
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
+    /// it.
+    operation CheckOperationsEquivalenceOnZeroStateStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize : Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
+    }
+
+
+    /// # Summary
+    /// Shows the comparison of the quantum states produced by a specific operation and a reference operation
+    /// when applied to the state prepared using deterministic operation `initialState`.
     operation ShowQuantumStateComparison(
         registerSize : Int,
         initialState : Qubit[] => Unit,
@@ -161,9 +155,11 @@ namespace Microsoft.Quantum.Katas {
 
     /// # Summary
     /// Prepare a random uneven superposition state on the given qubit array.
-    operation PrepRandomState(qs : Qubit[]) : Unit {
-        for q in qs {
-            Ry(DrawRandomDouble(0.01, 0.99) * 2.0, q);
+    operation PrepDemoState(qs : Qubit[]) : Unit {
+        Fact(Length(qs) <= 4, "States with 5 qubits or more are not supported.");
+        let probs = [0.36, 0.25, 1. / 3., 1. / 5.][... Length(qs) - 1];
+        for (q, prob) in Zipped(qs, probs) {
+            Ry(ArcCos(Sqrt(prob)) * 2.0, q);
         }
     }
 

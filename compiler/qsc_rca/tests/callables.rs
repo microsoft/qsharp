@@ -22,18 +22,12 @@ fn check_rca_for_closure_function_with_classical_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that a closure is always considered dynamic because we are currently not performing detailed analysis on
-    // them.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -50,18 +44,12 @@ fn check_rca_for_closure_function_with_dynamic_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that only the "use of closure" runtime feature appears because we are currently not performing detailed
-    // analysis on closures.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -77,18 +65,12 @@ fn check_rca_for_closure_operation_with_classical_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that a closure is always considered dynamic because we are currently not performing detailed analysis on
-    // them.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -105,18 +87,12 @@ fn check_rca_for_closure_operation_with_dynamic_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that only the "use of closure" runtime feature appears because we are currently not performing detailed
-    // analysis on closures.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -149,6 +125,65 @@ fn check_rca_for_operation_with_one_classical_return_and_one_dynamic_return() {
                 ctl: <none>
                 ctl-adj: <none>"#
         ],
+    );
+}
+
+#[test]
+fn check_rca_for_callable_block_with_unreachable_binding() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo() : Int {
+            return 0;
+            let x = 1;
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Classical
+                    dynamic_param_applications: <empty>
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_callable_block_with_dynamic_unreachable_binding() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo() : Int {
+            use q = Qubit();
+            if M(q) == Zero {
+                return 0;
+            } else {
+                return 1;
+            }
+            let x = 1;
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![[r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ReturnWithinDynamicScope)
+                        value_kind: Element(Dynamic)
+                    dynamic_param_applications: <empty>
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#]],
     );
 }
 

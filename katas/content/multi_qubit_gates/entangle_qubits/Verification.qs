@@ -8,26 +8,7 @@ namespace Kata.Verification {
         CNOT(qs[0], qs[1]);
     }
 
-    operation CheckOperationsEquivalenceOnInitialStateStrict(
-        initialState : Qubit[] => Unit is Adj,
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int
-    ) : Bool {
-        use (control, target) = (Qubit(), Qubit[inputSize]);
-        within {
-            H(control);
-            initialState(target);
-        }
-        apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-        let isCorrect = CheckAllZero([control] + target);
-        ResetAll([control] + target);
-        isCorrect
-    }
-    
+    @EntryPoint()
     operation CheckSolution() : Bool {
         let range = 10;
         for i in 0 .. range - 1 {

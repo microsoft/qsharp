@@ -14,6 +14,8 @@ import {
   QscEventTarget,
   VSDiagnostic,
   log,
+  ProgramConfig,
+  TargetProfile,
 } from "qsharp-lang";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
@@ -56,9 +58,17 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
   });
 }
 
+// get the language service profile from the URL
+// default to unrestricted if not specified
+export function getProfile(): TargetProfile {
+  return (new URLSearchParams(window.location.search).get("profile") ??
+    "unrestricted") as TargetProfile;
+}
+
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
+  compiler_worker_factory: () => ICompilerWorker;
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
@@ -67,8 +77,10 @@ export function Editor(props: {
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
+  profile: TargetProfile;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
+  setQir: (qir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
 }) {
@@ -80,7 +92,7 @@ export function Editor(props: {
   const irRef = useRef(async () => {
     return;
   });
-
+  const [profile, setProfile] = useState(props.profile);
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
@@ -116,11 +128,52 @@ export function Editor(props: {
     const code = editor.current?.getValue();
     if (code == null) return;
 
+    const config = {
+      sources: [["code", code]],
+      languageFeatures: ["preview-qir-gen"],
+      profile: profile,
+    } as ProgramConfig;
+
     if (props.activeTab === "ast-tab") {
-      props.setAst(await props.compiler.getAst(code, []));
+      props.setAst(
+        await props.compiler.getAst(
+          code,
+          config.languageFeatures ?? [],
+          config.profile,
+        ),
+      );
     }
     if (props.activeTab === "hir-tab") {
-      props.setHir(await props.compiler.getHir(code, []));
+      props.setHir(
+        await props.compiler.getHir(
+          code,
+          config.languageFeatures ?? [],
+          config.profile,
+        ),
+      );
+    }
+    const codeGenTimeout = 1000; // ms
+    if (props.activeTab === "qir-tab") {
+      let timedOut = false;
+      const compiler = props.compiler_worker_factory();
+      const compilerTimeout = setTimeout(() => {
+        log.info("Compiler timeout. Terminating worker.");
+        timedOut = true;
+        compiler.terminate();
+      }, codeGenTimeout);
+      try {
+        const qir = await compiler.getQir(config);
+        clearTimeout(compilerTimeout);
+        props.setQir(qir);
+      } catch (e: any) {
+        if (timedOut) {
+          props.setQir("timed out");
+        } else {
+          props.setQir(e.toString());
+        }
+      } finally {
+        compiler.terminate();
+      }
     }
   };
 
@@ -128,11 +181,18 @@ export function Editor(props: {
     const code = editor.current?.getValue();
     if (code == null) return;
     props.evtTarget.clearResults();
+    const config = {
+      sources: [["code", code]],
+      languageFeatures: ["preview-qir-gen"],
+      profile: profile,
+    } as ProgramConfig;
 
     try {
       if (props.kataExercise) {
         // This is for a kata exercise. Provide the sources that implement the solution verification.
         const sources = await getExerciseSources(props.kataExercise);
+        // check uses the unrestricted profile and doesn't do code gen,
+        // so we just pass the sources
         await props.compiler.checkExerciseSolution(
           code,
           sources,
@@ -140,14 +200,7 @@ export function Editor(props: {
         );
       } else {
         performance.mark("compiler-run-start");
-        await props.compiler.run(
-          {
-            sources: [["code", code]],
-          },
-          runExpr,
-          shotCount,
-          props.evtTarget,
-        );
+        await props.compiler.run(config, runExpr, shotCount, props.evtTarget);
         const runTimer = performance.measure(
           "compiler-run",
           "compiler-run-start",
@@ -221,6 +274,7 @@ export function Editor(props: {
 
   useEffect(() => {
     props.languageService.updateConfiguration({
+      targetProfile: profile,
       packageType: props.kataExercise ? "lib" : "exe",
     });
 
@@ -259,6 +313,16 @@ export function Editor(props: {
     irRef.current();
   }, [props.activeTab]);
 
+  useEffect(() => {
+    // Whenever the selected profile changes, update the language service configuration
+    // and run the tabs again.
+    props.languageService.updateConfiguration({
+      targetProfile: profile,
+      packageType: props.kataExercise ? "lib" : "exe",
+    });
+    irRef.current();
+  }, [profile]);
+
   // On reset, reload the initial code
   function onReset() {
     const theEditor = editor.current;
@@ -276,11 +340,10 @@ export function Editor(props: {
     try {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
-
       // Get current URL without query parameters to use as the base URL
       const newUrl = `${
         window.location.href.split("?")[0]
-      }?code=${escapedCode}`;
+      }?code=${escapedCode}&profile=${profile}`;
 
       // Copy link to clipboard and update url without reloading the page
       navigator.clipboard.writeText(newUrl);
@@ -308,6 +371,11 @@ export function Editor(props: {
   function runExprChanged(e: Event) {
     const target = e.target as HTMLInputElement;
     setRunExpr(target.value);
+  }
+
+  function profileChanged(e: Event) {
+    const target = e.target as HTMLInputElement;
+    setProfile(target.value as TargetProfile);
   }
 
   return (
@@ -356,6 +424,14 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
+        <>
+          <span>Profile</span>
+          <select value={profile} onChange={profileChanged}>
+            <option value="unrestricted">Unrestricted</option>
+            <option value="adaptive_ri">Adaptive RI</option>
+            <option value="base">Base</option>
+          </select>
+        </>
         {props.showExpr ? (
           <>
             <span>Start</span>

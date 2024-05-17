@@ -6,13 +6,12 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    compile::TargetCapabilityFlags,
     resolve::{self, Names},
     typeck::{self, convert},
 };
 use miette::Diagnostic;
 use qsc_ast::ast;
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
@@ -125,7 +124,7 @@ impl With<'_> {
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
-            self.names.get(namespace.name.id)
+            self.names.get(namespace.id)
         else {
             panic!("namespace should have item ID");
         };
@@ -137,7 +136,7 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_ident(&namespace.name);
+        let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -736,6 +735,10 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+
+    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+        name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }
 

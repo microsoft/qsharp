@@ -311,7 +311,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     let mut updater = new_updater(&errors);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Quantinuum),
+        target_profile: Some(Profile::AdaptiveRI),
         package_type: Some(PackageType::Lib),
     });
 
@@ -636,6 +636,68 @@ fn notebook_document_errors() {
                                     ),
                                 ),
                             ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_document_lints() {
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors);
+
+    updater.update_notebook_document(
+        "notebook.ipynb",
+        &NotebookMetadata::default(),
+        [
+            ("cell1", 1, "operation Foo() : Unit { let x = 4;;;; }"),
+            ("cell2", 1, "operation Bar() : Unit { let y = 5 / 0; }"),
+        ]
+        .into_iter(),
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell1",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Lint(
+                            Lint {
+                                span: Span {
+                                    lo: 35,
+                                    hi: 38,
+                                },
+                                level: Warn,
+                                message: "redundant semicolons",
+                                help: "remove the redundant semicolons",
+                            },
+                        ),
+                    ],
+                ),
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Lint(
+                            Lint {
+                                span: Span {
+                                    lo: 74,
+                                    hi: 79,
+                                },
+                                level: Error,
+                                message: "attempt to divide by zero",
+                                help: "division by zero will fail at runtime",
+                            },
                         ),
                     ],
                 ),
@@ -1356,7 +1418,8 @@ async fn loading_lints_config_from_manifest() {
 
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
-    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let this_file_qs =
+        "namespace Foo { @EntryPoint() operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1396,8 +1459,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Error,
                     message: "unnecessary parentheses",
@@ -1407,12 +1470,12 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Error,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
             ),
         ]"#]],
@@ -1438,8 +1501,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Warn,
                     message: "unnecessary parentheses",
@@ -1449,12 +1512,12 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Warn,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
             ),
         ]"#]],

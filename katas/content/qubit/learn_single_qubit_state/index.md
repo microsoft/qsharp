@@ -1,5 +1,5 @@
 
-**Input:** A qubit in an unknown state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
+**Input:** A qubit in an unknown state $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$. The amplitudes $\alpha$ and $\beta$ will be real and non-negative.
 
 **Output:** A tuple of two numbers $(\alpha', \beta')$ - your estimates of the amplitudes $\alpha$ and $\beta$.
 The absolute errors $|\alpha - \alpha'|$ and $|\beta - \beta'|$ should be less than or equal to 0.001.

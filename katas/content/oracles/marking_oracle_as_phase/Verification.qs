@@ -25,13 +25,13 @@ namespace Kata.Verification {
                 let sol = Kata.ApplyMarkingOracleAsPhaseOracle(marking, _);
                 let ref = ApplyMarkingOracleAsPhaseOracle_Reference(marking, _);
 
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");
                     Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                         $"transformation for the {N}-bit oracle that marks the bit string {pattern}");
-                    ShowQuantumStateComparison(N, PrepRandomState, sol, ref);
+                    ShowQuantumStateComparison(N, PrepDemoState, sol, ref);
                     return false;
                 }
             }

@@ -15,8 +15,8 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Lit, Mutability, Pat, PatKind, Path,
-    Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
+    FunctorExpr, FunctorExprKind, Ident, Idents, Item, ItemKind, Lit, Mutability, Pat, PatKind,
+    Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
     StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
     Visibility, VisibilityKind,
 };
@@ -104,7 +104,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_namespace(&mut self, namespace: &'_ Namespace) {
         self.write("namespace ");
-        self.visit_ident(&namespace.name);
+        self.visit_idents(&namespace.name);
         self.writeln("{");
         namespace.items.iter().for_each(|i| {
             self.visit_item(i);
@@ -124,7 +124,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             ItemKind::Callable(decl) => self.visit_callable_decl(decl),
             ItemKind::Open(ns, alias) => {
                 self.write("open ");
-                self.visit_ident(ns);
+                self.visit_idents(ns);
                 if let Some(alias) = alias {
                     self.write(" as ");
                     self.visit_ident(alias);
@@ -710,8 +710,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     }
 
     fn visit_path(&mut self, path: &'_ Path) {
-        for ns in &path.namespace {
-            self.visit_ident(ns);
+        if let Some(ns) = &path.namespace {
+            self.visit_idents(ns);
             self.write(".");
         }
         self.visit_ident(&path.name);
@@ -719,6 +719,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_ident(&mut self, id: &'_ Ident) {
         self.write(&id.name);
+    }
+
+    fn visit_idents(&mut self, idents: &'_ Idents) {
+        self.write(&idents.name());
     }
 }
 

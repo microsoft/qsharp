@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-
     operation PostSelection(qs : Qubit[]) : Unit {
         use anc = Qubit();
         mutable res = Zero;

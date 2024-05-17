@@ -3,10 +3,10 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use crate::compile::{self, compile, PackageStore, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 
 fn check_hir(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);

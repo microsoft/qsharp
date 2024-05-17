@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 use crate::qir_base::generate_qir;
@@ -1589,6 +1589,69 @@ fn custom_intrinsic_fail_on_non_unit_return() {
                     },
                 },
             )
+        "#]],
+    );
+}
+
+#[test]
+fn pauli_i_rotation_for_global_phase_is_noop() {
+    check(
+        indoc! {"
+        namespace Test {
+            @EntryPoint()
+            operation Test() : Result {
+                use q = Qubit();
+                R(PauliI, 1.0, q);
+                return MResetZ(q);
+            }
+        }
+        "},
+        None,
+        &expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+            declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+            declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+            declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+            declare void @__quantum__qis__rx__body(double, %Qubit*)
+            declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+            declare void @__quantum__qis__ry__body(double, %Qubit*)
+            declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+            declare void @__quantum__qis__rz__body(double, %Qubit*)
+            declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+            declare void @__quantum__qis__h__body(%Qubit*)
+            declare void @__quantum__qis__s__body(%Qubit*)
+            declare void @__quantum__qis__s__adj(%Qubit*)
+            declare void @__quantum__qis__t__body(%Qubit*)
+            declare void @__quantum__qis__t__adj(%Qubit*)
+            declare void @__quantum__qis__x__body(%Qubit*)
+            declare void @__quantum__qis__y__body(%Qubit*)
+            declare void @__quantum__qis__z__body(%Qubit*)
+            declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+            declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+            declare void @__quantum__rt__array_record_output(i64, i8*)
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="1" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
         "#]],
     );
 }

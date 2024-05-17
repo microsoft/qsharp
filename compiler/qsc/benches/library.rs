@@ -4,8 +4,8 @@
 allocator::assign_global!();
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc::compile;
-use qsc_frontend::compile::{PackageStore, TargetCapabilityFlags};
+use qsc::{compile, TargetCapabilityFlags};
+use qsc_frontend::compile::PackageStore;
 
 pub fn library(c: &mut Criterion) {
     c.bench_function("Core + Standard library compilation", |b| {

@@ -522,6 +522,7 @@ impl Backend for LogicalCounter {
 
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
+            "GlobalPhase" => Some(Ok(Value::unit())),
             "BeginEstimateCaching" => {
                 let values = arg.unwrap_tuple();
                 let [cache_name, cache_variant] = array::from_fn(|i| values[i].clone());

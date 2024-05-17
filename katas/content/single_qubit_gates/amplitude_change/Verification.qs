@@ -12,7 +12,7 @@ namespace Kata.Verification {
             let alpha = ((2.0 * PI()) * IntAsDouble(i)) / 36.0;
             let solution = register => Kata.AmplitudeChange(alpha, register[0]);
             let reference = register => AmplitudeChange(alpha, register[0]);
-            let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+            let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
             if not isCorrect {
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {alpha}.");

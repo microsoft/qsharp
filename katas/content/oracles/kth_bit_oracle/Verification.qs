@@ -11,13 +11,13 @@ namespace Kata.Verification {
             for k in 0 .. N - 1 {
                 let sol = Kata.KthBit_Oracle(_, k);
                 let ref = KthBit_Oracle_Reference(_, k);
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");
                     Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                         $"transformation for the {N}-bit oracle for k = {k}");
-                    ShowQuantumStateComparison(N, PrepRandomState, sol, ref);
+                    ShowQuantumStateComparison(N, PrepDemoState, sol, ref);
                     return false;
                 }
             }

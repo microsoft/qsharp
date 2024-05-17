@@ -10,7 +10,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, many, opt, pat, seq, token},
+    prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
     ty::{self, ty},
@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_token, shorten},
+    prim::{barrier, path, recovering, recovering_token, shorten},
     stmt::check_semis,
     ty::array_or_arrow,
     ErrorKind,
@@ -136,7 +136,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
-    let name = dot_ident(s)?;
+    let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
@@ -144,7 +144,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
         id: NodeId::default(),
         span: s.span(lo),
         doc: doc.into(),
-        name,
+        name: (*name).into(),
         items: items.into_boxed_slice(),
     })
 }
@@ -202,14 +202,24 @@ fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
 
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
-    let name = dot_ident(s)?;
+    let mut name = vec![*(ident(s)?)];
+    while let Ok(_dot) = token(s, TokenKind::Dot) {
+        name.push(*(ident(s)?));
+    }
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
-        Some(dot_ident(s)?)
+        Some(ident(s)?)
     } else {
         None
     };
+
+    // Peek to see if the next token is a dot -- this means it is likely a dot ident alias, and
+    // we want to provide a more helpful error message
+    if s.peek().kind == TokenKind::Dot {
+        return Err(Error(ErrorKind::DotIdentAlias(s.peek().span)));
+    }
+
     token(s, TokenKind::Semi)?;
-    Ok(Box::new(ItemKind::Open(name, alias)))
+    Ok(Box::new(ItemKind::Open(name.into(), alias)))
 }
 
 fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {

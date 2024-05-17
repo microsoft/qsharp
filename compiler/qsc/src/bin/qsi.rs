@@ -8,13 +8,13 @@ use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::interpret::{self, InterpretResult, Interpreter};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_eval::{
     output::{self, Receiver},
     state::format_state_id,
     val::Value,
 };
-use qsc_frontend::compile::{SourceContents, SourceMap, SourceName, TargetCapabilityFlags};
+use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
@@ -52,6 +52,10 @@ struct Cli {
     /// Language features to compile with
     #[arg(short, long)]
     features: Vec<String>,
+
+    /// Compile the given files and interactive snippets in debug mode.
+    #[arg(long)]
+    debug: bool,
 }
 
 struct TerminalReceiver;
@@ -102,7 +106,11 @@ fn main() -> miette::Result<ExitCode> {
         }
     }
     if cli.exec {
-        let mut interpreter = match Interpreter::new(
+        let mut interpreter = match (if cli.debug {
+            Interpreter::new_with_debug
+        } else {
+            Interpreter::new
+        })(
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
@@ -122,7 +130,11 @@ fn main() -> miette::Result<ExitCode> {
         ));
     }
 
-    let mut interpreter = match Interpreter::new(
+    let mut interpreter = match (if cli.debug {
+        Interpreter::new_with_debug
+    } else {
+        Interpreter::new
+    })(
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,

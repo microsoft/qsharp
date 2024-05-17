@@ -11,7 +11,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.CompoundGate;
         let reference = CompoundGate;
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 3);
+        let isCorrect = CheckOperationsAreEqualStrict(3, solution, reference);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
@@ -20,7 +20,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
-            ShowQuantumStateComparison(3, PrepRandomState, solution, reference);
+            ShowQuantumStateComparison(3, PrepDemoState, solution, reference);
         }
 
         isCorrect

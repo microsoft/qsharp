@@ -62,8 +62,9 @@ mod tests {
     use expect_test::expect;
     use qsc_data_structures::{
         language_features::LanguageFeatures, line_column::Encoding, span::Span,
+        target::TargetCapabilityFlags,
     };
-    use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
+    use qsc_frontend::compile::{PackageStore, SourceMap};
     use qsc_hir::hir::PackageId;
     use qsc_passes::PackageType;
 

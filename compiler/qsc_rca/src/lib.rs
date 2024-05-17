@@ -12,13 +12,17 @@ mod common;
 mod core;
 mod cycle_detection;
 mod cyclic_callables;
+pub mod errors;
 mod overrider;
 mod scaffolding;
 
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
-use qsc_data_structures::index_map::{IndexMap, Iter};
+use qsc_data_structures::{
+    index_map::{IndexMap, Iter},
+    target::TargetCapabilityFlags,
+};
 use qsc_fir::{
     fir::{
         BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
@@ -26,7 +30,8 @@ use qsc_fir::{
     },
     ty::Ty,
 };
-use qsc_frontend::compile::TargetCapabilityFlags;
+use rustc_hash::FxHashSet;
+
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -136,6 +141,13 @@ impl PackageStoreComputeProperties {
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
     }
+
+    #[must_use]
+    pub fn is_unresolved_callee_expr(&self, id: StoreExprId) -> bool {
+        self.get(id.package)
+            .unresolved_callee_exprs
+            .contains(&id.expr)
+    }
 }
 
 /// The compute properties of a package.
@@ -149,6 +161,8 @@ pub struct PackageComputeProperties {
     pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
     /// The application generator sets of the package expressions.
     pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
+    /// The expressions that were unresolved callees at analysis time.
+    pub unresolved_callee_exprs: FxHashSet<ExprId>,
 }
 
 impl Default for PackageComputeProperties {
@@ -158,6 +172,7 @@ impl Default for PackageComputeProperties {
             blocks: IndexMap::new(),
             stmts: IndexMap::new(),
             exprs: IndexMap::new(),
+            unresolved_callee_exprs: FxHashSet::default(),
         }
     }
 }
@@ -554,7 +569,7 @@ pub struct QuantumProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,
     /// The kind of value of the program element.
-    pub(crate) value_kind: ValueKind,
+    pub value_kind: ValueKind,
 }
 
 impl Display for QuantumProperties {
@@ -596,8 +611,10 @@ impl ValueKind {
             Self::Element(RuntimeKind::Static)
         } else {
             match ty {
-                // For a dynamic array, both contents and size are dynamic.
-                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                // For a dynamic array, the content is dynamic and the size is static.
+                // We assume this because the source of the array produces something with dynamic length,
+                // that source should have already added the runtime feature flag for dynamic arrays.
+                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
                 // For every other dynamic type, we use the element variant with a dynamic runtime value.
                 _ => ValueKind::Element(RuntimeKind::Dynamic),
             }
@@ -656,7 +673,10 @@ impl ValueKind {
                 }
                 ValueKind::Element(self_runtime_kind) => {
                     *content_runtime_kind = self_runtime_kind;
-                    *size_runtime_kind = self_runtime_kind;
+                    // When we project from an element variant to an array variant, we assume the size of the
+                    // array is statically sized because we rely on the dynamically sized arrays runtime feature
+                    // flag to detect such cases.
+                    *size_runtime_kind = RuntimeKind::Static;
                 }
             },
             ValueKind::Element(runtime_kind) => {
@@ -747,8 +767,14 @@ bitflags! {
         const ReturnWithinDynamicScope = 1 << 19;
         /// A loop with a dynamic condition.
         const LoopWithDynamicCondition = 1 << 20;
-        /// Use of a closure.
-        const UseOfClosure = 1 << 21;
+        /// Use of an advanced type as output of a computation.
+        const UseOfAdvancedOutput = 1 << 21;
+        // Use of a `Bool` as output of a computation.
+        const UseOfBoolOutput = 1 << 22;
+        // Use of a `Double` as output of a computation.
+        const UseOfDoubleOutput = 1 << 23;
+        // Use of an `Int` as output of a computation.
+        const UseOfIntOutput = 1 << 24;
     }
 }
 
@@ -833,7 +859,16 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
-        if self.contains(RuntimeFeatureFlags::UseOfClosure) {
+        if self.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDoubleOutput) {
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfIntOutput) {
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         capabilities

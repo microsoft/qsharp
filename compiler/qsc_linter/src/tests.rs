@@ -6,8 +6,8 @@ use crate::{
     Lint, LintConfig, LintLevel,
 };
 use expect_test::{expect, Expect};
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
 use qsc_passes::PackageType;
 
 #[test]
@@ -24,9 +24,9 @@ fn multiple_lints() {
                 },
                 SrcLint {
                     source: "((1 + 2)) / 0",
-                    level: Warn,
+                    level: Error,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
                 SrcLint {
                     source: "((1 + 2))",
@@ -64,9 +64,9 @@ fn division_by_zero() {
             [
                 SrcLint {
                     source: "2 / 0",
-                    level: Warn,
+                    level: Error,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
             ]
         "#]],
