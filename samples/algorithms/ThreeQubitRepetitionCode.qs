@@ -41,7 +41,11 @@ namespace Microsoft.Quantum.Samples {
         // Transform the qubit to the |1〉 state and measure it in the computational basis.
         H(encodedRegister[0]);
         let result = MResetZ(encodedRegister[0]) == One;
-        ResetAll(encodedRegister);
+        // Note that the qubit at index 0 is already reset by MResetZ operation.
+        // There's no need to reset it again. Also, MResetZ operation is
+        // preferable to the measurement, which is followed by Reset as MResetZ
+        // may be directly implemented by the hardware.
+        ResetAll(encodedRegister[1...]);
 
         // The output of the program is a boolean-integer tuple where the boolean
         // represents whether the qubit measurement result was the expected one
