@@ -145,7 +145,7 @@ Scalar multiplication has the following properties:
     "title": "Matrix Multiplication" 
 })
 
-**Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it's that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
+**Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it is that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
 That is, for matrix multiplication to be applicable, the number of columns in the first matrix must equal the number of rows in the second matrix.
 
 Here's how matrix product is calculated: if you're calculating $AB = C$, then
