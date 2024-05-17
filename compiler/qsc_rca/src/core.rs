@@ -16,9 +16,9 @@ use qsc_fir::{
     extensions::InputParam,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind, Global,
-        Ident, Item, ItemKind, Mutability, Package, PackageId, PackageLookup, PackageStore,
-        PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
-        StoreExprId, StoreItemId, StorePatId, StringComponent,
+        Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId, PackageLookup,
+        PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt,
+        StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
     visit::Visitor,
@@ -376,6 +376,7 @@ impl<'a> Analyzer<'a> {
         callable_decl: &'a CallableDecl,
         args_expr_id: ExprId,
         expr_type: &Ty,
+        fixed_args: Option<Vec<LocalVarId>>,
     ) -> CallComputeKind {
         // The `Length` intrinsic function has a specialized override.
         if is_length_intrinsic(callable_decl) {
@@ -405,11 +406,30 @@ impl<'a> Analyzer<'a> {
             callee_input_pattern_id,
             args_input_id,
             self.package_store,
+            fixed_args.as_ref().map_or(0, Vec::len),
         );
         let application_instance = self.get_current_application_instance();
 
         // Derive the compute kind based on the value kind of the arguments.
-        let arg_value_kinds = self.derive_arg_value_kinds(&arg_exprs);
+        let arg_value_kinds = if let Some(fixed_args) = fixed_args {
+            // In items that come from lifted lambdas, fixed arguments that capture local variables, if any, come before
+            // other arguments, so we use the `fixed_args` as the base of the chain of values and concatenate the rest of
+            // the arguments when building the full list of arguments for a callable application.
+            fixed_args
+                .into_iter()
+                .map(|local_var_id| {
+                    self.get_current_application_instance()
+                        .locals_map
+                        .find_local_compute_kind(local_var_id)
+                        .expect("local should have been processed before this")
+                        .compute_kind
+                        .value_kind_or_default(ValueKind::Element(RuntimeKind::Static))
+                })
+                .chain(self.derive_arg_value_kinds(&arg_exprs))
+                .collect()
+        } else {
+            self.derive_arg_value_kinds(&arg_exprs)
+        };
         let mut compute_kind =
             application_generator_set.generate_application_compute_kind(&arg_value_kinds);
 
@@ -482,14 +502,18 @@ impl<'a> Analyzer<'a> {
         );
 
         // If the callee could not be resolved, return a compute kind with certain runtime features.
-        let Some(callee) = maybe_callee else {
-            // The value kind of a call expression with an unresolved callee is dynamic but its specific variant depends
-            // on the expression's type.
-            let value_kind = ValueKind::new_dynamic_from_type(expr_type);
+        let (Some(callee), fixed_args) = maybe_callee else {
+            // The value kind of a call expression with an unresolved callee is not known, so to avoid
+            // spurious errors in later analysis where the value is used we assume static.
+            // During partial-evaluation, the callable is known the actual return kind will be checked.
+            let value_kind = ValueKind::new_static_from_type(expr_type);
             let compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
             });
+            self.get_current_application_instance_mut()
+                .unresolved_callee_exprs
+                .push(callee_expr_id);
             return CallComputeKind::Regular(compute_kind);
         };
 
@@ -504,6 +528,7 @@ impl<'a> Analyzer<'a> {
                 callable_decl,
                 args_expr_id,
                 expr_type,
+                fixed_args,
             ),
             Global::Udt => {
                 CallComputeKind::Regular(self.analyze_expr_call_with_udt_callee(args_expr_id))
@@ -529,11 +554,6 @@ impl<'a> Analyzer<'a> {
         }
 
         compute_kind
-    }
-
-    fn analyze_expr_closure(expr_type: &Ty) -> ComputeKind {
-        let value_kind = ValueKind::new_dynamic_from_type(expr_type);
-        ComputeKind::new_with_runtime_features(RuntimeFeatureFlags::UseOfClosure, value_kind)
     }
 
     fn analyze_expr_fail(&mut self, msg_expr_id: ExprId) -> ComputeKind {
@@ -1404,17 +1424,22 @@ impl<'a> Analyzer<'a> {
                     panic!("expected a local variable");
                 };
 
-                // The updated compute kind is based on the compute kind of the value expression.
+                // The updated compute kind is the aggregation of the compute kind of the local variable and the
+                // assigned value.
+                // Start by initializing the updated compute kind with the compute kind of the local variable.
                 let application_instance = self.get_current_application_instance();
-                let value_expr_compute_kind =
-                    *application_instance.get_expr_compute_kind(value_expr_id);
-
-                // Since the local variable compute kind is what will be updated, the value kind must match the local
-                // variable's type. In some cases, there might be some loss of granularity on the value kind (e.g.
-                // assigning an array to a UDT variable field since we do not track individual UDT fields).
                 let local_var_compute_kind = application_instance
                     .locals_map
                     .get_local_compute_kind(*local_var_id);
+                let mut updated_compute_kind = local_var_compute_kind.compute_kind;
+
+                // Since the local variable compute kind is what will be updated, the value kind must match the local
+                // variable's type. That is why before aggregating the compute kind of the assigned value we need to get
+                // a default value kind of the matching type.
+                // In some cases, there might be some loss of granularity on the value kind (e.g. assigning an array to
+                // a UDT variable field since we do not track individual UDT fields).
+                let value_expr_compute_kind =
+                    *application_instance.get_expr_compute_kind(value_expr_id);
                 let mut value_kind =
                     ValueKind::new_static_from_type(&local_var_compute_kind.local.ty);
                 if let ComputeKind::Quantum(value_expr_quantum_properties) = value_expr_compute_kind
@@ -1423,8 +1448,6 @@ impl<'a> Analyzer<'a> {
                         .value_kind
                         .project_onto_variant(&mut value_kind);
                 }
-
-                let mut updated_compute_kind = ComputeKind::Classical;
                 updated_compute_kind = updated_compute_kind
                     .aggregate_runtime_features(value_expr_compute_kind, value_kind);
 
@@ -1623,7 +1646,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.analyze_expr_call(*callee_expr_id, *args_expr_id, &expr.ty)
             }
-            ExprKind::Closure(_, _) => Self::analyze_expr_closure(&expr.ty),
+            ExprKind::Closure(..) => ComputeKind::Classical,
             ExprKind::Fail(msg_expr_id) => self.analyze_expr_fail(*msg_expr_id),
             ExprKind::Field(record_expr_id, _) => {
                 self.analyze_expr_field(*record_expr_id, &expr.ty)
@@ -2275,29 +2298,32 @@ fn map_input_pattern_to_input_expressions(
     pat_id: StorePatId,
     expr_id: StoreExprId,
     package_store: &impl PackageStoreLookup,
+    skip_ahead: usize,
 ) -> Vec<ExprId> {
     let pat = package_store.get_pat(pat_id);
     match &pat.kind {
         PatKind::Bind(_) | PatKind::Discard => vec![expr_id.expr],
         PatKind::Tuple(pats) => {
+            let pats = &pats[skip_ahead..];
             let expr = package_store.get_expr(expr_id);
-            match &expr.kind {
-                ExprKind::Tuple(exprs) => {
-                    assert!(pats.len() == exprs.len());
-                    let mut input_param_exprs = Vec::<ExprId>::with_capacity(pats.len());
-                    for (local_pat_id, local_expr_id) in pats.iter().zip(exprs.iter()) {
-                        let global_pat_id = StorePatId::from((pat_id.package, *local_pat_id));
-                        let global_expr_id = StoreExprId::from((expr_id.package, *local_expr_id));
-                        let mut sub_input_param_exprs = map_input_pattern_to_input_expressions(
-                            global_pat_id,
-                            global_expr_id,
-                            package_store,
-                        );
-                        input_param_exprs.append(&mut sub_input_param_exprs);
-                    }
-                    input_param_exprs
+            if let ExprKind::Tuple(exprs) = &expr.kind {
+                assert!(pats.len() == exprs.len());
+                let mut input_param_exprs = Vec::<ExprId>::with_capacity(pats.len());
+                for (local_pat_id, local_expr_id) in pats.iter().zip(exprs.iter()) {
+                    let global_pat_id = StorePatId::from((pat_id.package, *local_pat_id));
+                    let global_expr_id = StoreExprId::from((expr_id.package, *local_expr_id));
+                    let mut sub_input_param_exprs = map_input_pattern_to_input_expressions(
+                        global_pat_id,
+                        global_expr_id,
+                        package_store,
+                        0,
+                    );
+                    input_param_exprs.append(&mut sub_input_param_exprs);
                 }
-                _ => panic!("expected tuple expression"),
+                input_param_exprs
+            } else {
+                assert!(pats.len() == 1);
+                vec![expr_id.expr]
             }
         }
     }

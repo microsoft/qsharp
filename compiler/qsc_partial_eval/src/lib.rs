@@ -8,8 +8,10 @@
 mod evaluation_context;
 mod management;
 
+use core::panic;
 use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, Scope,
+    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, MutableVar,
+    Scope,
 };
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -31,7 +33,12 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
-use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
+use qsc_rca::errors::{generate_errors_from_runtime_features, get_missing_runtime_features};
+use qsc_rca::{
+    errors::Error as CapabilityError, ComputeKind, ComputePropertiesLookup,
+    PackageStoreComputeProperties,
+};
+use qsc_rca::{ItemComputeProperties, QuantumProperties, RuntimeFeatureFlags};
 use qsc_rir::{
     builder,
     rir::{
@@ -58,7 +65,16 @@ pub fn partially_evaluate(
 /// A partial evaluation error.
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error("partial evaluation failed with error {0}")]
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    CapabilityError(CapabilityError),
+
+    #[error("cannot use a dynamic value returned from a runtime-resolved callable")]
+    #[diagnostic(code("Qsc.PartialEval.UnexpectedDynamicValue"))]
+    #[diagnostic(help("try invoking the desired callable directly"))]
+    UnexpectedDynamicValue(#[label] Span),
+
+    #[error("partial evaluation failed with error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
 
@@ -72,7 +88,7 @@ pub enum Error {
     #[error("an unexpected error occurred related to: {0}")]
     #[diagnostic(code("Qsc.PartialEval.Unexpected"))]
     #[diagnostic(help(
-        "this is probably a bug. please consider reporting this as an issue to the development team"
+        "this is probably a bug, please consider reporting this as an issue to the development team"
     ))]
     Unexpected(String, #[label] Span),
 
@@ -182,15 +198,11 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
-        let maybe_var_type = try_get_eval_var_type(&value);
-        if let Some(var_type) = maybe_var_type {
-            // Get a variable to store into.
-            let value_operand = map_eval_value_to_rir_operand(&value);
-            let eval_var = self.get_or_create_variable(ident.id, var_type);
-            let rir_var = map_eval_var_to_rir_var(eval_var);
-            // Insert a store instruction.
-            let store_ins = Instruction::Store(value_operand, rir_var);
-            self.get_current_rir_block_mut().0.push(store_ins);
+        if let Some((var_id, mutable_var)) = self.try_create_mutable_variable(ident.id, &value) {
+            // Keep track of whether the mutable variable is static or dynamic.
+            self.eval_context
+                .get_current_scope_mut()
+                .insert_mutable_var(var_id, mutable_var);
         } else {
             self.bind_value_in_hybrid_map(ident, value);
         }
@@ -211,8 +223,7 @@ impl<'a> PartialEvaluator<'a> {
         // Insert the value into the hybrid vars map.
         self.eval_context
             .get_current_scope_mut()
-            .hybrid_vars
-            .insert(ident.id, value);
+            .insert_hybrid_local_value(ident.id, value);
     }
 
     fn create_intrinsic_callable(
@@ -287,8 +298,8 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         bin_op: BinOp,
         lhs_value: Value,
-        lhs_span: Span,
         rhs_expr_id: ExprId,
+        lhs_span: Span,         // For diagnostic purposes only.
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         // Evaluate the binary operation differently depending on the LHS value variant.
@@ -299,26 +310,31 @@ impl<'a> PartialEvaluator<'a> {
                 rhs_expr_id,
                 bin_op_expr_span,
             ),
-            Value::Result(_lhs_result) => Err(Error::Unimplemented(
-                "result binary operation".to_string(),
-                lhs_span,
-            )),
-            Value::Bool(_lhs_bool) => Err(Error::Unimplemented(
-                "bool binary operation".to_string(),
-                lhs_span,
-            )),
-            Value::Int(_lhs_int) => Err(Error::Unimplemented(
-                "int binary operation".to_string(),
-                lhs_span,
-            )),
+            Value::Result(lhs_result) => self.eval_bin_op_with_lhs_result_operand(
+                bin_op,
+                lhs_result,
+                rhs_expr_id,
+                bin_op_expr_span,
+            ),
+            Value::Bool(lhs_bool) => {
+                self.eval_bin_op_with_lhs_classical_bool_operand(bin_op, lhs_bool, rhs_expr_id)
+            }
+            Value::Int(lhs_int) => {
+                let lhs_operand = Operand::Literal(Literal::Integer(lhs_int));
+                self.eval_bin_op_with_lhs_integer_operand(
+                    bin_op,
+                    lhs_operand,
+                    rhs_expr_id,
+                    bin_op_expr_span,
+                )
+            }
             Value::Double(_lhs_double) => Err(Error::Unimplemented(
                 "double binary operation".to_string(),
                 lhs_span,
             )),
-            Value::Var(_lhs_eval_var) => Err(Error::Unimplemented(
-                "binary operation with dynamic LHS".to_string(),
-                lhs_span,
-            )),
+            Value::Var(lhs_eval_var) => {
+                self.eval_bin_op_with_lhs_var(bin_op, lhs_eval_var, rhs_expr_id, bin_op_expr_span)
+            }
             _ => Err(Error::Unexpected(
                 format!("unsupported LHS value: {lhs_value}"),
                 lhs_span,
@@ -365,6 +381,234 @@ impl<'a> PartialEvaluator<'a> {
             lhs_array.iter().chain(rhs_array.iter()).cloned().collect();
         let array_value = Value::Array(concatenated_array.into());
         Ok(EvalControlFlow::Continue(array_value))
+    }
+
+    fn eval_bin_op_with_lhs_result_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_result: val::Result,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let Value::Result(rhs_result) = rhs_value else {
+            panic!("expected result value from RHS expression");
+        };
+
+        // Get the operands to use when generating the binary operation instruction.
+        let lhs_operand = self.eval_result_as_bool_operand(lhs_result);
+        let rhs_operand = self.eval_result_as_bool_operand(rhs_result);
+
+        // Create a variable to store the result of the expression.
+        let variable_id = self.resource_manager.next_var();
+        let rir_variable = rir::Variable {
+            variable_id,
+            ty: rir::Ty::Boolean, // Binary operations between results are always Boolean.
+        };
+
+        // Create the binary operation instruction and add it to the current block.
+        let condition_code = match bin_op {
+            BinOp::Eq => ConditionCode::Eq,
+            BinOp::Neq => ConditionCode::Ne,
+            _ => {
+                return Err(Error::Unexpected(
+                    format!("invalid binary operator for Result operands: {bin_op:?})"),
+                    bin_op_expr_span,
+                ))
+            }
+        };
+
+        let instruction = match (bin_op, lhs_operand, rhs_operand) {
+            (BinOp::Eq, Operand::Literal(Literal::Bool(true)), operand)
+            | (BinOp::Eq, operand, Operand::Literal(Literal::Bool(true)))
+            | (BinOp::Neq, Operand::Literal(Literal::Bool(false)), operand)
+            | (BinOp::Neq, operand, Operand::Literal(Literal::Bool(false))) => {
+                // One of the operands is a literal so we just need a store instruction.
+                Instruction::Store(operand, rir_variable)
+            }
+            // Both operators are non-literals so we need the comparison instruction.
+            _ => Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable),
+        };
+        self.get_current_rir_block_mut().0.push(instruction);
+
+        // Return the variable as a value.
+        let value = Value::Var(map_rir_var_to_eval_var(rir_variable));
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_classical_bool_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_bool: bool,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        let value = match (bin_op, lhs_bool) {
+            // Handle short-circuiting for logical AND and logical OR.
+            (BinOp::AndL, false) => Value::Bool(false),
+            (BinOp::OrL, true) => Value::Bool(true),
+            // Cases for which just returning the RHS value is sufficient.
+            (BinOp::AndL | BinOp::Eq, true) | (BinOp::OrL | BinOp::Neq, false) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "embedded return in RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+                rhs_value
+            }
+            // The other possible cases.
+            (BinOp::Eq | BinOp::Neq, _) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "embedded return in RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+
+                // Create the operands.
+                let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
+                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+                // If both operands are literals, evaluate the binary operation and return its value.
+                if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
+                    (lhs_operand, rhs_operand)
+                {
+                    let value = eval_bin_op_with_bool_literals(bin_op, lhs_literal, rhs_literal);
+                    return Ok(EvalControlFlow::Continue(value));
+                }
+
+                // Generate the specific instruction depending on the operand.
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable {
+                    variable_id: bin_op_variable_id,
+                    ty: rir::Ty::Boolean,
+                };
+                let bin_op_ins = match bin_op {
+                    BinOp::AndL => {
+                        Instruction::LogicalAnd(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    BinOp::OrL => {
+                        Instruction::LogicalOr(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    BinOp::Eq => Instruction::Icmp(
+                        ConditionCode::Eq,
+                        lhs_operand,
+                        rhs_operand,
+                        bin_op_rir_variable,
+                    ),
+                    BinOp::Neq => Instruction::Icmp(
+                        ConditionCode::Ne,
+                        lhs_operand,
+                        rhs_operand,
+                        bin_op_rir_variable,
+                    ),
+                    _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+                };
+                self.get_current_rir_block_mut().0.push(bin_op_ins);
+                Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
+            }
+            _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+        };
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_integer_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_operand: Operand,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        assert!(
+            matches!(lhs_operand.get_type(), rir::Ty::Integer),
+            "LHS is expected to be of integer type"
+        );
+
+        // Try to evaluate the RHS expression to get its value and construct its operand.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        assert!(
+            matches!(rhs_operand.get_type(), rir::Ty::Integer),
+            "LHS value is expected to be of integer type"
+        );
+
+        // If both operands are literals, evaluate the binary operation and return its value.
+        if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
+            (lhs_operand, rhs_operand)
+        {
+            let value = eval_bin_op_with_integer_literals(
+                bin_op,
+                lhs_literal,
+                rhs_literal,
+                bin_op_expr_span,
+            )?;
+            return Ok(EvalControlFlow::Continue(value));
+        }
+
+        // Create the variable ID, create the instruction and insert it.
+        let bin_op_variable_id = self.resource_manager.next_var();
+        let (bin_op_rir_variable, bin_op_rir_ins) =
+            create_instruction_for_binary_operation_with_integer_operands(
+                bin_op,
+                lhs_operand,
+                rhs_operand,
+                bin_op_variable_id,
+                bin_op_expr_span,
+            )?;
+
+        // Insert the instruction.
+        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_var(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        match lhs_eval_var.ty {
+            VarTy::Boolean => Err(Error::Unimplemented(
+                "bool binary operation with dynamic LHS".to_string(),
+                bin_op_expr_span,
+            )),
+            VarTy::Integer => {
+                let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+                let lhs_operand = Operand::Variable(lhs_rir_var);
+                self.eval_bin_op_with_lhs_integer_operand(
+                    bin_op,
+                    lhs_operand,
+                    rhs_expr_id,
+                    bin_op_expr_span,
+                )
+            }
+            VarTy::Double => Err(Error::Unimplemented(
+                "double binary operation with dynamic LHS".to_string(),
+                bin_op_expr_span,
+            )),
+        }
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -445,11 +689,11 @@ impl<'a> PartialEvaluator<'a> {
                 self.eval_expr_assign_op(*bin_op, *lhs_expr_id, *rhs_expr_id, expr.span)
             }
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
-                self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
+                self.eval_expr_bin_op(*bin_op, *lhs_expr_id, *rhs_expr_id, expr.span)
             }
             ExprKind::Block(block_id) => self.try_eval_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
-                self.eval_expr_call(*callee_expr_id, *args_expr_id)
+                self.eval_expr_call(expr_id, *callee_expr_id, *args_expr_id)
             }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(
@@ -628,12 +872,12 @@ impl<'a> PartialEvaluator<'a> {
         let bin_op_control_flow = self.eval_bin_op(
             bin_op,
             lhs_value,
-            lhs_expr.span,
             rhs_expr_id,
+            lhs_expr.span,
             bin_op_expr_span,
         )?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
-            panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
+            panic!("evaluating a binary operation is expected to result in an error or a continue, but never in a return");
         };
         self.update_bindings(lhs_expr_id, bin_op_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
@@ -642,96 +886,41 @@ impl<'a> PartialEvaluator<'a> {
     #[allow(clippy::similar_names)]
     fn eval_expr_bin_op(
         &mut self,
-        bin_op_expr_id: ExprId,
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
-        // Try to evaluate both the LHS and RHS expressions to get their value, short-circuiting execution if any of the
-        // expressions is a return.
+        // Try to evaluate the LHS expression and get its value, short-circuiting execution if it is a return.
         let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
-        if lhs_control_flow.is_return() {
+        let EvalControlFlow::Continue(lhs_value) = lhs_control_flow else {
             let lhs_expr = self.get_expr(lhs_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in binary operation".to_string(),
                 lhs_expr.span,
             ));
-        }
-        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-        if rhs_control_flow.is_return() {
-            let rhs_expr = self.get_expr(rhs_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in binary operation".to_string(),
-                rhs_expr.span,
-            ));
-        }
-
-        // Get the operands to use when generating the binary operation instruction depending on the type of the
-        // expression's value.
-        let lhs_value = lhs_control_flow.into_value();
-        let lhs_operand = if let Value::Result(result) = lhs_value {
-            self.eval_result_as_bool_operand(result)
-        } else {
-            map_eval_value_to_rir_operand(&lhs_value)
-        };
-        let rhs_value = rhs_control_flow.into_value();
-        let rhs_operand = if let Value::Result(result) = rhs_value {
-            self.eval_result_as_bool_operand(result)
-        } else {
-            map_eval_value_to_rir_operand(&rhs_value)
         };
 
-        // Create a variable to store the result of the expression.
-        let bin_op_expr = self.get_expr(bin_op_expr_id);
-        let variable_id = self.resource_manager.next_var();
-        let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
-        let variable = rir::Variable {
-            variable_id,
-            ty: variable_ty,
-        };
-
-        // Create the binary operation instruction and add it to the current block.
-        let instruction = match bin_op {
-            BinOp::Eq => Instruction::Icmp(ConditionCode::Eq, lhs_operand, rhs_operand, variable),
-            BinOp::Neq => Instruction::Icmp(ConditionCode::Ne, lhs_operand, rhs_operand, variable),
-            _ => {
-                return Err(Error::Unimplemented(
-                    format!("BinOp Expr ({bin_op:?})"),
-                    bin_op_expr.span,
-                ))
-            }
-        };
-        let current_block = self.get_current_rir_block_mut();
-        current_block.0.push(instruction);
-
-        // Return the variable as a value.
-        let value = Value::Var(map_rir_var_to_eval_var(variable));
-        Ok(EvalControlFlow::Continue(value))
+        // Now that we have a LHS value, evaluate the binary operation, which will properly consider short-circuiting
+        // logic in the case of Boolean operations.
+        let lhs_expr = self.get_expr(lhs_expr_id);
+        self.eval_bin_op(
+            bin_op,
+            lhs_value,
+            rhs_expr_id,
+            lhs_expr.span,
+            bin_op_expr_span,
+        )
     }
 
     fn eval_expr_call(
         &mut self,
+        call_expr_id: ExprId,
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // Visit the both the callee and arguments expressions to get their values.
-        let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
-        if callee_control_flow.is_return() {
-            let callee_expr = self.get_expr(callee_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in callee".to_string(),
-                callee_expr.span,
-            ));
-        }
-
-        let args_control_flow = self.try_eval_expr(args_expr_id)?;
-        if args_control_flow.is_return() {
-            let args_expr = self.get_expr(args_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in call arguments".to_string(),
-                args_expr.span,
-            ));
-        }
+        let (callee_control_flow, args_control_flow) =
+            self.try_eval_callee_and_args(callee_expr_id, args_expr_id)?;
 
         // Get the callable.
         let (store_item_id, functor_app, fixed_args) = match callee_control_flow.into_value() {
@@ -748,28 +937,124 @@ impl<'a> PartialEvaluator<'a> {
             panic!("global is not a callable");
         };
 
+        // Set up the scope for the call, which allows additional error checking if the callable was
+        // previously unresolved.
+        let spec_decl = if let CallableImpl::Spec(spec_impl) = &callable_decl.implementation {
+            Some(get_spec_decl(spec_impl, functor_app))
+        } else {
+            None
+        };
+
+        let args_value = args_control_flow.into_value();
+        let ctls = if let Some(Some(ctls_pat_id)) = spec_decl.map(|spec_decl| spec_decl.input) {
+            assert!(
+                functor_app.controlled > 0,
+                "control qubits count was expected to be greater than zero"
+            );
+            Some((
+                StorePatId::from((store_item_id.package, ctls_pat_id)),
+                functor_app.controlled,
+            ))
+        } else {
+            assert!(
+                functor_app.controlled == 0,
+                "control qubits count was expected to be zero"
+            );
+            None
+        };
+        let (args, ctls_arg) = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value.clone(),
+            ctls,
+            fixed_args,
+        );
+        let call_scope = Scope::new(
+            store_item_id.package,
+            Some((store_item_id.item, functor_app)),
+            args,
+            ctls_arg,
+        );
+
+        // If the call has the unresolved flag, it tells us that RCA could not perform static analysis on this call site.
+        // Now that we are in evaluation, we have a distinct callable resolved and can perform runtime capability check
+        // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
+        // by the target.
+        let call_was_unresolved = self.is_unresolved_callee_expr(callee_expr_id);
+        if call_was_unresolved {
+            let call_compute_kind = self.get_call_compute_kind(&call_scope);
+            if let ComputeKind::Quantum(QuantumProperties {
+                runtime_features,
+                value_kind,
+            }) = call_compute_kind
+            {
+                let missing_features = get_missing_runtime_features(
+                    runtime_features,
+                    self.program.config.capabilities,
+                ) & !RuntimeFeatureFlags::CallToUnresolvedCallee;
+                if !missing_features.is_empty() {
+                    if let Some(error) = generate_errors_from_runtime_features(
+                        missing_features,
+                        self.get_expr(call_expr_id).span,
+                    )
+                    .drain(..)
+                    .next()
+                    {
+                        return Err(Error::CapabilityError(error));
+                    }
+                }
+
+                // If the call produces a dynamic value, we treat it as an error because we know that later
+                // analysis has not taken that dynamism into account and further partial evaluation may fail
+                // when it encounters that value.
+                if value_kind.is_dynamic() {
+                    return Err(Error::UnexpectedDynamicValue(
+                        self.get_expr(call_expr_id).span,
+                    ));
+                }
+            }
+        }
+
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
         // with an implementation.
-        let value = match &callable_decl.implementation {
-            CallableImpl::Intrinsic => {
+        let value = match spec_decl {
+            None => {
                 let callee_expr = self.get_expr(callee_expr_id);
                 self.eval_expr_call_to_intrinsic(
                     store_item_id,
                     callable_decl,
-                    args_control_flow.into_value(),
+                    args_value,
                     callee_expr.span,
                 )?
             }
-            CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
-                store_item_id,
-                functor_app,
-                spec_impl,
-                callable_decl.input,
-                args_control_flow.into_value(),
-                fixed_args,
-            )?,
+            Some(spec_decl) => {
+                self.eval_expr_call_to_spec(call_scope, store_item_id, functor_app, spec_decl)?
+            }
         };
         Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn try_eval_callee_and_args(
+        &mut self,
+        callee_expr_id: ExprId,
+        args_expr_id: ExprId,
+    ) -> Result<(EvalControlFlow, EvalControlFlow), Error> {
+        let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
+        if callee_control_flow.is_return() {
+            let callee_expr = self.get_expr(callee_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in callee".to_string(),
+                callee_expr.span,
+            ));
+        }
+        let args_control_flow = self.try_eval_expr(args_expr_id)?;
+        if args_control_flow.is_return() {
+            let args_expr = self.get_expr(args_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in call arguments".to_string(),
+                args_expr.span,
+            ));
+        }
+        Ok((callee_control_flow, args_control_flow))
     }
 
     fn eval_expr_call_to_intrinsic(
@@ -806,7 +1091,12 @@ impl<'a> PartialEvaluator<'a> {
                     callee_expr_span,
                 ))
             }
-            _ => Ok(self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value)),
+            _ => self.eval_expr_call_to_intrinsic_qis(
+                store_item_id,
+                callable_decl,
+                args_value,
+                callee_expr_span,
+            ),
         }
     }
 
@@ -815,9 +1105,18 @@ impl<'a> PartialEvaluator<'a> {
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
         args_value: Value,
-    ) -> Value {
+        callee_expr_span: Span,
+    ) -> Result<Value, Error> {
         // Intrinsic callables that make it to this point are expected to be unitary.
-        assert_eq!(callable_decl.output, Ty::UNIT);
+        if callable_decl.output != Ty::UNIT {
+            return Err(Error::Unexpected(
+                format!(
+                    "non-classical call to non-Unit intrinsic `{}`",
+                    callable_decl.name.name
+                ),
+                callee_expr_span,
+            ));
+        }
 
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
@@ -842,49 +1141,16 @@ impl<'a> PartialEvaluator<'a> {
         let instruction = Instruction::Call(callable_id, args_operands, None);
         let current_block = self.get_current_rir_block_mut();
         current_block.0.push(instruction);
-        Value::unit()
+        Ok(Value::unit())
     }
 
     fn eval_expr_call_to_spec(
         &mut self,
+        call_scope: Scope,
         global_callable_id: StoreItemId,
         functor_app: FunctorApp,
-        spec_impl: &SpecImpl,
-        args_pat: PatId,
-        args_value: Value,
-        fixed_args: Option<Rc<[Value]>>,
+        spec_decl: &SpecDecl,
     ) -> Result<Value, Error> {
-        let spec_decl = get_spec_decl(spec_impl, functor_app);
-
-        // Create new call scope.
-        let ctls = if let Some(ctls_pat_id) = spec_decl.input {
-            assert!(
-                functor_app.controlled > 0,
-                "control qubits count was expected to be greater than zero"
-            );
-            Some((
-                StorePatId::from((global_callable_id.package, ctls_pat_id)),
-                functor_app.controlled,
-            ))
-        } else {
-            assert!(
-                functor_app.controlled == 0,
-                "control qubits count was expected to be zero"
-            );
-            None
-        };
-        let (args, ctls_arg) = self.resolve_args(
-            (global_callable_id.package, args_pat).into(),
-            args_value,
-            ctls,
-            fixed_args,
-        );
-        let call_scope = Scope::new(
-            global_callable_id.package,
-            Some((global_callable_id.item, functor_app)),
-            args,
-            ctls_arg,
-        );
         self.eval_context.push_scope(call_scope);
         let block_value = self.try_eval_block(spec_decl.block)?.into_value();
         let popped_scope = self.eval_context.pop_scope();
@@ -1206,11 +1472,29 @@ impl<'a> PartialEvaluator<'a> {
                 },
                 FunctorApp::default(),
             ),
-            Res::Local(local_var_id) => self
-                .eval_context
-                .get_current_scope()
-                .get_hybrid_local_value(*local_var_id)
-                .clone(),
+            Res::Local(local_var_id) => {
+                let bound_value = self
+                    .eval_context
+                    .get_current_scope()
+                    .get_hybrid_local_value(*local_var_id);
+
+                // Check whether the bound value is a mutable variable, and if so, return its value directly rather than
+                // the variable if it is static at this moment.
+                if let Value::Var(var) = bound_value {
+                    let current_scope = self.eval_context.get_current_scope();
+                    if let Some(MutableVar {
+                        kind: MutableKind::Static(literal),
+                        ..
+                    }) = current_scope.find_mutable_var(var.id.into())
+                    {
+                        map_rir_literal_to_eval_value(*literal)
+                    } else {
+                        bound_value.clone()
+                    }
+                } else {
+                    bound_value.clone()
+                }
+            }
         }
     }
 
@@ -1356,20 +1640,81 @@ impl<'a> PartialEvaluator<'a> {
         expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
-    fn get_or_create_variable(&mut self, local_var_id: LocalVarId, var_ty: VarTy) -> Var {
-        let current_scope = self.eval_context.get_current_scope_mut();
-        let entry = current_scope.hybrid_vars.entry(local_var_id);
-        let local_var_value = entry.or_insert(Value::Var({
-            let var_id = self.resource_manager.next_var();
-            Var {
-                id: var_id.into(),
-                ty: var_ty,
-            }
-        }));
-        let Value::Var(var) = local_var_value else {
-            panic!("value must be a variable");
+    fn is_unresolved_callee_expr(&self, expr_id: ExprId) -> bool {
+        let current_package_id = self.get_current_package_id();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        self.compute_properties
+            .is_unresolved_callee_expr(store_expr_id)
+    }
+
+    fn get_call_compute_kind(&self, callable_scope: &Scope) -> ComputeKind {
+        let store_item_id = StoreItemId::from((
+            callable_scope.package_id,
+            callable_scope
+                .callable
+                .expect("callable should be present")
+                .0,
+        ));
+        let ItemComputeProperties::Callable(callable_compute_properties) =
+            self.compute_properties.get_item(store_item_id)
+        else {
+            panic!("item compute properties not found");
         };
-        *var
+        let callable_generator_set = match &callable_scope.callable {
+            Some((_, functor_app)) => match (functor_app.adjoint, functor_app.controlled) {
+                (false, 0) => &callable_compute_properties.body,
+                (false, _) => callable_compute_properties
+                    .ctl
+                    .as_ref()
+                    .expect("controlled should be supported"),
+                (true, 0) => callable_compute_properties
+                    .adj
+                    .as_ref()
+                    .expect("adjoint should be supported"),
+                (true, _) => callable_compute_properties
+                    .ctl_adj
+                    .as_ref()
+                    .expect("controlled adjoint should be supported"),
+            },
+            None => panic!("call compute kind should have callable"),
+        };
+        callable_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
+    }
+
+    fn try_create_mutable_variable(
+        &mut self,
+        local_var_id: LocalVarId,
+        value: &Value,
+    ) -> Option<(rir::VariableId, MutableVar)> {
+        // Check if we can create a mutable variable for this value.
+        let var_ty = try_get_eval_var_type(value)?;
+
+        // Create an evaluator variable and insert it.
+        let var_id = self.resource_manager.next_var();
+        let eval_var = Var {
+            id: var_id.into(),
+            ty: var_ty,
+        };
+        self.eval_context
+            .get_current_scope_mut()
+            .insert_hybrid_local_value(local_var_id, Value::Var(eval_var));
+
+        // Insert a store instruction.
+        let value_operand = map_eval_value_to_rir_operand(value);
+        let rir_var = map_eval_var_to_rir_var(eval_var);
+        let store_ins = Instruction::Store(value_operand, rir_var);
+        self.get_current_rir_block_mut().0.push(store_ins);
+
+        // Create a mutable variable.
+        let mutable_kind = match value_operand {
+            Operand::Literal(literal) => MutableKind::Static(literal),
+            Operand::Variable(_) => MutableKind::Dynamic,
+        };
+        let mutable_var = MutableVar {
+            id: local_var_id,
+            kind: mutable_kind,
+        };
+        Some((var_id, mutable_var))
     }
 
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
@@ -1650,6 +1995,16 @@ impl<'a> PartialEvaluator<'a> {
             let rir_var = map_eval_var_to_rir_var(*var);
             let store_ins = Instruction::Store(rhs_operand, rir_var);
             self.get_current_rir_block_mut().0.push(store_ins);
+
+            // If this is a mutable variable, make sure to update whether it is static or dynamic.
+            let current_scope = self.eval_context.get_current_scope_mut();
+            if matches!(rhs_operand, Operand::Variable(_))
+                || current_scope.is_currently_evaluating_branch()
+            {
+                if let Some(mutable_var) = current_scope.find_mutable_var_mut(rir_var.variable_id) {
+                    mutable_var.kind = MutableKind::Dynamic;
+                }
+            }
         } else {
             // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
             // because it is unsupported.
@@ -1912,6 +2267,229 @@ impl<'a> PartialEvaluator<'a> {
     }
 }
 
+#[allow(clippy::too_many_lines)]
+fn create_instruction_for_binary_operation_with_integer_operands(
+    bin_op: BinOp,
+    lhs_operand: Operand,
+    rhs_operand: Operand,
+    bin_op_variable_id: rir::VariableId,
+    bin_op_expr_span: Span, // For diagnostic purposes only.
+) -> Result<(rir::Variable, Instruction), Error> {
+    let (rir_variable, rir_ins) = match bin_op {
+        BinOp::Add => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Add(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Sub => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Sub(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Mul => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Mul(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Div => {
+            // Validate that the RHS is not a zero.
+            if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
+                let error =
+                    Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
+                return Err(error);
+            }
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Sdiv(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Mod => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Srem(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Exp => {
+            let error = Error::Unimplemented(
+                "exponentiation for integer operands".to_string(),
+                bin_op_expr_span,
+            );
+            return Err(error);
+        }
+        BinOp::AndB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseAnd(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::OrB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseOr(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::XorB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseXor(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Shl => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Shl(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Shr => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Ashr(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Eq => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Eq,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Neq => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Ne,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Gt => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sgt,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Gte => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sge,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Lt => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Slt,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Lte => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sle,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        _ => panic!("unsupported binary operation for integers: {bin_op:?}"),
+    };
+    Ok((rir_variable, rir_ins))
+}
+
+fn eval_bin_op_with_bool_literals(
+    bin_op: BinOp,
+    lhs_literal: Literal,
+    rhs_literal: Literal,
+) -> Value {
+    let (Literal::Bool(lhs_bool), Literal::Bool(rhs_bool)) = (lhs_literal, rhs_literal) else {
+        panic!("at least one literal is not bool: {lhs_literal}, {rhs_literal}");
+    };
+
+    let bin_op_result = match bin_op {
+        BinOp::Eq => lhs_bool == rhs_bool,
+        BinOp::Neq => lhs_bool != rhs_bool,
+        BinOp::AndL => lhs_bool && rhs_bool,
+        BinOp::OrL => lhs_bool || rhs_bool,
+        _ => panic!("invalid bool operator: {bin_op:?}"),
+    };
+    Value::Bool(bin_op_result)
+}
+
+fn eval_bin_op_with_integer_literals(
+    bin_op: BinOp,
+    lhs_literal: Literal,
+    rhs_literal: Literal,
+    bin_op_expr_span: Span, // For diagnostic purposes only
+) -> Result<Value, Error> {
+    fn eval_integer_div(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        match (lhs_int, rhs_int) {
+            (_, 0) => Err(Error::EvaluationFailed(
+                "division by zero".to_string(),
+                span,
+            )),
+            (lhs, rhs) => Ok(Value::Int(lhs / rhs)),
+        }
+    }
+
+    fn eval_integer_mod(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        match (lhs_int, rhs_int) {
+            (_, 0) => Err(Error::EvaluationFailed(
+                "division by zero".to_string(),
+                span,
+            )),
+            (lhs, rhs) => Ok(Value::Int(lhs % rhs)),
+        }
+    }
+
+    fn eval_integer_exp(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        let Ok(rhs_int_as_u32) = u32::try_from(rhs_int) else {
+            return Err(Error::EvaluationFailed(
+                "invalid exponent".to_string(),
+                span,
+            ));
+        };
+
+        Ok(Value::Int(lhs_int.pow(rhs_int_as_u32)))
+    }
+
+    // Validate that both literals are integers.
+    let (Literal::Integer(lhs_int), Literal::Integer(rhs_int)) = (lhs_literal, rhs_literal) else {
+        panic!("at least one literal is not an integer: {lhs_literal}, {rhs_literal}");
+    };
+
+    match bin_op {
+        BinOp::Eq => Ok(Value::Bool(lhs_int == rhs_int)),
+        BinOp::Neq => Ok(Value::Bool(lhs_int != rhs_int)),
+        BinOp::Gt => Ok(Value::Bool(lhs_int > rhs_int)),
+        BinOp::Gte => Ok(Value::Bool(lhs_int >= rhs_int)),
+        BinOp::Lt => Ok(Value::Bool(lhs_int < rhs_int)),
+        BinOp::Lte => Ok(Value::Bool(lhs_int <= rhs_int)),
+        BinOp::Add => Ok(Value::Int(lhs_int + rhs_int)),
+        BinOp::Sub => Ok(Value::Int(lhs_int - rhs_int)),
+        BinOp::Mul => Ok(Value::Int(lhs_int * rhs_int)),
+        BinOp::Div => eval_integer_div(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::Mod => eval_integer_mod(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::Exp => eval_integer_exp(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::AndB => Ok(Value::Int(lhs_int & rhs_int)),
+        BinOp::OrB => Ok(Value::Int(lhs_int | rhs_int)),
+        BinOp::XorB => Ok(Value::Int(lhs_int ^ rhs_int)),
+        BinOp::Shl => Ok(Value::Int(lhs_int << rhs_int)),
+        BinOp::Shr => Ok(Value::Int(lhs_int >> rhs_int)),
+        _ => panic!("invalid integer operator: {bin_op:?}"),
+    }
+}
+
 fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
     if !functor_app.adjoint && functor_app.controlled == 0 {
         &spec_impl.body
@@ -1987,6 +2565,15 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
+    }
+}
+
+fn map_rir_literal_to_eval_value(literal: rir::Literal) -> Value {
+    match literal {
+        rir::Literal::Bool(b) => Value::Bool(b),
+        rir::Literal::Double(d) => Value::Double(d),
+        rir::Literal::Integer(i) => Value::Int(i),
+        _ => panic!("{literal:?} RIR literal cannot be mapped to evaluator value"),
     }
 }
 
