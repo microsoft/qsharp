@@ -366,7 +366,7 @@ fn non_classical_entry_point_with_classical_early_return_within_non_classical_br
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("early return", Span { lo: 163, hi: 213 })"#]],
+        &expect![[r#"Unimplemented("early return", Span { lo: 163, hi: 213 })"#]],
     );
 }
 
@@ -388,7 +388,7 @@ fn non_classical_entry_point_with_non_classical_early_return_within_non_classica
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("early return", Span { lo: 185, hi: 278 })"#]],
+        &expect![[r#"Unimplemented("early return", Span { lo: 185, hi: 278 })"#]],
     );
 }
 

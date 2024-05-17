@@ -2219,7 +2219,7 @@ impl<'a> PartialEvaluator<'a> {
         if remaining_stmt_count > 0 && current_scope.is_currently_evaluating_branch() {
             let return_stmt =
                 self.get_stmt(return_stmt_id.expect("a return statement ID must have been set"));
-            Err(Error::Unexpected(
+            Err(Error::Unimplemented(
                 "early return".to_string(),
                 return_stmt.span,
             ))
