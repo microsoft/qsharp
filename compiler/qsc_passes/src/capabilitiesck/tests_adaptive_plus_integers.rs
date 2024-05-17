@@ -13,10 +13,11 @@ use super::tests_common::{
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
-    USE_DYNAMIC_QUBIT, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT, USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
-    USE_ENTRY_POINT_STATIC_BIG_INT, USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE,
-    USE_ENTRY_POINT_STATIC_INT, USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
+    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP, USE_DYNAMIC_OPERATION,
+    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RHS_EXP_BINOP, USE_DYNAMIC_STRING,
+    USE_DYNAMIC_UDT, USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE, USE_ENTRY_POINT_STATIC_BIG_INT,
+    USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE, USE_ENTRY_POINT_STATIC_INT,
+    USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
     USE_ENTRY_POINT_STATIC_RANGE, USE_ENTRY_POINT_STATIC_STRING,
 };
 use expect_test::{expect, Expect};
@@ -397,6 +398,33 @@ fn use_of_dynamic_index_yields_errors() {
                     Span {
                         lo: 319,
                         hi: 323,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_lhs_exp_binop_allowed() {
+    check_profile(
+        USE_DYNAMIC_LHS_EXP_BINOP,
+        &expect![[r#"
+        []
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_rhs_exp_binop_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_RHS_EXP_BINOP,
+        &expect![[r#"
+            [
+                UseOfDynamicExponent(
+                    Span {
+                        lo: 138,
+                        hi: 143,
                     },
                 ),
             ]
