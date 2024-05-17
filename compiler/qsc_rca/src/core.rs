@@ -15,8 +15,8 @@ use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
     extensions::InputParam,
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind, Global,
-        Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId, PackageLookup,
+        BinOp, Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind,
+        Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId, PackageLookup,
         PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt,
         StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
     },
@@ -260,6 +260,35 @@ impl<'a> Analyzer<'a> {
 
             quantum_properties.runtime_features |=
                 derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
+        }
+
+        compute_kind
+    }
+
+    fn analyze_expr_bin_op_exp(&mut self, lhs_expr_id: ExprId, rhs_expr_id: ExprId) -> ComputeKind {
+        // Visit the LHS and RHS expressions to determine their compute kind.
+        self.visit_expr(lhs_expr_id);
+        self.visit_expr(rhs_expr_id);
+
+        // The compute kind of a binary operator expression is the aggregation of its LHS and RHS expressions.
+        let application_instance = self.get_current_application_instance();
+        let lhs_compute_kind = *application_instance.get_expr_compute_kind(lhs_expr_id);
+        let rhs_compute_kind = *application_instance.get_expr_compute_kind(rhs_expr_id);
+        let mut compute_kind = ComputeKind::Classical;
+        compute_kind = compute_kind.aggregate(lhs_compute_kind);
+        compute_kind = compute_kind.aggregate(rhs_compute_kind);
+
+        // As a special case for exp, if the rhs is dynamic the expression gets an extra runtime feature.
+        // This is because we don't emit a native exponential binary operator but unroll it into a sequence
+        // of multiplications, which requires the rhs to be known at compile time.
+        if rhs_compute_kind.is_dynamic() {
+            compute_kind = compute_kind.aggregate_runtime_features(
+                ComputeKind::new_with_runtime_features(
+                    RuntimeFeatureFlags::UseOfDynamicExponent,
+                    ValueKind::Element(RuntimeKind::Static),
+                ),
+                ValueKind::Element(RuntimeKind::Static),
+            );
         }
 
         compute_kind
@@ -1639,6 +1668,9 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     *index_expr_id,
                     *replacement_value_expr_id,
                 ),
+            ExprKind::BinOp(BinOp::Exp, lhs_expr_id, rhs_expr_id) => {
+                self.analyze_expr_bin_op_exp(*lhs_expr_id, *rhs_expr_id)
+            }
             ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => {
                 self.analyze_expr_bin_op(*lhs_expr_id, *rhs_expr_id, &expr.ty)
             }

@@ -775,6 +775,8 @@ bitflags! {
         const UseOfDoubleOutput = 1 << 23;
         // Use of an `Int` as output of a computation.
         const UseOfIntOutput = 1 << 24;
+        // Use of a dynamic exponent in a computation.
+        const UseOfDynamicExponent = 1 << 25;
     }
 }
 
@@ -870,6 +872,9 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicExponent) {
+            capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
         capabilities
     }
