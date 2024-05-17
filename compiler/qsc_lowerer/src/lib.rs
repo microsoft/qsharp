@@ -32,6 +32,7 @@ pub struct Lowerer {
     assigner: Assigner,
     exec_graph: Vec<ExecGraphNode>,
     enable_debug: bool,
+    ret_node: ExecGraphNode,
 }
 
 impl Default for Lowerer {
@@ -53,19 +54,25 @@ impl Lowerer {
             assigner: Assigner::new(),
             exec_graph: Vec::new(),
             enable_debug: false,
+            ret_node: ExecGraphNode::Ret,
         }
     }
 
     #[must_use]
     pub fn with_debug(mut self, dbg: bool) -> Self {
         self.enable_debug = dbg;
+        if dbg {
+            self.ret_node = ExecGraphNode::RetFrame;
+        } else {
+            self.ret_node = ExecGraphNode::Ret;
+        }
         self
     }
 
     pub fn take_exec_graph(&mut self) -> Vec<ExecGraphNode> {
         self.exec_graph
             .drain(..)
-            .chain(once(ExecGraphNode::Ret))
+            .chain(once(self.ret_node))
             .collect()
     }
 
@@ -248,7 +255,7 @@ impl Lowerer {
             exec_graph: self
                 .exec_graph
                 .drain(..)
-                .chain(once(ExecGraphNode::Ret))
+                .chain(once(self.ret_node))
                 .collect(),
         }
     }
@@ -546,7 +553,7 @@ impl Lowerer {
             }
             hir::ExprKind::Return(expr) => {
                 let expr = self.lower_expr(expr);
-                self.exec_graph.push(ExecGraphNode::Ret);
+                self.exec_graph.push(self.ret_node);
                 fir::ExprKind::Return(expr)
             }
             hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(

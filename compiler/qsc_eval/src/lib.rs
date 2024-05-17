@@ -359,6 +359,19 @@ impl Env {
         }
     }
 
+    pub fn leave_current_frame(&mut self) {
+        let current_frame_id = self
+            .0
+            .last()
+            .expect("should be at least one scope")
+            .frame_id;
+        if current_frame_id == 0 {
+            // Do not remove the global scope.
+            return;
+        }
+        self.0.retain(|scope| scope.frame_id != current_frame_id);
+    }
+
     pub fn bind_variable_in_top_frame(&mut self, local_var_id: LocalVarId, var: Variable) {
         let Some(scope) = self.0.last_mut() else {
             panic!("no frames in scope");
@@ -609,6 +622,11 @@ impl State {
                 Some(ExecGraphNode::Ret) => {
                     self.leave_frame();
                     env.leave_scope();
+                    continue;
+                }
+                Some(ExecGraphNode::RetFrame) => {
+                    self.leave_frame();
+                    env.leave_current_frame();
                     continue;
                 }
                 Some(ExecGraphNode::PushScope) => {

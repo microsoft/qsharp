@@ -301,7 +301,7 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
         output_record_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -337,5 +337,41 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
             Variable(6, Integer) = BitwiseOr Variable(0, Integer), Integer(2)
             Variable(0, Integer) = Store Variable(6, Integer)
             Jump(3)"#]],
+    );
+}
+
+#[test]
+fn large_loop_with_inner_if_completes_eval_and_transform() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                mutable i = 0;
+                for idx in 0..99 {
+                    if i == 0 {
+                        if MResetZ(q) == One {
+                            set i += 1;
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        "#,
+    });
+
+    // Program is expected to be too large to reasonably print out here, so instead verify the last block
+    // and the total number of blocks.
+    assert_eq!(program.blocks.iter().count(), 399);
+    assert_block_instructions(
+        &program,
+        BlockId(395),
+        &expect![[r#"
+            Block:
+                Variable(1, Integer) = Store Integer(100)
+                Call id(3), args( Variable(0, Integer), Pointer, )
+                Return"#]],
     );
 }
