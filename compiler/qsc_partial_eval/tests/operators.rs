@@ -1508,7 +1508,7 @@ fn integer_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
 }
 
 #[test]
-fn integer_exponentiation_with_lhs_classical_integer_and_rhs_dynamic_integer() {
+fn integer_exponentiation_with_lhs_classical_integer_and_rhs_dynamic_integer_raises_error() {
     let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
@@ -1521,18 +1521,117 @@ fn integer_exponentiation_with_lhs_classical_integer_and_rhs_dynamic_integer() {
         }
         "#,
     });
-    // When this binary operation is supported, this error should be different.
     assert_error(
         &error,
         &expect![[
-            r#"Unimplemented("exponentiation for integer operands", Span { lo: 142, hi: 147 })"#
+            r#"Unexpected("exponent must be a classical integer", Span { lo: 142, hi: 147 })"#
         ]],
     );
 }
 
 #[test]
-fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_classical_integer() {
+fn integer_exponentiation_with_lhs_classical_integer_and_rhs_classical_negative_integer_raises_error(
+) {
     let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                let i = MResetZ(q) == Zero ? 0 | 1;
+                i ^ -1
+            }
+        }
+        "#,
+    });
+    assert_error(
+        &error,
+        &expect![[
+            r#"EvaluationFailed("exponent must be non-negative", Span { lo: 142, hi: 148 })"#
+        ]],
+    );
+}
+
+#[test]
+fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_classical_zero_integer() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                let i = MResetZ(q) == Zero ? 0 | 1;
+                i ^ 0
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__int_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Integer(1)
+                Call id(3), args( Variable(3, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_classical_positive_integer() {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -1544,17 +1643,74 @@ fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         }
         "#,
     });
-    // When this binary operation is supported, this program should not yield an error.
-    assert_error(
-        &error,
-        &expect![[
-            r#"Unimplemented("exponentiation for integer operands", Span { lo: 142, hi: 147 })"#
-        ]],
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__int_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Integer(1)
+                Variable(4, Integer) = Mul Variable(3, Integer), Variable(2, Integer)
+                Variable(5, Integer) = Mul Variable(4, Integer), Variable(2, Integer)
+                Variable(6, Integer) = Mul Variable(5, Integer), Variable(2, Integer)
+                Call id(3), args( Variable(6, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
     );
 }
 
 #[test]
-fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
+fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_dynamic_integer_raises_error() {
     let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
@@ -1568,11 +1724,10 @@ fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
         }
         "#,
     });
-    // When this binary operation is supported, this error should be different.
     assert_error(
         &error,
         &expect![[
-            r#"Unimplemented("exponentiation for integer operands", Span { lo: 186, hi: 191 })"#
+            r#"Unexpected("exponent must be a classical integer", Span { lo: 186, hi: 191 })"#
         ]],
     );
 }

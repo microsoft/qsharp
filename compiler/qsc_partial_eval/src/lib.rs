@@ -565,19 +565,14 @@ impl<'a> PartialEvaluator<'a> {
             return Ok(EvalControlFlow::Continue(value));
         }
 
-        // Create the variable ID, create the instruction and insert it.
-        let bin_op_variable_id = self.resource_manager.next_var();
-        let (bin_op_rir_variable, bin_op_rir_ins) =
-            create_instruction_for_binary_operation_with_integer_operands(
+        // Generate the instructions.
+        let bin_op_rir_variable = self
+            .generate_instructions_for_binary_operation_with_integer_operands(
                 bin_op,
                 lhs_operand,
                 rhs_operand,
-                bin_op_variable_id,
                 bin_op_expr_span,
             )?;
-
-        // Insert the instruction.
-        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
         let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
         Ok(EvalControlFlow::Continue(value))
     }
@@ -1576,6 +1571,214 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
+    fn generate_instructions_for_binary_operation_with_integer_operands(
+        &mut self,
+        bin_op: BinOp,
+        lhs_operand: Operand,
+        rhs_operand: Operand,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<rir::Variable, Error> {
+        let rir_variable = match bin_op {
+            BinOp::Add => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Add(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Sub => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Sub(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Mul => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Mul(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Div => {
+                // Validate that the RHS is not a zero.
+                if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
+                    let error =
+                        Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
+                    return Err(error);
+                }
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Sdiv(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Mod => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Srem(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Exp => {
+                // Validate the exponent.
+                let Operand::Literal(Literal::Integer(exponent)) = rhs_operand else {
+                    let error = Error::Unexpected(
+                        "exponent must be a classical integer".to_string(),
+                        bin_op_expr_span,
+                    );
+                    return Err(error);
+                };
+                if exponent < 0 {
+                    let error = Error::EvaluationFailed(
+                        "exponent must be non-negative".to_string(),
+                        bin_op_expr_span,
+                    );
+                    return Err(error);
+                }
+
+                // Generate a series of multiplication instructions that represent the exponentiation.
+                let mut current_rir_variable =
+                    rir::Variable::new_integer(self.resource_manager.next_var());
+                let init_ins =
+                    Instruction::Store(Operand::Literal(Literal::Integer(1)), current_rir_variable);
+                self.get_current_rir_block_mut().0.push(init_ins);
+                for _ in 0..exponent {
+                    let mult_variable =
+                        rir::Variable::new_integer(self.resource_manager.next_var());
+                    let mult_ins = Instruction::Mul(
+                        Operand::Variable(current_rir_variable),
+                        lhs_operand,
+                        mult_variable,
+                    );
+                    self.get_current_rir_block_mut().0.push(mult_ins);
+                    current_rir_variable = mult_variable;
+                }
+                current_rir_variable
+            }
+            BinOp::AndB => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::BitwiseAnd(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::OrB => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::BitwiseOr(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::XorB => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::BitwiseXor(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Shl => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Shl(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Shr => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+                let bin_op_rir_ins =
+                    Instruction::Ashr(lhs_operand, rhs_operand, bin_op_rir_variable);
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Eq => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Eq,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Neq => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Ne,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Gt => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Sgt,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Gte => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Sge,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Lt => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Slt,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            BinOp::Lte => {
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+                let bin_op_rir_ins = Instruction::Icmp(
+                    ConditionCode::Sle,
+                    lhs_operand,
+                    rhs_operand,
+                    bin_op_rir_variable,
+                );
+                self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+                bin_op_rir_variable
+            }
+            _ => panic!("unsupported binary operation for integers: {bin_op:?}"),
+        };
+        Ok(rir_variable)
+    }
+
     fn get_block(&self, id: BlockId) -> &'a Block {
         let block_id = StoreBlockId::from((self.get_current_package_id(), id));
         self.package_store.get_block(block_id)
@@ -2265,146 +2468,6 @@ impl<'a> PartialEvaluator<'a> {
         self.program.callables.insert(callable_id, callable);
         callable_id
     }
-}
-
-#[allow(clippy::too_many_lines)]
-fn create_instruction_for_binary_operation_with_integer_operands(
-    bin_op: BinOp,
-    lhs_operand: Operand,
-    rhs_operand: Operand,
-    bin_op_variable_id: rir::VariableId,
-    bin_op_expr_span: Span, // For diagnostic purposes only.
-) -> Result<(rir::Variable, Instruction), Error> {
-    let (rir_variable, rir_ins) = match bin_op {
-        BinOp::Add => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Add(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Sub => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Sub(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Mul => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Mul(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Div => {
-            // Validate that the RHS is not a zero.
-            if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
-                let error =
-                    Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
-                return Err(error);
-            }
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Sdiv(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Mod => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Srem(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Exp => {
-            let error = Error::Unimplemented(
-                "exponentiation for integer operands".to_string(),
-                bin_op_expr_span,
-            );
-            return Err(error);
-        }
-        BinOp::AndB => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins =
-                Instruction::BitwiseAnd(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::OrB => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins =
-                Instruction::BitwiseOr(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::XorB => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins =
-                Instruction::BitwiseXor(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Shl => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Shl(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Shr => {
-            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Ashr(lhs_operand, rhs_operand, bin_op_rir_variable);
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Eq => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Eq,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Neq => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Ne,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Gt => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Sgt,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Gte => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Sge,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Lt => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Slt,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        BinOp::Lte => {
-            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
-            let bin_op_rir_ins = Instruction::Icmp(
-                ConditionCode::Sle,
-                lhs_operand,
-                rhs_operand,
-                bin_op_rir_variable,
-            );
-            (bin_op_rir_variable, bin_op_rir_ins)
-        }
-        _ => panic!("unsupported binary operation for integers: {bin_op:?}"),
-    };
-    Ok((rir_variable, rir_ins))
 }
 
 fn eval_bin_op_with_bool_literals(
