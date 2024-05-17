@@ -32,7 +32,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     });
     let mut namespaces = unit.package.items.values().filter_map(|i| {
         if let ItemKind::Namespace(ident, _) = &i.kind {
-            Some(ident.name.clone())
+            Some(ident.clone())
         } else {
             None
         }
@@ -46,7 +46,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     );
     (
         only_callable.clone(),
-        format!("{only_namespace}.{callable_name}"),
+        format!("{}.{callable_name}", only_namespace.name()),
     )
 }
 

@@ -30,7 +30,7 @@ use qsc_data_structures::{
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    global,
+    global::{self},
     hir::{self, PackageId},
     validate::Validator as HirValidator,
     visit::Visitor as _,
@@ -475,7 +475,7 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
     (names, locals, errors)
 }

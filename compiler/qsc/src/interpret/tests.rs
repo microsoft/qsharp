@@ -1877,11 +1877,14 @@ mod given_interpreter {
             let path = Path {
                 id: NodeId::default(),
                 span: Span::default(),
-                namespace: Some(Box::new(qsc_ast::ast::Ident {
-                    id: NodeId::default(),
-                    span: Span::default(),
-                    name: ns.into(),
-                })),
+                namespace: Some(
+                    std::iter::once(qsc_ast::ast::Ident {
+                        id: NodeId::default(),
+                        span: Span::default(),
+                        name: ns.into(),
+                    })
+                    .collect(),
+                ),
                 name: Box::new(qsc_ast::ast::Ident {
                     id: NodeId::default(),
                     span: Span::default(),

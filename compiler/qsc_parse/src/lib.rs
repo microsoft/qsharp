@@ -74,6 +74,9 @@ enum ErrorKind {
     #[error("missing entry in sequence")]
     #[diagnostic(code("Qsc.Parse.MissingSeqEntry"))]
     MissingSeqEntry(#[label] Span),
+    #[error("dotted namespace aliases are not allowed")]
+    #[diagnostic(code("Qsc.Parse.DotIdentAlias"))]
+    DotIdentAlias(#[label] Span),
 }
 
 impl ErrorKind {
@@ -91,6 +94,7 @@ impl ErrorKind {
             Self::FloatingAttr(span) => Self::FloatingAttr(span + offset),
             Self::FloatingVisibility(span) => Self::FloatingVisibility(span + offset),
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
+            Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
         }
     }
 }

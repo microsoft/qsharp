@@ -3,9 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
 
-use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -339,9 +339,13 @@ fn insert_core_call() {
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
+            let ns = self
+                .core
+                .find_namespace(["QIR", "Runtime"].iter().copied())
+                .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .resolve_term(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -1254,4 +1258,36 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn hierarchical_namespace_basic() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo.Bar {
+                    operation Baz() : Unit {}
+                }
+                namespace Main {
+                    open Foo;
+                    operation Main() : Unit {
+                        Bar.Baz();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let store = PackageStore::new(super::core());
+    let lib = compile(
+        &store,
+        &[],
+        lib_sources,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
 }
