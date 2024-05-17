@@ -17,8 +17,6 @@
 /// returns the result of measuring those qubits.
 namespace Sample {
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Arrays;
 
     @EntryPoint()
     operation Main() : Result[] {
@@ -39,7 +37,7 @@ namespace Sample {
     /// of three qubits `qs`.
     /// All qubits are assumed to be in |0〉 state on input.
     operation PrepareGHZState(qs : Qubit[]) : Unit {
-        Fact(Length(qs) == 3, "`qs` length be 3.");
+        Fact(Length(qs) == 3, "`qs` length shuold be 3.");
 
         H(qs[0]);
         CNOT(qs[0], qs[1]);

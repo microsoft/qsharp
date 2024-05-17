@@ -7,9 +7,7 @@
 ///
 /// This Q# program implements a cat state of 5 qubits.
 namespace Sample {
-    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
     operation Main() : Result[] {
@@ -35,6 +33,6 @@ namespace Sample {
         // Set the first qubit in the register into a (|0〉 + |1〉) / √2 superposition.
         // Then apply a CNOT to the remaining qubits using the first qubit as control.
         H(register[0]);
-        ApplyToEach(CNOT(register[0], _), Rest(register));
+        ApplyToEach(CNOT(register[0], _), register[1...]);
     }
 }
