@@ -844,9 +844,6 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
-        }
         if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
             capabilities |= TargetCapabilityFlags::Adaptive;
         }
@@ -872,5 +869,13 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         capabilities
+    }
+
+    #[must_use]
+    pub fn output_recording_flags() -> RuntimeFeatureFlags {
+        RuntimeFeatureFlags::UseOfIntOutput
+            | RuntimeFeatureFlags::UseOfDoubleOutput
+            | RuntimeFeatureFlags::UseOfBoolOutput
+            | RuntimeFeatureFlags::UseOfAdvancedOutput
     }
 }
