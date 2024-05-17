@@ -1282,17 +1282,16 @@ fn logical_or_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is_true()
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
-                Variable(3, Boolean) = Store Bool(true)
-                Branch Variable(2, Boolean), 2, 1
+                Variable(2, Boolean) = Store Bool(true)
+                Branch Variable(1, Boolean), 1, 2
             Block 1:Block:
-                Call id(3), args( Variable(3, Boolean), Pointer, )
+                Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Call id(1), args( Qubit(0), Result(1), )
-                Variable(4, Boolean) = Call id(2), args( Result(1), )
-                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
-                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Variable(3, Boolean) = Call id(2), args( Result(1), )
+                Variable(4, Boolean) = Icmp Ne, Variable(3, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(4, Boolean)
                 Jump(1)"#]],
     );
 }
@@ -1447,9 +1446,8 @@ fn logical_and_or_sequence_with_dynamic_operands() {
                 Variable(2, Boolean) = Store Bool(false)
                 Branch Variable(1, Boolean), 2, 1
             Block 1:Block:
-                Variable(5, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
-                Variable(6, Boolean) = Store Bool(true)
-                Branch Variable(5, Boolean), 4, 3
+                Variable(5, Boolean) = Store Bool(true)
+                Branch Variable(2, Boolean), 3, 4
             Block 2:Block:
                 Call id(1), args( Qubit(1), Result(1), )
                 Variable(3, Boolean) = Call id(2), args( Result(1), )
@@ -1457,13 +1455,13 @@ fn logical_and_or_sequence_with_dynamic_operands() {
                 Variable(2, Boolean) = Store Variable(4, Boolean)
                 Jump(1)
             Block 3:Block:
-                Call id(3), args( Variable(6, Boolean), Pointer, )
+                Call id(3), args( Variable(5, Boolean), Pointer, )
                 Return
             Block 4:Block:
                 Call id(1), args( Qubit(2), Result(2), )
-                Variable(7, Boolean) = Call id(2), args( Result(2), )
-                Variable(8, Boolean) = Icmp Ne, Variable(7, Boolean), Bool(true)
-                Variable(6, Boolean) = Store Variable(8, Boolean)
+                Variable(6, Boolean) = Call id(2), args( Result(2), )
+                Variable(7, Boolean) = Icmp Ne, Variable(6, Boolean), Bool(true)
+                Variable(5, Boolean) = Store Variable(7, Boolean)
                 Jump(3)"#]],
     );
 }
@@ -1530,26 +1528,25 @@ fn logical_or_and_sequence_with_dynamic_operands() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
-                Variable(3, Boolean) = Store Bool(true)
-                Branch Variable(2, Boolean), 2, 1
+                Variable(2, Boolean) = Store Bool(true)
+                Branch Variable(1, Boolean), 1, 2
             Block 1:Block:
-                Call id(3), args( Variable(3, Boolean), Pointer, )
+                Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Call id(1), args( Qubit(1), Result(1), )
-                Variable(4, Boolean) = Call id(2), args( Result(1), )
-                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
-                Variable(6, Boolean) = Store Bool(false)
-                Branch Variable(5, Boolean), 4, 3
+                Variable(3, Boolean) = Call id(2), args( Result(1), )
+                Variable(4, Boolean) = Icmp Ne, Variable(3, Boolean), Bool(true)
+                Variable(5, Boolean) = Store Bool(false)
+                Branch Variable(4, Boolean), 4, 3
             Block 3:Block:
-                Variable(3, Boolean) = Store Variable(6, Boolean)
+                Variable(2, Boolean) = Store Variable(5, Boolean)
                 Jump(1)
             Block 4:Block:
                 Call id(1), args( Qubit(2), Result(2), )
-                Variable(7, Boolean) = Call id(2), args( Result(2), )
-                Variable(8, Boolean) = Icmp Ne, Variable(7, Boolean), Bool(true)
-                Variable(6, Boolean) = Store Variable(8, Boolean)
+                Variable(6, Boolean) = Call id(2), args( Result(2), )
+                Variable(7, Boolean) = Icmp Ne, Variable(6, Boolean), Bool(true)
+                Variable(5, Boolean) = Store Variable(7, Boolean)
                 Jump(3)"#]],
     );
 }
@@ -1616,27 +1613,25 @@ fn logical_or_or_sequence_with_dynamic_operands() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
-                Variable(3, Boolean) = Store Bool(true)
-                Branch Variable(2, Boolean), 2, 1
+                Variable(2, Boolean) = Store Bool(true)
+                Branch Variable(1, Boolean), 1, 2
             Block 1:Block:
-                Variable(6, Boolean) = Icmp Eq, Variable(3, Boolean), Bool(false)
-                Variable(7, Boolean) = Store Bool(true)
-                Branch Variable(6, Boolean), 4, 3
+                Variable(5, Boolean) = Store Bool(true)
+                Branch Variable(2, Boolean), 3, 4
             Block 2:Block:
                 Call id(1), args( Qubit(1), Result(1), )
-                Variable(4, Boolean) = Call id(2), args( Result(1), )
-                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
-                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Variable(3, Boolean) = Call id(2), args( Result(1), )
+                Variable(4, Boolean) = Icmp Ne, Variable(3, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(4, Boolean)
                 Jump(1)
             Block 3:Block:
-                Call id(3), args( Variable(7, Boolean), Pointer, )
+                Call id(3), args( Variable(5, Boolean), Pointer, )
                 Return
             Block 4:Block:
                 Call id(1), args( Qubit(2), Result(2), )
-                Variable(8, Boolean) = Call id(2), args( Result(2), )
-                Variable(9, Boolean) = Icmp Ne, Variable(8, Boolean), Bool(true)
-                Variable(7, Boolean) = Store Variable(9, Boolean)
+                Variable(6, Boolean) = Call id(2), args( Result(2), )
+                Variable(7, Boolean) = Icmp Ne, Variable(6, Boolean), Bool(true)
+                Variable(5, Boolean) = Store Variable(7, Boolean)
                 Jump(3)"#]],
     );
 }

@@ -536,32 +536,14 @@ impl<'a> PartialEvaluator<'a> {
                 self.eval_comparison_bool_bin_op(bin_op, lhs_eval_var, rhs_expr_id)?
             }
             BinOp::AndL => {
-                // Logical AND Boolean operations short-circuit, so their default result is false which only changes
-                // in the branch that is evaluated when LHS is true.
+                // Logical AND Boolean operations short-circuit on false.
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
                 self.eval_logical_bool_bin_op(false, lhs_rir_var, rhs_expr_id)?
             }
             BinOp::OrL => {
-                // Logical OR Boolean operations short-circuit, so their default result is true which only changes in
-                // the branch that is evaluated when LHS is false. We cannot use LHS directly as the condition because
-                // the condition to go into the evaluating branch is 'LHS == false', so we need a comparison instruction
-                // whose bound variable will be used as the condition to go into the evaluating branch.
+                // Logical OR Boolean operations short-circuit on true.
                 let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
-                let rhs_eval_condition_var_id = self.resource_manager.next_var();
-                let rhs_eval_condition_rir_var = rir::Variable {
-                    variable_id: rhs_eval_condition_var_id,
-                    ty: rir::Ty::Boolean,
-                };
-                let rhs_eval_condition_ins = Instruction::Icmp(
-                    ConditionCode::Eq,
-                    Operand::Variable(lhs_rir_var),
-                    Operand::Literal(Literal::Bool(false)),
-                    rhs_eval_condition_rir_var,
-                );
-                self.get_current_rir_block_mut()
-                    .0
-                    .push(rhs_eval_condition_ins);
-                self.eval_logical_bool_bin_op(true, rhs_eval_condition_rir_var, rhs_expr_id)?
+                self.eval_logical_bool_bin_op(true, lhs_rir_var, rhs_expr_id)?
             }
             _ => panic!("invalid Boolean operator {bin_op:?}"),
         };
@@ -612,8 +594,8 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_logical_bool_bin_op(
         &mut self,
-        default_result: bool,
-        rhs_eval_condition_var: rir::Variable,
+        short_circuit_on_true: bool,
+        lhs_rir_var: rir::Variable,
         rhs_expr_id: ExprId,
     ) -> Result<Var, Error> {
         // Create the variable where we will store the result of the Boolean operation and store a default value in it,
@@ -624,7 +606,7 @@ impl<'a> PartialEvaluator<'a> {
             ty: rir::Ty::Boolean,
         };
         let init_var_ins = Instruction::Store(
-            Operand::Literal(Literal::Bool(default_result)),
+            Operand::Literal(Literal::Bool(short_circuit_on_true)),
             result_rir_var,
         );
         self.get_current_rir_block_mut().0.push(init_var_ins);
@@ -666,11 +648,13 @@ impl<'a> PartialEvaluator<'a> {
 
         // Now that we have constructed both the conditional and continuation blocks, insert the jump instruction and
         // return the variable that stores the result of the Boolean operation.
-        let branch_ins = Instruction::Branch(
-            rhs_eval_condition_var,
-            rhs_eval_block_id,
-            continuation_block_id,
-        );
+        // The branching blocks depend on whether we short-circuit on true or false.
+        let (true_block_id, false_block_id) = if short_circuit_on_true {
+            (continuation_block_id, rhs_eval_block_id)
+        } else {
+            (rhs_eval_block_id, continuation_block_id)
+        };
+        let branch_ins = Instruction::Branch(lhs_rir_var, true_block_id, false_block_id);
         self.get_program_block_mut(current_block_node.id)
             .0
             .push(branch_ins);

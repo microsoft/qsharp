@@ -1219,18 +1219,17 @@ fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
-                Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
-                Variable(4, Boolean) = Store Bool(true)
-                Branch Variable(3, Boolean), 2, 1
+                Variable(3, Boolean) = Store Bool(true)
+                Branch Variable(2, Boolean), 1, 2
             Block 1:Block:
-                Variable(2, Boolean) = Store Variable(4, Boolean)
+                Variable(2, Boolean) = Store Variable(3, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Call id(1), args( Qubit(0), Result(1), )
-                Variable(5, Boolean) = Call id(2), args( Result(1), )
-                Variable(6, Boolean) = Icmp Ne, Variable(5, Boolean), Bool(true)
-                Variable(4, Boolean) = Store Variable(6, Boolean)
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Icmp Ne, Variable(4, Boolean), Bool(true)
+                Variable(3, Boolean) = Store Variable(5, Boolean)
                 Jump(1)"#]],
     );
 }

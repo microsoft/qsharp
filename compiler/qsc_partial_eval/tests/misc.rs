@@ -564,16 +564,15 @@ fn if_else_expression_with_dynamic_logical_or_condition() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
-                Variable(3, Boolean) = Store Bool(true)
-                Branch Variable(2, Boolean), 2, 1
+                Variable(2, Boolean) = Store Bool(true)
+                Branch Variable(1, Boolean), 1, 2
             Block 1:Block:
-                Branch Variable(3, Boolean), 4, 5
+                Branch Variable(2, Boolean), 4, 5
             Block 2:Block:
                 Call id(1), args( Qubit(1), Result(1), )
-                Variable(4, Boolean) = Call id(2), args( Result(1), )
-                Variable(5, Boolean) = Store Variable(4, Boolean)
-                Variable(3, Boolean) = Store Variable(5, Boolean)
+                Variable(3, Boolean) = Call id(2), args( Result(1), )
+                Variable(4, Boolean) = Store Variable(3, Boolean)
+                Variable(2, Boolean) = Store Variable(4, Boolean)
                 Jump(1)
             Block 3:Block:
                 Call id(5), args( Integer(0), Pointer, )
