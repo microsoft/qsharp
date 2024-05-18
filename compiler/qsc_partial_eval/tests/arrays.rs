@@ -266,3 +266,18 @@ fn result_at_index_in_array() {
                 Return"#]],
     );
 }
+
+#[test]
+fn array_slicing() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2) = (Qubit(), Qubit(), Qubit());
+                let a = [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                a[1...]
+            }
+        }
+    "#});
+    println!("{program}");
+}
