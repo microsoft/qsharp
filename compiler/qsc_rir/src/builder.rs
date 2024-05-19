@@ -121,7 +121,7 @@ pub fn result_record_decl() -> Callable {
 #[must_use]
 pub fn int_record_decl() -> Callable {
     Callable {
-        name: "__quantum__rt__integer_record_output".to_string(),
+        name: "__quantum__rt__int_record_output".to_string(),
         input_type: vec![Ty::Integer, Ty::Pointer],
         output_type: None,
         body: None,

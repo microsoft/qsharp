@@ -16,7 +16,7 @@ fn test_tree_construction() {
     let mut root = NamespaceTreeRoot::default();
     for i in 0..3 {
         for j in 'a'..'d' {
-            root.insert_or_find_namespace(
+            let _ = root.insert_or_find_namespace(
                 vec![Rc::from(format!("ns{i}")), Rc::from(format!("ns{j}"))].into_iter(),
             );
         }
@@ -495,11 +495,11 @@ fn test_get_namespace_id() {
     for i in 0..3 {
         for j in 'a'..'d' {
             let name = vec![Rc::from(format!("ns{i}")), Rc::from(format!("ns{j}"))];
-            root.insert_or_find_namespace(name.clone());
+            let _ = root.insert_or_find_namespace(name.clone());
             names_to_query_buf.push(name);
         }
         let name = vec![Rc::from(format!("ns{i}"))];
-        root.insert_or_find_namespace(name.clone());
+        let _ = root.insert_or_find_namespace(name.clone());
         names_to_query_buf.push(name);
     }
     let mut result_buf = vec![];

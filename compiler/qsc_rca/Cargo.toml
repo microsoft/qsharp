@@ -17,6 +17,8 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_lowerer = { path = "../qsc_lowerer" }
 rustc-hash = { workspace = true }
+miette = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

@@ -101,6 +101,8 @@ impl NamespaceTreeRoot {
     }
 
     /// Insert a namespace into the tree. If the namespace already exists, return its ID.
+    /// Panics if the `ns` iterator is empty.
+    #[must_use]
     pub fn insert_or_find_namespace(
         &mut self,
         ns: impl IntoIterator<Item = Rc<str>>,
@@ -158,7 +160,7 @@ impl Default for NamespaceTreeRoot {
         // insert the prelude namespaces using the `NamespaceTreeRoot` API
         for ns in &PRELUDE {
             let iter = ns.iter().map(|s| Rc::from(*s)).peekable();
-            tree.insert_or_find_namespace(iter);
+            let _ = tree.insert_or_find_namespace(iter);
         }
         tree
     }
