@@ -181,7 +181,11 @@ fn compile(
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
+
+    resolver.resolve_exports(&package);
+
     resolver.with(&mut assigner).visit_package(&package);
+
     let (names, locals, mut resolve_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
     (package, names, locals, errors, namespaces)
@@ -2896,18 +2900,33 @@ fn test_complicated_nested_export_statement() {
 "
 
 namespace Foo {
-    export { Foo.Bar.Baz.Quux.FooBarBazQuux };
+    export { Foo.Bar.Baz.Quux.HelloWorld };
 }
 namespace Foo.Bar.Baz.Quux {
-    function FooBarBazQuux() : Unit {}
+    function HelloWorld() : Unit {}
 }
 
 namespace Foo.Bar {
-   open Foo.Bar.Baz;
-   export { Quux.FooBarBazQuux };
+   export { Baz.Quux.HelloWorld };
 }
 
-namespace Main {}" },
+namespace Foo.Bar.Baz {
+    export { Quux.HelloWorld };
+}
+
+namespace Foo.Bar.Graule {
+    // HelloWorld should be available from all namespaces
+    operation Main() : Unit {
+        Foo.Bar.Baz.Quux.HelloWorld();
+        Foo.Bar.Baz.HelloWorld();
+        Foo.Bar.HelloWorld();
+        Foo.HelloWorld();
+        open Foo;
+        HelloWorld();
+    }
+    // and we should be able to re-export it
+    export { Foo.HelloWorld };
+}" },
         &expect![[r#"
 
             namespace namespace7 {
@@ -2918,11 +2937,50 @@ namespace Main {}" },
             }
 
             namespace namespace8 {
-               open namespace9;
                export { item2 };
             }
 
-            namespace namespace11 {}"#]],
+            namespace namespace9 {
+                export { item2 };
+            }
+
+            namespace namespace11 {
+                // HelloWorld should be available from all namespaces
+                operation item6() : Unit {
+                    item2();
+                    item2();
+                    item2();
+                    item2();
+                    open namespace7;
+                    item2();
+                }
+                // and we should be able to re-export it
+                export { item2 };
+            }"#]],
+    );
+}
+
+#[test]
+fn exports_aware_of_opens() {
+    check(
+        indoc! {r#"
+            namespace Foo {
+                operation F() : Unit {}
+            }
+            namespace Main {
+                open Foo;
+                export { F };
+            }
+            "# },
+        &expect![[r#"
+                namespace namespace7 {
+                    operation item1() : Unit {}
+                }
+                namespace namespace8 {
+                    open namespace7;
+                    export { item1 };
+                }
+            "#]],
     );
 }
 
@@ -3083,19 +3141,19 @@ fn disallow_exporting_local_vars() {
             namespace Foo {
                 operation Main() : Unit {
                     let x = 5;
-                    export { x };
                 }
+                export { x };
             }
         "},
         &expect![[r#"
             namespace namespace7 {
                 operation item1() : Unit {
                     let local13 = 5;
-                    export { x };
                 }
+                export { x };
             }
 
-            // NotFound("x", Span { lo: 82, hi: 83 })
+            // NotFound("x", Span { lo: 84, hi: 85 })
         "#]],
     );
 }
@@ -3107,19 +3165,21 @@ fn export_non_item() {
             namespace Bar {}
             namespace Foo {
                 operation Main() : Unit {
-                    export { Unit };
                 }
+                export { Unit };
+
             }
         "},
         &expect![[r#"
             namespace namespace7 {}
             namespace namespace8 {
                 operation item2() : Unit {
-                    export { Unit };
                 }
+                export { Unit };
+
             }
 
-            // ExportedNonItem(Span { lo: 80, hi: 84 })
+            // ExportedNonItem(Span { lo: 82, hi: 86 })
         "#]],
     );
 }
@@ -3137,7 +3197,6 @@ fn export_udt() {
                 operation Main() : Unit {
                     Pair(1, 2);
                 }
-
             }
         "},
         &expect![[r#"
@@ -3150,7 +3209,6 @@ fn export_udt() {
                 operation item3() : Unit {
                     item1(1, 2);
                 }
-
             }
         "#]],
     );
