@@ -92,7 +92,7 @@ $$
 \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} \otimes \begin{bmatrix} 1 \\ 0 \end{bmatrix}
 $$
 
-You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and the second qubit is in state $|0\rangle$. The multi-qubit states that allow such representation are known as **separable states**, or product states, because you can separate the global state into the tensor product of individual subsystems.
+You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$ and the second qubit is in state $\ket{0}$. The multi-qubit states that allow such representation are known as **separable states**, or product states, because you can separate the global state into the tensor product of individual subsystems.
 
 ## 🔎 Analyze
 
@@ -173,9 +173,9 @@ Entanglement is a huge part of what makes quantum computing so powerful. It allo
 
 For example, consider two qubits $A$ and $B$ in superposition such that the state of the global system is
 
-$$|\psi\rangle_{AB} = \frac{1}{\sqrt2}|00\rangle + \frac{1}{\sqrt2}|11\rangle$$
+$$\ket{\psi}_{AB} = \frac{1}{\sqrt2}\ket{00} + \frac{1}{\sqrt2}\ket{11}$$
 
-In such a state, only two outcomes are possible when you measure the state of both qubits in the standard basis: $|00\rangle$ and $|11\rangle$. Notice that each outcome has the same probability of $\frac{1}{2}$. There's zero probability of obtaining $|01\rangle$ and $|10\rangle$. If you measure the first qubit and you get that it is in $|0\rangle$ state, then you can be positive that the second qubit is also in $|0\rangle$ state, even without measuring it. The measurement outcomes are correlated, and the qubits are entangled.
+In such a state, only two outcomes are possible when you measure the state of both qubits in the standard basis: $\ket{00}$ and $\ket{11}$. Notice that each outcome has the same probability of $\frac{1}{2}$. There's zero probability of obtaining $\ket{01}$ and $\ket{10}$. If you measure the first qubit and you get that it is in $\ket{0}$ state, then you can be positive that the second qubit is also in $\ket{0}$ state, even without measuring it. The measurement outcomes are correlated, and the qubits are entangled.
 
 This property is used extensively in many quantum algorithms.
 
@@ -194,42 +194,42 @@ x_0\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} +
 x_1\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} +
 x_2\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix} +
 x_3\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} =
-x_0|0\rangle \otimes |0\rangle +
-x_1|0\rangle \otimes |1\rangle +
-x_2|1\rangle \otimes |0\rangle +
-x_3|1\rangle \otimes |1\rangle
+x_0\ket{0} \otimes \ket{0} +
+x_1\ket{0} \otimes \ket{1} +
+x_2\ket{1} \otimes \ket{0} +
+x_3\ket{1} \otimes \ket{1}
 $$
 
 To simplify this, tensor products of basis states have their own notation:
 
-$$|0\rangle \otimes |0\rangle = |00\rangle$$
-$$|0\rangle \otimes |1\rangle = |01\rangle$$
-$$|1\rangle \otimes |0\rangle = |10\rangle$$
-$$|1\rangle \otimes |1\rangle = |11\rangle$$
+$$\ket{0} \otimes \ket{0} = \ket{00}$$
+$$\ket{0} \otimes \ket{1} = \ket{01}$$
+$$\ket{1} \otimes \ket{0} = \ket{10}$$
+$$\ket{1} \otimes \ket{1} = \ket{11}$$
 
-$$|0\rangle \otimes |0\rangle \otimes |0\rangle = |000\rangle$$
+$$\ket{0} \otimes \ket{0} \otimes \ket{0} = \ket{000}$$
 
 And so on.
 
 Or, more generally:
 
-$$|i_0\rangle \otimes |i_1\rangle \otimes \dotsb \otimes |i_n\rangle = |i_0i_1...i_n\rangle$$
+$$\ket{i_0} \otimes \ket{i_1} \otimes \dotsb \otimes \ket{i_n} = \ket{i_0i_1...i_n}$$
 
 Using this notation simplifies our example:
 
 $$
 \begin{bmatrix} x_0 \\ x_1 \\ x_2 \\ x_3 \end{bmatrix} =
-x_0|00\rangle + x_1|01\rangle + x_2|10\rangle + x_3|11\rangle
+x_0\ket{00} + x_1\ket{01} + x_2\ket{10} + x_3\ket{11}
 $$
 
 Just like with single qubits, we can put arbitrary symbols within the kets the same way variables are used in algebra.
 Whether a ket represents a single qubit or an entire system depends on the context.
 Some ket symbols have a commonly accepted usage, such as the symbols for the Bell basis:
 
-$$|\Phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big)$$
-$$|\Phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$$
-$$|\Psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big)$$
-$$|\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
+$$\ket{\Phi^+} = \frac{1}{\sqrt{2}}\big(\ket{00} + \ket{11}\big)$$
+$$\ket{\Phi^-} = \frac{1}{\sqrt{2}}\big(\ket{00} - \ket{11}\big)$$
+$$\ket{\Psi^+} = \frac{1}{\sqrt{2}}\big(\ket{01} + \ket{10}\big)$$
+$$\ket{\Psi^-} = \frac{1}{\sqrt{2}}\big(\ket{01} - \ket{10}\big)$$
 
 >## Endianness
 >
@@ -244,36 +244,36 @@ $$|\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 > <table>
 >    <tr>
 >        <th>Integer Ket</th>
->        <td>$|0\rangle$</td>
->        <td>$|1\rangle$</td>
->        <td>$|2\rangle$</td>
->        <td>$|3\rangle$</td>
->        <td>$|4\rangle$</td>
->        <td>$|5\rangle$</td>
->        <td>$|6\rangle$</td>
->        <td>$|7\rangle$</td>
+>        <td>$\ket{0}$</td>
+>        <td>$\ket{1}$</td>
+>        <td>$\ket{2}$</td>
+>        <td>$\ket{3}$</td>
+>        <td>$\ket{4}$</td>
+>        <td>$\ket{5}$</td>
+>        <td>$\ket{6}$</td>
+>        <td>$\ket{7}$</td>
 >    </tr>
 >    <tr>
 >        <th>Big-endian</th>
->        <td>$|000\rangle$</td>
->        <td>$|001\rangle$</td>
->        <td>$|010\rangle$</td>
->        <td>$|011\rangle$</td>
->        <td>$|100\rangle$</td>
->        <td>$|101\rangle$</td>
->        <td>$|110\rangle$</td>
->        <td>$|111\rangle$</td>
+>        <td>$\ket{000}$</td>
+>        <td>$\ket{001}$</td>
+>        <td>$\ket{010}$</td>
+>        <td>$\ket{011}$</td>
+>        <td>$\ket{100}$</td>
+>        <td>$\ket{101}$</td>
+>        <td>$\ket{110}$</td>
+>        <td>$\ket{111}$</td>
 >    </tr>
 >    <tr>
 >        <th>Little-endian</th>
->        <td>$|000\rangle$</td>
->        <td>$|100\rangle$</td>
->        <td>$|010\rangle$</td>
->        <td>$|110\rangle$</td>
->        <td>$|001\rangle$</td>
->        <td>$|101\rangle$</td>
->        <td>$|011\rangle$</td>
->        <td>$|111\rangle$</td>
+>        <td>$\ket{000}$</td>
+>        <td>$\ket{100}$</td>
+>        <td>$\ket{010}$</td>
+>        <td>$\ket{110}$</td>
+>        <td>$\ket{001}$</td>
+>        <td>$\ket{101}$</td>
+>        <td>$\ket{011}$</td>
+>        <td>$\ket{111}$</td>
 >    </tr>
 ></table>
 >
@@ -294,7 +294,7 @@ to the first element of the array.)
 
 @[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
-> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before they are released at the end of their scope.
+> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $\ket{0}$ state. Q# requires you to return your qubits into the $\ket{0}$ state before they are released at the end of their scope.
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.

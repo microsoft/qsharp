@@ -36,6 +36,9 @@ use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
+pub(crate) static CORE_NAMESPACE: &[&str] = &["Microsoft", "Quantum", "Core"];
+pub(crate) static QIR_RUNTIME_NAMESPACE: &[&str] = &["QIR", "Runtime"];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
@@ -43,7 +46,7 @@ pub enum Error {
     BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
-    CapabilitiesCk(capabilitiesck::Error),
+    CapabilitiesCk(qsc_rca::errors::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),

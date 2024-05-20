@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, Ident, Idents, Item, ItemKind, Package, Pat, PatKind,
+    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -44,6 +44,10 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
+
+    fn visit_idents(&mut self, idents: &'a Idents) {
+        walk_idents(self, idents);
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -55,7 +59,8 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
+        ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -200,4 +205,8 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
         QubitInitKind::Single | QubitInitKind::Err => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }

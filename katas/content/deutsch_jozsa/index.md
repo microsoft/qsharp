@@ -55,10 +55,10 @@ What about the quantum scenario?
 In the quantum scenario, the classical function we're working with is implemented as a quantum oracle - a "black box" operation used as input to another algorithm. This operation is implemented in a way which allows to perform calculations not only on individual inputs, but also on superpositions of inputs. 
 
 To enable the oracle to act on quantum states instead of classical values, the integer input $x$ is represented in binary $x = (x_{0}, x_{1}, \dots, x_{N-1})$, 
-and encoded into an $N$-qubit register: $|\vec{x} \rangle = |x_{0} \rangle \otimes |x_{1} \rangle \otimes \cdots \otimes |x_{N-1} \rangle$.
+and encoded into an $N$-qubit register: $\ket{\vec{x} } = \ket{x_{0} } \otimes \ket{x_{1} } \otimes \cdots \otimes \ket{x_{N-1} }$.
 The phase oracle $U_f$ for this function is defined as follows:
 
-$$U_f |\vec{x} \rangle = (-1)^{f(x)} |\vec{x} \rangle$$
+$$U_f \ket{\vec{x} } = (-1)^{f(x)} \ket{\vec{x} }$$
 
 The function $f$ can return only two values, 0 or 1, which result in no phase change or multiplication by a relative phase $-1$, respectively.
 
@@ -71,7 +71,7 @@ Let's see how to implement several examples of multi-bit constant and balanced f
 
 This is the easiest function to implement: if $f(x) \equiv 0$, 
 
-$$U_f |x\rangle \equiv (-1)^0 |x\rangle = |x\rangle$$
+$$U_f \ket{x} \equiv (-1)^0 \ket{x} = \ket{x}$$
 
 This means that $U_f$ is an identity - a transformation which does absolutely nothing! 
 
@@ -79,7 +79,7 @@ This means that $U_f$ is an identity - a transformation which does absolutely no
 
 The second constant function is slightly trickier: if $f(x) \equiv 1$
 
-$$U_f |x\rangle \equiv (-1)^1 |x\rangle = - |x\rangle$$
+$$U_f \ket{x} \equiv (-1)^1 \ket{x} = - \ket{x}$$
 
 Now $U_f$ is a negative identity, i.e., a transformation which applies a global phase of $-1$ to the state. 
 A lot of algorithms just ignore the global phase accumulated in them, since it is not observable. 
@@ -95,9 +95,9 @@ $$f(x) = x_{N-1}$$
 
 Let's use this in the oracle effect expression:
 
-$$U_f |x\rangle = (-1)^{f(x)} |x\rangle = (-1)^{x_{N-1}} |x\rangle = |x_{0} \rangle \otimes \cdots \otimes |x_{N-2} \rangle \otimes (-1)^{x_{N-1}} |x_{N-1}\rangle$$
+$$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{x_{N-1}} \ket{x} = \ket{x_{0} } \otimes \cdots \otimes \ket{x_{N-2} } \otimes (-1)^{x_{N-1}} \ket{x_{N-1}}$$
 
-This means that we only need to use the last qubit in the implementation: do nothing if it is $|0\rangle$ and apply a phase of $-1$ if it is $|1\rangle$. This is exactly the effect of the $Z$ gate!
+This means that we only need to use the last qubit in the implementation: do nothing if it is $\ket{0}$ and apply a phase of $-1$ if it is $\ket{1}$. This is exactly the effect of the $Z$ gate!
 
 We can write out the oracle unitary as follows:
 
@@ -141,22 +141,22 @@ You are given the number of bits in the oracle input $N$ and the oracle itself -
 
 ### The starting state
 
-The algorithm starts with $N$ qubits in the $|0...0\rangle = |0\rangle^{\otimes N}$ state.
+The algorithm starts with $N$ qubits in the $\ket{0...0} = \ket{0}^{\otimes N}$ state.
 
 ### Step 1. Apply Hadamard transform to each qubit
 
-Applying the $H$ gate to one qubit in the $|0\rangle$ state converts it to the $\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle \big)$ state, which is an equal superposition of both basis states on one qubit. 
+Applying the $H$ gate to one qubit in the $\ket{0}$ state converts it to the $\frac{1}{\sqrt2} \big(\ket{0} + \ket{1} \big)$ state, which is an equal superposition of both basis states on one qubit. 
 
-If we apply the $H$ gate to each of the two qubits in the $|00\rangle$ state, we'll get 
+If we apply the $H$ gate to each of the two qubits in the $\ket{00}$ state, we'll get 
 
-$$(H \otimes H) |00\rangle = \big(H |0\rangle \big) \otimes \big(H |0\rangle\big) = \left(\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle \big)\right) \otimes \left(\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle \big)\right) = \frac{1}{2} \big(|00\rangle + |01\rangle + |10\rangle + |11\rangle \big)$$
+$$(H \otimes H) \ket{00} = \big(H \ket{0} \big) \otimes \big(H \ket{0}\big) = \left(\frac{1}{\sqrt2} \big(\ket{0} + \ket{1} \big)\right) \otimes \left(\frac{1}{\sqrt2} \big(\ket{0} + \ket{1} \big)\right) = \frac{1}{2} \big(\ket{00} + \ket{01} + \ket{10} + \ket{11} \big)$$
 
 This is just an equal superposition of all basis states on two qubits! 
-We can extend the same thinking to applying the $H$ gate to each of the $N$ qubits in the $|0...0\rangle$ state to conclude that this transforms them into a state that is an equal superposition of all basis states on $N$ qubits.
+We can extend the same thinking to applying the $H$ gate to each of the $N$ qubits in the $\ket{0...0}$ state to conclude that this transforms them into a state that is an equal superposition of all basis states on $N$ qubits.
 
 Mathematically the transformation "apply $H$ gate to each of the $N$ qubits" can be denoted as $H^{\otimes N}$. After applying this transformation we'll get the following state:
 
-$$H^{\otimes N} |0\rangle^{\otimes N} = \big( H|0\rangle \big)^{\otimes N} = \left( \frac{1}{\sqrt2} \big(|0\rangle + |1\rangle \big) \right)^{\otimes N} = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} |x\rangle$$
+$$H^{\otimes N} \ket{0}^{\otimes N} = \big( H\ket{0} \big)^{\otimes N} = \left( \frac{1}{\sqrt2} \big(\ket{0} + \ket{1} \big) \right)^{\otimes N} = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \ket{x}$$
 
 
 ### Step 2. Apply the oracle
@@ -166,30 +166,30 @@ This step will keep the amplitudes of the basis states for which $f(x) = 0$ unch
 
 Mathematically the results of oracle application can be written as follows:
 
-$$U_f \left(\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} |x\rangle \right) = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} U_f|x\rangle = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} |x\rangle$$
+$$U_f \left(\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \ket{x} \right) = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} U_f\ket{x} = \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x}$$
 
 ### Step 3. Apply Hadamard transform to each qubit again
 
-In this step, let's not worry about the whole expression for the state of the qubits after applying the $H$ gates to them; instead let's calculate only the resulting amplitude of the basis state $|0\rangle^{\otimes N}$.
+In this step, let's not worry about the whole expression for the state of the qubits after applying the $H$ gates to them; instead let's calculate only the resulting amplitude of the basis state $\ket{0}^{\otimes N}$.
 
-Consider one of the basis states $|x\rangle$ in the expression $\sum_{x=0}^{2^N-1} (-1)^{f(x)} |x\rangle$.  
-It can be written as $|x\rangle = |x_{0} \rangle \otimes \cdots \otimes |x_{N-1}\rangle$, where each $|x_k\rangle$ is either $|0\rangle$ or $|1\rangle$.  
-When we apply the $H$ gates to $|x\rangle$, we'll get $H^{\otimes N} |x\rangle = H|x_{0} \rangle \otimes \cdots \otimes H|x_{N-1}\rangle$, where each term of the tensor product is either $H|0\rangle = \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle \big) = |+\rangle$ or $H|1\rangle = \frac{1}{\sqrt2}\big(|0\rangle - |1\rangle \big) = |-\rangle$. 
-If we open the brackets in this tensor product, we'll get a superposition of all $N$-qubit basis states, each of them with amplitude $\frac{1}{\sqrt{2^N}}$ or $-\frac{1}{\sqrt{2^N}}$ — and, since the amplitude of the $|0\rangle$ state in both $|+\rangle$ and $|-\rangle$ is positive, we know that the amplitude of the basis state $|0\rangle^{\otimes N}$ will end up positive, i.e., $\frac{1}{\sqrt{2^N}}$.
+Consider one of the basis states $\ket{x}$ in the expression $\sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x}$.  
+It can be written as $\ket{x} = \ket{x_{0} } \otimes \cdots \otimes \ket{x_{N-1}}$, where each $\ket{x_k}$ is either $\ket{0}$ or $\ket{1}$.  
+When we apply the $H$ gates to $\ket{x}$, we'll get $H^{\otimes N} \ket{x} = H\ket{x_{0} } \otimes \cdots \otimes H\ket{x_{N-1}}$, where each term of the tensor product is either $H\ket{0} = \frac{1}{\sqrt2}\big(\ket{0} + \ket{1} \big) = \ket{+}$ or $H\ket{1} = \frac{1}{\sqrt2}\big(\ket{0} - \ket{1} \big) = \ket{-}$. 
+If we open the brackets in this tensor product, we'll get a superposition of all $N$-qubit basis states, each of them with amplitude $\frac{1}{\sqrt{2^N}}$ or $-\frac{1}{\sqrt{2^N}}$ — and, since the amplitude of the $\ket{0}$ state in both $\ket{+}$ and $\ket{-}$ is positive, we know that the amplitude of the basis state $\ket{0}^{\otimes N}$ will end up positive, i.e., $\frac{1}{\sqrt{2^N}}$.
 
-Now we can calculate the amplitude of the $|0\rangle^{\otimes N}$ state in the expression $H^{\otimes N} \left( \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} |x\rangle \right)$: in each of the $2^N$ terms of the sum its amplitude is $\frac{1}{\sqrt{2^N}}$; therefore, we get the total amplitude
+Now we can calculate the amplitude of the $\ket{0}^{\otimes N}$ state in the expression $H^{\otimes N} \left( \frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x} \right)$: in each of the $2^N$ terms of the sum its amplitude is $\frac{1}{\sqrt{2^N}}$; therefore, we get the total amplitude
 
 $$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} \frac{1}{\sqrt{2^N}} = \frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$$
 
 ### Step 4. Perform measurements and interpret the result
 
-So far we did not use the fact that the function we are given is constant or balanced. Let's see how this affects the amplitude of the $|0\rangle^{\otimes N}$ state.
+So far we did not use the fact that the function we are given is constant or balanced. Let's see how this affects the amplitude of the $\ket{0}^{\otimes N}$ state.
 
 * If the function is constant, $f(x) = C$ (either always $0$ or always $1$), we get  
   $$\frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x)} = \frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{C} = \frac{1}{2^N} \cdot 2^N (-1)^C = (-1)^C$$
-  Since the sum of squares of amplitudes of all basis states always equals $1$, the amplitudes of the rest of the basis states have to be 0 - this means that the state of the qubits after step 3 *is* $|0\rangle^{\otimes N}$.
+  Since the sum of squares of amplitudes of all basis states always equals $1$, the amplitudes of the rest of the basis states have to be 0 - this means that the state of the qubits after step 3 *is* $\ket{0}^{\otimes N}$.
 
-* If the function is balanced, i.e., returns $0$ for exactly half of the inputs and $1$ for the other half of the inputs, exactly half of the terms in the sum $\frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$ will be $1$ and the other half of the terms will be $-1$, and they will all cancel out, leaving the amplitude of $|0\rangle^{\otimes N}$ equal to $0$.
+* If the function is balanced, i.e., returns $0$ for exactly half of the inputs and $1$ for the other half of the inputs, exactly half of the terms in the sum $\frac{1}{2^N} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$ will be $1$ and the other half of the terms will be $-1$, and they will all cancel out, leaving the amplitude of $\ket{0}^{\otimes N}$ equal to $0$.
 
 Now, what happens when we measure all qubits? (Remember that the probability of getting a certain state as a result of measurement equals to the square of the amplitude of this state.)
 
@@ -205,7 +205,7 @@ In the end the algorithm is very straightforward:
 2. Apply the oracle.
 3. Apply the $H$ gate to each qubit again.
 4. Measure all qubits.
-5. If all qubits were measured in $|0\rangle$ state, the function is constant, otherwise it is balanced.
+5. If all qubits were measured in $\ket{0}$ state, the function is constant, otherwise it is balanced.
 
 Note that this algorithm requires only $1$ oracle call, and always produces the correct result!
 
@@ -282,11 +282,11 @@ Bernstein-Vazirani algorithm follows the same outline as Deutsch-Jozsa algorithm
 
 We know that after the second step the qubits end up in the following state:
 
-$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} |x\rangle$$
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x}$$
 
 Now, once we apply the Hadamard gates to each qubit, the system state becomes:
 
-$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \sum_{z=0}^{2^N-1} (-1)^{f(x) + x \cdot z} |z\rangle$$
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \sum_{z=0}^{2^N-1} (-1)^{f(x) + x \cdot z} \ket{z}$$
 
 > In Deutsch-Jozsa algorithm, we looked at the amplitude of the $\ket{0}$ state in this expression, which was 
 > $\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$.

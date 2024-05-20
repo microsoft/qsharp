@@ -10,7 +10,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, many, opt, pat, seq, token},
+    prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
     ty::{self, ty},
@@ -18,16 +18,17 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_token, shorten},
+    prim::{barrier, path, recovering, recovering_token, shorten},
     stmt::check_semis,
     ty::array_or_arrow,
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, Item, ItemKind,
+    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
@@ -131,22 +132,104 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
+pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
+    if s.peek().kind == TokenKind::Eof {
+        return Ok(Namespace {
+            id: NodeId::default(),
+            span: s.span(0),
+            doc: "".into(),
+            name: source_name_to_namespace_name(source_name, s.span(0))?,
+            items: Vec::new().into_boxed_slice(),
+        });
+    }
+    let lo = s.peek().span.lo;
+    let items = parse_namespace_block_contents(s)?;
+    if items.is_empty() || s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
+    }
+    let span = s.span(lo);
+    let namespace_name = source_name_to_namespace_name(source_name, span)?;
+
+    Ok(Namespace {
+        id: NodeId::default(),
+        span,
+        doc: "".into(),
+        name: namespace_name,
+        items: items.into_boxed_slice(),
+    })
+}
+
+/// Given a file name, convert it to a namespace name.
+/// For example, `foo/bar.qs` becomes `foo.bar`.
+fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
+    let path = std::path::Path::new(raw);
+    let mut namespace = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::Normal(name) => {
+                // strip the extension off, if there is one
+                let mut name = name.to_str().ok_or(Error(ErrorKind::InvalidFileName(
+                    span,
+                    name.to_string_lossy().to_string(),
+                )))?;
+
+                if let Some(dot) = name.rfind('.') {
+                    name = name[..dot].into();
+                }
+                // verify that the component only contains alphanumeric characters, and doesn't start with a number
+
+                let mut ident = validate_namespace_name(span, name)?;
+                ident.span = span;
+
+                namespace.push(ident);
+            }
+            _ => return Err(Error(ErrorKind::InvalidFileName(span, raw.to_string()))),
+        }
+    }
+
+    Ok(namespace.into())
+}
+
+/// Validates that a string could be a valid namespace name component
+fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
+    let mut s = ParserContext::new(name, LanguageFeatures::default());
+    // if it could be a valid identifier, then it is a valid namespace name
+    // we just directly use the ident parser here instead of trying to recreate
+    // validation rules
+    let ident = ident(&mut s)
+        .map_err(|_| Error(ErrorKind::InvalidFileName(error_span, name.to_string())))?;
+    if s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::InvalidFileName(
+            error_span,
+            name.to_string(),
+        )));
+    }
+    Ok(*ident)
+}
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
-    let name = dot_ident(s)?;
+    let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    let items = parse_namespace_block_contents(s)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
         doc: doc.into(),
-        name,
+        name: (*name).into(),
         items: items.into_boxed_slice(),
     })
+}
+
+/// Parses the contents of a namespace block, what is in between the open and close braces in an
+/// explicit namespace, and any top level items in an implicit namespace.
+#[allow(clippy::vec_box)]
+fn parse_namespace_block_contents(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
+    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    Ok(items)
 }
 
 /// See [GH Issue 941](https://github.com/microsoft/qsharp/issues/941) for context.
@@ -161,7 +244,7 @@ pub(super) fn throw_away_doc(s: &mut ParserContext) {
     let _ = parse_doc(s);
 }
 
-fn parse_doc(s: &mut ParserContext) -> Option<String> {
+pub(crate) fn parse_doc(s: &mut ParserContext) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {
@@ -202,14 +285,24 @@ fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
 
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
-    let name = dot_ident(s)?;
+    let mut name = vec![*(ident(s)?)];
+    while let Ok(_dot) = token(s, TokenKind::Dot) {
+        name.push(*(ident(s)?));
+    }
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
-        Some(dot_ident(s)?)
+        Some(ident(s)?)
     } else {
         None
     };
+
+    // Peek to see if the next token is a dot -- this means it is likely a dot ident alias, and
+    // we want to provide a more helpful error message
+    if s.peek().kind == TokenKind::Dot {
+        return Err(Error(ErrorKind::DotIdentAlias(s.peek().span)));
+    }
+
     token(s, TokenKind::Semi)?;
-    Ok(Box::new(ItemKind::Open(name, alias)))
+    Ok(Box::new(ItemKind::Open(name.into(), alias)))
 }
 
 fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {

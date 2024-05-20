@@ -176,7 +176,7 @@ fn immutable_bool_binding_does_not_generate_store_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
@@ -242,7 +242,7 @@ fn mutable_bool_binding_generates_store_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
@@ -294,7 +294,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -309,7 +309,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
             Block 0:Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
                 Call id(3), args( Variable(2, Integer), Pointer, )
@@ -368,7 +368,7 @@ fn mutable_int_binding_does_generate_store_instruction() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer
@@ -383,7 +383,7 @@ fn mutable_int_binding_does_generate_store_instruction() {
             Block 0:Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer)
@@ -395,5 +395,91 @@ fn mutable_int_binding_does_generate_store_instruction() {
             Block 3:Block:
                 Variable(2, Integer) = Store Integer(1)
                 Jump(1)"#]],
+    );
+}
+
+#[test]
+fn mutable_variable_in_outer_scope_set_to_mutable_from_inner_scope() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                mutable i = 0;
+                if MResetZ(q) == One {
+                    mutable j = 1;
+                    set i = j;
+                }
+                else {
+                    set i = 2;
+                }
+                return i;
+            }
+        }
+        "#,
+    });
+
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__read_result__body
+                call_type: Readout
+                input_type:
+                    [0]: Result
+                output_type: Boolean
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__int_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Variable(0, Integer) = Store Integer(0)
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(1, Boolean) = Call id(2), args( Result(0), )
+            Variable(2, Boolean) = Store Variable(1, Boolean)
+            Branch Variable(2, Boolean), 2, 3
+        Block 1:Block:
+            Call id(3), args( Variable(0, Integer), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(3, Integer) = Store Integer(1)
+            Variable(0, Integer) = Store Integer(1)
+            Jump(1)
+        Block 3:Block:
+            Variable(0, Integer) = Store Integer(2)
+            Jump(1)"#]],
     );
 }

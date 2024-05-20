@@ -10,7 +10,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.ThreeQuartersPiPhase(register[0]);
         let reference = register => ThreeQuartersPiPhase(register[0]);
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {

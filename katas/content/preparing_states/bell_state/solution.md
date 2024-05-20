@@ -2,9 +2,9 @@ The first thing we notice is that, unlike in the previous task, we cannot repres
 
 > How can we see this? Let's assume that this state can be represented as a tensor product of two qubit states: 
 >
-> $$|\psi_1\rangle \otimes |\psi_2\rangle = (\alpha_1|0\rangle + \beta_1|1\rangle) \otimes (\alpha_2|0\rangle + \beta_2|1\rangle) = \alpha_1\alpha_2|00\rangle + \alpha_1\beta_2|01\rangle + \beta_1\alpha_2|10\rangle + \beta_1\beta_2|11\rangle$$ 
+> $$\ket{\psi_1} \otimes \ket{\psi_2} = (\alpha_1\ket{0} + \beta_1\ket{1}) \otimes (\alpha_2\ket{0} + \beta_2\ket{1}) = \alpha_1\alpha_2\ket{00} + \alpha_1\beta_2\ket{01} + \beta_1\alpha_2\ket{10} + \beta_1\beta_2\ket{11}$$ 
 >
->In order for this state to be equal to $\frac{1}{\sqrt2}\big(|00\rangle + |11\rangle\big)$, we need to have $\alpha_1\alpha_2 = \beta_1\beta_2 = \frac{1}{\sqrt2}$ and at the same time $\alpha_1\beta_2 = \beta_1\alpha_2 = 0$, which is impossible.
+>In order for this state to be equal to $\frac{1}{\sqrt2}\big(\ket{00} + \ket{11}\big)$, we need to have $\alpha_1\alpha_2 = \beta_1\beta_2 = \frac{1}{\sqrt2}$ and at the same time $\alpha_1\beta_2 = \beta_1\alpha_2 = 0$, which is impossible.
 >
 >This is the phenomena called **entanglement**, in which the states of the qubits are linked together and can not be considered individually.  
 
@@ -12,20 +12,20 @@ Let's see what steps we can take to prepare this state without factoring it into
 
 ---
 
-First, we notice that we should end with a superposition of two of the four computational basis for two qubits: $|00\rangle, |01\rangle, |10\rangle, |11\rangle$.
+First, we notice that we should end with a superposition of two of the four computational basis for two qubits: $\ket{00}, \ket{01}, \ket{10}, \ket{11}$.
 
 This gives us a hint that we should start by preparing a superposition on at least one of the qubits. Let’s try creating a superposition on the first qubit with a Hadamard gate: 
 
-$$H|0\rangle \otimes |0\rangle = \frac{1}{\sqrt2} (|0\rangle + |1\rangle) \otimes |0\rangle = \frac{1}{\sqrt2} (|00\rangle + |10\rangle)$$
+$$H\ket{0} \otimes \ket{0} = \frac{1}{\sqrt2} (\ket{0} + \ket{1}) \otimes \ket{0} = \frac{1}{\sqrt2} (\ket{00} + \ket{10})$$
 
-Well, we got pretty close, except we need to transform the $|10\rangle$ state to $|11\rangle$.
+Well, we got pretty close, except we need to transform the $\ket{10}$ state to $\ket{11}$.
 How can we do this? 
 
-We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as $CNOT$. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The $CNOT$ gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
+We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as $CNOT$. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The $CNOT$ gate changes the target qubit from state $\ket{0}$ to $\ket{1}$ and vice versa when the control qubit is $\ket{1}$ and does nothing to the target qubit when the control qubit is $\ket{0}$. The control qubit always remains unchanged. 
 
 $$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
 
-If we apply the CNOT gate to the state $\frac{1}{\sqrt2} (|00\rangle + |10\rangle)$, taking the first qubit as the control and the second one as target, we'll get exactly the desired goal state. 
+If we apply the CNOT gate to the state $\frac{1}{\sqrt2} (\ket{00} + \ket{10})$, taking the first qubit as the control and the second one as target, we'll get exactly the desired goal state. 
  
 Steps required to reach goal state:
 1. Apply a Hadamard gate to the first qubit.
@@ -40,7 +40,7 @@ $$\underset{\text{CNOT}}{\underbrace{\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 
 \cdot 
 \underset{H \otimes I}{\underbrace{\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & -1 & 0 \\ 0 & 1 & 0 & -1 \end{bmatrix}}}
 \cdot
-\underset{|0\rangle}{\underbrace{ \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}}}
+\underset{\ket{0}}{\underbrace{ \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}}}
 = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 & -1 \\ 1 & 0 & -1 & 0 \end{bmatrix}
 \cdot
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}

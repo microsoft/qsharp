@@ -7,8 +7,9 @@ mod tests;
 use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::display::{CodeDisplay, Lookup};
 use qsc_ast::ast;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
-use qsc_frontend::compile::{self, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
@@ -27,10 +28,34 @@ struct Compilation {
 }
 
 impl Compilation {
-    /// Creates a new `Compilation` by compiling sources.
-    pub(crate) fn new() -> Self {
+    /// Creates a new `Compilation` by compiling standard library
+    /// and additional sources.
+    pub(crate) fn new(
+        additional_sources: Option<SourceMap>,
+        capabilities: Option<TargetCapabilityFlags>,
+        language_features: Option<LanguageFeatures>,
+    ) -> Self {
         let mut package_store = PackageStore::new(compile::core());
-        package_store.insert(compile::std(&package_store, TargetCapabilityFlags::all()));
+        let actual_capabilities = capabilities.unwrap_or_default();
+        let std_unit = compile::std(&package_store, actual_capabilities);
+        let std_package_id = package_store.insert(std_unit);
+
+        if let Some(sources) = additional_sources {
+            let actual_language_features = language_features.unwrap_or_default();
+
+            let unit = compile(
+                &package_store,
+                &[std_package_id],
+                sources,
+                actual_capabilities,
+                actual_language_features,
+            );
+            // We ignore errors here (unit.errors vector) and use whatever
+            // documentation we can produce. In future we may consider
+            // displaying the fact of error presence on documentation page.
+
+            package_store.insert(unit);
+        }
 
         Self { package_store }
     }
@@ -103,9 +128,15 @@ impl Lookup for Compilation {
     }
 }
 
+/// Generates and returns documentation files for the standard library
+/// and additional sources (if specified.)
 #[must_use]
-pub fn generate_docs() -> Files {
-    let compilation = Compilation::new();
+pub fn generate_docs(
+    additional_sources: Option<SourceMap>,
+    capabilities: Option<TargetCapabilityFlags>,
+    language_features: Option<LanguageFeatures>,
+) -> Files {
+    let compilation = Compilation::new(additional_sources, capabilities, language_features);
     let mut files: Files = vec![];
 
     let display = &CodeDisplay {
@@ -164,10 +195,10 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
                 .expect("Could not resolve parent item id");
             match &parent.kind {
                 ItemKind::Namespace(name, _) => {
-                    if name.name.starts_with("QIR") {
+                    if name.starts_with("QIR") {
                         None // We ignore "QIR" namespaces
                     } else {
-                        Some(name.name.clone())
+                        Some(name.name())
                     }
                 }
                 _ => None,

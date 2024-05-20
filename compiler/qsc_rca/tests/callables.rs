@@ -22,18 +22,12 @@ fn check_rca_for_closure_function_with_classical_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that a closure is always considered dynamic because we are currently not performing detailed analysis on
-    // them.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -50,18 +44,12 @@ fn check_rca_for_closure_function_with_dynamic_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that only the "use of closure" runtime feature appears because we are currently not performing detailed
-    // analysis on closures.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -77,18 +65,12 @@ fn check_rca_for_closure_operation_with_classical_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that a closure is always considered dynamic because we are currently not performing detailed analysis on
-    // them.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -105,18 +87,12 @@ fn check_rca_for_closure_operation_with_dynamic_captured_value() {
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
 
-    // Note that only the "use of closure" runtime feature appears because we are currently not performing detailed
-    // analysis on closures.
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfClosure)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
     );
 }
 

@@ -23,6 +23,7 @@ import { loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { showCircuitCommand } from "./circuit";
+import { showDocumentationCommand } from "./documentation";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -379,9 +380,20 @@ export function registerWebViewCommands(context: ExtensionContext) {
       },
     ),
   );
+
+  context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.showDocumentation", async () => {
+      await showDocumentationCommand(context.extensionUri);
+    }),
+  );
 }
 
-type PanelType = "histogram" | "estimates" | "help" | "circuit";
+type PanelType =
+  | "histogram"
+  | "estimates"
+  | "help"
+  | "circuit"
+  | "documentation";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -391,6 +403,11 @@ const panelTypeToPanel: Record<
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
   circuit: { title: "Q# Circuit", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
+  documentation: {
+    title: "Q# Documentation",
+    panel: undefined,
+    state: {},
+  },
 };
 
 export function sendMessageToPanel(
@@ -410,6 +427,7 @@ export function sendMessageToPanel(
       {
         enableCommandUris: true,
         enableScripts: true,
+        enableFindWidget: true,
         retainContextWhenHidden: true,
         // Note: If retainContextWhenHidden is false, the webview gets reloaded
         // every time you hide it by switching to another tab and then switch
@@ -458,7 +476,7 @@ export class QSharpWebViewPanel {
     }
 
     const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown.css"]);
+    const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
     const webviewCss = getUri(["out", "webview", "webview.css"]);
     const webviewJs = getUri(["out", "webview", "webview.js"]);
     const resourcesUri = getUri(["resources"]);
@@ -528,7 +546,8 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "estimates" &&
       panelType !== "histogram" &&
       panelType !== "circuit" &&
-      panelType !== "help"
+      panelType !== "help" &&
+      panelType != "documentation"
     ) {
       // If it was loading when closed, that's fine
       if (panelType === "loading") {
