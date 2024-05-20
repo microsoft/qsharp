@@ -2,17 +2,17 @@
 // Licensed under the MIT License.
 
 import { getCompilerWorker } from "qsharp-lang";
-import { isQsharpDocument } from "./common";
-import { getTarget } from "./config";
-import { Uri, window } from "vscode";
-import { loadProject } from "./projectSystem";
+import { Uri } from "vscode";
 import { sendMessageToPanel } from "./webviewPanel";
+import { getActiveProgram } from "./programConfig";
 
 export async function showDocumentationCommand(extensionUri: Uri) {
-  const editor = window.activeTextEditor;
-  if (!editor || !isQsharpDocument(editor.document)) {
-    throw new Error("The currently active window is not a Q# file");
+  const program = await getActiveProgram();
+  if (!program.success) {
+    throw new Error(program.errorMsg);
   }
+
+  const { sources, profile, languageFeatures } = program.programConfig;
 
   // Reveal panel and show 'Loading...' for immediate feedback.
   sendMessageToPanel(
@@ -21,10 +21,6 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     null, // With no message
   );
 
-  const docUri = editor.document.uri;
-  const program = await loadProject(docUri);
-  const targetProfile = getTarget();
-
   // Get API documentation from compiler.
   const compilerWorkerScriptPath = Uri.joinPath(
     extensionUri,
@@ -32,9 +28,9 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const docFiles = await worker.getDocumentation(
-    program.sources,
-    targetProfile,
-    program.languageFeatures,
+    sources,
+    profile,
+    languageFeatures,
   );
 
   const documentation: string[] = [];

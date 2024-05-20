@@ -27,6 +27,7 @@ import {
   IStructStepResult,
   QscEventTarget,
   StepResultId,
+  TargetProfile,
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
@@ -43,6 +44,7 @@ import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import { isPanelOpen } from "../webviewPanel";
+import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -73,14 +75,12 @@ export class QscDebugSession extends LoggingDebugSession {
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
-  private targetProfile = getTarget();
   private revealedCircuit = false;
 
   public constructor(
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
-    private sources: [string, string][],
-    private languageFeatures: string[],
+    private program: FullProgramConfig,
   ) {
     super();
 
@@ -94,7 +94,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
 
-    for (const source of sources) {
+    for (const source of program.sources) {
       const uri = vscode.Uri.parse(source[0], true);
 
       // In Debug Protocol requests, the VS Code debug adapter client
@@ -112,12 +112,12 @@ export class QscDebugSession extends LoggingDebugSession {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const failureMessage = await this.debugService.loadSource(
-      this.sources,
-      this.targetProfile,
+      this.program.sources,
+      this.program.profile,
       this.config.entry,
-      this.languageFeatures,
+      this.program.languageFeatures,
     );
-    for (const [path, _contents] of this.sources) {
+    for (const [path, _contents] of this.program.sources) {
       if (failureMessage == "") {
         const locations = await this.debugService.getBreakpoints(path);
         log.trace(`init breakpointLocations: %O`, locations);
@@ -947,8 +947,8 @@ export class QscDebugSession extends LoggingDebugSession {
       const circuit = await this.debugService.getCircuit();
 
       updateCircuitPanel(
-        this.targetProfile,
-        vscode.Uri.parse(this.sources[0][0]).path,
+        this.program.profile,
+        this.program.projectName,
         !this.revealedCircuit,
         {
           circuit,
