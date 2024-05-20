@@ -43,6 +43,26 @@ This kata offers you a series of tasks in which you are given one unitary from t
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_unitaries__z_s",
+    "title": "Z or S?",
+    "path": "./z_s/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__h_x",
+    "title": "Hadamard or X?",
+    "path": "./h_x/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_unitaries__multi_qubit",
     "title": "Distinguishing Multi-Qubit Gates"
