@@ -391,22 +391,6 @@ fn index_array(arr: &[Value], index: i64, span: PackageSpan) -> std::result::Res
     }
 }
 
-pub fn slice_array(
-    arr: &[Value],
-    start: Option<i64>,
-    step: i64,
-    end: Option<i64>,
-    span: PackageSpan,
-) -> std::result::Result<Value, Error> {
-    let range = make_range(arr, start, step, end, span)?;
-    let mut slice = vec![];
-    for i in range {
-        slice.push(index_array(arr, i, span)?);
-    }
-
-    Ok(Value::Array(slice.into()))
-}
-
 pub fn make_range(
     arr: &[Value],
     start: Option<i64>,
@@ -428,4 +412,63 @@ pub fn make_range(
         };
         Ok(EvalRange::new(start, step, end))
     }
+}
+
+pub fn slice_array(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let range = make_range(arr, start, step, end, span)?;
+    let mut slice = vec![];
+    for i in range {
+        slice.push(index_array(arr, i, span)?);
+    }
+
+    Ok(Value::Array(slice.into()))
+}
+
+pub fn update_index_single(
+    values: &[Value],
+    index: i64,
+    update: Value,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    if index < 0 {
+        return Err(Error::InvalidNegativeInt(index, span));
+    }
+    let i = index.as_index(span)?;
+    let mut values = values.to_vec();
+    match values.get_mut(i) {
+        Some(value) => {
+            *value = update;
+        }
+        None => return Err(Error::IndexOutOfRange(index, span)),
+    }
+    Ok(Value::Array(values.into()))
+}
+
+pub fn update_index_range(
+    values: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    update: Value,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let range = make_range(values, start, step, end, span)?;
+    let mut values = values.to_vec();
+    let update = update.unwrap_array();
+    for (idx, update) in range.into_iter().zip(update.iter()) {
+        let i = idx.as_index(span)?;
+        match values.get_mut(i) {
+            Some(value) => {
+                *value = update.clone();
+            }
+            None => return Err(Error::IndexOutOfRange(idx, span)),
+        }
+    }
+    Ok(Value::Array(values.into()))
 }

@@ -18,7 +18,7 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::resolve_closure;
-use qsc_eval::val::slice_array;
+use qsc_eval::val::{slice_array, update_index_range, update_index_single};
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
@@ -867,10 +867,9 @@ impl<'a> PartialEvaluator<'a> {
                 "Updated Field Expr".to_string(),
                 expr.span,
             )),
-            ExprKind::UpdateIndex(_, _, _) => Err(Error::Unimplemented(
-                "Update Index Expr".to_string(),
-                expr.span,
-            )),
+            ExprKind::UpdateIndex(array_expr_id, index_expr_id, update_expr_id) => {
+                self.eval_expr_update_index(*array_expr_id, *index_expr_id, *update_expr_id)
+            }
             ExprKind::Var(res, _) => Ok(EvalControlFlow::Continue(self.eval_expr_var(res))),
             ExprKind::While(condition_expr_id, body_block_id) => {
                 self.eval_expr_while(*condition_expr_id, *body_block_id)
@@ -1612,6 +1611,70 @@ impl<'a> PartialEvaluator<'a> {
         self.get_current_rir_block_mut().0.push(instruction);
         let eval_variable = map_rir_var_to_eval_var(rir_variable);
         Ok(EvalControlFlow::Continue(Value::Var(eval_variable)))
+    }
+
+    fn eval_expr_update_index(
+        &mut self,
+        array_expr_id: ExprId,
+        index_expr_id: ExprId,
+        update_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // Get the value of the array expression to use it as the basis to perform a replacement on.
+        let array_control_flow = self.try_eval_expr(array_expr_id)?;
+        let EvalControlFlow::Continue(array_value) = array_control_flow else {
+            let array_expr = self.get_expr(array_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                array_expr.span,
+            ));
+        };
+        let array = array_value.unwrap_array();
+
+        // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
+        // the expressions is a return.
+        let index_control_flow = self.try_eval_expr(index_expr_id)?;
+        let EvalControlFlow::Continue(index_value) = index_control_flow else {
+            let index_expr = self.get_expr(index_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                index_expr.span,
+            ));
+        };
+
+        //
+        let update_control_flow = self.try_eval_expr(update_expr_id)?;
+        let EvalControlFlow::Continue(update_value) = update_control_flow else {
+            let update_expr = self.get_expr(update_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in update expression".to_string(),
+                update_expr.span,
+            ));
+        };
+
+        // Get the value at the specified index.
+        let index_expr = self.get_expr(index_expr_id);
+        let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
+        let index_package_span = PackageSpan {
+            package: hir_package_id,
+            span: index_expr.span,
+        };
+        let update_result = match index_value {
+            Value::Int(index) => {
+                update_index_single(&array, index, update_value, index_package_span)
+            }
+            Value::Range(range) => update_index_range(
+                &array,
+                range.start,
+                range.step,
+                range.end,
+                update_value,
+                index_package_span,
+            ),
+            _ => panic!("invalid kind of value for index"),
+        };
+        let value =
+            update_result.map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_expr_var(&mut self, res: &Res) -> Value {
