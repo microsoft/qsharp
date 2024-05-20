@@ -36,7 +36,10 @@ export async function getQirForActiveWindow(): Promise<string> {
     const result = await vscode.window.showWarningMessage(
       "Submitting to Azure is only supported when targeting the QIR base or adaptive_ri profile.",
       { modal: true },
-      { title: "Change the QIR target profile and continue", action: "set" },
+      {
+        title: "Set the QIR target profile to Base and continue",
+        action: "set",
+      },
       { title: "Cancel", action: "cancel", isCloseAffordance: true },
     );
     if (result?.action !== "set") {
