@@ -9,6 +9,8 @@ use std::{
     rc::Rc,
 };
 
+use crate::{error::PackageSpan, AsIndex, Error, Range as EvalRange};
+
 pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -378,5 +380,52 @@ impl Value {
             Value::Tuple(_) => "Tuple",
             Value::Var(_) => "Var",
         }
+    }
+}
+
+fn index_array(arr: &[Value], index: i64, span: PackageSpan) -> std::result::Result<Value, Error> {
+    let i = index.as_index(span)?;
+    match arr.get(i) {
+        Some(v) => Ok(v.clone()),
+        None => Err(Error::IndexOutOfRange(index, span)),
+    }
+}
+
+pub fn slice_array(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let range = make_range(arr, start, step, end, span)?;
+    let mut slice = vec![];
+    for i in range {
+        slice.push(index_array(arr, i, span)?);
+    }
+
+    Ok(Value::Array(slice.into()))
+}
+
+pub fn make_range(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> std::result::Result<EvalRange, Error> {
+    if step == 0 {
+        Err(Error::RangeStepZero(span))
+    } else {
+        let len: i64 = match arr.len().try_into() {
+            Ok(len) => Ok(len),
+            Err(_) => Err(Error::ArrayTooLarge(span)),
+        }?;
+        let (start, end) = if step > 0 {
+            (start.unwrap_or(0), end.unwrap_or(len - 1))
+        } else {
+            (start.unwrap_or(len - 1), end.unwrap_or(0))
+        };
+        Ok(EvalRange::new(start, step, end))
     }
 }

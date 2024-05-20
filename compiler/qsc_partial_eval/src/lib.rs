@@ -18,11 +18,12 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::resolve_closure;
+use qsc_eval::val::slice_array;
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
     val::{self, Value, Var, VarTy},
-    State, StepAction, StepResult, Variable,
+    AsIndex, PackageSpan, State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
@@ -33,6 +34,7 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
+use qsc_lowerer::map_fir_package_to_hir;
 use qsc_rca::errors::{generate_errors_from_runtime_features, get_missing_runtime_features};
 use qsc_rca::{
     errors::Error as CapabilityError, ComputeKind, ComputePropertiesLookup,
@@ -1474,14 +1476,33 @@ impl<'a> PartialEvaluator<'a> {
 
         // Get the value at the specified index.
         let array = array_value.unwrap_array();
-        let index: usize = index_value
-            .unwrap_int()
-            .try_into()
-            .expect("could not convert index to usize");
-        let value_at_index = array
-            .get(index)
-            .unwrap_or_else(|| panic!("could not get value at index {index}"));
-        Ok(EvalControlFlow::Continue(value_at_index.clone()))
+        let index_expr = self.get_expr(index_expr_id);
+        let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
+        let index_package_span = PackageSpan {
+            package: hir_package_id,
+            span: index_expr.span,
+        };
+        let value = match index_value {
+            Value::Int(int_index) => {
+                let index = int_index
+                    .as_index(index_package_span)
+                    .map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
+                array
+                    .get(index)
+                    .unwrap_or_else(|| panic!("could not get value at index {index}"))
+                    .clone()
+            }
+            Value::Range(range) => slice_array(
+                &array,
+                range.start,
+                range.step,
+                range.end,
+                index_package_span,
+            )
+            .map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?,
+            _ => panic!("invalid kind of value for index"),
+        };
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_expr_return(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {

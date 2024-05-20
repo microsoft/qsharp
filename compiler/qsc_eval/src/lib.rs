@@ -28,7 +28,7 @@ pub mod val;
 use crate::val::Value;
 use backend::Backend;
 use debug::{CallStack, Frame};
-use error::PackageSpan;
+pub use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
@@ -256,7 +256,7 @@ pub enum StepResult {
     Return(Value),
 }
 
-trait AsIndex {
+pub trait AsIndex {
     type Output;
 
     fn as_index(&self, index_source: PackageSpan) -> Self::Output;
@@ -288,7 +288,7 @@ pub struct VariableInfo {
     pub span: Span,
 }
 
-struct Range {
+pub struct Range {
     step: i64,
     end: i64,
     curr: i64,
