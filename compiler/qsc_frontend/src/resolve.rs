@@ -675,10 +675,8 @@ impl Resolver {
     fn bind_exports(&mut self, namespace: Option<NamespaceId>, export: &ExportDecl) {
         // resolve the exported item and insert the vec ident into the names table, so we can access it in
         // lowering
-        println!("in binding exports about to iterate");
 
         for item in export.items() {
-            println!("in binding exports, binding {item:?}");
             let resolved_item = match resolve(
                 NameKind::Term,
                 &self.globals,
@@ -718,8 +716,7 @@ impl Resolver {
                     continue;
                 }
                 Res::Item(id, _) => id,
-                a => {
-                    dbg!(&a);
+                _ => {
                     self.errors.push(Error::ExportedNonItem(item.span));
                     continue;
                 }
