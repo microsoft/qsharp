@@ -10,13 +10,12 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{comma_separated_seq, ident, many, opt, pat, token},
+    prim::{comma_separated_seq, seq, ident, many, opt, pat, token},
     scan::ParserContext,
     stmt,
     ty::{self, ty},
     Error, Result,
 };
-use crate::prim::seq;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},

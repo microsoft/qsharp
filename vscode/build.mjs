@@ -64,9 +64,8 @@ export function copyWasmToVsCode() {
 /**
  *
  * @param {string} [destDir]
- * @param {boolean} [useLightTheme]
  */
-export function copyKatex(destDir, useLightTheme) {
+export function copyKatex(destDir) {
   let katexBase = join(libsDir, `katex/dist`);
   let katexDest = destDir ?? join(thisDir, `out/katex`);
 
@@ -78,12 +77,13 @@ export function copyKatex(destDir, useLightTheme) {
   );
 
   // Also copy the GitHub markdown CSS
-  const cssFileName = useLightTheme
-    ? "github-markdown-light.css"
-    : "github-markdown.css";
   copyFileSync(
-    join(libsDir, `github-markdown-css/${cssFileName}`),
-    join(katexDest, "github-markdown.css"),
+    join(libsDir, `github-markdown-css/github-markdown-light.css`),
+    join(katexDest, "github-markdown-light.css"),
+  );
+  copyFileSync(
+    join(libsDir, `github-markdown-css/github-markdown-dark.css`),
+    join(katexDest, "github-markdown-dark.css"),
   );
 
   const fontsDir = join(katexBase, "fonts");

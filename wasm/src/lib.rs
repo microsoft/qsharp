@@ -20,6 +20,7 @@ use qsc::{
     },
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    TargetCapabilityFlags,
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
@@ -459,8 +460,22 @@ serializable_type! {
 
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs() -> Vec<IDocFile> {
-    let docs = qsc_doc_gen::generate_docs::generate_docs();
+pub fn generate_docs(
+    additionalSources: Option<Vec<js_sys::Array>>,
+    targetProfile: Option<String>,
+    languageFeatures: Option<Vec<String>>,
+) -> Vec<IDocFile> {
+    let source_map: Option<SourceMap> = additionalSources.map(|s| get_source_map(s, &None));
+
+    let target_profile: Option<TargetCapabilityFlags> = targetProfile.map(|p| {
+        Profile::from_str(&p)
+            .expect("invalid target profile")
+            .into()
+    });
+
+    let features: Option<LanguageFeatures> = languageFeatures.map(LanguageFeatures::from_iter);
+
+    let docs = qsc_doc_gen::generate_docs::generate_docs(source_map, target_profile, features);
     let mut result: Vec<IDocFile> = vec![];
 
     for (name, metadata, contents) in docs {

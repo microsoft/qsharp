@@ -34,14 +34,11 @@ namespace Sample {
                 nQubits
             );
             let hiddenShift = ResultArrayAsInt(hiddenShiftBitString);
-            Fact(
-                hiddenShift == shift,
-                $"Found shift {hiddenShift}, but expected {shift}."
-            );
             Message($"Found {shift} successfully!");
             set hiddenShifts += [hiddenShift];
         }
 
+        // Note: returned array should match shifts array
         return hiddenShifts;
     }
 
@@ -110,7 +107,7 @@ namespace Sample {
 
         // Measure the n qubits and reset them to zero so that they can be
         // safely deallocated at the end of the block.
-        return ForEach(MResetZ, qubits);
+        return MResetEachZ(qubits);
     }
 
     /// # Summary

@@ -155,7 +155,7 @@ pub fn try_resolve_callee(
     package_id: PackageId,
     package: &impl PackageLookup,
     locals_map: &impl LocalsLookup,
-) -> Option<Callee> {
+) -> (Option<Callee>, Option<Vec<LocalVarId>>) {
     // This is a best effort attempt to resolve a callee that currently only supports resolving
     // global callables or locals that eventually resolve to global callables.
     let expr = package.get_expr(expr_id);
@@ -164,14 +164,21 @@ pub fn try_resolve_callee(
             try_resolve_un_op_callee(*operator, *operand_expr_id, package_id, package, locals_map)
         }
         ExprKind::Var(res, _) => match res {
-            Res::Item(item_id) => Some(resolve_item_callee(package_id, *item_id)),
+            Res::Item(item_id) => (Some(resolve_item_callee(package_id, *item_id)), None),
             Res::Local(local_var_id) => {
                 try_resolve_local_callee(*local_var_id, package_id, package, locals_map)
             }
             Res::Err => panic!("callee resolution should not be an error"),
         },
+        ExprKind::Closure(fixed_args, local_item_id) => (
+            Some(Callee {
+                item: (package_id, *local_item_id).into(),
+                functor_app: FunctorApp::default(),
+            }),
+            Some(fixed_args.clone()),
+        ),
         // More complex callee expressions might require evaluation so we don't try to resolve them at compile time.
-        _ => None,
+        _ => (None, None),
     }
 }
 
@@ -188,16 +195,17 @@ fn try_resolve_local_callee(
     package_id: PackageId,
     package: &impl PackageLookup,
     locals_map: &impl LocalsLookup,
-) -> Option<Callee> {
+) -> (Option<Callee>, Option<Vec<LocalVarId>>) {
     // This is a best effort attempt to resolve a callee.
-    locals_map
-        .find(local_var_id)
-        .and_then(|local| match local.kind {
+    match locals_map.find(local_var_id) {
+        Some(local) => match local.kind {
             LocalKind::Immutable(expr_id) => {
                 try_resolve_callee(expr_id, package_id, package, locals_map)
             }
-            _ => None,
-        })
+            _ => (None, None),
+        },
+        None => (None, None),
+    }
 }
 
 fn try_resolve_un_op_callee(
@@ -206,28 +214,32 @@ fn try_resolve_un_op_callee(
     package_id: PackageId,
     package: &impl PackageLookup,
     locals_map: &impl LocalsLookup,
-) -> Option<Callee> {
+) -> (Option<Callee>, Option<Vec<LocalVarId>>) {
     // This is a best effort attempt to resolve a callee.
     let UnOp::Functor(functor_operator) = operator else {
         panic!("unary operator is expected to be a functor for a callee expression")
     };
 
-    try_resolve_callee(expr_id, package_id, package, locals_map).map(|callee| {
-        let spec_functor = match functor_operator {
-            Functor::Adj => FunctorApp {
-                adjoint: !callee.functor_app.adjoint,
-                controlled: callee.functor_app.controlled,
-            },
-            Functor::Ctl => FunctorApp {
-                adjoint: callee.functor_app.adjoint,
-                controlled: callee.functor_app.controlled + 1,
-            },
-        };
-        Callee {
-            item: callee.item,
-            functor_app: spec_functor,
-        }
-    })
+    let (callee, fixed_args) = try_resolve_callee(expr_id, package_id, package, locals_map);
+    (
+        callee.map(|callee| {
+            let spec_functor = match functor_operator {
+                Functor::Adj => FunctorApp {
+                    adjoint: !callee.functor_app.adjoint,
+                    controlled: callee.functor_app.controlled,
+                },
+                Functor::Ctl => FunctorApp {
+                    adjoint: callee.functor_app.adjoint,
+                    controlled: callee.functor_app.controlled + 1,
+                },
+            };
+            Callee {
+                item: callee.item,
+                functor_app: spec_functor,
+            }
+        }),
+        fixed_args,
+    )
 }
 
 pub struct AssignmentStmtCounter<'a> {

@@ -133,3 +133,87 @@ fn check_rca_for_nested_bin_ops_with_a_dynamic_operand() {
         ],
     );
 }
+
+#[test]
+fn check_rca_for_exp_op_with_classical_lhs_and_classical_rhs() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(r#"2 ^ 3"#);
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_exp_op_with_dynamic_lhs_and_classical_rhs() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"{
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            i ^ 2
+        }"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_exp_op_with_classical_lhs_and_dynamic_rhs() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"{
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            2 ^ i
+        }"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicExponent)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_exp_op_with_dynamic_lhs_and_dynamic_rhs() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"{
+            use (a, b) = (Qubit(), Qubit());
+            let (c, d) = (M(a) == Zero, M(b) == Zero);
+            let i = c ? 0 | 1;
+            let j = d ? 0 | 1;
+            i ^ j
+        }"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicExponent)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}

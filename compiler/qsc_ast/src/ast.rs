@@ -1516,18 +1516,6 @@ impl Idents {
         }
         Rc::from(buf)
     }
-
-    /// The number of idents in this [`Idents`].
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Returns `true` if the [`Idents`] contains no idents.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
 }
 
 impl Default for Ident {
