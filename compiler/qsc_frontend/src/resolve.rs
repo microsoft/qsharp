@@ -681,8 +681,8 @@ impl Resolver {
                 NameKind::Term,
                 &self.globals,
                 self.locals.get_scopes(&self.curr_scope_chain),
-                &item.name,
-                &item.namespace,
+                &item.path.name,
+                &item.path.namespace,
             ) {
                 Ok(res) => res,
                 Err(_) => {
@@ -691,8 +691,8 @@ impl Resolver {
                         NameKind::Ty,
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
-                        &item.name,
-                        &item.namespace,
+                        &item.path.name,
+                        &item.path.namespace,
                     ) {
                         Ok(res) => res,
                         Err(err) => {
@@ -712,24 +712,24 @@ impl Resolver {
                     },
                     _,
                 ) => {
-                    self.errors.push(Error::ExportedExternalItem(item.span));
+                    self.errors.push(Error::ExportedExternalItem(item.span()));
                     continue;
                 }
                 Res::Item(id, _) => id,
                 _ => {
-                    self.errors.push(Error::ExportedNonItem(item.span));
+                    self.errors.push(Error::ExportedNonItem(item.span()));
                     continue;
                 }
             };
 
             scope
                 .terms
-                .insert(Rc::clone(&item.name.name), resolved_item_id);
+                .insert(Rc::clone(&item.name().name), resolved_item_id);
             // just insert the id for the name ident
-            self.names.insert(item.id, resolved_item);
+            self.names.insert(item.path.id, resolved_item);
             if let Some(namespace) = namespace {
                 self.globals.terms.get_mut_or_default(namespace).insert(
-                    item.name.name.clone(),
+                    Rc::clone(&item.name().name),
                     Res::Item(resolved_item_id, ItemStatus::Available),
                 );
             }

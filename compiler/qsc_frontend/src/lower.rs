@@ -146,17 +146,17 @@ impl With<'_> {
         let exports = namespace.exports();
         for export in exports {
             // get the item this export is referring to
-            let Some(&resolve::Res::Item(item, _)) = self.names.get(export.id) else {
+            let Some(&resolve::Res::Item(item, _)) = self.names.get(export.path.id) else {
                 self.lowerer
                     .errors
-                    .push(Error::ExportedNonItem(export.span));
+                    .push(Error::ExportedNonItem(export.span()));
                 return;
             };
             if item.package.is_some() {
                 // when we support external packages, we will want to handle this case.
                 self.lowerer
                     .errors
-                    .push(Error::ExportedExternalItem(export.span));
+                    .push(Error::ExportedExternalItem(export.span()));
                 continue;
             }
             items.push(item.item);

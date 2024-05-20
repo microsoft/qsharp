@@ -24,9 +24,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item,
-    ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Idents,
+    Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen,
+    StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -528,6 +528,7 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 /// export {
 ///     Foo,
 ///     Bar.Baz,
+///     Bar.Quux as Corge
 /// };
 /// ```
 fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
@@ -535,12 +536,23 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Export))?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = seq(s, path)?;
+    let items = seq(s, parse_export_item)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     token(s, TokenKind::Semi)?;
 
     Ok(ExportDecl {
         span: s.span(lo),
-        items: items.0.into_iter().map(|x| (*x)).collect::<Vec<_>>(),
+        items: items.0,
     })
+}
+
+/// returns the path and the alias, if any
+fn parse_export_item(s: &mut ParserContext) -> Result<ExportItem> {
+    let path = *(path(s)?);
+    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
+        Some(*(ident(s)?))
+    } else {
+        None
+    };
+    Ok(ExportItem { path, alias })
 }

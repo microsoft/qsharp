@@ -109,8 +109,8 @@ impl Visitor<'_> for Renamer<'_> {
             }
             ItemKind::Export(export) => {
                 for item in export.items() {
-                    if let Some(resolved_id) = self.names.get(item.id) {
-                        self.changes.push((item.span, (*resolved_id).into()));
+                    if let Some(resolved_id) = self.names.get(item.path.id) {
+                        self.changes.push((item.span(), (*resolved_id).into()));
                     }
                 }
                 return;
@@ -3211,6 +3211,130 @@ fn export_udt() {
                 operation item3() : Unit {
                     item1(1, 2);
                 }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX as SomeAlias };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    SomeAlias();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn multiple_exports_with_aliases() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+                export { ApplyX as SomeAlias, ApplyY as AnotherAlias };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    SomeAlias();
+                    AnotherAlias();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+                export { item1, item2 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn aliased_exports_call_with_qualified_paths() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+                export { ApplyX as SomeAlias, ApplyY as AnotherAlias };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    Foo.SomeAlias();
+                    Foo.AnotherAlias();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+                export { item1, item2 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn reexport_from_full_path_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX as SomeAlias };
+            }
+            namespace Main {
+                open Foo;
+                export { Foo.SomeAlias as AnotherAlias };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                export { item1 };
             }
         "#]],
     );
