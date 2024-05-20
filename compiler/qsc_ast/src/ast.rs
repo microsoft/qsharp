@@ -171,7 +171,7 @@ pub struct Namespace {
 
 impl Namespace {
     /// Returns an iterator over the items in the namespace that are exported.
-    pub fn exports(&self) -> impl Iterator<Item = &Path> {
+    pub fn exports(&self) -> impl Iterator<Item = &ExportItem> {
         self.items
             .iter()
             .filter_map(|i| match *i.kind {
@@ -1776,7 +1776,7 @@ pub struct ExportDecl {
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Vec<Path>,
+    pub items: Vec<ExportItem>,
 }
 
 impl Display for ExportDecl {
@@ -1793,8 +1793,65 @@ impl Display for ExportDecl {
 
 impl ExportDecl {
     /// Returns an iterator over the items being exported from this namespace.
-    pub fn items(&self) -> impl Iterator<Item = &Path> {
+    pub fn items(&self) -> impl Iterator<Item = &ExportItem> {
         self.items.iter()
+    }
+}
+
+/// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct ExportItem {
+    /// The path to the item being exported.
+    pub path: Path,
+    /// An optional alias for the item being exported.
+    pub alias: Option<Ident>,
+}
+
+impl Display for ExportItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let ExportItem {
+            ref path,
+            ref alias,
+        } = self;
+        match alias {
+            Some(alias) => write!(f, "{path} as {alias}"),
+            None => write!(f, "{path}"),
+        }
+    }
+}
+
+impl WithSpan for ExportItem {
+    fn with_span(self, span: Span) -> Self {
+        ExportItem {
+            path: self.path.with_span(span),
+            alias: self.alias.map(|x| x.with_span(span)),
+        }
+    }
+}
+
+impl ExportItem {
+    /// Returns the span of the export item. This includes the path and , if any exists, the alias.
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self.alias {
+            Some(ref alias) => {
+                // join the path and alias spans
+                Span {
+                    lo: self.path.span.lo,
+                    hi: alias.span.hi,
+                }
+            }
+            None => self.path.span,
+        }
+    }
+
+    /// Returns the alias ident, if any, or the name from the path if no alias is present.
+    #[must_use]
+    pub fn name(&self) -> &Ident {
+        match self.alias {
+            Some(ref alias) => alias,
+            None => &self.path.name,
+        }
     }
 }
 
