@@ -7,6 +7,7 @@ use qsc::{
     error::WithSource,
     line_column::{Encoding, Range},
 };
+use qsc_linter::{AstLint, HirLint};
 
 use crate::{
     compilation::Compilation,
@@ -44,9 +45,9 @@ fn quick_fixes(
     //  2. The quickfix logic would be spread across many crates in the compiler.
     for diagnostic in diagnostics {
         if let ErrorKind::Lint(lint) = diagnostic.error() {
-            // TODO: This should be an enum comparison
-            if lint.message == "redundant semicolons" {
-                code_actions.push(CodeAction {
+            use qsc::linter::LintKind;
+            match lint.kind {
+                LintKind::Ast(AstLint::RedundantSemicolons) => code_actions.push(CodeAction {
                     title: diagnostic.to_string(),
                     edit: Some(WorkspaceEdit {
                         changes: vec![(
@@ -60,11 +61,8 @@ fn quick_fixes(
                     }),
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
-                });
-            }
-
-            if lint.message == "unnecessary parentheses" {
-                code_actions.push(CodeAction {
+                }),
+                LintKind::Ast(AstLint::NeedlessParens) => code_actions.push(CodeAction {
                     title: diagnostic.to_string(),
                     edit: Some(WorkspaceEdit {
                         changes: vec![(
@@ -82,7 +80,8 @@ fn quick_fixes(
                     }),
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
-                });
+                }),
+                LintKind::Ast(AstLint::DivisionByZero) | LintKind::Hir(HirLint::Placeholder) => (),
             }
         }
     }
