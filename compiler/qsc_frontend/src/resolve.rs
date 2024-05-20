@@ -339,76 +339,80 @@ pub(super) struct Resolver {
     errors: Vec<Error>,
 }
 
-impl Resolver {
-    pub(crate) fn resolve_exports(&mut self, package: &Package) {
-        struct ExportVisitor<'a> {
-            resolver: &'a mut Resolver,
+/// This visitor is used for an intermediate step between binding and full resolution.
+/// We use this visitor to resolve all export symbols, so that they are available during the resolution stage.
+struct ExportVisitor<'a> {
+    resolver: &'a mut Resolver,
+}
+
+impl ExportVisitor<'_> {
+    /// Given a function, apply that function to `Self` within a scope. In other words, this
+    /// function automatically pushes a scope before `f` and pops it after.
+    fn with_scope(&mut self, span: Span, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
+        self.resolver.push_scope(span, kind);
+        f(self);
+        self.resolver.pop_scope();
+    }
+}
+
+impl AstVisitor<'_> for ExportVisitor<'_> {
+    fn visit_item(&mut self, item: &Item) {
+        item.attrs.iter().for_each(|a| self.visit_attr(a));
+        item.visibility
+            .iter()
+            .for_each(|v| self.visit_visibility(v));
+        match &*item.kind {
+            ItemKind::Export(_) => self
+                .resolver
+                .errors
+                .push(Error::ExportFromNonNamespaceScope(item.span)),
+            _ => ast_visit::walk_item(self, item),
         }
-        impl ExportVisitor<'_> {
-            /// Given a function, apply that function to `Self` within a scope. In other words, this
-            /// function automatically pushes a scope before `f` and pops it after.
-            fn with_scope(&mut self, span: Span, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
-                self.resolver.push_scope(span, kind);
-                f(self);
-                self.resolver.pop_scope();
-            }
-        }
-        impl AstVisitor<'_> for ExportVisitor<'_> {
-            fn visit_item(&mut self, item: &Item) {
-                item.attrs.iter().for_each(|a| self.visit_attr(a));
-                item.visibility
-                    .iter()
-                    .for_each(|v| self.visit_visibility(v));
+    }
+
+    fn visit_namespace(&mut self, namespace: &ast::Namespace) {
+        let ns = self
+            .resolver
+            .globals
+            .find_namespace(namespace.name.str_iter())
+            .expect("namespace should exist by this point");
+        let root_id = self.resolver.globals.namespaces.root_id();
+        let kind = ScopeKind::Namespace(ns);
+        self.with_scope(namespace.span, kind, |visitor| {
+            // the below line ensures that this namespace opens itself, in case
+            // we are re-opening a namespace. This is important, as without this,
+            // a re-opened namespace would only have knowledge of its scopes.
+            visitor.resolver.bind_open(&namespace.name, &None, root_id);
+            for item in &*namespace.items {
                 match &*item.kind {
-                    ItemKind::Export(_) => self
-                        .resolver
-                        .errors
-                        .push(Error::ExportFromNonNamespaceScope(item.span)),
-                    _ => ast_visit::walk_item(self, item),
+                    ItemKind::Export(export) => {
+                        visitor.resolver.bind_exports(Some(ns), export);
+                    }
+                    ItemKind::Open(name, alias) => {
+                        // we only need to bind opens that are in top-level namespaces, outside of callables.
+                        // this is because this is for the intermediate export-binding pass
+                        // and in the export-binding pass, we only need to know what symbols are available
+                        // in the scope of the exports. Exports are only allowed from namespaces scopes.
+                        // Put another way,
+                        // ```
+                        // // this is allowed, so we need to bind the "open B" for the export to work
+                        // namespace A { open B; export { SomethingFromB }; }
+                        //
+                        // // this is disallowed, so we don't need to bind the "open B" for the export
+                        // namespace A { callable foo() { open B; export { SomethingFromB }; } }
+                        //                                        ^^^^^^ export from non-namespace scope is not allowed
+                        // ```
+                        visitor.resolver.bind_open(name, alias, ns);
+                    }
+                    _ => ast_visit::walk_item(visitor, item),
                 }
             }
-
-            fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-                let ns = self
-                    .resolver
-                    .globals
-                    .find_namespace(namespace.name.str_iter())
-                    .expect("namespace should exist by this point");
-                let root_id = self.resolver.globals.namespaces.root_id();
-                let kind = ScopeKind::Namespace(ns);
-                self.with_scope(namespace.span, kind, |visitor| {
-                    // the below line ensures that this namespace opens itself, in case
-                    // we are re-opening a namespace. This is important, as without this,
-                    // a re-opened namespace would only have knowledge of its scopes.
-                    visitor.resolver.bind_open(&namespace.name, &None, root_id);
-                    for item in &*namespace.items {
-                        match &*item.kind {
-                            ItemKind::Export(export) => {
-                                visitor.resolver.bind_exports(Some(ns), export);
-                            }
-                            ItemKind::Open(name, alias) => {
-                                // we only need to bind opens that are in top-level namespaces, outside of callables.
-                                // this is because this is for the intermediate export-binding pass
-                                // and in the export-binding pass, we only need to know what symbols are available
-                                // in the scope of the exports. Exports are only allowed from namespaces scopes.
-                                // Put another way,
-                                // ```
-                                // // this is allowed, so we need to bind the "open B" for the export to work
-                                // namespace A { open B; export { SomethingFromB }; }
-                                //
-                                // // this is disallowed, so we don't need to bind the "open B" for the export
-                                // namespace A { callable foo() { open B; export { SomethingFromB }; } }
-                                //                                        ^^^^^^ export from non-namespace scope is not allowed
-                                // ```
-                                visitor.resolver.bind_open(name, alias, ns);
-                            }
-                            _ => ast_visit::walk_item(visitor, item),
-                        }
-                    }
-                    // ast_visit::walk_namespace(visitor, namespace);
-                });
-            }
-        }
+            // ast_visit::walk_namespace(visitor, namespace);
+        });
+    }
+}
+impl Resolver {
+    pub(crate) fn resolve_exports(&mut self, package: &Package) {
         let mut visitor = ExportVisitor { resolver: self };
         visitor.visit_package(package);
     }
