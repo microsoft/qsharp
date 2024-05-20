@@ -149,6 +149,9 @@ async fn close_last_doc_in_project() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -164,14 +167,13 @@ async fn close_last_doc_in_project() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 60,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -286,12 +288,11 @@ async fn compile_error() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             Ident,
                                             Span {
                                                 lo: 0,
-                                                hi: 9,
+                                                hi: 0,
                                             },
                                         ),
                                     ),
@@ -909,6 +910,9 @@ async fn update_doc_updates_project() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -999,6 +1003,9 @@ async fn close_doc_prioritizes_fs() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1014,14 +1021,13 @@ async fn close_doc_prioritizes_fs() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 60,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -1078,6 +1084,9 @@ async fn delete_manifest() {
                         offset: 71,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1113,6 +1122,9 @@ async fn delete_manifest() {
                         offset: 0,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1157,6 +1169,9 @@ async fn delete_manifest_then_close() {
                         offset: 71,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1218,6 +1233,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1268,6 +1286,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1317,6 +1338,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1360,6 +1384,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],

@@ -105,7 +105,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 }
 
 fn parse(input: &str, entry_expr: &str) -> Package {
-    let (namespaces, errors) = qsc_parse::namespaces(input, LanguageFeatures::default());
+    let (namespaces, errors) = qsc_parse::namespaces(input, None, LanguageFeatures::default());
     assert!(errors.is_empty(), "parsing input failed: {errors:#?}");
 
     let entry = if entry_expr.is_empty() {
