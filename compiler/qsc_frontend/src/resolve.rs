@@ -411,7 +411,6 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                     _ => ast_visit::walk_item(visitor, item),
                 }
             }
-            // ast_visit::walk_namespace(visitor, namespace);
         });
     }
 }
