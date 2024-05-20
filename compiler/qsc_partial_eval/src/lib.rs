@@ -18,12 +18,12 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::resolve_closure;
-use qsc_eval::val::{slice_array, update_index_range, update_index_single};
+use qsc_eval::val::{index_array, slice_array, update_index_range, update_index_single};
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
     val::{self, Value, Var, VarTy},
-    AsIndex, PackageSpan, State, StepAction, StepResult, Variable,
+    PackageSpan, State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
@@ -1481,26 +1481,19 @@ impl<'a> PartialEvaluator<'a> {
             package: hir_package_id,
             span: index_expr.span,
         };
-        let value = match index_value {
-            Value::Int(int_index) => {
-                let index = int_index
-                    .as_index(index_package_span)
-                    .map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
-                array
-                    .get(index)
-                    .unwrap_or_else(|| panic!("could not get value at index {index}"))
-                    .clone()
-            }
+        let value_result = match index_value {
+            Value::Int(index) => index_array(&array, index, index_package_span),
             Value::Range(range) => slice_array(
                 &array,
                 range.start,
                 range.step,
                 range.end,
                 index_package_span,
-            )
-            .map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?,
+            ),
             _ => panic!("invalid kind of value for index"),
         };
+        let value =
+            value_result.map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
         Ok(EvalControlFlow::Continue(value))
     }
 

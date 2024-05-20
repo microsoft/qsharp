@@ -256,7 +256,7 @@ pub enum StepResult {
     Return(Value),
 }
 
-pub trait AsIndex {
+trait AsIndex {
     type Output;
 
     fn as_index(&self, index_source: PackageSpan) -> Self::Output;

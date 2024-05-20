@@ -910,10 +910,11 @@ fn explicit_return_embedded_in_assign_index_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Update Index Expr", Span { lo: 170, hi: 193 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in update expression", Span { lo: 181, hi: 193 })"#
+        ]],
     );
 }
 

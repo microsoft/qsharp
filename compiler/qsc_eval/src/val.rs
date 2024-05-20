@@ -383,7 +383,11 @@ impl Value {
     }
 }
 
-fn index_array(arr: &[Value], index: i64, span: PackageSpan) -> std::result::Result<Value, Error> {
+pub fn index_array(
+    arr: &[Value],
+    index: i64,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
     let i = index.as_index(span)?;
     match arr.get(i) {
         Some(v) => Ok(v.clone()),
