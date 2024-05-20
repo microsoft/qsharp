@@ -92,6 +92,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
+
     let mut checker = Checker::new(super::GlobalTable::new());
     checker.check_package(&names, &package);
     let (tys, ty_errors) = checker.into_table();

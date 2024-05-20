@@ -625,8 +625,8 @@ mod adaptive_ri_profile {
             block_2:
               br label %block_3
             block_3:
-              %var_2 = phi i64 [0, %block_1], [1, %block_2]
-              call void @__quantum__rt__integer_record_output(i64 %var_2, i8* null)
+              %var_3 = phi i64 [0, %block_1], [1, %block_2]
+              call void @__quantum__rt__int_record_output(i64 %var_3, i8* null)
               ret void
             }
 
@@ -636,7 +636,7 @@ mod adaptive_ri_profile {
 
             declare i1 @__quantum__qis__read_result__body(%Result*)
 
-            declare void @__quantum__rt__integer_record_output(i64, i8*)
+            declare void @__quantum__rt__int_record_output(i64, i8*)
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
             attributes #1 = { "irreversible" }

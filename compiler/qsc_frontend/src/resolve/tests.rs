@@ -2000,6 +2000,7 @@ fn use_unbound_generic() {
         "#]],
     );
 }
+
 #[test]
 fn resolve_local_generic() {
     check(
@@ -2765,6 +2766,7 @@ namespace Foo.Bar.Baz {
         "#]],
     );
 }
+
 #[test]
 fn basic_hierarchical_namespace() {
     check(

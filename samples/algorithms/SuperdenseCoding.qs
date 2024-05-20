@@ -9,11 +9,8 @@
 /// This Q# program implements superdense coding to send two classical bits of
 /// information.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Random;
-
     @EntryPoint()
-    operation Main() : (Bool, Bool) {
+    operation Main() : ((Bool, Bool), (Bool, Bool)) {
         use (aliceQubit, bobQubit) = (Qubit(), Qubit());
 
         // The protocol starts with the preparation of an entangled state, which
@@ -21,25 +18,26 @@ namespace Sample {
         CreateEntangledPair(aliceQubit, bobQubit);
 
         // Alice encodes 2 random bits in her qubit of the entangled pair.
-        let randomInt = DrawRandomInt(0, 3);
-        let bit1 = (randomInt &&& 1) == 0b01;
-        let bit2 = (randomInt &&& 2) == 0b10;
-        SuperdenseEncode(bit1, bit2, aliceQubit);
+        let sourceBit1 = DrawRandomBit();
+        let sourceBit2 = DrawRandomBit();
+        SuperdenseEncode(sourceBit1, sourceBit2, aliceQubit);
 
         // "Send" Alice's qubit to Bob and let Bob decode two bits.
         let (decodedBit1, decodedBit2) = SuperdenseDecode(aliceQubit, bobQubit);
 
         ResetAll([aliceQubit, bobQubit]);
-        return (decodedBit1, decodedBit2);
+        return ((sourceBit1, sourceBit2), (decodedBit1, decodedBit2));
+    }
+
+    // Generates random bit using an auxilliary qubit
+    operation DrawRandomBit() : Bool {
+        use q = Qubit();
+        H(q);
+        return MResetZ(q) == One;
     }
 
     // Prepares an entangled state: 1/sqrt(2)(|00〉 + |11〉)
     operation CreateEntangledPair(q1 : Qubit, q2 : Qubit) : Unit {
-        Fact(
-            CheckAllZero([q1, q2]),
-            "Qubits are expected to be in the |00〉 state"
-        );
-
         H(q1);
         CNOT(q1, q2);
     }

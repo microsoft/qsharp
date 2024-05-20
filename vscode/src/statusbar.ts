@@ -46,7 +46,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
       if (
         vscode.window.activeTextEditor &&
         isQsharpDocument(vscode.window.activeTextEditor.document) &&
-        event.affectsConfiguration("Q#.targetProfile")
+        event.affectsConfiguration("Q#.qir.targetProfile")
       ) {
         refreshStatusBarItemValue();
       }

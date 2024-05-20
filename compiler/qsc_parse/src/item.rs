@@ -24,9 +24,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item,
-    ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, Item, ItemKind,
+    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, ExportDecl, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;

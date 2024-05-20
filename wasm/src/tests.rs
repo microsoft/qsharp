@@ -446,7 +446,7 @@ fn test_runtime_error_default_span() {
 
 #[test]
 fn test_doc_gen() {
-    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    let docs = qsc_doc_gen::generate_docs::generate_docs(None, None, None);
     assert!(docs.len() > 100);
     for (name, metadata, contents) in docs {
         // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"

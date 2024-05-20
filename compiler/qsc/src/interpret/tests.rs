@@ -830,13 +830,12 @@ mod given_interpreter {
                 block_0:
                   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
-                  %var_1 = icmp eq i1 %var_0, true
                   %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
                   %var_3 = icmp eq i1 %var_2, false
                   call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-                  call void @__quantum__rt__bool_record_output(i1 %var_1, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_0, i8* null)
                   call void @__quantum__rt__bool_record_output(i1 %var_3, i8* null)
                   ret void
                 }
@@ -1579,6 +1578,99 @@ mod given_interpreter {
             assert_eq!(1, bps.len());
             let bps = debugger.get_breakpoints("b.qs");
             assert_eq!(2, bps.len());
+        }
+
+        #[test]
+        fn debugger_simple_execution_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                function Hello() : Unit {
+                    Message("hello there...");
+                }
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    Hello()
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn debugger_execution_with_call_to_library_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                open Microsoft.Quantum.Math;
+                @EntryPoint()
+                operation Main() : Int {
+                    Binom(31, 7)
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(&result, &output, &Value::Int(2_629_575));
+        }
+
+        #[test]
+        fn debugger_execution_with_early_return_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                open Microsoft.Quantum.Arrays;
+
+                operation Max20(i : Int) : Int {
+                    if (i > 20) {
+                        return 20;
+                    }
+                    return i;
+                }
+
+                @EntryPoint()
+                operation Main() : Int[] {
+                    ForEach(Max20, [10, 20, 30, 40, 50])
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Array(
+                    vec![
+                        Value::Int(10),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                    ]
+                    .into(),
+                ),
+            );
         }
 
         #[test]
