@@ -181,7 +181,12 @@ impl LanguageService {
 
     #[must_use]
     pub fn get_code_actions(&self, uri: &str, range: &Range) -> Vec<CodeAction> {
-        self.document_op(code_action::get_code_actions, "get_completions", uri, range)
+        self.document_op(
+            code_action::get_code_actions,
+            "get_code_actions",
+            uri,
+            range,
+        )
     }
 
     /// LSP: textDocument/completion
