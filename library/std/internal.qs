@@ -258,10 +258,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 set targets = [(next_to[0], next_from)] + targets;
                 if Length(next_to) > 1 {
                     let half = Length(next_to) / 2;
-                    set queue =
-                        [(next_from, next_to[1..half]),
-                        (next_to[0], next_to[(half+1)...])]
-                        + rest;
+                    set queue = [(next_from, next_to[1..half]), (next_to[0], next_to[(half + 1)...])] + rest;
                 }
             }
         }
