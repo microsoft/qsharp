@@ -654,7 +654,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn normal_qirgen() {
+        fn base_qirgen() {
             let mut interpreter = Interpreter::new(
                 true,
                 SourceMap::default(),

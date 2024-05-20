@@ -41,7 +41,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     );
     if (result?.action !== "set") {
       throw new QirGenerationError(
-        "Submitting to Azure is only supported when targeting the QIR base profile. " +
+        "Submitting to Azure is not supported when using the unrestricted profile. " +
           "Please update the QIR target via the status bar selector or extension settings.",
       );
     } else {
@@ -94,8 +94,8 @@ export async function getQirForActiveWindow(): Promise<string> {
   } catch (e: any) {
     log.error("Codegen error. ", e.toString());
     throw new QirGenerationError(
-      `Code generation failed due to error: "${e.toString()}". Please ensure the code is compatible with the QIR base profile ` +
-        "by setting the target QIR profile to 'base' and fixing any errors.",
+      `Code generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
+        "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
     );
   } finally {
     worker.terminate();

@@ -374,7 +374,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
         .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
         .await;
 
-    // we expect two errors, one for `set x = 2` and one for `x`
+    // we expect two errors, one for `set x = 2.0` and one for `x`
     expect_errors(
         &errors,
         &expect![[r#"

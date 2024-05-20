@@ -13,29 +13,7 @@ use qsc_frontend::{
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
-use crate::compile;
-
-use miette::Diagnostic;
-use thiserror::Error;
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-pub enum Error {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Compile(#[from] crate::compile::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Pass(#[from] WithSource<qsc_passes::Error>),
-    #[error("entry point not found")]
-    #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
-    NoEntryPoint,
-    #[error("unsupported runtime capabilities for code generation")]
-    #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
-    UnsupportedRuntimeCapabilities,
-    #[error("partial evaluation error")]
-    #[diagnostic(transparent)]
-    PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
-}
+use crate::{compile, interpret::Error};
 
 pub fn get_qir(
     sources: SourceMap,
