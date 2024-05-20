@@ -340,12 +340,13 @@ pub(super) struct Resolver {
 }
 
 /// This visitor is used for an intermediate step between binding and full resolution.
-/// We use this visitor to resolve all export symbols, so that they are available during the resolution stage.
-struct ExportVisitor<'a> {
+/// We use this visitor to resolve all exported and imported symbols, so that they are
+/// available during the resolution stage.
+struct ExportImportVisitor<'a> {
     resolver: &'a mut Resolver,
 }
 
-impl ExportVisitor<'_> {
+impl ExportImportVisitor<'_> {
     /// Given a function, apply that function to `Self` within a scope. In other words, this
     /// function automatically pushes a scope before `f` and pops it after.
     fn with_scope(&mut self, span: Span, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
@@ -355,7 +356,7 @@ impl ExportVisitor<'_> {
     }
 }
 
-impl AstVisitor<'_> for ExportVisitor<'_> {
+impl AstVisitor<'_> for ExportImportVisitor<'_> {
     fn visit_item(&mut self, item: &Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
         item.visibility
@@ -388,6 +389,9 @@ impl AstVisitor<'_> for ExportVisitor<'_> {
                     ItemKind::Export(export) => {
                         visitor.resolver.bind_exports(Some(ns), export);
                     }
+                    ItemKind::Import(import) => {
+                        visitor.resolver.bind_import(import);
+                    }
                     ItemKind::Open(name, alias) => {
                         // we only need to bind opens that are in top-level namespaces, outside of callables.
                         // this is because this is for the intermediate export-binding pass
@@ -411,9 +415,10 @@ impl AstVisitor<'_> for ExportVisitor<'_> {
         });
     }
 }
+
 impl Resolver {
     pub(crate) fn resolve_exports(&mut self, package: &Package) {
-        let mut visitor = ExportVisitor { resolver: self };
+        let mut visitor = ExportImportVisitor { resolver: self };
         visitor.visit_package(package);
     }
 
