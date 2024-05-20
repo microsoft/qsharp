@@ -713,12 +713,6 @@ fn use_of_static_int_in_tuple_return_from_entry_point_errors() {
         USE_ENTRY_POINT_STATIC_INT_IN_TUPLE,
         &expect![[r#"
             [
-                UseOfDynamicInt(
-                    Span {
-                        lo: 63,
-                        hi: 66,
-                    },
-                ),
                 UseOfIntOutput(
                     Span {
                         lo: 63,
@@ -736,12 +730,6 @@ fn use_of_static_sized_array_in_tuple_error() {
         USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
         &expect![[r#"
             [
-                UseOfDynamicInt(
-                    Span {
-                        lo: 63,
-                        hi: 66,
-                    },
-                ),
                 UseOfIntOutput(
                     Span {
                         lo: 63,

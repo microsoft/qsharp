@@ -111,6 +111,16 @@ impl<'a> Visitor<'a> for Checker<'a> {
         self.package.get_stmt(id)
     }
 
+    fn visit_package(&mut self, package: &'a Package) {
+        package
+            .items
+            .iter()
+            .for_each(|(_, item)| self.visit_item(item));
+        package.entry.iter().for_each(|entry_expr_id| {
+            self.check_entry_expr(*entry_expr_id);
+        });
+    }
+
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
         match callable_impl {
             CallableImpl::Intrinsic => self.check_spec_decl(FunctorSetValue::Empty, None),
@@ -182,6 +192,16 @@ impl<'a> Checker<'a> {
     pub fn check_all(mut self) -> Vec<Error> {
         self.visit_package(self.package);
         self.generate_errors()
+    }
+
+    fn check_entry_expr(&mut self, expr_id: ExprId) {
+        let expr = self.get_expr(expr_id);
+        if expr.span == Span::default() {
+            // This is an auto-generated entry expression, so we only need to verify the output recording flags.
+            self.check_output_recording(expr);
+        } else {
+            self.visit_expr(expr_id);
+        }
     }
 
     fn check_expr(&mut self, expr_id: ExprId) {
@@ -304,6 +324,33 @@ impl<'a> Checker<'a> {
         // Visit the specialization block.
         if let Some(spec_decl) = spec_decl {
             self.visit_block(spec_decl.block);
+        }
+    }
+
+    fn check_output_recording(&mut self, expr: &Expr) {
+        let compute_kind = self.compute_properties.get_expr(expr.id).inherent;
+        let ComputeKind::Quantum(quantum_properties) = compute_kind else {
+            return;
+        };
+
+        let output_reporting_span = match &expr.kind {
+            ExprKind::Call(callee_expr, _) if expr.span == Span::default() => {
+                // Since this is auto-generated, use the callee expression span.
+                self.get_expr(*callee_expr).span
+            }
+            _ => expr.span,
+        };
+
+        // Calculate the missing features but only consider the output recording flags.
+        let missing_features = get_missing_runtime_features(
+            quantum_properties.runtime_features,
+            self.target_capabilities,
+        ) & RuntimeFeatureFlags::output_recording_flags();
+        if !missing_features.is_empty() {
+            self.missing_features_map
+                .entry(output_reporting_span)
+                .and_modify(|f| *f |= missing_features)
+                .or_insert(missing_features);
         }
     }
 
