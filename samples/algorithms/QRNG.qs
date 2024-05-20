@@ -12,7 +12,7 @@ namespace Sample {
     @EntryPoint()
     operation Main() : Int {
         let max = 100;
-        Message($"Sampling a random number between 0 and {max}: ");
+        Message($"Sampling a random number between 0 and {max}:");
 
         // Generate random number in the 0..max range.
         return GenerateRandomNumberInRange(max);
