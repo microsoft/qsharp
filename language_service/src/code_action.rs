@@ -53,6 +53,8 @@ fn quick_fixes(
                         changes: vec![(
                             source_name.to_string(),
                             vec![TextEdit {
+                                // We want to remove the redundant semicolons, so the
+                                // replacement text is just an empty string.
                                 new_text: String::new(),
                                 range: resolve_range(diagnostic, encoding)
                                     .expect("range should exist"),
@@ -68,6 +70,8 @@ fn quick_fixes(
                         changes: vec![(
                             source_name.to_string(),
                             vec![TextEdit {
+                                // Same source code without the first and last characters
+                                // which should correspond to the redundant parentheses.
                                 new_text: get_source_code(
                                     compilation,
                                     lint.span.lo + 1,
