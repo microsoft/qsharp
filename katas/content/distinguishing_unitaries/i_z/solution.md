@@ -8,7 +8,7 @@ $$Z|0\rangle = |0\rangle, Z|1\rangle = -|1\rangle$$
 However, if we try applying these gates to a superposition of basis states, we'll start seeing a difference between the resulting states:
 
 $$I \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rangle + |1\rangle)$$
-$$Z \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rangle \color{blue}{-} |1\rangle)$$
+$$Z \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rangle - |1\rangle)$$
 
 These two states are orthogonal and can be distinguished by measuring them in the $\{ |+\rangle, |-\rangle\}$ basis using [`MResetX`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.measurement.mresetx) operation (which is equivalent to applying an $H$ gate and measuring in the computational basis).
 
