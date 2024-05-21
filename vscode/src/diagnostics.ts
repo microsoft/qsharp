@@ -275,8 +275,12 @@ function reportIfQSharpErrors(e: unknown) {
  * @returns A VS code URI that's okay to use in a Diagnostic object
  */
 function getSourceUri(maybeUri: string): vscode.Uri {
+  // An error without a span (e.g. "no entrypoint found") gets reported as a "project-level" error.
+  // See: https://github.com/microsoft/qsharp/blob/f8d344b32a1f1f918f3c91edf58c975db10f4370/wasm/src/diagnostic.rs#L191
+  // Ideally this would be a proper URI pointing to the project root or root document.
+  // For now, make up a fake file path for display purposes.
   if (maybeUri === "<project>") {
-    return vscode.Uri.parse(maybeUri, false); // strict=false ignores lack of scheme
+    return vscode.Uri.file("Q# project");
   }
 
   try {
