@@ -10,7 +10,7 @@ However, if we try applying these gates to a superposition of basis states, we'l
 $$I \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rangle + |1\rangle)$$
 $$Z \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rangle - |1\rangle)$$
 
-These two states are orthogonal and can be distinguished by measuring them in the $\{ |+\rangle, |-\rangle\}$ basis using [`MResetX`](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.measurement.mresetx) operation (which is equivalent to applying an $H$ gate and measuring in the computational basis).
+These two states are orthogonal and can be distinguished by measuring them in the $\{ |+\rangle, |-\rangle\}$ basis using [`MResetX`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.measurement/mresetx) operation (which is equivalent to applying an $H$ gate and measuring in the computational basis).
 
 > The task of distinguishing these two states is covered in more detail in the Measurements kata and the corresponding workbook.
 
