@@ -172,12 +172,10 @@ pub struct Namespace {
 impl Namespace {
     /// Returns an iterator over the items in the namespace that are exported.
     pub fn exports(&self) -> impl Iterator<Item = &ExportItem> {
-        self.items
-            .iter()
-            .flat_map(|i| match i.kind.as_ref() {
-                ItemKind::Export(export) => &export.items[..],
-                _ => &[],
-            })
+        self.items.iter().flat_map(|i| match i.kind.as_ref() {
+            ItemKind::Export(export) => &export.items[..],
+            _ => &[],
+        })
     }
 }
 

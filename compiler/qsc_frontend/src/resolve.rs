@@ -97,7 +97,7 @@ pub(super) enum Error {
     #[error("duplicate export of `{0}`")]
     #[diagnostic(code("Qsc.Resolve.DuplicateExport"))]
     DuplicateExport(String, #[label] Span),
-    
+
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
@@ -534,7 +534,7 @@ impl Resolver {
             Ok(res) => {
                 self.check_item_status(res, path.name.name.to_string(), path.span);
                 self.names.insert(path.id, res);
-                return Ok(res);
+                Ok(res)
             }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
@@ -547,7 +547,7 @@ impl Resolver {
                             span,
                         ))
                     } else {
-                         Err(Error::NotFound(name, span))
+                        Err(Error::NotFound(name, span))
                     }
                 } else {
                     Err(err)
@@ -684,17 +684,11 @@ impl Resolver {
         // lowering
 
         for item in export.items() {
-            let (resolved_item, term_or_ty) = match self.resolve_path(
-                NameKind::Term,
-                &item.path,
-            ) {
+            let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
                 Ok(res) => (res, NameKind::Term),
                 Err(_) => {
                     // try to see if it is a type
-                    match self.resolve_path(
-                        NameKind::Ty,
-                        &item.path,
-                    ) {
+                    match self.resolve_path(NameKind::Ty, &item.path) {
                         Ok(res) => (res, NameKind::Ty),
                         Err(err) => {
                             self.errors.push(err);
@@ -707,16 +701,11 @@ impl Resolver {
             let scope = self.current_scope_mut();
 
             let resolved_item_id = match resolved_item {
-                Res::Item(
-                _,
-                ItemStatus::Unimplemented
-                ) => {
-                    self.errors.push(
-                        Error::NotAvailable(
-                            item.path.name.name.to_string(),
-                            "unimplemented".to_string(),
-                            item.path.span,
-
+                Res::Item(_, ItemStatus::Unimplemented) => {
+                    self.errors.push(Error::NotAvailable(
+                        item.path.name.name.to_string(),
+                        "unimplemented".to_string(),
+                        item.path.span,
                     ));
                     continue;
                 }
@@ -736,8 +725,8 @@ impl Resolver {
                 }
             };
 
-           let mut maybe_err = None;
-             match term_or_ty {
+            let mut maybe_err = None;
+            match term_or_ty {
                 NameKind::Ty => {
                     if scope.tys.contains_key(&item.name().name) {
                         maybe_err = Some(Error::DuplicateExport(
@@ -745,7 +734,9 @@ impl Resolver {
                             item.path.span,
                         ));
                     }
-                    scope.tys.insert(Rc::clone(&item.name().name), resolved_item_id);
+                    scope
+                        .tys
+                        .insert(Rc::clone(&item.name().name), resolved_item_id);
                 }
                 NameKind::Term => {
                     if scope.terms.contains_key(&item.name().name) {
@@ -754,7 +745,9 @@ impl Resolver {
                             item.path.span,
                         ));
                     }
-                    scope.terms.insert(Rc::clone(&item.name().name), resolved_item_id);
+                    scope
+                        .terms
+                        .insert(Rc::clone(&item.name().name), resolved_item_id);
                 }
             };
 
@@ -780,7 +773,6 @@ impl Resolver {
             }
 
             self.names.insert(item.path.id, resolved_item);
-
         }
     }
 
@@ -1003,7 +995,7 @@ impl AstVisitor<'_> for With<'_> {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
                     self.resolver.errors.push(e);
                 };
-            },
+            }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace)
             | ast::ExprKind::AssignUpdate(container, index, replace) => {
                 self.visit_expr(container);
