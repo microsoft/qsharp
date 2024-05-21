@@ -16,6 +16,7 @@ namespace MyQuantumApp {
 
         // The below lambda is equivalent to the above partial application
         let incrementByOneLambda = x -> Add(x, 1);
+        Message("Equivalent lambda: incrementByOneLambda = x -> Add(x, 1)");
 
         // we can add `1` to any number using our partially applied function
         let five = incrementByOne(4);

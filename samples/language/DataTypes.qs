@@ -53,21 +53,17 @@ namespace MyQuantumApp {
 
         // A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
         let pauli = [PauliX, PauliY, PauliZ];
-        Message($"Pauli matrix: {pauli}");
 
         // Represents an ordered sequence of equally spaced Int values.
         // Values may represent sequences in ascending or descending order.
         let range = 1..100;
-        Message($"Range: {range}");
 
         // A collection that contains a sequence of values of the same type.
         let array_of_ints = [1, 2, 3];
-        Message($"Array of ints: {array_of_ints}");
 
         // A tuple contains a fixed number of items of potentially different types.
         // Tuples containing a single element are equivalent to the element they contain.
         let tuple = (1, "one", One);
-        Message($"Tuple: {tuple}");
 
         // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
         // and one anonymous parameter of Boolean type.
