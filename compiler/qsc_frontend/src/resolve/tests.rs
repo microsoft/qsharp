@@ -3427,6 +3427,34 @@ fn disallow_repeated_exports_inline() {
 }
 
 #[test]
+fn order_of_exports_does_not_matter() {
+    check(
+        indoc! {"
+            namespace Bar {
+                export { Foo.ApplyX };
+                export { ApplyY };
+                operation ApplyY() : Unit {}
+            }
+            namespace Foo {
+                operation ApplyX() : Unit {}
+            }
+
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                export { item3 };
+                export { item1 };
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item3() : Unit {}
+            }
+
+        "#]],
+    );
+}
+
+#[test]
 fn import_single_item() {
     check(
         indoc! {"
