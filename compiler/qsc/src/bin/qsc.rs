@@ -254,7 +254,13 @@ fn emit_qir(
                 .map_err(|err| vec![err])
         }
         Err(error) => {
-            let unit = store.get(package_id).expect("package should be in store");
+            let source_package = match error.span() {
+                Some(span) => span.package,
+                None => package_id,
+            };
+            let unit = store
+                .get(source_package)
+                .expect("package should be in store");
             Err(vec![Report::new(WithSource::from_map(
                 &unit.sources,
                 error,

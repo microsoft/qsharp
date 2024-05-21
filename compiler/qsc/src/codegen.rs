@@ -70,8 +70,12 @@ pub fn get_qir(
         )?;
 
     fir_to_qir(&fir_store, capabilities, Some(compute_properties), &entry).map_err(|e| {
+        let source_package_id = match e.span() {
+            Some(span) => span.package,
+            None => package_id,
+        };
         let source_package = package_store
-            .get(package_id)
+            .get(source_package_id)
             .expect("package should be in store");
         vec![Error::PartialEvaluation(WithSource::from_map(
             &source_package.sources,
