@@ -360,7 +360,7 @@ impl<'a> PartialEvaluator<'a> {
             ),
             _ => panic!("invalid kind of value for index"),
         };
-        let updated_array = update_result.map_err(|e| Error::from(e))?;
+        let updated_array = update_result.map_err(Error::from)?;
         Ok(updated_array)
     }
 
@@ -892,7 +892,7 @@ impl<'a> PartialEvaluator<'a> {
                     args,
                     *callable,
                 )
-                .map_err(|e| Error::from(e))?;
+                .map_err(Error::from)?;
                 Ok(EvalControlFlow::Continue(closure))
             }
             ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
@@ -1515,7 +1515,7 @@ impl<'a> PartialEvaluator<'a> {
             ),
             _ => panic!("invalid kind of value for index"),
         };
-        let value = value_result.map_err(|e| Error::from(e))?;
+        let value = value_result.map_err(Error::from)?;
         Ok(EvalControlFlow::Continue(value))
     }
 

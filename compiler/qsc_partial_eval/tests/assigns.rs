@@ -486,7 +486,9 @@ fn assigning_result_literal_within_dynamic_if_expression_produces_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("re-assignment within a dynamic branch is unsupported for type Result", PackageSpan { package: PackageId(2), span: Span { lo: 166, hi: 167 } })"#]],
+        &expect![[
+            r#"Unexpected("re-assignment within a dynamic branch is unsupported for type Result", PackageSpan { package: PackageId(2), span: Span { lo: 166, hi: 167 } })"#
+        ]],
     );
 }
 
@@ -660,7 +662,9 @@ fn array_of_results_update_element_at_negative_index_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 176, hi: 178 } })"#]],
+        &expect![[
+            r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 176, hi: 178 } })"#
+        ]],
     );
 }
 
@@ -679,7 +683,9 @@ fn array_of_results_update_element_at_out_of_bounds_index_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 2", PackageSpan { package: PackageId(2), span: Span { lo: 176, hi: 177 } })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 2", PackageSpan { package: PackageId(2), span: Span { lo: 176, hi: 177 } })"#
+        ]],
     );
 }
 
@@ -996,7 +1002,9 @@ fn array_of_results_update_slice_with_out_of_bounds_range_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 3", PackageSpan { package: PackageId(2), span: Span { lo: 218, hi: 222 } })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 3", PackageSpan { package: PackageId(2), span: Span { lo: 218, hi: 222 } })"#
+        ]],
     );
 }
 
@@ -2015,7 +2023,9 @@ fn integer_assign_exp_with_lhs_classical_integer_and_rhs_dynamic_integer_raises_
     });
     assert_error(
         &error,
-        &expect![[r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 121, hi: 156 } })"#]],
+        &expect![[
+            r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 121, hi: 156 } })"#
+        ]],
     );
 }
 
@@ -2036,7 +2046,9 @@ fn integer_assign_exp_with_lhs_classical_integer_and_rhs_classical_negative_inte
     });
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 130, hi: 132 } })"#]],
+        &expect![[
+            r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 130, hi: 132 } })"#
+        ]],
     );
 }
 
@@ -2220,7 +2232,9 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_dynamic_integer_raises_er
     });
     assert_error(
         &error,
-        &expect![[r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 146, hi: 181 } })"#]],
+        &expect![[
+            r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 146, hi: 181 } })"#
+        ]],
     );
 }
 
