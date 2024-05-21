@@ -266,6 +266,18 @@ impl<'a> PartialEvaluator<'a> {
         block_id
     }
 
+    fn entry_expr_output_span(&self) -> Span {
+        let expr = self.get_expr(self.entry.expr.expr);
+        match &expr.kind {
+            // Special handling for compiler generated entry expressions that come from the `@EntryPoint`
+            // attributed callable.
+            ExprKind::Call(callee, _) if expr.span == Span::default() => {
+                self.get_expr(*callee).span
+            }
+            _ => expr.span,
+        }
+    }
+
     fn eval(mut self) -> Result<Program, Error> {
         // Evaluate the entry-point expression.
         let ret_val = self.try_eval_expr(self.entry.expr.expr)?.into_value();
@@ -274,7 +286,7 @@ impl<'a> PartialEvaluator<'a> {
                 ret_val,
                 &self.get_expr(self.entry.expr.expr).ty,
             )
-            .map_err(|()| Error::OutputResultLiteral(self.get_expr(self.entry.expr.expr).span))?;
+            .map_err(|()| Error::OutputResultLiteral(self.entry_expr_output_span()))?;
 
         // Insert the return expression and return the generated program.
         let current_block = self.get_current_rir_block_mut();

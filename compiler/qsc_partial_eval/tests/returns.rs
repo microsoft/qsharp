@@ -1090,7 +1090,9 @@ fn explicit_return_embedded_in_hybrid_update_index_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in update expression", Span { lo: 142, hi: 154 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in update expression", Span { lo: 142, hi: 154 })"#
+        ]],
     );
 }
 

@@ -3689,6 +3689,8 @@ fn partial_eval_simple_stmt() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [12-12] (Public):
+                        Namespace (Ident 0 [12-12] "test"): <empty>
                 Blocks:
                     Block 0 [0-11] [Type Unit]:
                         0
@@ -3722,6 +3724,8 @@ fn partial_eval_stmt_with_bound_variable() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [20-20] (Public):
+                        Namespace (Ident 1 [20-20] "test"): <empty>
                 Blocks:
                     Block 0 [0-19] [Type Unit]:
                         0
@@ -3758,6 +3762,8 @@ fn partial_eval_stmt_with_mutable_variable_update() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3807,6 +3813,8 @@ fn partial_eval_stmt_with_mutable_variable_update_out_of_order_works() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3856,6 +3864,8 @@ fn partial_eval_stmt_with_mutable_variable_update_repeat_stmts_works() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3905,6 +3915,8 @@ fn partial_eval_stmt_with_bool_short_circuit() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
                         0
@@ -3945,6 +3957,8 @@ fn partial_eval_stmt_with_bool_no_short_circuit() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
                         0
@@ -3985,6 +3999,8 @@ fn partial_eval_stmt_with_loop() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [53-53] (Public):
+                        Namespace (Ident 1 [53-53] "test"): <empty>
                 Blocks:
                     Block 0 [0-52] [Type Unit]:
                         0
@@ -4111,6 +4127,8 @@ fn partial_eval_stmt_function_calls_from_library() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Int]:
                         0
