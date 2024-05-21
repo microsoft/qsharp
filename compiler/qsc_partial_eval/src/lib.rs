@@ -96,7 +96,7 @@ pub enum Error {
     ))]
     Unexpected(String, #[label] PackageSpan),
 
-    #[error("failed to evaluate: {0} is not supported yet")]
+    #[error("failed to evaluate: {0} is not supported")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] PackageSpan),
 }
