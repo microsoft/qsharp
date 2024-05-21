@@ -3385,6 +3385,48 @@ fn reexport_from_full_path_with_alias() {
 }
 
 #[test]
+fn disallow_repeated_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX };
+                export { ApplyX };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1 };
+                export { item1 };
+            }
+
+            // DuplicateExport("ApplyX", Span { lo: 85, hi: 91 })
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_repeated_exports_inline() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX, ApplyX};
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1, item1};
+            }
+
+            // DuplicateExport("ApplyX", Span { lo: 70, hi: 76 })
+        "#]],
+    );
+}
+
+#[test]
 fn import_single_item() {
     check(
         indoc! {"
@@ -3823,7 +3865,7 @@ fn import_duplicate_symbol() {
 "# },
         &expect![[r#"
             namespace namespace7 {
-                import {item2}
+                import {item2, item2}
             }
             namespace namespace9 {
                 operation item2() : Unit {}
