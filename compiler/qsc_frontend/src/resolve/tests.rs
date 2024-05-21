@@ -3477,7 +3477,7 @@ fn export_udt_and_construct_it() {
             namespace namespace8 {
                 open namespace7;
                 operation item3() : Unit {
-                    item1(1, 2);
+                    let local33: item1 = item1(1, 2);
                 }
             }
         "#]],
