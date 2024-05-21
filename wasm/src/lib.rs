@@ -7,6 +7,7 @@
 use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
 use katas::check_solution;
 use language_service::IOperationInfo;
+use miette::JSONReportHandler;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::into_async_rust_fn_with;
@@ -22,7 +23,6 @@ use qsc::{
     LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
     TargetCapabilityFlags,
 };
-use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -86,39 +86,30 @@ pub fn get_qir(
     if profile == Profile::Unrestricted {
         return Err("Invalid target profile for QIR generation".to_string());
     }
-    if language_features.contains(LanguageFeatures::PreviewQirGen) {
-        qsc::codegen::get_qir(sources, language_features, profile.into())
-    } else {
-        _get_qir(sources, language_features)
-    }
+
+    _get_qir(sources, language_features, profile.into())
 }
 
-// allows testing without wasm bindings.
-fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<String, String> {
-    let core = compile::core();
-    let mut store = PackageStore::new(core);
-    let std = compile::std(&store, Profile::Base.into());
-    let std = store.insert(std);
+pub(crate) fn _get_qir(
+    sources: SourceMap,
+    language_features: LanguageFeatures,
+    capabilities: TargetCapabilityFlags,
+) -> Result<String, String> {
+    qsc::codegen::get_qir(sources, language_features, capabilities).map_err(|errors| {
+        let mut msg = String::new();
+        msg.push('[');
+        for error in errors {
+            if msg.len() > 1 {
+                msg.push(',');
+            }
+            JSONReportHandler::new()
+                .render_report(&mut msg, &error)
+                .expect("rendering should succeed");
+        }
 
-    let (unit, errors) = qsc::compile::compile(
-        &store,
-        &[std],
-        sources,
-        PackageType::Exe,
-        Profile::Base.into(),
-        language_features,
-    );
-
-    // Ensure it compiles before trying to add it to the store.
-    if !errors.is_empty() {
-        // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
-    }
-
-    let package = store.insert(unit);
-
-    generate_qir(&store, package).map_err(|e| e.0.to_string())
+        msg.push(']');
+        msg
+    })
 }
 
 #[wasm_bindgen]
@@ -494,5 +485,10 @@ pub fn generate_docs(
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "adaptive_ri" |"unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" | "unrestricted";
+"#;
+
+#[wasm_bindgen(typescript_custom_section)]
+const LANGUAGE_FEATURES: &'static str = r#"
+export type LanguageFeatures = "v2-preview-syntax";
 "#;

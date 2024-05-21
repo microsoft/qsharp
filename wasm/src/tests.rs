@@ -3,7 +3,9 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, SourceMap};
+use qsc::{interpret, LanguageFeatures, SourceMap, TargetCapabilityFlags};
+
+use crate::_get_qir;
 
 use super::run_internal_with_features;
 
@@ -39,9 +41,10 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(
+    let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
+        TargetCapabilityFlags::empty(),
     );
     assert!(result.is_ok());
 }
@@ -462,4 +465,25 @@ fn test_doc_gen() {
             assert!(text.starts_with("---\n"));
         }
     }
+}
+
+#[test]
+fn code_with_errors_returns_errors() {
+    let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit()
+                let pi_over_two = 4.0 / 2.0;
+            }
+        }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+
+    expect![[r#"
+        Err(
+            "[{\"message\": \"syntax error\",\"code\": \"Qsc.Parse.Token\",\"severity\": \"error\",\"causes\": [\"expected `;`, found keyword `let`\"],\"filename\": \"test.qs\",\"labels\": [{\"span\": {\"offset\": 129,\"length\": 3}}],\"related\": []}]",
+        )
+    "#]]
+    .assert_debug_eq(&_get_qir(sources, language_features, capabilities));
 }

@@ -21,7 +21,7 @@ def test_compile_qir_input_data() -> None:
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
     module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 24
+    assert len(module.functions) == 5
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
@@ -71,7 +71,7 @@ def test_compile_qir_all_gates() -> None:
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
     module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 24
+    assert len(module.functions) == 23
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
