@@ -12,7 +12,7 @@ $$Z \big(\frac{1}{\sqrt2}(|0\rangle + |1\rangle)\big) = \frac{1}{\sqrt2}(|0\rang
 
 These two states are orthogonal and can be distinguished by measuring them in the $\{ |+\rangle, |-\rangle\}$ basis using [`MResetX`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.measurement/mresetx) operation (which is equivalent to applying an $H$ gate and measuring in the computational basis).
 
-> The task of distinguishing these two states is covered in more detail in the Measurements kata and the corresponding workbook.
+> The task of distinguishing these two states is covered in more detail in the Distinguishing Quantum States kata.
 
 @[solution]({
     "id": "distinguishing_unitaries__i_z_solution",
