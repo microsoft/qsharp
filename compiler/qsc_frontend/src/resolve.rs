@@ -146,9 +146,9 @@ pub struct Scope {
     /// Open statements. The key is the namespace name or alias.
     opens: FxHashMap<Vec<Rc<str>>, Vec<Open>>,
     /// Local newtype declarations.
-    tys: FxHashMap<Rc<str>, ItemId>,
+    tys: FxHashMap<Rc<str>, ScopeItemEntry>,
     /// Local callable and newtype declarations.
-    terms: FxHashMap<Rc<str>, ItemId>,
+    terms: FxHashMap<Rc<str>, ScopeItemEntry>,
     /// Local variables, including callable parameters, for loop bindings, etc.
     /// The u32 is the `valid_at` offset - the lowest offset at which the variable name is available.
     /// It's used to determine which variables are visible at a specific offset in the scope.
@@ -159,6 +159,33 @@ pub struct Scope {
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
     ty_vars: FxHashMap<Rc<str>, ParamId>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ScopeItemEntry {
+    pub id: ItemId,
+    pub source: ItemSource,
+}
+
+impl ScopeItemEntry {
+    pub fn new(id: ItemId, source: ItemSource) -> Self {
+        Self { id, source }
+    }
+
+}
+
+#[derive(Debug, Clone)]
+pub enum ItemSource {
+    Exported,
+    Imported,
+    Declared
+}
+
+impl Default for ItemSource {
+    fn default() -> Self {
+        ItemSource::Declared
+    }
+
 }
 
 impl Scope {
@@ -179,7 +206,7 @@ impl Scope {
             NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
         };
-        items.get(name)
+        items.get(name).map(|x| &x.id)
     }
 }
 
@@ -677,7 +704,7 @@ impl Resolver {
                 );
                 self.current_scope_mut()
                     .terms
-                    .insert(Rc::clone(&decl.name.name), id);
+                    .insert(Rc::clone(&decl.name.name), ScopeItemEntry::new(id, ItemSource::Declared));
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
@@ -689,8 +716,8 @@ impl Resolver {
                     ),
                 );
                 let scope = self.current_scope_mut();
-                scope.tys.insert(Rc::clone(&name.name), id);
-                scope.terms.insert(Rc::clone(&name.name), id);
+                scope.tys.insert(Rc::clone(&name.name), ScopeItemEntry::new(id, ItemSource::Declared));
+                scope.terms.insert(Rc::clone(&name.name), ScopeItemEntry::new(id, ItemSource::Declared));
             }
             ast::ItemKind::Err | ast::ItemKind::Export(_) | ast::ItemKind::Import(_) => {}
         }
@@ -742,7 +769,7 @@ impl Resolver {
             let mut maybe_err = None;
             match term_or_ty {
                 NameKind::Ty => {
-                    if scope.tys.contains_key(&item.name().name) {
+                    if let Some(ScopeItemEntry { source: ItemSource::Exported, .. }) = scope.tys.get(&item.name().name) {
                         maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
                             item.path.span,
@@ -750,10 +777,10 @@ impl Resolver {
                     }
                     scope
                         .tys
-                        .insert(Rc::clone(&item.name().name), resolved_item_id);
+                        .insert(Rc::clone(&item.name().name), ScopeItemEntry::new(resolved_item_id, ItemSource::Exported));
                 }
                 NameKind::Term => {
-                    if scope.terms.contains_key(&item.name().name) {
+                    if let Some(ScopeItemEntry { source: ItemSource::Exported, .. }) = scope.terms.get(&item.name().name) {
                         maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
                             item.path.span,
@@ -761,7 +788,7 @@ impl Resolver {
                     }
                     scope
                         .terms
-                        .insert(Rc::clone(&item.name().name), resolved_item_id);
+                        .insert(Rc::clone(&item.name().name), ScopeItemEntry::new(resolved_item_id, ItemSource::Exported));
                 }
             };
 
@@ -837,10 +864,10 @@ impl Resolver {
             // insert the item into the local scope
             match (term_or_ty, resolved_item) {
                 (NameKind::Term, Res::Item(id, _)) => {
-                    scope.terms.insert(Rc::clone(&local_name.name), id);
+                    scope.terms.insert(Rc::clone(&local_name.name), ScopeItemEntry::new(id, ItemSource::Imported));
                 }
                 (NameKind::Ty, Res::Item(id, _)) => {
-                    scope.tys.insert(Rc::clone(&local_name.name), id);
+                    scope.tys.insert(Rc::clone(&local_name.name), ScopeItemEntry::new(id, ItemSource::Imported));
                 }
                 _ => {
                     let err = Error::ImportedNonItem(item.path.span);
@@ -1772,7 +1799,7 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
     // skip adding newtypes since they're already in the terms map
     names.extend(scope.terms.iter().map(|term| Local {
         name: term.0.clone(),
-        kind: LocalKind::Item(*term.1),
+        kind: LocalKind::Item(term.1.id),
     }));
 
     names

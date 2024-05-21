@@ -3454,7 +3454,6 @@ fn order_of_exports_does_not_matter() {
     );
 }
 
-
 #[test]
 fn export_udt_and_construct_it() {
     check(
