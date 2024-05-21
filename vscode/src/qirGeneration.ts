@@ -20,7 +20,9 @@ export class QirGenerationError extends Error {
   }
 }
 
-export async function getQirForActiveWindow(): Promise<string> {
+export async function getQirForActiveWindow(
+  supports_adaptive?: boolean,
+): Promise<string> {
   let result = "";
   const editor = vscode.window.activeTextEditor;
 
@@ -30,25 +32,43 @@ export async function getQirForActiveWindow(): Promise<string> {
     );
   }
 
-  // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
   const targetProfile = getTarget();
-  if (targetProfile === "unrestricted") {
+  const is_unrestricted = targetProfile === "unrestricted";
+  const is_base = targetProfile === "base";
+
+  let error_msg =
+    supports_adaptive === undefined
+      ? "Generating QIR "
+      : "Submitting to Azure ";
+  if (is_unrestricted) {
+    error_msg += "is not supported when using the unrestricted profile.";
+  } else if (!is_base && supports_adaptive === false) {
+    error_msg +=
+      "using the Adaptive_RI profile is not supported for targets that can only accept Base profile QIR.";
+  }
+
+  // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
+  if (is_unrestricted || (!is_base && supports_adaptive === false)) {
     const result = await vscode.window.showWarningMessage(
-      "Submitting to Azure is only supported when targeting the QIR base or adaptive_ri profile.",
+      // if supports_adaptive is undefined, use the generic codegen message
+      error_msg,
       { modal: true },
       {
-        title: "Set the QIR target profile to Base and continue",
+        title:
+          "Set the QIR target profile to " +
+          (supports_adaptive ? "Adaptive_RI" : "Base") +
+          " to continue",
         action: "set",
       },
       { title: "Cancel", action: "cancel", isCloseAffordance: true },
     );
     if (result?.action !== "set") {
       throw new QirGenerationError(
-        "Submitting to Azure is not supported when using the unrestricted profile. " +
-          "Please update the QIR target via the status bar selector or extension settings.",
+        error_msg +
+          " Please update the QIR target via the status bar selector or extension settings.",
       );
     } else {
-      setTarget("base");
+      await setTarget(supports_adaptive ? "adaptive_ri" : "base");
     }
   }
   let sources: [string, string][] = [];
@@ -61,7 +81,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     throw new QirGenerationError(e.message);
   }
   for (const source of sources) {
-    const diagnostics = await vscode.languages.getDiagnostics(
+    const diagnostics = vscode.languages.getDiagnostics(
       vscode.Uri.parse(source[0]),
     );
     if (diagnostics?.length > 0) {
