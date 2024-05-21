@@ -302,18 +302,16 @@ impl<'a> PartialEvaluator<'a> {
         index_expr_id: ExprId,
         update_expr_id: ExprId,
     ) -> Result<Value, Error> {
-        // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
-        // the expressions is a return.
+        // Try to evaluate the index and update expressions to get their value, short-circuiting execution if any of the
+        // expressions is a return.
+        let index_expr = self.get_expr(index_expr_id);
         let index_control_flow = self.try_eval_expr(index_expr_id)?;
         let EvalControlFlow::Continue(index_value) = index_control_flow else {
-            let index_expr = self.get_expr(index_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in index expression".to_string(),
                 index_expr.span,
             ));
         };
-
-        //
         let update_control_flow = self.try_eval_expr(update_expr_id)?;
         let EvalControlFlow::Continue(update_value) = update_control_flow else {
             let update_expr = self.get_expr(update_expr_id);
@@ -323,8 +321,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        // Get the value at the specified index.
-        let index_expr = self.get_expr(index_expr_id);
+        // Get the value at the specified index or range.
         let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
         let index_package_span = PackageSpan {
             package: hir_package_id,
@@ -344,9 +341,9 @@ impl<'a> PartialEvaluator<'a> {
             ),
             _ => panic!("invalid kind of value for index"),
         };
-        let updated_value =
+        let updated_array =
             update_result.map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
-        Ok(updated_value)
+        Ok(updated_array)
     }
 
     fn eval_bin_op(
@@ -985,7 +982,7 @@ impl<'a> PartialEvaluator<'a> {
         index_expr_id: ExprId,
         update_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // Get the value of the array to use it as the basis to perform an update on.
+        // Get the value of the array to use it as the basis to perform the update.
         let array_expr = self.get_expr(array_expr_id);
         let ExprKind::Var(Res::Local(array_loc_id), _) = &array_expr.kind else {
             panic!("array expression in assign index expression is expected to be a variable");
@@ -997,7 +994,7 @@ impl<'a> PartialEvaluator<'a> {
             .clone()
             .unwrap_array();
 
-        //
+        // Evaluate the updated array and update the corresponding bindings.
         let new_array_value =
             self.eval_array_update_index(&array, index_expr_id, update_expr_id)?;
         self.update_bindings(array_expr_id, new_array_value)?;
