@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(unknown_lints, clippy::empty_docs)]
 #![allow(non_snake_case)]
 
 use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
@@ -19,6 +20,7 @@ use qsc::{
     },
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    TargetCapabilityFlags,
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
@@ -156,22 +158,26 @@ pub fn get_circuit(
     let sources = get_source_map(sources, &None);
     let target_profile = Profile::from_str(targetProfile).expect("invalid target profile");
 
+    let (package_type, entry_point) = match operation {
+        Some(p) => {
+            let o: language_service::OperationInfo = p.into();
+            // lib package - no need to enforce an entry point since the operation is provided.
+            (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
+        }
+        None => {
+            // exe package - the @EntryPoint attribute will be used.
+            (PackageType::Exe, CircuitEntryPoint::EntryPoint)
+        }
+    };
+
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
-        PackageType::Exe,
+        package_type,
         target_profile.into(),
         LanguageFeatures::from_iter(language_features),
     )
     .map_err(interpret_errors_into_vs_diagnostics_json)?;
-
-    let entry_point = match operation {
-        Some(p) => {
-            let o: language_service::OperationInfo = p.into();
-            CircuitEntryPoint::Operation(o.operation)
-        }
-        None => CircuitEntryPoint::EntryPoint,
-    };
 
     let circuit = interpreter
         .circuit(entry_point, simulate)
@@ -454,8 +460,22 @@ serializable_type! {
 
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs() -> Vec<IDocFile> {
-    let docs = qsc_doc_gen::generate_docs::generate_docs();
+pub fn generate_docs(
+    additionalSources: Option<Vec<js_sys::Array>>,
+    targetProfile: Option<String>,
+    languageFeatures: Option<Vec<String>>,
+) -> Vec<IDocFile> {
+    let source_map: Option<SourceMap> = additionalSources.map(|s| get_source_map(s, &None));
+
+    let target_profile: Option<TargetCapabilityFlags> = targetProfile.map(|p| {
+        Profile::from_str(&p)
+            .expect("invalid target profile")
+            .into()
+    });
+
+    let features: Option<LanguageFeatures> = languageFeatures.map(LanguageFeatures::from_iter);
+
+    let docs = qsc_doc_gen::generate_docs::generate_docs(source_map, target_profile, features);
     let mut result: Vec<IDocFile> = vec![];
 
     for (name, metadata, contents) in docs {
@@ -474,5 +494,5 @@ pub fn generate_docs() -> Vec<IDocFile> {
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "quantinuum" |"unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" |"unrestricted";
 "#;

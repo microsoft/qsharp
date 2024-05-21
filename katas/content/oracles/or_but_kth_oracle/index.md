@@ -1,27 +1,27 @@
 **Inputs:**
 
-  1. $N \geq 2$ qubits in an arbitrary state $|x\rangle$ (input/query register).
+  1. $N \geq 2$ qubits in an arbitrary state $\ket{x}$ (input/query register).
   2. An integer $k$ such that $0 \leq k < N$.
 
 **Goal:**
 
-Flip the sign of the basis state $|x\rangle$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in the input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
+Flip the sign of the basis state $\ket{x}$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in the input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
 
 *Feel free to explore implementing this operation with or without auxiliary qubits.*
 
 **Examples:**
 
-* If the query register is in the state $|010\rangle$ and $k=0$, flip the sign of the register.
-* If the query register is in the state $|010\rangle$ and $k=1$, do nothing.
+* If the query register is in the state $\ket{010}$ and $k=0$, flip the sign of the register.
+* If the query register is in the state $\ket{010}$ and $k=1$, do nothing.
 
 <details>
   <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $|x\rangle$ based on the value of the function $f(x)$.
+    This is a phase oracle, because we are changing the phase of the input state $\ket{x}$ based on the value of the function $f(x)$.
 </details>
 
 <details>
   <summary><b>Need a hint?</b></summary>
   You can use the previously implemented oracles if needed by copying the code.
   <br/>
-  You can use <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/itemaccessexpressions" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
+  You can use <a href="https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/itemaccessexpressions#array-item-access-and-array-slicing" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
 </details>

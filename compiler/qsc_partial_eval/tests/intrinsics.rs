@@ -8,16 +8,14 @@ pub mod test_utils;
 use expect_test::{expect, Expect};
 use indoc::{formatdoc, indoc};
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{
-    assert_block_instructions, assert_blocks, assert_callable, compile_and_partially_evaluate,
-};
+use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 fn check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
     intrinsic_name: &str,
     expected_callable: &Expect,
     expected_block: &Expect,
 ) {
-    let program = compile_and_partially_evaluate(
+    let program = get_rir_program(
         formatdoc! {
             r#"
             namespace Test {{
@@ -42,7 +40,7 @@ fn check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_in
     expected_callable: &Expect,
     expected_block: &Expect,
 ) {
-    let program = compile_and_partially_evaluate(
+    let program = get_rir_program(
         formatdoc! {
             r#"
             namespace Test {{
@@ -67,7 +65,7 @@ fn check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_inst
     expected_callable: &Expect,
     expected_block: &Expect,
 ) {
-    let program = compile_and_partially_evaluate(
+    let program = get_rir_program(
         formatdoc! {
             r#"
             namespace Test {{
@@ -92,7 +90,7 @@ fn check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
     expected_callable: &Expect,
     expected_block: &Expect,
 ) {
-    let program = compile_and_partially_evaluate(
+    let program = get_rir_program(
         formatdoc! {
             r#"
             namespace Test {{
@@ -117,7 +115,7 @@ fn check_call_to_three_qubits_instrinsic_adds_callable_and_generates_instruction
     expected_callable: &Expect,
     expected_block: &Expect,
 ) {
-    let program = compile_and_partially_evaluate(
+    let program = get_rir_program(
         formatdoc! {
             r#"
             namespace Test {{
@@ -534,7 +532,7 @@ fn call_to_intrinsic_rzz_adds_callable_and_generates_instruction() {
 
 #[test]
 fn check_partial_eval_for_call_to_reset() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -571,7 +569,7 @@ fn check_partial_eval_for_call_to_reset() {
 
 #[test]
 fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -609,7 +607,7 @@ fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
 
 #[test]
 fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -647,7 +645,7 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
 
 #[test]
 fn calls_to_intrinsic_begin_estimate_caching_with_classical_values_always_yield_true() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -692,7 +690,7 @@ fn calls_to_intrinsic_begin_estimate_caching_with_classical_values_always_yield_
 
 #[test]
 fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -787,7 +785,7 @@ fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
 
 #[test]
 fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -810,7 +808,7 @@ fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
 
 #[test]
 fn call_to_account_for_estimates_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -834,7 +832,7 @@ fn call_to_account_for_estimates_does_not_generate_instructions() {
 
 #[test]
 fn call_to_begin_repeat_estimates_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -858,7 +856,7 @@ fn call_to_begin_repeat_estimates_does_not_generate_instructions() {
 
 #[test]
 fn call_to_end_repeat_estimates_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
@@ -882,7 +880,7 @@ fn call_to_end_repeat_estimates_does_not_generate_instructions() {
 
 #[test]
 fn call_to_dump_machine_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.Diagnostics;
@@ -905,7 +903,7 @@ fn call_to_dump_machine_does_not_generate_instructions() {
 
 #[test]
 fn call_to_dump_register_does_not_generate_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.Diagnostics;
@@ -930,7 +928,7 @@ fn call_to_dump_register_does_not_generate_instructions() {
 #[test]
 #[should_panic(expected = "`CheckZero` is not a supported by partial evaluation")]
 fn call_to_check_zero_panics() {
-    _ = compile_and_partially_evaluate(indoc! {
+    _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.Diagnostics;
@@ -947,7 +945,7 @@ fn call_to_check_zero_panics() {
 #[test]
 #[should_panic(expected = "`DrawRandomInt` is not a supported by partial evaluation")]
 fn call_to_draw_random_int_panics() {
-    _ = compile_and_partially_evaluate(indoc! {
+    _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.Random;
@@ -963,7 +961,7 @@ fn call_to_draw_random_int_panics() {
 #[test]
 #[should_panic(expected = "`DrawRandomDouble` is not a supported by partial evaluation")]
 fn call_to_draw_random_double_panics() {
-    _ = compile_and_partially_evaluate(indoc! {
+    _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.Random;
@@ -974,4 +972,85 @@ fn call_to_draw_random_double_panics() {
         }
         "#,
     });
+}
+
+#[test]
+fn call_to_length_in_inner_function_succeeds() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                mutable results = [One];
+                set results w/= 0 <- MResetZ(q);
+                Inner(results)
+            }
+
+            function Inner(results : Result[]) : Int {
+                Length(results)
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__int_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(2), args( Integer(1), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_pauli_i_rotation_for_global_phase_is_noop() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                R(PauliI, 1.0, q);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
 }

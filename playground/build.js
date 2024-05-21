@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 
 import { build, context } from "esbuild";
 
+import { copyKatex } from "../vscode/build.mjs";
+
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const libsDir = join(thisDir, "..", "node_modules");
 
@@ -33,9 +35,11 @@ const buildOptions = {
     join(thisDir, "src/main.tsx"),
     join(thisDir, "src/compiler-worker.ts"),
     join(thisDir, "src/language-service-worker.ts"),
+    join(thisDir, "src/kataViewer.tsx"),
   ],
   outdir,
   bundle: true,
+  platform: "browser",
   target: ["es2020", "chrome64", "edge79", "firefox62", "safari11.1"],
   define: { "import.meta.url": "document.URL" },
   sourcemap: "linked",
@@ -54,19 +58,7 @@ function copyLibs() {
   mkdirSync(monacoDest, { recursive: true });
   cpSync(monacoBase, monacoDest, { recursive: true });
 
-  let mathjaxBase = join(libsDir, `mathjax/es5`);
-  let mathjaxDest = join(thisDir, `public/libs/mathjax`);
-
-  console.log("Copying the Mathjax files over from: " + mathjaxBase);
-  mkdirSync(mathjaxDest, { recursive: true });
-  cpSync(mathjaxBase, mathjaxDest, { recursive: true });
-
-  let githubMarkdown = join(
-    libsDir,
-    "github-markdown-css/github-markdown-light.css",
-  );
-  let githubMarkdownDest = join(thisDir, "public/libs/github-markdown.css");
-  copyFileSync(githubMarkdown, githubMarkdownDest);
+  copyKatex(join(thisDir, "public/libs/katex"));
 
   copyWasmToPlayground();
 }

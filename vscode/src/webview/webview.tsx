@@ -11,21 +11,22 @@ import {
   CircuitProps,
   EstimatesPanel,
   Histogram,
+  setRenderer,
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
+import { DocumentationView } from "./docview";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-const md = markdownIt();
-md.use(mk);
-
-function markdownRenderer(input: string) {
-  // For some reason all the escape characters are doubled in the estimate data sample input
-  return md.render(input.replace(/\\\\/g, "\\"));
-}
+const md = markdownIt("commonmark");
+md.use(mk, {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+});
+setRenderer((input: string) => md.render(input));
 
 window.addEventListener("message", onMessage);
 window.addEventListener("load", main);
@@ -49,19 +50,78 @@ type CircuitState = {
   props: CircuitProps;
 };
 
+type DocumentationState = {
+  viewType: "documentation";
+  fragmentsToRender: string[];
+};
+
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
   | HistogramState
   | EstimatesState
-  | CircuitState;
+  | CircuitState
+  | DocumentationState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
 
+const themeAttribute = "data-vscode-theme-kind";
+
+function updateGitHubTheme() {
+  let isDark = true;
+
+  const themeType = document.body.getAttribute(themeAttribute);
+
+  switch (themeType) {
+    case "vscode-light":
+    case "vscode-high-contrast-light":
+      isDark = false;
+      break;
+    default:
+      isDark = true;
+  }
+
+  // Update the stylesheet href
+  document.head.querySelectorAll("link").forEach((el) => {
+    const ref = el.getAttribute("href");
+    if (ref && ref.includes("github-markdown")) {
+      const newVal = ref.replace(
+        /(dark\.css)|(light\.css)/,
+        isDark ? "dark.css" : "light.css",
+      );
+      el.setAttribute("href", newVal);
+    }
+  });
+}
+
+function setThemeStylesheet() {
+  // We need to add the right Markdown style-sheet for the theme.
+
+  // For VS Code, there will be an attribute on the body called
+  // "data-vscode-theme-kind" that is "vscode-light" or "vscode-high-contrast-light"
+  // for light themes, else assume dark (will be "vscode-dark" or "vscode-high-contrast").
+
+  // Use a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
+  // to detect changes to the theme attribute.
+  const callback = (mutations: MutationRecord[]) => {
+    for (const mutation of mutations) {
+      if (mutation.attributeName === themeAttribute) {
+        updateGitHubTheme();
+      }
+    }
+  };
+  const observer = new MutationObserver(callback);
+  observer.observe(document.body, { attributeFilter: [themeAttribute] });
+
+  // Run it once for initial value
+  updateGitHubTheme();
+}
+
 function main() {
   state = (vscodeApi.getState() as any) || loadingState;
   render(<App state={state} />, document.body);
+  setThemeStylesheet();
   vscodeApi.postMessage({ command: "ready" });
 }
 
@@ -121,6 +181,14 @@ function onMessage(event: any) {
         };
       }
       break;
+    case "showDocumentationCommand":
+      {
+        state = {
+          viewType: "documentation",
+          fragmentsToRender: message.fragmentsToRender,
+        };
+      }
+      break;
     default:
       console.error("Unknown command: ", message.command);
       return;
@@ -169,7 +237,6 @@ function App({ state }: { state: State }) {
         <EstimatesPanel
           calculating={state.estimatesData.calculating}
           estimatesData={state.estimatesData.estimates}
-          renderer={markdownRenderer}
           onRowDeleted={onRowDeleted}
           colors={[]}
           runNames={[]}
@@ -179,6 +246,12 @@ function App({ state }: { state: State }) {
       return <CircuitPanel {...state.props}></CircuitPanel>;
     case "help":
       return <HelpPage />;
+    case "documentation":
+      // Ideally we'd have this on all web views, but it makes the font a little
+      // too large in the others right now. Something to unify later.
+      document.body.classList.add("markdown-body");
+      document.body.style.fontSize = "0.8em";
+      return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;

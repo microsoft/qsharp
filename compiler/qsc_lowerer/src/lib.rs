@@ -32,6 +32,7 @@ pub struct Lowerer {
     assigner: Assigner,
     exec_graph: Vec<ExecGraphNode>,
     enable_debug: bool,
+    ret_node: ExecGraphNode,
 }
 
 impl Default for Lowerer {
@@ -53,19 +54,25 @@ impl Lowerer {
             assigner: Assigner::new(),
             exec_graph: Vec::new(),
             enable_debug: false,
+            ret_node: ExecGraphNode::Ret,
         }
     }
 
     #[must_use]
     pub fn with_debug(mut self, dbg: bool) -> Self {
         self.enable_debug = dbg;
+        if dbg {
+            self.ret_node = ExecGraphNode::RetFrame;
+        } else {
+            self.ret_node = ExecGraphNode::Ret;
+        }
         self
     }
 
     pub fn take_exec_graph(&mut self) -> Vec<ExecGraphNode> {
         self.exec_graph
             .drain(..)
-            .chain(once(ExecGraphNode::Ret))
+            .chain(once(self.ret_node))
             .collect()
     }
 
@@ -156,7 +163,16 @@ impl Lowerer {
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = self.lower_ident(name);
+                let name = fir::Ident {
+                    id: self.lower_local_id(
+                        name.0
+                            .last()
+                            .expect("should have at least one ident in name")
+                            .id,
+                    ),
+                    span: name.span(),
+                    name: name.name(),
+                };
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }
@@ -248,7 +264,7 @@ impl Lowerer {
             exec_graph: self
                 .exec_graph
                 .drain(..)
-                .chain(once(ExecGraphNode::Ret))
+                .chain(once(self.ret_node))
                 .collect(),
         }
     }
@@ -274,6 +290,18 @@ impl Lowerer {
 
     fn lower_block(&mut self, block: &hir::Block) -> BlockId {
         let id = self.assigner.next_block();
+        // When lowering for debugging, we need to be more strict about scoping for variables
+        // otherwise variables that are not in scope will be visible in the locals view.
+        // We push a scope entry marker, `PushScope`, here and then a `PopScope` marker at the
+        // end of the block, which will cause the evaluation logic to track local variables
+        // for this block in the innermost scope matching their actual accessibility.
+        // When not in debug mode, variables may persist across block boundaries, but all access
+        // is performed via their lowered local variable ID, so they cannot be accessed outside of
+        // their scope. Associated memory is still cleaned up at callable exit rather than block
+        // exit.
+        if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::PushScope);
+        }
         let set_unit = block.stmts.is_empty()
             || !matches!(
                 block.stmts.last().expect("block should be non-empty").kind,
@@ -287,6 +315,9 @@ impl Lowerer {
         };
         if set_unit {
             self.exec_graph.push(ExecGraphNode::Unit);
+        }
+        if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::PopScope);
         }
         self.blocks.insert(id, block);
         id
@@ -531,7 +562,7 @@ impl Lowerer {
             }
             hir::ExprKind::Return(expr) => {
                 let expr = self.lower_expr(expr);
-                self.exec_graph.push(ExecGraphNode::Ret);
+                self.exec_graph.push(self.ret_node);
                 fir::ExprKind::Return(expr)
             }
             hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(

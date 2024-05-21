@@ -8,11 +8,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_block_instructions, assert_callable, get_rir_program};
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -54,7 +54,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -117,7 +117,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -180,7 +180,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -246,5 +246,71 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
                 Return"#]],
     );
     assert_eq!(program.num_qubits, 4);
+    assert_eq!(program.num_results, 0);
+}
+
+#[test]
+fn qubit_array_allocation_and_access() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            operation Op(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                use qs = Qubit[3];
+                Op(qs[0]);
+                Op(qs[1]);
+                Op(qs[2]);
+            }
+        }
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let tuple_record_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        tuple_record_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__tuple_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Integer
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(0, Integer) = Store Integer(1)
+                Variable(0, Integer) = Store Integer(2)
+                Variable(0, Integer) = Store Integer(3)
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(1), )
+                Call id(1), args( Qubit(2), )
+                Variable(1, Integer) = Store Integer(0)
+                Variable(1, Integer) = Store Integer(1)
+                Variable(1, Integer) = Store Integer(2)
+                Variable(1, Integer) = Store Integer(3)
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+    assert_eq!(program.num_qubits, 3);
     assert_eq!(program.num_results, 0);
 }

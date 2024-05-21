@@ -33,6 +33,7 @@ pub enum ErrorKind {
     Lint(#[from] qsc_linter::Lint),
 }
 
+/// Compiles a package from its AST representation.
 #[must_use]
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
@@ -54,6 +55,7 @@ pub fn compile_ast(
     process_compile_unit(store, package_type, capabilities, unit)
 }
 
+/// Compiles a package from its source representation.
 #[must_use]
 pub fn compile(
     store: &PackageStore,

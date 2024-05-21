@@ -6,10 +6,13 @@
   "single_qubit_gates",
   "multi_qubit_systems",
   "multi_qubit_gates",
+  "preparing_states",
   "single_qubit_measurements",
   "multi_qubit_measurements",
   "random_numbers",
+  "superdense_coding",
   "oracles",
   "deutsch_algo",
-  "deutsch_jozsa"
+  "deutsch_jozsa",
+  "qec_shor"
 ]

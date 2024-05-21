@@ -19,7 +19,23 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { marked } from "marked";
+import mdit from "markdown-it";
+import { plugin } from "./markdown_latex_plugin.js";
+const md = mdit("commonmark");
+md.use(plugin);
+
+// Set up the Markdown renderer with KaTeX support for validation
+import mk from "@vscode/markdown-it-katex";
+const mdValidator = mdit("commonmark");
+const katexOpts = {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+  throwOnError: true,
+};
+// @ts-expect-error: This isn't typed correctly for some reason
+mdValidator.use(mk.default, katexOpts);
+
+const validate = true; // Consider making this a command-line option
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
@@ -117,6 +133,15 @@ function resolveSvgSegment(properties, baseFolderPath) {
     svgPath,
     `Could not read the contents of the SVG file at ${svgPath}`,
   );
+
+  // An SVG file is basically an HTML file. If it includes blank lines, this will
+  // cause issues when including in Markdown, as blank lines indicate the end of
+  // HTML content. Check for blank lines within the document.
+  if (/\n\s*\r?\n/.test(svg)) {
+    throw new Error(
+      `SVG file ${svgPath} includes blank lines, which will break the Markdown`,
+    );
+  }
 
   properties["svg"] = svg;
 }
@@ -249,7 +274,15 @@ function createExample(baseFolderPath, properties) {
 }
 
 function createTextContent(markdown) {
-  const html = marked(markdown);
+  if (validate) {
+    try {
+      mdValidator.render(markdown);
+    } catch (e) {
+      console.log("LaTeX validation error: ", e);
+    }
+  }
+
+  const html = md.render(markdown);
   return { type: "text-content", asHtml: html, asMarkdown: markdown };
 }
 

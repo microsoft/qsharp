@@ -2,8 +2,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Intrinsic;
 
 
     operation GlobalPhaseChange (q : Qubit) : Unit is Adj + Ctl {
@@ -16,7 +14,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.GlobalPhaseChange(register[0]);
         let reference = register => GlobalPhaseChange(register[0]);
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
