@@ -17,15 +17,12 @@ namespace MyQuantumApp {
         // The resulting value represents an opaque identifier by which virtual quantum memory
         // can be addressed. Values of type Qubit are instantiated via allocation.
         use q : Qubit = Qubit();
-        Message("Allocated a qubit.");
 
         // A 64-bit signed integer.
         let integer : Int = 42;
-        Message($"Integer: {integer}");
 
         // The singleton type whose only value is ().
         let unit : Unit = ();
-        Message("Unit type value created.");
 
         // BigInt literals are always suffixed with an L, and can be declared in
         // binary, octal, decimal, or hexadecimal.
@@ -43,20 +40,16 @@ namespace MyQuantumApp {
 
         // A double-precision 64-bit floating-point number.
         let double = 42.0;
-        Message($"Double: {double}");
 
         // Boolean values. Possible values are `true` or `false`.
         let bool = true;
-        Message($"Boolean: {bool}");
 
         // Text as values that consist of a sequence of UTF-16 code units.
         let string = "";
-        Message($"String: {string}");
 
         // Represents the result of a projective measurement onto the eigenspaces
         // of a quantum operator with eigenvalues ±1. Possible values are `Zero` or `One`.
         let result = One;
-        Message($"Result: {result}");
 
         // A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
         let pauli = [PauliX, PauliY, PauliZ];
