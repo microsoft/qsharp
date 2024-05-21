@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
     operation DistinguishHX (unitary : (Qubit => Unit is Adj + Ctl)) : Int {
         use q = Qubit();
         within {
