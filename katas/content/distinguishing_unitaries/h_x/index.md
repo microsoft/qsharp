@@ -1,5 +1,5 @@
 **Input:** An operation that implements a single-qubit unitary transformation:
-either the Hadamard ($H$) gate
+either the $H$ gate
 or the $X$ gate. 
 The operation will have Adjoint and Controlled variants defined.
 
