@@ -1449,6 +1449,7 @@ async fn loading_lints_config_from_manifest() {
     .await;
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
     let this_file_qs =
