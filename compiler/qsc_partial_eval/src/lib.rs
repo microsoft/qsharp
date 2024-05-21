@@ -107,6 +107,20 @@ impl From<EvalError> for Error {
     }
 }
 
+impl Error {
+    #[must_use]
+    pub fn span(&self) -> Option<PackageSpan> {
+        match self {
+            Self::CapabilityError(_) => None,
+            Self::UnexpectedDynamicValue(span)
+            | Self::EvaluationFailed(_, span)
+            | Self::OutputResultLiteral(span)
+            | Self::Unexpected(_, span)
+            | Self::Unimplemented(_, span) => Some(*span),
+        }
+    }
+}
+
 /// An entry to the program to be partially evaluated.
 pub struct ProgramEntry {
     /// The execution graph that corresponds to the entry expression.
