@@ -493,7 +493,7 @@ fn assigning_result_literal_within_dynamic_if_expression_produces_error() {
 }
 
 #[test]
-fn array_of_results_replace_element_at_index_with_dynamic_content() {
+fn array_of_results_update_element_at_index_with_dynamic_content() {
     let program = get_rir_program(indoc! {r#"
         namespace Test {
             @EntryPoint()
@@ -562,7 +562,7 @@ fn array_of_results_replace_element_at_index_with_dynamic_content() {
 }
 
 #[test]
-fn array_of_bools_replace_element_at_index_with_dynamic_content() {
+fn array_of_bools_update_element_at_index_with_dynamic_content() {
     let program = get_rir_program(indoc! {r#"
         namespace Test {
             @EntryPoint()
@@ -644,6 +644,363 @@ fn array_of_bools_replace_element_at_index_with_dynamic_content() {
                 Call id(4), args( Variable(1, Boolean), Pointer, )
                 Call id(4), args( Variable(3, Boolean), Pointer, )
                 Return"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_element_at_negative_index_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1) = (Qubit(), Qubit());
+                mutable arr = [MResetZ(q0), Zero];
+                set arr w/= -1 <- MResetZ(q1);
+                arr
+            }
+        }
+    "#});
+    assert_error(
+        &error,
+        &expect![[
+            r#"EvaluationFailed("negative integers cannot be used here: -1", Span { lo: 176, hi: 178 })"#
+        ]],
+    );
+}
+
+#[test]
+fn array_of_results_update_element_at_out_of_bounds_index_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1) = (Qubit(), Qubit());
+                mutable arr = [MResetZ(q0), Zero];
+                set arr w/= 2 <- MResetZ(q1);
+                arr
+            }
+        }
+    "#});
+    assert_error(
+        &error,
+        &expect![[r#"EvaluationFailed("index out of range: 2", Span { lo: 176, hi: 177 })"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_slice_with_explicit_range() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit());
+                use (aux0, aux1, aux2) = (Qubit(), Qubit(), Qubit());
+                mutable a = [MResetZ(q0), MResetZ(q1), MResetZ(q2), MResetZ(q3), MResetZ(q4)];
+                set a w/= 0..2..4 <- [MResetZ(aux0), MResetZ(aux1), MResetZ(aux2)];
+                a
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(1), args( Qubit(2), Result(2), )
+                Call id(1), args( Qubit(3), Result(3), )
+                Call id(1), args( Qubit(4), Result(4), )
+                Call id(1), args( Qubit(5), Result(5), )
+                Call id(1), args( Qubit(6), Result(6), )
+                Call id(1), args( Qubit(7), Result(7), )
+                Call id(2), args( Integer(5), Pointer, )
+                Call id(3), args( Result(5), Pointer, )
+                Call id(3), args( Result(1), Pointer, )
+                Call id(3), args( Result(6), Pointer, )
+                Call id(3), args( Result(3), Pointer, )
+                Call id(3), args( Result(7), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_slice_with_open_start_range() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit());
+                mutable a = [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                set a w/= ...2 <- [MResetZ(q3), MResetZ(q4)];
+                a
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(1), args( Qubit(2), Result(2), )
+                Call id(1), args( Qubit(3), Result(3), )
+                Call id(1), args( Qubit(4), Result(4), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(3), Pointer, )
+                Call id(3), args( Result(4), Pointer, )
+                Call id(3), args( Result(2), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_slice_with_open_ended_range() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit());
+                mutable a = [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                set a w/= 1... <- [MResetZ(q3), MResetZ(q4)];
+                a
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(1), args( Qubit(2), Result(2), )
+                Call id(1), args( Qubit(3), Result(3), )
+                Call id(1), args( Qubit(4), Result(4), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(0), Pointer, )
+                Call id(3), args( Result(3), Pointer, )
+                Call id(3), args( Result(4), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_slice_with_open_two_step_range() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit());
+                mutable a = [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                set a w/= ...2... <- [MResetZ(q3), MResetZ(q4)];
+                a
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let array_output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        array_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let result_output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        result_output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(1), args( Qubit(2), Result(2), )
+                Call id(1), args( Qubit(3), Result(3), )
+                Call id(1), args( Qubit(4), Result(4), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(3), Pointer, )
+                Call id(3), args( Result(1), Pointer, )
+                Call id(3), args( Result(4), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn array_of_results_update_slice_with_out_of_bounds_range_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use (q0, q1, q2, q3) = (Qubit(), Qubit(), Qubit(), Qubit());
+                mutable a = [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                set a w/= 1..3 <- [MResetZ(q0), MResetZ(q1), MResetZ(q2)];
+                a
+            }
+        }
+    "#});
+    assert_error(
+        &error,
+        &expect![[r#"EvaluationFailed("index out of range: 3", Span { lo: 218, hi: 222 })"#]],
     );
 }
 
