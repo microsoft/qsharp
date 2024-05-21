@@ -1089,7 +1089,9 @@ fn explicit_return_embedded_in_update_field_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#]],
+        &expect![[
+            r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#
+        ]],
     );
 }
 
