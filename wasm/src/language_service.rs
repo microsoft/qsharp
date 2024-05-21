@@ -100,6 +100,9 @@ impl LanguageService {
                     "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
+                language_features: config
+                    .languageFeatures
+                    .map(|features| features.iter().collect::<LanguageFeatures>()),
             });
     }
 
@@ -331,10 +334,12 @@ serializable_type! {
     {
         pub targetProfile: Option<String>,
         pub packageType: Option<String>,
+        pub languageFeatures: Option<Vec<String>>,
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
+        languageFeatures?: LanguageFeatures[];
     }"#,
     IWorkspaceConfiguration
 }

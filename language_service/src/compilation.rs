@@ -257,11 +257,6 @@ fn run_fir_passes(
         return;
     }
 
-    if target_profile == Profile::Base {
-        // baseprofchk will handle the case where the target profile is Base
-        return;
-    }
-
     if target_profile == Profile::Unrestricted {
         // no point in running passes on unrestricted profile
         return;
