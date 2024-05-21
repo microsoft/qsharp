@@ -111,7 +111,5 @@ def test_compile_qir_all_gates() -> None:
     check_call(25, "__quantum__rt__result_record_output", 2)
     check_call(26, "__quantum__rt__result_record_output", 2)
 
-    # TODO: these checks fail at the moment. They should become asserts with the release
-    # of PyQIR 0.10.0.
-    # assert required_num_qubits(module.functions[0]) == 2
-    # assert required_num_results(module.functions[0]) == 2
+    assert required_num_qubits(module.functions[0]) == 5
+    assert required_num_results(module.functions[0]) == 2
