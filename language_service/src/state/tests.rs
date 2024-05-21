@@ -531,11 +531,10 @@ async fn target_profile_update_causes_error_in_stdlib() {
                         Frontend(
                             Error(
                                 Resolve(
-                                    NotAvailable(
-                                        "ResultAsBool",
+                                    NotFound(
                                         "Microsoft.Quantum.Convert.ResultAsBool",
                                         Span {
-                                            lo: 121,
+                                            lo: 95,
                                             hi: 133,
                                         },
                                     ),
