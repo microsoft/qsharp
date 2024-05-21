@@ -6,6 +6,7 @@ import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
   ICompilerWorker,
   IOperationInfo,
+  IQSharpError,
   IRange,
   ProgramConfig,
   TargetProfile,
@@ -20,6 +21,7 @@ import { loadProject } from "./projectSystem";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
+import { clearCommandDiagnostics } from "./diagnostics";
 
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
@@ -44,11 +46,7 @@ type CircuitOrError = {
     }
   | {
       result: "error";
-      errors: {
-        document: string;
-        diag: VSDiagnostic;
-        stack: string;
-      }[];
+      errors: IQSharpError[];
       hasResultComparisonError: boolean;
       timeout: boolean;
     }
@@ -58,6 +56,8 @@ export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
 ) {
+  clearCommandDiagnostics();
+
   const associationId = getRandomGuid();
   sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
 
@@ -105,7 +105,7 @@ export async function showCircuitCommand(
       });
     } else {
       const reason =
-        result.errors.length > 0 ? result.errors[0].diag.code : "unknown";
+        result.errors.length > 0 ? result.errors[0].diagnostic.code : "unknown";
 
       sendTelemetryEvent(EventType.CircuitEnd, {
         simulated: result.simulated.toString(),
@@ -263,16 +263,11 @@ async function getCircuitOrError(
     );
     return { result: "success", simulated: simulate, circuit };
   } catch (e: any) {
-    let errors: { document: string; diag: VSDiagnostic; stack: string }[] = [];
+    let errors: IQSharpError[] = [];
     let resultCompError = false;
     if (typeof e === "string") {
       try {
-        const rawErrors: [string, VSDiagnostic, string][] = JSON.parse(e);
-        errors = rawErrors.map(([document, diag, stack]) => ({
-          document,
-          diag,
-          stack,
-        }));
+        errors = JSON.parse(e);
         resultCompError = hasResultComparisonError(e);
       } catch (e) {
         // couldn't parse the error - would indicate a bug.
@@ -306,12 +301,10 @@ function hasResultComparisonError(e: unknown) {
  * @param errors The list of errors to format.
  * @returns The HTML formatted errors, to be set as the inner contents of a container element.
  */
-function errorsToHtml(
-  errors: { document: string; diag: VSDiagnostic; stack: string }[],
-) {
+function errorsToHtml(errors: IQSharpError[]) {
   let errorHtml = "";
   for (const error of errors) {
-    const { document, diag, stack: rawStack } = error;
+    const { document, diagnostic: diag, stack: rawStack } = error;
 
     const location = documentHtml(document, diag.range);
     const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
