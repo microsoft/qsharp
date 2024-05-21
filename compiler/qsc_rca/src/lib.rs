@@ -808,7 +808,7 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
-            capabilities |= TargetCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
             capabilities |= TargetCapabilityFlags::FloatingPointComputations;
