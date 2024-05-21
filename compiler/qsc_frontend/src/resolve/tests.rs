@@ -3562,7 +3562,7 @@ fn import_non_existent_item() {
                 }
             }
 
-            // NotFound("Bar", Span { lo: 50, hi: 53 })
+            // NotFound("Foo.Bar", Span { lo: 46, hi: 53 })
             // NotFound("Bar", Span { lo: 93, hi: 96 })
         "#]],
     );
@@ -3669,11 +3669,9 @@ fn import_namespace_nested() {
             namespace namespace10 {
                 import {namespace8}
                 operation item3() : Unit {
-                    Bar.Baz.Quux();
+                    item1();
                 }
             }
-
-            // NotFound("Quux", Span { lo: 140, hi: 144 })
         "#]],
     );
 }
@@ -3871,7 +3869,7 @@ fn import_tree_non_existent_item() {
                 }
             }
 
-            // NotFound("Baz", Span { lo: 81, hi: 84 })
+            // NotFound("Foo.Baz", Span { lo: 76, hi: 84 })
             // NotFound("Baz", Span { lo: 126, hi: 129 })
         "#]],
     );
@@ -3991,40 +3989,91 @@ fn import_then_export() {
     );
 }
 
-
 #[test]
 fn import_namespace_advanced() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Diagnostics {
+            namespace A.B.C.D.E {
                 operation DumpMachine() : Unit {}
             }
             namespace TestOne {
-                import Microsoft;
+                import A;
                 operation Main() : Unit {
-                    Microsoft.Quantum.Diagnostics.DumpMachine();
+                    A.B.C.D.E.DumpMachine();
                 }
             }
             namespace TestTwo {
-                import Microsoft.Quantum;
+                import A.B;
                 operation Main() : Unit {
-                    Quantum.Diagnostics.DumpMachine();
+                    B.C.D.E.DumpMachine();
                 }
             }
             namespace TestThree {
-                import Microsoft.Quantum.Diagnostics;
+                import A.B.C;
                 operation Main() : Unit {
-                    Diagnostics.DumpMachine();
+                    C.D.E.DumpMachine();
                 }
             }
             namespace TestFour {
-                import Microsoft.Quantum.Diagnostics.DumpMachine;
+                import A.B.C.D;
+                operation Main() : Unit {
+                    D.E.DumpMachine();
+                }
+            }
+            namespace TestFive {
+                import A.B.C.D.E;
+                operation Main() : Unit {
+                    E.DumpMachine();
+                }
+            }
+            namespace TestSix {
+                import A.B.C.D.E.DumpMachine;
                 operation Main() : Unit {
                     DumpMachine();
                 }
             }
         "},
-        &expect![[r#""#]],
+        &expect![[r#"
+            namespace namespace11 {
+                operation item1() : Unit {}
+            }
+            namespace namespace12 {
+                import {namespace7}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace13 {
+                import {namespace8}
+                operation item5() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace14 {
+                import {namespace9}
+                operation item7() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace15 {
+                import {namespace10}
+                operation item9() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace16 {
+                import {namespace11}
+                operation item11() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace17 {
+                import {item1}
+                operation item13() : Unit {
+                    item1();
+                }
+            }
+        "#]],
     );
 }
 
@@ -4038,10 +4087,46 @@ fn import_namespace_does_not_open_it() {
             namespace Main {
                 import Microsoft.Quantum.Diagnostics;
                 operation Main() : Unit {
+                    Diagnostics.DumpMachine();
                     DumpMachine();
                 }
             }
         "},
-        &expect![[r#""#]],
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {namespace7}
+                operation item3() : Unit {
+                    item1();
+                    DumpMachine();
+                }
+            }
+
+            // NotFound("DumpMachine", Span { lo: 214, hi: 225 })
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_import() {
+    check(
+        indoc! {"
+            namespace Main {
+                import A.B.C;
+                operation Main() : Unit {
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                import A.B.C;
+                operation item1() : Unit {
+                }
+            }
+
+            // NotFound("A.B.C", Span { lo: 28, hi: 33 })
+        "#]],
     );
 }

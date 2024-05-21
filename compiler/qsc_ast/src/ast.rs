@@ -1500,9 +1500,12 @@ impl Idents {
     /// The stringified dot-separated path of the idents in this [`Idents`]
     /// E.g. `a.b.c`
     #[must_use]
-    pub fn name(&self) -> Rc<str> {
+    pub fn name<T>(&self) -> T
+    where
+        T: From<String>,
+    {
         if self.0.len() == 1 {
-            return self.0[0].name.clone();
+            return T::from(self.0[0].name.clone().to_string());
         }
         let mut buf = String::new();
         for ident in self.0.iter() {
@@ -1511,7 +1514,16 @@ impl Idents {
             }
             buf.push_str(&ident.name);
         }
-        Rc::from(buf)
+        T::from(buf)
+    }
+
+    /// Appends another ident to this [`Idents`].
+    /// Returns a new [`Idents`] with the appended ident.
+    #[must_use = "this method returns a new value and does not mutate the original value"]
+    pub fn push(&self, other: Ident) -> Self {
+        let mut buf = self.0.to_vec();
+        buf.push(other);
+        Self(buf.into_boxed_slice())
     }
 }
 

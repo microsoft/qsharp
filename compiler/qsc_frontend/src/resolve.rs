@@ -168,22 +168,18 @@ pub struct ScopeItemEntry {
 }
 
 impl ScopeItemEntry {
+    #[must_use]
     pub fn new(id: ItemId, source: ItemSource) -> Self {
         Self { id, source }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ItemSource {
     Exported,
     Imported,
+    #[default]
     Declared,
-}
-
-impl Default for ItemSource {
-    fn default() -> Self {
-        ItemSource::Declared
-    }
 }
 
 impl Scope {
@@ -324,7 +320,7 @@ enum ScopeKind {
     Block,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum NameKind {
     Ty,
     Term,
@@ -565,7 +561,6 @@ impl Resolver {
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
         let name = &path.name;
         let namespace = &path.namespace;
-
         match resolve(
             kind,
             &self.globals,
@@ -654,16 +649,14 @@ impl Resolver {
         } else if let Some(id) = self.globals.namespaces.get_namespace_id(name.str_iter()) {
             id
         } else {
-            let error = Error::NotFound(name.name().to_string(), name.span());
+            let error = Error::NotFound(name.name(), name.span());
             if !self.errors.contains(&error) {
                 self.errors.push(error);
             }
             return;
         };
 
-        let alias = alias
-            .as_ref()
-            .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
+        let alias = alias.as_ref().map_or(vec![], |a| vec![Rc::clone(&a.name)]);
         {
             let current_opens = self.current_scope_mut().opens.entry(alias).or_default();
 
@@ -851,7 +844,6 @@ impl Resolver {
                                 .as_ref()
                                 .map(|x| Box::new(x.clone()))
                                 .or(Some(item.path.name.clone()));
-                            dbg!(&alias);
                             if let Some(ns) = ns {
                                 self.bind_open(&items, &alias, ns);
                             } else if !self.errors.contains(&err) {
@@ -1470,9 +1462,9 @@ fn resolve<'a>(
             globals,
             provided_namespace_name,
             provided_symbol_name,
-            prelude_namespaces(globals).into_iter().map(|(a, b)| (b, a)),
-            // there are no aliases in the prelude
-            &FxHashMap::default(),
+            prelude_namespaces(globals).into_iter(),
+            // prelude is opened by default
+            &(std::iter::once((vec![], prelude_namespaces(globals))).collect()),
         );
 
         if prelude_candidates.len() > 1 {
@@ -1522,10 +1514,19 @@ fn resolve<'a>(
         return Ok(res);
     }
 
-    Err(Error::NotFound(
-        provided_symbol_name.name.to_string(),
-        provided_symbol_name.span,
-    ))
+    Err(match provided_namespace_name {
+        Some(ns) => Error::NotFound(
+            ns.push(provided_symbol_name.clone()).name(),
+            Span {
+                lo: ns.span().lo,
+                hi: provided_symbol_name.span.hi,
+            },
+        ),
+        None => Error::NotFound(
+            provided_symbol_name.name.to_string(),
+            provided_symbol_name.span,
+        ),
+    })
 }
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
@@ -1677,51 +1678,53 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
-    // check aliases to see if the provided namespace is actually an alias
-    if let Some(provided_namespace_name) = provided_namespace_name {
-        if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
-            let candidates: FxHashMap<_, _> = opens
+    let opens = match provided_namespace_name {
+        None => aliases.get(&Vec::new()),
+        Some(namespace_name) => aliases.get(
+            &namespace_name
                 .iter()
-                .filter_map(|(ns_id, open)| {
-                    globals
-                        .get(kind, *ns_id, &provided_symbol_name.name)
-                        .map(|res| (*res, open.clone()))
-                })
-                .collect();
-            if !candidates.is_empty() {
-                return candidates;
-            }
+                .next()
+                .map(|x| vec![x.name.clone()])
+                .unwrap_or_default(),
+        ),
+    };
+
+    let mut candidates = FxHashMap::default();
+    if let Some(opens) = opens {
+        for open in opens {
+            find_symbol_in_namespace(
+                kind,
+                globals,
+                &provided_namespace_name
+                    .as_ref()
+                    .map(|x| x.iter().skip(1).cloned().collect::<Vec<_>>().into()),
+                provided_symbol_name,
+                &mut candidates,
+                open.0,
+                open.1.clone(),
+            );
+        }
+        // check aliases to see if the provided namespace is actually an alias
+        if provided_namespace_name.is_none() {
+            candidates.extend(&mut opens.iter().filter_map(|(ns_id, open)| {
+                globals
+                    .get(kind, *ns_id, &provided_symbol_name.name)
+                    .map(|res| (*res, open.clone()))
+            }));
         }
     }
 
-    let mut candidates = FxHashMap::default();
     for (candidate_namespace_id, open) in namespaces_to_search {
-        // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
-        let candidate_namespace = globals
-            .namespaces
-            .find_namespace_by_id(&candidate_namespace_id)
-            .1;
-
-        // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
-        let namespace = provided_namespace_name.as_ref().and_then(|name| {
-            candidate_namespace
-                .borrow()
-                .get_namespace_id(name.str_iter())
-        });
-
-        // if a namespace was provided, but not found, then this is not the correct namespace.
-        if provided_namespace_name.is_some() && namespace.is_none() {
+        if find_symbol_in_namespace(
+            kind,
+            globals,
+            provided_namespace_name,
+            provided_symbol_name,
+            &mut candidates,
+            candidate_namespace_id,
+            open,
+        ) {
             continue;
-        }
-
-        // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
-        let res = namespace
-            .or(Some(candidate_namespace_id))
-            .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
-
-        // If a symbol was found, insert it into the candidates map
-        if let Some(res) = res {
-            candidates.insert(*res, open);
         }
     }
 
@@ -1734,18 +1737,63 @@ where
     candidates
 }
 
+/// returns `true` if the namespace should be skipped/is incorrect, so the caller can
+/// iterate to the next namespace.
+fn find_symbol_in_namespace<O>(
+    kind: NameKind,
+    globals: &GlobalScope,
+    provided_namespace_name: &Option<Idents>,
+    provided_symbol_name: &Ident,
+    candidates: &mut FxHashMap<Res, O>,
+    candidate_namespace_id: NamespaceId,
+    open: O,
+) -> bool
+where
+    O: Clone + std::fmt::Debug,
+{
+    // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
+    let (_, candidate_namespace) = globals
+        .namespaces
+        .find_namespace_by_id(&candidate_namespace_id);
+
+    // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
+    let namespace = provided_namespace_name.as_ref().and_then(|name| {
+        candidate_namespace
+            .borrow()
+            .get_namespace_id(name.str_iter())
+    });
+
+    // if a namespace was provided, but not found, then this is not the correct namespace.
+    // for example, if the query is `Foo.Bar.Baz`, we know there must exist a `Foo.Bar` somewhere.
+    // If we didn't find it above, then even if we find `Baz` here, it is not the correct location.
+    if provided_namespace_name.is_some() && namespace.is_none() {
+        return true;
+    }
+
+    // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
+    let res = namespace
+        //  .or(Some(candidate_namespace_id))
+        .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+
+    // If a symbol was found, insert it into the candidates map
+    if let Some(res) = res {
+        candidates.insert(*res, open);
+    }
+    false
+}
+
 /// Fetch the name and namespace ID of all prelude namespaces.
-fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
+pub fn prelude_namespaces(globals: &GlobalScope) -> Vec<(NamespaceId, String)> {
     let mut prelude = Vec::with_capacity(PRELUDE.len());
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
         prelude.push((
-            prelude_namespace.join("."),
             globals
                 .namespaces
                 .get_namespace_id(prelude_namespace)
                 .expect("prelude should always exist in the namespace map"),
+            prelude_namespace.join("."),
         ));
     }
     prelude
