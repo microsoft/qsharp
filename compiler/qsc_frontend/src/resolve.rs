@@ -94,6 +94,10 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.DuplicateIntrinsic"))]
     DuplicateIntrinsic(String, #[label] Span),
 
+    #[error("duplicate export of `{0}`")]
+    #[diagnostic(code("Qsc.Resolve.DuplicateExport"))]
+    DuplicateExport(String, #[label] Span),
+    
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
     NotFound(String, #[label] Span),
@@ -736,9 +740,8 @@ impl Resolver {
              match term_or_ty {
                 NameKind::Ty => {
                     if scope.tys.contains_key(&item.name().name) {
-                        maybe_err = Some(Error::Duplicate(
+                        maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
-                            "export".to_string(),
                             item.path.span,
                         ));
                     }
@@ -746,9 +749,8 @@ impl Resolver {
                 }
                 NameKind::Term => {
                     if scope.terms.contains_key(&item.name().name) {
-                        maybe_err = Some(Error::Duplicate(
+                        maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
-                            "export".to_string(),
                             item.path.span,
                         ));
                     }

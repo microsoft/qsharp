@@ -3357,7 +3357,7 @@ fn disallow_repeated_exports() {
                 export { item1 };
             }
 
-            // Duplicate("ApplyX", "export", Span { lo: 85, hi: 91 })
+            // DuplicateExport("ApplyX", Span { lo: 85, hi: 91 })
         "#]],
     );
 }
@@ -3377,7 +3377,7 @@ fn disallow_repeated_exports_inline() {
                 export { item1, item1};
             }
 
-            // Duplicate("ApplyX", "export", Span { lo: 70, hi: 76 })
+            // DuplicateExport("ApplyX", Span { lo: 70, hi: 76 })
         "#]],
     );
 }
