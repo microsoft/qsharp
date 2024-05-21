@@ -3990,3 +3990,58 @@ fn import_then_export() {
         "#]],
     );
 }
+
+
+#[test]
+fn import_namespace_advanced() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Diagnostics {
+                operation DumpMachine() : Unit {}
+            }
+            namespace TestOne {
+                import Microsoft;
+                operation Main() : Unit {
+                    Microsoft.Quantum.Diagnostics.DumpMachine();
+                }
+            }
+            namespace TestTwo {
+                import Microsoft.Quantum;
+                operation Main() : Unit {
+                    Quantum.Diagnostics.DumpMachine();
+                }
+            }
+            namespace TestThree {
+                import Microsoft.Quantum.Diagnostics;
+                operation Main() : Unit {
+                    Diagnostics.DumpMachine();
+                }
+            }
+            namespace TestFour {
+                import Microsoft.Quantum.Diagnostics.DumpMachine;
+                operation Main() : Unit {
+                    DumpMachine();
+                }
+            }
+        "},
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn import_namespace_does_not_open_it() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Diagnostics {
+                operation DumpMachine() : Unit {}
+            }
+            namespace Main {
+                import Microsoft.Quantum.Diagnostics;
+                operation Main() : Unit {
+                    DumpMachine();
+                }
+            }
+        "},
+        &expect![[r#""#]],
+    );
+}

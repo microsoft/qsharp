@@ -171,21 +171,19 @@ impl ScopeItemEntry {
     pub fn new(id: ItemId, source: ItemSource) -> Self {
         Self { id, source }
     }
-
 }
 
 #[derive(Debug, Clone)]
 pub enum ItemSource {
     Exported,
     Imported,
-    Declared
+    Declared,
 }
 
 impl Default for ItemSource {
     fn default() -> Self {
         ItemSource::Declared
     }
-
 }
 
 impl Scope {
@@ -702,9 +700,10 @@ impl Resolver {
                         ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
                     ),
                 );
-                self.current_scope_mut()
-                    .terms
-                    .insert(Rc::clone(&decl.name.name), ScopeItemEntry::new(id, ItemSource::Declared));
+                self.current_scope_mut().terms.insert(
+                    Rc::clone(&decl.name.name),
+                    ScopeItemEntry::new(id, ItemSource::Declared),
+                );
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
@@ -716,8 +715,14 @@ impl Resolver {
                     ),
                 );
                 let scope = self.current_scope_mut();
-                scope.tys.insert(Rc::clone(&name.name), ScopeItemEntry::new(id, ItemSource::Declared));
-                scope.terms.insert(Rc::clone(&name.name), ScopeItemEntry::new(id, ItemSource::Declared));
+                scope.tys.insert(
+                    Rc::clone(&name.name),
+                    ScopeItemEntry::new(id, ItemSource::Declared),
+                );
+                scope.terms.insert(
+                    Rc::clone(&name.name),
+                    ScopeItemEntry::new(id, ItemSource::Declared),
+                );
             }
             ast::ItemKind::Err | ast::ItemKind::Export(_) | ast::ItemKind::Import(_) => {}
         }
@@ -769,26 +774,36 @@ impl Resolver {
             let mut maybe_err = None;
             match term_or_ty {
                 NameKind::Ty => {
-                    if let Some(ScopeItemEntry { source: ItemSource::Exported, .. }) = scope.tys.get(&item.name().name) {
+                    if let Some(ScopeItemEntry {
+                        source: ItemSource::Exported,
+                        ..
+                    }) = scope.tys.get(&item.name().name)
+                    {
                         maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
                             item.path.span,
                         ));
                     }
-                    scope
-                        .tys
-                        .insert(Rc::clone(&item.name().name), ScopeItemEntry::new(resolved_item_id, ItemSource::Exported));
+                    scope.tys.insert(
+                        Rc::clone(&item.name().name),
+                        ScopeItemEntry::new(resolved_item_id, ItemSource::Exported),
+                    );
                 }
                 NameKind::Term => {
-                    if let Some(ScopeItemEntry { source: ItemSource::Exported, .. }) = scope.terms.get(&item.name().name) {
+                    if let Some(ScopeItemEntry {
+                        source: ItemSource::Exported,
+                        ..
+                    }) = scope.terms.get(&item.name().name)
+                    {
                         maybe_err = Some(Error::DuplicateExport(
                             item.path.name.name.to_string(),
                             item.path.span,
                         ));
                     }
-                    scope
-                        .terms
-                        .insert(Rc::clone(&item.name().name), ScopeItemEntry::new(resolved_item_id, ItemSource::Exported));
+                    scope.terms.insert(
+                        Rc::clone(&item.name().name),
+                        ScopeItemEntry::new(resolved_item_id, ItemSource::Exported),
+                    );
                 }
             };
 
@@ -836,6 +851,7 @@ impl Resolver {
                                 .as_ref()
                                 .map(|x| Box::new(x.clone()))
                                 .or(Some(item.path.name.clone()));
+                            dbg!(&alias);
                             if let Some(ns) = ns {
                                 self.bind_open(&items, &alias, ns);
                             } else if !self.errors.contains(&err) {
@@ -864,10 +880,16 @@ impl Resolver {
             // insert the item into the local scope
             match (term_or_ty, resolved_item) {
                 (NameKind::Term, Res::Item(id, _)) => {
-                    scope.terms.insert(Rc::clone(&local_name.name), ScopeItemEntry::new(id, ItemSource::Imported));
+                    scope.terms.insert(
+                        Rc::clone(&local_name.name),
+                        ScopeItemEntry::new(id, ItemSource::Imported),
+                    );
                 }
                 (NameKind::Ty, Res::Item(id, _)) => {
-                    scope.tys.insert(Rc::clone(&local_name.name), ScopeItemEntry::new(id, ItemSource::Imported));
+                    scope.tys.insert(
+                        Rc::clone(&local_name.name),
+                        ScopeItemEntry::new(id, ItemSource::Imported),
+                    );
                 }
                 _ => {
                     let err = Error::ImportedNonItem(item.path.span);
@@ -1590,6 +1612,7 @@ fn check_scoped_resolutions(
             .map(|open @ Open { namespace, .. }| (*namespace, open)),
         &aliases,
     );
+
     match explicit_open_candidates.len() {
         1 => {
             return Some(Ok(single(explicit_open_candidates.into_keys())
