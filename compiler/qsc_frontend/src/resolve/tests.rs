@@ -3409,3 +3409,34 @@ fn order_of_exports_does_not_matter() {
         "#]],
     );
 }
+
+
+#[test]
+fn export_udt_and_construct_it() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Pair = (First: Int, Second: Int);
+                export { Pair };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    let z: Pair = Pair(1, 2);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                newtype item1 = (First: Int, Second: Int);
+                export { item1 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1(1, 2);
+                }
+            }
+        "#]],
+    );
+}
