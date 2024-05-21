@@ -11,9 +11,11 @@ namespace MyQuantumApp {
 
         // A `Pauli` can be declared as a literal.
         let pauliDimension = PauliX;
+        Message($"Pauli dimension: {pauliDimension}");
 
         // Measuring along a dimension returns a `Result`:
         let result = Measure([pauliDimension], [q]);
+        Message($"Measurement result: {result}");
 
         return result;
     }

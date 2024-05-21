@@ -9,7 +9,7 @@
 /// and operation types.
 namespace MyQuantumApp {
 
-    /// In the below code, all varibles have type annotations to showcase their type.
+    /// In the below code, all variables have type annotations to showcase their type.
     @EntryPoint()
     operation MeasureOneQubit() : Unit {
         // Notably, Qubits are allocated with the `use` keyword instead of declared with the `let`
@@ -53,34 +53,29 @@ namespace MyQuantumApp {
 
         // A single-qubit Pauli matrix. Possible values are PauliI, PauliX, PauliY, or PauliZ.
         let pauli = [PauliX, PauliY, PauliZ];
-        Message($"Pauli matrix: {pauli}");
 
         // Represents an ordered sequence of equally spaced Int values.
         // Values may represent sequences in ascending or descending order.
         let range = 1..100;
-        Message($"Range: {range}");
 
         // A collection that contains a sequence of values of the same type.
         let array_of_ints = [1, 2, 3];
-        Message($"Array of ints: {array_of_ints}");
 
         // A tuple contains a fixed number of items of potentially different types.
         // Tuples containing a single element are equivalent to the element they contain.
         let tuple = (1, "one", One);
-        Message($"Tuple: {tuple}");
 
         // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
         // and one anonymous parameter of Boolean type.
         newtype ComplexBool = (Real : Double, Imaginary : Double, Bool);
         // Instantiation of the above UDT.
         let complex = ComplexBool(42.0, 0.0, false);
-        let (real, imaginary, anon) = complex!;
-        Message($"Complex Bool: (real: {real}, imaginary: {imaginary}, anonymous: {anon})");
+        let (real, imaginary, anonymous) = complex!;
+        Message($"Complex Bool: (real: {real}, imaginary: {imaginary}, anonymous: {anonymous})");
 
         // A function that takes an integer and returns a boolean. This variable declaration
         // uses a Lambda function as its right hand side.
         // The function signature is provided as an annotation here, for clarity.
         let functionType : Int => Bool = (int) => int == 0;
-        Message("Function type defined.");
     }
 }
