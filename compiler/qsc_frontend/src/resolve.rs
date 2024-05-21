@@ -994,6 +994,7 @@ fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
         .collect()
 }
 
+#[allow(clippy::too_many_lines)]
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
@@ -1085,13 +1086,11 @@ fn bind_global_item(
             match (
                 scope
                     .terms
-                    .entry(Rc::clone(namespace))
-                    .or_default()
+                    .get_mut_or_default(namespace)
                     .entry(Rc::clone(&decl.name.name)),
                 scope
                     .tys
-                    .entry(Rc::clone(namespace))
-                    .or_default()
+                    .get_mut_or_default(namespace)
                     .entry(Rc::clone(&decl.name.name)),
             ) {
                 (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(vec![Error::Duplicate(
