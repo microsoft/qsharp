@@ -438,10 +438,14 @@ impl Interpreter {
             &entry,
         )
         .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
             let source_package = self
                 .compiler
                 .package_store()
-                .get(map_fir_package_to_hir(self.package))
+                .get(hir_package_id)
                 .expect("package should exist in the package store");
             vec![Error::PartialEvaluation(WithSource::from_map(
                 &source_package.sources,

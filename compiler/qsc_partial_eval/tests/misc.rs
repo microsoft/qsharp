@@ -8,7 +8,10 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
+use test_utils::{
+    assert_block_instructions, assert_blocks, assert_callable, assert_error,
+    get_partial_evaluation_error, get_rir_program,
+};
 
 #[test]
 fn unitary_call_within_an_if_with_classical_condition_within_a_for_loop() {
@@ -584,4 +587,22 @@ fn if_else_expression_with_dynamic_logical_or_condition() {
                 Call id(4), args( Qubit(2), )
                 Jump(3)"#]],
     );
+}
+
+#[test]
+fn evaluation_error_within_stdlib_yield_correct_package_span() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Arrays;
+            @EntryPoint()
+            operation Main() : Result[] {
+                use qs = Qubit[1];
+                let rs = ForEach(MResetZ, qs);
+                return rs;
+            }
+        }
+        "#,
+    });
+    assert_error(&error, &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(1), span: Span { lo: 15851, hi: 15866 } })"]);
 }
