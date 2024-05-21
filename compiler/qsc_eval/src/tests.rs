@@ -51,7 +51,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib,).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -106,7 +106,7 @@ fn check_partial_eval_stmt(
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib,).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 

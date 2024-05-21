@@ -7,7 +7,6 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::hir::PackageId;
-use qsc::target::Profile;
 use qsc::{compile::compile, PassContext};
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -28,7 +27,7 @@ use std::{
 };
 
 #[derive(clap::ValueEnum, Clone, Debug, Default, PartialEq)]
-pub enum QirProfile {
+pub enum Profile {
     /// This is the default profile, which allows all operations.
     #[default]
     Unrestricted,
@@ -38,13 +37,13 @@ pub enum QirProfile {
     AdaptiveRI,
 }
 
-// convert QirProfile into Profile
-impl From<QirProfile> for Profile {
-    fn from(profile: QirProfile) -> Self {
+// convert Profile into qsc::target::Profile
+impl From<Profile> for qsc::target::Profile {
+    fn from(profile: Profile) -> Self {
         match profile {
-            QirProfile::Unrestricted => Profile::Unrestricted,
-            QirProfile::Base => Profile::Base,
-            QirProfile::AdaptiveRI => Profile::AdaptiveRI,
+            Profile::Unrestricted => qsc::target::Profile::Unrestricted,
+            Profile::Base => qsc::target::Profile::Base,
+            Profile::AdaptiveRI => qsc::target::Profile::AdaptiveRI,
         }
     }
 }
@@ -75,7 +74,7 @@ struct Cli {
 
     /// Target QIR profile for code generation
     #[arg(short, long)]
-    profile: Option<QirProfile>,
+    profile: Option<Profile>,
 
     /// Q# source files to compile, or `-` to read from stdin.
     #[arg()]
@@ -101,7 +100,7 @@ fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
-    let profile: Profile = cli.profile.unwrap_or_default().into();
+    let profile: qsc::target::Profile = cli.profile.unwrap_or_default().into();
     let capabilities = profile.into();
     let package_type = if cli.emit.contains(&Emit::Qir) {
         PackageType::Exe

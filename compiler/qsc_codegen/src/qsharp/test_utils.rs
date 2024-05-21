@@ -34,7 +34,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
     let mut std = compile::std(&store, TargetCapabilityFlags::empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib,).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std = store.insert(std);
 
     let mut unit = compile(

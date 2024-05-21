@@ -154,7 +154,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib,).is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -167,7 +167,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty());
-    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib,).is_empty());
+    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
 
