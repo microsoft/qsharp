@@ -710,6 +710,19 @@ impl Resolver {
 
             let resolved_item_id = match resolved_item {
                 Res::Item(
+                _,
+                ItemStatus::Unimplemented
+                ) => {
+                    self.errors.push(
+                        Error::NotAvailable(
+                            item.path.name.name.to_string(),
+                            "unimplemented".to_string(),
+                            item.path.span,
+
+                    ));
+                    continue;
+                }
+                Res::Item(
                     ItemId {
                         package: Some(_), ..
                     },

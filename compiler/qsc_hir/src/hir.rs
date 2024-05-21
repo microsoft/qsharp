@@ -1549,14 +1549,3 @@ pub struct ExportDecl {
     pub items: Vec<Idents>,
 }
 
-impl Display for ExportDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self
-            .items
-            .iter()
-            .map(Idents::name)
-            .collect::<Vec<_>>()
-            .join(", ");
-        write!(f, "ExportDecl {}: [{items_str}]", self.span)
-    }
-}

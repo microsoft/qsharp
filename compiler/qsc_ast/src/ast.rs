@@ -174,11 +174,10 @@ impl Namespace {
     pub fn exports(&self) -> impl Iterator<Item = &ExportItem> {
         self.items
             .iter()
-            .filter_map(|i| match *i.kind {
-                ItemKind::Export(ref export) => Some(&*export.items),
-                _ => None,
+            .flat_map(|i| match i.kind.as_ref() {
+                ItemKind::Export(export) => &export.items[..],
+                _ => &[],
             })
-            .flatten()
     }
 }
 
@@ -1704,10 +1703,12 @@ pub enum SetOp {
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Represents an export declaration.
 pub struct ExportDecl {
+    /// The node ID.
+    pub id: NodeId,
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Vec<ExportItem>,
+    pub items: Box<[ExportItem]>,
 }
 
 impl Display for ExportDecl {

@@ -542,7 +542,8 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
 
     Ok(ExportDecl {
         span: s.span(lo),
-        items: items.0,
+        items: items.0.into(),
+        id: NodeId::default(),
     })
 }
 

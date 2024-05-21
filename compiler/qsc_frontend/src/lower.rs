@@ -42,12 +42,6 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
-    #[error("this is not a callable or type")]
-    #[diagnostic(code("Qsc.LowerAst.ExportedNonItem"))]
-    ExportedNonItem(#[label] Span),
-    #[error("exporting items from external packages is not yet supported")]
-    #[diagnostic(code("Qsc.LowerAst.ExportedExternalItem"))]
-    ExportedExternalItem(#[label] Span),
 }
 
 #[derive(Clone, Copy)]
@@ -136,31 +130,11 @@ impl With<'_> {
         };
 
         self.lowerer.parent = Some(id);
-        let mut items: Vec<LocalItemId> = namespace
+        let items: Vec<LocalItemId> = namespace
             .items
             .iter()
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
-
-        // for each exported item, convert it into a regular item in this namespace
-        let exports = namespace.exports();
-        for export in exports {
-            // get the item this export is referring to
-            let Some(&resolve::Res::Item(item, _)) = self.names.get(export.path.id) else {
-                self.lowerer
-                    .errors
-                    .push(Error::ExportedNonItem(export.span()));
-                return;
-            };
-            if item.package.is_some() {
-                // when we support external packages, we will want to handle this case.
-                self.lowerer
-                    .errors
-                    .push(Error::ExportedExternalItem(export.span()));
-                continue;
-            }
-            items.push(item.item);
-        }
 
         let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
