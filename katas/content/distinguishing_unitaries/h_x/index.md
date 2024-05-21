@@ -1,5 +1,5 @@
 **Input:** An operation that implements a single-qubit unitary transformation:
-either the Hadamard ($H$) gate or the $X$ gate. 
+either the $H$ gate or the $X$ gate. 
 
 **Output:**  0 if the given operation is the $H$ gate, 1 if the given operation is the $X$ gate.
 
