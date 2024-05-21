@@ -898,11 +898,10 @@ fn explicit_return_embedded_in_assign_field_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
         &expect![[
-            r#"Unimplemented("Updated Field Expr", PackageSpan { package: PackageId(2), span: Span { lo: 217, hi: 243 } })"#
+            r#"Unexpected("updating a field of a dynamic user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 217, hi: 243 } })"#
         ]],
     );
 }
@@ -1088,12 +1087,9 @@ fn explicit_return_embedded_in_update_field_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[
-            r#"Unimplemented("Field Assignment Expr", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#
-        ]],
+        &expect![[r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#]],
     );
 }
 

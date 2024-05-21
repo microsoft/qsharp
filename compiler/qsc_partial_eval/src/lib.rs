@@ -874,15 +874,19 @@ impl<'a> PartialEvaluator<'a> {
         let expr_package_span = self.get_expr_package_span(expr_id);
         match &expr.kind {
             ExprKind::Array(exprs) => self.eval_expr_array(exprs),
-            ExprKind::ArrayLit(_) => panic!("array of literal values should always be classical"),
+            ExprKind::ArrayLit(_) => Err(Error::Unexpected(
+                "array literal should have been classically evaluated".to_string(),
+                expr_package_span,
+            )),
             ExprKind::ArrayRepeat(value_expr_id, size_expr_id) => {
                 self.eval_expr_array_repeat(*value_expr_id, *size_expr_id)
             }
             ExprKind::Assign(lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_assign(*lhs_expr_id, *rhs_expr_id)
             }
-            ExprKind::AssignField(_, _, _) => Err(Error::Unimplemented(
-                "Field Assignment Expr".to_string(),
+            ExprKind::AssignField(_, _, _) => Err(Error::Unexpected(
+                "assigning a dynamic value to a field of a user-defined type is invalid"
+                    .to_string(),
                 expr_package_span,
             )),
             ExprKind::AssignIndex(array_expr_id, index_expr_id, replace_expr_id) => {
@@ -909,12 +913,18 @@ impl<'a> PartialEvaluator<'a> {
                 .map_err(Error::from)?;
                 Ok(EvalControlFlow::Continue(closure))
             }
-            ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
-            ExprKind::Field(_, _) => Err(Error::Unimplemented(
-                "Field Expr".to_string(),
+            ExprKind::Fail(_) => Err(Error::Unexpected(
+                "using a dynamic value in a fail statement is invalid".to_string(),
                 expr_package_span,
             )),
-            ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
+            ExprKind::Field(_, _) => Err(Error::Unexpected(
+                "accessing a field of a dynamic user-defined type is invalid".to_string(),
+                expr_package_span,
+            )),
+            ExprKind::Hole => Err(Error::Unexpected(
+                "hole expressions are not expected during partial evaluation".to_string(),
+                expr_package_span,
+            )),
             ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => self.eval_expr_if(
                 expr_id,
                 *condition_expr_id,
@@ -924,20 +934,25 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::Index(array_expr_id, index_expr_id) => {
                 self.eval_expr_index(*array_expr_id, *index_expr_id)
             }
-            ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
-            ExprKind::Range(_, _, _) => {
-                panic!("instruction generation for range expressions is invalid")
-            }
+            ExprKind::Lit(_) => Err(Error::Unexpected(
+                "literal should have been classically evaluated".to_string(),
+                expr_package_span,
+            )),
+            ExprKind::Range(_, _, _) => Err(Error::Unexpected(
+                "dynamic ranges are invalid".to_string(),
+                expr_package_span,
+            )),
             ExprKind::Return(expr_id) => self.eval_expr_return(*expr_id),
-            ExprKind::String(_) => {
-                panic!("instruction generation for string expressions is invalid")
-            }
+            ExprKind::String(_) => Err(Error::Unexpected(
+                "dynamic strings are invalid".to_string(),
+                expr_package_span,
+            )),
             ExprKind::Tuple(exprs) => self.eval_expr_tuple(exprs),
             ExprKind::UnOp(un_op, value_expr_id) => {
                 self.eval_expr_unary(*un_op, *value_expr_id, expr_package_span)
             }
-            ExprKind::UpdateField(_, _, _) => Err(Error::Unimplemented(
-                "Updated Field Expr".to_string(),
+            ExprKind::UpdateField(_, _, _) => Err(Error::Unexpected(
+                "updating a field of a dynamic user-defined type is invalid".to_string(),
                 expr_package_span,
             )),
             ExprKind::UpdateIndex(array_expr_id, index_expr_id, update_expr_id) => {
@@ -2263,7 +2278,7 @@ impl<'a> PartialEvaluator<'a> {
                         None,
                         None,
                     ) else {
-                        panic!("no control qubit are expected at this point");
+                        panic!("no control qubits are expected");
                     };
                     args.append(&mut element_args);
                 }
