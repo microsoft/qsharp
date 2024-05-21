@@ -333,7 +333,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        // Get the value at the specified index or range.
+        // Set the value at the specified index or range.
         let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
         let index_package_span = PackageSpan {
             package: hir_package_id,
