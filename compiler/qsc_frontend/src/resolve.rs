@@ -516,7 +516,7 @@ impl Resolver {
         }
     }
 
-    fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
+    fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
         let name = &path.name;
         let namespace = &path.namespace;
 
@@ -530,22 +530,23 @@ impl Resolver {
             Ok(res) => {
                 self.check_item_status(res, path.name.name.to_string(), path.span);
                 self.names.insert(path.id, res);
+                return Ok(res);
             }
             Err(err) => {
                 if let Error::NotFound(name, span) = err {
                     if let Some(dropped_name) =
                         self.dropped_names.iter().find(|n| n.name.as_ref() == name)
                     {
-                        self.errors.push(Error::NotAvailable(
+                        Err(Error::NotAvailable(
                             name,
                             format!("{}.{}", dropped_name.namespace, dropped_name.name),
                             span,
-                        ));
+                        ))
                     } else {
-                        self.errors.push(Error::NotFound(name, span));
+                         Err(Error::NotFound(name, span))
                     }
                 } else {
-                    self.errors.push(err);
+                    Err(err)
                 }
             }
         }
@@ -670,7 +671,6 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
-            //ast::ItemKind::Export(export) => self.bind_exports(namespace, export)
             ast::ItemKind::Err | ast::ItemKind::Export(_) => {}
         }
     }
@@ -680,24 +680,18 @@ impl Resolver {
         // lowering
 
         for item in export.items() {
-            let resolved_item = match resolve(
+            let (resolved_item, term_or_ty) = match self.resolve_path(
                 NameKind::Term,
-                &self.globals,
-                self.locals.get_scopes(&self.curr_scope_chain),
-                &item.path.name,
-                &item.path.namespace,
+                &item.path,
             ) {
-                Ok(res) => res,
+                Ok(res) => (res, NameKind::Term),
                 Err(_) => {
                     // try to see if it is a type
-                    match resolve(
+                    match self.resolve_path(
                         NameKind::Ty,
-                        &self.globals,
-                        self.locals.get_scopes(&self.curr_scope_chain),
-                        &item.path.name,
-                        &item.path.namespace,
+                        &item.path,
                     ) {
-                        Ok(res) => res,
+                        Ok(res) => (res, NameKind::Ty),
                         Err(err) => {
                             self.errors.push(err);
                             continue;
@@ -738,17 +732,53 @@ impl Resolver {
                 }
             };
 
-            scope
-                .terms
-                .insert(Rc::clone(&item.name().name), resolved_item_id);
-            // just insert the id for the name ident
-            self.names.insert(item.path.id, resolved_item);
-            if let Some(namespace) = namespace {
-                self.globals.terms.get_mut_or_default(namespace).insert(
-                    Rc::clone(&item.name().name),
-                    Res::Item(resolved_item_id, ItemStatus::Available),
-                );
+           let mut maybe_err = None;
+             match term_or_ty {
+                NameKind::Ty => {
+                    if scope.tys.contains_key(&item.name().name) {
+                        maybe_err = Some(Error::Duplicate(
+                            item.path.name.name.to_string(),
+                            "export".to_string(),
+                            item.path.span,
+                        ));
+                    }
+                    scope.tys.insert(Rc::clone(&item.name().name), resolved_item_id);
+                }
+                NameKind::Term => {
+                    if scope.terms.contains_key(&item.name().name) {
+                        maybe_err = Some(Error::Duplicate(
+                            item.path.name.name.to_string(),
+                            "export".to_string(),
+                            item.path.span,
+                        ));
+                    }
+                    scope.terms.insert(Rc::clone(&item.name().name), resolved_item_id);
+                }
+            };
+
+            if let Some(err) = maybe_err {
+                self.errors.push(err);
             }
+
+            if let Some(namespace) = namespace {
+                match term_or_ty {
+                    NameKind::Ty => {
+                        self.globals.tys.get_mut_or_default(namespace).insert(
+                            Rc::clone(&item.name().name),
+                            Res::Item(resolved_item_id, ItemStatus::Available),
+                        );
+                    }
+                    NameKind::Term => {
+                        self.globals.terms.get_mut_or_default(namespace).insert(
+                            Rc::clone(&item.name().name),
+                            Res::Item(resolved_item_id, ItemStatus::Available),
+                        );
+                    }
+                }
+            }
+
+            self.names.insert(item.path.id, resolved_item);
+
         }
     }
 
@@ -901,7 +931,9 @@ impl AstVisitor<'_> for With<'_> {
     fn visit_ty(&mut self, ty: &ast::Ty) {
         match &*ty.kind {
             ast::TyKind::Path(path) => {
-                self.resolver.resolve_path(NameKind::Ty, path);
+                if let Err(e) = self.resolver.resolve_path(NameKind::Ty, path) {
+                    self.resolver.errors.push(e);
+                }
             }
             ast::TyKind::Param(ident) => {
                 self.resolver.resolve_ident(NameKind::Ty, ident);
@@ -965,7 +997,11 @@ impl AstVisitor<'_> for With<'_> {
                     visitor.visit_expr(output);
                 });
             }
-            ast::ExprKind::Path(path) => self.resolver.resolve_path(NameKind::Term, path),
+            ast::ExprKind::Path(path) => {
+                if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
+                    self.resolver.errors.push(e);
+                };
+            },
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace)
             | ast::ExprKind::AssignUpdate(container, index, replace) => {
                 self.visit_expr(container);

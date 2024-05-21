@@ -3339,3 +3339,45 @@ fn reexport_from_full_path_with_alias() {
         "#]],
     );
 }
+
+#[test]
+fn disallow_repeated_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX };
+                export { ApplyX };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1 };
+                export { item1 };
+            }
+
+            // Duplicate("ApplyX", "export", Span { lo: 85, hi: 91 })
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_repeated_exports_inline() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                export { ApplyX, ApplyX};
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export { item1, item1};
+            }
+
+            // Duplicate("ApplyX", "export", Span { lo: 70, hi: 76 })
+        "#]],
+    );
+}
