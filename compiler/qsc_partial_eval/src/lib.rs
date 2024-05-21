@@ -18,11 +18,12 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::resolve_closure;
+use qsc_eval::val::{index_array, slice_array, update_index_range, update_index_single};
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
     val::{self, Value, Var, VarTy},
-    State, StepAction, StepResult, Variable,
+    PackageSpan, State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
@@ -33,6 +34,7 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
+use qsc_lowerer::map_fir_package_to_hir;
 use qsc_rca::errors::{generate_errors_from_runtime_features, get_missing_runtime_features};
 use qsc_rca::{
     errors::Error as CapabilityError, ComputeKind, ComputePropertiesLookup,
@@ -264,6 +266,18 @@ impl<'a> PartialEvaluator<'a> {
         block_id
     }
 
+    fn entry_expr_output_span(&self) -> Span {
+        let expr = self.get_expr(self.entry.expr.expr);
+        match &expr.kind {
+            // Special handling for compiler generated entry expressions that come from the `@EntryPoint`
+            // attributed callable.
+            ExprKind::Call(callee, _) if expr.span == Span::default() => {
+                self.get_expr(*callee).span
+            }
+            _ => expr.span,
+        }
+    }
+
     fn eval(mut self) -> Result<Program, Error> {
         // Evaluate the entry-point expression.
         let ret_val = self.try_eval_expr(self.entry.expr.expr)?.into_value();
@@ -294,16 +308,54 @@ impl<'a> PartialEvaluator<'a> {
         Ok(self.program)
     }
 
-    fn entry_expr_output_span(&self) -> Span {
-        let expr = self.get_expr(self.entry.expr.expr);
-        match &expr.kind {
-            // Special handling for compiler generated entry expressions that come from the `@EntryPoint`
-            // attributed callable.
-            ExprKind::Call(callee, _) if expr.span == Span::default() => {
-                self.get_expr(*callee).span
+    fn eval_array_update_index(
+        &mut self,
+        array: &[Value],
+        index_expr_id: ExprId,
+        update_expr_id: ExprId,
+    ) -> Result<Value, Error> {
+        // Try to evaluate the index and update expressions to get their value, short-circuiting execution if any of the
+        // expressions is a return.
+        let index_expr = self.get_expr(index_expr_id);
+        let index_control_flow = self.try_eval_expr(index_expr_id)?;
+        let EvalControlFlow::Continue(index_value) = index_control_flow else {
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                index_expr.span,
+            ));
+        };
+        let update_control_flow = self.try_eval_expr(update_expr_id)?;
+        let EvalControlFlow::Continue(update_value) = update_control_flow else {
+            let update_expr = self.get_expr(update_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in update expression".to_string(),
+                update_expr.span,
+            ));
+        };
+
+        // Set the value at the specified index or range.
+        let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
+        let index_package_span = PackageSpan {
+            package: hir_package_id,
+            span: index_expr.span,
+        };
+        let update_result = match index_value {
+            Value::Int(index) => {
+                update_index_single(array, index, update_value, index_package_span)
             }
-            _ => expr.span,
-        }
+            Value::Range(range) => update_index_range(
+                array,
+                range.start,
+                range.step,
+                range.end,
+                update_value,
+                index_package_span,
+            ),
+            _ => panic!("invalid kind of value for index"),
+        };
+        let updated_array =
+            update_result.map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
+        Ok(updated_array)
     }
 
     fn eval_bin_op(
@@ -877,10 +929,9 @@ impl<'a> PartialEvaluator<'a> {
                 "Updated Field Expr".to_string(),
                 expr.span,
             )),
-            ExprKind::UpdateIndex(_, _, _) => Err(Error::Unimplemented(
-                "Update Index Expr".to_string(),
-                expr.span,
-            )),
+            ExprKind::UpdateIndex(array_expr_id, index_expr_id, update_expr_id) => {
+                self.eval_expr_update_index(*array_expr_id, *index_expr_id, *update_expr_id)
+            }
             ExprKind::Var(res, _) => Ok(EvalControlFlow::Continue(self.eval_expr_var(res))),
             ExprKind::While(condition_expr_id, body_block_id) => {
                 self.eval_expr_while(*condition_expr_id, *body_block_id)
@@ -941,46 +992,24 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         array_expr_id: ExprId,
         index_expr_id: ExprId,
-        replace_expr_id: ExprId,
+        update_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // Get the value of the array expression to use it as the basis to perform a replacement on.
+        // Get the value of the array to use it as the basis to perform the update.
         let array_expr = self.get_expr(array_expr_id);
         let ExprKind::Var(Res::Local(array_loc_id), _) = &array_expr.kind else {
             panic!("array expression in assign index expression is expected to be a variable");
         };
-        let array_value = self
+        let array = self
             .eval_context
             .get_current_scope()
             .get_classical_local_value(*array_loc_id)
-            .clone();
+            .clone()
+            .unwrap_array();
 
-        // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
-        // the expressions is a return.
-        let index_control_flow = self.try_eval_expr(index_expr_id)?;
-        let EvalControlFlow::Continue(index_value) = index_control_flow else {
-            let index_expr = self.get_expr(index_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in assign index expression".to_string(),
-                index_expr.span,
-            ));
-        };
-        let replace_control_flow = self.try_eval_expr(replace_expr_id)?;
-        let EvalControlFlow::Continue(replace_value) = replace_control_flow else {
-            let replace_expr = self.get_expr(replace_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in assign index expression".to_string(),
-                replace_expr.span,
-            ));
-        };
-
-        // Replace the value at the corresponding index and update the array binding.
-        let index: usize = index_value
-            .unwrap_int()
-            .try_into()
-            .expect("could not convert array index into usize");
-        let mut array = array_value.unwrap_array().to_vec();
-        array[index] = replace_value;
-        self.update_bindings(array_expr_id, Value::Array(array.into()))?;
+        // Evaluate the updated array and update the corresponding bindings.
+        let new_array_value =
+            self.eval_array_update_index(&array, index_expr_id, update_expr_id)?;
+        self.update_bindings(array_expr_id, new_array_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -1486,14 +1515,26 @@ impl<'a> PartialEvaluator<'a> {
 
         // Get the value at the specified index.
         let array = array_value.unwrap_array();
-        let index: usize = index_value
-            .unwrap_int()
-            .try_into()
-            .expect("could not convert index to usize");
-        let value_at_index = array
-            .get(index)
-            .unwrap_or_else(|| panic!("could not get value at index {index}"));
-        Ok(EvalControlFlow::Continue(value_at_index.clone()))
+        let index_expr = self.get_expr(index_expr_id);
+        let hir_package_id = map_fir_package_to_hir(self.get_current_package_id());
+        let index_package_span = PackageSpan {
+            package: hir_package_id,
+            span: index_expr.span,
+        };
+        let value_result = match index_value {
+            Value::Int(index) => index_array(&array, index, index_package_span),
+            Value::Range(range) => slice_array(
+                &array,
+                range.start,
+                range.step,
+                range.end,
+                index_package_span,
+            ),
+            _ => panic!("invalid kind of value for index"),
+        };
+        let value =
+            value_result.map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_expr_return(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -1603,6 +1644,26 @@ impl<'a> PartialEvaluator<'a> {
         self.get_current_rir_block_mut().0.push(instruction);
         let eval_variable = map_rir_var_to_eval_var(rir_variable);
         Ok(EvalControlFlow::Continue(Value::Var(eval_variable)))
+    }
+
+    fn eval_expr_update_index(
+        &mut self,
+        array_expr_id: ExprId,
+        index_expr_id: ExprId,
+        update_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // Get the value of the array expression to use it as the basis to perform a replacement on.
+        let array_control_flow = self.try_eval_expr(array_expr_id)?;
+        let EvalControlFlow::Continue(array_value) = array_control_flow else {
+            let array_expr = self.get_expr(array_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                array_expr.span,
+            ));
+        };
+        let array = array_value.unwrap_array();
+        let updated_array = self.eval_array_update_index(&array, index_expr_id, update_expr_id)?;
+        Ok(EvalControlFlow::Continue(updated_array))
     }
 
     fn eval_expr_var(&mut self, res: &Res) -> Value {
