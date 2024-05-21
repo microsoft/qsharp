@@ -228,11 +228,8 @@ fn compile(
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
-
     resolver.resolve_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
-
     let (names, locals, mut resolve_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
     (package, names, locals, errors, namespaces)
@@ -3866,6 +3863,30 @@ fn import_takes_precedence_over_local_decl() {
 
             namespace namespace9 {
                 operation item3() : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_then_export() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                export { Bar };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {item1}
+                export { item1 };
             }
         "#]],
     );

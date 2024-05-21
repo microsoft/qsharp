@@ -389,9 +389,6 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                     ItemKind::Export(export) => {
                         visitor.resolver.bind_exports(Some(ns), export);
                     }
-                    ItemKind::Import(import) => {
-                        visitor.resolver.bind_import(import);
-                    }
                     ItemKind::Open(name, alias) => {
                         // we only need to bind opens that are in top-level namespaces, outside of callables.
                         // this is because this is for the intermediate export-binding pass
@@ -407,6 +404,11 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                         //                                        ^^^^^^ export from non-namespace scope is not allowed
                         // ```
                         visitor.resolver.bind_open(name, alias, ns);
+                    }
+                    ItemKind::Import(import) => {
+                        // same reason as above -- we need to have full knowledge of imports, but only if they're
+                        // in the namespace scope
+                        visitor.resolver.bind_import(import);
                     }
                     _ => ast_visit::walk_item(visitor, item),
                 }
@@ -685,15 +687,11 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
-            ast::ItemKind::Import(import) => self.bind_import(import),
-            ast::ItemKind::Err | ast::ItemKind::Export(_) => {}
+            ast::ItemKind::Err | ast::ItemKind::Export(_) | ast::ItemKind::Import(_) => {}
         }
     }
 
     fn bind_exports(&mut self, namespace: Option<NamespaceId>, export: &ExportDecl) {
-        // resolve the exported item and insert the vec ident into the names table, so we can access it in
-        // lowering
-
         for item in export.items() {
             let resolved_item = match resolve(
                 NameKind::Term,
@@ -791,7 +789,7 @@ impl Resolver {
                                 .or(Some(item.path.name.clone()));
                             if let Some(ns) = ns {
                                 self.bind_open(&items, &alias, ns);
-                            } else {
+                            } else if !self.errors.contains(&err) {
                                 self.errors.push(err);
                             }
                             continue;
@@ -801,17 +799,16 @@ impl Resolver {
             };
 
             let scope = self.current_scope_mut();
-
             let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
 
             // if the item already exists in the scope, return a duplicate error
             if scope.terms.contains_key(&local_name.name)
                 || scope.tys.contains_key(&local_name.name)
             {
-                self.errors.push(Error::ImportedDuplicate(
-                    local_name.name.to_string(),
-                    local_name.span,
-                ));
+                let err = Error::ImportedDuplicate(local_name.name.to_string(), local_name.span);
+                if !self.errors.contains(&err) {
+                    self.errors.push(err);
+                }
                 continue;
             }
 
@@ -823,13 +820,19 @@ impl Resolver {
                 TermOrTy::Ty(Res::Item(id, _)) => {
                     scope.tys.insert(Rc::clone(&local_name.name), id);
                 }
-                _ => self.errors.push(Error::ImportedNonItem(item.path.span)),
+                _ => {
+                    let err = Error::ImportedNonItem(item.path.span);
+                    if !self.errors.contains(&err) {
+                        self.errors.push(err);
+                    }
+                }
             }
 
             // have to tell clippy to allow this -- the below if let is used for destructuring,
             // not control flow
             #[allow(irrefutable_let_patterns)]
             if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item {
+                // insert the item into the names we know about
                 self.names.insert(item.path.id, res);
             }
         }
@@ -930,8 +933,14 @@ impl AstVisitor<'_> for With<'_> {
             // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None, root_id);
             for item in &*namespace.items {
-                if let ast::ItemKind::Open(name, alias) = &*item.kind {
-                    visitor.resolver.bind_open(name, alias, ns);
+                match &*item.kind {
+                    ast::ItemKind::Open(name, alias) => {
+                        visitor.resolver.bind_open(name, alias, ns);
+                    }
+                    ItemKind::Import(import) => {
+                        visitor.resolver.bind_import(import);
+                    }
+                    _ => (),
                 }
             }
             ast_visit::walk_namespace(visitor, namespace);
@@ -1009,7 +1018,14 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &*stmt.kind {
-            ast::StmtKind::Item(item) => self.visit_item(item),
+            ast::StmtKind::Item(item) => match &*item.kind {
+                ast::ItemKind::Import(import) => {
+                    self.resolver.bind_import(import);
+                }
+                _ => {
+                    self.visit_item(item);
+                }
+            },
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
                 // The binding is valid after end of the statement.
@@ -1416,7 +1432,8 @@ fn resolve<'a>(
         }
     }
 
-    // lastly, check unopened globals
+    // Lastly, check unopened globals. This is anything declared in the root namespace, which is
+    // therefore globally available to the package
     let global_candidates = find_symbol_in_namespaces(
         kind,
         globals,
