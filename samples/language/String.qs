@@ -15,6 +15,7 @@ namespace MyQuantumApp {
 
         // Q# supports string interpolation with the `$` prefix.
         let myString = $"interpolated: {myString}";
+        Message($"Interpolated string: {myString}");
 
         return myString;
     }

@@ -16,5 +16,6 @@ namespace MyQuantumApp {
         // `fahrenheit` if `fahrenheit` is positive,
         // `fahrenheit * -1` if `fahrenheit` is negative.
         let absoluteValue = fahrenheit > 0 ? fahrenheit | fahrenheit * -1;
+        Message($"Absolute value: {absoluteValue}");
     }
 }

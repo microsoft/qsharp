@@ -17,6 +17,7 @@ namespace MyQuantumApp {
         newtype Nested = (Double, (ItemName : Int, String));
 
         let point = Point3d(1.0, 2.0, 3.0);
+        Message($"Point: {point}");
 
         // Items within a UDT can be accessed either by their name,
         // or by deconstruction.
