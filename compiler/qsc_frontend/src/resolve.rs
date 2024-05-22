@@ -723,6 +723,7 @@ impl Resolver {
 
     fn bind_exports(&mut self, namespace: Option<NamespaceId>, export: &ExportDecl) {
         for item in export.items() {
+            // try to see if it is a term
             let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
                 Ok(res) => (res, NameKind::Term),
                 Err(_) => {
@@ -826,9 +827,8 @@ impl Resolver {
     }
 
     fn bind_import(&mut self, import: &ImportDecl) {
-        // resolve the imported item and insert the vec ident into the names table, so we can access it in
-        // lowering
         for item in &import.items {
+            // try to see if it is a term
             let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
                 Ok(res) => (res, NameKind::Term),
                 Err(_) => {
