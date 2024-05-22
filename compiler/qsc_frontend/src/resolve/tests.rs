@@ -137,6 +137,11 @@ impl Visitor<'_> for Renamer<'_> {
                 for item in export.items() {
                     if let Some(resolved_id) = self.names.get(item.path.id) {
                         self.changes.push((item.span(), (*resolved_id).into()));
+                    } else if let Some(namespace_id) = self
+                        .namespaces
+                        .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
+                    {
+                        self.changes.push((item.span(), namespace_id.into()));
                     }
                 }
                 return;
@@ -4127,6 +4132,172 @@ fn invalid_import() {
             }
 
             // NotFound("A.B.C", Span { lo: 28, hi: 33 })
+        "#]],
+    );
+}
+
+#[test]
+fn export_namespace() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Main {
+                export { Foo };
+            }
+            namespace Test {
+                open Main.Foo;
+                operation Main() : Unit {
+                    ApplyX();
+                    ApplyY();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                export { namespace7 };
+            }
+            namespace namespace9 {
+                open namespace7;
+                operation item5() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_namespace_contains_children() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                export { Foo };
+            }
+            namespace Test {
+                open Main.Foo.Bar;
+                operation Main() : Unit {
+                    ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+            }
+            namespace namespace9 {
+                export { namespace7 };
+            }
+            namespace namespace10 {
+                open namespace8;
+                operation item4() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_namespace_cyclic() {
+    check(
+        indoc! {"
+            namespace Foo {
+                export { Bar };
+            }
+            namespace Bar {
+                export { Foo };
+                operation Hello() : Unit {}
+            }
+            namespace Main {
+                open Foo.Bar.Foo.Bar.Foo.Bar;
+                operation Main() : Unit { Hello(); }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                export { namespace8 };
+            }
+            namespace namespace8 {
+                export { namespace7 };
+                operation item2() : Unit {}
+            }
+            namespace namespace9 {
+                open namespace8;
+                operation item4() : Unit { item2(); }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_direct_cycle() {
+    check(
+        indoc! {"
+            namespace Foo {
+                export { Foo };
+            }
+
+            namespace Main {
+                open Foo.Foo.Foo.Foo.Foo;
+                operation Main() : Unit { }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                export { namespace7 };
+            }
+
+            namespace namespace8 {
+                open namespace7;
+                operation item2() : Unit { }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_namespace_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                export { Foo.Bar as Baz };
+            }
+            namespace Test {
+                open Main.Baz;
+                operation Main() : Unit {
+                    ApplyX();
+                    Main.Baz.ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+            }
+            namespace namespace9 {
+                export { namespace8 };
+            }
+            namespace namespace10 {
+                open namespace8;
+                operation item4() : Unit {
+                    item1();
+                    item1();
+                }
+            }
         "#]],
     );
 }
