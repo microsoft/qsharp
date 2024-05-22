@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::resolve::{self, Names};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
-    PatKind, SetOp, Spec, TyDef, TyDefKind, TyKind,
+    PatKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -80,6 +80,26 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             (Ty::Tuple(tys), errors)
         }
         TyKind::Err => (Ty::Err, Vec::new()),
+    }
+}
+
+/// Convert a struct declaration into a UDT type definition.
+pub(super) fn ast_struct_decl_as_ty_def(decl: &StructDecl) -> TyDef {
+    TyDef {
+        id: decl.id,
+        span: decl.span,
+        kind: Box::new(TyDefKind::Tuple(
+            decl.fields
+                .iter()
+                .map(|f| {
+                    Box::new(TyDef {
+                        id: f.id,
+                        span: f.span,
+                        kind: Box::new(TyDefKind::Field(Some(f.name.clone()), f.ty.clone())),
+                    })
+                })
+                .collect(),
+        )),
     }
 }
 

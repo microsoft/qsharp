@@ -617,6 +617,34 @@ fn lift_newtype_from_newtype() {
 }
 
 #[test]
+fn lower_struct_decl() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-73] (Public):
+                    Namespace (Ident 1 [10-11] "A"): Item 1
+                Item 1 [18-71] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-71]:
+                        TyDef [18-71]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double"#]],
+    );
+}
+
+#[test]
 fn lambda_function_empty_closure() {
     check_hir(
         indoc! {"

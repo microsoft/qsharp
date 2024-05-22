@@ -190,7 +190,19 @@ impl With<'_> {
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
-            ast::ItemKind::Struct(decl) => return None, // ToDo
+            ast::ItemKind::Struct(decl) => {
+                let id = resolve_id(decl.name.id);
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
+
+                (
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                )
+            }
         };
 
         self.lowerer.items.push(hir::Item {
