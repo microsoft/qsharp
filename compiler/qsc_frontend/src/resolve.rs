@@ -623,7 +623,7 @@ impl Resolver {
             .as_ref()
             .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
         {
-            let current_opens = self.current_scope_mut().opens.entry(alias).or_default();
+            let current_opens = self.current_scope_mut().opens.entry(alias.clone()).or_default();
 
             let open = Open {
                 namespace: id,
@@ -633,6 +633,8 @@ impl Resolver {
                 current_opens.push(open);
             }
         }
+
+
     }
 
     pub(super) fn bind_local_item(
@@ -679,7 +681,7 @@ impl Resolver {
         }
     }
 
-    fn bind_exports(&mut self, namespace: Option<NamespaceId>, export: &ExportDecl) {
+    fn bind_exports(&mut self, current_namespace: Option<NamespaceId>, export: &ExportDecl) {
         // resolve the exported item and insert the vec ident into the names table, so we can access it in
         // lowering
 
@@ -691,7 +693,20 @@ impl Resolver {
                     match self.resolve_path(NameKind::Ty, &item.path) {
                         Ok(res) => (res, NameKind::Ty),
                         Err(err) => {
-                            self.errors.push(err);
+                            // try to see if it is a namespace
+                            let items = Into::<Idents>::into(item.path.clone());
+                            let ns = self.globals.find_namespace(items.str_iter());
+                            let alias = item
+                                .alias
+                                .as_ref()
+                                .map(|x| Box::new(x.clone()))
+                                .unwrap_or(item.path.name.clone());
+                            if let Some(namespace_id_to_export) = ns {
+                                // update the namespace tree to include the new namespace
+                                let _ = self.globals.namespaces.insert_with_id(current_namespace, namespace_id_to_export, &*alias.name);
+                            } else if !self.errors.contains(&err) {
+                                self.errors.push(err);
+                            }
                             continue;
                         }
                     }
@@ -755,7 +770,7 @@ impl Resolver {
                 self.errors.push(err);
             }
 
-            if let Some(namespace) = namespace {
+            if let Some(namespace) = current_namespace {
                 match term_or_ty {
                     NameKind::Ty => {
                         self.globals.tys.get_mut_or_default(namespace).insert(

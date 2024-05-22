@@ -6,6 +6,7 @@ mod tests;
 
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+use std::vec::IntoIter;
 
 pub const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
@@ -145,6 +146,20 @@ impl NamespaceTreeRoot {
     pub fn root_id(&self) -> NamespaceId {
         self.tree.borrow().id
     }
+
+    /// Inserts an alias for an existing namespace into the tree, where the child namespace already exists.
+    pub fn insert_with_id(&mut self, parent: Option<NamespaceId>, new_child: NamespaceId, alias: &str) {
+        let parent = parent.unwrap_or_else(|| self.root_id());
+        let (_,  parent_node) = self.find_namespace_by_id(&parent);
+        let (, existing_ns) = self.find_namespace_by_id(&new_child);
+        parent_node
+            .borrow_mut()
+            .children
+            .insert(Rc::from(alias), Rc::new(RefCell::new(NamespaceTreeNode {
+                id: new_child,
+                children: FxHashMap::default(),
+            })));
+    }
 }
 
 impl Default for NamespaceTreeRoot {
@@ -169,10 +184,17 @@ impl Default for NamespaceTreeRoot {
 /// A node in the namespace tree. Each node has a unique ID and a map of children.
 /// Supports interior mutability of children for inserting new nodes.
 #[derive(Debug, Clone)]
-pub struct NamespaceTreeNode {
-    pub children: FxHashMap<Rc<str>, NamespaceTreeCell>,
-    pub id: NamespaceId,
+pub enum NamespaceTreeNode {
+    Node {
+        pub children: FxHashMap<Rc<str>, NamespaceTreeCell>,
+        pub id: NamespaceId,
+    },
+    Alias(NamespaceId),
 }
+// pub struct NamespaceTreeNode {
+//     pub children: FxHashMap<Rc<str>, NamespaceTreeCell>,
+//     pub id: NamespaceId,
+// }
 impl NamespaceTreeNode {
     /// Create a new namespace tree node with the given ID and children. The `id` should come from the `NamespaceTreeRoot` assigner.
     #[must_use]

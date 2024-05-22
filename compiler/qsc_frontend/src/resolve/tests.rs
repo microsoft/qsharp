@@ -3439,3 +3439,77 @@ fn export_udt_and_construct_it() {
         "#]],
     );
 }
+
+#[test]
+fn export_namespace() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Main {
+                export { Foo };
+            }
+            namespace Test {
+                open Main.Foo;
+                operation Main() : Unit {
+                    ApplyX();
+                    ApplyY();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                export { Foo };
+            }
+            namespace namespace9 {
+                open namespace7;
+                operation item5() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_namespace_contains_children() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                export { Foo };
+            }
+            namespace Test {
+                open Main.Foo.Bar;
+                operation Main() : Unit {
+                    ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                export { item1, item2 };
+            }
+            namespace namespace9 {
+                open namespace8;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
