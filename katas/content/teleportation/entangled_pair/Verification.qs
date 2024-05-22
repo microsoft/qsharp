@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
     operation Entangle_Wrapper (qs : Qubit[]) : Unit is Adj {
-        Kata.Entangle(qs[0],qs[1]);
+        Kata.Entangle(qs[0], qs[1]);
     }
 
     @EntryPoint()
@@ -11,7 +11,7 @@ namespace Kata.Verification {
         
         return CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Entangle_Wrapper,
-            EntangledWrapper_Reference,
+            EntangleWrapper_Reference,
             2
         );
         
