@@ -21,7 +21,7 @@ export class QirGenerationError extends Error {
 }
 
 export async function getQirForActiveWindow(
-  supports_adaptive?: boolean,
+  supports_adaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
   let result = "";
   const editor = vscode.window.activeTextEditor;
@@ -36,6 +36,9 @@ export async function getQirForActiveWindow(
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";
 
+  // We differentiate between submission to Azure and on-demand QIR codegen by checking
+  // whether a boolean value was passed for `supports_adaptive`. On-demand codegen does not
+  // have a target, so support for adaptive is unknown.
   let error_msg =
     supports_adaptive === undefined
       ? "Generating QIR "
