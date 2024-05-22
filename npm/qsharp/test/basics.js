@@ -786,6 +786,26 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
   }
 });
 
+test("debug service loading source that doesn't match profile fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      [
+        [
+          "test.qs",
+          `namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }`,
+        ],
+      ],
+      "adaptive_ri",
+      "A.Test()",
+      [],
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
 test("debug service loading source with good entry expr succeeds - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {

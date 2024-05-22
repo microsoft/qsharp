@@ -1412,6 +1412,40 @@ mod given_interpreter {
         }
 
         #[test]
+        fn errors_returned_if_sources_do_not_match_profile() {
+            let source = indoc! { r#"
+            namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
+            let result = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::IntegerComputations
+                    | TargetCapabilityFlags::QubitReset,
+                LanguageFeatures::default(),
+            );
+
+            match result {
+                Ok(_) => panic!("Expected error, got interpreter."),
+                Err(errors) => is_error(
+                    &errors,
+                    &expect![[r#"
+                        cannot use a dynamic double value
+                           [<entry>] [A.Test()]
+                        cannot use a double value as an output
+                           [<entry>] [A.Test()]
+                        cannot use a dynamic double value
+                           [test] [set x = 2.0]
+                        cannot use a dynamic double value
+                           [test] [x]
+                    "#]],
+                ),
+            }
+        }
+
+        #[test]
         fn stdlib_members_can_be_accessed_from_sources() {
             let source = indoc! { r#"
             namespace Test {
