@@ -238,6 +238,7 @@ function reportIfQSharpErrors(e: unknown) {
       }
     } catch (_) {
       // Couldn't parse the error as JSON.
+      log.warn(`could not parse error string ${e}`);
     }
   }
 
