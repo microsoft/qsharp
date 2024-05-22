@@ -623,7 +623,11 @@ impl Resolver {
             .as_ref()
             .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
         {
-            let current_opens = self.current_scope_mut().opens.entry(alias.clone()).or_default();
+            let current_opens = self
+                .current_scope_mut()
+                .opens
+                .entry(alias.clone())
+                .or_default();
 
             let open = Open {
                 namespace: id,
@@ -633,8 +637,6 @@ impl Resolver {
                 current_opens.push(open);
             }
         }
-
-
     }
 
     pub(super) fn bind_local_item(
@@ -703,7 +705,11 @@ impl Resolver {
                                 .unwrap_or(item.path.name.clone());
                             if let Some(namespace_id_to_export) = ns {
                                 // update the namespace tree to include the new namespace
-                                let _ = self.globals.namespaces.insert_with_id(current_namespace, namespace_id_to_export, &*alias.name);
+                                self.globals.namespaces.insert_with_id(
+                                    current_namespace,
+                                    namespace_id_to_export,
+                                    &alias.name,
+                                );
                             } else if !self.errors.contains(&err) {
                                 self.errors.push(err);
                             }
