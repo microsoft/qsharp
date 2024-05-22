@@ -4,10 +4,9 @@
 #![allow(unknown_lints, clippy::empty_docs)]
 #![allow(non_snake_case)]
 
-use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
+use diagnostic::{interpret_errors_into_qsharp_errors, VSDiagnostic};
 use katas::check_solution;
 use language_service::IOperationInfo;
-use miette::JSONReportHandler;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::into_async_rust_fn_with;
@@ -95,21 +94,8 @@ pub(crate) fn _get_qir(
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
 ) -> Result<String, String> {
-    qsc::codegen::get_qir(sources, language_features, capabilities).map_err(|errors| {
-        let mut msg = String::new();
-        msg.push('[');
-        for error in errors {
-            if msg.len() > 1 {
-                msg.push(',');
-            }
-            JSONReportHandler::new()
-                .render_report(&mut msg, &error)
-                .expect("rendering should succeed");
-        }
-
-        msg.push(']');
-        msg
-    })
+    qsc::codegen::get_qir(sources, language_features, capabilities)
+        .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 #[wasm_bindgen]
@@ -168,18 +154,18 @@ pub fn get_circuit(
         target_profile.into(),
         LanguageFeatures::from_iter(language_features),
     )
-    .map_err(interpret_errors_into_vs_diagnostics_json)?;
+    .map_err(interpret_errors_into_qsharp_errors_json)?;
 
     let circuit = interpreter
         .circuit(entry_point, simulate)
-        .map_err(interpret_errors_into_vs_diagnostics_json)?;
+        .map_err(interpret_errors_into_qsharp_errors_json)?;
 
     serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn interpret_errors_into_vs_diagnostics_json(errs: Vec<qsc::interpret::Error>) -> String {
-    serde_json::to_string(&interpret_errors_into_vs_diagnostics(&errs))
+fn interpret_errors_into_qsharp_errors_json(errs: Vec<qsc::interpret::Error>) -> String {
+    serde_json::to_string(&interpret_errors_into_qsharp_errors(&errs))
         .expect("serializing errors to json should succeed")
 }
 

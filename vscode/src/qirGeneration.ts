@@ -8,6 +8,7 @@ import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getTarget, setTarget } from "./config";
 import { loadProject } from "./projectSystem";
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
 const generateQirTimeoutMs = 30000;
 
@@ -83,16 +84,7 @@ export async function getQirForActiveWindow(
   } catch (e: any) {
     throw new QirGenerationError(e.message);
   }
-  for (const source of sources) {
-    const diagnostics = vscode.languages.getDiagnostics(
-      vscode.Uri.parse(source[0]),
-    );
-    if (diagnostics?.length > 0) {
-      throw new QirGenerationError(
-        "The current program contains errors that must be fixed before submitting to Azure",
-      );
-    }
-  }
+
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
   // Let it run for max 10 seconds, then terminate it if not complete.
   const worker = getCompilerWorker(compilerWorkerScriptPath);
@@ -109,7 +101,10 @@ export async function getQirForActiveWindow(
       languageFeatures,
       profile: getTarget(),
     } as ProgramConfig;
-    result = await worker.getQir(config);
+
+    result = await invokeAndReportCommandDiagnostics(() =>
+      worker.getQir(config),
+    );
 
     sendTelemetryEvent(
       EventType.GenerateQirEnd,

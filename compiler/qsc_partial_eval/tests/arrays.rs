@@ -285,7 +285,7 @@ fn result_array_value_at_negative_index_raises_error() {
     assert_error(
         &error,
         &expect![[
-            r#"EvaluationFailed("value cannot be used as an index: -1", Span { lo: 177, hi: 179 })"#
+            r#"EvaluationFailed("value cannot be used as an index: -1", PackageSpan { package: PackageId(2), span: Span { lo: 177, hi: 179 } })"#
         ]],
     );
 }
@@ -304,7 +304,9 @@ fn result_array_value_at_index_out_of_bounds_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 2", Span { lo: 177, hi: 178 })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 2", PackageSpan { package: PackageId(2), span: Span { lo: 177, hi: 178 } })"#
+        ]],
     );
 }
 
@@ -604,7 +606,9 @@ fn result_array_slice_with_out_of_bounds_range_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 3", Span { lo: 206, hi: 210 })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 3", PackageSpan { package: PackageId(2), span: Span { lo: 206, hi: 210 } })"#
+        ]],
     );
 }
 
@@ -694,7 +698,7 @@ fn result_array_copy_and_update_with_single_negative_index_raises_error() {
     assert_error(
         &error,
         &expect![[
-            r#"EvaluationFailed("negative integers cannot be used here: -1", Span { lo: 209, hi: 211 })"#
+            r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 209, hi: 211 } })"#
         ]],
     );
 }
@@ -713,7 +717,9 @@ fn result_array_copy_and_update_with_single_out_of_bounds_index_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 3", Span { lo: 209, hi: 210 })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 3", PackageSpan { package: PackageId(2), span: Span { lo: 209, hi: 210 } })"#
+        ]],
     );
 }
 
@@ -1025,6 +1031,8 @@ fn result_array_copy_and_update_with_out_of_bounds_range_raises_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("index out of range: 3", Span { lo: 209, hi: 213 })"#]],
+        &expect![[
+            r#"EvaluationFailed("index out of range: 3", PackageSpan { package: PackageId(2), span: Span { lo: 209, hi: 213 } })"#
+        ]],
     );
 }

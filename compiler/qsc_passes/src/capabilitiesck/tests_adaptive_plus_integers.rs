@@ -80,11 +80,18 @@ fn use_of_dynamic_pauli_yields_no_errors() {
 }
 
 #[test]
-fn use_of_dynamic_range_yields_no_errors() {
+fn use_of_dynamic_range_yields_error() {
     check_profile(
         USE_DYNAMIC_RANGE,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicRange(
+                    Span {
+                        lo: 108,
+                        hi: 137,
+                    },
+                ),
+            ]
         "#]],
     );
 }
@@ -448,10 +455,22 @@ fn loop_with_dynamic_condition_yields_errors() {
         LOOP_WITH_DYNAMIC_CONDITION,
         &expect![[r#"
             [
+                UseOfDynamicRange(
+                    Span {
+                        lo: 141,
+                        hi: 159,
+                    },
+                ),
                 LoopWithDynamicCondition(
                     Span {
                         lo: 141,
                         hi: 159,
+                    },
+                ),
+                UseOfDynamicRange(
+                    Span {
+                        lo: 150,
+                        hi: 156,
                     },
                 ),
             ]
