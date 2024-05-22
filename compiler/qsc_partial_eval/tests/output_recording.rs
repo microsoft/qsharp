@@ -533,7 +533,7 @@ fn output_recording_fails_with_result_literal_one() {
 
     assert_error(
         &error,
-        &expect!["OutputResultLiteral(Span { lo: 50, hi: 54 })"],
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
     );
 }
 
@@ -552,7 +552,7 @@ fn output_recording_fails_with_result_literal_zero() {
 
     assert_error(
         &error,
-        &expect!["OutputResultLiteral(Span { lo: 50, hi: 54 })"],
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
     );
 }
 
@@ -572,7 +572,7 @@ fn output_recording_fails_with_result_literal_in_array() {
 
     assert_error(
         &error,
-        &expect!["OutputResultLiteral(Span { lo: 50, hi: 54 })"],
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
     );
 }
 
@@ -592,6 +592,6 @@ fn output_recording_fails_with_result_literal_in_tuple() {
 
     assert_error(
         &error,
-        &expect!["OutputResultLiteral(Span { lo: 50, hi: 54 })"],
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
     );
 }

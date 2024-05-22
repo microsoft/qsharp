@@ -438,10 +438,14 @@ impl Interpreter {
             &entry,
         )
         .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
             let source_package = self
                 .compiler
                 .package_store()
-                .get(map_fir_package_to_hir(self.package))
+                .get(hir_package_id)
                 .expect("package should exist in the package store");
             vec![Error::PartialEvaluation(WithSource::from_map(
                 &source_package.sources,
@@ -614,7 +618,10 @@ impl Interpreter {
 
         let compute_properties = cap_results.map_err(|caps_errors| {
             // if there are errors, convert them to interpreter errors
-            // and don't update the lowerer or FIR store.
+            // and revert the update to the lowerer/FIR store.
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer.revert_last_increment(fir_package);
+
             let source_package = self
                 .compiler
                 .package_store()
