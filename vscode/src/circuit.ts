@@ -10,7 +10,6 @@ import {
   IRange,
   ProgramConfig,
   TargetProfile,
-  VSDiagnostic,
   getCompilerWorker,
   log,
 } from "qsharp-lang";
@@ -268,7 +267,7 @@ async function getCircuitOrError(
     if (typeof e === "string") {
       try {
         errors = JSON.parse(e);
-        resultCompError = hasResultComparisonError(e);
+        resultCompError = hasResultComparisonError(errors);
       } catch (e) {
         // couldn't parse the error - would indicate a bug.
         // will get reported up the stack as a generic error
@@ -284,13 +283,12 @@ async function getCircuitOrError(
   }
 }
 
-function hasResultComparisonError(e: unknown) {
-  const errors: [string, VSDiagnostic, string][] =
-    typeof e === "string" ? JSON.parse(e) : undefined;
+function hasResultComparisonError(errors: IQSharpError[]) {
   const hasResultComparisonError =
     errors &&
     errors.findIndex(
-      ([, diag]) => diag.code === "Qsc.Eval.ResultComparisonUnsupported",
+      (item) =>
+        item?.diagnostic?.code === "Qsc.Eval.ResultComparisonUnsupported",
     ) >= 0;
   return hasResultComparisonError;
 }
