@@ -351,7 +351,7 @@ impl NamespaceTreeNode {
         if self.children.is_empty() {
             result.push_str("empty node");
         } else {
-            result.push_str(&format!("\n{}  children: [", indentation));
+            result.push_str(&format!("\n{indentation}  children: ["));
             for (name, node) in &self.children {
                 result.push_str(&format!(
                     "\n{}    {}(id {}) {{",
@@ -360,17 +360,16 @@ impl NamespaceTreeNode {
                     Into::<usize>::into(node.borrow().id)
                 ));
                 result.push_str(
-                    &node
-                        .borrow()
+                    node.borrow()
                         .debug_print(indentation_level + 2, visited_nodes)
                         .as_str(),
                 );
-                result.push_str(",");
+                result.push(',');
             }
-            result.push_str(&format!("\n{}  ]", indentation));
-            result.push_str(&format!("\n{}", indentation));
+            result.push_str(&format!("\n{indentation}  ]"));
+            result.push_str(&format!("\n{indentation}"));
         }
-        result.push_str("}");
+        result.push('}');
         result
     }
 }

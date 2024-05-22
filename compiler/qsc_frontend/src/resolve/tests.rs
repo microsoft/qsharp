@@ -3574,3 +3574,39 @@ fn export_direct_cycle() {
         "#]],
     );
 }
+
+#[test]
+fn export_namespace_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                export { Foo.Bar as Baz };
+            }
+            namespace Test {
+                open Main.Baz;
+                operation Main() : Unit {
+                    ApplyX();
+                    Main.Baz.ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+            }
+            namespace namespace9 {
+                export { namespace8 };
+            }
+            namespace namespace10 {
+                open namespace8;
+                operation item4() : Unit {
+                    item1();
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
