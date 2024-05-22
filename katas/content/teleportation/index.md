@@ -33,3 +33,33 @@ We split the teleportation protocol into several steps:
         "./Common.qs"
     ]
 })
+
+@[exercise]({
+    "id": "teleportation__send_message",
+    "title": "Send the message (Alice's task)",
+    "path": "./send_the_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message",
+    "title": "Reconstruct the message (Bob's task)",
+    "path": "./reconstruct_the_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__standard_teleportation_protocol",
+    "title": "Standard Teleportation Protocol",
+    "path": "./standard_teleportation_protocol/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
