@@ -482,7 +482,7 @@ fn code_with_errors_returns_errors() {
 
     expect![[r#"
         Err(
-            "[{\"message\": \"syntax error\",\"code\": \"Qsc.Parse.Token\",\"severity\": \"error\",\"causes\": [\"expected `;`, found keyword `let`\"],\"filename\": \"test.qs\",\"labels\": [{\"span\": {\"offset\": 129,\"length\": 3}}],\"related\": []}]",
+            "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
         )
     "#]]
     .assert_debug_eq(&_get_qir(sources, language_features, capabilities));

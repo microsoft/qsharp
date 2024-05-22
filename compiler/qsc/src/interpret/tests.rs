@@ -517,22 +517,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn callables_failing_profile_validation_are_still_registered() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_are_not_registered() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -540,30 +525,31 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
-            // if the callable wasn't registered, this would panic instead of returning an error.
-            verify_same_error(&result, &output);
+            // since the callable wasn't registered, this will return an unbound name error.
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                runtime error: name is not bound
+                   [line_1] [Foo]
+            "#]],
+            );
         }
 
         #[test]
-        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_also_fail_qir_generation() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -571,7 +557,68 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
+            let res = interpreter.qirgen("{Foo();}");
+            expect![[r#"
+                Err(
+                    [
+                        PartialEvaluation(
+                            WithSource {
+                                sources: [
+                                    Source {
+                                        name: "<entry>",
+                                        contents: "{Foo();}",
+                                        offset: 97,
+                                    },
+                                ],
+                                error: EvaluationFailed(
+                                    "name is not bound",
+                                    PackageSpan {
+                                        package: PackageId(
+                                            3,
+                                        ),
+                                        span: Span {
+                                            lo: 98,
+                                            hi: 101,
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            "#]]
+            .assert_debug_eq(&res);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_do_not_fail() {
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(
                 &mut interpreter,
@@ -579,7 +626,7 @@ mod given_interpreter {
                     let y = 7;
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_value(&result, &output, &Value::unit());
         }
 
         #[test]

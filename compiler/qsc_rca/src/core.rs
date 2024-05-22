@@ -547,10 +547,12 @@ impl<'a> Analyzer<'a> {
         };
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
-        let global_callee = self
-            .package_store
-            .get_global(callee.item)
-            .expect("global should exist");
+        let Some(global_callee) = self.package_store.get_global(callee.item) else {
+            // If the callee is not found, that is an indication that it is an item that was removed during
+            // incremental compilation but remains in the name resolution data structures. Assume it is classical
+            // so that it generates an "unbound name" error at runtime.
+            return CallComputeKind::Regular(ComputeKind::Classical);
+        };
         match global_callee {
             Global::Callable(callable_decl) => self.analyze_expr_call_with_spec_callee(
                 &callee,
