@@ -86,7 +86,11 @@ pub struct NamespaceTreeRoot {
 impl std::fmt::Debug for NamespaceTreeRoot {
     // manual implementation to avoid infinite loops in printing
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "NamespaceTreeRoot\n{}", self.tree.borrow().debug_print(0, &mut FxHashSet::default()))
+        write!(
+            f,
+            "NamespaceTreeRoot\n{}",
+            self.tree.borrow().debug_print(0, &mut FxHashSet::default())
+        )
     }
 }
 
@@ -95,7 +99,6 @@ impl std::fmt::Debug for NamespaceTreeNode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.debug_print(0, &mut FxHashSet::default()))
     }
-
 }
 
 impl NamespaceTreeRoot {
@@ -330,7 +333,11 @@ impl NamespaceTreeNode {
         None
     }
 
-    fn debug_print(&self, indentation_level: usize, visited_nodes: &mut FxHashSet<NamespaceId>) -> String {
+    fn debug_print(
+        &self,
+        indentation_level: usize,
+        visited_nodes: &mut FxHashSet<NamespaceId>,
+    ) -> String {
         let indentation = "  ".repeat(indentation_level);
 
         if visited_nodes.contains(&self.id) {
@@ -339,7 +346,6 @@ impl NamespaceTreeNode {
 
         visited_nodes.insert(self.id);
 
-
         let mut result = String::new();
 
         if self.children.is_empty() {
@@ -347,8 +353,18 @@ impl NamespaceTreeNode {
         } else {
             result.push_str(&format!("\n{}  children: [", indentation));
             for (name, node) in &self.children {
-                result.push_str(&format!("\n{}    {}(id {}) {{", indentation, name, Into::<usize>::into(node.borrow().id)));
-                result.push_str(&node.borrow().debug_print(indentation_level + 2, visited_nodes).as_str());
+                result.push_str(&format!(
+                    "\n{}    {}(id {}) {{",
+                    indentation,
+                    name,
+                    Into::<usize>::into(node.borrow().id)
+                ));
+                result.push_str(
+                    &node
+                        .borrow()
+                        .debug_print(indentation_level + 2, visited_nodes)
+                        .as_str(),
+                );
                 result.push_str(",");
             }
             result.push_str(&format!("\n{}  ]", indentation));
