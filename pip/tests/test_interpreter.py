@@ -281,6 +281,10 @@ def test_callables_failing_profile_validation_are_not_registered() -> None:
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
         )
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
+    # In this case, the callable Foo failed compilation late enough that the symbol is bound. This makes later
+    # use of `Foo` valid from a name resolution standpoint, but the callable cannot be invoked because it was found
+    # to be invalid for the current profile. To stay consistent with the behavior of other compilations that
+    # leave unbound symbols, the call will compile but fail to run.
     with pytest.raises(Exception) as excinfo:
         e.interpret("Foo()")
     assert "Qsc.Eval.UnboundName" in str(excinfo)

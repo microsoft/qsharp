@@ -534,7 +534,8 @@ mod given_interpreter {
                 cannot use a dynamic integer value
                    [line_0] [x]
             "#]],
-            ); // do something innocuous
+            );
+            // do something innocuous
             let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
             // since the callable wasn't registered, this will return an unbound name error.
             is_only_error(
@@ -545,6 +546,58 @@ mod given_interpreter {
                    [line_1] [Foo]
             "#]],
             );
+        }
+
+        #[test]
+        fn callables_failing_profile_validation_also_fail_qir_generation() {
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
+            let res = interpreter.qirgen("{Foo();}");
+            expect![[r#"
+                Err(
+                    [
+                        PartialEvaluation(
+                            WithSource {
+                                sources: [
+                                    Source {
+                                        name: "<entry>",
+                                        contents: "{Foo();}",
+                                        offset: 97,
+                                    },
+                                ],
+                                error: EvaluationFailed(
+                                    "name is not bound",
+                                    PackageSpan {
+                                        package: PackageId(
+                                            3,
+                                        ),
+                                        span: Span {
+                                            lo: 98,
+                                            hi: 101,
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            "#]]
+            .assert_debug_eq(&res);
         }
 
         #[test]
