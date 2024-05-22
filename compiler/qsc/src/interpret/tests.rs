@@ -548,22 +548,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn once_rca_validation_fails_following_calls_do_not_fail() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -571,7 +556,16 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(
                 &mut interpreter,
@@ -579,7 +573,7 @@ mod given_interpreter {
                     let y = 7;
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_value(&result, &output, &Value::unit());
         }
 
         #[test]
