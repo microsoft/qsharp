@@ -22,7 +22,37 @@ fn code_with_errors_returns_errors() {
 
     expect![[r#"
         Err(
-            "Failed to generate QIR. Could not compile sources.:\nsyntax error\n",
+            [
+                Compile(
+                    WithSource {
+                        sources: [
+                            Source {
+                                name: "test.qs",
+                                contents: "namespace Test {\n            @EntryPoint()\n            operation Main() : Unit {\n                use q = Qubit()\n                let pi_over_two = 4.0 / 2.0;\n            }\n        }",
+                                offset: 0,
+                            },
+                        ],
+                        error: Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        Token(
+                                            Semi,
+                                            Keyword(
+                                                Let,
+                                            ),
+                                            Span {
+                                                lo: 129,
+                                                hi: 132,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    },
+                ),
+            ],
         )
     "#]]
     .assert_debug_eq(&get_qir(sources, language_features, capabilities));

@@ -517,22 +517,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn callables_failing_profile_validation_are_still_registered() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_are_not_registered() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -540,30 +525,31 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
-            // if the callable wasn't registered, this would panic instead of returning an error.
-            verify_same_error(&result, &output);
+            // since the callable wasn't registered, this will return an unbound name error.
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                runtime error: name is not bound
+                   [line_1] [Foo]
+            "#]],
+            );
         }
 
         #[test]
-        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_also_fail_qir_generation() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -571,7 +557,68 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
+            let res = interpreter.qirgen("{Foo();}");
+            expect![[r#"
+                Err(
+                    [
+                        PartialEvaluation(
+                            WithSource {
+                                sources: [
+                                    Source {
+                                        name: "<entry>",
+                                        contents: "{Foo();}",
+                                        offset: 97,
+                                    },
+                                ],
+                                error: EvaluationFailed(
+                                    "name is not bound",
+                                    PackageSpan {
+                                        package: PackageId(
+                                            3,
+                                        ),
+                                        span: Span {
+                                            lo: 98,
+                                            hi: 101,
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            "#]]
+            .assert_debug_eq(&res);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_do_not_fail() {
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(
                 &mut interpreter,
@@ -579,7 +626,7 @@ mod given_interpreter {
                     let y = 7;
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_value(&result, &output, &Value::unit());
         }
 
         #[test]
@@ -654,7 +701,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn normal_qirgen() {
+        fn base_qirgen() {
             let mut interpreter = Interpreter::new(
                 true,
                 SourceMap::default(),
@@ -674,37 +721,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -924,37 +956,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -993,37 +1010,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1102,37 +1104,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1184,37 +1171,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1246,9 +1218,9 @@ mod given_interpreter {
             is_error(
                 &res,
                 &expect![[r#"
-                non-Result return type in entry expression
-                   [<entry>] [1]
-            "#]],
+                    cannot use an integer value as an output
+                       [<entry>] [1]
+                "#]],
             );
         }
 

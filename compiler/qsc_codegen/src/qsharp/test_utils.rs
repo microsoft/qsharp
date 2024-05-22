@@ -34,13 +34,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
     let mut std = compile::std(&store, TargetCapabilityFlags::empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::empty()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std = store.insert(std);
 
     let mut unit = compile(
@@ -51,13 +45,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
         LanguageFeatures::empty(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    assert!(run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib,).is_empty());
     let package_id = store.insert(unit);
     (package_id, store)
 }

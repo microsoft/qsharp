@@ -130,7 +130,7 @@ export function Editor(props: {
 
     const config = {
       sources: [["code", code]],
-      languageFeatures: ["preview-qir-gen"],
+      languageFeatures: [],
       profile: profile,
     } as ProgramConfig;
 
@@ -183,7 +183,7 @@ export function Editor(props: {
     props.evtTarget.clearResults();
     const config = {
       sources: [["code", code]],
-      languageFeatures: ["preview-qir-gen"],
+      languageFeatures: [],
       profile: profile,
     } as ProgramConfig;
 

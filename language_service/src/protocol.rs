@@ -10,6 +10,7 @@ use qsc_project::Manifest;
 pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
+    pub language_features: Option<LanguageFeatures>,
 }
 
 #[derive(Debug)]
