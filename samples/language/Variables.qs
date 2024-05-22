@@ -30,18 +30,14 @@ namespace MyQuantumApp {
         newtype Point3d = (X : Double, Y : Double, Z : Double);
 
         mutable point = Point3d(0.0, 0.0, 0.0);
-        Message($"Point before mutation: {point}");
 
         // The below line mutates `point`, moving the X coordinate by +1.0,
         // using evaluate-and-reassign.
         set point w/= X <- point::X + 1.0;
-        Message($"Point after evaluate-and-reassign mutation: {point}");
 
         // The below line also mutates `point`, moving the X coordinate by -1.0,
         // using copy-and-update.
         set point = point w/ X <- point::X + 1.0;
-        Message($"Point after copy-and-update mutation: {point}");
-
     }
 
 }

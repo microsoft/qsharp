@@ -10,7 +10,6 @@ namespace MyQuantumApp {
         // After the execution of the function `Returns42`, control flow
         // will return to this scope.
         let number42 = Returns42();
-        Message(number42);
         // No return is required here, because the `Main` callable returns `Unit`.
     }
 
