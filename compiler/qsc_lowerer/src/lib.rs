@@ -159,16 +159,16 @@ impl Lowerer {
 
     pub fn revert_last_increment(&mut self, package: &mut fir::Package) {
         for id in self.fir_increment.blocks.drain(..) {
-            self.blocks.remove(id);
+            package.blocks.remove(id);
         }
         for id in self.fir_increment.exprs.drain(..) {
-            self.exprs.remove(id);
+            package.exprs.remove(id);
         }
         for id in self.fir_increment.pats.drain(..) {
-            self.pats.remove(id);
+            package.pats.remove(id);
         }
         for id in self.fir_increment.stmts.drain(..) {
-            self.stmts.remove(id);
+            package.stmts.remove(id);
         }
         for id in self.fir_increment.items.drain(..) {
             package.items.remove(id);
