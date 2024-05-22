@@ -618,7 +618,10 @@ impl Interpreter {
 
         let compute_properties = cap_results.map_err(|caps_errors| {
             // if there are errors, convert them to interpreter errors
-            // and don't update the lowerer or FIR store.
+            // and revert the update to the lowerer/FIR store.
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer.revert_last_increment(fir_package);
+
             let source_package = self
                 .compiler
                 .package_store()
