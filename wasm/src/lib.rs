@@ -296,6 +296,7 @@ fn run_internal_with_features<F>(
     event_cb: F,
     shots: u32,
     language_features: LanguageFeatures,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -311,7 +312,7 @@ where
         true,
         sources,
         PackageType::Exe,
-        Profile::Unrestricted.into(),
+        capabilities,
         language_features,
     ) {
         Ok(interpreter) => interpreter,
@@ -353,6 +354,7 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
     language_features: Vec<String>,
+    profile: &str,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -365,7 +367,15 @@ pub fn run(
         // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
     };
-    match run_internal_with_features(sources, event_cb, shots, language_features) {
+    match run_internal_with_features(
+        sources,
+        event_cb,
+        shots,
+        language_features,
+        Profile::from_str(profile)
+            .map_err(|()| format!("Invalid target profile {profile}"))?
+            .into(),
+    ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
