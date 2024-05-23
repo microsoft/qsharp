@@ -63,17 +63,17 @@ fn qubit_reindexed_after_reset_removes_reset() {
 #[test]
 fn qubit_reindexed_after_mz() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(X, x_decl());
-    program.callables.insert(MZ, m_decl());
+    program.callables.insert(M, m_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -82,7 +82,7 @@ fn qubit_reindexed_after_mz() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
