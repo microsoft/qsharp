@@ -12,7 +12,7 @@ use qsc_ast::{
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 
-use qsc_ast::ast::{ExportDecl, ImportDecl, Item, ItemKind, Package};
+use qsc_ast::ast::{ExportDecl, ExportItem, ImportDecl, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
@@ -730,36 +730,10 @@ impl Resolver {
         // lowering
 
         for item in export.items() {
-            // try to see if it is a term
-            let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
-                Ok(res) => (res, NameKind::Term),
-                Err(_) => {
-                    // try to see if it is a type
-                    match self.resolve_path(NameKind::Ty, &item.path) {
-                        Ok(res) => (res, NameKind::Ty),
-                        Err(err) => {
-                            // try to see if it is a namespace
-                            let items = Into::<Idents>::into(item.path.clone());
-                            let ns = self.globals.find_namespace(items.str_iter());
-                            let alias = item
-                                .alias
-                                .as_ref()
-                                .map(|x| Box::new(x.clone()))
-                                .unwrap_or(item.path.name.clone());
-                            if let Some(namespace_id_to_export) = ns {
-                                // update the namespace tree to include the new namespace
-                                self.globals.namespaces.insert_with_id(
-                                    current_namespace,
-                                    namespace_id_to_export,
-                                    &alias.name,
-                                );
-                            } else if !self.errors.contains(&err) {
-                                self.errors.push(err);
-                            }
-                            continue;
-                        }
-                    }
-                }
+            let Some((resolved_item, term_or_ty)) =
+                self.bind_exported_path_of_unknown_name_kind(current_namespace, item)
+            else {
+                continue;
             };
 
             let scope = self.current_scope_mut();
@@ -847,6 +821,46 @@ impl Resolver {
             }
 
             self.names.insert(item.path.id, resolved_item);
+        }
+    }
+
+    /// This function performs the logic to see if a path is a ty, term, or namespace, and then
+    /// performs the appropriate logic to bind the path.
+    fn bind_exported_path_of_unknown_name_kind(
+        &mut self,
+        current_namespace: Option<NamespaceId>,
+        item: &ExportItem,
+    ) -> Option<(Res, NameKind)> {
+        // try to see if it is a term
+        match self.resolve_path(NameKind::Term, &item.path) {
+            Ok(res) => Some((res, NameKind::Term)),
+            Err(_) => {
+                // try to see if it is a type
+                match self.resolve_path(NameKind::Ty, &item.path) {
+                    Ok(res) => Some((res, NameKind::Ty)),
+                    Err(err) => {
+                        // try to see if it is a namespace
+                        let items = Into::<Idents>::into(item.path.clone());
+                        let ns = self.globals.find_namespace(items.str_iter());
+                        let alias = item
+                            .alias
+                            .as_ref()
+                            .map(|x| Box::new(x.clone()))
+                            .unwrap_or(item.path.name.clone());
+                        if let Some(namespace_id_to_export) = ns {
+                            // update the namespace tree to include the new namespace
+                            self.globals.namespaces.insert_with_id(
+                                current_namespace,
+                                namespace_id_to_export,
+                                &alias.name,
+                            );
+                        } else if !self.errors.contains(&err) {
+                            self.errors.push(err);
+                        }
+                        None
+                    }
+                }
+            }
         }
     }
 
