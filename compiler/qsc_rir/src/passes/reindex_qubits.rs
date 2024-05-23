@@ -32,7 +32,7 @@ struct BlockQubitMap {
 pub fn reindex_qubits(program: &mut Program) {
     validate_assumptions(program);
 
-    let (used_mz, mz_id) = match find_callable(program, "__quantum__qis__mz__body") {
+    let (used_mz, mz_id) = match find_callable(program, "__quantum__qis__m__body") {
         Some(id) => (true, id),
         None => (false, add_mz(program)),
     };
@@ -277,7 +277,7 @@ fn add_mz(program: &mut Program) -> CallableId {
             .expect("should be at least one callable")
             + 1,
     );
-    program.callables.insert(mz_id, builder::mz_decl());
+    program.callables.insert(mz_id, builder::m_decl());
     mz_id
 }
 

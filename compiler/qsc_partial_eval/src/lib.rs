@@ -1256,7 +1256,7 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
-            "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::mz_decl(), args_value)),
+            "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
                 Ok(self.measure_qubit(builder::mresetz_decl(), args_value))
             }
