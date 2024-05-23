@@ -702,6 +702,7 @@ impl State {
     }
 
     #[allow(clippy::similar_names)]
+    #[allow(clippy::too_many_lines)]
     fn eval_expr(
         &mut self,
         env: &mut Env,
@@ -787,6 +788,12 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
+            ExprKind::Struct(..) => {
+                return Err(Error::UserFail(
+                    self.take_val_register().unwrap_string().to_string(),
+                    self.to_global_span(expr.span),
+                )); // TODO: this is a temp copy of the Fail logic, needs proper impl
+            }
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;

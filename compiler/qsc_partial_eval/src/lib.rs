@@ -918,6 +918,9 @@ impl<'a> PartialEvaluator<'a> {
                 panic!("instruction generation for range expressions is invalid")
             }
             ExprKind::Return(expr_id) => self.eval_expr_return(*expr_id),
+            ExprKind::Struct(..) => {
+                panic!("instruction generation for struct constructor expressions is invalid")
+            }
             ExprKind::String(_) => {
                 panic!("instruction generation for string expressions is invalid")
             }

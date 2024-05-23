@@ -16,9 +16,9 @@ use qsc_fir::{
     extensions::InputParam,
     fir::{
         BinOp, Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind,
-        Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId, PackageLookup,
-        PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt,
-        StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
+        FieldAssign, Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId,
+        PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl,
+        SpecImpl, Stmt, StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
     visit::Visitor,
@@ -823,6 +823,38 @@ impl<'a> Analyzer<'a> {
         let value_expr_compute_kind = *application_instance.get_expr_compute_kind(value_expr_id);
         compute_kind =
             compute_kind.aggregate_runtime_features(value_expr_compute_kind, default_value_kind);
+        compute_kind
+    }
+
+    fn analyze_expr_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) -> ComputeKind {
+        let default_value_kind = ValueKind::Element(RuntimeKind::Static);
+        let mut compute_kind = ComputeKind::Classical;
+        let mut has_dynamic_sub_exprs = false;
+        if let Some(copy_expr_id) = copy {
+            // Visit the copy expression to determine its compute kind.
+            self.visit_expr(copy_expr_id);
+            let application_instance = self.get_current_application_instance();
+            let expr_compute_kind = *application_instance.get_expr_compute_kind(copy_expr_id);
+            compute_kind =
+                compute_kind.aggregate_runtime_features(expr_compute_kind, default_value_kind);
+            has_dynamic_sub_exprs |= expr_compute_kind.is_dynamic();
+        }
+
+        // Visit the fields to determine their compute kind.
+        for expr_id in fields.iter().map(|field| field.value) {
+            self.visit_expr(expr_id);
+            let application_instance = self.get_current_application_instance();
+            let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+            compute_kind =
+                compute_kind.aggregate_runtime_features(expr_compute_kind, default_value_kind);
+            has_dynamic_sub_exprs |= expr_compute_kind.is_dynamic();
+        }
+
+        // If any of the sub-expressions are dynamic, then the tuple expression is dynamic as well.
+        if has_dynamic_sub_exprs {
+            compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
+        }
+
         compute_kind
     }
 
@@ -1715,6 +1747,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     .push((expr_id, *value_expr_id));
                 compute_kind
             }
+            ExprKind::Struct(_, copy, fields) => self.analyze_expr_struct(*copy, fields),
             ExprKind::String(components) => self.analyze_expr_string(components),
             ExprKind::Tuple(exprs) => self.analyze_expr_tuple(exprs),
             ExprKind::UnOp(_, operand_expr_id) => self.analyze_expr_un_op(*operand_expr_id),
@@ -1737,7 +1770,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         // the final compute kind for the expression.
         if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
             // Since the value kind does not handle all type structures (e.g. it does not handle the structure of a
-            // tuple type), there could be a mistmatch between the expected value kind variant for the expression's type
+            // tuple type), there could be a mismatch between the expected value kind variant for the expression's type
             // and the value kind that we got.
             // We fix this mismatch here.
             let mut value_kind = ValueKind::new_static_from_type(&expr.ty);
@@ -1747,7 +1780,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             quantum_properties.value_kind = value_kind;
         }
 
-        // Finally, insert the expresion's compute kind in the application instance.
+        // Finally, insert the expression's compute kind in the application instance.
         let application_instance = self.get_current_application_instance_mut();
         application_instance.insert_expr_compute_kind(expr_id, compute_kind);
     }
