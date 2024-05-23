@@ -205,6 +205,27 @@ impl Interpreter {
 
         let source_package_id = compiler.source_package_id();
         let package_id = compiler.package_id();
+
+        let package = map_hir_package_to_fir(package_id);
+        if capabilities != TargetCapabilityFlags::all() {
+            let _ = PassContext::run_fir_passes_on_fir(
+                &fir_store,
+                map_hir_package_to_fir(source_package_id),
+                capabilities,
+            )
+            .map_err(|caps_errors| {
+                let source_package = compiler
+                    .package_store()
+                    .get(source_package_id)
+                    .expect("package should exist in the package store");
+
+                caps_errors
+                    .into_iter()
+                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                    .collect::<Vec<_>>()
+            })?;
+        }
+
         Ok(Self {
             compiler,
             lines: 0,
@@ -215,7 +236,7 @@ impl Interpreter {
             sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
-            package: map_hir_package_to_fir(package_id),
+            package,
             source_package: map_hir_package_to_fir(source_package_id),
         })
     }
