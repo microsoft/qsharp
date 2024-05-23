@@ -313,14 +313,14 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -457,14 +457,14 @@ fn call_to_operation_that_returns_measurement_result() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let output_recording_callable_id = CallableId(2);
     assert_callable(
@@ -511,14 +511,14 @@ fn call_to_operation_that_returns_dynamic_bool() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -644,14 +644,14 @@ fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches(
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
