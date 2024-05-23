@@ -38,6 +38,7 @@ namespace MyQuantumApp {
         // The below line also mutates `point`, moving the X coordinate by -1.0,
         // using copy-and-update.
         set point = point w/ X <- point::X + 1.0;
+
     }
 
 }

@@ -10,7 +10,7 @@
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
-        let fahrenheit = 40;
+        let fahrenheit = -40;
 
         // The below ternary expression sets the value of `fahrenheit` to its absolute value.
         // `fahrenheit` if `fahrenheit` is positive,
