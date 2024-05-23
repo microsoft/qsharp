@@ -426,7 +426,7 @@ def test_base_qir_can_be_generated() -> None:
           call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           ret void
         }
@@ -435,7 +435,7 @@ def test_base_qir_can_be_generated() -> None:
 
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-        declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
         attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="1" }
         attributes #1 = { "irreversible" }
