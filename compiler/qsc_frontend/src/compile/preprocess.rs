@@ -3,7 +3,7 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
+    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind, UnOp},
     mut_visit::MutVisitor,
 };
 use qsc_hir::hir;
@@ -131,6 +131,7 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
         return true;
     }
     let mut found_capabilities = TargetCapabilityFlags::empty();
+    let mut disallowed_capabilities = TargetCapabilityFlags::empty();
 
     for attr in attrs {
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
@@ -143,6 +144,19 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
                         return true; // Unknown capability, so we assume it matches
                     }
                 }
+                ExprKind::UnOp(UnOp::NotL, inner) => {
+                    if let ExprKind::Path(path) = inner.kind.as_ref() {
+                        if let Ok(capability) =
+                            TargetCapabilityFlags::from_str(path.name.name.as_ref())
+                        {
+                            disallowed_capabilities |= capability;
+                        } else {
+                            return true; // Unknown capability, so we assume it matches
+                        }
+                    } else {
+                        return true; // Unknown config attribute, so we assume it matches
+                    }
+                }
                 _ => return true, // Unknown config attribute, so we assume it matches
             }
         } else {
@@ -150,10 +164,11 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
             return true;
         }
     }
-    if found_capabilities == TargetCapabilityFlags::empty() {
-        // There was at least one config attribute, but it was None
+    if found_capabilities.is_empty() && disallowed_capabilities.is_empty() {
+        // There was at least one config attribute, but it was Base
         // Therefore, we only match if there are no capabilities
         return capabilities == TargetCapabilityFlags::empty();
     }
     capabilities.contains(found_capabilities)
+        && (disallowed_capabilities.is_empty() || !capabilities.contains(disallowed_capabilities))
 }
