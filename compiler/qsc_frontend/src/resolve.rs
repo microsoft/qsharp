@@ -12,7 +12,7 @@ use qsc_ast::{
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 
-use qsc_ast::ast::{ExportDecl, ImportDecl, Item, ItemKind, Package};
+use qsc_ast::ast::{ExportDecl, ImportDecl, ImportItem, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
@@ -135,6 +135,11 @@ pub(super) enum Error {
     #[diagnostic(help("alias this import or rename the existing symbol"))]
     #[diagnostic(code("Qsc.Resolve.ImportedDuplicate"))]
     ImportedDuplicate(String, Span),
+
+    #[error("glob import does not resolve to a namespace")]
+    #[diagnostic(help("ensure the path {0} exists and is a namespace"))]
+    #[diagnostic(code("Qsc.Resolve.GlobImportNamespaceNotFound"))]
+    GlobImportNamespaceNotFound(String, Span),
 }
 
 #[derive(Debug, Clone)]
@@ -852,6 +857,10 @@ impl Resolver {
 
     fn bind_import(&mut self, import: &ImportDecl) {
         for item in &import.items {
+            if item.is_glob {
+                self.bind_glob_import(item);
+                continue;
+            }
             // try to see if it is a term
             let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
                 Ok(res) => (res, NameKind::Term),
@@ -917,6 +926,23 @@ impl Resolver {
 
             // insert the item into the names we know about
             self.names.insert(item.path.id, resolved_item);
+        }
+    }
+
+    /// Very similar to [`bind_import`], but for glob imports.
+    /// Globs can only be attached to namespaces, and
+    /// they import all items from the namespace into the current scope.
+    fn bind_glob_import(&mut self, item: &ImportItem) {
+        let items = Into::<Idents>::into(item.path.clone());
+        let ns = self.globals.find_namespace(items.str_iter());
+        let alias = item.alias.as_ref().map(|x| Box::new(x.clone()));
+        if let Some(ns) = ns {
+            self.bind_open(&items, &alias, ns);
+        } else {
+            self.errors.push(Error::GlobImportNamespaceNotFound(
+                item.path.name(),
+                item.path.span,
+            ));
         }
     }
 

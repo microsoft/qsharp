@@ -16,6 +16,8 @@ use super::{
     ty::{self, ty},
     Error, Result,
 };
+use crate::lex::ClosedBinOp;
+use crate::prim::FinalSep;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -574,7 +576,9 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Import))?;
-    let (base_path, _) = seq(s, ident, TokenKind::Dot)?;
+    let (base_path, _) = seq(s, ident, TokenKind::Dot, false)?;
+    let base_path = base_path.into_iter().map(|x| *x).collect::<Vec<_>>();
+
     if base_path.is_empty() {
         return Err(Error(ErrorKind::Rule(
             "identifier",
@@ -582,7 +586,14 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
             s.peek().span,
         )));
     }
-    let base_path: Vec<Ident> = base_path.into_iter().map(|x| *x).collect();
+
+    let is_glob = if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
+        token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star))?;
+        true
+    } else {
+        false
+    };
+
     let mut brace_stack = 0;
     let items = match s.peek().kind {
         TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, &base_path, &mut brace_stack)?,
@@ -591,6 +602,7 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
                 span: s.span(lo),
                 path: base_path.into(),
                 alias: None,
+                is_glob,
             }]
         }
         TokenKind::Keyword(Keyword::As) => {
@@ -600,6 +612,7 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
                 span: s.span(lo),
                 path: base_path.into(),
                 alias: Some(*alias),
+                is_glob,
             }]
         }
         other_tok => {
@@ -627,42 +640,50 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     })
 }
 
-// Parse multiple imports
+/// Parses a sequence of imports within a single import statement.
 fn parse_multiple_imports(
     s: &mut ParserContext,
     parent: &[Ident],
     brace_stack: &mut i32,
 ) -> Result<Vec<ImportItem>> {
     let mut imports = Vec::new();
+    let mut full_path = parent.to_owned();
 
     loop {
-        let mut full_path = parent.to_owned();
-        let (import, _final_sep) = seq(s, ident, TokenKind::Dot)?;
-        let mut import: Vec<_> = import.into_iter().map(|x| *x).collect();
+        let mut is_glob = false;
+        if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
+            token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star))?;
+            is_glob = true;
+        }
+
+        let (import, final_sep) = seq(s, ident, TokenKind::Dot, false)?;
+        let mut import = import.into_iter().map(|x| *x).collect::<Vec<_>>();
 
         full_path.append(&mut import);
 
         match s.peek().kind {
             TokenKind::Comma => {
-                let full_path: Path = full_path.into();
+                let l_full_path: Path = full_path.clone().into();
                 imports.push(ImportItem {
-                    span: full_path.span,
-                    path: full_path,
+                    span: l_full_path.span,
+                    path: l_full_path,
                     alias: None,
+                    is_glob,
                 });
                 token(s, TokenKind::Comma)?;
                 reduce_closing_tokens(s, brace_stack)?;
-                continue;
+                full_path = parent.to_owned();
             }
             TokenKind::Close(Delim::Brace) => {
                 decrement_brace_stack(s, brace_stack)?;
 
-                let full_path: Path = full_path.into();
+                let l_full_path: Path = full_path.clone().into();
 
                 imports.push(ImportItem {
-                    span: full_path.span,
-                    path: full_path,
+                    span: l_full_path.span,
+                    path: l_full_path,
                     alias: None,
+                    is_glob,
                 });
                 token(s, TokenKind::Close(Delim::Brace))?;
                 reduce_closing_tokens(s, brace_stack)?;
@@ -674,18 +695,35 @@ fn parse_multiple_imports(
                 token(s, TokenKind::Open(Delim::Brace))?;
                 let nested_imports = parse_multiple_imports(s, &full_path, brace_stack)?;
                 imports.extend(nested_imports);
+                full_path = parent.to_owned();
             }
             TokenKind::Semi => break,
             TokenKind::Keyword(Keyword::As) => {
                 token(s, TokenKind::Keyword(Keyword::As))?;
                 let alias = Some(*ident(s)?);
-                let full_path: Path = full_path.into();
+                let l_full_path: Path = full_path.clone().into();
                 imports.push(ImportItem {
-                    span: full_path.span,
-                    path: full_path,
+                    span: l_full_path.span,
+                    path: l_full_path,
                     alias,
+                    is_glob,
                 });
                 reduce_closing_tokens(s, brace_stack)?;
+                full_path = parent.to_owned();
+            }
+            TokenKind::ClosedBinOp(ClosedBinOp::Star) => {
+                // two globs in a row is a syntax error
+                if is_glob {
+                    return Err(Error(ErrorKind::Rule(
+                        "identifier",
+                        s.peek().kind,
+                        s.peek().span,
+                    )));
+                }
+                // a * following an ident directly is a syntax error
+                if !(import.is_empty() && final_sep == FinalSep::Present) {
+                    return Err(Error(ErrorKind::Rule("dot", s.peek().kind, s.peek().span)));
+                }
             }
             a => {
                 return Err(Error(ErrorKind::Rule(
