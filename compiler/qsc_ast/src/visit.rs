@@ -106,7 +106,12 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
             vis.visit_ty_def(def);
         }
         ItemKind::Export(export) => {
-            export.items.iter().for_each(|i| vis.visit_path(&i.path));
+            for item in export.items.iter() {
+                vis.visit_path(&item.path);
+                if let Some(ref alias) = item.alias {
+                    vis.visit_ident(alias);
+                }
+            }
         }
         ItemKind::Import(import) => import.items.iter().for_each(|i| {
             vis.visit_path(&i.path);
