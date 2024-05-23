@@ -118,10 +118,12 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         }
         ItemKind::Export(export) => {
             vis.visit_span(&mut export.span);
-            export
-                .items
-                .iter_mut()
-                .for_each(|i| vis.visit_path(&mut i.path));
+            for item in export.items.iter_mut() {
+                vis.visit_path(&mut item.path);
+                if let Some(ref mut alias) = item.alias {
+                    vis.visit_ident(alias);
+                }
+            }
         }
     }
 }
