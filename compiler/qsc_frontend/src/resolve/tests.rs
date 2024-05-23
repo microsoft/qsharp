@@ -2298,6 +2298,64 @@ fn resolved_not_higher_level_and_adaptive_callable_from_adaptive() {
 }
 
 #[test]
+fn dropped_floating_point_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(FloatingPointComputations)
+                function Dropped() : Double {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(FloatingPointComputations)
+                function Dropped() : Double {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 123, hi: 130 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_adaptive_and_integer_from_adaptive_and_integer() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                @Config(IntegerComputations)
+                function Dropped() : Double {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                @Config(IntegerComputations)
+                function item1() : Double {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn multiple_definition_dropped_is_not_found() {
     check(
         indoc! {"
