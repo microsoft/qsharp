@@ -375,7 +375,7 @@ $$(AB)^\dagger = B^\dagger A^\dagger$$
     "title": "Unitary Matrices" 
 })
 
-**Unitary matrices** are very important for quantum computing. A matrix is unitary when it's invertible, and its inverse is equal to its adjoint: $U^{-1} = U^\dagger$. That is, an $n \times n$ square matrix $U$ is unitary if, and only if, $UU^\dagger = U^\dagger U = I_n$.
+**Unitary matrices** are very important for quantum computing. A matrix is unitary when it's invertible, and its inverse is equal to its adjoint: $U^{-1} = U^\dagger$. That is, an $n \times n$ square matrix $U$ is unitary if and only if $UU^\dagger = U^\dagger U = I_n$.
 
 ## 🔎 Analyze
 
