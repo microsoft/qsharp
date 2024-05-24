@@ -833,7 +833,7 @@ pub struct SpecImpl {
 impl Display for SpecImpl {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "SpecImpl:",)?;
+        write!(indent, "SpecImpl:")?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nbody: {}", self.body)?;
         match &self.adj {

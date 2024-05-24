@@ -1406,7 +1406,7 @@ impl Idents {
         self.into()
     }
 
-    /// the conjoined span of all idents in the `VecIdent`
+    /// the conjoined span of all idents in the `Idents`
     #[must_use]
     pub fn span(&self) -> Span {
         Span {

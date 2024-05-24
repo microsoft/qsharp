@@ -81,7 +81,7 @@ fn create_entry_from_callables(
                     qsc_hir::hir::SpecBody::Impl(_, block) => {
                         let arg = Expr {
                             id: assigner.next_node(),
-                            span: ep.span,
+                            span: ep.input.span,
                             ty: Ty::UNIT,
                             kind: ExprKind::Tuple(Vec::new()),
                         };
@@ -92,13 +92,13 @@ fn create_entry_from_callables(
                         };
                         let callee = Expr {
                             id: assigner.next_node(),
-                            span: ep.span,
+                            span: ep.name.span,
                             ty: block.ty.clone(),
                             kind: ExprKind::Var(Res::Item(item_id), Vec::new()),
                         };
                         let call = Expr {
                             id: assigner.next_node(),
-                            span: ep.name.span,
+                            span: Span::default(),
                             ty: block.ty.clone(),
                             kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
                         };

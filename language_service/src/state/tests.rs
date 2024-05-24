@@ -149,6 +149,9 @@ async fn close_last_doc_in_project() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -164,14 +167,13 @@ async fn close_last_doc_in_project() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 60,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -286,12 +288,11 @@ async fn compile_error() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             Ident,
                                             Span {
                                                 lo: 0,
-                                                hi: 9,
+                                                hi: 0,
                                             },
                                         ),
                                     ),
@@ -313,6 +314,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::AdaptiveRI),
         package_type: Some(PackageType::Lib),
+        language_features: None,
     });
 
     updater
@@ -358,6 +360,69 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
 }
 
 #[tokio::test]
+async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        package_type: Some(PackageType::Lib),
+        language_features: None,
+    });
+
+    updater
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
+        .await;
+
+    // we expect two errors, one for `set x = 2.0` and one for `x`
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "single/foo.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicBool(
+                                    Span {
+                                        lo: 86,
+                                        hi: 103,
+                                    },
+                                ),
+                            ),
+                        ),
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicDouble(
+                                    Span {
+                                        lo: 106,
+                                        hi: 117,
+                                    },
+                                ),
+                            ),
+                        ),
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicDouble(
+                                    Span {
+                                        lo: 121,
+                                        hi: 122,
+                                    },
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[tokio::test]
 async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
@@ -365,6 +430,7 @@ async fn package_type_update_causes_error() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: None,
         package_type: Some(PackageType::Lib),
+        language_features: None,
     });
 
     updater
@@ -385,6 +451,7 @@ async fn package_type_update_causes_error() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: None,
         package_type: Some(PackageType::Exe),
+        language_features: None,
     });
 
     expect_errors(
@@ -417,13 +484,14 @@ async fn target_profile_update_fixes_error() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: Some(PackageType::Lib),
+        language_features: None,
     });
 
     updater
         .update_document(
             "single/foo.qs",
             1,
-            r#"namespace Foo { operation Main() : Unit { if Zero == Zero { Message("hi") } } }"#,
+            r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
         )
         .await;
 
@@ -438,31 +506,11 @@ async fn target_profile_update_fixes_error() {
                     ),
                     [
                         Pass(
-                            BaseProfCk(
-                                ResultComparison(
+                            CapabilitiesCk(
+                                UseOfDynamicBool(
                                     Span {
-                                        lo: 45,
-                                        hi: 57,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            BaseProfCk(
-                                ResultLiteral(
-                                    Span {
-                                        lo: 45,
-                                        hi: 49,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            BaseProfCk(
-                                ResultLiteral(
-                                    Span {
-                                        lo: 53,
-                                        hi: 57,
+                                        lo: 62,
+                                        hi: 74,
                                     },
                                 ),
                             ),
@@ -476,6 +524,7 @@ async fn target_profile_update_fixes_error() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Unrestricted),
         package_type: None,
+        language_features: None,
     });
 
     expect_errors(
@@ -515,6 +564,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: None,
+        language_features: None,
     });
 
     expect_errors(
@@ -909,6 +959,9 @@ async fn update_doc_updates_project() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -999,6 +1052,9 @@ async fn close_doc_prioritizes_fs() {
                         offset: 59,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1014,14 +1070,13 @@ async fn close_doc_prioritizes_fs() {
                             Error(
                                 Parse(
                                     Error(
-                                        Token(
-                                            Eof,
+                                        ExpectedItem(
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 60,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -1078,6 +1133,9 @@ async fn delete_manifest() {
                         offset: 71,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1113,6 +1171,9 @@ async fn delete_manifest() {
                         offset: 0,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1157,6 +1218,9 @@ async fn delete_manifest_then_close() {
                         offset: 71,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1218,6 +1282,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1268,6 +1335,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1317,6 +1387,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1360,6 +1433,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                common_prefix: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
