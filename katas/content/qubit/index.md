@@ -114,7 +114,7 @@ Dirac notation isn't restricted to vectors $0$ and $1$; it can be used to repres
 
 $$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$$
 
-Several ket symbols have a generally accepted use, so you will see them often. For example, the following kets are used to represent the states that are superpositions of the basis states:
+Several ket symbols have a generally accepted use, so you will see them often. For example, the following kets are commonly used:
 
 <table>
     <tr>
