@@ -448,7 +448,6 @@ fn check_rca_for_immutable_dynamic_result_bound_to_result_from_classical_conditi
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#]],
     );
-
 }
 
 #[test]
