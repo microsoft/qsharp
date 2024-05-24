@@ -788,11 +788,63 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
-            ExprKind::Struct(..) => {
-                return Err(Error::UserFail(
-                    self.take_val_register().unwrap_string().to_string(),
-                    self.to_global_span(expr.span),
-                )); // TODO: this is a temp copy of the Fail logic, needs proper impl
+            ExprKind::Struct(_, copy, fields) => {
+                // Extract a flat list of field indexes.
+                let field_indexes = fields
+                    .iter()
+                    .map(|f| match &f.field {
+                        Field::Path(path) => match path.indices.as_slice() {
+                            &[i] => i,
+                            _ => panic!("field path for struct should have a single index"),
+                        },
+                        _ => panic!("invalid field for struct"),
+                    })
+                    .collect::<Vec<_>>();
+
+                match copy {
+                    Some(_) => {
+                        // Get the field values and the copy struct value.
+                        let field_vals = self.pop_vals(fields.len() + 1);
+                        let (copy, field_vals) =
+                            field_vals.split_first().expect("copy value is expected");
+
+                        // Make a clone of the copy struct value.
+                        let mut strct = match copy {
+                            Value::Tuple(vals) => {
+                                let mut clone_vals = vec![];
+                                for val in vals.iter() {
+                                    clone_vals.push(val.clone());
+                                }
+                                clone_vals
+                            }
+                            _ => panic!("tuple value is expected for struct copy value"),
+                        };
+
+                        // Insert the field values into the new struct.
+                        assert!(field_vals.len() == field_indexes.len(), "number of given field values should match the number of given struct fields");
+                        for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
+                            strct[*i] = val.clone();
+                        }
+
+                        self.set_val_register(Value::Tuple(Rc::from(strct)));
+                    }
+                    None => {
+                        let len = fields.len();
+                        // Get the field values.
+                        let field_vals = self.pop_vals(fields.len());
+
+                        // Make an empty struct of the appropriate size.
+                        let mut strct = vec![Value::Int(0); len];
+
+                        // Insert the field values into the new struct.
+                        assert!(field_vals.len() == field_indexes.len(), "number of given field values should match the number of given struct fields");
+                        for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
+                            strct[*i] = val.clone();
+                        }
+
+                        self.set_val_register(Value::Tuple(Rc::from(strct)));
+                    }
+                }
             }
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {

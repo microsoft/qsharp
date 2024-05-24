@@ -567,7 +567,11 @@ impl Lowerer {
             }
             hir::ExprKind::Struct(name, copy, fields) => {
                 let res = self.lower_res(name);
-                let copy = copy.as_ref().map(|c| self.lower_expr(c));
+                let copy = copy.as_ref().map(|c| {
+                    let id = self.lower_expr(c);
+                    self.exec_graph.push(ExecGraphNode::Store);
+                    id
+                });
                 let fields = fields
                     .iter()
                     .map(|f| {
