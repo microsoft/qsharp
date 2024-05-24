@@ -51,9 +51,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicQubit"))]
     UseOfDynamicQubit(#[label] Span),
 
-    #[error("cannot use a dynamic result")]
+    #[error("cannot use a dynamic Result")]
     #[diagnostic(help(
-        "using a mutable Result variable whose value depends on a measurement result is not supported by the current target"
+        "using a Result variable whose value depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicResult"))]
     UseOfDynamicResult(#[label] Span),
