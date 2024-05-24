@@ -306,7 +306,7 @@ $$(AB)^T = B^TA^T$$
     "title": "Conjugate" 
 })
 
-The next important single-matrix operation is the **matrix conjugate**, denoted as $\overline{A}$. This operation makes sense only for complex-valued matrices; as the name might suggest, it involves taking the complex conjugate of every element of the matrix. For example, if
+The next important single-matrix operation is the **matrix conjugate**, denoted as $\overline{A}$. This operation makes sense only for complex-valued matrices; as the name might suggest, it involves taking the complex conjugate of every element of the matrix. In matrix form, if
 
 $$A =
 \begin{bmatrix}
