@@ -20,7 +20,7 @@ node_ver = (
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
 rust_fmt_ver = (1, 7, 0)  # Current version when Rust 1.78 shipped
-clippy_ver = (0, 1, 76)
+clippy_ver = (0, 1, 78)
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)
