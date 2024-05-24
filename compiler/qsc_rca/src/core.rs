@@ -699,7 +699,14 @@ impl<'a> Analyzer<'a> {
             let dynamic_value_kind = if matches!(expr_type, Ty::Array(..)) {
                 // An array coming from a dynamic conditional should be treated as dynamic in length
                 // and content.
-                ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic)
+                ValueKind::Array(
+                    RuntimeKind::Dynamic,
+                    if condition_expr_compute_kind.is_dynamic() {
+                        RuntimeKind::Dynamic
+                    } else {
+                        RuntimeKind::Static
+                    },
+                )
             } else {
                 ValueKind::new_dynamic_from_type(expr_type)
             };
@@ -708,11 +715,13 @@ impl<'a> Analyzer<'a> {
                     dynamic_value_kind,
                     expr_type,
                 );
-            if is_any_result(expr_type) {
-                dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicResult;
-            }
-            if matches!(expr_type, Ty::Tuple(tup) if !tup.is_empty()) {
-                dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicTuple;
+            if condition_expr_compute_kind.is_dynamic() {
+                if is_any_result(expr_type) {
+                    dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicResult;
+                }
+                if matches!(expr_type, Ty::Tuple(tup) if !tup.is_empty()) {
+                    dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicTuple;
+                }
             }
             let dynamic_compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: dynamic_runtime_features,

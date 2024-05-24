@@ -424,6 +424,34 @@ fn check_rca_for_immutable_dynamic_result_bound_to_dynamic_result() {
 }
 
 #[test]
+fn check_rca_for_immutable_dynamic_result_bound_to_result_from_classical_conditional() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let r = if One == One {
+            M(q)
+        } else {
+            use q2 = Qubit();
+            M(q2)
+        };
+        r
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+
+}
+
+#[test]
 fn check_rca_for_immutable_dynamic_result_bound_to_call_with_dynamic_args() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
@@ -518,6 +546,30 @@ fn check_rca_for_immutable_tuple_bound_to_dynamic_tuple() {
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicTuple)
                     value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_immutable_tuple_bound_to_tuple_from_classical_conditional() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let x = if One == One {
+            (1, 2)
+        } else {
+            (2, 3)
+        };
+        x
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
                 dynamic_param_applications: <empty>"#]],
     );
 }
