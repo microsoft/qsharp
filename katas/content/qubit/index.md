@@ -67,7 +67,7 @@ Because of this, qubit states $0$ and $1$ are known as **basis states**. These t
     \langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle = 1
     $$
 
-1. They are orthogonal to each other.
+2. They are orthogonal to each other.
 
     $$
     \langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle =
