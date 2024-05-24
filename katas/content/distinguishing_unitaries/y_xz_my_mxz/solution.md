@@ -1,0 +1,21 @@
+### Solution A
+
+In this task we have to distinguish 4 gates that were identical up to a global phase, i.e., gates $Y$, $iY$, $-Y$ and $-iY$ (in that order). 
+
+One way to do this is "by hand", similar to the previous tasks. First we'll apply the controlled variant of the unitary twice and check whether the result is $I$ or $-I$ (which allows us to distinguish $\pm Y$ and $\pm iY$, since the first two gates squared will be equivalent to the $I$ gate, and the last two to the $-I$ gate). Then we distinguish the gates in each group ($Y$ from $-Y$ or $iY$ from $-iY$) by applying the controlled variant of the unitary once.
+
+@[solution]({
+    "id": "distinguishing_unitaries__y_xz_my_mxz_solution_a",
+    "codePath": "SolutionA.qs"
+})
+
+### Solution B
+
+An alternate solution takes advantage of [phase estimation](https://en.wikipedia.org/wiki/Quantum_phase_estimation_algorithm) algorithm which, given a unitary and its eigenstate, allows to find its eigenvalue. If we prepare an eigenstate of the Y gate $\frac{1}{\sqrt2}(\ket{0} + i\ket{1})$, it will be the eigenstate of all other gates as well, with eigenphases $0, \pi/2, \pi, 3\pi/2$, respectively. You can convert the output of the phase estimation procedure into the return index directly.
+
+You can learn more about phase estimation in the 'Phase Estimation' kata.
+
+@[solution]({
+    "id": "distinguishing_unitaries__y_xz_my_mxz_solution_b",
+    "codePath": "SolutionB.qs"
+})
