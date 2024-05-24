@@ -14,6 +14,23 @@ pub struct IndexMap<K, V> {
     values: Vec<Option<V>>,
 }
 
+impl<K, V> IndexMap<K, V>
+where
+    K: Into<usize>,
+    V: Default,
+{
+    pub fn get_mut_or_default(&mut self, key: K) -> &mut V {
+        let index: usize = key.into();
+        if index >= self.values.len() {
+            self.values.resize_with(index + 1, Option::default);
+        }
+        self.values
+            .get_mut(index)
+            .expect("IndexMap::get_mut_or_default: index out of bounds")
+            .get_or_insert_with(Default::default)
+    }
+}
+
 impl<K, V> IndexMap<K, V> {
     #[must_use]
     pub fn new() -> Self {

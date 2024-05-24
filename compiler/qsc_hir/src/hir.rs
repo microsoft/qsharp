@@ -4,7 +4,6 @@
 //! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
-
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
@@ -333,7 +332,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Ident, Vec<LocalItemId>),
+    Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -1135,6 +1134,116 @@ impl Display for QubitInitKind {
     }
 }
 
+/// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
+/// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
+/// dot-separated paths.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+pub struct Idents(pub Box<[Ident]>);
+
+impl<'a> IntoIterator for &'a Idents {
+    type IntoIter = std::slice::Iter<'a, Ident>;
+    type Item = &'a Ident;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl From<Idents> for Vec<Rc<str>> {
+    fn from(v: Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<&Idents> for Vec<Rc<str>> {
+    fn from(v: &Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<Vec<Ident>> for Idents {
+    fn from(v: Vec<Ident>) -> Self {
+        Idents(v.into_boxed_slice())
+    }
+}
+
+impl From<Idents> for Vec<Ident> {
+    fn from(v: Idents) -> Self {
+        v.0.into_vec()
+    }
+}
+
+impl FromIterator<Ident> for Idents {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        Idents(iter.into_iter().collect())
+    }
+}
+
+impl Display for Idents {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut buf = Vec::with_capacity(self.0.len());
+
+        for ident in self.0.iter() {
+            buf.push(format!("{ident}"));
+        }
+        if buf.len() > 1 {
+            // use square brackets only if there are more than one ident
+            write!(f, "[{}]", buf.join(", "))
+        } else {
+            write!(f, "{}", buf[0])
+        }
+    }
+}
+impl Idents {
+    /// constructs an iter over the [Ident]s that this contains.
+    pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
+        self.0.iter()
+    }
+
+    /// the conjoined span of all idents in the `Idents`
+    #[must_use]
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
+    }
+
+    /// Whether or not the first ident in this [`Idents`] matches `arg`
+    #[must_use]
+    pub fn starts_with(&self, arg: &str) -> bool {
+        self.0.first().is_some_and(|i| &*i.name == arg)
+    }
+
+    /// Whether or not the first `n` idents in this [`Idents`] match `arg`
+    #[must_use]
+    pub fn starts_with_sequence(&self, arg: &[&str]) -> bool {
+        if arg.len() > self.0.len() {
+            return false;
+        }
+        for (i, s) in arg.iter().enumerate() {
+            if &*self.0[i].name != *s {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// The stringified dot-separated path of the idents in this [`Idents`]
+    /// E.g. `a.b.c`
+    #[must_use]
+    pub fn name(&self) -> Rc<str> {
+        if self.0.len() == 1 {
+            return self.0[0].name.clone();
+        }
+        let mut buf = String::new();
+        for ident in self.0.iter() {
+            if !buf.is_empty() {
+                buf.push('.');
+            }
+            buf.push_str(&ident.name);
+        }
+        Rc::from(buf)
+    }
+}
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {

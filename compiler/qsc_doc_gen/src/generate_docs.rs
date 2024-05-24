@@ -195,10 +195,10 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
                 .expect("Could not resolve parent item id");
             match &parent.kind {
                 ItemKind::Namespace(name, _) => {
-                    if name.name.starts_with("QIR") {
+                    if name.starts_with("QIR") {
                         None // We ignore "QIR" namespaces
                     } else {
-                        Some(name.name.clone())
+                        Some(name.name())
                     }
                 }
                 _ => None,

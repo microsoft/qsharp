@@ -6,7 +6,7 @@
 use expect_test::expect;
 
 use crate::{
-    builder::{cx_decl, h_decl, mresetz_decl, mz_decl, read_result_decl, reset_decl, x_decl},
+    builder::{cx_decl, h_decl, m_decl, mresetz_decl, read_result_decl, reset_decl, x_decl},
     rir::{
         Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
         Variable, VariableId,
@@ -63,17 +63,17 @@ fn qubit_reindexed_after_reset_removes_reset() {
 #[test]
 fn qubit_reindexed_after_mz() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(X, x_decl());
-    program.callables.insert(MZ, mz_decl());
+    program.callables.insert(M, m_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -82,7 +82,7 @@ fn qubit_reindexed_after_mz() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
@@ -232,17 +232,17 @@ fn multiple_qubit_reindex() {
 #[test]
 fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(X, x_decl());
-    program.callables.insert(MZ, mz_decl());
+    program.callables.insert(M, m_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -251,7 +251,7 @@ fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
@@ -260,7 +260,7 @@ fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(2)),
@@ -269,7 +269,7 @@ fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(3)),
@@ -318,13 +318,13 @@ fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
 #[test]
 fn qubit_reindexed_across_branches() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     const READ_RESULT: CallableId = CallableId(2);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.num_results = 3;
     program.callables.insert(X, x_decl());
-    program.callables.insert(MZ, mz_decl());
+    program.callables.insert(M, m_decl());
     program.callables.insert(READ_RESULT, read_result_decl());
 
     program.blocks.insert(
@@ -332,7 +332,7 @@ fn qubit_reindexed_across_branches() {
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -362,7 +362,7 @@ fn qubit_reindexed_across_branches() {
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
@@ -376,7 +376,7 @@ fn qubit_reindexed_across_branches() {
         BlockId(2),
         Block(vec![
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(2)),
@@ -407,7 +407,7 @@ fn qubit_reindexed_across_branches() {
                     output_type: <VOID>
                     body: <NONE>
                 Callable 1: Callable:
-                    name: __quantum__qis__mz__body
+                    name: __quantum__qis__m__body
                     call_type: Measurement
                     input_type:
                         [0]: Qubit
@@ -457,7 +457,7 @@ fn qubit_reindexed_across_branches() {
                     output_type: <VOID>
                     body: <NONE>
                 Callable 1: Callable:
-                    name: __quantum__qis__mz__body
+                    name: __quantum__qis__m__body
                     call_type: Measurement
                     input_type:
                         [0]: Qubit
@@ -690,7 +690,7 @@ fn qubit_reindexed_across_branches_with_one_branch_longer() {
                     output_type: Boolean
                     body: <NONE>
                 Callable 3: Callable:
-                    name: __quantum__qis__mz__body
+                    name: __quantum__qis__m__body
                     call_type: Measurement
                     input_type:
                         [0]: Qubit

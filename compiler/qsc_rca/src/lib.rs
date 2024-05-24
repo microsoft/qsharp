@@ -775,6 +775,8 @@ bitflags! {
         const UseOfDoubleOutput = 1 << 23;
         // Use of an `Int` as output of a computation.
         const UseOfIntOutput = 1 << 24;
+        // Use of a dynamic exponent in a computation.
+        const UseOfDynamicExponent = 1 << 25;
     }
 }
 
@@ -806,7 +808,7 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
-            capabilities |= TargetCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
             capabilities |= TargetCapabilityFlags::FloatingPointComputations;
@@ -844,9 +846,6 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
-        }
         if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
             capabilities |= TargetCapabilityFlags::Adaptive;
         }
@@ -871,6 +870,17 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicExponent) {
+            capabilities |= TargetCapabilityFlags::BackwardsBranching;
+        }
         capabilities
+    }
+
+    #[must_use]
+    pub fn output_recording_flags() -> RuntimeFeatureFlags {
+        RuntimeFeatureFlags::UseOfIntOutput
+            | RuntimeFeatureFlags::UseOfDoubleOutput
+            | RuntimeFeatureFlags::UseOfBoolOutput
+            | RuntimeFeatureFlags::UseOfAdvancedOutput
     }
 }

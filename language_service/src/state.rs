@@ -91,9 +91,9 @@ struct PartialConfiguration {
 }
 
 impl PartialConfiguration {
-    pub fn from_language_features(features: LanguageFeatures) -> Self {
+    pub fn from_language_features(features: Option<LanguageFeatures>) -> Self {
         Self {
-            language_features: Some(features),
+            language_features: features,
             ..Default::default()
         }
     }
@@ -128,7 +128,7 @@ pub(super) struct CompilationStateUpdater<'a> {
 struct LoadManifestResult {
     compilation_uri: Arc<str>,
     sources: Vec<(Arc<str>, Arc<str>)>,
-    language_features: LanguageFeatures,
+    language_features: Option<LanguageFeatures>,
     lints: Vec<LintConfig>,
 }
 
@@ -180,7 +180,7 @@ impl<'a> CompilationStateUpdater<'a> {
             LoadManifestResult {
                 compilation_uri: doc_uri.clone(),
                 sources: vec![(doc_uri.clone(), text.clone())],
-                language_features: LanguageFeatures::default(),
+                language_features: None,
                 lints: Vec::default(),
             }
         });
@@ -228,11 +228,13 @@ impl<'a> CompilationStateUpdater<'a> {
                 Ok(o) => Some(LoadManifestResult {
                     compilation_uri: manifest.compilation_uri(),
                     sources: o.sources,
-                    language_features: manifest
-                        .manifest
-                        .language_features
-                        .iter()
-                        .collect::<LanguageFeatures>(),
+                    language_features: Some(
+                        manifest
+                            .manifest
+                            .language_features
+                            .iter()
+                            .collect::<LanguageFeatures>(),
+                    ),
                     lints: manifest.manifest.lints.clone(),
                 }),
                 Err(e) => {
@@ -254,7 +256,7 @@ impl<'a> CompilationStateUpdater<'a> {
         &mut self,
         mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
-        language_features: LanguageFeatures,
+        language_features: Option<LanguageFeatures>,
         lints_config: &[LintConfig],
     ) {
         self.with_state_mut(|state| {
@@ -268,20 +270,22 @@ impl<'a> CompilationStateUpdater<'a> {
                 }
             }
 
+            let compilation_overrides =
+                PartialConfiguration::from_language_features(language_features);
+
+            let configuration = merge_configurations(&compilation_overrides, &self.configuration);
+
             let compilation = Compilation::new(
                 &sources,
-                self.configuration.package_type,
-                self.configuration.target_profile,
-                language_features,
+                configuration.package_type,
+                configuration.target_profile,
+                configuration.language_features,
                 lints_config,
             );
 
             state.compilations.insert(
                 compilation_uri.clone(),
-                (
-                    compilation,
-                    PartialConfiguration::from_language_features(language_features),
-                ),
+                (compilation, compilation_overrides),
             );
         });
     }
@@ -478,6 +482,11 @@ impl<'a> CompilationStateUpdater<'a> {
             self.configuration.target_profile = target_profile;
         }
 
+        if let Some(language_features) = configuration.language_features {
+            need_recompile |= self.configuration.language_features != language_features;
+            self.configuration.language_features = language_features;
+        }
+
         // Possible optimization: some projects will have overrides for these configurations,
         // so workspace updates won't impact them. We could exclude those projects
         // from recompilation, but we don't right now.
@@ -493,9 +502,6 @@ impl<'a> CompilationStateUpdater<'a> {
             for (compilation, package_specific_configuration) in state.compilations.values_mut() {
                 let configuration =
                     merge_configurations(package_specific_configuration, &self.configuration);
-                let language_features = package_specific_configuration
-                    .language_features
-                    .unwrap_or_default();
                 let lints_config = package_specific_configuration
                     .lints_config
                     .clone()
@@ -503,7 +509,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 compilation.recompile(
                     configuration.package_type,
                     configuration.target_profile,
-                    language_features,
+                    configuration.language_features,
                     &lints_config,
                 );
             }

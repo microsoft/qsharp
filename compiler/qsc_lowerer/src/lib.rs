@@ -22,6 +22,15 @@ pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
     hir::PackageId::from(Into::<usize>::into(package))
 }
 
+#[derive(Debug, Default)]
+struct FirIncrement {
+    blocks: Vec<BlockId>,
+    exprs: Vec<ExprId>,
+    pats: Vec<PatId>,
+    stmts: Vec<StmtId>,
+    items: Vec<LocalItemId>,
+}
+
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
     locals: IndexMap<hir::NodeId, fir::LocalVarId>,
@@ -33,6 +42,7 @@ pub struct Lowerer {
     exec_graph: Vec<ExecGraphNode>,
     enable_debug: bool,
     ret_node: ExecGraphNode,
+    fir_increment: FirIncrement,
 }
 
 impl Default for Lowerer {
@@ -55,6 +65,7 @@ impl Lowerer {
             exec_graph: Vec::new(),
             enable_debug: false,
             ret_node: ExecGraphNode::Ret,
+            fir_increment: FirIncrement::default(),
         }
     }
 
@@ -118,6 +129,9 @@ impl Lowerer {
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
     ) {
+        // Clear the previous increment since we are about to take a new one.
+        self.fir_increment = FirIncrement::default();
+
         let items: IndexMap<LocalItemId, fir::Item> = hir_package
             .items
             .values()
@@ -135,6 +149,7 @@ impl Lowerer {
 
         for (k, v) in items {
             fir_package.items.insert(k, v);
+            self.fir_increment.items.push(k);
         }
 
         fir_package.entry = entry;
@@ -142,28 +157,59 @@ impl Lowerer {
         qsc_fir::validate::validate(fir_package);
     }
 
+    pub fn revert_last_increment(&mut self, package: &mut fir::Package) {
+        for id in self.fir_increment.blocks.drain(..) {
+            package.blocks.remove(id);
+        }
+        for id in self.fir_increment.exprs.drain(..) {
+            package.exprs.remove(id);
+        }
+        for id in self.fir_increment.pats.drain(..) {
+            package.pats.remove(id);
+        }
+        for id in self.fir_increment.stmts.drain(..) {
+            package.stmts.remove(id);
+        }
+        for id in self.fir_increment.items.drain(..) {
+            package.items.remove(id);
+        }
+    }
+
     fn update_package(&mut self, package: &mut fir::Package) {
         for (id, value) in self.blocks.drain() {
             package.blocks.insert(id, value);
+            self.fir_increment.blocks.push(id);
         }
 
         for (id, value) in self.exprs.drain() {
             package.exprs.insert(id, value);
+            self.fir_increment.exprs.push(id);
         }
 
         for (id, value) in self.pats.drain() {
             package.pats.insert(id, value);
+            self.fir_increment.pats.push(id);
         }
 
         for (id, value) in self.stmts.drain() {
             package.stmts.insert(id, value);
+            self.fir_increment.stmts.push(id);
         }
     }
 
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = self.lower_ident(name);
+                let name = fir::Ident {
+                    id: self.lower_local_id(
+                        name.0
+                            .last()
+                            .expect("should have at least one ident in name")
+                            .id,
+                    ),
+                    span: name.span(),
+                    name: name.name(),
+                };
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }

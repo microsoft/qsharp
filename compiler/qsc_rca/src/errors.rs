@@ -65,6 +65,13 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicString"))]
     UseOfDynamicString(#[label] Span),
 
+    #[error("cannot use a dynamic exponent")]
+    #[diagnostic(help(
+        "using an exponent that depends on a measurement result is not supported by the current target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicExponent"))]
+    UseOfDynamicExponent(#[label] Span),
+
     #[error("cannot use a dynamically-sized array")]
     #[diagnostic(help(
         "using an array whose size depends on a measurement result is not supported by the current target"
@@ -190,6 +197,9 @@ pub fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicString) {
         errors.push(Error::UseOfDynamicString(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicExponent) {
+        errors.push(Error::UseOfDynamicExponent(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
         errors.push(Error::UseOfDynamicallySizedArray(span));
