@@ -10,6 +10,7 @@ use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
 use qsc_lowerer::map_fir_package_to_hir;
+use std::rc::Rc;
 
 #[must_use]
 pub(crate) fn format_call_stack(
@@ -82,10 +83,9 @@ fn get_item_file_name(store: &PackageStore, id: StoreItemId) -> Option<String> {
 }
 
 #[must_use]
-fn get_ns_name(item: &Item) -> Option<String> {
-    if let ItemKind::Namespace(ns, _) = &item.kind {
-        Some(ns.name.to_string())
-    } else {
-        None
-    }
+fn get_ns_name(item: &Item) -> Option<Rc<str>> {
+    let ItemKind::Namespace(ns, _) = &item.kind else {
+        return None;
+    };
+    Some(ns.name())
 }

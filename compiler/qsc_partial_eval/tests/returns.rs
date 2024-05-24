@@ -366,7 +366,9 @@ fn non_classical_entry_point_with_classical_early_return_within_non_classical_br
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("early return", Span { lo: 163, hi: 213 })"#]],
+        &expect![[
+            r#"Unimplemented("early return", PackageSpan { package: PackageId(2), span: Span { lo: 163, hi: 213 } })"#
+        ]],
     );
 }
 
@@ -388,7 +390,9 @@ fn non_classical_entry_point_with_non_classical_early_return_within_non_classica
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("early return", Span { lo: 185, hi: 278 })"#]],
+        &expect![[
+            r#"Unimplemented("early return", PackageSpan { package: PackageId(2), span: Span { lo: 185, hi: 278 } })"#
+        ]],
     );
 }
 
@@ -833,7 +837,9 @@ fn explicit_return_embedded_in_array_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in array", Span { lo: 148, hi: 160 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in array", PackageSpan { package: PackageId(2), span: Span { lo: 148, hi: 160 } })"#
+        ]],
     );
 }
 
@@ -851,7 +857,9 @@ fn explicit_return_embedded_in_array_repeat_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in array size", Span { lo: 161, hi: 173 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in array size", PackageSpan { package: PackageId(2), span: Span { lo: 161, hi: 173 } })"#
+        ]],
     );
 }
 
@@ -871,7 +879,7 @@ fn explicit_return_embedded_in_assign_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in assign expression", Span { lo: 173, hi: 185 })"#
+            r#"Unexpected("embedded return in assign expression", PackageSpan { package: PackageId(2), span: Span { lo: 173, hi: 185 } })"#
         ]],
     );
 }
@@ -890,10 +898,11 @@ fn explicit_return_embedded_in_assign_field_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Updated Field Expr", Span { lo: 217, hi: 243 })"#]],
+        &expect![[
+            r#"Unexpected("updating a field of a dynamic user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 217, hi: 243 } })"#
+        ]],
     );
 }
 
@@ -910,10 +919,11 @@ fn explicit_return_embedded_in_assign_index_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Update Index Expr", Span { lo: 170, hi: 193 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in update expression", PackageSpan { package: PackageId(2), span: Span { lo: 181, hi: 193 } })"#
+        ]],
     );
 }
 
@@ -932,7 +942,9 @@ fn explicit_return_embedded_in_assign_op_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 171, hi: 183 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in RHS expression", PackageSpan { package: PackageId(2), span: Span { lo: 171, hi: 183 } })"#
+        ]],
     );
 }
 
@@ -950,7 +962,9 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 151, hi: 163 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in RHS expression", PackageSpan { package: PackageId(2), span: Span { lo: 151, hi: 163 } })"#
+        ]],
     );
 }
 
@@ -969,7 +983,9 @@ fn explicit_return_embedded_in_call_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in call arguments", Span { lo: 174, hi: 186 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in call arguments", PackageSpan { package: PackageId(2), span: Span { lo: 174, hi: 186 } })"#
+        ]],
     );
 }
 
@@ -990,7 +1006,9 @@ fn explicit_return_embedded_in_if_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in if condition", Span { lo: 175, hi: 187 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in if condition", PackageSpan { package: PackageId(2), span: Span { lo: 175, hi: 187 } })"#
+        ]],
     );
 }
 
@@ -1010,7 +1028,7 @@ fn explicit_return_embedded_in_index_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in index expression", Span { lo: 170, hi: 194 })"#
+            r#"Unexpected("embedded return in index expression", PackageSpan { package: PackageId(2), span: Span { lo: 170, hi: 194 } })"#
         ]],
     );
 }
@@ -1029,7 +1047,9 @@ fn explicit_return_embedded_in_tuple_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in tuple", Span { lo: 151, hi: 163 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in tuple", PackageSpan { package: PackageId(2), span: Span { lo: 151, hi: 163 } })"#
+        ]],
     );
 }
 
@@ -1048,7 +1068,7 @@ fn explicit_return_embedded_in_unary_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in unary operation expression", Span { lo: 151, hi: 163 })"#
+            r#"Unexpected("embedded return in unary operation expression", PackageSpan { package: PackageId(2), span: Span { lo: 151, hi: 163 } })"#
         ]],
     );
 }
@@ -1067,10 +1087,11 @@ fn explicit_return_embedded_in_update_field_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Field Assignment Expr", Span { lo: 211, hi: 241 })"#]],
+        &expect![[
+            r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#
+        ]],
     );
 }
 
@@ -1090,7 +1111,7 @@ fn explicit_return_embedded_in_hybrid_update_index_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in assign index expression", Span { lo: 142, hi: 154 })"#
+            r#"Unexpected("embedded return in update expression", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 154 } })"#
         ]],
     );
 }
@@ -1110,6 +1131,8 @@ fn explicit_return_embedded_in_hybrid_array_assignop_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 136, hi: 148 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in RHS expression", PackageSpan { package: PackageId(2), span: Span { lo: 136, hi: 148 } })"#
+        ]],
     );
 }

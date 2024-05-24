@@ -77,7 +77,7 @@ fn branching_block_measurements_deferred_properly() {
 }
 
 fn add_simple_measurement_block(program: &mut Program) {
-    program.callables.insert(CallableId(0), builder::mz_decl());
+    program.callables.insert(CallableId(0), builder::m_decl());
     program
         .callables
         .insert(CallableId(1), builder::mresetz_decl());

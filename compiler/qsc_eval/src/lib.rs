@@ -25,10 +25,12 @@ pub mod output;
 pub mod state;
 pub mod val;
 
-use crate::val::Value;
+use crate::val::{
+    index_array, make_range, slice_array, update_index_range, update_index_single, Value,
+};
 use backend::Backend;
 use debug::{CallStack, Frame};
-use error::PackageSpan;
+pub use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
@@ -288,7 +290,7 @@ pub struct VariableInfo {
     pub span: Span,
 }
 
-struct Range {
+pub struct Range {
     step: i64,
     end: i64,
     curr: i64,
@@ -357,6 +359,19 @@ impl Env {
                 .pop()
                 .expect("scope should have more than one entry.");
         }
+    }
+
+    pub fn leave_current_frame(&mut self) {
+        let current_frame_id = self
+            .0
+            .last()
+            .expect("should be at least one scope")
+            .frame_id;
+        if current_frame_id == 0 {
+            // Do not remove the global scope.
+            return;
+        }
+        self.0.retain(|scope| scope.frame_id != current_frame_id);
     }
 
     pub fn bind_variable_in_top_frame(&mut self, local_var_id: LocalVarId, var: Variable) {
@@ -609,6 +624,11 @@ impl State {
                 Some(ExecGraphNode::Ret) => {
                     self.leave_frame();
                     env.leave_scope();
+                    continue;
+                }
+                Some(ExecGraphNode::RetFrame) => {
+                    self.leave_frame();
+                    env.leave_current_frame();
                     continue;
                 }
                 Some(ExecGraphNode::PushScope) => {
@@ -1087,18 +1107,8 @@ impl State {
         update: Value,
         span: PackageSpan,
     ) -> Result<(), Error> {
-        if index < 0 {
-            return Err(Error::InvalidNegativeInt(index, span));
-        }
-        let i = index.as_index(span)?;
-        let mut values = values.to_vec();
-        match values.get_mut(i) {
-            Some(value) => {
-                *value = update;
-            }
-            None => return Err(Error::IndexOutOfRange(index, span)),
-        }
-        self.set_val_register(Value::Array(values.into()));
+        let updated_array = update_index_single(values, index, update, span)?;
+        self.set_val_register(updated_array);
         Ok(())
     }
 
@@ -1111,19 +1121,8 @@ impl State {
         update: Value,
         span: PackageSpan,
     ) -> Result<(), Error> {
-        let range = make_range(values, start, step, end, span)?;
-        let mut values = values.to_vec();
-        let update = update.unwrap_array();
-        for (idx, update) in range.into_iter().zip(update.iter()) {
-            let i = idx.as_index(span)?;
-            match values.get_mut(i) {
-                Some(value) => {
-                    *value = update.clone();
-                }
-                None => return Err(Error::IndexOutOfRange(idx, span)),
-            }
-        }
-        self.set_val_register(Value::Array(values.into()));
+        let updated_array = update_index_range(values, start, step, end, update, span)?;
+        self.set_val_register(updated_array);
         Ok(())
     }
 
@@ -1462,53 +1461,6 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Pauli(v) => Value::Pauli(*v),
         Lit::Result(fir::Result::Zero) => Value::RESULT_ZERO,
         Lit::Result(fir::Result::One) => Value::RESULT_ONE,
-    }
-}
-
-fn index_array(arr: &[Value], index: i64, span: PackageSpan) -> Result<Value, Error> {
-    let i = index.as_index(span)?;
-    match arr.get(i) {
-        Some(v) => Ok(v.clone()),
-        None => Err(Error::IndexOutOfRange(index, span)),
-    }
-}
-
-fn slice_array(
-    arr: &[Value],
-    start: Option<i64>,
-    step: i64,
-    end: Option<i64>,
-    span: PackageSpan,
-) -> Result<Value, Error> {
-    let range = make_range(arr, start, step, end, span)?;
-    let mut slice = vec![];
-    for i in range {
-        slice.push(index_array(arr, i, span)?);
-    }
-
-    Ok(Value::Array(slice.into()))
-}
-
-fn make_range(
-    arr: &[Value],
-    start: Option<i64>,
-    step: i64,
-    end: Option<i64>,
-    span: PackageSpan,
-) -> Result<Range, Error> {
-    if step == 0 {
-        Err(Error::RangeStepZero(span))
-    } else {
-        let len: i64 = match arr.len().try_into() {
-            Ok(len) => Ok(len),
-            Err(_) => Err(Error::ArrayTooLarge(span)),
-        }?;
-        let (start, end) = if step > 0 {
-            (start.unwrap_or(0), end.unwrap_or(len - 1))
-        } else {
-            (start.unwrap_or(len - 1), end.unwrap_or(0))
-        };
-        Ok(Range::new(start, step, end))
     }
 }
 

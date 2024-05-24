@@ -585,14 +585,14 @@ fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
         &program,
         op_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     assert_block_instructions(
         &program,
@@ -712,14 +712,14 @@ fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -1013,7 +1013,7 @@ fn call_to_length_in_inner_function_succeeds() {
         output_recording_callable_id,
         &expect![[r#"
             Callable:
-                name: __quantum__rt__integer_record_output
+                name: __quantum__rt__int_record_output
                 call_type: OutputRecording
                 input_type:
                     [0]: Integer

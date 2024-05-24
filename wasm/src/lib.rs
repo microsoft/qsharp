@@ -4,7 +4,7 @@
 #![allow(unknown_lints, clippy::empty_docs)]
 #![allow(non_snake_case)]
 
-use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
+use diagnostic::{interpret_errors_into_qsharp_errors, VSDiagnostic};
 use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
@@ -22,7 +22,6 @@ use qsc::{
     LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
     TargetCapabilityFlags,
 };
-use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -86,39 +85,17 @@ pub fn get_qir(
     if profile == Profile::Unrestricted {
         return Err("Invalid target profile for QIR generation".to_string());
     }
-    if language_features.contains(LanguageFeatures::PreviewQirGen) {
-        qsc::codegen::get_qir(sources, language_features, profile.into())
-    } else {
-        _get_qir(sources, language_features)
-    }
+
+    _get_qir(sources, language_features, profile.into())
 }
 
-// allows testing without wasm bindings.
-fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<String, String> {
-    let core = compile::core();
-    let mut store = PackageStore::new(core);
-    let std = compile::std(&store, Profile::Base.into());
-    let std = store.insert(std);
-
-    let (unit, errors) = qsc::compile::compile(
-        &store,
-        &[std],
-        sources,
-        PackageType::Exe,
-        Profile::Base.into(),
-        language_features,
-    );
-
-    // Ensure it compiles before trying to add it to the store.
-    if !errors.is_empty() {
-        // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
-    }
-
-    let package = store.insert(unit);
-
-    generate_qir(&store, package).map_err(|e| e.0.to_string())
+pub(crate) fn _get_qir(
+    sources: SourceMap,
+    language_features: LanguageFeatures,
+    capabilities: TargetCapabilityFlags,
+) -> Result<String, String> {
+    qsc::codegen::get_qir(sources, language_features, capabilities)
+        .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 #[wasm_bindgen]
@@ -177,18 +154,18 @@ pub fn get_circuit(
         target_profile.into(),
         LanguageFeatures::from_iter(language_features),
     )
-    .map_err(interpret_errors_into_vs_diagnostics_json)?;
+    .map_err(interpret_errors_into_qsharp_errors_json)?;
 
     let circuit = interpreter
         .circuit(entry_point, simulate)
-        .map_err(interpret_errors_into_vs_diagnostics_json)?;
+        .map_err(interpret_errors_into_qsharp_errors_json)?;
 
     serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn interpret_errors_into_vs_diagnostics_json(errs: Vec<qsc::interpret::Error>) -> String {
-    serde_json::to_string(&interpret_errors_into_vs_diagnostics(&errs))
+fn interpret_errors_into_qsharp_errors_json(errs: Vec<qsc::interpret::Error>) -> String {
+    serde_json::to_string(&interpret_errors_into_qsharp_errors(&errs))
         .expect("serializing errors to json should succeed")
 }
 
@@ -319,6 +296,7 @@ fn run_internal_with_features<F>(
     event_cb: F,
     shots: u32,
     language_features: LanguageFeatures,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -334,7 +312,7 @@ where
         true,
         sources,
         PackageType::Exe,
-        Profile::Unrestricted.into(),
+        capabilities,
         language_features,
     ) {
         Ok(interpreter) => interpreter,
@@ -376,6 +354,7 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
     language_features: Vec<String>,
+    profile: &str,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -388,7 +367,15 @@ pub fn run(
         // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
     };
-    match run_internal_with_features(sources, event_cb, shots, language_features) {
+    match run_internal_with_features(
+        sources,
+        event_cb,
+        shots,
+        language_features,
+        Profile::from_str(profile)
+            .map_err(|()| format!("Invalid target profile {profile}"))?
+            .into(),
+    ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
@@ -494,5 +481,10 @@ pub fn generate_docs(
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "adaptive_ri" |"unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" | "unrestricted";
+"#;
+
+#[wasm_bindgen(typescript_custom_section)]
+const LANGUAGE_FEATURES: &'static str = r#"
+export type LanguageFeatures = "v2-preview-syntax";
 "#;

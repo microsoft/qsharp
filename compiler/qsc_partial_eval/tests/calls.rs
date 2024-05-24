@@ -313,14 +313,14 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -457,14 +457,14 @@ fn call_to_operation_that_returns_measurement_result() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let output_recording_callable_id = CallableId(2);
     assert_callable(
@@ -511,14 +511,14 @@ fn call_to_operation_that_returns_dynamic_bool() {
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -644,14 +644,14 @@ fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches(
         &program,
         measure_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     let read_result_callable_id = CallableId(2);
     assert_callable(
@@ -1285,7 +1285,7 @@ fn call_to_unresolved_callee_producing_dynamic_value_fails() {
 
     assert_error(
         &error,
-        &expect!["UnexpectedDynamicValue(Span { lo: 298, hi: 305 })"],
+        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 298, hi: 305 } })"],
     );
 }
 
@@ -1312,5 +1312,37 @@ fn call_to_unresolved_callee_via_closure_with_dynamic_arg_fails() {
     assert_error(
         &error,
         &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 302, hi: 309 }))"],
+    );
+}
+
+#[test]
+fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Unit {
+                Rx(IntAsDouble(i), q);
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                let f = [Op][0];
+                f(1, q);
+                MResetZ(q)
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Qubit(0), Result(0), )
+                Call id(3), args( Result(0), Pointer, )
+                Return"#]],
     );
 }

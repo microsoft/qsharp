@@ -83,14 +83,14 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
         &program,
         op_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     assert_callable(
         &program,
@@ -140,14 +140,14 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
         &program,
         op_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     assert_callable(
         &program,
@@ -213,14 +213,14 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
         &program,
         op_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     assert_callable(
         &program,
@@ -288,14 +288,14 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
         &program,
         op_callable_id,
         &expect![[r#"
-        Callable:
-            name: __quantum__qis__mz__body
-            call_type: Measurement
-            input_type:
-                [0]: Qubit
-                [1]: Result
-            output_type: <VOID>
-            body: <NONE>"#]],
+            Callable:
+                name: __quantum__qis__m__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
     );
     assert_callable(
         &program,

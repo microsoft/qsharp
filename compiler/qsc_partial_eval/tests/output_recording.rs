@@ -5,7 +5,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use test_utils::get_rir_program;
+use test_utils::{assert_error, get_partial_evaluation_error, get_rir_program};
 
 pub mod test_utils;
 
@@ -429,7 +429,7 @@ fn output_recording_for_literal_int() {
                     output_type: <VOID>
                     body: 0
                 Callable 1: Callable:
-                    name: __quantum__rt__integer_record_output
+                    name: __quantum__rt__int_record_output
                     call_type: OutputRecording
                     input_type:
                         [0]: Integer
@@ -519,11 +519,8 @@ fn output_recording_for_mix_of_literal_and_variable() {
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_one() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -533,14 +530,16 @@ fn output_recording_fails_with_result_literal_one() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_zero() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -550,14 +549,16 @@ fn output_recording_fails_with_result_literal_zero() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_in_array() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -568,14 +569,16 @@ fn output_recording_fails_with_result_literal_in_array() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_in_tuple() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -586,4 +589,9 @@ fn output_recording_fails_with_result_literal_in_tuple() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }

@@ -79,7 +79,7 @@ impl Compiler {
             store,
             source_package_id,
             frontend,
-            passes: PassContext::new(capabilities),
+            passes: PassContext::default(),
         })
     }
 
@@ -97,7 +97,7 @@ impl Compiler {
             store,
             source_package_id,
             frontend,
-            passes: PassContext::new(capabilities),
+            passes: PassContext::default(),
         })
     }
 
