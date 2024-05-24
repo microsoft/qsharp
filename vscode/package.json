@@ -110,16 +110,6 @@
             "The Adaptive_RI target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification."
           ],
           "markdownDescription": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. [Learn more](https://aka.ms/qdk.qir)"
-        },
-        "Q#.qir.experimentalCodeGeneration": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Enable the experimental QIR code generation functionality. (Required to generate code targeting the Adaptive Profile). [Learn more](https://aka.ms/qdk.qir)"
-        },
-        "Q#.qir.enableAdaptiveProfile": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Enable Adaptive Profile as a target. [Learn more](https://aka.ms/qdk.qir)"
         }
       }
     },

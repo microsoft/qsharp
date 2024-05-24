@@ -104,14 +104,14 @@ namespace Sample {
     operation CorrectError(logicalQubit : Qubit[]) : Unit {
         Fact(Length(logicalQubit) == 3, "`logicalQubit` must be length 3");
 
-        // Entangle the parity of the physical qubits into two auxillary qubits.
+        // Entangle the parity of the physical qubits into two auxiliary qubits.
         use aux = Qubit[2];
         CNOT(logicalQubit[0], aux[0]);
         CNOT(logicalQubit[1], aux[0]);
         CNOT(logicalQubit[1], aux[1]);
         CNOT(logicalQubit[2], aux[1]);
 
-        // Measure the parity information from the auxillary qubits.
+        // Measure the parity information from the auxiliary qubits.
         let (parity01, parity12) = (M(aux[0]), M(aux[1]));
         ResetAll(aux);
 

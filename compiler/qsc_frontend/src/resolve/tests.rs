@@ -147,7 +147,7 @@ fn compile(
     input: &str,
     language_features: LanguageFeatures,
 ) -> (Package, Names, Locals, Vec<Error>, NamespaceTreeRoot) {
-    let (namespaces, parse_errors) = qsc_parse::namespaces(input, language_features);
+    let (namespaces, parse_errors) = qsc_parse::namespaces(input, None, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),

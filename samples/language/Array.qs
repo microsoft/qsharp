@@ -23,7 +23,7 @@ namespace MyQuantumApp {
 
         // A basic Int Array literal
         let intArray : Int[] = [1, 2, 3, 4];
-        Message($"Integer Array : {intArray} of length {Length(intArray)}");
+        Message($"Integer Array: {intArray} of length {Length(intArray)}");
 
         // A basic String Array literal
         let stringArray = ["a", "string", "array"];

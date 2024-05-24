@@ -19,6 +19,7 @@ namespace MyQuantumApp {
 
         // we can add `1` to any number using our partially applied function
         let five = incrementByOne(4);
+        Message($"five = incrementByOne(4) => {five}");
 
         // More than one underscore can be used to define a function that takes
         // multiple arguments.
@@ -30,6 +31,7 @@ namespace MyQuantumApp {
         let intArray = [1, 2, 3, 4, 5];
         // The below expression increments all values in an array by 1
         let incremented = Mapped(Add(_, 1), intArray);
+        Message($"Incremented array: {incremented}");
     }
 
     function Add(x : Int, y : Int) : Int {

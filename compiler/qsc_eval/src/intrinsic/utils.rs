@@ -15,6 +15,12 @@ pub fn split_state(
     state: &[(BigUint, Complex64)],
     qubit_count: usize,
 ) -> Result<Vec<(BigUint, Complex64)>, ()> {
+    // For an empty state, return an empty state.
+    // This handles cases where the underlying simulator doesn't track any quantum state.
+    if state.is_empty() {
+        return Ok(vec![]);
+    }
+
     let mut dump_state = FxHashMap::default();
     let mut other_state = FxHashMap::default();
 
