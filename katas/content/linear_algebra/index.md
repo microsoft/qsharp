@@ -401,7 +401,7 @@ To check whether the input matrix is unitary, you need to perform the following 
         1 & i
     \end{bmatrix}$$
 
-1. Multiply it by the input matrix.
+2. Multiply it by the input matrix.
 
     $$AA^\dagger = \frac12 \begin{bmatrix}
         1 & 1 \\
