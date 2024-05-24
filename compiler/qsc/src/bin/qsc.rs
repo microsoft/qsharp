@@ -33,7 +33,7 @@ pub enum Profile {
     Unrestricted,
     /// This profile restricts the set of operations to those that are supported by the Base profile.
     Base,
-    /// This profile restricts the set of operations to those that are supported by the AdaptiveRI profile.
+    /// This profile restricts the set of operations to those that are supported by the `AdaptiveRI` profile.
     AdaptiveRI,
 }
 
