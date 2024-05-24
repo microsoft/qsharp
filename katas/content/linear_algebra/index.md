@@ -417,7 +417,7 @@ To check whether the input matrix is unitary, you need to perform the following 
         0 & 1
     \end{bmatrix}$$
 
-If the multiplication result $AA^\dagger$ is an identity matrix and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner),
+You can see that the multiplication result $AA^\dagger$ is an identity matrix, and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner), so
 the matrix is unitary.
 
 </details>
