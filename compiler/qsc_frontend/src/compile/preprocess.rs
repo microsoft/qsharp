@@ -133,6 +133,9 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
     let mut found_capabilities = TargetCapabilityFlags::empty();
     let mut disallowed_capabilities = TargetCapabilityFlags::empty();
 
+    // When checking attributes, anything we don't recognize (invalid form or invalid capability) gets
+    // left in the compilation by returning true. This ensures that later compilation steps, specifically lowering
+    // from AST to HIR, can check the attributes and return errors as appropriate.
     for attr in attrs {
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
             match inner.kind.as_ref() {
