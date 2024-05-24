@@ -645,6 +645,54 @@ fn lower_struct_decl() {
 }
 
 #[test]
+fn lower_struct_constructor() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                }
+                operation Bar() : Unit {
+                    let z = new Foo { x = 1, y = 2.3 };
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-152] (Public):
+                    Namespace (Ident 14 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-71] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-71]:
+                        TyDef [18-71]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double
+                Item 2 [76-150] (Public):
+                    Parent: 0
+                    Callable 1 [76-150] (operation):
+                        name: Ident 2 [86-89] "Bar"
+                        input: Pat 3 [89-91] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [76-150]: Impl:
+                            Block 5 [99-150] [Type Unit]:
+                                Stmt 6 [109-144]: Local (Immutable):
+                                    Pat 7 [113-114] [Type ?1]: Bind: Ident 8 [113-114] "z"
+                                    Expr 9 [117-143] [Type ?1]: Struct (Err):
+                                        FieldsAssign 10 [127-132]: (Path([0])) Expr 11 [131-132] [Type ?]: Lit: Int(1)
+                                        FieldsAssign 12 [134-141]: (Path([1])) Expr 13 [138-141] [Type ?]: Lit: Double(2.3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
 fn lambda_function_empty_closure() {
     check_hir(
         indoc! {"

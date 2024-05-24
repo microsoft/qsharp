@@ -445,7 +445,10 @@ impl<'a> Context<'a> {
                 }
                 self.diverge()
             }
-            ExprKind::Struct(_, _, _) => converge(Ty::Err), // ToDo
+            ExprKind::Struct(_, _, _) => {
+                let output_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
+                converge(output_ty)
+            } // ToDo
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
