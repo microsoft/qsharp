@@ -13,20 +13,16 @@ $$P_{correct} = P(0) P(a|0) + P(+) P(b|+) = \frac{1}{2} (P(a|0) + P(b|+))$$
 
 We can represent our measurement as a von Neumann measurement of the following form:
 
-$\ket{E_a} = R_y(2\alpha) \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} \cos(\alpha) \\ \sin(\alpha) \end{bmatrix},
-\ket{E_b} = R_y(2\alpha) \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} -\sin(\alpha) \\ \cos(\alpha) \end{bmatrix}$
-
-<br>
-@[svg]({"path": "../media/Task201_Rotation.svg"})
-<br>
+$$\ket{E_a} = R_y(2\alpha) \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} \cos \alpha \\ \sin \alpha \end{bmatrix}$$
+$$\ket{E_b} = R_y(2\alpha) \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} - sin \alpha \\ \cos \alpha \end{bmatrix}$$
 
 Using this representation, we can express our probabilities as follows:
 
-$$P(a|0) = |\braket{E_a|0}|^2 = \cos^2(\alpha)$$
+$$P(a|0) = |\braket{E_a|0}|^2 = \cos^2 \alpha$$
     
-$$P(b|+) = |\braket{E_b|+}|^2 = \frac{1}{2} - \cos(\alpha) \sin(\alpha)$$
+$$P(b|+) = |\braket{E_b|+}|^2 = \frac{1}{2} - \cos \alpha \sin \alpha$$
     
-$$P_{correct} = \frac{1}{2} (\frac{1}{2} + \cos^2(\alpha) - \cos(\alpha) \sin(\alpha))$$
+$$P_{correct} = \frac{1}{2} (\cos^2 \alpha + \frac{1}{2} - \cos \alpha \sin \alpha)$$
     
 Maximizing this for $\alpha$, we get max $P_{success} = \frac{1}{2} (1 + \frac{1}{\sqrt{2}}) = 0.8535...$, which is attained for $\alpha = -\pi/8$.
     
