@@ -9,7 +9,7 @@ use qsc::{
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
-    line_column::{Encoding, Position},
+    line_column::{Encoding, Position, Range},
     resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
@@ -189,6 +189,25 @@ impl Compilation {
         }
 
         source.offset + offset
+    }
+
+    pub(crate) fn source_range_to_package_span(
+        &self,
+        source_name: &str,
+        source_range: Range,
+        position_encoding: Encoding,
+    ) -> Span {
+        let lo = self.source_position_to_package_offset(
+            source_name,
+            source_range.start,
+            position_encoding,
+        );
+        let hi = self.source_position_to_package_offset(
+            source_name,
+            source_range.end,
+            position_encoding,
+        );
+        Span { lo, hi }
     }
 
     /// Gets the span of the whole source file.
