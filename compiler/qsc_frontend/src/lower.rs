@@ -238,7 +238,7 @@ impl With<'_> {
                         if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
                     if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
                         {}
-                    
+
                     // Any other form is not valid so generates an error.
                     _ => {
                         self.lowerer.errors.push(Error::InvalidAttrArgs(
