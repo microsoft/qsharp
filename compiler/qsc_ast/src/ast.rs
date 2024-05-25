@@ -1380,6 +1380,13 @@ impl Path {
         Path { idents: idents.into_boxed_slice(), id: NodeId::default() }
     }
 
+    pub fn from_single_ident(ident: &Ident) -> Path {
+        Path {
+            idents: vec![ident.clone()].into_boxed_slice(),
+            id: ident.id,
+        }
+    }
+
     /// constructs an iterator over the [Ident]s that this contains.
     /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {

@@ -552,7 +552,7 @@ impl Resolver {
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
-            &Path::new(vec![name.clone()]),
+            &Path::from_single_ident(name)
         ) {
             Ok(res) => {
                 self.check_item_status(res, name.name.to_string(), name.span);
@@ -1517,7 +1517,7 @@ fn resolve<'a,'b>(
         let prelude_candidates = find_symbol_in_namespaces(
             kind,
             globals,
-            &Path::new(vec![path.name().clone()]),
+            &Path::from_single_ident(path.name()),
             prelude_namespaces(globals).into_iter(),
             // prelude is opened by default
             &(std::iter::once((vec![], prelude_namespaces(globals))).collect()),
@@ -1736,7 +1736,9 @@ where
     if let Some(opens) = opens {
         for open in opens {
             if path.len() > 1 {
-                let path_without_first_ident = path.into_iter().skip(1).cloned().collect();
+                let path_id = path.id;
+                let mut path_without_first_ident: Path = path.into_iter().skip(1).cloned().collect();
+                path_without_first_ident.id = path_id;
                 find_symbol_in_namespace(
                     kind,
                     globals,
