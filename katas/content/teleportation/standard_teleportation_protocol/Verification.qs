@@ -1,10 +1,10 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Katas;
 
     @EntryPoint()
-    operation CheckSolution() : Bool {        
-        return CheckTeleportationCompleteWithFeedback(Kata.StandardTeleport);
+    operation CheckSolution() : Bool {
+        let teleport = Kata.StandardTeleport(_, _, _);
+        return TeleportTestLoop(teleport);
     }
 
 }
