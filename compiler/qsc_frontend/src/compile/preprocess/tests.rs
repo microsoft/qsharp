@@ -36,16 +36,11 @@ fn name_value_attr(name: &str, value: &str) -> Attr {
             kind: Box::new(ExprKind::Paren(Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                kind: Box::new(ExprKind::Path(Box::new(Path {
-                    id: NodeId::default(),
+                kind: Box::new(ExprKind::Path(Box::new(Path::new( vec![Ident {
+                    name: value.into(),
                     span: Span::default(),
-                    namespace: None,
-                    name: Box::new(Ident {
-                        name: value.into(),
-                        span: Span::default(),
-                        id: NodeId::default(),
-                    }),
-                }))),
+                    id: NodeId::default(),
+                }])))),
             }))),
         }),
         span: Span::default(),

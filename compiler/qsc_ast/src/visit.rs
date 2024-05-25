@@ -3,7 +3,7 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind,
+    Path, Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind,
     SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind,
     TyKind, Visibility,
 };
@@ -72,10 +72,6 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
-
-    fn visit_idents(&mut self, idents: &'a Idents) {
-        walk_idents(self, idents);
-    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -87,7 +83,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
-    vis.visit_idents(&namespace.name);
+    vis.visit_path(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
@@ -98,7 +94,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
-            vis.visit_idents(ns);
+            vis.visit_path(ns);
             alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {
@@ -317,13 +313,6 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
     }
 }
 
-pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
-    if let Some(ref ns) = path.namespace {
-        vis.visit_idents(ns);
-    }
-    vis.visit_ident(&path.name);
-}
-
-pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, idents: &'a Path) {
     idents.iter().for_each(|i| vis.visit_ident(i));
 }

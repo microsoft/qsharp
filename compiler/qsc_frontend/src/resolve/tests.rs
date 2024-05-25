@@ -10,10 +10,10 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Idents, Item, ItemKind};
+use qsc_ast::ast::{Path, Item, ItemKind};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Ident, NodeId, Package, Path, TopLevelNode},
+    ast::{Ident, NodeId, Package, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -115,14 +115,6 @@ impl<'a> Renamer<'a> {
 }
 
 impl Visitor<'_> for Renamer<'_> {
-    fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.names.get(path.id) {
-            self.changes.push((path.span, id.into()));
-        } else {
-            visit::walk_path(self, path);
-        }
-    }
-
     fn visit_ident(&mut self, ident: &Ident) {
         if let Some(&id) = self.names.get(ident.id) {
             self.changes.push((ident.span, id.into()));
@@ -143,7 +135,7 @@ impl Visitor<'_> for Renamer<'_> {
                         self.changes.push((item.span(), (*resolved_id).into()));
                     } else if let Some(namespace_id) = self
                         .namespaces
-                        .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
+                        .get_namespace_id(Into::<Path>::into(item.clone().path).str_iter())
                     {
                         self.changes.push((item.span(), namespace_id.into()));
                     }
@@ -156,7 +148,7 @@ impl Visitor<'_> for Renamer<'_> {
                     let Some(resolved_path) = self.names.get(path.id) else {
                         if let Some(ns_id) = self
                             .namespaces
-                            .get_namespace_id(Into::<Idents>::into(path.clone()).str_iter())
+                            .get_namespace_id(Into::<Path>::into(path.clone()).str_iter())
                         {
                             replacement_buffer.push(ImportItem::NamespaceId {
                                 id: ns_id,
@@ -179,7 +171,7 @@ impl Visitor<'_> for Renamer<'_> {
         visit::walk_item(self, item);
     }
 
-    fn visit_idents(&mut self, vec_ident: &Idents) {
+    fn visit_path(&mut self, vec_ident: &Path) {
         let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
             Some(x) => x,
             None => match self

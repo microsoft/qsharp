@@ -54,12 +54,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name(),
+                                namespace: namespace.name.fully_qualified_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name(),
+                            namespace: namespace.name.fully_qualified_name(),
                         }),
                         _ => {}
                     }
@@ -69,12 +69,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name(),
+                                namespace: namespace.name.fully_qualified_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name(),
+                            namespace: namespace.name.fully_qualified_name(),
                         }),
                         _ => {}
                     }
@@ -136,7 +136,7 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
             match inner.kind.as_ref() {
                 ExprKind::Path(path) => {
-                    if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
+                    if let Ok(capability) = TargetCapabilityFlags::from_str(path.name().name.as_ref())
                     {
                         found_capabilities |= capability;
                     } else {

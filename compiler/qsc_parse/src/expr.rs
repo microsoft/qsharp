@@ -297,7 +297,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
+    matches!(kind, ExprKind::Path(path) if path.len() == 1 && path[0].name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -681,7 +681,7 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Path(path) if path.len() == 1 => Ok(PatKind::Bind(Box::new(path[0].clone()), None)),
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),

@@ -26,8 +26,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Idents,
-    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Path,
+    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Spec, SpecBody,
     SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };
@@ -169,7 +169,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
 
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
-fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
+fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Path> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
     for component in path.components() {
@@ -379,13 +379,8 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     let TyKind::Path(path) = *ty.kind else {
         return Err(Error(ErrorKind::Convert("identifier", "type", ty.span)));
     };
-    if let Path {
-        namespace: None,
-        name,
-        ..
-    } = *path
-    {
-        Ok(name)
+    if path.len() == 1 {
+        Ok(Box::new(path[0].clone()))
     } else {
         Err(Error(ErrorKind::Convert("identifier", "type", ty.span)))
     }
@@ -562,7 +557,7 @@ fn parse_export_item(s: &mut ParserContext) -> Result<ExportItem> {
     } else {
         None
     };
-    Ok(ExportItem { path, alias })
+    Ok(ExportItem::new(path, alias))
 }
 
 /// Parses import items. Note that import items in Q# can be nested and are a tree structure.
@@ -647,7 +642,7 @@ fn parse_multiple_imports(
     brace_stack: &mut i32,
 ) -> Result<Vec<ImportItem>> {
     let mut imports = Vec::new();
-    let mut full_path = parent.to_owned();
+    let mut path_buffer = parent.to_owned();
 
     loop {
         let mut is_glob = false;
@@ -659,29 +654,29 @@ fn parse_multiple_imports(
         let (import, final_sep) = seq(s, ident, TokenKind::Dot, false)?;
         let mut import = import.into_iter().map(|x| *x).collect::<Vec<_>>();
 
-        full_path.append(&mut import);
+        path_buffer.append(&mut import);
 
         match s.peek().kind {
             TokenKind::Comma => {
-                let l_full_path: Path = full_path.clone().into();
+                let full_path: Path = path_buffer.into();
                 imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
+                    span: full_path.span(),
+                    path: full_path.clone(),
                     alias: None,
                     is_glob,
                 });
                 token(s, TokenKind::Comma)?;
                 reduce_closing_tokens(s, brace_stack)?;
-                full_path = parent.to_owned();
+                path_buffer = parent.to_owned();
             }
             TokenKind::Close(Delim::Brace) => {
                 decrement_brace_stack(s, brace_stack)?;
 
-                let l_full_path: Path = full_path.clone().into();
+                let full_path: Path = path_buffer.clone().into();
 
                 imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
+                    span: full_path.span(),
+                    path: full_path,
                     alias: None,
                     is_glob,
                 });
@@ -693,23 +688,23 @@ fn parse_multiple_imports(
             TokenKind::Open(Delim::Brace) => {
                 *brace_stack += 1;
                 token(s, TokenKind::Open(Delim::Brace))?;
-                let nested_imports = parse_multiple_imports(s, &full_path, brace_stack)?;
+                let nested_imports = parse_multiple_imports(s, &path_buffer, brace_stack)?;
                 imports.extend(nested_imports);
-                full_path = parent.to_owned();
+                path_buffer = parent.to_owned();
             }
             TokenKind::Semi => break,
             TokenKind::Keyword(Keyword::As) => {
                 token(s, TokenKind::Keyword(Keyword::As))?;
                 let alias = Some(*ident(s)?);
-                let l_full_path: Path = full_path.clone().into();
+                let full_path: Path = path_buffer.clone().into();
                 imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
+                    span: full_path.span(),
+                    path: full_path,
                     alias,
                     is_glob,
                 });
                 reduce_closing_tokens(s, brace_stack)?;
-                full_path = parent.to_owned();
+                path_buffer = parent.to_owned();
             }
             TokenKind::ClosedBinOp(ClosedBinOp::Star) => {
                 // two globs in a row is a syntax error

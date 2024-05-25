@@ -128,7 +128,7 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.context.current_namespace = namespace.name.name();
+            self.context.current_namespace = namespace.name.fully_qualified_name();
             walk_namespace(self, namespace);
         }
     }

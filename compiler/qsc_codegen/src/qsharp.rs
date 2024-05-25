@@ -15,7 +15,7 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Idents, Item, ItemKind, Lit, Mutability, Pat, PatKind,
+    FunctorExpr, FunctorExprKind, Ident, Path, Item, ItemKind, Lit, Mutability, Pat, PatKind,
     Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
     StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
     Visibility, VisibilityKind,
@@ -104,7 +104,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_namespace(&mut self, namespace: &'_ Namespace) {
         self.write("namespace ");
-        self.visit_idents(&namespace.name);
+        self.visit_path(&namespace.name);
         self.writeln("{");
         namespace.items.iter().for_each(|i| {
             self.visit_item(i);
@@ -124,7 +124,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             ItemKind::Callable(decl) => self.visit_callable_decl(decl),
             ItemKind::Open(ns, alias) => {
                 self.write("open ");
-                self.visit_idents(ns);
+                self.visit_path(ns);
                 if let Some(alias) = alias {
                     self.write(" as ");
                     self.visit_ident(alias);
@@ -711,20 +711,12 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         }
     }
 
-    fn visit_path(&mut self, path: &'_ Path) {
-        if let Some(ns) = &path.namespace {
-            self.visit_idents(ns);
-            self.write(".");
-        }
-        self.visit_ident(&path.name);
-    }
-
     fn visit_ident(&mut self, id: &'_ Ident) {
         self.write(&id.name);
     }
 
-    fn visit_idents(&mut self, idents: &'_ Idents) {
-        self.write(&idents.name::<String>());
+    fn visit_path(&mut self, idents: &'_ Path) {
+        self.write(&idents.fully_qualified_name::<String>());
     }
 }
 

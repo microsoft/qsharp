@@ -7,7 +7,7 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
+        self, CallableBody, CallableDecl, Ident, Path, NodeId, SpecBody, SpecGen, TopLevelNode,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -552,8 +552,7 @@ impl Resolver {
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
-            name,
-            &None,
+            &Path::new(vec![name.clone()]),
         ) {
             Ok(res) => {
                 self.check_item_status(res, name.name.to_string(), name.span);
@@ -564,17 +563,14 @@ impl Resolver {
     }
 
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
-        let name = &path.name;
-        let namespace = &path.namespace;
         match resolve(
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
-            name,
-            namespace,
+            &path,
         ) {
             Ok(res) => {
-                self.check_item_status(res, path.name.name.to_string(), path.span);
+                self.check_item_status(res, path.name().name.to_string(), path.span());
                 self.names.insert(path.id, res);
                 Ok(res)
             }
@@ -637,7 +633,7 @@ impl Resolver {
 
     fn bind_open(
         &mut self,
-        name: &Idents,
+        name: &Path,
         alias: &Option<Box<Ident>>,
         current_namespace: NamespaceId,
     ) {
@@ -654,7 +650,7 @@ impl Resolver {
         } else if let Some(id) = self.globals.namespaces.get_namespace_id(name.str_iter()) {
             id
         } else {
-            let error = Error::NotFound(name.name(), name.span());
+            let error = Error::NotFound(name.fully_qualified_name(), name.span());
             if !self.errors.contains(&error) {
                 self.errors.push(error);
             }
@@ -746,9 +742,9 @@ impl Resolver {
             let resolved_item_id = match resolved_item {
                 Res::Item(_, ItemStatus::Unimplemented) => {
                     self.errors.push(Error::NotAvailable(
-                        item.path.name.name.to_string(),
+                        item.path.name().name.to_string(),
                         "unimplemented".to_string(),
-                        item.path.span,
+                        item.path.span(),
                     ));
                     continue;
                 }
@@ -777,8 +773,8 @@ impl Resolver {
                     }) = scope.tys.get(&item.name().name)
                     {
                         maybe_err = Some(Error::DuplicateExport(
-                            item.path.name.name.to_string(),
-                            item.path.span,
+                            item.path.name().name.to_string(),
+                            item.path.span(),
                         ));
                     }
                     scope.tys.insert(
@@ -793,8 +789,8 @@ impl Resolver {
                     }) = scope.terms.get(&item.name().name)
                     {
                         maybe_err = Some(Error::DuplicateExport(
-                            item.path.name.name.to_string(),
-                            item.path.span,
+                            item.path.name().name.to_string(),
+                            item.path.span(),
                         ));
                     }
                     scope.terms.insert(
@@ -845,13 +841,13 @@ impl Resolver {
                     Ok(res) => Some((res, NameKind::Ty)),
                     Err(err) => {
                         // try to see if it is a namespace
-                        let items = Into::<Idents>::into(item.path.clone());
+                        let items = Into::<Path>::into(item.path.clone());
                         let ns = self.globals.find_namespace(items.str_iter());
                         let alias = item
                             .alias
                             .as_ref()
                             .map(|x| Box::new(x.clone()))
-                            .unwrap_or(item.path.name.clone());
+                            .unwrap_or(Box::new(item.path.name().clone()));
                         if let Some(namespace_id_to_export) = ns {
                             // update the namespace tree to include the new namespace
                             self.globals.namespaces.insert_with_id(
@@ -884,13 +880,13 @@ impl Resolver {
                         Ok(res) => (res, NameKind::Ty),
                         Err(err) => {
                             // try to see if it is a namespace
-                            let items = Into::<Idents>::into(item.path.clone());
+                            let items = Into::<Path>::into(item.path.clone());
                             let ns = self.globals.find_namespace(items.str_iter());
                             let alias = item
                                 .alias
                                 .as_ref()
                                 .map(|x| Box::new(x.clone()))
-                                .or(Some(item.path.name.clone()));
+                                .or(Some(Box::new(item.path.name().clone())));
                             if let Some(ns) = ns {
                                 self.bind_open(&items, &alias, ns);
                             } else if !self.errors.contains(&err) {
@@ -903,7 +899,7 @@ impl Resolver {
             };
 
             let scope = self.current_scope_mut();
-            let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
+            let local_name = item.alias.as_ref().unwrap_or(&item.path.name());
 
             // if the item already exists in the scope, return a duplicate error
             if scope.terms.contains_key(&local_name.name)
@@ -931,7 +927,7 @@ impl Resolver {
                     );
                 }
                 _ => {
-                    let err = Error::ImportedNonItem(item.path.span);
+                    let err = Error::ImportedNonItem(item.path.span());
                     if !self.errors.contains(&err) {
                         self.errors.push(err);
                     }
@@ -947,15 +943,15 @@ impl Resolver {
     /// Globs can only be attached to namespaces, and
     /// they import all items from the namespace into the current scope.
     fn bind_glob_import(&mut self, item: &ImportItem) {
-        let items = Into::<Idents>::into(item.path.clone());
+        let items = Into::<Path>::into(item.path.clone());
         let ns = self.globals.find_namespace(items.str_iter());
         let alias = item.alias.as_ref().map(|x| Box::new(x.clone()));
         if let Some(ns) = ns {
             self.bind_open(&items, &alias, ns);
         } else {
             self.errors.push(Error::GlobImportNamespaceNotFound(
-                item.path.name(),
-                item.path.span,
+                item.path.fully_qualified_name(),
+                item.path.span(),
             ));
         }
     }
@@ -1354,9 +1350,9 @@ pub(super) fn extract_field_name<'a>(names: &Names, expr: &'a ast::Expr) -> Opti
     // Follow the same reasoning as `is_field_update`.
     match &*expr.kind {
         ast::ExprKind::Path(path)
-            if path.namespace.is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
+            if path.namespace().is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
         {
-            Some(&path.name.name)
+            Some(&path.name().name)
         }
         _ => None,
     }
@@ -1370,11 +1366,10 @@ fn is_field_update<'a>(
     // Disambiguate the update operator by looking at the index expression. If it's an
     // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
     match &*index.kind {
-        ast::ExprKind::Path(path) if path.namespace.is_none() => !matches!(
+        ast::ExprKind::Path(path) if path.namespace().is_none() => !matches!(
             {
-                let name = &path.name;
-                let namespace = &path.namespace;
-                resolve(NameKind::Term, globals, scopes, name, namespace)
+
+                resolve(NameKind::Term, globals, scopes, &*path)
             },
             Ok(Res::Local(_))
         ),
@@ -1502,30 +1497,27 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// In the example `Foo()` -- the `provided_namespace_name` would be `None` and the
 /// `provided_symbol_name` would be `Foo`.
 /// returns the resolution if successful, or an error if not.
-fn resolve<'a>(
+fn resolve<'a,'b>(
     kind: NameKind,
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
-    provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Idents>,
+    path: &Path
 ) -> Result<Res, Error> {
     if let Some(value) = check_all_scopes(
         kind,
         globals,
-        provided_symbol_name,
-        provided_namespace_name,
+        path,
         scopes,
     ) {
         return value;
     }
 
     // check the prelude
-    if provided_namespace_name.is_none() {
+    if path.namespace().is_none() {
         let prelude_candidates = find_symbol_in_namespaces(
             kind,
             globals,
-            provided_namespace_name,
-            provided_symbol_name,
+            &Path::new(vec![path.name().clone()]),
             prelude_namespaces(globals).into_iter(),
             // prelude is opened by default
             &(std::iter::once((vec![], prelude_namespaces(globals))).collect()),
@@ -1548,8 +1540,8 @@ fn resolve<'a>(
                 .next()
                 .expect("infallible as per length check above");
             return Err(Error::AmbiguousPrelude {
-                span: provided_symbol_name.span,
-                name: provided_symbol_name.name.to_string(),
+                span: path.name().span,
+                name: path.name().name.to_string(),
                 candidate_a,
                 candidate_b,
             });
@@ -1565,8 +1557,7 @@ fn resolve<'a>(
     let global_candidates = find_symbol_in_namespaces(
         kind,
         globals,
-        provided_namespace_name,
-        provided_symbol_name,
+        path,
         std::iter::once((globals.namespaces.root_id(), ())),
         // there are no aliases in globals
         &FxHashMap::default(),
@@ -1578,28 +1569,20 @@ fn resolve<'a>(
         return Ok(res);
     }
 
-    Err(match provided_namespace_name {
-        Some(ns) => Error::NotFound(
-            ns.push(provided_symbol_name.clone()).name(),
-            Span {
-                lo: ns.span().lo,
-                hi: provided_symbol_name.span.hi,
-            },
-        ),
-        None => Error::NotFound(
-            provided_symbol_name.name.to_string(),
-            provided_symbol_name.span,
-        ),
-    })
+    Err(
+        Error::NotFound(
+            path.fully_qualified_name(),
+            path.span()
+        )
+    )
 }
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
 /// using the `vars` parameter.
-fn check_all_scopes<'a>(
+fn check_all_scopes<'a, 'b>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Idents>,
+    path: &Path,
     scopes: impl Iterator<Item = &'a Scope>,
 ) -> Option<Result<Res, Error>> {
     let mut vars = true;
@@ -1608,8 +1591,7 @@ fn check_all_scopes<'a>(
         if let Some(value) = check_scoped_resolutions(
             kind,
             globals,
-            provided_symbol_name,
-            provided_namespace_name,
+            path,
             &mut vars,
             scope,
         ) {
@@ -1641,14 +1623,13 @@ fn check_all_scopes<'a>(
 fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Idents>,
+    path: &Path,
     vars: &mut bool,
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
-    if provided_namespace_name.is_none() {
+    if path.namespace().is_none() {
         if let Some(res) =
-            resolve_scope_locals(kind, globals, scope, *vars, &provided_symbol_name.name)
+            resolve_scope_locals(kind, globals, scope, *vars, &path.name().name)
         {
             // Local declarations shadow everything.
             return Some(Ok(res));
@@ -1668,8 +1649,7 @@ fn check_scoped_resolutions(
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,
-        provided_namespace_name,
-        provided_symbol_name,
+        &path,
         scope
             .opens
             .iter()
@@ -1686,7 +1666,7 @@ fn check_scoped_resolutions(
         len if len > 1 => {
             return Some(Err(ambiguous_symbol_error(
                 globals,
-                provided_symbol_name,
+                path.name(),
                 explicit_open_candidates
                     .into_iter()
                     .map(|(a, b)| (a, b.clone()))
@@ -1733,8 +1713,7 @@ fn ambiguous_symbol_error(
 fn find_symbol_in_namespaces<T, O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_namespace_name: &Option<Idents>,
-    provided_symbol_name: &Ident,
+    path: &Path,
     namespaces_to_search: T,
     aliases: &FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
 ) -> FxHashMap<Res, O>
@@ -1742,7 +1721,7 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
-    let opens = match provided_namespace_name {
+    let opens = match path.namespace() {
         None => aliases.get(&Vec::new()),
         Some(namespace_name) => aliases.get(
             &namespace_name
@@ -1756,23 +1735,23 @@ where
     let mut candidates = FxHashMap::default();
     if let Some(opens) = opens {
         for open in opens {
-            find_symbol_in_namespace(
-                kind,
-                globals,
-                &provided_namespace_name
-                    .as_ref()
-                    .map(|x| x.iter().skip(1).cloned().collect::<Vec<_>>().into()),
-                provided_symbol_name,
-                &mut candidates,
-                open.0,
-                open.1.clone(),
-            );
+            if path.len() > 1 {
+                let path_without_first_ident = path.into_iter().skip(1).cloned().collect();
+                find_symbol_in_namespace(
+                    kind,
+                    globals,
+                    &path_without_first_ident,
+                    &mut candidates,
+                    open.0,
+                    open.1.clone(),
+                );
+            }
         }
         // check aliases to see if the provided namespace is actually an alias
-        if provided_namespace_name.is_none() {
+        if path.namespace().is_none() {
             candidates.extend(&mut opens.iter().filter_map(|(ns_id, open)| {
                 globals
-                    .get(kind, *ns_id, &provided_symbol_name.name)
+                    .get(kind, *ns_id, &path.name().name)
                     .map(|res| (*res, open.clone()))
             }));
         }
@@ -1782,8 +1761,7 @@ where
         if find_symbol_in_namespace(
             kind,
             globals,
-            provided_namespace_name,
-            provided_symbol_name,
+            path,
             &mut candidates,
             candidate_namespace_id,
             open,
@@ -1806,8 +1784,7 @@ where
 fn find_symbol_in_namespace<O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_namespace_name: &Option<Idents>,
-    provided_symbol_name: &Ident,
+    path: &Path,
     candidates: &mut FxHashMap<Res, O>,
     candidate_namespace_id: NamespaceId,
     open: O,
@@ -1821,23 +1798,23 @@ where
         .find_namespace_by_id(&candidate_namespace_id);
 
     // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
-    let namespace = provided_namespace_name.as_ref().and_then(|name| {
+    let namespace = path.namespace().and_then(|name| {
         candidate_namespace
             .borrow()
-            .get_namespace_id(name.str_iter())
+            .get_namespace_id(name.iter().map(|x| &*x.name))
     });
 
     // if a namespace was provided, but not found, then this is not the correct namespace.
     // for example, if the query is `Foo.Bar.Baz`, we know there must exist a `Foo.Bar` somewhere.
     // If we didn't find it above, then even if we find `Baz` here, it is not the correct location.
-    if provided_namespace_name.is_some() && namespace.is_none() {
+    if path.namespace().is_some() && namespace.is_none() {
         return true;
     }
 
     // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
     let res = namespace
         //  .or(Some(candidate_namespace_id))
-        .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+        .and_then(|ns_id| globals.get(kind, ns_id, &path.name().name));
 
     // If a symbol was found, insert it into the candidates map
     if let Some(res) = res {

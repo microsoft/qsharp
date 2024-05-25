@@ -14,6 +14,7 @@ use std::{
     hash::{Hash, Hasher},
     rc::Rc,
 };
+use std::ops::Index;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
@@ -164,7 +165,7 @@ pub struct Namespace {
     /// The documentation.
     pub doc: Rc<str>,
     /// The namespace name.
-    pub name: Idents,
+    pub name: Path,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
 }
@@ -269,7 +270,7 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(Idents, Option<Box<Ident>>),
+    Open(Path, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
@@ -1281,116 +1282,6 @@ impl Display for QubitInitKind {
     }
 }
 
-/// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct Path {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Idents>,
-    /// The declaration name.
-    pub name: Box<Ident>,
-}
-
-impl Path {
-    /// Appends another path to this path.
-    /// Notably, uses the span of the latter path.
-    /// This is useful for more readable error messages when dealing with nested imports.
-    /// For example:
-    /// `Foo.{Bar, Baz}` produces two paths: `Foo.Bar` and `Foo.Baz`. The span for these would be
-    /// just `Bar` and `Baz`, because if the span for `Baz` went all the way from `Foo` to `Baz`,
-    /// it would not be very useful in error reporting. E.g.,
-    /// ```
-    /// import Foo.{Bar, Baz}'
-    ///        ^^^^^^^^^^^^^ `Foo.Baz` not found
-    /// ```
-    /// is less intuitive than
-    /// ```
-    /// import Foo.{Bar, Baz}'
-    ///                  ^^^ `Foo.Baz` not found
-    /// ```
-    #[must_use]
-    pub fn append(self, other: Path) -> Path {
-        Path {
-            namespace: match self.namespace {
-                Some(ns) => Some(
-                    [
-                        &*ns.0,
-                        &[*self.name.clone()][..],
-                        &other.namespace.unwrap_or_default().0,
-                    ]
-                    .concat()
-                    .into(),
-                ),
-                None => Some(vec![*self.name].into()),
-            },
-            id: NodeId::default(),
-            span: other.span,
-            name: other.name,
-        }
-    }
-
-    /// Pretty-prints the path as a string.
-    #[must_use]
-    pub fn name(&self) -> String {
-        let mut buf = String::new();
-        if let Some(ns) = &self.namespace {
-            for ident in ns.0.iter() {
-                buf.push_str(&ident.name);
-                buf.push('.');
-            }
-        }
-        buf.push_str(&self.name.name);
-        buf
-    }
-}
-
-impl From<Path> for Vec<Ident> {
-    fn from(val: Path) -> Self {
-        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
-        buf.push(*val.name);
-        buf
-    }
-}
-
-impl From<Vec<Ident>> for Path {
-    fn from(mut v: Vec<Ident>) -> Self {
-        let name = v
-            .pop()
-            .expect("parser should never produce empty vector of idents");
-        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
-        let span = Span {
-            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
-            hi: name.span.hi,
-        };
-        Self {
-            namespace,
-            name: name.into(),
-            span,
-            id: NodeId::default(),
-        }
-    }
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
-            write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
-        }
-        Ok(())
-    }
-}
-
-impl WithSpan for Path {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
-}
-
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
@@ -1402,41 +1293,44 @@ pub struct Ident {
     pub name: Rc<str>,
 }
 
-/// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
+/// A [`Path`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct Idents(pub Box<[Ident]>);
+pub struct Path {
+    idents: Box<[Ident]>,
+    pub id: NodeId
+}
 
-impl From<Idents> for Vec<Rc<str>> {
-    fn from(v: Idents) -> Self {
-        v.0.iter().map(|i| i.name.clone()).collect()
+impl From<Path> for Vec<Rc<str>> {
+    fn from(v: Path) -> Self {
+        v.idents.iter().map(|i| i.name.clone()).collect()
     }
 }
 
-impl From<&Idents> for Vec<Rc<str>> {
-    fn from(v: &Idents) -> Self {
-        v.0.iter().map(|i| i.name.clone()).collect()
+impl From<&Path> for Vec<Rc<str>> {
+    fn from(v: &Path) -> Self {
+        v.idents.iter().map(|i| i.name.clone()).collect()
     }
 }
 
-impl From<Vec<Ident>> for Idents {
+impl From<Vec<Ident>> for Path {
     fn from(v: Vec<Ident>) -> Self {
-        Idents(v.into_boxed_slice())
+        Path::new(v)
     }
 }
 
-impl From<Idents> for Vec<Ident> {
-    fn from(v: Idents) -> Self {
-        v.0.to_vec()
+impl From<Path> for Vec<Ident> {
+    fn from(v: Path) -> Self {
+        v.idents.to_vec()
     }
 }
 
-impl Display for Idents {
+impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut buf = Vec::with_capacity(self.0.len());
+        let mut buf = Vec::with_capacity(self.idents.len());
 
-        for ident in self.0.iter() {
+        for ident in self.idents.iter() {
             buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
@@ -1448,7 +1342,7 @@ impl Display for Idents {
     }
 }
 
-impl<'a> IntoIterator for &'a Idents {
+impl<'a> IntoIterator for &'a Path {
     type IntoIter = std::slice::Iter<'a, Ident>;
     type Item = &'a Ident;
     fn into_iter(self) -> Self::IntoIter {
@@ -1456,15 +1350,15 @@ impl<'a> IntoIterator for &'a Idents {
     }
 }
 
-impl<'a> From<&'a Idents> for IdentsStrIter<'a> {
-    fn from(v: &'a Idents) -> Self {
+impl<'a> From<&'a Path> for IdentsStrIter<'a> {
+    fn from(v: &'a Path) -> Self {
         IdentsStrIter(v)
     }
 }
 
-/// An iterator which yields string slices of the names of the idents in a [`Idents`].
-/// Note that [`Idents`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
-pub struct IdentsStrIter<'a>(pub &'a Idents);
+/// An iterator which yields string slices of the names of the idents in a [`Path`].
+/// Note that [`Path`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct IdentsStrIter<'a>(pub &'a Path);
 
 impl<'a> IntoIterator for IdentsStrIter<'a> {
     type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
@@ -1474,25 +1368,22 @@ impl<'a> IntoIterator for IdentsStrIter<'a> {
     }
 }
 
-impl FromIterator<Ident> for Idents {
+impl FromIterator<Ident> for Path {
     fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
-        Idents(iter.into_iter().collect())
+        Path ::new( iter.into_iter().collect())
     }
 }
 
-impl From<Path> for Idents {
-    fn from(p: Path) -> Self {
-        let mut buf = p.namespace.unwrap_or_default().0.to_vec();
-        buf.push(*p.name);
-        Self(buf.into_boxed_slice())
+impl Path {
+    pub fn new(idents: Vec<Ident>) -> Self {
+        assert!(!idents.is_empty(), "a path should never be empty");
+        Path { idents: idents.into_boxed_slice(), id: NodeId::default() }
     }
-}
 
-impl Idents {
     /// constructs an iterator over the [Ident]s that this contains.
     /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
-        self.0.iter()
+        self.idents.iter()
     }
 
     /// constructs an iterator over the elements of `self` as string slices.
@@ -1506,23 +1397,23 @@ impl Idents {
     #[must_use]
     pub fn span(&self) -> Span {
         Span {
-            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
-            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+            lo: self.idents.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.idents.last().map(|i| i.span.hi).unwrap_or_default(),
         }
     }
 
-    /// The stringified dot-separated path of the idents in this [`Idents`]
+    /// The stringified dot-separated path of the idents in this [`Path`]
     /// E.g. `a.b.c`
     #[must_use]
-    pub fn name<T>(&self) -> T
+    pub fn fully_qualified_name<T>(&self) -> T
     where
         T: From<String>,
     {
-        if self.0.len() == 1 {
-            return T::from(self.0[0].name.clone().to_string());
+        if self.idents.len() == 1 {
+            return T::from(self.idents[0].name.clone().to_string());
         }
         let mut buf = String::new();
-        for ident in self.0.iter() {
+        for ident in self.idents.iter() {
             if !buf.is_empty() {
                 buf.push('.');
             }
@@ -1531,13 +1422,41 @@ impl Idents {
         T::from(buf)
     }
 
-    /// Appends another ident to this [`Idents`].
-    /// Returns a new [`Idents`] with the appended ident.
+    /// The last item in the sequence, which is the symbol name
+    pub fn name(&self) -> &Ident {
+        self.idents.last().as_ref().expect("path should never be empty")
+    }
+
+    /// Appends another ident to this [`Path`].
+    /// Returns a new [`Path`] with the appended ident.
     #[must_use = "this method returns a new value and does not mutate the original value"]
     pub fn push(&self, other: Ident) -> Self {
-        let mut buf = self.0.to_vec();
+        let mut buf = self.idents.to_vec();
         buf.push(other);
-        Self(buf.into_boxed_slice())
+        Path::new(buf)
+    }
+
+    pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<Ident> {
+        self.idents.iter_mut()
+    }
+
+    pub fn len(&self) -> usize {
+        self.idents.len()
+    }
+
+    pub fn namespace(&self) -> Option<&[Ident]> {
+        if self.len() > 1 {
+            Some(&self.idents[..self.len() - 1])
+        } else {
+            None
+        }
+    }
+}
+
+impl Index<usize> for Path {
+    type Output = Ident;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.idents[index]
     }
 }
 
@@ -1830,6 +1749,19 @@ pub struct ExportItem {
     pub path: Path,
     /// An optional alias for the item being exported.
     pub alias: Option<Ident>,
+    /// An optional span override for this path.
+    /// If absent, the span will be calculated from the `path` field
+    span: Option<Span>,
+}
+
+impl WithSpan for ExportItem {
+    fn with_span(self, span: Span) -> Self {
+        ExportItem {
+            span: Some(span),
+            ..self
+        }
+    }
+
 }
 
 impl Display for ExportItem {
@@ -1837,6 +1769,7 @@ impl Display for ExportItem {
         let ExportItem {
             ref path,
             ref alias,
+            ..
         } = self;
         match alias {
             Some(alias) => write!(f, "{path} as {alias}"),
@@ -1844,29 +1777,39 @@ impl Display for ExportItem {
         }
     }
 }
-
-impl WithSpan for ExportItem {
-    fn with_span(self, span: Span) -> Self {
-        ExportItem {
-            path: self.path.with_span(span),
-            alias: self.alias.map(|x| x.with_span(span)),
-        }
-    }
-}
+//
+// impl WithSpan for ExportItem {
+//     fn with_span(self, span: Span) -> Self {
+//         ExportItem {
+//             path: self.path.with_span(span),
+//             alias: self.alias.map(|x| x.with_span(span)),
+//         }
+//     }
+// }
 
 impl ExportItem {
+    /// Creates a new export item.
+    pub fn new(path: Path, alias: Option<Ident>) -> ExportItem {
+        ExportItem {
+            path,
+            alias,
+            span: None,
+        }
+    }
+
     /// Returns the span of the export item. This includes the path and , if any exists, the alias.
     #[must_use]
     pub fn span(&self) -> Span {
-        match self.alias {
-            Some(ref alias) => {
+        match (self.span, &self.alias) {
+            (Some(span), _ ) => span,
+            (None, Some(ref alias)) => {
                 // join the path and alias spans
                 Span {
-                    lo: self.path.span.lo,
+                    lo: self.path.span().lo,
                     hi: alias.span.hi,
                 }
             }
-            None => self.path.span,
+            (None, None) => self.path.span(),
         }
     }
 
@@ -1875,7 +1818,7 @@ impl ExportItem {
     pub fn name(&self) -> &Ident {
         match self.alias {
             Some(ref alias) => alias,
-            None => &self.path.name,
+            None => self.path.name(),
         }
     }
 }
@@ -1924,7 +1867,7 @@ impl Display for ImportItem {
             "{} ImportItem {}: {} {}",
             if self.is_glob { "Glob" } else { "" },
             self.span,
-            self.path.name(),
+            self.path.fully_qualified_name::<String>(),
             if let Some(ref alias) = self.alias {
                 format!("as {alias}")
             } else {

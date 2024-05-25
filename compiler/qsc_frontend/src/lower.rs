@@ -231,7 +231,7 @@ impl With<'_> {
             Ok(hir::Attr::Config) => {
                 if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
                     if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                        if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()))
+                        if TargetCapabilityFlags::from_str(path.name().name.as_ref()).is_ok()))
                 {
                     self.lowerer.errors.push(Error::InvalidAttrArgs(
                         "runtime capability".to_string(),
@@ -740,7 +740,7 @@ impl With<'_> {
         })
     }
 
-    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+    fn lower_vec_ident(&mut self, name: &ast::Path) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }

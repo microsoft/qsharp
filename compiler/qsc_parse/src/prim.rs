@@ -82,34 +82,13 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
 /// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
 pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     let lo = s.peek().span.lo;
-    let mut parts = vec![ident(s)?];
+    let mut parts = vec![*ident(s)?];
     while token(s, TokenKind::Dot).is_ok() {
-        parts.push(ident(s)?);
+        parts.push(*ident(s)?);
     }
 
-    let name = parts.pop().expect("path should have at least one part");
-    let namespace = if parts.is_empty() {
-        None
-    } else {
-        Some(
-            parts
-                .iter()
-                .map(|part| Ident {
-                    id: NodeId::default(),
-                    span: part.span,
-                    name: part.name.clone(),
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )
-    };
 
-    Ok(Box::new(Path {
-        id: NodeId::default(),
-        span: s.span(lo),
-        namespace,
-        name,
-    }))
+    Ok(Box::new(Path::new(parts)) )
 }
 
 pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
