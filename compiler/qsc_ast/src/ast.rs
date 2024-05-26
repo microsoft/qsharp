@@ -1377,6 +1377,9 @@ impl FromIterator<Ident> for Path {
 impl Path {
     pub fn new(idents: Vec<Ident>) -> Self {
         assert!(!idents.is_empty(), "a path should never be empty");
+        if idents.len() == 1 {
+            return Path::from_single_ident(&idents[0]);
+        }
         Path { idents: idents.into_boxed_slice(), id: NodeId::default() }
     }
 
@@ -1440,7 +1443,10 @@ impl Path {
     pub fn push(&self, other: Ident) -> Self {
         let mut buf = self.idents.to_vec();
         buf.push(other);
-        Path::new(buf)
+        Path {
+            idents: buf.into_boxed_slice(),
+            id: self.id,
+        }
     }
 
     pub(crate) fn iter_mut(&mut self) -> std::slice::IterMut<Ident> {
@@ -1784,15 +1790,6 @@ impl Display for ExportItem {
         }
     }
 }
-//
-// impl WithSpan for ExportItem {
-//     fn with_span(self, span: Span) -> Self {
-//         ExportItem {
-//             path: self.path.with_span(span),
-//             alias: self.alias.map(|x| x.with_span(span)),
-//         }
-//     }
-// }
 
 impl ExportItem {
     /// Creates a new export item.

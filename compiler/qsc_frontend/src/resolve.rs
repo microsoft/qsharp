@@ -572,6 +572,7 @@ impl Resolver {
             Ok(res) => {
                 self.check_item_status(res, path.name().name.to_string(), path.span());
                 self.names.insert(path.id, res);
+
                 Ok(res)
             }
             Err(err) => {

@@ -171,19 +171,24 @@ impl Visitor<'_> for Renamer<'_> {
         visit::walk_item(self, item);
     }
 
-    fn visit_path(&mut self, vec_ident: &Path) {
-        let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
+    fn visit_path(&mut self, path: &Path) {
+        let item = self.names.get(path.id);
+        if let Some(&id) = item {
+            self.changes.push((path.span(), id.into()));
+            return;
+        }
+        let ns_id = match self.namespaces.get_namespace_id(path.str_iter()) {
             Some(x) => x,
             None => match self
                 .aliases
-                .get(&(Into::<Vec<Rc<str>>>::into(vec_ident)))
+                .get(&(Into::<Vec<Rc<str>>>::into(path)))
                 .copied()
             {
                 Some(x) => x,
                 None => return,
             },
         };
-        self.changes.push((vec_ident.span(), ns_id.into()));
+        self.changes.push((path.span(), ns_id.into()));
     }
 }
 
