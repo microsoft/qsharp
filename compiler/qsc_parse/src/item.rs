@@ -26,8 +26,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Path,
-    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Spec, SpecBody,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident,
+    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
     SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };

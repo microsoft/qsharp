@@ -3,9 +3,9 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Path, Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind,
-    SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind, Visibility,
+    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
+    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    Visibility,
 };
 
 pub trait Visitor<'a>: Sized {

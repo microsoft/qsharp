@@ -87,8 +87,7 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
         parts.push(*ident(s)?);
     }
 
-
-    Ok(Box::new(Path::new(parts)) )
+    Ok(Box::new(Path::new(parts)))
 }
 
 pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {

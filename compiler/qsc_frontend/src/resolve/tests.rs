@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Path, Item, ItemKind};
+use qsc_ast::ast::{Item, ItemKind, Path};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, TopLevelNode},

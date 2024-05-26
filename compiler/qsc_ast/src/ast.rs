@@ -8,13 +8,13 @@
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
+use std::ops::Index;
 use std::{
     cmp::Ordering,
     fmt::{self, Display, Formatter, Write},
     hash::{Hash, Hasher},
     rc::Rc,
 };
-use std::ops::Index;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
@@ -1298,8 +1298,8 @@ pub struct Ident {
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Path {
-    idents: Box<[Ident]>,
-    pub id: NodeId
+    pub idents: Box<[Ident]>,
+    pub id: NodeId,
 }
 
 impl From<Path> for Vec<Rc<str>> {
@@ -1370,7 +1370,7 @@ impl<'a> IntoIterator for IdentsStrIter<'a> {
 
 impl FromIterator<Ident> for Path {
     fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
-        Path ::new( iter.into_iter().collect())
+        Path::new(iter.into_iter().collect())
     }
 }
 
@@ -1380,7 +1380,10 @@ impl Path {
         if idents.len() == 1 {
             return Path::from_single_ident(&idents[0]);
         }
-        Path { idents: idents.into_boxed_slice(), id: NodeId::default() }
+        Path {
+            idents: idents.into_boxed_slice(),
+            id: NodeId::default(),
+        }
     }
 
     pub fn from_single_ident(ident: &Ident) -> Path {
@@ -1434,7 +1437,10 @@ impl Path {
 
     /// The last item in the sequence, which is the symbol name
     pub fn name(&self) -> &Ident {
-        self.idents.last().as_ref().expect("path should never be empty")
+        self.idents
+            .last()
+            .as_ref()
+            .expect("path should never be empty")
     }
 
     /// Appends another ident to this [`Path`].
@@ -1774,7 +1780,6 @@ impl WithSpan for ExportItem {
             ..self
         }
     }
-
 }
 
 impl Display for ExportItem {
@@ -1805,7 +1810,7 @@ impl ExportItem {
     #[must_use]
     pub fn span(&self) -> Span {
         match (self.span, &self.alias) {
-            (Some(span), _ ) => span,
+            (Some(span), _) => span,
             (None, Some(ref alias)) => {
                 // join the path and alias spans
                 Span {

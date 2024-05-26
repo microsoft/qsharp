@@ -6,9 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{
-        self, CallableBody, CallableDecl, Ident, Path, NodeId, SpecBody, SpecGen, TopLevelNode,
-    },
+    ast::{self, CallableBody, CallableDecl, Ident, NodeId, Path, SpecBody, SpecGen, TopLevelNode},
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 
@@ -552,7 +550,7 @@ impl Resolver {
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
-            &Path::from_single_ident(name)
+            &Path::from_single_ident(name),
         ) {
             Ok(res) => {
                 self.check_item_status(res, name.name.to_string(), name.span);
@@ -1368,10 +1366,7 @@ fn is_field_update<'a>(
     // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
     match &*index.kind {
         ast::ExprKind::Path(path) if path.namespace().is_none() => !matches!(
-            {
-
-                resolve(NameKind::Term, globals, scopes, &*path)
-            },
+            { resolve(NameKind::Term, globals, scopes, &*path) },
             Ok(Res::Local(_))
         ),
         _ => false,
@@ -1498,18 +1493,13 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// In the example `Foo()` -- the `provided_namespace_name` would be `None` and the
 /// `provided_symbol_name` would be `Foo`.
 /// returns the resolution if successful, or an error if not.
-fn resolve<'a,'b>(
+fn resolve<'a, 'b>(
     kind: NameKind,
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
-    path: &Path
+    path: &Path,
 ) -> Result<Res, Error> {
-    if let Some(value) = check_all_scopes(
-        kind,
-        globals,
-        path,
-        scopes,
-    ) {
+    if let Some(value) = check_all_scopes(kind, globals, path, scopes) {
         return value;
     }
 
@@ -1570,12 +1560,7 @@ fn resolve<'a,'b>(
         return Ok(res);
     }
 
-    Err(
-        Error::NotFound(
-            path.fully_qualified_name(),
-            path.span()
-        )
-    )
+    Err(Error::NotFound(path.fully_qualified_name(), path.span()))
 }
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
@@ -1589,13 +1574,7 @@ fn check_all_scopes<'a, 'b>(
     let mut vars = true;
 
     for scope in scopes {
-        if let Some(value) = check_scoped_resolutions(
-            kind,
-            globals,
-            path,
-            &mut vars,
-            scope,
-        ) {
+        if let Some(value) = check_scoped_resolutions(kind, globals, path, &mut vars, scope) {
             return Some(value);
         }
     }
@@ -1629,9 +1608,7 @@ fn check_scoped_resolutions(
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
     if path.namespace().is_none() {
-        if let Some(res) =
-            resolve_scope_locals(kind, globals, scope, *vars, &path.name().name)
-        {
+        if let Some(res) = resolve_scope_locals(kind, globals, scope, *vars, &path.name().name) {
             // Local declarations shadow everything.
             return Some(Ok(res));
         }
@@ -1738,7 +1715,8 @@ where
         for open in opens {
             if path.len() > 1 {
                 let path_id = path.id;
-                let mut path_without_first_ident: Path = path.into_iter().skip(1).cloned().collect();
+                let mut path_without_first_ident: Path =
+                    path.into_iter().skip(1).cloned().collect();
                 path_without_first_ident.id = path_id;
                 find_symbol_in_namespace(
                     kind,

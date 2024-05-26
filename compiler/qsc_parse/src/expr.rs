@@ -681,7 +681,9 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(path) if path.len() == 1 => Ok(PatKind::Bind(Box::new(path[0].clone()), None)),
+        ExprKind::Path(path) if path.len() == 1 => {
+            Ok(PatKind::Bind(Box::new(path[0].clone()), None))
+        }
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),
