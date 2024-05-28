@@ -118,13 +118,13 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.ExportedNonItem"))]
     ExportedNonItem(#[label] Span),
 
-    #[error("exporting external items is not yet supported")]
+    #[error("exporting external items is not supported")]
     #[diagnostic(code("Qsc.Resolve.ExportedExternalItem"))]
     ExportedExternalItem(#[label] Span),
 
-    #[error("export statements are only allowed in a namespace scope")]
-    #[diagnostic(code("Qsc.Resolve.ExportFromNonNamespaceScope"))]
-    ExportFromNonNamespaceScope(Span),
+    #[error("export statements are not allowed in a local scope")]
+    #[diagnostic(code("Qsc.Resolve.ExportFromLocalScope"))]
+    ExportFromLocalScope(Span),
 
     #[error("imported non-item")]
     #[diagnostic(help("only callables, namespaces, and non-primitive types can be imported"))]
@@ -391,7 +391,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             ItemKind::Export(_) => self
                 .resolver
                 .errors
-                .push(Error::ExportFromNonNamespaceScope(item.span)),
+                .push(Error::ExportFromLocalScope(item.span)),
             _ => ast_visit::walk_item(self, item),
         }
     }
