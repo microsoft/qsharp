@@ -273,7 +273,7 @@ fn entry_error() {
 
     let unit = default_compile(sources);
     assert_eq!(
-        ("<entry>", Span { lo: 4, hi: 5 }),
+        ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
     );
 }
@@ -550,7 +550,7 @@ fn package_dependency_internal_error() {
         .iter()
         .map(|error| source_span(&unit2.sources, error))
         .collect();
-    assert_eq!(vec![("test", Span { lo: 65, hi: 68 }),], errors);
+    assert_eq!(vec![("test", Span { lo: 56, hi: 68 }),], errors);
 
     expect![[r#"
         Package:

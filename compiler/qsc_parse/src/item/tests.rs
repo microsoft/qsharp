@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{parse, parse_attr, parse_spec_decl, source_name_to_namespace_name};
+use super::{parse, parse_attr, parse_import, parse_spec_decl, source_name_to_namespace_name};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -199,6 +199,7 @@ fn udt_item_doc() {
                         Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
+
 #[test]
 fn callable_param_doc() {
     check(
@@ -220,6 +221,7 @@ fn callable_param_doc() {
                     body: Block: Block _id_ [74-76]: <empty>"#]],
     );
 }
+
 #[test]
 fn callable_return_doc() {
     check(
@@ -1771,6 +1773,84 @@ fn parse_export_list() {
                     Export (ExportDecl [72-155]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar"), Path _id_ [86-94] (Ident _id_ [86-89] "Baz") (Ident _id_ [90-94] "Quux"), Path _id_ [96-120] ([Ident _id_ [96-100] "Math", Ident _id_ [101-108] "Quantum", Ident _id_ [109-113] "Some"]) (Ident _id_ [114-120] "Nested"), Path _id_ [122-152] ([Ident _id_ [122-126] "Math", Ident _id_ [127-134] "Quantum", Ident _id_ [135-139] "Some", Ident _id_ [140-145] "Other"]) (Ident _id_ [146-152] "Nested")])"#]],
     );
 }
+
+#[test]
+fn parse_single_import() {
+    check(
+        parse_import,
+        "import Foo;",
+        &expect![[
+            r#"ImportDecl [0-11]: [ImportItem [0-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_multiple_imports() {
+    check(
+        parse_import,
+        "import Foo.{Bar, Baz};",
+        &expect![[
+            r#"ImportDecl [0-22]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-20]: Path _id_ [7-20] (Ident _id_ [7-10] "Foo") (Ident _id_ [17-20] "Baz") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_nested_imports() {
+    check(
+        parse_import,
+        "import Foo.{Bar, Baz.{Quux, Corge}};",
+        &expect![[
+            r#"ImportDecl [0-36]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-26]: Path _id_ [7-26] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [22-26] "Quux") as , ImportItem [7-33]: Path _id_ [7-33] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [28-33] "Corge") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_import_with_alias() {
+    check(
+        parse_import,
+        "import Foo as Bar;",
+        &expect![[
+            r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_import_with_nested_alias() {
+    check(
+        parse_import,
+        "import Foo.{Bar as Baz};",
+        &expect![[
+            r#"ImportDecl [0-24]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#
+        ]],
+    );
+}
+
+#[test]
+fn import_with_too_many_closing_braces() {
+    check(
+        parse_import,
+        "import Foo.{Bar}};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace, item, or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
 #[test]
 fn parse_export_missing_braces() {
     check_vec(
@@ -1804,6 +1884,204 @@ fn parse_export_missing_braces() {
                     ),
                 ),
             ]"#]],
+    );
+}
+
+#[test]
+fn import_with_too_many_open_braces() {
+    check(
+        parse_import,
+        "import Foo.{{Bar};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "close brace",
+                    Semi,
+                    Span {
+                        lo: 17,
+                        hi: 18,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_with_misplaced_closing_brace() {
+    check(
+        parse_import,
+        "import Foo.}Bar;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 11,
+                        hi: 12,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn complex_import_tree() {
+    check(
+        parse_import,
+        r#"
+    import A.B.Foo.{Bar.{Baz, Quux}, Graule};
+    "#,
+        &expect![[
+            r#"ImportDecl [5-46]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [38-44] "Graule") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn ignore_extra_commas_in_list() {
+    check(
+        parse_import,
+        r#"
+    import A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule};
+    "#,
+        &expect![[
+            r#"ImportDecl [5-55]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [40-44] "Quux") as , ImportItem [12-53]: Path _id_ [12-53] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [47-53] "Graule") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn ignore_extra_commas_after_brace() {
+    check(
+        parse_import,
+        r#"
+    import A.B.Foo.{Bar.{Baz, Quux},,, Graule};
+    "#,
+        &expect![[
+            r#"ImportDecl [5-48]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-46]: Path _id_ [12-46] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [40-46] "Graule") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn empty_import_statement() {
+    check(
+        parse_import,
+        "import;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "identifier",
+                    Semi,
+                    Span {
+                        lo: 6,
+                        hi: 7,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_nested_basic() {
+    check(
+        parse_import,
+        "import Foo.Bar.{Baz};",
+        &expect![[
+            r#"ImportDecl [0-21]: [ImportItem [7-19]: Path _id_ [7-19] ([Ident _id_ [7-10] "Foo", Ident _id_ [11-14] "Bar"]) (Ident _id_ [16-19] "Baz") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn import_tree_shadowing_self() {
+    check(
+        parse_import,
+        "import Foo.{Bar};",
+        &expect![[
+            r#"ImportDecl [0-17]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn import_tree_shadowing_self_nested() {
+    check(
+        parse_import,
+        "import Foo.{Bar.{Baz}};",
+        &expect![[
+            r#"ImportDecl [0-23]: [ImportItem [7-20]: Path _id_ [7-20] ([Ident _id_ [7-10] "Foo", Ident _id_ [12-15] "Bar"]) (Ident _id_ [17-20] "Baz") as ]"#
+        ]],
+    );
+}
+
+#[test]
+fn import_tree_unexpected_token() {
+    check(
+        parse_import,
+        "import Foo.{Bar 123};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "comma or close brace",
+                    Int(
+                        Decimal,
+                    ),
+                    Span {
+                        lo: 16,
+                        hi: 19,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_missing_closing_brace() {
+    check(
+        parse_import,
+        "import Foo.{Bar.{Baz;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "close brace",
+                    Semi,
+                    Span {
+                        lo: 20,
+                        hi: 21,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_missing_opening_brace() {
+    check(
+        parse_import,
+        "import Foo.Bar.Baz};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Close(
+                        Brace,
+                    ),
+                    Span {
+                        lo: 18,
+                        hi: 19,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 

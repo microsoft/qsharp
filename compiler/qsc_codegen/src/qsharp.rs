@@ -138,7 +138,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_ty_def(def);
                 self.writeln(";");
             }
-            ItemKind::Export(_) => (),
+            // TODO verify that we actually don't want to do anything here
+            ItemKind::Export(_) | ItemKind::Import(_) => (),
         }
     }
 
@@ -723,7 +724,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     }
 
     fn visit_idents(&mut self, idents: &'_ Idents) {
-        self.write(&idents.name());
+        self.write(&idents.name::<String>());
     }
 }
 

@@ -125,7 +125,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (pats, final_sep) = seq(s, pat)?;
+        let (pats, final_sep) = comma_separated_seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(pats, PatKind::Paren, PatKind::Tuple))
     } else {
@@ -161,14 +161,18 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
-
-pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
+/// Parses a sequence of items separated by `tok`.
+pub(super) fn seq<T>(
+    s: &mut ParserContext,
+    mut p: impl Parser<T>,
+    tok: TokenKind,
+) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
 {
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
-    while s.peek().kind == TokenKind::Comma {
+    while s.peek().kind == tok {
         let mut span = s.peek().span;
         span.hi = span.lo;
         s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
@@ -177,8 +181,8 @@ where
     }
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
-        if token(s, TokenKind::Comma).is_ok() {
-            while s.peek().kind == TokenKind::Comma {
+        if token(s, tok).is_ok() {
+            while s.peek().kind == tok {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
                 s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
@@ -192,6 +196,17 @@ where
         }
     }
     Ok((xs, final_sep))
+}
+
+/// Parses a sequence of items separated by commas.
+pub(super) fn comma_separated_seq<T>(
+    s: &mut ParserContext,
+    p: impl Parser<T>,
+) -> Result<(Vec<T>, FinalSep)>
+where
+    T: Default + WithSpan,
+{
+    seq(s, p, TokenKind::Comma)
 }
 
 pub(super) fn recovering<T>(

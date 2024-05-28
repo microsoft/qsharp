@@ -274,6 +274,8 @@ pub enum ItemKind {
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
     Export(ExportDecl),
+    /// An import declaration.
+    Import(ImportDecl),
 }
 
 impl Display for ItemKind {
@@ -287,6 +289,7 @@ impl Display for ItemKind {
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
             ItemKind::Export(export) => write!(f, "Export ({export})")?,
+            ItemKind::Import(import) => write!(f, "Import ({import})")?,
         }
         Ok(())
     }
@@ -1291,6 +1294,72 @@ pub struct Path {
     pub name: Box<Ident>,
 }
 
+impl Path {
+    /// Appends another path to this path.
+    /// Notably, uses the span of the latter path.
+    /// This is useful for more readable error messages when dealing with nested imports.
+    /// For example:
+    /// `Foo.{Bar, Baz}` produces two paths: `Foo.Bar` and `Foo.Baz`. The span for these would be
+    /// just `Bar` and `Baz`, because if the span for `Baz` went all the way from `Foo` to `Baz`,
+    /// it would not be very useful in error reporting. E.g.,
+    /// ```
+    /// import Foo.{Bar, Baz}'
+    ///        ^^^^^^^^^^^^^ `Foo.Baz` not found
+    /// ```
+    /// is less intuitive than
+    /// ```
+    /// import Foo.{Bar, Baz}'
+    ///                  ^^^ `Foo.Baz` not found
+    /// ```
+    #[must_use]
+    pub fn append(self, other: Path) -> Path {
+        Path {
+            namespace: match self.namespace {
+                Some(ns) => Some(
+                    [
+                        &*ns.0,
+                        &[*self.name.clone()][..],
+                        &other.namespace.unwrap_or_default().0,
+                    ]
+                    .concat()
+                    .into(),
+                ),
+                None => Some(vec![*self.name].into()),
+            },
+            id: NodeId::default(),
+            span: other.span,
+            name: other.name,
+        }
+    }
+}
+
+impl From<Path> for Vec<Ident> {
+    fn from(val: Path) -> Self {
+        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*val.name);
+        buf
+    }
+}
+
+impl From<Vec<Ident>> for Path {
+    fn from(mut v: Vec<Ident>) -> Self {
+        let name = v
+            .pop()
+            .expect("parser should never produce empty vector of idents");
+        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
+        let span = Span {
+            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
+            hi: name.span.hi,
+        };
+        Self {
+            namespace,
+            name: name.into(),
+            span,
+            id: NodeId::default(),
+        }
+    }
+}
+
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(ns) = &self.namespace {
@@ -1431,9 +1500,12 @@ impl Idents {
     /// The stringified dot-separated path of the idents in this [`Idents`]
     /// E.g. `a.b.c`
     #[must_use]
-    pub fn name(&self) -> Rc<str> {
+    pub fn name<T>(&self) -> T
+    where
+        T: From<String>,
+    {
         if self.0.len() == 1 {
-            return self.0[0].name.clone();
+            return T::from(self.0[0].name.clone().to_string());
         }
         let mut buf = String::new();
         for ident in self.0.iter() {
@@ -1442,7 +1514,16 @@ impl Idents {
             }
             buf.push_str(&ident.name);
         }
-        Rc::from(buf)
+        T::from(buf)
+    }
+
+    /// Appends another ident to this [`Idents`].
+    /// Returns a new [`Idents`] with the appended ident.
+    #[must_use = "this method returns a new value and does not mutate the original value"]
+    pub fn push(&self, other: Ident) -> Self {
+        let mut buf = self.0.to_vec();
+        buf.push(other);
+        Self(buf.into_boxed_slice())
     }
 }
 
@@ -1782,5 +1863,53 @@ impl ExportItem {
             Some(ref alias) => alias,
             None => &self.path.name,
         }
+    }
+}
+
+/// An import declaration, which is used to pull in individual symbols into the current
+/// scope.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being imported from this namespace.
+    pub items: Vec<ImportItem>,
+}
+
+impl Display for ImportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self
+            .items
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "ImportDecl {}: [{items_str}]", self.span)
+    }
+}
+
+/// An individual item being imported by an import statement.
+/// e.g. `import Foo.{Bar, Baz}` is two import items:
+/// one for `Foo.Bar` and one for `Foo.Baz`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImportItem {
+    /// The span.
+    pub span: Span,
+    /// The items being imported from this namespace.
+    pub path: Path,
+    /// The alias of the imported item.
+    pub alias: Option<Ident>,
+}
+
+impl Display for ImportItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let alias_str = self.alias.as_ref().map_or("", |a| a.name.as_ref());
+        write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
+    }
+}
+
+impl WithSpan for ImportItem {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }

@@ -30,9 +30,16 @@ use std::fmt::Write;
 use std::rc::Rc;
 
 #[derive(Debug)]
+enum ImportItem {
+    Res(Res),
+    NamespaceId(NamespaceId),
+}
+
+#[derive(Debug)]
 enum Change {
     Res(Res),
     NamespaceId(NamespaceId),
+    Import(Vec<ImportItem>),
 }
 
 impl From<Res> for Change {
@@ -67,19 +74,38 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, change) in self.changes.iter().rev() {
             let name = match change {
-                Change::Res(res) => match res {
-                    Res::Item(item, _) => match item.package {
-                        None => format!("item{}", item.item),
-                        Some(package) => format!("package{package}_item{}", item.item),
-                    },
-                    Res::Local(node) => format!("local{node}"),
-                    Res::PrimTy(prim) => format!("{prim:?}"),
-                    Res::UnitTy => "Unit".to_string(),
-                    Res::Param(id) => format!("param{id}"),
-                },
+                Change::Res(res) => Self::format_res(res),
                 Change::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
+                Change::Import(resolutions) => format!(
+                    "import {{{}}}",
+                    resolutions
+                        .iter()
+                        .map(Self::format_import_item)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
             };
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
+        }
+    }
+
+    fn format_res(res: &Res) -> String {
+        match res {
+            Res::Item(item, _) => match item.package {
+                None => format!("item{}", item.item),
+                Some(package) => format!("package{package}_item{}", item.item),
+            },
+            Res::Local(node) => format!("local{node}"),
+            Res::PrimTy(prim) => format!("{prim:?}"),
+            Res::UnitTy => "Unit".to_string(),
+            Res::Param(id) => format!("param{id}"),
+        }
+    }
+
+    fn format_import_item(item: &ImportItem) -> String {
+        match item {
+            ImportItem::Res(res) => Self::format_res(res),
+            ImportItem::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
         }
     }
 }
@@ -117,6 +143,27 @@ impl Visitor<'_> for Renamer<'_> {
                     {
                         self.changes.push((item.span(), namespace_id.into()));
                     }
+                }
+                return;
+            }
+            ItemKind::Import(import) => {
+                let mut replacement_buffer = vec![];
+                for qsc_ast::ast::ImportItem { path, .. } in &import.items {
+                    let Some(resolved_path) = self.names.get(path.id) else {
+                        if let Some(ns_id) = self
+                            .namespaces
+                            .get_namespace_id(Into::<Idents>::into(path.clone()).str_iter())
+                        {
+                            replacement_buffer.push(ImportItem::NamespaceId(ns_id));
+                        }
+                        continue;
+                    };
+
+                    replacement_buffer.push(ImportItem::Res(*resolved_path));
+                }
+                if !replacement_buffer.is_empty() {
+                    self.changes
+                        .push((import.span, Change::Import(replacement_buffer)));
                 }
                 return;
             }
@@ -186,11 +233,8 @@ fn compile(
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
-
     resolver.resolve_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
-
     let (names, locals, mut resolve_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
     (package, names, locals, errors, namespaces)
@@ -3444,6 +3488,653 @@ fn export_udt_and_construct_it() {
         "#]],
     );
 }
+#[test]
+fn import_single_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {item1}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_namespace() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                function Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar.Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                function item1() : Unit {}
+            }
+            namespace namespace9 {
+                import {namespace8}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_non_existent_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+            }
+            namespace namespace8 {
+                import Foo.Bar;
+                operation item2() : Unit {
+                    Bar();
+                }
+            }
+
+            // NotFound("Foo.Bar", Span { lo: 46, hi: 53 })
+            // NotFound("Bar", Span { lo: 93, hi: 96 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_shadowing() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                function Bar() : Unit {}
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                function item3() : Unit {}
+                import {item1}
+                operation item4() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar as Baz;
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {item1}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_non_item() {
+    check(
+        indoc! {"
+            namespace Main {
+                import Unit;
+                operation Main() : Unit {
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                import {Unit}
+                operation item1() : Unit {
+                }
+            }
+
+            // ImportedNonItem(Span { lo: 28, hi: 32 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_namespace_nested() {
+    check(
+        indoc! {"
+            namespace Foo.Bar.Baz {
+                operation Quux() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar.Baz.Quux();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace9 {
+                operation item1() : Unit {}
+            }
+            namespace namespace10 {
+                import {namespace8}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_single_namespace() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo;
+
+                operation Main() : Unit {
+                    Foo.Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {namespace7}
+
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_shadowing_function() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                operation Bar() : Unit {}
+                operation Main() : Unit {
+                    import Foo.Bar;
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item3() : Unit {}
+                operation item4() : Unit {
+                    import {item1}
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_non_existent_namespace() {
+    check(
+        indoc! {"
+            namespace Main {
+                operation Main() : Unit {
+                    import NonExistent;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    import NonExistent;
+                }
+            }
+
+            // NotFound("NonExistent", Span { lo: 62, hi: 73 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_self() {
+    check(
+        indoc! {"
+            namespace Main {
+                operation Foo() : Unit {
+                    import Foo;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    import {item1}
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_single_level() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+                operation Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Bar, Baz};
+
+                operation Main() : Unit {
+                    Bar();
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                import {item1, item2}
+
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_multi_level() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Bar.{Baz}};
+
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+            }
+            namespace namespace9 {
+                import {item1}
+
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_non_existent_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Baz};
+
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import Foo.{Baz};
+
+                operation item3() : Unit {
+                    Baz();
+                }
+            }
+
+            // NotFound("Foo.Baz", Span { lo: 76, hi: 84 })
+            // NotFound("Baz", Span { lo: 126, hi: 129 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_shadowing() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                operation Bar() : Unit {}
+                import Foo.{Bar};
+
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item3() : Unit {}
+                import {item1}
+
+                operation item4() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_duplicate_symbol() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            import Foo.{Bar.{Baz}, Bar.{Baz}};
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+                import {item2, item2}
+            }
+            namespace namespace9 {
+                operation item2() : Unit {}
+            }
+
+            // ImportedDuplicate("Baz", Span { lo: 49, hi: 52 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_takes_precedence_over_local_decl() {
+    check(
+        indoc! { r#"
+        namespace Main {
+
+            operation Baz() : Unit {
+                import Foo.Bar.Baz;
+                Baz();
+            }
+
+        }
+
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+
+                operation item1() : Unit {
+                    import {item3}
+                    item3();
+                }
+
+            }
+
+            namespace namespace9 {
+                operation item3() : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_then_export() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                export { Bar };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {item1}
+                export { item1 };
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_namespace_advanced() {
+    check(
+        indoc! {"
+            namespace A.B.C.D.E {
+                operation DumpMachine() : Unit {}
+            }
+            namespace TestOne {
+                import A;
+                operation Main() : Unit {
+                    A.B.C.D.E.DumpMachine();
+                }
+            }
+            namespace TestTwo {
+                import A.B;
+                operation Main() : Unit {
+                    B.C.D.E.DumpMachine();
+                }
+            }
+            namespace TestThree {
+                import A.B.C;
+                operation Main() : Unit {
+                    C.D.E.DumpMachine();
+                }
+            }
+            namespace TestFour {
+                import A.B.C.D;
+                operation Main() : Unit {
+                    D.E.DumpMachine();
+                }
+            }
+            namespace TestFive {
+                import A.B.C.D.E;
+                operation Main() : Unit {
+                    E.DumpMachine();
+                }
+            }
+            namespace TestSix {
+                import A.B.C.D.E.DumpMachine;
+                operation Main() : Unit {
+                    DumpMachine();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace11 {
+                operation item1() : Unit {}
+            }
+            namespace namespace12 {
+                import {namespace7}
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace13 {
+                import {namespace8}
+                operation item5() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace14 {
+                import {namespace9}
+                operation item7() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace15 {
+                import {namespace10}
+                operation item9() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace16 {
+                import {namespace11}
+                operation item11() : Unit {
+                    item1();
+                }
+            }
+            namespace namespace17 {
+                import {item1}
+                operation item13() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_namespace_does_not_open_it() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Diagnostics {
+                operation DumpMachine() : Unit {}
+            }
+            namespace Main {
+                import Microsoft.Quantum.Diagnostics;
+                operation Main() : Unit {
+                    Diagnostics.DumpMachine();
+                    DumpMachine();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                import {namespace7}
+                operation item3() : Unit {
+                    item1();
+                    DumpMachine();
+                }
+            }
+
+            // NotFound("DumpMachine", Span { lo: 214, hi: 225 })
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_import() {
+    check(
+        indoc! {"
+            namespace Main {
+                import A.B.C;
+                operation Main() : Unit {
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                import A.B.C;
+                operation item1() : Unit {
+                }
+            }
+
+            // NotFound("A.B.C", Span { lo: 28, hi: 33 })
+        "#]],
+    );
+}
 
 #[test]
 fn export_namespace() {
@@ -3608,5 +4299,39 @@ fn export_namespace_with_alias() {
                 }
             }
         "#]],
+    );
+}
+
+#[test]
+fn import_newtype() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    import Bar.NewType; // no error
+
+                    operation FooOperation() : Unit {
+                        let x: NewType = NewType("a");  // The constructor name is resolved, but the type name isn't
+                    }
+                }
+
+                namespace Bar {
+                    newtype NewType = String;
+                    export { NewType }; // not sure if this is required, but it doesn't seem to matter
+
+                }"#},
+        &expect![[r#"
+            namespace namespace7 {
+                import {item3} // no error
+
+                operation item1() : Unit {
+                    let local17: item3 = item3("a");  // The constructor name is resolved, but the type name isn't
+                }
+            }
+
+            namespace namespace8 {
+                newtype item3 = String;
+                export { item3 }; // not sure if this is required, but it doesn't seem to matter
+
+            }"#]],
     );
 }

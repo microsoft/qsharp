@@ -8,7 +8,7 @@ use super::{
     expr::{self, expr, expr_stmt},
     item,
     keyword::Keyword,
-    prim::{ident, many, opt, pat, seq, token},
+    prim::{comma_separated_seq, ident, many, opt, pat, token},
     scan::ParserContext,
     Error, Result,
 };
@@ -150,7 +150,7 @@ fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
             )));
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (inits, final_sep) = seq(s, parse_qubit_init)?;
+        let (inits, final_sep) = comma_separated_seq(s, parse_qubit_init)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple)
     } else {
