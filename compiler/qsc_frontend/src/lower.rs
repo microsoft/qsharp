@@ -594,23 +594,10 @@ impl With<'_> {
     }
 
     fn lower_field_assign(&mut self, ty: &Ty, field_assign: &ast::FieldAssign) -> hir::FieldAssign {
-        // ToDo: This is temporary until proper type checking is implemented
-        let path = if field_assign.field.name.ends_with('x') {
-            0
-        } else if field_assign.field.name.ends_with('y') {
-            1
-        } else {
-            2
-        };
-        let field = hir::Field::Path(hir::FieldPath {
-            indices: vec![path],
-        });
-
         hir::FieldAssign {
             id: self.lower_id(field_assign.id),
             span: field_assign.span,
-            // field: self.lower_field(ty, &field_assign.field.name),
-            field,
+            field: self.lower_field(ty, &field_assign.field.name),
             value: Box::new(self.lower_expr(&field_assign.value)),
         }
     }
