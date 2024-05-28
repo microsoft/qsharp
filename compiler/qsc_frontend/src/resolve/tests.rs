@@ -4301,3 +4301,37 @@ fn export_namespace_with_alias() {
         "#]],
     );
 }
+
+#[test]
+fn import_newtype() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    import Bar.NewType; // no error
+
+                    operation FooOperation() : Unit {
+                        let x: NewType = NewType("a");  // The constructor name is resolved, but the type name isn't
+                    }
+                }
+
+                namespace Bar {
+                    newtype NewType = String;
+                    export { NewType }; // not sure if this is required, but it doesn't seem to matter
+
+                }"#},
+        &expect![[r#"
+            namespace namespace7 {
+                import {item3} // no error
+
+                operation item1() : Unit {
+                    let local17: item3 = item3("a");  // The constructor name is resolved, but the type name isn't
+                }
+            }
+
+            namespace namespace8 {
+                newtype item3 = String;
+                export { item3 }; // not sure if this is required, but it doesn't seem to matter
+
+            }"#]],
+    );
+}

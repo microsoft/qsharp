@@ -124,17 +124,17 @@ pub(super) enum Error {
 
     #[error("export statements are not allowed in a local scope")]
     #[diagnostic(code("Qsc.Resolve.ExportFromLocalScope"))]
-    ExportFromLocalScope(Span),
+    ExportFromLocalScope(#[label] Span),
 
     #[error("imported non-item")]
     #[diagnostic(help("only callables, namespaces, and non-primitive types can be imported"))]
     #[diagnostic(code("Qsc.Resolve.ImportedNonItem"))]
-    ImportedNonItem(Span),
+    ImportedNonItem(#[label] Span),
 
     #[error("imported symbol that already exists in scope")]
     #[diagnostic(help("alias this import or rename the existing symbol"))]
     #[diagnostic(code("Qsc.Resolve.ImportedDuplicate"))]
-    ImportedDuplicate(String, Span),
+    ImportedDuplicate(String, #[label] Span),
 }
 
 #[derive(Debug, Clone)]
@@ -831,67 +831,69 @@ impl Resolver {
         current_namespace: Option<NamespaceId>,
         item: &ExportItem,
     ) -> Option<(Res, NameKind)> {
-        // try to see if it is a term
-        match self.resolve_path(NameKind::Term, &item.path) {
-            Ok(res) => Some((res, NameKind::Term)),
-            Err(_) => {
-                // try to see if it is a type
-                match self.resolve_path(NameKind::Ty, &item.path) {
-                    Ok(res) => Some((res, NameKind::Ty)),
-                    Err(err) => {
-                        // try to see if it is a namespace
-                        let items = Into::<Idents>::into(item.path.clone());
-                        let ns = self.globals.find_namespace(items.str_iter());
-                        let alias = item
-                            .alias
-                            .as_ref()
-                            .map(|x| Box::new(x.clone()))
-                            .unwrap_or(item.path.name.clone());
-                        if let Some(namespace_id_to_export) = ns {
-                            // update the namespace tree to include the new namespace
-                            self.globals.namespaces.insert_with_id(
-                                current_namespace,
-                                namespace_id_to_export,
-                                &alias.name,
-                            );
-                        } else if !self.errors.contains(&err) {
-                            self.errors.push(err);
-                        }
-                        None
-                    }
+        let (term_result, ty_result) = (
+            self.resolve_path(NameKind::Term, &item.path),
+            self.resolve_path(NameKind::Ty, &item.path),
+        );
+
+        match (term_result, ty_result) {
+            (Err(err), Err(_)) => {
+                // try to see if it is a namespace
+                let items = Into::<Idents>::into(item.path.clone());
+                let ns = self.globals.find_namespace(items.str_iter());
+                let alias = item
+                    .alias
+                    .as_ref()
+                    .map(|x| Box::new(x.clone()))
+                    .unwrap_or(item.path.name.clone());
+                if let Some(namespace_id_to_export) = ns {
+                    // update the namespace tree to include the new namespace
+                    self.globals.namespaces.insert_with_id(
+                        current_namespace,
+                        namespace_id_to_export,
+                        &alias.name,
+                    );
+                } else if !self.errors.contains(&err) {
+                    self.errors.push(err);
                 }
+                None
+            }
+            (Ok(res @ Res::Item(..)), _) | (_, Ok(res @ Res::Item(..))) => {
+                Some((res, NameKind::Term))
+            }
+            (Ok(_), _) | (_, Ok(_)) => {
+                let err = Error::ExportedNonItem(item.path.span);
+                if !self.errors.contains(&err) {
+                    self.errors.push(err);
+                }
+                None
             }
         }
     }
 
     fn bind_import(&mut self, import: &ImportDecl) {
         for item in &import.items {
-            // try to see if it is a term
-            let (resolved_item, term_or_ty) = match self.resolve_path(NameKind::Term, &item.path) {
-                Ok(res) => (res, NameKind::Term),
-                Err(_) => {
-                    // try to see if it is a type
-                    match self.resolve_path(NameKind::Ty, &item.path) {
-                        Ok(res) => (res, NameKind::Ty),
-                        Err(err) => {
-                            // try to see if it is a namespace
-                            let items = Into::<Idents>::into(item.path.clone());
-                            let ns = self.globals.find_namespace(items.str_iter());
-                            let alias = item
-                                .alias
-                                .as_ref()
-                                .map(|x| Box::new(x.clone()))
-                                .or(Some(item.path.name.clone()));
-                            if let Some(ns) = ns {
-                                self.bind_open(&items, &alias, ns);
-                            } else if !self.errors.contains(&err) {
-                                self.errors.push(err);
-                            }
-                            continue;
-                        }
-                    }
+            let (term_result, ty_result) = (
+                self.resolve_path(NameKind::Term, &item.path),
+                self.resolve_path(NameKind::Ty, &item.path),
+            );
+
+            if let (Err(err), Err(_)) = (&term_result, &ty_result) {
+                // try to see if it is a namespace
+                let items = Into::<Idents>::into(item.path.clone());
+                let ns = self.globals.find_namespace(items.str_iter());
+                let alias = item
+                    .alias
+                    .as_ref()
+                    .map(|x| Box::new(x.clone()))
+                    .or(Some(item.path.name.clone()));
+                if let Some(ns) = ns {
+                    self.bind_open(&items, &alias, ns);
+                } else if !self.errors.contains(err) {
+                    self.errors.push(err.clone());
                 }
-            };
+                continue;
+            }
 
             let scope = self.current_scope_mut();
             let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
@@ -907,30 +909,39 @@ impl Resolver {
                 continue;
             }
 
-            // insert the item into the local scope
-            match (term_or_ty, resolved_item) {
-                (NameKind::Term, Res::Item(id, _)) => {
-                    scope.terms.insert(
-                        Rc::clone(&local_name.name),
-                        ScopeItemEntry::new(id, ItemSource::Imported),
-                    );
-                }
-                (NameKind::Ty, Res::Item(id, _)) => {
-                    scope.tys.insert(
-                        Rc::clone(&local_name.name),
-                        ScopeItemEntry::new(id, ItemSource::Imported),
-                    );
-                }
-                _ => {
+            if let Ok(Res::Item(id, _)) = term_result {
+                scope.terms.insert(
+                    Rc::clone(&local_name.name),
+                    ScopeItemEntry::new(id, ItemSource::Imported),
+                );
+            }
+
+            if let Ok(Res::Item(id, _)) = ty_result {
+                scope.tys.insert(
+                    Rc::clone(&local_name.name),
+                    ScopeItemEntry::new(id, ItemSource::Imported),
+                );
+            }
+
+            let res = match (term_result, ty_result) {
+                (Ok(res @ Res::Item(..)), _) | (_, Ok(res @ Res::Item(..))) => res,
+                (Ok(_), _) | (_, Ok(_)) => {
                     let err = Error::ImportedNonItem(item.path.span);
                     if !self.errors.contains(&err) {
                         self.errors.push(err);
                     }
+                    continue;
                 }
-            }
+                (Err(err), _) => {
+                    if !self.errors.contains(&err) {
+                        self.errors.push(err);
+                    }
+                    continue;
+                }
+            };
 
             // insert the item into the names we know about
-            self.names.insert(item.path.id, resolved_item);
+            self.names.insert(item.path.id, res);
         }
     }
 
