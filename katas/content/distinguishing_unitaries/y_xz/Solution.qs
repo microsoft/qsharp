@@ -9,6 +9,6 @@ namespace Kata {
         }
 
         // 0 means it was Y
-        return M(qs[0]) == Zero ? 0 | 1;
+        return MResetZ(qs[0]) == Zero ? 0 | 1;
     }
 }

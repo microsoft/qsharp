@@ -5,6 +5,6 @@ We see that these two gates differ by a global phase $i = e^{i\pi}$. Applying th
 Now we need to distinguish $I$ gate from $-I$ gate, which is the same thing we did in the previous task.
 
 @[solution]({
-    "id": "distinguishing_unitaries__h_x_solution",
+    "id": "distinguishing_unitaries__y_xz_solution",
     "codePath": "Solution.qs"
 })

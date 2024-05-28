@@ -7,6 +7,6 @@ namespace Kata {
         } apply {
             Controlled unitary(qs[0..0], (2.0 * PI(), qs[1]));
         }
-        return M(qs[0]) == Zero ? 1 | 0;
+        return MResetZ(qs[0]) == Zero ? 1 | 0;
     }
 }
