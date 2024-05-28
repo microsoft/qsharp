@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Arithmetic;
-
     operation DistinguishPaulis (unitary : (Qubit => Unit is Adj + Ctl)) : Int {
         // apply operation to the 1st qubit of a Bell state and measure in Bell basis
         use qs = Qubit[2];
@@ -12,7 +10,7 @@ namespace Kata {
         }
 
         // after this I -> 00, X -> 01, Y -> 11, Z -> 10
-        let ind = MeasureInteger(LittleEndian(qs));
+        let ind = MeasureInteger(qs);
         let returnValues = [0, 3, 1, 2];
         return returnValues[ind];
     }
