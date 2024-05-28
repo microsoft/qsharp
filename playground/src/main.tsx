@@ -34,7 +34,9 @@ import {
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
+  lsToMonacoWorkspaceEdit,
   monacoPositionToLsPosition,
+  monacoRangetoLsRange,
 } from "./utils.js";
 
 // Set up the Markdown renderer with KaTeX support
@@ -422,20 +424,7 @@ function registerMonacoLanguageServiceProviders(
         newName,
       );
       if (!rename) return null;
-
-      const edits = rename.changes.flatMap(([uri, edits]) => {
-        return edits.map((edit) => {
-          const textEdit: monaco.languages.TextEdit = {
-            range: lsRangeToMonacoRange(edit.range),
-            text: edit.newText,
-          };
-          return {
-            resource: monaco.Uri.parse(uri),
-            textEdit: textEdit,
-          } as monaco.languages.IWorkspaceTextEdit;
-        });
-      });
-      return { edits: edits } as monaco.languages.WorkspaceEdit;
+      return lsToMonacoWorkspaceEdit(rename);
     },
     resolveRenameLocation: async (
       model: monaco.editor.ITextModel,
@@ -492,6 +481,37 @@ function registerMonacoLanguageServiceProviders(
       range: monaco.Range,
     ) => {
       return getFormatChanges(model, range);
+    },
+  });
+
+  monaco.languages.registerCodeActionProvider("qsharp", {
+    provideCodeActions: async (
+      model: monaco.editor.ITextModel,
+      range: monaco.Range,
+    ) => {
+      const lsCodeActions = await languageService.getCodeActions(
+        model.uri.toString(),
+        monacoRangetoLsRange(range),
+      );
+
+      const codeActions = lsCodeActions.map((lsCodeAction) => {
+        let edit;
+        if (lsCodeAction.edit) {
+          edit = lsToMonacoWorkspaceEdit(lsCodeAction.edit);
+        }
+
+        return {
+          title: lsCodeAction.title,
+          edit: edit,
+          kind: lsCodeAction.kind,
+          isPreferred: lsCodeAction.isPreferred,
+        } as monaco.languages.CodeAction;
+      });
+
+      return {
+        actions: codeActions,
+        dispose: () => {},
+      } as monaco.languages.CodeActionList;
     },
   });
 }

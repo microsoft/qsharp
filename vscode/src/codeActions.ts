@@ -15,7 +15,6 @@ class QSharpCodeActionProvider implements vscode.CodeActionProvider {
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
   ) {
-    range.intersection;
     const iCodeActions = await this.languageService.getCodeActions(
       document.uri.toString(),
       range,
