@@ -152,7 +152,7 @@ impl LanguageService {
 
     pub fn get_code_actions(&self, uri: &str, range: IRange) -> Vec<ICodeAction> {
         let range: Range = range.into();
-        let code_actions = self.0.get_code_actions(uri, &range.into());
+        let code_actions = self.0.get_code_actions(uri, range.into());
         code_actions
             .into_iter()
             .map(|code_action| Into::<CodeAction>::into(code_action).into())
