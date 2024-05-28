@@ -1331,6 +1331,20 @@ impl Path {
             name: other.name,
         }
     }
+
+    /// Pretty-prints the path as a string.
+    #[must_use]
+    pub fn name(&self) -> String {
+        let mut buf = String::new();
+        if let Some(ns) = &self.namespace {
+            for ident in ns.0.iter() {
+                buf.push_str(&ident.name);
+                buf.push('.');
+            }
+        }
+        buf.push_str(&self.name.name);
+        buf
+    }
 }
 
 impl From<Path> for Vec<Ident> {
@@ -1899,12 +1913,24 @@ pub struct ImportItem {
     pub path: Path,
     /// The alias of the imported item.
     pub alias: Option<Ident>,
+    /// Whether or not this is a glob import.
+    pub is_glob: bool,
 }
 
 impl Display for ImportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let alias_str = self.alias.as_ref().map_or("", |a| a.name.as_ref());
-        write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
+        write!(
+            f,
+            "{} ImportItem {}: {} {}",
+            if self.is_glob { "Glob" } else { "" },
+            self.span,
+            self.path.name(),
+            if let Some(ref alias) = self.alias {
+                format!("as {alias}")
+            } else {
+                String::new()
+            }
+        )
     }
 }
 

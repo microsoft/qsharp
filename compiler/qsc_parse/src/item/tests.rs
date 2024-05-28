@@ -1779,9 +1779,7 @@ fn parse_single_import() {
     check(
         parse_import,
         "import Foo;",
-        &expect![[
-            r#"ImportDecl [0-11]: [ImportItem [0-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#
-        ]],
+        &expect!["ImportDecl [0-11]: [ ImportItem [0-10]: Foo ]"],
     );
 }
 
@@ -1790,9 +1788,7 @@ fn parse_multiple_imports() {
     check(
         parse_import,
         "import Foo.{Bar, Baz};",
-        &expect![[
-            r#"ImportDecl [0-22]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-20]: Path _id_ [7-20] (Ident _id_ [7-10] "Foo") (Ident _id_ [17-20] "Baz") as ]"#
-        ]],
+        &expect!["ImportDecl [0-22]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-20]: Foo.Baz ]"],
     );
 }
 
@@ -1801,9 +1797,7 @@ fn parse_nested_imports() {
     check(
         parse_import,
         "import Foo.{Bar, Baz.{Quux, Corge}};",
-        &expect![[
-            r#"ImportDecl [0-36]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-26]: Path _id_ [7-26] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [22-26] "Quux") as , ImportItem [7-33]: Path _id_ [7-33] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [28-33] "Corge") as ]"#
-        ]],
+        &expect!["ImportDecl [0-36]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-26]: Foo.Baz.Quux ,  ImportItem [7-33]: Foo.Baz.Corge ]"],
     );
 }
 
@@ -1812,9 +1806,7 @@ fn parse_import_with_alias() {
     check(
         parse_import,
         "import Foo as Bar;",
-        &expect![[
-            r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#
-        ]],
+        &expect![[r#"ImportDecl [0-18]: [ ImportItem [0-17]: Foo as Ident _id_ [14-17] "Bar"]"#]],
     );
 }
 
@@ -1824,7 +1816,7 @@ fn parse_import_with_nested_alias() {
         parse_import,
         "import Foo.{Bar as Baz};",
         &expect![[
-            r#"ImportDecl [0-24]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#
+            r#"ImportDecl [0-24]: [ ImportItem [7-15]: Foo.Bar as Ident _id_ [19-22] "Baz"]"#
         ]],
     );
 }
@@ -1936,9 +1928,7 @@ fn complex_import_tree() {
         r#"
     import A.B.Foo.{Bar.{Baz, Quux}, Graule};
     "#,
-        &expect![[
-            r#"ImportDecl [5-46]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [38-44] "Graule") as ]"#
-        ]],
+        &expect!["ImportDecl [5-46]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-35]: A.B.Foo.Bar.Quux ,  ImportItem [12-44]: A.B.Foo.Graule ]"],
     );
 }
 
@@ -1949,9 +1939,7 @@ fn ignore_extra_commas_in_list() {
         r#"
     import A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule};
     "#,
-        &expect![[
-            r#"ImportDecl [5-55]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [40-44] "Quux") as , ImportItem [12-53]: Path _id_ [12-53] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [47-53] "Graule") as ]"#
-        ]],
+        &expect!["ImportDecl [5-55]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-44]: A.B.Foo.Bar.Quux ,  ImportItem [12-53]: A.B.Foo.Graule ]"],
     );
 }
 
@@ -1962,9 +1950,7 @@ fn ignore_extra_commas_after_brace() {
         r#"
     import A.B.Foo.{Bar.{Baz, Quux},,, Graule};
     "#,
-        &expect![[
-            r#"ImportDecl [5-48]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-46]: Path _id_ [12-46] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [40-46] "Graule") as ]"#
-        ]],
+        &expect!["ImportDecl [5-48]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-35]: A.B.Foo.Bar.Quux ,  ImportItem [12-46]: A.B.Foo.Graule ]"],
     );
 }
 
@@ -1993,9 +1979,7 @@ fn import_tree_nested_basic() {
     check(
         parse_import,
         "import Foo.Bar.{Baz};",
-        &expect![[
-            r#"ImportDecl [0-21]: [ImportItem [7-19]: Path _id_ [7-19] ([Ident _id_ [7-10] "Foo", Ident _id_ [11-14] "Bar"]) (Ident _id_ [16-19] "Baz") as ]"#
-        ]],
+        &expect!["ImportDecl [0-21]: [ ImportItem [7-19]: Foo.Bar.Baz ]"],
     );
 }
 
@@ -2004,9 +1988,7 @@ fn import_tree_shadowing_self() {
     check(
         parse_import,
         "import Foo.{Bar};",
-        &expect![[
-            r#"ImportDecl [0-17]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as ]"#
-        ]],
+        &expect!["ImportDecl [0-17]: [ ImportItem [7-15]: Foo.Bar ]"],
     );
 }
 
@@ -2015,9 +1997,7 @@ fn import_tree_shadowing_self_nested() {
     check(
         parse_import,
         "import Foo.{Bar.{Baz}};",
-        &expect![[
-            r#"ImportDecl [0-23]: [ImportItem [7-20]: Path _id_ [7-20] ([Ident _id_ [7-10] "Foo", Ident _id_ [12-15] "Bar"]) (Ident _id_ [17-20] "Baz") as ]"#
-        ]],
+        &expect!["ImportDecl [0-23]: [ ImportItem [7-20]: Foo.Bar.Baz ]"],
     );
 }
 
@@ -2103,5 +2083,269 @@ fn parse_export_empty() {
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-83]:
                     Export (ExportDecl [72-83]: [])"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import() {
+    check(
+        parse_import,
+        "import Foo.*;",
+        &expect!["ImportDecl [0-13]: [Glob ImportItem [0-12]: Foo ]"],
+    );
+}
+
+#[test]
+fn parse_glob_import_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar, Baz.*};",
+        &expect![
+            "ImportDecl [0-24]: [ ImportItem [7-15]: Foo.Bar , Glob ImportItem [7-20]: Foo.Baz ]"
+        ],
+    );
+}
+
+#[test]
+fn parse_glob_import_of_parent_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar, Baz, *};",
+        &expect!["ImportDecl [0-25]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-20]: Foo.Baz , Glob ImportItem [7-10]: Foo ]"],
+    );
+}
+
+#[test]
+fn parse_glob_import_with_alias() {
+    check(
+        parse_import,
+        "import Foo.* as Foo;",
+        &expect![[
+            r#"ImportDecl [0-20]: [Glob ImportItem [0-19]: Foo as Ident _id_ [16-19] "Foo"]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_aliased_glob_import_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar, Baz.* as Quux};",
+        &expect![[
+            r#"ImportDecl [0-32]: [ ImportItem [7-15]: Foo.Bar , Glob ImportItem [7-20]: Foo.Baz as Ident _id_ [26-30] "Quux"]"#
+        ]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_extra_asterisk() {
+    check(
+        parse_import,
+        "import Foo.**;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_extra_asterisk_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar.**};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "identifier",
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 17,
+                        hi: 18,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_missing_dot_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar*};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "dot",
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 15,
+                        hi: 16,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_missing_dot() {
+    check(
+        parse_import,
+        "import Foo.Bar**;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 15,
+                        hi: 16,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_multiple_asterisks_in_path() {
+    check(
+        parse_import,
+        "import Foo.Bar.*.*;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Dot,
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_multiple_asterisks_in_path_in_list() {
+    check(
+        parse_import,
+        "import Foo.{Bar.*.*};",
+        &expect![[r#"
+            Error(
+                MissingSeqEntry(
+                    Span {
+                        lo: 17,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident() {
+    check(
+        parse_import,
+        "import Foo.*.Bar;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "open brace or semicolon",
+                    Dot,
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident_in_list() {
+    check(
+        parse_import,
+        "import Foo.{*.Bar};",
+        &expect![[r#"
+            Error(
+                MissingSeqEntry(
+                    Span {
+                        lo: 13,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident_in_list_2() {
+    check(
+        parse_import,
+        "import Foo.{Bar.*.Baz};",
+        &expect![[r#"
+            Error(
+                MissingSeqEntry(
+                    Span {
+                        lo: 17,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn parse_import_list_asterisk() {
+    check(
+        parse_import,
+        "import Foo.{*};",
+        &expect!["ImportDecl [0-15]: [Glob ImportItem [7-10]: Foo ]"],
+    );
+}
+
+#[test]
+fn disallow_top_level_recursive_glob() {
+    check(
+        parse_import,
+        "import *;",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "identifier",
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 8,
+                    },
+                ),
+            )
+        "#]],
     );
 }

@@ -166,6 +166,7 @@ pub(super) fn seq<T>(
     s: &mut ParserContext,
     mut p: impl Parser<T>,
     tok: TokenKind,
+    recover_on_missing_item: bool,
 ) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
@@ -175,9 +176,14 @@ where
     while s.peek().kind == tok {
         let mut span = s.peek().span;
         span.hi = span.lo;
-        s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
-        xs.push(T::default().with_span(span));
-        s.advance();
+        let err = Error(ErrorKind::MissingSeqEntry(span));
+        if recover_on_missing_item {
+            s.push_error(err);
+            xs.push(T::default().with_span(span));
+            s.advance();
+        } else {
+            return Err(err);
+        }
     }
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
@@ -185,9 +191,14 @@ where
             while s.peek().kind == tok {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
-                s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
-                xs.push(T::default().with_span(span));
-                s.advance();
+                let err = Error(ErrorKind::MissingSeqEntry(span));
+                if recover_on_missing_item {
+                    s.push_error(err);
+                    xs.push(T::default().with_span(span));
+                    s.advance();
+                } else {
+                    return Err(err);
+                }
             }
             final_sep = FinalSep::Present;
         } else {
@@ -206,7 +217,7 @@ pub(super) fn comma_separated_seq<T>(
 where
     T: Default + WithSpan,
 {
-    seq(s, p, TokenKind::Comma)
+    seq(s, p, TokenKind::Comma, true)
 }
 
 pub(super) fn recovering<T>(
