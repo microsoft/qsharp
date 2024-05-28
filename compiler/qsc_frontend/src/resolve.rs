@@ -812,6 +812,11 @@ impl AstVisitor<'_> for With<'_> {
                 }
                 self.visit_expr(replace);
             }
+            ast::ExprKind::Struct(path, copy, fields) => {
+                self.resolver.resolve_path(NameKind::Term, path);
+                copy.iter().for_each(|c| self.visit_expr(c));
+                fields.iter().for_each(|f| self.visit_field_assign(f));
+            }
             _ => ast_visit::walk_expr(self, expr),
         }
     }
@@ -1093,11 +1098,18 @@ fn bind_global_item(
                     .get_mut_or_default(namespace)
                     .entry(Rc::clone(&decl.name.name)),
             ) {
-                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(vec![Error::Duplicate(
-                    decl.name.name.to_string(),
-                    namespace.to_string(),
-                    decl.name.span,
-                )]),
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+                    let namespace_name = scope
+                        .namespaces
+                        .find_namespace_by_id(&namespace)
+                        .0
+                        .join(".");
+                    Err(vec![Error::Duplicate(
+                        decl.name.name.to_string(),
+                        namespace_name,
+                        decl.name.span,
+                    )])
+                }
                 (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     term_entry.insert(res);
                     ty_entry.insert(res);
