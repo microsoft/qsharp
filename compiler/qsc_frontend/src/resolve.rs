@@ -657,6 +657,7 @@ impl Resolver {
         };
 
         let alias = alias.as_ref().map_or(vec![], |a| vec![Rc::clone(&a.name)]);
+        println!("Alias is {:?}", alias);
         {
             let current_opens = self
                 .current_scope_mut()
@@ -669,7 +670,7 @@ impl Resolver {
                 span: name.span(),
             };
             if !current_opens.contains(&open) {
-                current_opens.push(open);
+                current_opens.push(dbg!(open));
             }
         }
     }
@@ -886,6 +887,7 @@ impl Resolver {
                                 .as_ref()
                                 .map(|x| Box::new(x.clone()))
                                 .or(Some(Box::new(item.path.name().clone())));
+                            println!("importing item with alias {}", alias.as_ref().unwrap().name);
                             if let Some(ns) = ns {
                                 self.bind_open(&items, &alias, ns);
                             } else if !self.errors.contains(&err) {
@@ -1699,7 +1701,7 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
-    let opens = match path.namespace() {
+    let opens = match dbg!(path.namespace()) {
         None => aliases.get(&Vec::new()),
         Some(namespace_name) => aliases.get(
             &namespace_name
@@ -1709,10 +1711,14 @@ where
                 .unwrap_or_default(),
         ),
     };
+    println!("looking for path {:?}, len is {}", path, path.len());
+    println!("opens len is {:?}", opens.map(|x| x.len()).unwrap_or_default());
 
     let mut candidates = FxHashMap::default();
     if let Some(opens) = opens {
         for open in opens {
+            println!("__in opens loop looking for path {:?}", path);
+            println!("__This open is {:?}", open);
             if path.len() > 1 {
                 let path_id = path.id;
                 let mut path_without_first_ident: Path =
@@ -1773,6 +1779,7 @@ fn find_symbol_in_namespace<O>(
 where
     O: Clone + std::fmt::Debug,
 {
+    println!("____ looking for path {:?} in namespace {:?}", path, candidate_namespace_id);
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
     let (_, candidate_namespace) = globals
         .namespaces
@@ -1788,7 +1795,7 @@ where
     // if a namespace was provided, but not found, then this is not the correct namespace.
     // for example, if the query is `Foo.Bar.Baz`, we know there must exist a `Foo.Bar` somewhere.
     // If we didn't find it above, then even if we find `Baz` here, it is not the correct location.
-    if path.namespace().is_some() && namespace.is_none() {
+    if dbg!(path.namespace().is_some() && namespace.is_none()) {
         return true;
     }
 

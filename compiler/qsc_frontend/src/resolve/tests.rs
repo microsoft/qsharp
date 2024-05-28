@@ -393,7 +393,7 @@ fn open_namespace() {
 }
 
 #[test]
-fn open_alias() {
+fn open_alias123() {
     check(
         indoc! {"
             namespace Foo {

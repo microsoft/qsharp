@@ -354,8 +354,8 @@ pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
 
-pub fn walk_path(vis: &mut impl MutVisitor, ident: &mut crate::ast::Path) {
-    for ref mut ident in ident.iter_mut() {
+pub fn walk_path(vis: &mut impl MutVisitor, path: &mut crate::ast::Path) {
+    for ident in path.iter_mut() {
         vis.visit_ident(ident);
     }
 }
