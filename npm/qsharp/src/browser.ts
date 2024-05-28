@@ -158,19 +158,21 @@ export function getLanguageServiceWorker(
   return createProxy(worker, wasmModule, languageServiceProtocol);
 }
 
-export { StepResultId, type IStructStepResult } from "../lib/web/qsc_wasm.js";
+export { StepResultId } from "../lib/web/qsc_wasm.js";
 export type {
   IBreakpointSpan,
   ICodeAction,
   ICodeLens,
+  IDocFile,
   ILocation,
   IOperationInfo,
   IPosition,
+  IQSharpError,
   IRange,
   IStackFrame,
   IWorkspaceEdit,
+  IStructStepResult,
   VSDiagnostic,
-  IDocFile,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";

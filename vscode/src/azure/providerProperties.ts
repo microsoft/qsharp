@@ -44,3 +44,7 @@ export function shouldExcludeTarget(target: string) {
 export function shouldExcludeProvider(provider: string) {
   return excludeProviders.includes(provider);
 }
+
+export function supportsAdaptive(target: string) {
+  return target.startsWith("quantinuum");
+}

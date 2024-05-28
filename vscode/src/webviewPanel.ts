@@ -9,21 +9,23 @@ import {
   log,
 } from "qsharp-lang";
 import {
-  commands,
   ExtensionContext,
   Uri,
   ViewColumn,
   Webview,
   WebviewPanel,
   WebviewPanelSerializer,
+  commands,
   window,
 } from "vscode";
+import { showCircuitCommand } from "./circuit";
 import { isQsharpDocument } from "./common";
+import { clearCommandDiagnostics } from "./diagnostics";
+import { showDocumentationCommand } from "./documentation";
 import { loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { showCircuitCommand } from "./circuit";
-import { showDocumentationCommand } from "./documentation";
+import { getTarget } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -43,6 +45,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showRe", async () => {
+      clearCommandDiagnostics();
       const associationId = getRandomGuid();
       sendTelemetryEvent(
         EventType.TriggerResourceEstimation,
@@ -217,9 +220,12 @@ export function registerWebViewCommands(context: ExtensionContext) {
           {},
         );
         const estimatesStr = await worker.getEstimates(
-          sources,
+          {
+            sources,
+            languageFeatures,
+            profile: getTarget(),
+          },
           JSON.stringify(params),
-          languageFeatures,
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -290,6 +296,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHistogram", async () => {
+      clearCommandDiagnostics();
+
       const associationId = getRandomGuid();
       sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
       function resultToLabel(result: string | VSDiagnostic): string {
@@ -355,6 +363,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const config = {
           sources,
           languageFeatures,
+          profile: getTarget(),
         };
         await worker.run(config, "", parseInt(numberOfShots), evtTarget);
         sendTelemetryEvent(
@@ -365,7 +374,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Histogram error. ", e.toString());
-        throw new Error("Run failed");
+        throw new Error("Run failed. " + e.toString());
       } finally {
         worker.terminate();
       }
