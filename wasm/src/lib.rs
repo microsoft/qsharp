@@ -103,8 +103,10 @@ pub fn get_estimates(
     sources: Vec<js_sys::Array>,
     params: &str,
     language_features: Vec<String>,
+    targetProfile: &str,
 ) -> Result<String, String> {
     let sources = get_source_map(sources, &None);
+    let target_profile = Profile::from_str(targetProfile).expect("invalid target profile");
 
     let language_features = LanguageFeatures::from_iter(language_features);
 
@@ -112,7 +114,7 @@ pub fn get_estimates(
         true,
         sources,
         PackageType::Exe,
-        Profile::Unrestricted.into(),
+        target_profile.into(),
         language_features,
     )
     .map_err(|e| e[0].to_string())?;
