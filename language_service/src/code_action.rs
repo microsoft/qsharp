@@ -38,7 +38,7 @@ fn quick_fixes(
     let diagnostics = compilation
         .errors
         .iter()
-        .filter(|error| is_error_relevant(error, source_name, span, encoding));
+        .filter(|error| is_error_relevant(error, source_name, span));
 
     // An example of what quickfixes could look like if they were generated here.
     // The other option I considered was generating the quickfixes when the errors
@@ -58,7 +58,7 @@ fn quick_fixes(
                                 // We want to remove the redundant semicolons, so the
                                 // replacement text is just an empty string.
                                 new_text: String::new(),
-                                range: resolve_span(diagnostic, encoding)
+                                range: resolve_range(diagnostic, encoding)
                                     .expect("range should exist"),
                             }],
                         )],
@@ -79,7 +79,7 @@ fn quick_fixes(
                                     lint.span.lo + 1,
                                     lint.span.hi - 1,
                                 ),
-                                range: resolve_span(diagnostic, encoding)
+                                range: resolve_range(diagnostic, encoding)
                                     .expect("range should exist"),
                             }],
                         )],
@@ -98,31 +98,26 @@ fn quick_fixes(
 /// Returns true if the error:
 ///  - is in the file named `source_name`
 ///  - has a `Range` and it overlaps with the `code_action`'s range
-fn is_error_relevant(
-    error: &WithSource<ErrorKind>,
-    source_name: &str,
-    span: Span,
-    encoding: Encoding,
-) -> bool {
+fn is_error_relevant(error: &WithSource<ErrorKind>, source_name: &str, span: Span) -> bool {
     let uri = error
         .sources()
         .first()
         .map(|source| source.name.to_string())
         .unwrap_or_default();
 
-    let Some(error_range) = resolve_span(error, encoding) else {
+    let Some(error_span) = resolve_span(error) else {
         return false;
     };
-    uri == source_name && span.intersection(&error_range).is_some()
+    uri == source_name && span.intersection(&error_span).is_some()
 }
 
-/// Extracts the `Span` from an error
-fn resolve_span(e: &WithSource<ErrorKind>, encoding: Encoding) -> Option<Span> {
+/// Extracts the `Span` from an error.
+fn resolve_span(e: &WithSource<ErrorKind>) -> Option<Span> {
     e.labels()
         .into_iter()
         .flatten()
         .map(|labeled_span| {
-            let (source, span) = e.resolve_span(labeled_span.inner());
+            let (_, span) = e.resolve_span(labeled_span.inner());
             let start = u32::try_from(span.offset()).expect("offset should fit in u32");
             let len = u32::try_from(span.len()).expect("length should fit in u32");
             qsc::Span {
@@ -133,7 +128,28 @@ fn resolve_span(e: &WithSource<ErrorKind>, encoding: Encoding) -> Option<Span> {
         .next()
 }
 
-/// Returns a substring of the user code's `SourceMap` in the range lo..hi
+/// Extracts the `Range` from an error.
+fn resolve_range(e: &WithSource<ErrorKind>, encoding: Encoding) -> Option<Range> {
+    e.labels()
+        .into_iter()
+        .flatten()
+        .map(|labeled_span| {
+            let (source, span) = e.resolve_span(labeled_span.inner());
+            let start = u32::try_from(span.offset()).expect("offset should fit in u32");
+            let len = u32::try_from(span.len()).expect("length should fit in u32");
+            qsc::line_column::Range::from_span(
+                encoding,
+                &source.contents,
+                &qsc::Span {
+                    lo: start,
+                    hi: start + len,
+                },
+            )
+        })
+        .next()
+}
+
+/// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
 fn get_source_code(compilation: &Compilation, lo: u32, hi: u32) -> String {
     let unit = compilation
         .package_store
