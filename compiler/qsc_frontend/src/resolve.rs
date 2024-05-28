@@ -443,7 +443,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
 }
 
 impl Resolver {
-    pub(crate) fn resolve_exports(&mut self, package: &Package) {
+    pub(crate) fn bind_and_resolve_imports_and_exports(&mut self, package: &Package) {
         let mut visitor = ExportImportVisitor { resolver: self };
         visitor.visit_package(package);
     }
