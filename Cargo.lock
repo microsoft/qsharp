@@ -1104,6 +1104,7 @@ name = "qsc_linter"
 version = "0.0.0"
 dependencies = [
  "expect-test",
+ "indoc",
  "miette",
  "qsc",
  "qsc_ast",
