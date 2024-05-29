@@ -312,3 +312,72 @@ fn rotation_call_within_a_repeat_until_loop() {
                 Return"#]],
     );
 }
+
+#[test]
+fn mutable_bool_updated_in_loop() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                mutable flag = false;
+                for _ in 1..3 {
+                    if not flag {
+                        set flag = MResetZ(q) == One;
+                    }
+                }
+            }
+        }
+        "#,
+    });
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Boolean) = Store Bool(false)
+                Variable(1, Integer) = Store Integer(1)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(2, Boolean) = Call id(2), args( Result(0), )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Variable(0, Boolean) = Store Variable(3, Boolean)
+                Variable(1, Integer) = Store Integer(2)
+                Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
+                Branch Variable(4, Boolean), 2, 1"#]],
+    );
+}
+
+#[test]
+fn mutable_int_updated_in_loop() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                mutable count = 1;
+                for _ in 1..3 {
+                    if count > 0 and MResetZ(q) == One {
+                        set count = -count;
+                    }
+                }
+            }
+        }
+        "#,
+    });
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Integer) = Store Integer(1)
+                Variable(1, Integer) = Store Integer(1)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(2, Boolean) = Call id(2), args( Result(0), )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Branch Variable(3, Boolean), 2, 1"#]],
+    );
+}
