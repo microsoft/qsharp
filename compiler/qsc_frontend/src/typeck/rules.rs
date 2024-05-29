@@ -7,8 +7,9 @@ use super::{
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
+use core::panic;
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
+    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
@@ -445,10 +446,36 @@ impl<'a> Context<'a> {
                 }
                 self.diverge()
             }
-            ExprKind::Struct(_, _, _) => {
-                let output_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
-                converge(output_ty)
-            } // ToDo
+            ExprKind::Struct(name, copy, fields) => {
+                let container = match self.names.get(name.id) {
+                    None => converge(Ty::Err),
+                    Some(Res::Item(item, _)) => {
+                        let scheme = self.globals.get(item).expect("item should have scheme");
+                        let (ty, args) = self.inferrer.instantiate(scheme, name.span);
+                        self.table.generics.insert(expr.id, args);
+                        converge(*ty.output.clone())
+                    }
+                    Some(Res::Local(_)) => {
+                        panic!("expected struct name, found local")
+                    }
+                    Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                        panic!("expected struct name, found type")
+                    }
+                };
+
+                // Ensure that the copy expression has the same type as the given struct.
+                if let Some(copy) = copy {
+                    let copy_ty = self.infer_expr(copy);
+                    self.inferrer
+                        .eq(copy.span, container.ty.clone(), copy_ty.ty);
+                }
+
+                for field in fields.iter() {
+                    self.infer_field_assign(field.span, &container, &field.field, &field.value);
+                }
+
+                converge(container.ty)
+            }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
@@ -674,6 +701,26 @@ impl<'a> Context<'a> {
             );
             self.diverge_if(index.diverges || item.diverges, container)
         }
+    }
+
+    fn infer_field_assign(
+        &mut self,
+        span: Span,
+        container: &Partial<Ty>,
+        field_name: &Ident,
+        value: &Expr,
+    ) -> Partial<Ty> {
+        let value = self.infer_expr(value);
+        let field = field_name.name.to_string();
+        self.inferrer.class(
+            span,
+            Class::HasField {
+                record: container.ty.clone(),
+                name: field,
+                item: value.ty.clone(),
+            },
+        );
+        self.diverge_if(value.diverges, value) // ToDo: I don't know what "diverge" means, so I'm not sure if this is correct
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {

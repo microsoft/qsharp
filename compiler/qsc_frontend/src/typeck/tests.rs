@@ -2169,6 +2169,25 @@ fn newtype_cons() {
 }
 
 #[test]
+fn struct_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                struct A { a : Int }
+                function Foo() : A { new A { a = 5 } }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 62-81 "{ new A { a = 5 } }" : UDT<"A": Item 1>
+            #20 64-79 "new A { a = 5 }" : UDT<"A": Item 1>
+            #25 76-77 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
 fn newtype_cons_wrong_input() {
     check(
         indoc! {"
