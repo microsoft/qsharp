@@ -18,6 +18,7 @@ use super::{
     ty::{self, ty},
     Error, Result,
 };
+use crate::lex::ClosedBinOp;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -26,9 +27,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Idents,
-    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
-    SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident,
+    Idents, ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec,
+    SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -602,6 +603,193 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     })
 }
 
+/// parses an item in an import list, which can be one of the following cases:
+/// - A path, e.g. `Foo` or `Foo.Bar`
+/// - A path with an alias, e.g. `Foo as Bar`  or `Foo.Bar as Baz`
+/// - A path followed by a dot and a nested import list, e.g. `Foo.{Bar, Baz}` or `Foo.{Bar, Baz as Quux}`
+/// - A glob
+/// - A path followed by a dot and a glob, e.g. `Foo.*`
+///
+/// We cannot do normal recursive descent using existing path parsers, because the parser is LL(1), and disambiguating among the above
+/// cases requires looking ahead more than one token, or backtracking.
+///
+/// We have to momentarily relax the LL(1) behavior and introduce slight backtracking here:
+/// we know that the import statement is over when the braces are matched. That is,
+/// once we parse an import token and an open brace, we know that the import statement is over when we see the matching brace.
+/// From this, we produce the backtracking buffer which allows us to try our different primitive parsers in a normal backtrackign
+/// combinator approach.
+///
+/// For each of these scenarios, we use a different recursive descent strategy:
+/// - A path, e.g. `Foo` or `Foo.Bar`
+///    - Parsed with the `path()` parser
+/// - A path with an alias, e.g. `Foo as Bar`  or `Foo.Bar as Baz`
+///    - Parsed with the `path()` parser, chained with the `as` token and an `ident` parser
+/// - A path followed by a dot and a nested import list, e.g. `Foo.{Bar, Baz}` or `Foo.{Bar, Baz as Quux}`
+///    - Parsed with the `path()` parser, chained with a dot, and then `parse_multiple_imports()` (a recursive call)
+/// - A glob
+///    - Parsed with the token `*`
+/// - A path followed by a dot and a glob, e.g. `Foo.*`
+///   - Parsed with the `path()` parser, chained with a dot, and then the token `*`
+///
+/// For recursive calls, `parent` is used to keep track of the path that the nested import list is relative to.
+fn parse_multiple_imports(
+    s: &mut ParserContext,
+    parent: &[Ident],
+    brace_stack: &mut i32,
+) -> Result<Vec<ImportItem>> {
+    let mut backtracking_buffer = populate_import_backtracking_buffer(s)?;
+    // We have to construct a new scanner, which means we lose the "correct" span data.
+    // So we need to be careful not to return any errors which come from the new scanner.
+    // There are no language features related to imports right now, so we can use the default.
+    let buffer_span = Span {
+        lo: backtracking_buffer[0].1.lo,
+        hi: backtracking_buffer.last().unwrap().1.hi,
+    };
+    let stringified_buffer = &s.input()[buffer_span];
+    let mut ctx = ParserContext::new(stringified_buffer, Default::default());
+
+    // - A path, e.g. `Foo` or `Foo.Bar`
+    //   or a path with an alias, e.g. `Foo as Bar`  or `Foo.Bar as Baz`
+    let path_result: Option<_> = is_path(&mut ctx).ok();
+    if path_result.is_some() {
+        let lo = s.peek().span.lo;
+        let path = is_path(s)?;
+        // append parent to import item
+        let path = ImportItem {
+            path: parent
+                .iter()
+                .cloned()
+                .chain(Into::<Idents>::into(path.0).iter().cloned())
+                .collect::<Vec<_>>()
+                .into(),
+            alias: path.1,
+            span: s.span(lo),
+        };
+        return Ok(vec![path]);
+    }
+
+    // backtrack! and reset the buffer for the next case
+    let stringified_buffer = &s.input()[buffer_span];
+    let mut ctx = ParserContext::new(stringified_buffer, Default::default());
+
+    // - A path followed by a dot and a nested import list, e.g. `Foo.{Bar, Baz}` or `Foo.{Bar, Baz as Quux}`
+    let path_with_nested_items_result: Option<_> =
+        path_with_nested_items(&mut ctx, brace_stack).ok();
+
+    if path_with_nested_items_result.is_some() {
+        let (path, items) = path_with_nested_items(s, brace_stack)?;
+
+        // append "path" to the prefix of all items
+        let items = items
+            .into_iter()
+            .map(|item| ImportItem {
+                path: Into::<Idents>::into(path.clone())
+                    .iter()
+                    .cloned()
+                    .chain(Into::<Idents>::into(item.path).iter().cloned())
+                    .collect::<Vec<_>>()
+                    .into(),
+                alias: item.alias,
+                span: item.span,
+            })
+            .collect();
+        return Ok(items);
+    }
+
+    // backtrack! and reset the buffer for the next case
+    // a glob
+    let stringified_buffer = &s.input()[buffer_span];
+    let mut ctx = ParserContext::new(stringified_buffer, Default::default());
+    let glob_result = ctx.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star);
+
+    // save a tiny bit of memory by not resetting the parser again
+    /// - A path followed by a dot and a glob, e.g. `Foo.*`
+    let path_with_glob: Option<_> = {
+        let path: Result<_> = path(&mut ctx);
+        path.map(|path| -> Option<_> {
+            token(&mut ctx, TokenKind::Dot).ok()?;
+            token(&mut ctx, TokenKind::ClosedBinOp(ClosedBinOp::Star)).ok()?;
+            Some(path)
+        })
+        .ok()
+        .flatten()
+    };
+    todo!()
+}
+
+fn path_with_nested_items(
+    mut ctx: &mut ParserContext,
+    brace_stack: &mut i32,
+) -> Result<(Path, Vec<ImportItem>)> {
+    let path = path(&mut ctx)?;
+    // check for a dot and list
+    token(&mut ctx, TokenKind::Dot)?;
+    let items = parse_multiple_imports(
+        &mut ctx,
+        &Into::<Idents>::into(*path.clone())
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>()[..],
+        brace_stack,
+    );
+    let items = items?;
+    Ok((*path, items))
+}
+
+fn is_path(mut ctx: &mut ParserContext) -> Result<(Path, Option<Ident>)> {
+    let path: Result<_> = path(&mut ctx);
+    path.map(|path| {
+        let alias = if ctx.peek().kind == TokenKind::Keyword(Keyword::As) {
+            ctx.advance();
+            ident(&mut ctx).map(|x| *x).ok()
+        } else {
+            None
+        };
+        (*path, alias)
+    })
+}
+
+fn populate_import_backtracking_buffer(s: &mut ParserContext) -> Result<Vec<(TokenKind, Span)>> {
+    let mut brace_stack = 0;
+    let mut backtracking_buffer = Vec::new();
+    loop {
+        match s.peek().kind {
+            tok @ TokenKind::Open(Delim::Brace) => {
+                brace_stack += 1;
+                backtracking_buffer.push((tok, s.peek().span));
+            }
+            tok @ TokenKind::Close(Delim::Brace) => {
+                backtracking_buffer.push((tok, s.peek().span));
+                brace_stack -= 1;
+                if brace_stack == 0 {
+                    break;
+                }
+            }
+            TokenKind::Eof => {
+                return Err(Error(ErrorKind::Rule(
+                    "close brace",
+                    s.peek().kind,
+                    s.peek().span,
+                )))
+            }
+            tok => backtracking_buffer.push((tok, s.peek().span)),
+        }
+
+        s.advance();
+    }
+    Ok(backtracking_buffer)
+}
+/*
+
+fn import_list_item(s: &mut ParserContext) -> Result<ImportItem> {
+    let path = path(s)?;
+    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
+        Some(ident(s)?)
+    } else {
+        None
+    };
+    Ok(ImportItem { path, alias })
+}
 // Parse multiple imports
 fn parse_multiple_imports(
     s: &mut ParserContext,
@@ -620,62 +808,69 @@ fn parse_multiple_imports(
         match s.peek().kind {
             TokenKind::Comma => {
                 let full_path: Path = full_path.into();
-                imports.push(dbg!(ImportItem {
+                imports.push(ImportItem {
                     span: full_path.span,
                     path: full_path,
                     alias: None,
-                }));
+                });
                 token(s, TokenKind::Comma)?;
+                let _ = reduce_closing_tokens(s, brace_stack);
                 continue;
             }
             TokenKind::Close(Delim::Brace) => {
                 let full_path: Path = full_path.into();
 
-                imports.push(dbg!(ImportItem {
+                imports.push(ImportItem {
                     span: full_path.span,
                     path: full_path,
                     alias: None,
-                }));
-                *brace_stack -= 1;
-                token(s, TokenKind::Close(Delim::Brace))?;
-                if *brace_stack == 0 {
+                });
+                let ControlFlow::Continue(..) = reduce_closing_tokens(s, brace_stack) else {
                     break;
-                }
+                };
+
+                break;
             }
             TokenKind::Open(Delim::Brace) => {
                 *brace_stack += 1;
                 token(s, TokenKind::Open(Delim::Brace))?;
                 let nested_imports = parse_multiple_imports(s, &full_path, brace_stack)?;
                 imports.extend(nested_imports);
-                if *brace_stack == 0 {
-                    break;
-                }
             }
+            TokenKind::Semi => break,
             TokenKind::Keyword(Keyword::As) => {
                 token(s, TokenKind::Keyword(Keyword::As))?;
                 let alias = Some(*ident(s)?);
                 let full_path: Path = full_path.into();
-                imports.push(dbg!(ImportItem {
+                imports.push(ImportItem {
                     span: full_path.span,
                     path: full_path,
                     alias,
-                }));
-                token(s, TokenKind::Comma)?;
+                });
+                let ControlFlow::Continue(..) = reduce_closing_tokens(s, brace_stack) else {
+                    break;
+                };
             }
-            _ => break,
+            a => {
+                return Err(Error(ErrorKind::Rule(
+                    "comma or close brace",
+                    a,
+                    s.peek().span,
+                )))
+            }
         }
     }
     Ok(imports)
 }
+*/
 
-/*
 fn reduce_closing_tokens(s: &mut ParserContext, brace_stack: &mut i32) -> ControlFlow<()> {
     loop {
         match s.peek().kind {
             TokenKind::Comma => s.advance(),
             TokenKind::Close(Delim::Brace) => {
-                s.advance();
                 decrement_brace_stack(s, brace_stack)?;
+                s.advance();
             }
             _ => break,
         }
@@ -685,10 +880,9 @@ fn reduce_closing_tokens(s: &mut ParserContext, brace_stack: &mut i32) -> Contro
 
 fn decrement_brace_stack(s: &mut ParserContext, brace_stack: &mut i32) -> ControlFlow<()> {
     *brace_stack -= 1;
-    if *brace_stack <= 0 {
+    if *brace_stack < 0 {
+        // bail, because we have parsed the entire import statement
         return ControlFlow::Break(());
     }
     ControlFlow::Continue(())
 }
-
-*/
