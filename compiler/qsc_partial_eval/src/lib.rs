@@ -2744,8 +2744,7 @@ fn eval_un_op_with_literals(un_op: UnOp, value: Value) -> Value {
             Value::Global(id, app) => Value::Global(id, update_functor_app(functor, app)),
             _ => panic!("value should be callable"),
         },
-        UnOp::Unwrap => value,
-        UnOp::Pos => panic!("the leading positive operator should have been a no-op"),
+        UnOp::Pos | UnOp::Unwrap => value,
     }
 }
 
