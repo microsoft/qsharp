@@ -138,6 +138,36 @@ This kata offers you a series of tasks in which you are given one unitary from t
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_unitaries__cnot_direction",
+    "title": "CNOT Direction",
+    "path": "./cnot_direction/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__cnot_swap",
+    "title": "CNOT or SWAP",
+    "path": "./cnot_swap/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__i_cnot_swap",
+    "title": "Distinguish Two Qubit Unitaries",
+    "path": "./i_cnot_swap/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_unitaries__conclusion",
     "title": "Conclusion"
