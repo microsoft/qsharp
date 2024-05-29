@@ -52,6 +52,20 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicQubit"))]
     UseOfDynamicQubit(#[label] Span),
 
+    #[error("cannot use a dynamic Result")]
+    #[diagnostic(help(
+        "using a Result variable whose value depends on a measurement result is not supported by the current target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicResult"))]
+    UseOfDynamicResult(#[label] Span),
+
+    #[error("cannot use a dynamic tuple")]
+    #[diagnostic(help(
+        "using a tuple whose members depend on a measurement result is not supported by the current target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicTuple"))]
+    UseOfDynamicTuple(#[label] Span),
+
     #[error("cannot use a dynamic big integer value")]
     #[diagnostic(help(
         "using a big integer value that depends on a measurement result is not supported by the configured target profile"
@@ -199,6 +213,9 @@ pub fn generate_errors_from_runtime_features(
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
         errors.push(Error::UseOfDynamicQubit(span));
     }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicResult) {
+        errors.push(Error::UseOfDynamicResult(span));
+    }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
         errors.push(Error::UseOfDynamicBigInt(span));
     }
@@ -210,6 +227,9 @@ pub fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
         errors.push(Error::UseOfDynamicallySizedArray(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
+        errors.push(Error::UseOfDynamicTuple(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
         errors.push(Error::UseOfDynamicUdt(span));

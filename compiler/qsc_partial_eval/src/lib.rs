@@ -521,7 +521,12 @@ impl<'a> PartialEvaluator<'a> {
         self.get_current_rir_block_mut().0.push(instruction);
 
         // Return the variable as a value.
-        let value = Value::Var(map_rir_var_to_eval_var(rir_variable));
+        let value = Value::Var(map_rir_var_to_eval_var(rir_variable).map_err(|()| {
+            Error::Unexpected(
+                format!("{} type in binop", rir_variable.ty),
+                bin_op_expr_span,
+            )
+        })?);
         Ok(EvalControlFlow::Continue(value))
     }
 
@@ -598,7 +603,12 @@ impl<'a> PartialEvaluator<'a> {
                     _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
                 };
                 self.get_current_rir_block_mut().0.push(bin_op_ins);
-                Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
+                Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable).map_err(|()| {
+                    Error::Unexpected(
+                        format!("{} type in binop", bin_op_rir_variable.ty),
+                        self.get_expr_package_span(rhs_expr_id),
+                    )
+                })?)
             }
             _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
         };
@@ -664,7 +674,12 @@ impl<'a> PartialEvaluator<'a> {
                 let cmp_inst =
                     Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable);
                 self.get_current_rir_block_mut().0.push(cmp_inst);
-                map_rir_var_to_eval_var(rir_variable)
+                map_rir_var_to_eval_var(rir_variable).map_err(|()| {
+                    Error::Unexpected(
+                        format!("{} type in comparison binop", rir_variable.ty),
+                        self.get_expr_package_span(rhs_expr_id),
+                    )
+                })?
             }
             (_, _) => panic!("invalid Boolean comparison operator {bin_op:?}"),
         };
@@ -736,7 +751,12 @@ impl<'a> PartialEvaluator<'a> {
         self.get_program_block_mut(current_block_node.id)
             .0
             .push(branch_ins);
-        let result_eval_var = map_rir_var_to_eval_var(result_rir_var);
+        let result_eval_var = map_rir_var_to_eval_var(result_rir_var).map_err(|()| {
+            Error::Unexpected(
+                format!("{} type in logical binop", result_rir_var.ty),
+                self.get_expr_package_span(rhs_expr_id),
+            )
+        })?;
         Ok(result_eval_var)
     }
 
@@ -787,7 +807,12 @@ impl<'a> PartialEvaluator<'a> {
                 rhs_operand,
                 bin_op_expr_span,
             )?;
-        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable).map_err(|()| {
+            Error::Unexpected(
+                format!("{} type in binop", bin_op_rir_variable.ty),
+                bin_op_expr_span,
+            )
+        })?);
         Ok(EvalControlFlow::Continue(value))
     }
 
@@ -1442,7 +1467,15 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the value of the if expression.
         let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
-            Value::Var(map_rir_var_to_eval_var(if_expr_var))
+            Value::Var(map_rir_var_to_eval_var(if_expr_var).map_err(|()| {
+                Error::Unexpected(
+                    format!(
+                        "dynamic value of type {} in conditional expression",
+                        if_expr_var.ty
+                    ),
+                    self.get_expr_package_span(if_expr_id),
+                )
+            })?)
         } else {
             Value::unit()
         };
@@ -1651,7 +1684,12 @@ impl<'a> PartialEvaluator<'a> {
 
         // Insert the instruction and return the corresponding evaluator variable.
         self.get_current_rir_block_mut().0.push(instruction);
-        let eval_variable = map_rir_var_to_eval_var(rir_variable);
+        let eval_variable = map_rir_var_to_eval_var(rir_variable).map_err(|()| {
+            Error::Unexpected(
+                format!("{} type in unop", rir_variable.ty),
+                self.get_expr_package_span(value_expr_id),
+            )
+        })?;
         Ok(EvalControlFlow::Continue(Value::Var(eval_variable)))
     }
 
@@ -2873,19 +2911,19 @@ fn map_rir_literal_to_eval_value(literal: rir::Literal) -> Value {
     }
 }
 
-fn map_rir_var_to_eval_var(var: rir::Variable) -> Var {
-    Var {
+fn map_rir_var_to_eval_var(var: rir::Variable) -> Result<Var, ()> {
+    Ok(Var {
         id: var.variable_id.into(),
-        ty: map_rir_type_to_eval_var_type(var.ty),
-    }
+        ty: map_rir_type_to_eval_var_type(var.ty)?,
+    })
 }
 
-fn map_rir_type_to_eval_var_type(ty: rir::Ty) -> VarTy {
+fn map_rir_type_to_eval_var_type(ty: rir::Ty) -> Result<VarTy, ()> {
     match ty {
-        rir::Ty::Boolean => VarTy::Boolean,
-        rir::Ty::Integer => VarTy::Integer,
-        rir::Ty::Double => VarTy::Double,
-        _ => panic!("cannot convert RIR type {ty} to evaluator varible type"),
+        rir::Ty::Boolean => Ok(VarTy::Boolean),
+        rir::Ty::Integer => Ok(VarTy::Integer),
+        rir::Ty::Double => Ok(VarTy::Double),
+        _ => Err(()),
     }
 }
 
