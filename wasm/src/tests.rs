@@ -193,7 +193,7 @@ fn test_entrypoint() {
 #[test]
 fn test_missing_entrypoint() {
     let code = "namespace Sample {
-        operation main() : Result[] {
+        operation test() : Result[] {
             use q1 = Qubit();
             let m1 = M(q1);
             return [m1];
@@ -203,7 +203,7 @@ fn test_missing_entrypoint() {
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
         },
         1,
     );
