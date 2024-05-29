@@ -20,6 +20,29 @@ pub struct DiagnosticUpdate {
     pub errors: Vec<Error>,
 }
 
+#[derive(Debug)]
+pub enum CodeActionKind {
+    Empty,
+    QuickFix,
+    Refactor,
+    RefactorExtract,
+    RefactorInline,
+    RefactorMove,
+    RefactorRewrite,
+    Source,
+    SourceOrganizeImports,
+    SourceFixAll,
+    Notebook,
+}
+
+#[derive(Debug)]
+pub struct CodeAction {
+    pub title: String,
+    pub edit: Option<WorkspaceEdit>,
+    pub kind: Option<CodeActionKind>,
+    pub is_preferred: Option<bool>,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CompletionItemKind {
     // It would have been nice to match the numeric values to the ones used by
@@ -89,6 +112,11 @@ impl Hash for CompletionItem {
 pub struct Hover {
     pub contents: String,
     pub span: Range,
+}
+
+#[derive(Debug)]
+pub struct WorkspaceEdit {
+    pub changes: Vec<(String, Vec<TextEdit>)>,
 }
 
 #[derive(Debug, PartialEq)]

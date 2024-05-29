@@ -2,12 +2,14 @@
 // Licensed under the MIT License.
 
 import type {
+  ICodeAction,
   ICodeLens,
   ICompletionList,
   IHover,
   ILocation,
   INotebookMetadata,
   IPosition,
+  IRange,
   ISignatureHelp,
   ITextEdit,
   IWorkspaceConfiguration,
@@ -50,6 +52,7 @@ export interface ILanguageService {
   ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
+  getCodeActions(documentUri: string, range: IRange): Promise<ICodeAction[]>;
   getCompletions(
     documentUri: string,
     position: IPosition,
@@ -159,6 +162,13 @@ export class QSharpLanguageService implements ILanguageService {
 
   async closeNotebookDocument(documentUri: string): Promise<void> {
     this.languageService.close_notebook_document(documentUri);
+  }
+
+  async getCodeActions(
+    documentUri: string,
+    range: IRange,
+  ): Promise<ICodeAction[]> {
+    return this.languageService.get_code_actions(documentUri, range);
   }
 
   async getCompletions(
@@ -279,6 +289,7 @@ export const languageServiceProtocol: ServiceProtocol<
     updateNotebookDocument: "request",
     closeDocument: "request",
     closeNotebookDocument: "request",
+    getCodeActions: "request",
     getCompletions: "request",
     getFormatChanges: "request",
     getHover: "request",

@@ -16,6 +16,28 @@ pub struct Span {
     pub hi: u32,
 }
 
+impl Span {
+    /// Returns true if the position is within the range.
+    #[must_use]
+    pub fn contains(&self, offset: u32) -> bool {
+        (self.lo..self.hi).contains(&offset)
+    }
+
+    /// Intersect `range` with this range and returns a new range or `None`
+    /// if the ranges have no overlap.
+    #[must_use]
+    pub fn intersection(&self, other: &Self) -> Option<Self> {
+        let lo = self.lo.max(other.lo);
+        let hi = self.hi.min(other.hi);
+
+        if lo <= hi {
+            Some(Self { lo, hi })
+        } else {
+            None
+        }
+    }
+}
+
 impl Add<u32> for Span {
     type Output = Self;
 
