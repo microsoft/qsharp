@@ -78,7 +78,12 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
     d.message,
     severity,
   );
-  if (d.code) {
+  if (d.uri && d.code) {
+    vscodeDiagnostic.code = {
+      value: d.code,
+      target: vscode.Uri.parse(d.uri),
+    };
+  } else if (d.code) {
     vscodeDiagnostic.code = d.code;
   }
   if (d.related) {
