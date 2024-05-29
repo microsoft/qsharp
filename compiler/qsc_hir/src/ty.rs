@@ -522,7 +522,7 @@ impl Display for FunctorSetValue {
     }
 }
 
-/// A user-defined type.
+/// The item for a user-defined type.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Udt {
     /// The span.
@@ -636,6 +636,40 @@ impl Udt {
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
         self.find_field_by_name(name).map(|field| &field.ty)
+    }
+
+    /// Returns true if the udt satisfies the conditions for a struct.
+    /// Conditions for a struct are that the udt is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match &self.definition.kind {
+            UdtDefKind::Field(_) => false,
+            UdtDefKind::Tuple(fields) => fields.iter().all(|field| match &field.kind {
+                UdtDefKind::Field(field) => {
+                    if let (Some(name), Some(_)) = (&field.name, &field.name_span) {
+                        !name.is_empty()
+                    } else {
+                        false
+                    }
+                }
+                UdtDefKind::Tuple(_) => false,
+            }),
+        }
+    }
+
+    // ToDo: will be needed for an HIR pass to ensure all fields are named in struct constructors
+    pub fn get_all_top_field_names(&self) -> Vec<Rc<str>> {
+        match &self.definition.kind {
+            UdtDefKind::Field(_) => Vec::new(),
+            UdtDefKind::Tuple(fields) => fields
+                .iter()
+                .filter_map(|field| match &field.kind {
+                    UdtDefKind::Field(field) => field.name.clone(),
+                    UdtDefKind::Tuple(_) => None,
+                })
+                .collect(),
+        }
     }
 }
 

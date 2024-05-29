@@ -47,6 +47,7 @@ pub(super) enum Class {
         name: String,
         item: Ty,
     },
+    Struct(Ty),
     HasIndex {
         container: Ty,
         index: Ty,
@@ -73,7 +74,8 @@ impl Class {
             | Self::Eq(ty)
             | Self::Integral(ty)
             | Self::Num(ty)
-            | Self::Show(ty) => {
+            | Self::Show(ty)
+            | Self::Struct(ty) => {
                 vec![ty]
             }
             Self::Call { callee, .. } => vec![callee],
@@ -115,6 +117,7 @@ impl Class {
                 name,
                 item: f(item),
             },
+            Self::Struct(ty) => Self::Struct(f(ty)),
             Self::HasIndex {
                 container,
                 index,
@@ -157,6 +160,7 @@ impl Class {
             Class::HasField { record, name, item } => {
                 check_has_field(udts, &record, name, item, span)
             }
+            Class::Struct(ty) => check_struct(udts, &ty, span),
             Class::HasIndex {
                 container,
                 index,
@@ -927,6 +931,26 @@ fn check_has_field(
                 name,
                 span,
             ))],
+        ),
+    }
+}
+
+fn check_struct(
+    udts: &FxHashMap<ItemId, Udt>,
+    record: &Ty,
+    span: Span,
+) -> (Vec<Constraint>, Vec<Error>) {
+    match record {
+        Ty::Udt(_, Res::Item(id)) => match udts.get(id) {
+            Some(udt) if udt.is_struct() => (Vec::new(), Vec::new()),
+            _ => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassStruct(record.display(), span))],
+            ),
+        },
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClassStruct(record.display(), span))],
         ),
     }
 }

@@ -69,6 +69,9 @@ enum ErrorKind {
     #[error("type {0} does not have a field `{1}`")]
     #[diagnostic(code("Qsc.TypeCk.MissingClassHasField"))]
     MissingClassHasField(String, String, #[label] Span),
+    #[error("type {0} is not a struct")]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassStruct"))]
+    MissingClassStruct(String, #[label] Span),
     #[error("type {0} cannot be indexed by type {1}")]
     #[diagnostic(help(
         "only array types can be indexed, and only Int and Range can be used as the index"

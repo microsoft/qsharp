@@ -448,19 +448,27 @@ impl<'a> Context<'a> {
             }
             ExprKind::Struct(name, copy, fields) => {
                 let container = match self.names.get(name.id) {
-                    None => converge(Ty::Err),
+                    // ToDo: better error handling for non-struct cases
+                    // ToDo: maybe don't bother with the rest of the function if the name isn't a struct
+
+                    //None => converge(Ty::Err),
                     Some(Res::Item(item, _)) => {
+                        // ToDo: going through the scheme to get the udt type seems awkward
                         let scheme = self.globals.get(item).expect("item should have scheme");
                         let (ty, args) = self.inferrer.instantiate(scheme, name.span);
                         self.table.generics.insert(expr.id, args);
-                        converge(*ty.output.clone())
+                        let udt_ty = *ty.output.clone();
+                        self.inferrer
+                            .class(name.span, Class::Struct(udt_ty.clone()));
+                        converge(udt_ty)
                     }
-                    Some(Res::Local(_)) => {
-                        panic!("expected struct name, found local")
-                    }
-                    Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
-                        panic!("expected struct name, found type")
-                    }
+                    _ => converge(Ty::Err),
+                    // Some(Res::Local(_)) => {
+                    //     panic!("expected struct name, found local")
+                    // }
+                    // Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                    //     panic!("expected struct name, found type")
+                    // }
                 };
 
                 // Ensure that the copy expression has the same type as the given struct.
