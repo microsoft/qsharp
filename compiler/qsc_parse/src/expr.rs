@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, path, recovering_token, seq, shorten, token, FinalSep},
+    prim::{ident, opt, pat, path, recovering_token, seq, shorten, token},
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
@@ -226,17 +226,13 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
 fn parse_struct(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let mut copy: Option<Box<Expr>> = None;
-    let (mut fields, final_sep) = seq(s, parse_field_assign)?;
-    if fields.is_empty() || final_sep == FinalSep::Present {
-        copy = opt(s, |s| {
-            token(s, TokenKind::DotDotDot)?;
-            expr(s)
-        })?;
-        if copy.is_some() && token(s, TokenKind::Comma).is_ok() {
-            let (after_copy, _) = seq(s, parse_field_assign)?;
-            fields.extend(after_copy);
-        }
+    let copy: Option<Box<Expr>> = opt(s, |s| {
+        token(s, TokenKind::DotDotDot)?;
+        expr(s)
+    })?;
+    let mut fields = vec![];
+    if copy.is_none() || copy.is_some() && token(s, TokenKind::Comma).is_ok() {
+        (fields, _) = seq(s, parse_field_assign)?;
     }
     recovering_token(s, TokenKind::Close(Delim::Brace));
 

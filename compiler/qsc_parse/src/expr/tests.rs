@@ -1681,9 +1681,9 @@ fn call_op_unit() {
 fn struct_op_unit() {
     check(
         expr,
-        "Foo {}",
+        "new Foo { ...foo, field1 = 3 }",
         &expect![[
-            r#"Expr _id_ [0-6]: Struct: Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Foo")"#
+            r#"Expr _id_ [0-10]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")): <empty>"#
         ]],
     );
 }
