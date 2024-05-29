@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 // use miette::Diagnostic;
-use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{CallableDecl, CallableKind, Expr, ExprKind, Stmt, StmtKind},
     ty::Ty,
@@ -21,7 +20,7 @@ declare_hir_lints! {
 #[derive(Default)]
 pub(super) struct OperationLimits {
     // Operation Characteristics
-    pub(super) op_char: Vec<Span>,
+    pub(super) op_char: bool,
 }
 
 impl Visitor<'_> for OperationLimits {
@@ -39,9 +38,9 @@ impl Visitor<'_> for OperationLimits {
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        if self.op_char.is_empty() {
+        if !self.op_char {
             if let StmtKind::Qubit(..) = &stmt.kind {
-                self.op_char.push(stmt.span);
+                self.op_char = true;
             } else {
                 visit::walk_stmt(self, stmt);
             }
@@ -49,16 +48,16 @@ impl Visitor<'_> for OperationLimits {
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        if self.op_char.is_empty() {
+        if !self.op_char {
             match &expr.kind {
                 ExprKind::Call(callee, _) => {
                     if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation)
                     {
-                        self.op_char.push(expr.span);
+                        self.op_char = true;
                     }
                 }
                 ExprKind::Conjugate(..) | ExprKind::Repeat(..) => {
-                    self.op_char.push(expr.span);
+                    self.op_char = true;
                 }
                 _ => {
                     visit::walk_expr(self, expr);
@@ -75,9 +74,7 @@ impl HirLintPass for NeedlessOperation {
 
             op_limits.visit_callable_decl(decl);
 
-            let op_char = op_limits.op_char;
-
-            if op_char.is_empty() {
+            if !op_limits.op_char {
                 buffer.push(lint!(self, decl.span));
             }
         }
