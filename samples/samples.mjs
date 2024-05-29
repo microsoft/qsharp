@@ -7,7 +7,6 @@
 
 /** @type {Array<{title: string; file: string; shots: number; omitFromTests?: boolean}>} */
 export default [
-    { title: "Minimal", file: "./language/GettingStarted.qs", shots: 100, omitFromTests: true },
     { title: "Superposition", file: "./algorithms/Superposition.qs", shots: 100 },
     { title: "Entanglement", file: "./algorithms/Entanglement.qs", shots: 100 },
     { title: "Bell States", file: "./algorithms/BellState.qs", shots: 100 },
