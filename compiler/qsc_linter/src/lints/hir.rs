@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// use miette::Diagnostic;
 use qsc_hir::{
     hir::{CallableDecl, CallableKind, Expr, ExprKind, Stmt, StmtKind},
     ty::Ty,
     visit::{self, Visitor},
 };
-// use thiserror::Error;
 
 use crate::linter::hir::declare_hir_lints;
 
