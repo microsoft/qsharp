@@ -10,6 +10,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// # Summary
     /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
+    /// Please note that target qubit must be in $\ket{0}$ state.
     ///
     /// # Input
     /// ## control1
@@ -36,6 +37,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// # Summary
     /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
+    /// Please note that target qubit must be in $\ket{0}$ state.
     ///
     /// # Input
     /// ## control1
