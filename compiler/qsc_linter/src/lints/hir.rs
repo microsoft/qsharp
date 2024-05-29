@@ -39,25 +39,30 @@ impl Visitor<'_> for OperationLimits {
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        if let StmtKind::Qubit(..) = &stmt.kind {
-            self.op_char.push(stmt.span);
-        } else {
-            visit::walk_stmt(self, stmt);
+        if self.op_char.is_empty() {
+            if let StmtKind::Qubit(..) = &stmt.kind {
+                self.op_char.push(stmt.span);
+            } else {
+                visit::walk_stmt(self, stmt);
+            }
         }
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        match &expr.kind {
-            ExprKind::Call(callee, _) => {
-                if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation) {
+        if self.op_char.is_empty() {
+            match &expr.kind {
+                ExprKind::Call(callee, _) => {
+                    if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation)
+                    {
+                        self.op_char.push(expr.span);
+                    }
+                }
+                ExprKind::Conjugate(..) | ExprKind::Repeat(..) => {
                     self.op_char.push(expr.span);
                 }
-            }
-            ExprKind::Conjugate(..) | ExprKind::Repeat(..) => {
-                self.op_char.push(expr.span);
-            }
-            _ => {
-                visit::walk_expr(self, expr);
+                _ => {
+                    visit::walk_expr(self, expr);
+                }
             }
         }
     }
