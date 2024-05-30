@@ -1873,6 +1873,12 @@ pub struct ImportDecl {
     /// The items being imported from this namespace.
     pub items: Vec<ImportItem>,
 }
+impl ImportDecl {
+    /// Returns an iterator over the items being imported.
+    pub fn items(&self) -> impl Iterator<Item = &ImportItem> {
+        self.items.iter()
+    }
+}
 
 impl Display for ImportDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
