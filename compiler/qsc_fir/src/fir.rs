@@ -1387,11 +1387,16 @@ fn display_while(mut indent: Indented<Formatter>, cond: ExprId, block: BlockId) 
     Ok(())
 }
 
+/// A field assignment in a struct constructor expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldAssign {
+    /// The node ID.
     pub id: NodeId,
+    /// The span.
     pub span: Span,
+    /// The field to assign.
     pub field: Field,
+    /// The value to assign to the field.
     pub value: ExprId,
 }
 
