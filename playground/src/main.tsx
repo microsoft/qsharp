@@ -222,7 +222,7 @@ async function loaded() {
 
   await loadWasmModule(modulePath);
 
-  const katas = await getAllKatas();
+  const katas = await getAllKatas(true);
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.

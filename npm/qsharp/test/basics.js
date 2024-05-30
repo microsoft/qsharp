@@ -303,11 +303,12 @@ async function validateKata(
 }
 
 test("getAllKatas works", async () => {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas(true);
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-const katasList = await getAllKatas();
+// Run tests for all katas, including unpublished
+const katasList = await getAllKatas(true);
 
 katasList.forEach((kataDesc) => {
   test(`${kataDesc.id} kata is valid`, async () => {
