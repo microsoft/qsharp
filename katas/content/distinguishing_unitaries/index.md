@@ -63,6 +63,66 @@ This kata offers you a series of tasks in which you are given one unitary from t
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_unitaries__z_minusz",
+    "title": "Z or -Z?",
+    "path": "./z_minusz/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__rz_r1",
+    "title": "Rz or R1?",
+    "path": "./rz_r1/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__y_xz",
+    "title": "Y or XZ?",
+    "path": "./y_xz/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__y_xz_minusy_minusxz",
+    "title": "Y or XZ or -Y or -XZ?",
+    "path": "./y_xz_minusy_minusxz/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__i_x_y_z",
+    "title": "Distinguish Four Pauli Unitaries",
+    "path": "./i_x_y_z/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_unitaries__rz_ry",
+    "title": "Rz or Ry?",
+    "path": "./rz_ry/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_unitaries__multi_qubit",
     "title": "Distinguishing Multi-Qubit Gates"

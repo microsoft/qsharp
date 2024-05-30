@@ -25,6 +25,7 @@ import { showDocumentationCommand } from "./documentation";
 import { loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { getTarget } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -219,9 +220,12 @@ export function registerWebViewCommands(context: ExtensionContext) {
           {},
         );
         const estimatesStr = await worker.getEstimates(
-          sources,
+          {
+            sources,
+            languageFeatures,
+            profile: getTarget(),
+          },
           JSON.stringify(params),
-          languageFeatures,
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -359,6 +363,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const config = {
           sources,
           languageFeatures,
+          profile: getTarget(),
         };
         await worker.run(config, "", parseInt(numberOfShots), evtTarget);
         sendTelemetryEvent(
@@ -369,7 +374,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Histogram error. ", e.toString());
-        throw new Error("Run failed");
+        throw new Error("Run failed. " + e.toString());
       } finally {
         worker.terminate();
       }

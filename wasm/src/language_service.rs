@@ -4,7 +4,7 @@
 use crate::{
     diagnostic::VSDiagnostic,
     into_async_rust_fn_with,
-    line_column::{ILocation, IPosition, Location, Position, Range},
+    line_column::{ILocation, IPosition, IRange, Location, Position, Range},
     project_system::{
         get_manifest_transformer, list_directory_transformer, read_file_transformer,
         GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
@@ -151,6 +151,15 @@ impl LanguageService {
 
     pub fn close_notebook_document(&mut self, notebook_uri: &str) {
         self.0.close_notebook_document(notebook_uri);
+    }
+
+    pub fn get_code_actions(&self, uri: &str, range: IRange) -> Vec<ICodeAction> {
+        let range: Range = range.into();
+        let code_actions = self.0.get_code_actions(uri, range.into());
+        code_actions
+            .into_iter()
+            .map(|code_action| Into::<CodeAction>::into(code_action).into())
+            .collect()
     }
 
     pub fn get_completions(&self, uri: &str, position: IPosition) -> ICompletionList {
@@ -345,6 +354,52 @@ serializable_type! {
 }
 
 serializable_type! {
+    CodeAction,
+    {
+        pub title: String,
+        pub edit: Option<WorkspaceEdit>,
+        pub kind: Option<String>,
+        pub is_preferred: Option<bool>,
+    },
+    r#"export interface ICodeAction {
+        title: string;
+        edit?: IWorkspaceEdit;
+        kind?: "Empty" | "QuickFix" | "Refactor" | "RefactorExtract" | "RefactorInline" | "RefactorMove" | "RefactorRewrite" | "Source" | "SourceOrganizeImports" | "SourceFixAll" | "Notebook";
+        isPreferred?: boolean;
+    }"#,
+    ICodeAction
+}
+
+impl From<qsls::protocol::CodeAction> for CodeAction {
+    fn from(code_action: qsls::protocol::CodeAction) -> Self {
+        let kind = code_action.kind.map(|kind| {
+            use qsls::protocol::CodeActionKind;
+            match kind {
+                CodeActionKind::Empty => "Empty",
+                CodeActionKind::QuickFix => "QuickFix",
+                CodeActionKind::Refactor => "Refactor",
+                CodeActionKind::RefactorExtract => "RefactorExtract",
+                CodeActionKind::RefactorInline => "RefactorInline",
+                CodeActionKind::RefactorMove => "RefactorMove",
+                CodeActionKind::RefactorRewrite => "RefactorRewrite",
+                CodeActionKind::Source => "Source",
+                CodeActionKind::SourceOrganizeImports => "SourceOrganizeImports",
+                CodeActionKind::SourceFixAll => "SourceFixAll",
+                CodeActionKind::Notebook => "Notebook",
+            }
+            .to_string()
+        });
+
+        Self {
+            title: code_action.title,
+            edit: code_action.edit.map(Into::into),
+            kind,
+            is_preferred: code_action.is_preferred,
+        }
+    }
+}
+
+serializable_type! {
     CompletionList,
     {
         pub items: Vec<CompletionItem>,
@@ -384,6 +439,15 @@ serializable_type! {
         newText: string;
     }"#,
     ITextEdit
+}
+
+impl From<qsls::protocol::TextEdit> for TextEdit {
+    fn from(text_edit: qsls::protocol::TextEdit) -> Self {
+        Self {
+            range: text_edit.range.into(),
+            newText: text_edit.new_text,
+        }
+    }
 }
 
 serializable_type! {
@@ -482,6 +546,18 @@ serializable_type! {
         changes: [string, ITextEdit[]][];
     }"#,
     IWorkspaceEdit
+}
+
+impl From<qsls::protocol::WorkspaceEdit> for WorkspaceEdit {
+    fn from(workspace_edit: qsls::protocol::WorkspaceEdit) -> Self {
+        Self {
+            changes: workspace_edit
+                .changes
+                .into_iter()
+                .map(|(uri, edits)| (uri, edits.into_iter().map(Into::into).collect()))
+                .collect(),
+        }
+    }
 }
 
 serializable_type! {

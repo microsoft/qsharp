@@ -12,6 +12,7 @@ import {
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { createCodeLensProvider } from "./codeLens.js";
+import { createCodeActionsProvider } from "./codeActions.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
@@ -296,6 +297,13 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerCodeLensProvider(
       qsharpLanguageId,
       createCodeLensProvider(languageService),
+    ),
+  );
+
+  subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      qsharpLanguageId,
+      createCodeActionsProvider(languageService),
     ),
   );
 
