@@ -15,7 +15,13 @@
  * Each Kata is organized in a directory where an index.md file provides a description on how the kata must be composed.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+} from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -534,7 +540,14 @@ function tryCreateMarkdownSegment(text) {
   return null;
 }
 
-function createKata(kataPath, id, title, segments, globalCodeSources, published) {
+function createKata(
+  kataPath,
+  id,
+  title,
+  segments,
+  globalCodeSources,
+  published,
+) {
   // Validate that the kata has at least one segment.
   if (segments.length === 0) {
     throw new Error(`Kata '${id}' does not have any segments`);
@@ -578,7 +591,7 @@ function createKata(kataPath, id, title, segments, globalCodeSources, published)
     id,
     title,
     sections,
-    published
+    published,
   };
 }
 
@@ -602,8 +615,17 @@ function generateKataContent(path, globalCodeSources, published) {
 
   // Do not use the first segment since it was already processed to get the kata's title.
   const segments = preProcessSegments(rawSegments.slice(1), path);
-  const kata = createKata(path, kataId, title, segments, globalCodeSources, published);
-  console.log(`-- '${kata.id}' kata ${kata.published ? '' : '(unpublished)'} was successfully created`);
+  const kata = createKata(
+    path,
+    kataId,
+    title,
+    segments,
+    globalCodeSources,
+    published,
+  );
+  console.log(
+    `-- '${kata.id}' kata ${kata.published ? "" : "(unpublished)"} was successfully created`,
+  );
   return kata;
 }
 
@@ -650,14 +672,13 @@ function generateKatasContent(katasPath, outputPath) {
     indexPath,
     "Could not read the contents of the katas index file",
   );
-  const publishedKatasDirs = Object.values(tryParseJSON(
-    indexJson,
-    `Invalid katas index at ${indexPath}`,
-  ));
-  const unpublishedKatasDirs = readdirSync(katasPath, {withFileTypes: true})
-  .filter(dirent => dirent.isDirectory())
-  .map(dirent => dirent.name)
-  .filter(dir => !publishedKatasDirs.includes(dir));
+  const publishedKatasDirs = Object.values(
+    tryParseJSON(indexJson, `Invalid katas index at ${indexPath}`),
+  );
+  const unpublishedKatasDirs = readdirSync(katasPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name)
+    .filter((dir) => !publishedKatasDirs.includes(dir));
 
   // Unpublished katas are listed after published in alphabetical order
   const allKatasDirs = publishedKatasDirs.concat(unpublishedKatasDirs);
@@ -673,7 +694,11 @@ function generateKatasContent(katasPath, outputPath) {
   for (const kataDir of allKatasDirs) {
     const kataPath = join(katasPath, kataDir);
     const published = publishedKatasDirs.includes(kataDir);
-    const kata = generateKataContent(kataPath, globalCodeSourcesContainer, published);
+    const kata = generateKataContent(
+      kataPath,
+      globalCodeSourcesContainer,
+      published,
+    );
     katas.push(kata);
   }
 
