@@ -46,10 +46,6 @@ impl<'a> ParserContext<'a> {
         self.scanner.read()
     }
 
-    pub(super) fn read_to_end(&self) -> &'a str {
-        self.scanner.read_to_end()
-    }
-
     pub(super) fn span(&self, from: u32) -> Span {
         self.scanner.span(from)
     }
@@ -113,9 +109,6 @@ impl<'a> Scanner<'a> {
 
     pub(super) fn read(&self) -> &'a str {
         &self.input[self.peek.span]
-    }
-    pub(super) fn read_to_end(&self) -> &'a str {
-        &self.input[self.peek.span.lo as usize..]
     }
 
     pub(super) fn span(&self, from: u32) -> Span {

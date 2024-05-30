@@ -1705,7 +1705,7 @@ fn helpful_error_on_dotted_alias() {
     check_vec(
         parse_namespaces,
         "namespace A {
-            open Microsoft.Quantum.Math as Foo.Bar.Baz
+            open Microsoft.Quantum.Math as Foo.Bar.Baz;
             operation Main() : Unit {}
         }",
         &expect![[r#"
@@ -1738,7 +1738,7 @@ fn parse_export_basic() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export { Bar }
+               export { Bar };
         }",
         &expect![[r#"
             Namespace _id_ [0-97] (Ident _id_ [10-13] "Foo"):
@@ -1759,7 +1759,7 @@ fn parse_export_list() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export { Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested }
+               export { Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested };
         }",
         &expect![[r#"
             Namespace _id_ [0-165] (Ident _id_ [10-13] "Foo"):
@@ -1778,7 +1778,7 @@ fn parse_export_list() {
 fn parse_single_import() {
     check(
         parse_import,
-        "import { Foo }",
+        "import Foo;",
         &expect![[
             r#"ImportDecl [0-11]: [ImportItem [0-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#
         ]],
@@ -1789,7 +1789,7 @@ fn parse_single_import() {
 fn parse_multiple_imports() {
     check(
         parse_import,
-        "import {Foo.{Bar, Baz}}",
+        "import Foo.{Bar, Baz};",
         &expect![[
             r#"ImportDecl [0-22]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-20]: Path _id_ [7-20] (Ident _id_ [7-10] "Foo") (Ident _id_ [17-20] "Baz") as ]"#
         ]],
@@ -1800,7 +1800,7 @@ fn parse_multiple_imports() {
 fn parse_nested_imports() {
     check(
         parse_import,
-        "import {Foo.{Bar, Baz.{Quux, Corge}}}",
+        "import Foo.{Bar, Baz.{Quux, Corge}};",
         &expect![[
             r#"ImportDecl [0-36]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as , ImportItem [7-26]: Path _id_ [7-26] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [22-26] "Quux") as , ImportItem [7-33]: Path _id_ [7-33] ([Ident _id_ [7-10] "Foo", Ident _id_ [17-20] "Baz"]) (Ident _id_ [28-33] "Corge") as ]"#
         ]],
@@ -1811,7 +1811,7 @@ fn parse_nested_imports() {
 fn parse_import_with_alias() {
     check(
         parse_import,
-        "import {Foo as Bar}",
+        "import Foo as Bar;",
         &expect![[
             r#"ImportDecl [0-18]: [ImportItem [0-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#
         ]],
@@ -1822,7 +1822,7 @@ fn parse_import_with_alias() {
 fn parse_import_with_nested_alias() {
     check(
         parse_import,
-        "import {Foo.{Bar as Baz}}",
+        "import Foo.{Bar as Baz};",
         &expect![[
             r#"ImportDecl [0-24]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as Baz]"#
         ]],
@@ -1833,7 +1833,7 @@ fn parse_import_with_nested_alias() {
 fn import_with_too_many_closing_braces() {
     check(
         parse_import,
-        "import {Foo.{Bar}}}",
+        "import Foo.{Bar}};",
         &expect![[r#"
             Error(
                 Rule(
@@ -1857,7 +1857,7 @@ fn parse_export_missing_braces() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export Bar
+               export Bar;
         }",
         &expect![[r#"
             Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
@@ -1891,7 +1891,7 @@ fn parse_export_missing_braces() {
 fn import_with_too_many_open_braces() {
     check(
         parse_import,
-        "import { Foo.{{Bar}}",
+        "import Foo.{{Bar};",
         &expect![[r#"
             Error(
                 Rule(
@@ -1911,7 +1911,7 @@ fn import_with_too_many_open_braces() {
 fn import_with_misplaced_closing_brace() {
     check(
         parse_import,
-        "import { Foo.}Bar}",
+        "import Foo.}Bar;",
         &expect![[r#"
             Error(
                 Rule(
@@ -1934,7 +1934,7 @@ fn complex_import_tree() {
     check(
         parse_import,
         r#"
-    import {A.B.Foo.{Bar.{Baz, Quux}, Graule}}
+    import A.B.Foo.{Bar.{Baz, Quux}, Graule};
     "#,
         &expect![[
             r#"ImportDecl [5-46]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [38-44] "Graule") as ]"#
@@ -1947,7 +1947,7 @@ fn ignore_extra_commas_in_list() {
     check(
         parse_import,
         r#"
-    import {A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule}}
+    import A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule};
     "#,
         &expect![[
             r#"ImportDecl [5-55]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-44]: Path _id_ [12-44] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [40-44] "Quux") as , ImportItem [12-53]: Path _id_ [12-53] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [47-53] "Graule") as ]"#
@@ -1960,7 +1960,7 @@ fn ignore_extra_commas_after_brace() {
     check(
         parse_import,
         r#"
-    import {A.B.Foo.{Bar.{Baz, Quux},,, Graule}}
+    import A.B.Foo.{Bar.{Baz, Quux},,, Graule};
     "#,
         &expect![[
             r#"ImportDecl [5-48]: [ImportItem [12-29]: Path _id_ [12-29] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [26-29] "Baz") as , ImportItem [12-35]: Path _id_ [12-35] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo", Ident _id_ [21-24] "Bar"]) (Ident _id_ [31-35] "Quux") as , ImportItem [12-46]: Path _id_ [12-46] ([Ident _id_ [12-13] "A", Ident _id_ [14-15] "B", Ident _id_ [16-19] "Foo"]) (Ident _id_ [40-46] "Graule") as ]"#
@@ -1972,7 +1972,7 @@ fn ignore_extra_commas_after_brace() {
 fn empty_import_statement() {
     check(
         parse_import,
-        "import",
+        "import;",
         &expect![[r#"
             Error(
                 Rule(
@@ -1992,7 +1992,7 @@ fn empty_import_statement() {
 fn import_tree_nested_basic() {
     check(
         parse_import,
-        "import {Foo.Bar.{Baz}}",
+        "import Foo.Bar.{Baz};",
         &expect![[
             r#"ImportDecl [0-21]: [ImportItem [7-19]: Path _id_ [7-19] ([Ident _id_ [7-10] "Foo", Ident _id_ [11-14] "Bar"]) (Ident _id_ [16-19] "Baz") as ]"#
         ]],
@@ -2003,7 +2003,7 @@ fn import_tree_nested_basic() {
 fn import_tree_shadowing_self() {
     check(
         parse_import,
-        "import {Foo.{Bar}}",
+        "import Foo.{Bar};",
         &expect![[
             r#"ImportDecl [0-17]: [ImportItem [7-15]: Path _id_ [7-15] (Ident _id_ [7-10] "Foo") (Ident _id_ [12-15] "Bar") as ]"#
         ]],
@@ -2014,7 +2014,7 @@ fn import_tree_shadowing_self() {
 fn import_tree_shadowing_self_nested() {
     check(
         parse_import,
-        "import {Foo.{Bar.{Baz}}}",
+        "import Foo.{Bar.{Baz}};",
         &expect![[
             r#"ImportDecl [0-23]: [ImportItem [7-20]: Path _id_ [7-20] ([Ident _id_ [7-10] "Foo", Ident _id_ [12-15] "Bar"]) (Ident _id_ [17-20] "Baz") as ]"#
         ]],
@@ -2025,7 +2025,7 @@ fn import_tree_shadowing_self_nested() {
 fn import_tree_unexpected_token() {
     check(
         parse_import,
-        "import {Foo.{Bar 123}}",
+        "import Foo.{Bar 123};",
         &expect![[r#"
             Error(
                 Rule(
@@ -2047,7 +2047,7 @@ fn import_tree_unexpected_token() {
 fn import_tree_missing_closing_brace() {
     check(
         parse_import,
-        "import {Foo.{Bar.{Baz}",
+        "import Foo.{Bar.{Baz;",
         &expect![[r#"
             Error(
                 Rule(
@@ -2067,7 +2067,7 @@ fn import_tree_missing_closing_brace() {
 fn import_tree_missing_opening_brace() {
     check(
         parse_import,
-        "import {Foo.Bar.Baz}}",
+        "import Foo.Bar.Baz};",
         &expect![[r#"
             Error(
                 Rule(
@@ -2091,7 +2091,7 @@ fn parse_export_empty() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export { }
+               export { };
         }",
         &expect![[r#"
             Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
@@ -2104,21 +2104,4 @@ fn parse_export_empty() {
                 Item _id_ [72-83]:
                     Export (ExportDecl [72-83]: [])"#]],
     );
-}
-
-#[test]
-fn parse_import_comma() {
-    check_vec(
-        parse_namespaces,
-        "namespace Foo {
-                import {A, B, C, D}
-               operation Bar() : Unit {}
-        }",
-        &expect![[r#""#]],
-    );
-}
-
-#[test]
-fn reject_import_without_braces() {
-    check(parse_import, "import A", &expect![[r#""#]]);
 }
