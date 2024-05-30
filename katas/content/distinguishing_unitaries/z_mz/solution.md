@@ -1,6 +1,6 @@
 This task is more interesting: the given gates differ by a global phase they introduce (i.e., each of them is a multiple of the other), and the results of applying them to any single-qubit state are going to be indistinguishable by any measurement you can devise.
 
-Fortunately, we are given not just the unitary itself, but also its controlled variant, i.e., the gate which applies the given unitary if the control qubit or qubits are in the $\ket{1}$ state, and does nothing if they are in the $\ket{0}$ state.
+Fortunately, we are given not just the unitary itself, but also its controlled variant, i.e., the gate which applies the given unitary if the control qubit is in the $\ket{1}$ state and does nothing if it is in the $\ket{0}$ state.
 This allows us to use so called "phase kickback" trick, in which applying a controlled version of a gate allows us to observe the phase introduced by this gate on the control qubit. Indeed,
 
 <table>
