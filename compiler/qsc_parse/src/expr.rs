@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{comma_separated_seq, ident, opt, pat, path, shorten, token},
+    prim::{ident, opt, pat, path, seq, shorten, token},
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
@@ -152,7 +152,7 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
 fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (exprs, final_sep) = comma_separated_seq(s, expr)?;
+        let (exprs, final_sep) = seq(s, expr)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(Box::new(final_sep.reify(
             exprs,
@@ -291,7 +291,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 
     let mut items = vec![first, second];
     if token(s, TokenKind::Comma).is_ok() {
-        items.append(&mut comma_separated_seq(s, expr)?.0);
+        items.append(&mut seq(s, expr)?.0);
     }
     Ok(Box::new(ExprKind::Array(items.into_boxed_slice())))
 }
@@ -643,7 +643,7 @@ fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
 
 fn call_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let lo = s.span(0).hi - 1;
-    let (args, final_sep) = comma_separated_seq(s, expr)?;
+    let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
     let rhs = Box::new(Expr {
         id: NodeId::default(),

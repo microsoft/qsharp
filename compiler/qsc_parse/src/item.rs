@@ -10,7 +10,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{comma_separated_seq, ident, many, opt, pat, token},
+    prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
     ty::{self, ty},
@@ -352,7 +352,7 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (defs, final_sep) = comma_separated_seq(s, parse_ty_def)?;
+        let (defs, final_sep) = seq(s, parse_ty_def)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         final_sep.reify(defs, TyDefKind::Paren, TyDefKind::Tuple)
     } else {
@@ -408,7 +408,7 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let name = ident(s)?;
     let generics = if token(s, TokenKind::Lt).is_ok() {
         throw_away_doc(s);
-        let params = comma_separated_seq(s, ty::param)?.0;
+        let params = seq(s, ty::param)?.0;
         token(s, TokenKind::Gt)?;
         params
     } else {
@@ -540,7 +540,7 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Export))?;
-    let (items, _) = comma_separated_seq(s, parse_import_or_export_item)?;
+    let (items, _) = seq(s, parse_import_or_export_item)?;
     let _semi = token(s, TokenKind::Semi);
     let items = items
         .into_iter()
@@ -560,7 +560,7 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Import))?;
-    let (items, _) = comma_separated_seq(s, parse_import_or_export_item)?;
+    let (items, _) = seq(s, parse_import_or_export_item)?;
     let _semi = token(s, TokenKind::Semi);
     let items = items
         .into_iter()
