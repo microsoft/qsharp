@@ -69,14 +69,16 @@ export type Kata = {
   published: boolean;
 };
 
-export async function getAllKatas(includeUnpublished = false): Promise<Kata[]> {
+export async function getAllKatas(
+  options: { includeUnpublished?: boolean } = { includeUnpublished: false }
+): Promise<Kata[]> {
   return katasContent.katas.filter(
-    (k) => includeUnpublished || k.published,
+    (k) => options.includeUnpublished || k.published,
   ) as Kata[];
 }
 
 export async function getKata(id: string): Promise<Kata> {
-  const katas = await getAllKatas(true);
+  const katas = await getAllKatas({ includeUnpublished: true });
   return (
     katas.find((k) => k.id === id) ||
     Promise.reject(`Failed to get kata with id: ${id}`)

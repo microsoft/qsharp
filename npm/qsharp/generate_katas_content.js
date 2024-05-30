@@ -672,8 +672,9 @@ function generateKatasContent(katasPath, outputPath) {
     indexPath,
     "Could not read the contents of the katas index file",
   );
-  const publishedKatasDirs = Object.values(
-    tryParseJSON(indexJson, `Invalid katas index at ${indexPath}`),
+  const publishedKatasDirs = tryParseJSON(
+    indexJson,
+    `Invalid katas index at ${indexPath}`,
   );
   const unpublishedKatasDirs = readdirSync(katasPath, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())
