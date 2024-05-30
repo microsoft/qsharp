@@ -9,7 +9,7 @@ use super::{
 use crate::resolve::{self, Names, Res};
 use core::panic;
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
+    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
@@ -460,9 +460,9 @@ impl<'a> Context<'a> {
                         let udt_ty = *ty.output.clone();
                         self.inferrer
                             .class(name.span, Class::Struct(udt_ty.clone()));
-                        converge(udt_ty)
+                        udt_ty
                     }
-                    _ => converge(Ty::Err),
+                    _ => Ty::Err,
                     // Some(Res::Local(_)) => {
                     //     panic!("expected struct name, found local")
                     // }
@@ -470,6 +470,20 @@ impl<'a> Context<'a> {
                     //     panic!("expected struct name, found type")
                     // }
                 };
+
+                self.inferrer.class(
+                    expr.span,
+                    Class::HasStructShape {
+                        record: container.clone(),
+                        is_copy: copy.is_some(),
+                        fields: fields
+                            .iter()
+                            .map(|field| (field.field.name.to_string(), field.span))
+                            .collect(),
+                    },
+                );
+
+                let container = converge(container);
 
                 // Ensure that the copy expression has the same type as the given struct.
                 if let Some(copy) = copy {
