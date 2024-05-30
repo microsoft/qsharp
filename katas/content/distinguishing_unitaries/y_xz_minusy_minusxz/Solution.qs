@@ -20,8 +20,8 @@ namespace Kata {
             if isY {
                 CY(control, target);
             } else {
-                CZ(control, target);
                 CX(control, target);
+                CZ(control, target);                
             }
         }
         let result = isY ? M(control) == Zero ? 0 | 2 
