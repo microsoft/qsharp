@@ -1891,7 +1891,7 @@ impl Display for ImportDecl {
 /// An individual item being imported by an import statement.
 /// e.g. `import Foo.{Bar, Baz}` is two import items:
 /// one for `Foo.Bar` and one for `Foo.Baz`.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct ImportItem {
     /// The span.
     pub span: Span,
