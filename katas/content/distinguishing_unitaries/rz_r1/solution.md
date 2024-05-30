@@ -1,6 +1,3 @@
-> As a reminder, $$R_z(\theta) = \begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix} \text{, } 
-R_1(\theta) = \begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix} = e^{i\theta/2} R_z(\theta)$$
-
 We see that these two gates differ by a global phase $e^{i\theta/2}$.
 In this problem we're free to choose the angle parameter which we'll pass to our gate, so we can choose an angle that make this global phase difference something easy to detect: for $\theta = 2\pi$ $e^{i\theta/2} = -1$, so $R_z(\theta) = -I$, and $R_1(\theta) = I$.
 
