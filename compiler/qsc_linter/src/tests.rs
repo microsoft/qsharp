@@ -145,7 +145,7 @@ fn redundant_semicolons() {
 }
 
 #[test]
-fn needless_operation() {
+fn needless_operation_non_empty_op_and_no_specialization() {
     check(
         &wrap_in_callable("let x = 2;", CallableKind::Operation),
         &expect![[r#"
@@ -158,6 +158,60 @@ fn needless_operation() {
                 },
             ]
         "#]],
+    );
+}
+
+// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
+// non-empty operations with no specializations,
+#[test]
+fn needless_operation_non_empty_op_and_specialization() {
+    check(
+        indoc! {"
+        operation Run(target : Qubit) : Unit is Adj {
+            body ... {
+                Message(\"hi\");
+            }
+            adjoint self;
+        }
+    "},
+    &expect![[r#"
+        [
+            SrcLint {
+                source: "operation Run(target : Qubit) : Unit is Adj {\n    body ... {\n        Message(\"hi\");\n    }\n    adjoint self;\n}",
+                level: Warn,
+                message: "unnecessary operation declaration",
+                help: "convert to function",
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn needless_operation_no_lint_for_empty_op_explicit_specialization() {
+    check(
+        indoc! {"
+        operation I(target : Qubit) : Unit {
+            body ... {}
+            adjoint self;
+        }
+
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
+#[test]
+fn needless_operation_no_lint_for_empty_op_implicit_specialization() {
+    check(
+        indoc! {"
+        operation DoNothing() : Unit is Adj + Ctl {}
+    "},
+        &expect![[r"
+            []
+        "]],
     );
 }
 
@@ -178,42 +232,6 @@ fn needless_operation_partial_application() {
             [
                 SrcLint {
                     source: "operation PartialApplication(q1 : Qubit) : Qubit => Unit {\n    return PrepareBellState(q1, _);\n}",
-                    level: Warn,
-                    message: "unnecessary operation declaration",
-                    help: "convert to function",
-                },
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn needless_operation_no_lint_for_explicit_specialization() {
-    check(
-        indoc! {"
-        operation I(target : Qubit) : Unit {
-            body ... {}
-            adjoint self;
-        }
-
-    "},
-        &expect![[r"
-            []
-        "]],
-    );
-}
-
-#[test]
-fn needless_operation_implicit_specialization() {
-    // TODO: Fix this failing test. Currently, doesnt violate lint
-    check(
-        indoc! {"
-        operation DoNothing() : Unit is Adj + Ctl {}
-    "},
-        &expect![[r#"
-            [
-                SrcLint {
-                    source: "operation DoNothing() : Unit is Adj + Ctl {}",
                     level: Warn,
                     message: "unnecessary operation declaration",
                     help: "convert to function",
