@@ -136,7 +136,6 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
 
   /**
    * Calculate the zoom level that will fit the circuit into the current size of the container.
-   * Set the zoom level property to this value.
    */
   function calculateZoomToFit(container: HTMLDivElement, svg: SVGElement) {
     const containerWidth = container.clientWidth;
