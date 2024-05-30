@@ -1,5 +1,5 @@
 namespace Kata {
-    operation DistinguishZfromS(unitary : (Qubit => Unit is Adj + Ctl)) : Int {
+    operation DistinguishZS (unitary : (Qubit => Unit is Adj + Ctl)) : Int {
         use q = Qubit();
         H(q);
         unitary(q);
