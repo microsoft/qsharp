@@ -1,58 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>quantum-viz.js Demo</title>
     <script src="../dist/qviz.min.js"></script>
     <script src="./circuits.js"></script>
     <script src="./script.js" defer></script>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-        }
+      body {
+        display: flex;
+        justify-content: center;
+      }
 
-        main {
-            width: 80%;
-        }
+      main {
+        width: 80%;
+      }
 
-        #title {
-            margin-bottom: 2rem;
-        }
+      #title {
+        margin-bottom: 2rem;
+      }
 
-        #message {
-            font-size: large;
-        }
+      #message {
+        font-size: large;
+      }
 
-        .container {
-            overflow: scroll;
-        }
+      .container {
+        overflow: scroll;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <main>
-        <h1 id="title">quantum-viz.js</h1>
-        <div id="message">
-            Please make sure the project is built first by following the
-            <b>Running from source</b> instructions from the README.md
-        </div>
+      <h1 id="title">quantum-viz.js</h1>
+      <div id="message">
+        Please make sure the project is built first by following the
+        <b>Running from source</b> instructions from the README.md
+      </div>
 
-        <div id="group">
-            <h4>1. Entangle</h4>
-            <div id="entangle" class="container">
-            </div>
-            <h4>2. Sample</h4>
-            <div id="sample" class="container"></div>
-            <h4>3. Teleport</h4>
-            <div id="teleport" class="container"></div>
-            <h4>4. Grover</h4>
-            <div id="grover" class="container"></div>
-        </div>
+      <div id="group">
+        <h4>1. Entangle</h4>
+        <div id="entangle" class="container"></div>
+        <h4>2. Sample</h4>
+        <div id="sample" class="container"></div>
+        <h4>3. Teleport</h4>
+        <div id="teleport" class="container"></div>
+        <h4>4. Grover</h4>
+        <div id="grover" class="container"></div>
+      </div>
     </main>
-</body>
-
+  </body>
 </html>
