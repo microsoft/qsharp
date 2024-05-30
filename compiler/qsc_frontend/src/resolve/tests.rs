@@ -2252,7 +2252,7 @@ fn resolved_adaptive_callable_from_adaptive() {
                 }
             }
         "},
-        TargetCapabilityFlags::all(),
+        TargetCapabilityFlags::Adaptive,
         &expect![[r#"
             namespace namespace7 {
                 @Config(Adaptive)
