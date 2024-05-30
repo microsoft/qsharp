@@ -449,11 +449,6 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write("::");
                 self.visit_ident(name);
             }
-            ExprKind::StructField(record, name) => {
-                self.visit_expr(record);
-                self.write(".");
-                self.visit_ident(name);
-            }
             ExprKind::For(pat, iter, block) => {
                 self.write("for ");
                 self.visit_pat(pat);

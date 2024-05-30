@@ -479,11 +479,6 @@ impl With<'_> {
                 let field = self.lower_field(&container.ty, &name.name);
                 hir::ExprKind::Field(Box::new(container), field)
             }
-            ast::ExprKind::StructField(container, _) => {
-                let _ = self.lower_expr(container);
-                //let _ = self.lower_field(&container.ty, &name.name);
-                hir::ExprKind::Err // ToDo
-            }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),
                 Box::new(self.lower_expr(iter)),

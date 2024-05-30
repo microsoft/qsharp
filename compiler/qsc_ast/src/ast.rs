@@ -842,8 +842,6 @@ pub enum ExprKind {
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
     Field(Box<Expr>, Box<Ident>),
-    /// A field accessor: `a.F`.
-    StructField(Box<Expr>, Box<Ident>),
     /// A for loop: `for a in b { ... }`.
     For(Box<Pat>, Box<Expr>, Box<Block>),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -902,7 +900,6 @@ impl Display for ExprKind {
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
             ExprKind::Field(expr, id) => display_field(indent, expr, id)?,
-            ExprKind::StructField(expr, id) => display_struct_field(indent, expr, id)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
@@ -1014,14 +1011,6 @@ fn display_conjugate(
 
 fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
     write!(indent, "Field:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{expr}")?;
-    write!(indent, "\n{id}")?;
-    Ok(())
-}
-
-fn display_struct_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
-    write!(indent, "StructField:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
     write!(indent, "\n{id}")?;

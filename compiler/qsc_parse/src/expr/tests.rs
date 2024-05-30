@@ -1682,21 +1682,10 @@ fn struct_op_unit() {
     check(
         expr,
         "new Foo { ...foo, field1 = 3 }",
-        &expect![[
-            r#"Expr _id_ [0-10]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")): <empty>"#
-        ]],
-    );
-}
-
-#[test]
-fn struct_field() {
-    check(
-        expr,
-        "foo.bar",
         &expect![[r#"
-            Expr _id_ [0-7]: StructField:
-                Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "foo")
-                Ident _id_ [4-7] "bar""#]],
+            Expr _id_ [0-30]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")
+                FieldsAssign _id_ [18-28]: (Ident _id_ [18-24] "field1") Expr _id_ [27-28]: Lit: Int(3)"#]],
     );
 }
 

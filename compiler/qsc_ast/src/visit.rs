@@ -246,7 +246,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_block(apply);
         }
         ExprKind::Fail(msg) => vis.visit_expr(msg),
-        ExprKind::Field(record, name) | ExprKind::StructField(record, name) => {
+        ExprKind::Field(record, name) => {
             vis.visit_expr(record);
             vis.visit_ident(name);
         }

@@ -272,7 +272,6 @@ impl<'a> Context<'a> {
                 );
                 self.diverge_if(record.diverges, converge(item_ty))
             }
-            ExprKind::StructField(_, _) => converge(Ty::Err), // ToDo
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
                 let container_span = container.span;

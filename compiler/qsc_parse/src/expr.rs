@@ -626,20 +626,12 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Rich(call_op),
             precedence: 13,
         }),
-        // OpName::Token(TokenKind::Open(Delim::Brace)) => Some(MixfixOp {
-        //     kind: OpKind::Rich(struct_op),
-        //     precedence: 13,
-        // }),
         OpName::Token(TokenKind::Bang) => Some(MixfixOp {
             kind: OpKind::Postfix(UnOp::Unwrap),
             precedence: 15,
         }),
         OpName::Token(TokenKind::ColonColon) => Some(MixfixOp {
             kind: OpKind::Rich(field_op),
-            precedence: 15,
-        }),
-        OpName::Token(TokenKind::Dot) => Some(MixfixOp {
-            kind: OpKind::Rich(struct_field_op),
             precedence: 15,
         }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
@@ -678,10 +670,6 @@ fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
 }
 
-fn struct_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-    Ok(Box::new(ExprKind::StructField(lhs, ident(s)?)))
-}
-
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let index = expr(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
@@ -699,30 +687,6 @@ fn call_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     });
     Ok(Box::new(ExprKind::Call(lhs, rhs)))
 }
-
-// fn call_op2(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-//     let lo = s.span(0).hi - 1;
-//     let (args, final_sep) = seq(s, expr)?;
-//     token(s, TokenKind::Close(Delim::Brace))?;
-//     let rhs = Box::new(Expr {
-//         id: NodeId::default(),
-//         span: s.span(lo),
-//         kind: Box::new(final_sep.reify(args, ExprKind::Paren, ExprKind::Tuple)),
-//     });
-//     Ok(Box::new(ExprKind::Call(lhs, rhs)))
-// }
-
-// fn struct_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-//     //let lo = s.span(0).hi - 1;
-//     let (_, _) = seq(s, expr)?;
-//     token(s, TokenKind::Close(Delim::Brace))?;
-//     // let rhs = Box::new(Expr {
-//     //     id: NodeId::default(),
-//     //     span: s.span(lo),
-//     //     kind: Box::new(final_sep.reify(args, ExprKind::Paren, ExprKind::Tuple)),
-//     // });
-//     Ok(Box::new(ExprKind::Struct(lhs)))
-// }
 
 fn range_op(s: &mut ParserContext, start: Box<Expr>) -> Result<Box<ExprKind>> {
     let rhs = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
