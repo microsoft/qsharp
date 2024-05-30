@@ -23,6 +23,11 @@ impl Span {
         (self.lo..self.hi).contains(&offset)
     }
 
+    #[must_use]
+    pub fn touches(&self, offset: u32) -> bool {
+        (self.lo..=self.hi).contains(&offset)
+    }
+
     /// Intersect `range` with this range and returns a new range or `None`
     /// if the ranges have no overlap.
     #[must_use]
