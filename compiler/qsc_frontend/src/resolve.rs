@@ -174,7 +174,7 @@ impl ScopeItemEntry {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Copy)]
 pub enum ItemSource {
     Exported,
     Imported,
@@ -729,99 +729,7 @@ impl Resolver {
         // resolve the exported item and insert the vec ident into the names table, so we can access it in
         // lowering
 
-        for item in export.items() {
-            let Some((resolved_item, term_or_ty)) =
-                self.bind_exported_path_of_unknown_name_kind(current_namespace, item)
-            else {
-                continue;
-            };
-
-            let scope = self.current_scope_mut();
-
-            let resolved_item_id = match resolved_item {
-                Res::Item(_, ItemStatus::Unimplemented) => {
-                    self.errors.push(Error::NotAvailable(
-                        item.path.name.name.to_string(),
-                        "unimplemented".to_string(),
-                        item.path.span,
-                    ));
-                    continue;
-                }
-                Res::Item(
-                    ItemId {
-                        package: Some(_), ..
-                    },
-                    _,
-                ) => {
-                    self.errors.push(Error::ExportedExternalItem(item.span()));
-                    continue;
-                }
-                Res::Item(id, _) => id,
-                _ => {
-                    self.errors.push(Error::ExportedNonItem(item.span()));
-                    continue;
-                }
-            };
-
-            let mut maybe_err = None;
-            match term_or_ty {
-                NameKind::Ty => {
-                    if let Some(ScopeItemEntry {
-                        source: ItemSource::Exported,
-                        ..
-                    }) = scope.tys.get(&item.name().name)
-                    {
-                        maybe_err = Some(Error::DuplicateExport(
-                            item.name().name.to_string(),
-                            item.span(),
-                        ));
-                    }
-                    scope.tys.insert(
-                        Rc::clone(&item.name().name),
-                        ScopeItemEntry::new(resolved_item_id, ItemSource::Exported),
-                    );
-                }
-                NameKind::Term => {
-                    if let Some(ScopeItemEntry {
-                        source: ItemSource::Exported,
-                        ..
-                    }) = scope.terms.get(&item.name().name)
-                    {
-                        maybe_err = Some(Error::DuplicateExport(
-                            item.name().name.to_string(),
-                            item.span(),
-                        ));
-                    }
-                    scope.terms.insert(
-                        Rc::clone(&item.name().name),
-                        ScopeItemEntry::new(resolved_item_id, ItemSource::Exported),
-                    );
-                }
-            };
-
-            if let Some(err) = maybe_err {
-                self.errors.push(err);
-            }
-
-            if let Some(namespace) = current_namespace {
-                match term_or_ty {
-                    NameKind::Ty => {
-                        self.globals.tys.get_mut_or_default(namespace).insert(
-                            Rc::clone(&item.name().name),
-                            Res::Item(resolved_item_id, ItemStatus::Available),
-                        );
-                    }
-                    NameKind::Term => {
-                        self.globals.terms.get_mut_or_default(namespace).insert(
-                            Rc::clone(&item.name().name),
-                            Res::Item(resolved_item_id, ItemStatus::Available),
-                        );
-                    }
-                }
-            }
-
-            self.names.insert(item.path.id, resolved_item);
-        }
+        self.bind_import_or_export(export, current_namespace)
     }
 
     /// This function performs the logic to see if a path is a ty, term, or namespace, and then
@@ -871,6 +779,120 @@ impl Resolver {
         }
     }
 
+    fn bind_import_or_export(
+        &mut self,
+        import: &ExportDecl,
+        current_namespace: Option<NamespaceId>,
+    ) {
+        let is_export = true;
+        for item in import.items() {
+            let (term_result, ty_result) = (
+                self.resolve_path(NameKind::Term, &item.path),
+                self.resolve_path(NameKind::Ty, &item.path),
+            );
+
+            if let (Err(err), Err(_)) = (&term_result, &ty_result) {
+                // try to see if it is a namespace
+                let items = Into::<Idents>::into(item.path.clone());
+                let ns = self.globals.find_namespace(items.str_iter());
+                let alias = item
+                    .alias
+                    .as_ref()
+                    .map(|x| Box::new(x.clone()))
+                    .or(Some(item.path.name.clone()));
+                if let Some(ns) = ns {
+                    if !is_export {
+                        // for imports, we just bind the namespace as an open
+                        self.bind_open(&items, &alias, ns);
+                    } else {
+                        // for exports, we update the namespace tree accordingly:
+                        // update the namespace tree to include the new namespace
+                        let alias = alias.unwrap_or(item.path.name.clone());
+                        self.globals
+                            .namespaces
+                            .insert_with_id(current_namespace, ns, &alias.name);
+                    }
+                } else if !self.errors.contains(err) {
+                    self.errors.push(err.clone());
+                }
+                continue;
+            }
+
+            let local_name = item.name().name.clone();
+            dbg!(&local_name);
+
+            {
+                let scope = self.current_scope_mut();
+                // if the item already exists in the scope, return a duplicate error
+                if scope.terms.contains_key(&local_name) || scope.tys.contains_key(&local_name) {
+                    let err = Error::ImportedDuplicate(local_name.to_string(), item.name().span);
+                    if !self.errors.contains(&err) {
+                        self.errors.push(err);
+                    }
+                    continue;
+                }
+            }
+            let item_source = if is_export {
+                ItemSource::Exported
+            } else {
+                ItemSource::Imported
+            };
+
+            if let Ok(Res::Item(id, _)) = term_result {
+                println!("is term");
+                if is_export {
+                    println!("is export");
+                    if let Some(namespace) = current_namespace {
+                        println!("ns is {current_namespace:?}");
+                        self.globals
+                            .terms
+                            .get_mut_or_default(namespace)
+                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
+                    }
+                }
+                let scope = self.current_scope_mut();
+                scope
+                    .terms
+                    .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
+            }
+
+            if let Ok(Res::Item(id, _)) = ty_result {
+                println!("is ty");
+                if is_export {
+                    if let Some(namespace) = current_namespace {
+                        self.globals
+                            .tys
+                            .get_mut_or_default(namespace)
+                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
+                    }
+                }
+                let scope = self.current_scope_mut();
+                scope
+                    .tys
+                    .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
+            }
+
+            let res = match (term_result, ty_result) {
+                (Ok(res @ Res::Item(..)), _) | (_, Ok(res @ Res::Item(..))) => res,
+                (Ok(_), _) | (_, Ok(_)) => {
+                    let err = Error::ImportedNonItem(item.path.span);
+                    if !self.errors.contains(&err) {
+                        self.errors.push(err);
+                    }
+                    continue;
+                }
+                (Err(err), _) => {
+                    if !self.errors.contains(&err) {
+                        self.errors.push(err);
+                    }
+                    continue;
+                }
+            };
+
+            // insert the item into the names we know about
+            self.names.insert(item.name().id, res);
+        }
+    }
     fn bind_import(&mut self, import: &ImportDecl) {
         for item in &import.items {
             let (term_result, ty_result) = (
