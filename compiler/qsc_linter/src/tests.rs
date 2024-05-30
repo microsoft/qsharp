@@ -145,6 +145,23 @@ fn redundant_semicolons() {
 }
 
 #[test]
+fn needless_operation_lambda_operations() {
+    check(
+        &wrap_in_callable("let a = (a) => a + 1;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "(a) => a + 1",
+                    level: Warn,
+                    message: "unnecessary operation declaration",
+                    help: "convert to function",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn needless_operation_non_empty_op_and_no_specialization() {
     check(
         &wrap_in_callable("let x = 2;", CallableKind::Operation),
