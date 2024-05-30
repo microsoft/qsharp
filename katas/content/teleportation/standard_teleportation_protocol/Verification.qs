@@ -3,7 +3,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let teleport = Kata.StandardTeleport(_, _, _);
+        let teleport = Kata.StandardTeleport;
         return TeleportTestLoop(teleport);
     }
 

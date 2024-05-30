@@ -84,12 +84,12 @@ namespace Kata.Verification {
         // Applying the inverse of the setup operation to qBob
         // should make it Zero.
         Adjoint setupPsiOp(qBob);
-        if not CheckZero(qBob){
-            Message($"Incorrect. The state prepared in {psiName} was teleported incorrectly.");
+        if not CheckZero(qBob) {
+            Message($"Incorrect. The state {psiName} was teleported incorrectly.");
             setupPsiOp(qBob);
-            ResetAll([qMessage, qAlice]);
-            DumpRegister([qBob]);
-            Reset(qBob);
+            Message("The state of the qubits [qMessage, qAlice, qBob] after teleportation:");
+            DumpMachine();
+            ResetAll([qMessage, qAlice, qBob]);
             return false;
         }
         ResetAll([qMessage, qAlice, qBob]);
@@ -114,7 +114,7 @@ namespace Kata.Verification {
         let numRepetitions = 100;
         for (psiOp, psiName) in setupPsiOps {
             for j in 1 .. numRepetitions {
-                if not TeleportTestHelper(teleportOp, psiOp,psiName){
+                if not TeleportTestHelper(teleportOp, psiOp, psiName) {
                     return false;
                 }
             }
