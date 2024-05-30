@@ -1500,12 +1500,9 @@ impl Idents {
     /// The stringified dot-separated path of the idents in this [`Idents`]
     /// E.g. `a.b.c`
     #[must_use]
-    pub fn name<T>(&self) -> T
-    where
-        T: From<String>,
-    {
+    pub fn name(&self) -> Rc<str> {
         if self.0.len() == 1 {
-            return T::from(self.0[0].name.clone().to_string());
+            return self.0[0].name.clone();
         }
         let mut buf = String::new();
         for ident in self.0.iter() {
@@ -1514,7 +1511,7 @@ impl Idents {
             }
             buf.push_str(&ident.name);
         }
-        T::from(buf)
+        Rc::from(buf)
     }
 
     /// Appends another ident to this [`Idents`].

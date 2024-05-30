@@ -649,7 +649,7 @@ impl Resolver {
         } else if let Some(id) = self.globals.namespaces.get_namespace_id(name.str_iter()) {
             id
         } else {
-            let error = Error::NotFound(name.name(), name.span());
+            let error = Error::NotFound(name.name().to_string(), name.span());
             if !self.errors.contains(&error) {
                 self.errors.push(error);
             }
@@ -772,8 +772,8 @@ impl Resolver {
                     }) = scope.tys.get(&item.name().name)
                     {
                         maybe_err = Some(Error::DuplicateExport(
-                            item.path.name.name.to_string(),
-                            item.path.span,
+                            item.name().name.to_string(),
+                            item.span(),
                         ));
                     }
                     scope.tys.insert(
@@ -788,8 +788,8 @@ impl Resolver {
                     }) = scope.terms.get(&item.name().name)
                     {
                         maybe_err = Some(Error::DuplicateExport(
-                            item.path.name.name.to_string(),
-                            item.path.span,
+                            item.name().name.to_string(),
+                            item.span(),
                         ));
                     }
                     scope.terms.insert(
@@ -1565,7 +1565,7 @@ fn resolve<'a>(
 
     Err(match provided_namespace_name {
         Some(ns) => Error::NotFound(
-            ns.push(provided_symbol_name.clone()).name(),
+            ns.push(provided_symbol_name.clone()).name().to_string(),
             Span {
                 lo: ns.span().lo,
                 hi: provided_symbol_name.span.hi,

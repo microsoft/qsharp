@@ -723,7 +723,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     }
 
     fn visit_idents(&mut self, idents: &'_ Idents) {
-        self.write(&idents.name::<String>());
+        self.write(&idents.name());
     }
 }
 
