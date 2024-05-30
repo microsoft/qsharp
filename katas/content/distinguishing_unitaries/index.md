@@ -64,9 +64,9 @@ This kata offers you a series of tasks in which you are given one unitary from t
 })
 
 @[exercise]({
-    "id": "distinguishing_unitaries__z_mz",
+    "id": "distinguishing_unitaries__z_minusz",
     "title": "Z or -Z?",
-    "path": "./z_mz/",
+    "path": "./z_minusz/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
@@ -94,9 +94,9 @@ This kata offers you a series of tasks in which you are given one unitary from t
 })
 
 @[exercise]({
-    "id": "distinguishing_unitaries__y_xz_my_mxz",
+    "id": "distinguishing_unitaries__y_xz_minusy_minusxz",
     "title": "Y or XZ or -Y or -XZ?",
-    "path": "./y_xz_my_mxz/",
+    "path": "./y_xz_minusy_minusxz/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
@@ -115,7 +115,7 @@ This kata offers you a series of tasks in which you are given one unitary from t
 
 @[exercise]({
     "id": "distinguishing_unitaries__i_x_y_z",
-    "title": "Distinguish 4 Pauli Unitaries",
+    "title": "Distinguish Four Pauli Unitaries",
     "path": "./i_x_y_z/",
     "qsDependencies": [
         "../KatasLibrary.qs",

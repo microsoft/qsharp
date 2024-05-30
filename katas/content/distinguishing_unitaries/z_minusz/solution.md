@@ -42,6 +42,6 @@ After this we can measure the first qubit to distinguish $\frac{1}{\sqrt2}(\ket{
 > In Q# we can express controlled version of a gate using [Controlled functor](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor): the first argument of the resulting gate will be an array of control qubits, and the second one - the arguments of the original gate (in this case just the target qubit).
 
 @[solution]({
-    "id": "distinguishing_unitaries__z_mz_solution",
+    "id": "distinguishing_unitaries__z_minusz_solution",
     "codePath": "Solution.qs"
 })
