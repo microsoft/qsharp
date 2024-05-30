@@ -87,10 +87,6 @@ impl<'a> ParserContext<'a> {
     pub(crate) fn contains_language_feature(&self, feat: LanguageFeatures) -> bool {
         self.language_features.contains(feat)
     }
-
-    pub(crate) fn input(&self) -> &'a str {
-        &self.scanner.input
-    }
 }
 
 impl<'a> Scanner<'a> {
