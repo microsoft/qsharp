@@ -21,7 +21,7 @@ namespace Kata {
         mutable attempt = 1;
         mutable measuredOne = false;
         repeat {
-            for _ in 1..times {
+            for _ in 1 .. times {
                 unitary(q);
             }
             // for Rz, we'll never venture away from |0⟩ state, so as soon as we got |1⟩ we know it's not Rz
