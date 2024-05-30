@@ -15,6 +15,12 @@ declare_hir_lints! {
     (NeedlessOperation, LintLevel::Warn, "unnecessary operation declaration", "convert to function")
 }
 
+// Helper to check if a operation has desired operation characteristics
+//
+// empty operations: no lint, special case of `I` operation used for Delay
+// operations with errors (e.g. partially typed code): no lint because linter does not run
+// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
+// non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
 #[derive(Default)]
 struct OperationLimits {
     // Operation Characteristics
@@ -22,6 +28,7 @@ struct OperationLimits {
 }
 
 impl OperationLimits {
+    // Checks for empty declarations
     fn is_empty_decl(spec_decl: &Option<SpecDecl>) -> bool {
         match spec_decl {
             None => true,
@@ -48,18 +55,12 @@ impl OperationLimits {
     }
 }
 
-// empty operations: no lint
-// operations with errors (e.g. partially typed code): no lint because linter does not run
-// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
-// non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
 impl Visitor<'_> for OperationLimits {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        if decl.kind == CallableKind::Operation {
-            if Self::is_empty_op(decl) {
-                self.op_char = true;
-            } else {
-                visit::walk_callable_decl(self, decl);
-            }
+        if Self::is_empty_op(decl) {
+            self.op_char = true;
+        } else {
+            visit::walk_callable_decl(self, decl);
         }
     }
 
@@ -93,6 +94,8 @@ impl Visitor<'_> for OperationLimits {
     }
 }
 
+// HIR Lint for `NeedlessOperation`, suggesting to use function
+// We use `OperationLimits` helper to check if a operation has desired operation characteristics
 impl HirLintPass for NeedlessOperation {
     fn check_callable_decl(&self, decl: &CallableDecl, buffer: &mut Vec<Lint>) {
         if decl.kind == CallableKind::Operation {
