@@ -24,7 +24,8 @@ namespace Kata {
                 CX(control, target);
             }
         }
-        let result = isY ? M(control) == Zero ? 0 | 2 | M(control) == Zero ? 1 | 3;
+        let result = isY ? M(control) == Zero ? 0 | 2 
+                         | M(control) == Zero ? 1 | 3;
         Reset(control);
         return result;
         
