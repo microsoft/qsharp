@@ -197,12 +197,11 @@ fn needless_operation_no_lint_for_explicit_specialization() {
         }
 
     "},
-        &expect![[r#"
+        &expect![[r"
             []
-        "#]],
+        "]],
     );
 }
-
 
 #[test]
 fn needless_operation_implicit_specialization() {
