@@ -102,8 +102,23 @@ export async function getQirForActiveWindow(
       profile: getTarget(),
     } as ProgramConfig;
 
-    result = await invokeAndReportCommandDiagnostics(() =>
-      worker.getQir(config),
+    result = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        cancellable: true,
+        title: "Q#: Generating QIR",
+      },
+      async (progress, token) => {
+        token.onCancellationRequested(() => {
+          worker.terminate();
+        });
+
+        const qir = await invokeAndReportCommandDiagnostics(() =>
+          worker.getQir(config),
+        );
+        progress.report({ increment: 100 });
+        return qir;
+      },
     );
 
     sendTelemetryEvent(
@@ -114,10 +129,16 @@ export async function getQirForActiveWindow(
     clearTimeout(compilerTimeout);
   } catch (e: any) {
     log.error("Codegen error. ", e.toString());
-    throw new QirGenerationError(
-      `Code generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
-        "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
-    );
+    if (e.toString() === "terminated") {
+      throw new QirGenerationError(
+        "QIR generation was cancelled or timed out.",
+      );
+    } else {
+      throw new QirGenerationError(
+        `QIR generation failed due to error: "${e.toString()}". Please ensure the code is compatible with a QIR profile ` +
+          "by setting the target QIR profile to 'base' or 'adaptive_ri' and fixing any errors.",
+      );
+    }
   } finally {
     worker.terminate();
   }
