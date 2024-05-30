@@ -132,6 +132,8 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
     }
     let mut found_capabilities = TargetCapabilityFlags::empty();
     let mut disallowed_capabilities = TargetCapabilityFlags::empty();
+    let mut base = false;
+    let mut not_base = false;
 
     // When checking attributes, anything we don't recognize (invalid form or invalid capability) gets
     // left in the compilation by returning true. This ensures that later compilation steps, specifically lowering
@@ -142,6 +144,9 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
                 ExprKind::Path(path) => {
                     if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
                     {
+                        if capability.is_empty() {
+                            base = true;
+                        }
                         found_capabilities |= capability;
                     } else {
                         return true; // Unknown capability, so we assume it matches
@@ -152,6 +157,9 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
                         if let Ok(capability) =
                             TargetCapabilityFlags::from_str(path.name.name.as_ref())
                         {
+                            if capability.is_empty() {
+                                not_base = true;
+                            }
                             disallowed_capabilities |= capability;
                         } else {
                             return true; // Unknown capability, so we assume it matches
@@ -168,9 +176,19 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
         }
     }
     if found_capabilities.is_empty() && disallowed_capabilities.is_empty() {
-        // There was at least one config attribute, but it was Base
-        // Therefore, we only match if there are no capabilities
-        return capabilities == TargetCapabilityFlags::empty();
+        if not_base && !base {
+            // There was at least one config attribute, but it was "not Base" so
+            // ensure that the capabilities are not empty.
+            return capabilities != TargetCapabilityFlags::empty();
+        } else if base && !not_base {
+            // There was at least one config attribute, but it was Base
+            // Therefore, we only match if there are no capabilities
+            return capabilities == TargetCapabilityFlags::empty();
+        }
+
+        // The config specified both "Base" and "not Base" which is a contradiction, but we
+        // drop the item in this case.
+        return false;
     }
     capabilities.contains(found_capabilities)
         && (disallowed_capabilities.is_empty() || !capabilities.contains(disallowed_capabilities))
