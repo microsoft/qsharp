@@ -8,7 +8,7 @@ use qsc::{
     line_column::{Encoding, Range},
     Span,
 };
-use qsc_linter::{AstLint, HirLint};
+use qsc_linter::AstLint;
 
 use crate::{
     compilation::Compilation,
@@ -87,7 +87,8 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
-                LintKind::Ast(AstLint::DivisionByZero) | LintKind::Hir(HirLint::Placeholder) => (),
+                LintKind::Ast(AstLint::DivisionByZero) => (),
+                LintKind::Hir(_) => todo!(),
             }
         }
     }

@@ -1590,8 +1590,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 72,
-                            hi: 79,
+                            lo: 71,
+                            hi: 78,
                         },
                         level: Warn,
                         message: "unnecessary parentheses",
@@ -1604,8 +1604,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 64,
-                            hi: 69,
+                            lo: 63,
+                            hi: 68,
                         },
                         level: Warn,
                         message: "attempt to divide by zero",
