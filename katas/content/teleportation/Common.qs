@@ -71,7 +71,8 @@ namespace Kata.Verification {
     // which makes testing easier.
     operation TeleportTestHelper(
         teleportOp : ((Qubit, Qubit, Qubit) => Unit), 
-        setupPsiOp : (Qubit => Unit is Adj)) : Bool {
+        setupPsiOp : (Qubit => Unit is Adj),
+        psiName: String) : Bool {
         
         use (qMessage, qAlice, qBob) = (Qubit(), Qubit(), Qubit());
         setupPsiOp(qMessage);
@@ -84,13 +85,14 @@ namespace Kata.Verification {
         // should make it Zero.
         Adjoint setupPsiOp(qBob);
         if not CheckZero(qBob){
-            Message("Incorrect. The state was teleported incorrectly.");
-            DumpMachine();
-            ResetAll([qMessage, qAlice, qBob]);
+            Message($"Incorrect. The state prepared in {psiName} was teleported incorrectly.");
+            setupPsiOp(qBob);
+            ResetAll([qMessage, qAlice]);
+            DumpRegister([qBob]);
+            Reset(qBob);
             return false;
         }
         ResetAll([qMessage, qAlice, qBob]);
-        Message("Correct.");
         return true;
     }
 
@@ -103,21 +105,21 @@ namespace Kata.Verification {
     operation TeleportTestLoop(teleportOp : ((Qubit, Qubit, Qubit) => Unit)) : Bool {
         // Define setup operations for the message qubit
         // on which to test teleportation: |0⟩, |1⟩, |0⟩ + |1⟩, unequal superposition.
-        let setupPsiOps = [I, X, H, Ry(ArcCos(0.6) * 2.0, _)];
+        let setupPsiOps = [(I, "|0⟩"), (X, "|1⟩"), (H, "|+⟩"), (Ry(ArcCos(0.6) * 2.0, _), "0.6|0⟩ + 0.8|1⟩")];
         
         // As part of teleportation Alice runs some measurements
         // with nondeterministic outcome.
         // Depending on the outcomes different paths are taken on Bob's side.
         // We repeat each test run several times to ensure that all paths are checked.
         let numRepetitions = 100;
-        for psiOp in setupPsiOps {
+        for (psiOp, psiName) in setupPsiOps {
             for j in 1 .. numRepetitions {
-                let validation = TeleportTestHelper(teleportOp, psiOp);
-                if not validation{
+                if not TeleportTestHelper(teleportOp, psiOp,psiName){
                     return false;
                 }
             }
         }
+        Message("Correct.");
         return true;
     }
 }

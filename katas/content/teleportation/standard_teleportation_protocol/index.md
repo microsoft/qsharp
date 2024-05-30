@@ -5,4 +5,4 @@ Put together the steps implemented in previous three exercises to implement the 
 2. The message qubit `qMessage` in the state $\ket{\psi}$ to be teleported.
 
 **Goal:** 
-Transform Bob's qubit qBob into the state $\ket{\psi}$. The state of the qubits qAlice and qMessage in the end of the operation doesn't matter.
+Transform Bob's qubit `qBob` into the state $\ket{\psi}$. The state of the qubits `qAlice` and `qMessage` in the end of the operation doesn't matter.

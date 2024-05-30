@@ -1,6 +1,6 @@
 namespace Kata {
     operation StandardTeleport(qAlice : Qubit, qBob : Qubit, qMessage : Qubit) : Unit {
-        //..
+        // Implement your solution here...
     }
     
     // You might find these helper operations from earlier tasks useful.
