@@ -84,12 +84,7 @@ namespace Kata.Verification {
     }
 
     operation MinusXZ (q : Qubit) : Unit is Adj + Ctl {
-        within {
-            Y(q);
-            X(q);
-        }
-        apply {
-            XZ(q);
-        }
+        X(q);
+        Z(q);
     }
 }
