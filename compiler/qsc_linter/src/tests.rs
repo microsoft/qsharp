@@ -174,7 +174,7 @@ fn needless_operation_non_empty_op_and_specialization() {
             adjoint self;
         }
     "},
-    &expect![[r#"
+        &expect![[r#"
         [
             SrcLint {
                 source: "operation Run(target : Qubit) : Unit is Adj {\n    body ... {\n        Message(\"hi\");\n    }\n    adjoint self;\n}",

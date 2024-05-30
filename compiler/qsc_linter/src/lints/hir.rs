@@ -16,43 +16,37 @@ declare_hir_lints! {
 }
 
 #[derive(Default)]
-pub(super) struct OperationLimits {
+struct OperationLimits {
     // Operation Characteristics
-    pub(super) op_char: bool,
+    op_char: bool,
 }
 
 impl OperationLimits {
-
-    fn is_empty_decl(spec_decl : &Option<SpecDecl>) -> bool {
+    fn is_empty_decl(spec_decl: &Option<SpecDecl>) -> bool {
         match spec_decl {
-            None => {true}
-            Some(decl) => {
-                match &decl.body {
-                    SpecBody::Gen(_) => { true }
-                    SpecBody::Impl(_, block) => {
-                        block.stmts.is_empty()
-                    }
-                }
-            }
+            None => true,
+            Some(decl) => match &decl.body {
+                SpecBody::Gen(_) => true,
+                SpecBody::Impl(_, block) => block.stmts.is_empty(),
+            },
         }
     }
 
-    fn is_empty_decl2(spec_decl : &SpecDecl) -> bool {
+    fn is_empty_decl2(spec_decl: &SpecDecl) -> bool {
         match &spec_decl.body {
-            SpecBody::Gen(_) => {true}
-            SpecBody::Impl(_, block) => {
-                block.stmts.is_empty()
-            }
+            SpecBody::Gen(_) => true,
+            SpecBody::Impl(_, block) => block.stmts.is_empty(),
         }
     }
 
     // Empty operation means no code for body or specializations(implicit or explicit)
     fn is_empty_op(decl: &CallableDecl) -> bool {
-        Self::is_empty_decl2(&decl.body) && Self::is_empty_decl(&decl.adj)
-        && Self::is_empty_decl(&decl.ctl) && Self::is_empty_decl(&decl.ctl_adj)
+        Self::is_empty_decl2(&decl.body)
+            && Self::is_empty_decl(&decl.adj)
+            && Self::is_empty_decl(&decl.ctl)
+            && Self::is_empty_decl(&decl.ctl_adj)
     }
 }
-
 
 // empty operations: no lint
 // operations with errors (e.g. partially typed code): no lint because linter does not run
@@ -60,11 +54,10 @@ impl OperationLimits {
 // non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
 impl Visitor<'_> for OperationLimits {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        if decl.kind == CallableKind::Operation{
+        if decl.kind == CallableKind::Operation {
             if Self::is_empty_op(decl) {
                 self.op_char = true;
-            }
-            else {
+            } else {
                 visit::walk_callable_decl(self, decl);
             }
         }
