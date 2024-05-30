@@ -104,9 +104,9 @@ This kata offers you a series of tasks in which you are given one unitary from t
 })
 
 @[exercise]({
-    "id": "distinguishing_unitaries__rz_ry",
-    "title": "Rz or Ry?",
-    "path": "./rz_ry/",
+    "id": "distinguishing_unitaries__i_x_y_z",
+    "title": "Distinguish Four Pauli Unitaries",
+    "path": "./i_x_y_z/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
@@ -114,9 +114,9 @@ This kata offers you a series of tasks in which you are given one unitary from t
 })
 
 @[exercise]({
-    "id": "distinguishing_unitaries__i_x_y_z",
-    "title": "Distinguish Four Pauli Unitaries",
-    "path": "./i_x_y_z/",
+    "id": "distinguishing_unitaries__rz_ry",
+    "title": "Rz or Ry?",
+    "path": "./rz_ry/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
