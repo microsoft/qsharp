@@ -70,8 +70,8 @@ namespace Kata.Verification {
     }
 
     operation XZ (q : Qubit) : Unit is Adj + Ctl {
-        X(q);
         Z(q);
+        X(q);
     }
 
     operation MinusY (q : Qubit) : Unit is Adj + Ctl {
@@ -84,12 +84,7 @@ namespace Kata.Verification {
     }
 
     operation MinusXZ (q : Qubit) : Unit is Adj + Ctl {
-        within {
-            Y(q);
-            X(q);
-        }
-        apply {
-            XZ(q);
-        }
+        X(q);
+        Z(q);
     }
 }
