@@ -3,6 +3,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        DistinguishUnitaries_Framework([Z, S], Kata.DistinguishZfromS, ["Z", "S"], 1)
+        DistinguishUnitaries_Framework([Rz, R1], Kata.DistinguishRzFromR1, ["Rz", "R1"], 1)
     }
 }
