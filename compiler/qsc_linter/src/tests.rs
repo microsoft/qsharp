@@ -187,6 +187,43 @@ fn needless_operation_partial_application() {
     );
 }
 
+#[test]
+fn needless_operation_no_lint_for_explicit_specialization() {
+    check(
+        indoc! {"
+        operation I(target : Qubit) : Unit {
+            body ... {}
+            adjoint self;
+        }
+
+    "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+
+#[test]
+fn needless_operation_implicit_specialization() {
+    // TODO: Fix this failing test. Currently, doesnt violate lint
+    check(
+        indoc! {"
+        operation DoNothing() : Unit is Adj + Ctl {}
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "operation DoNothing() : Unit is Adj + Ctl {}",
+                    level: Warn,
+                    message: "unnecessary operation declaration",
+                    help: "convert to function",
+                },
+            ]
+        "#]],
+    );
+}
+
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
 
