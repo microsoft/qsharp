@@ -10,7 +10,7 @@ import { getTarget, setTarget } from "./config";
 import { loadProject } from "./projectSystem";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
-const generateQirTimeoutMs = 30000;
+const generateQirTimeoutMs = 120000;
 
 let compilerWorkerScriptPath: string;
 
