@@ -29,8 +29,8 @@ use qsc_ast::ast::{
     SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::WithSpan};
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -530,37 +530,25 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 /// and a list of items.
 ///
 /// ```qsharp
-/// export {
+/// export
 ///     Foo,
 ///     Bar.Baz,
-///     Bar.Quux as Corge
-/// };
+///     Bar.Quux as Corge;
 /// ```
+
 fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Export))?;
-    token(s, TokenKind::Open(Delim::Brace))?;
-    let items = comma_separated_seq(s, parse_export_item)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
-    token(s, TokenKind::Semi)?;
-
+    let (items, _) = comma_separated_seq(s, parse_import_or_export_item)?;
+    let _semi = token(s, TokenKind::Semi);
+    let items = items
+        .into_iter()
+        .map(|ImportOrExportItem(path, alias, _span)| ExportItem { path, alias });
     Ok(ExportDecl {
         span: s.span(lo),
-        items: items.0.into(),
-        id: NodeId::default(),
+        items: items.collect(),
     })
-}
-
-/// returns the path and the alias, if any
-fn parse_export_item(s: &mut ParserContext) -> Result<ExportItem> {
-    let path = *(path(s)?);
-    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
-        Some(*(ident(s)?))
-    } else {
-        None
-    };
-    Ok(ExportItem { path, alias })
 }
 
 /// Parses import items.
@@ -574,13 +562,25 @@ fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
     token(s, TokenKind::Keyword(Keyword::Import))?;
     let (items, _) = comma_separated_seq(s, parse_import_or_export_item)?;
     let _semi = token(s, TokenKind::Semi);
+    let items = items
+        .into_iter()
+        .map(|ImportOrExportItem(path, alias, _span)| ImportItem { path, alias });
     Ok(ImportDecl {
         span: s.span(lo),
-        items: items,
+        items: items.collect(),
     })
 }
 
-fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportItem> {
+#[derive(Default)]
+struct ImportOrExportItem(Path, Option<Ident>, Span);
+
+impl WithSpan for ImportOrExportItem {
+    fn with_span(self, span: Span) -> Self {
+        ImportOrExportItem(self.0, self.1, span)
+    }
+}
+
+fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
     // an import item is a path followed by an optional alias,
     let lo = s.peek().span.lo;
     let path = *(path(s)?);
@@ -590,9 +590,5 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportItem> {
         None
     };
 
-    Ok(ImportItem {
-        path,
-        alias,
-        span: s.span(lo),
-    })
+    Ok(ImportOrExportItem(path, alias, s.span(lo)))
 }

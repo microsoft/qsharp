@@ -1782,8 +1782,6 @@ pub enum SetOp {
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Represents an export declaration.
 pub struct ExportDecl {
-    /// The node ID.
-    pub id: NodeId,
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
@@ -1893,8 +1891,6 @@ impl Display for ImportDecl {
 /// one for `Foo.Bar` and one for `Foo.Baz`.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct ImportItem {
-    /// The span.
-    pub span: Span,
     /// The items being imported from this namespace.
     pub path: Path,
     /// The alias of the imported item.
@@ -1904,12 +1900,37 @@ pub struct ImportItem {
 impl Display for ImportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let alias_str = self.alias.as_ref().map_or("", |a| a.name.as_ref());
-        write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
+        write!(
+            f,
+            "ImportItem {}: {} as {alias_str}",
+            self.span(),
+            self.path
+        )
     }
 }
 
 impl WithSpan for ImportItem {
     fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
+        ImportItem {
+            path: self.path.with_span(span),
+            alias: self.alias.map(|x| x.with_span(span)),
+        }
+    }
+}
+
+impl ImportItem {
+    /// Returns the span of the import item. This includes the path and , if any exists, the alias.
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self.alias {
+            Some(ref alias) => {
+                // join the path and alias spans
+                Span {
+                    lo: self.path.span.lo,
+                    hi: alias.span.hi,
+                }
+            }
+            None => self.path.span,
+        }
     }
 }
