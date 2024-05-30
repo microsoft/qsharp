@@ -115,7 +115,7 @@ This kata offers you a series of tasks in which you are given one unitary from t
 
 @[exercise]({
     "id": "distinguishing_unitaries__i_x_y_z",
-    "title": "Distinguish 4 Pauli Unitaries",
+    "title": "Distinguish Four Pauli Unitaries",
     "path": "./i_x_y_z/",
     "qsDependencies": [
         "../KatasLibrary.qs",
