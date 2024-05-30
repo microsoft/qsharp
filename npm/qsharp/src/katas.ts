@@ -70,7 +70,7 @@ export type Kata = {
 };
 
 export async function getAllKatas(
-  options: { includeUnpublished?: boolean } = { includeUnpublished: false }
+  options: { includeUnpublished?: boolean } = { includeUnpublished: false },
 ): Promise<Kata[]> {
   return katasContent.katas.filter(
     (k) => options.includeUnpublished || k.published,
