@@ -37,7 +37,7 @@ We can take advantage of this if we apply the controlled gate to a state in whic
 $$\text{Controlled Z}\frac{1}{\sqrt2}(\ket{0} + \ket{1}) \otimes \ket{0} = \frac{1}{\sqrt2}(\ket{0} + \ket{1}) \otimes \ket{0}$$
 $$\text{Controlled }-\text{Z}\frac{1}{\sqrt2}(\ket{0} + \ket{1}) \otimes \ket{0} = \frac{1}{\sqrt2}(\ket{0} - \ket{1}) \otimes \ket{0}$$
 
-After this we can measure the first qubit to distinguish $\frac{1}{\sqrt2}(\ket{0} + \ket{1})$ from $\frac{1}{\sqrt2}(\ket{0} - \ket{1})$, like we did in task 'Identity or Pauli-Z'.
+After this we can measure the first qubit to distinguish $\frac{1}{\sqrt2}(\ket{0} + \ket{1})$ from $\frac{1}{\sqrt2}(\ket{0} - \ket{1})$, like we did in task 'Identity or Z'.
 
 > In Q# we can express controlled version of a gate using [Controlled functor](https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/functorapplication#controlled-functor): the first argument of the resulting gate will be an array of control qubits, and the second one - the arguments of the original gate (in this case just the target qubit).
 
