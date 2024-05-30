@@ -67,7 +67,7 @@ pub(crate) trait HirLintPass {
 macro_rules! declare_hir_lints {
     ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr) ),* $(,)?) => {
         // Declare the structs representing each lint.
-        use crate::{Lint, LintLevel, linter::hir::HirLintPass};
+        use crate::{Lint, LintKind, LintLevel, linter::hir::HirLintPass};
         $(declare_hir_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help })*
 
         // This is a silly wrapper module to avoid contaminating the environment
@@ -98,17 +98,18 @@ macro_rules! declare_hir_lints {
             level: LintLevel,
             message: &'static str,
             help: &'static str,
+            kind: LintKind,
         }
 
         impl Default for $lint_name {
             fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help }
+                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help, kind: LintKind::Hir(HirLint::$lint_name) }
             }
         }
 
         impl From<LintLevel> for $lint_name {
             fn from(value: LintLevel) -> Self {
-                Self { level: value, message: $msg, help: $help }
+                Self { level: value, message: $msg, help: $help, kind: LintKind::Hir(HirLint::$lint_name) }
             }
         }
 
@@ -121,10 +122,14 @@ macro_rules! declare_hir_lints {
     (@CONFIG_ENUM $($lint_name:ident),*) => {
         use serde::{Deserialize, Serialize};
 
+        /// An enum listing all existing HIR lints.
         #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
         #[serde(rename_all = "camelCase")]
         pub enum HirLint {
-            $($lint_name),*
+            $(
+                #[doc = stringify!($lint_name)]
+                $lint_name
+            ),*
         }
     };
 

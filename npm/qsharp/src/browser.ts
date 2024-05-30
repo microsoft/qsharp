@@ -161,6 +161,7 @@ export function getLanguageServiceWorker(
 export { StepResultId } from "../lib/web/qsc_wasm.js";
 export type {
   IBreakpointSpan,
+  ICodeAction,
   ICodeLens,
   IDocFile,
   ILocation,
@@ -169,6 +170,7 @@ export type {
   IQSharpError,
   IRange,
   IStackFrame,
+  IWorkspaceEdit,
   IStructStepResult,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";

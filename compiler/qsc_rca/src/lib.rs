@@ -777,6 +777,10 @@ bitflags! {
         const UseOfIntOutput = 1 << 24;
         // Use of a dynamic exponent in a computation.
         const UseOfDynamicExponent = 1 << 25;
+        // Use of a dynamic `Result` variable in a computation.
+        const UseOfDynamicResult = 1 << 26;
+        // Use of a dynamic tuple variable.
+        const UseOfDynamicTuple = 1 << 27;
     }
 }
 
@@ -872,6 +876,12 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicExponent) {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicResult) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         capabilities
     }

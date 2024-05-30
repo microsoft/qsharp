@@ -28,7 +28,8 @@ serializable_type! {
     r#"export interface IRange {
         start: IPosition;
         end: IPosition;
-    }"#
+    }"#,
+    IRange
 }
 
 serializable_type! {
@@ -58,6 +59,15 @@ impl From<line_column::Position> for Position {
         Position {
             line: position.line,
             character: position.column,
+        }
+    }
+}
+
+impl From<Range> for qsc::line_column::Range {
+    fn from(range: Range) -> Self {
+        qsc::line_column::Range {
+            start: range.start.into(),
+            end: range.end.into(),
         }
     }
 }
