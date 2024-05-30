@@ -1,5 +1,5 @@
 **Input:** An operation that implements a single-qubit unitary transformation:
-either the [$Rz$ gate](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz) or the [$R1$ gate](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1). 
+either the [$R_z$ gate](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/rz) or the [$R1$ gate](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/r1). 
 
 This operation will take two parameters: the first parameter is the rotation angle, in radians, and the second parameter is the qubit to which the gate should be applied (matching normal $Rz$ and $R1$ gates in Q#).
 
