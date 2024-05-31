@@ -111,9 +111,9 @@ fn resolve_source_and_span(e: &WithSource<ErrorKind>) -> Option<(String, Span)> 
         .into_iter()
         .flatten()
         .map(|labeled_span| {
-            let (source, source_span) = e.resolve_span(labeled_span.inner());
-            let start = u32::try_from(source_span.offset()).expect("offset should fit in u32");
-            let len = u32::try_from(source_span.len()).expect("length should fit in u32");
+            let (source, _) = e.resolve_span(labeled_span.inner());
+            let start = u32::try_from(labeled_span.offset()).expect("offset should fit in u32");
+            let len = u32::try_from(labeled_span.len()).expect("length should fit in u32");
             let span = qsc::Span {
                 lo: start,
                 hi: start + len,
