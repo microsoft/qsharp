@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{comma_separated_seq, ident, opt, pat, path};
+use super::{ident, opt, pat, path, seq};
 use crate::{
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
@@ -306,17 +306,13 @@ fn opt_fail_consume() {
 
 #[test]
 fn seq_empty() {
-    check_seq(
-        |s| comma_separated_seq(s, ident),
-        "",
-        &expect!["(, Missing)"],
-    );
+    check_seq(|s| seq(s, ident), "", &expect!["(, Missing)"]);
 }
 
 #[test]
 fn seq_single() {
     check_seq(
-        |s| comma_separated_seq(s, ident),
+        |s| seq(s, ident),
         "foo",
         &expect![[r#"(Ident _id_ [0-3] "foo", Missing)"#]],
     );
@@ -325,7 +321,7 @@ fn seq_single() {
 #[test]
 fn seq_double() {
     check_seq(
-        |s| comma_separated_seq(s, ident),
+        |s| seq(s, ident),
         "foo, bar",
         &expect![[r#"
             (Ident _id_ [0-3] "foo",
@@ -336,7 +332,7 @@ fn seq_double() {
 #[test]
 fn seq_trailing() {
     check_seq(
-        |s| comma_separated_seq(s, ident),
+        |s| seq(s, ident),
         "foo, bar,",
         &expect![[r#"
             (Ident _id_ [0-3] "foo",
@@ -347,7 +343,7 @@ fn seq_trailing() {
 #[test]
 fn seq_fail_no_consume() {
     check_seq(
-        |s| comma_separated_seq(s, ident),
+        |s| seq(s, ident),
         "foo, 2",
         &expect![[r#"(Ident _id_ [0-3] "foo", Present)"#]],
     );
@@ -356,7 +352,7 @@ fn seq_fail_no_consume() {
 #[test]
 fn seq_fail_consume() {
     check_seq(
-        |s| comma_separated_seq(s, path),
+        |s| seq(s, path),
         "foo, bar.",
         &expect![[r#"
             Error(

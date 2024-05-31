@@ -125,7 +125,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (pats, final_sep) = comma_separated_seq(s, pat)?;
+        let (pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(pats, PatKind::Paren, PatKind::Tuple))
     } else {
@@ -161,44 +161,32 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
-/// Parses a sequence of items separated by `tok`.
-pub(super) fn seq<T>(
-    s: &mut ParserContext,
-    mut p: impl Parser<T>,
-    tok: TokenKind,
-    recover_on_missing_item: bool,
-) -> Result<(Vec<T>, FinalSep)>
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
+pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
 {
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
-    while s.peek().kind == tok {
+    while s.peek().kind == TokenKind::Comma {
         let mut span = s.peek().span;
         span.hi = span.lo;
         let err = Error(ErrorKind::MissingSeqEntry(span));
-        if recover_on_missing_item {
-            s.push_error(err);
-            xs.push(T::default().with_span(span));
-            s.advance();
-        } else {
-            return Err(err);
-        }
+        s.push_error(err);
+        xs.push(T::default().with_span(span));
+        s.advance();
     }
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
-        if token(s, tok).is_ok() {
-            while s.peek().kind == tok {
+        if token(s, TokenKind::Comma).is_ok() {
+            while s.peek().kind == TokenKind::Comma {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
                 let err = Error(ErrorKind::MissingSeqEntry(span));
-                if recover_on_missing_item {
-                    s.push_error(err);
-                    xs.push(T::default().with_span(span));
-                    s.advance();
-                } else {
-                    return Err(err);
-                }
+                s.push_error(err);
+                xs.push(T::default().with_span(span));
+                s.advance();
             }
             final_sep = FinalSep::Present;
         } else {
@@ -207,17 +195,6 @@ where
         }
     }
     Ok((xs, final_sep))
-}
-
-/// Parses a sequence of items separated by commas.
-pub(super) fn comma_separated_seq<T>(
-    s: &mut ParserContext,
-    p: impl Parser<T>,
-) -> Result<(Vec<T>, FinalSep)>
-where
-    T: Default + WithSpan,
-{
-    seq(s, p, TokenKind::Comma, true)
 }
 
 pub(super) fn recovering<T>(

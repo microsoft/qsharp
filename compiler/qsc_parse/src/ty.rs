@@ -6,7 +6,7 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{apos_ident, comma_separated_seq, opt, path, token},
+    prim::{apos_ident, opt, path, seq, token},
     scan::ParserContext,
     Error, Parser, Result,
 };
@@ -92,7 +92,7 @@ fn base(s: &mut ParserContext) -> Result<Ty> {
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (tys, final_sep) = comma_separated_seq(s, ty)?;
+        let (tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {

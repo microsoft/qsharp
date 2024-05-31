@@ -3,7 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{parse, parse_attr, parse_import, parse_spec_decl, source_name_to_namespace_name};
+use super::{
+    parse, parse_attr, parse_import_or_export, parse_spec_decl, source_name_to_namespace_name,
+};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -1738,117 +1740,6 @@ fn parse_export_basic() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export { Bar };
-        }",
-        &expect![[r#"
-            Namespace _id_ [0-97] (Ident _id_ [10-13] "Foo"):
-                Item _id_ [31-56]:
-                    Callable _id_ [31-56] (Operation):
-                        name: Ident _id_ [41-44] "Bar"
-                        input: Pat _id_ [44-46]: Unit
-                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
-                        body: Block: Block _id_ [54-56]: <empty>
-                Item _id_ [72-87]:
-                    Export (ExportDecl [72-87]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar")])"#]],
-    );
-}
-
-#[test]
-fn parse_export_list() {
-    check_vec(
-        parse_namespaces,
-        "namespace Foo {
-               operation Bar() : Unit {}
-               export { Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested };
-        }",
-        &expect![[r#"
-            Namespace _id_ [0-165] (Ident _id_ [10-13] "Foo"):
-                Item _id_ [31-56]:
-                    Callable _id_ [31-56] (Operation):
-                        name: Ident _id_ [41-44] "Bar"
-                        input: Pat _id_ [44-46]: Unit
-                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
-                        body: Block: Block _id_ [54-56]: <empty>
-                Item _id_ [72-155]:
-                    Export (ExportDecl [72-155]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar"), Path _id_ [86-94] (Ident _id_ [86-89] "Baz") (Ident _id_ [90-94] "Quux"), Path _id_ [96-120] ([Ident _id_ [96-100] "Math", Ident _id_ [101-108] "Quantum", Ident _id_ [109-113] "Some"]) (Ident _id_ [114-120] "Nested"), Path _id_ [122-152] ([Ident _id_ [122-126] "Math", Ident _id_ [127-134] "Quantum", Ident _id_ [135-139] "Some", Ident _id_ [140-145] "Other"]) (Ident _id_ [146-152] "Nested")])"#]],
-    );
-}
-
-#[test]
-fn parse_single_import() {
-    check(
-        parse_import,
-        "import Foo;",
-        &expect!["ImportDecl [0-11]: [ ImportItem [0-10]: Foo ]"],
-    );
-}
-
-#[test]
-fn parse_multiple_imports() {
-    check(
-        parse_import,
-        "import Foo.{Bar, Baz};",
-        &expect!["ImportDecl [0-22]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-20]: Foo.Baz ]"],
-    );
-}
-
-#[test]
-fn parse_nested_imports() {
-    check(
-        parse_import,
-        "import Foo.{Bar, Baz.{Quux, Corge}};",
-        &expect!["ImportDecl [0-36]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-26]: Foo.Baz.Quux ,  ImportItem [7-33]: Foo.Baz.Corge ]"],
-    );
-}
-
-#[test]
-fn parse_import_with_alias() {
-    check(
-        parse_import,
-        "import Foo as Bar;",
-        &expect![[r#"ImportDecl [0-18]: [ ImportItem [0-17]: Foo as Ident _id_ [14-17] "Bar"]"#]],
-    );
-}
-
-#[test]
-fn parse_import_with_nested_alias() {
-    check(
-        parse_import,
-        "import Foo.{Bar as Baz};",
-        &expect![[
-            r#"ImportDecl [0-24]: [ ImportItem [7-15]: Foo.Bar as Ident _id_ [19-22] "Baz"]"#
-        ]],
-    );
-}
-
-#[test]
-fn import_with_too_many_closing_braces() {
-    check(
-        parse_import,
-        "import Foo.{Bar}};",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "open brace, item, or semicolon",
-                    Close(
-                        Brace,
-                    ),
-                    Span {
-                        lo: 16,
-                        hi: 17,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn parse_export_missing_braces() {
-    check_vec(
-        parse_namespaces,
-        "namespace Foo {
-               operation Bar() : Unit {}
                export Bar;
         }",
         &expect![[r#"
@@ -1860,208 +1751,79 @@ fn parse_export_missing_braces() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-83]:
-                    Err
-
-            [
-                Error(
-                    Token(
-                        Open(
-                            Brace,
-                        ),
-                        Ident,
-                        Span {
-                            lo: 79,
-                            hi: 82,
-                        },
-                    ),
-                ),
-            ]"#]],
+                    Export (ImportOrExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
     );
 }
 
 #[test]
-fn import_with_too_many_open_braces() {
-    check(
-        parse_import,
-        "import Foo.{{Bar};",
+fn parse_export_list() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested;
+        }",
         &expect![[r#"
-            Error(
-                Rule(
-                    "close brace",
-                    Semi,
-                    Span {
-                        lo: 17,
-                        hi: 18,
-                    },
-                ),
-            )
-        "#]],
+            Namespace _id_ [0-161] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-151]:
+                    Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92] (Ident _id_ [84-87] "Baz") (Ident _id_ [88-92] "Quux"), Path _id_ [94-118] ([Ident _id_ [94-98] "Math", Ident _id_ [99-106] "Quantum", Ident _id_ [107-111] "Some"]) (Ident _id_ [112-118] "Nested"), Path _id_ [120-150] ([Ident _id_ [120-124] "Math", Ident _id_ [125-132] "Quantum", Ident _id_ [133-137] "Some", Ident _id_ [138-143] "Other"]) (Ident _id_ [144-150] "Nested")])"#]],
     );
 }
 
 #[test]
-fn import_with_misplaced_closing_brace() {
+fn parse_single_import() {
     check(
-        parse_import,
-        "import Foo.}Bar;",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "open brace or semicolon",
-                    Close(
-                        Brace,
-                    ),
-                    Span {
-                        lo: 11,
-                        hi: 12,
-                    },
-                ),
-            )
-        "#]],
+        parse_import_or_export,
+        "import Foo;",
+        &expect![[r#"ImportOrExportDecl [0-11]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo")]"#]],
     );
 }
 
 #[test]
-fn complex_import_tree() {
+fn parse_multiple_imports() {
     check(
-        parse_import,
-        r#"
-    import A.B.Foo.{Bar.{Baz, Quux}, Graule};
-    "#,
-        &expect!["ImportDecl [5-46]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-35]: A.B.Foo.Bar.Quux ,  ImportItem [12-44]: A.B.Foo.Graule ]"],
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz;",
+        &expect![[
+            r#"ImportOrExportDecl [0-24]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz")]"#
+        ]],
     );
 }
 
 #[test]
-fn ignore_extra_commas_in_list() {
+fn parse_import_with_alias() {
     check(
-        parse_import,
-        r#"
-    import A.B.Foo.{Bar.{Baz,,,,,,,,,, Quux}, Graule};
-    "#,
-        &expect!["ImportDecl [5-55]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-44]: A.B.Foo.Bar.Quux ,  ImportItem [12-53]: A.B.Foo.Graule ]"],
+        parse_import_or_export,
+        "import Foo as Bar;",
+        &expect![[
+            r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#
+        ]],
     );
 }
 
 #[test]
-fn ignore_extra_commas_after_brace() {
+fn multi_import_with_alias() {
     check(
-        parse_import,
-        r#"
-    import A.B.Foo.{Bar.{Baz, Quux},,, Graule};
-    "#,
-        &expect!["ImportDecl [5-48]: [ ImportItem [12-29]: A.B.Foo.Bar.Baz ,  ImportItem [12-35]: A.B.Foo.Bar.Quux ,  ImportItem [12-46]: A.B.Foo.Graule ]"],
+        parse_import_or_export,
+        "import Foo.Bar as Baz, Foo.Quux;",
+        &expect![[
+            r#"ImportOrExportDecl [0-32]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Ident _id_ [18-21] "Baz", Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux")]"#
+        ]],
     );
 }
 
 #[test]
 fn empty_import_statement() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import;",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "identifier",
-                    Semi,
-                    Span {
-                        lo: 6,
-                        hi: 7,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn import_tree_nested_basic() {
-    check(
-        parse_import,
-        "import Foo.Bar.{Baz};",
-        &expect!["ImportDecl [0-21]: [ ImportItem [7-19]: Foo.Bar.Baz ]"],
-    );
-}
-
-#[test]
-fn import_tree_shadowing_self() {
-    check(
-        parse_import,
-        "import Foo.{Bar};",
-        &expect!["ImportDecl [0-17]: [ ImportItem [7-15]: Foo.Bar ]"],
-    );
-}
-
-#[test]
-fn import_tree_shadowing_self_nested() {
-    check(
-        parse_import,
-        "import Foo.{Bar.{Baz}};",
-        &expect!["ImportDecl [0-23]: [ ImportItem [7-20]: Foo.Bar.Baz ]"],
-    );
-}
-
-#[test]
-fn import_tree_unexpected_token() {
-    check(
-        parse_import,
-        "import Foo.{Bar 123};",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "comma or close brace",
-                    Int(
-                        Decimal,
-                    ),
-                    Span {
-                        lo: 16,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn import_tree_missing_closing_brace() {
-    check(
-        parse_import,
-        "import Foo.{Bar.{Baz;",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "close brace",
-                    Semi,
-                    Span {
-                        lo: 20,
-                        hi: 21,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn import_tree_missing_opening_brace() {
-    check(
-        parse_import,
-        "import Foo.Bar.Baz};",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "open brace or semicolon",
-                    Close(
-                        Brace,
-                    ),
-                    Span {
-                        lo: 18,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
+        &expect!["ImportOrExportDecl [0-7]: []"],
     );
 }
 
@@ -2071,18 +1833,18 @@ fn parse_export_empty() {
         parse_namespaces,
         "namespace Foo {
                operation Bar() : Unit {}
-               export { };
+               export;
         }",
         &expect![[r#"
-            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+            Namespace _id_ [0-89] (Ident _id_ [10-13] "Foo"):
                 Item _id_ [31-56]:
                     Callable _id_ [31-56] (Operation):
                         name: Ident _id_ [41-44] "Bar"
                         input: Pat _id_ [44-46]: Unit
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
-                Item _id_ [72-83]:
-                    Export (ExportDecl [72-83]: [])"#]],
+                Item _id_ [72-79]:
+                    Export (ImportOrExportDecl [72-79]: [])"#]],
     );
 }
 

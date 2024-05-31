@@ -519,7 +519,7 @@ fn resolve_all(
     let mut resolver = Resolver::new(globals, dropped_names);
 
     // bind all exported symbols in a follow-on step
-    resolver.resolve_exports(package);
+    resolver.bind_and_resolve_imports_and_exports(package);
 
     // resolve all symbols
     resolver.with(assigner).visit_package(package);

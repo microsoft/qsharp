@@ -10,14 +10,14 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{comma_separated_seq, ident, many, opt, pat, seq, token},
+    prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
     ty::{self, ty},
     Error, Result,
 };
+
 use crate::lex::ClosedBinOp;
-use crate::prim::FinalSep;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -26,8 +26,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Idents,
-    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, ImportOrExportDecl,
+    ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
     SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };
@@ -45,10 +45,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
-    } else if let Some(import) = opt(s, parse_import)? {
-        Box::new(ItemKind::Import(import))
-    } else if let Some(export) = opt(s, parse_export)? {
-        Box::new(ItemKind::Export(export))
+    } else if let Some(decl) = opt(s, parse_import_or_export)? {
+        Box::new(ItemKind::ImportOrExport(decl))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
@@ -354,7 +352,7 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (defs, final_sep) = comma_separated_seq(s, parse_ty_def)?;
+        let (defs, final_sep) = seq(s, parse_ty_def)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         final_sep.reify(defs, TyDefKind::Paren, TyDefKind::Tuple)
     } else {
@@ -410,7 +408,7 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let name = ident(s)?;
     let generics = if token(s, TokenKind::Lt).is_ok() {
         throw_away_doc(s);
-        let params = comma_separated_seq(s, ty::param)?.0;
+        let params = seq(s, ty::param)?.0;
         token(s, TokenKind::Gt)?;
         params
     } else {
@@ -528,237 +526,67 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     }
 }
 
-/// Parses an export statement. Exports start with the `export` keyword, followed by a curly brace
-/// and a list of items.
+/// Parses an import or export statement. Exports start with the `export` keyword, followed by a
+/// list of items.
+/// Imports are the same, but with the `import` keyword.
 ///
 /// ```qsharp
-/// export {
+/// export
 ///     Foo,
 ///     Bar.Baz,
-///     Bar.Quux as Corge
-/// };
+///     Bar.Quux as Corge;
 /// ```
-fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
+fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
-    token(s, TokenKind::Keyword(Keyword::Export))?;
-    token(s, TokenKind::Open(Delim::Brace))?;
-    let items = comma_separated_seq(s, parse_export_item)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
-    token(s, TokenKind::Semi)?;
-
-    Ok(ExportDecl {
-        span: s.span(lo),
-        items: items.0.into(),
-        id: NodeId::default(),
-    })
+    let is_export = match s.peek().kind {
+        TokenKind::Keyword(Keyword::Export) => true,
+        TokenKind::Keyword(Keyword::Import) => false,
+        _ => {
+            return Err(Error(ErrorKind::Rule(
+                "import or export",
+                s.peek().kind,
+                s.peek().span,
+            )))
+        }
+    };
+    s.advance();
+    let (items, _) = seq(s, parse_import_or_export_item)?;
+    let _semi = token(s, TokenKind::Semi);
+    Ok(ImportOrExportDecl::new(
+        s.span(lo),
+        items.into_boxed_slice(),
+        is_export,
+    ))
 }
 
-/// returns the path and the alias, if any
-fn parse_export_item(s: &mut ParserContext) -> Result<ExportItem> {
-    let path = *(path(s)?);
+fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
+    // an import item is a path followed by an optional alias,
+    let mut idents = Vec::default();
+    let mut is_glob = false;
+    loop {
+        idents.push(*ident(s)?);
+        if s.peek().kind == TokenKind::Dot {
+            s.advance();
+        }
+        if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
+            is_glob = true;
+            s.advance();
+            break;
+        }
+        if s.peek().kind != TokenKind::Ident {
+            break;
+        }
+    }
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
     } else {
         None
     };
-    Ok(ExportItem { path, alias })
-}
 
-/// Parses import items. Note that import items in Q# can be nested and are a tree structure.
-/// For example:
-/// ```qsharp
-/// import Foo.Bar;
-/// import Foo.{Baz, Quux};
-/// import Foo.{Bar.{Baz, Quux}, Corge as Grault};
-/// ```
-fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
-    let lo = s.peek().span.lo;
-    let _doc = parse_doc(s);
-    token(s, TokenKind::Keyword(Keyword::Import))?;
-    let (base_path, _) = seq(s, ident, TokenKind::Dot, false)?;
-    let base_path = base_path.into_iter().map(|x| *x).collect::<Vec<_>>();
-
-    if base_path.is_empty() {
-        return Err(Error(ErrorKind::Rule(
-            "identifier",
-            s.peek().kind,
-            s.peek().span,
-        )));
-    }
-
-    let is_glob = if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
-        token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star))?;
-        true
-    } else {
-        false
-    };
-
-    let mut brace_stack = 0;
-    let items = match s.peek().kind {
-        TokenKind::Open(Delim::Brace) => parse_multiple_imports(s, &base_path, &mut brace_stack)?,
-        TokenKind::Semi => {
-            vec![ImportItem {
-                span: s.span(lo),
-                path: base_path.into(),
-                alias: None,
-                is_glob,
-            }]
-        }
-        TokenKind::Keyword(Keyword::As) => {
-            token(s, TokenKind::Keyword(Keyword::As))?;
-            let alias = ident(s)?;
-            vec![ImportItem {
-                span: s.span(lo),
-                path: base_path.into(),
-                alias: Some(*alias),
-                is_glob,
-            }]
-        }
-        other_tok => {
-            return Err(Error(ErrorKind::Rule(
-                "open brace or semicolon",
-                other_tok,
-                s.peek().span,
-            )))
-        }
-    };
-
-    if brace_stack > 0 {
-        return Err(Error(ErrorKind::Rule(
-            "close brace",
-            s.peek().kind,
-            s.peek().span,
-        )));
-    }
-
-    token(s, TokenKind::Semi)?;
-
-    Ok(ImportDecl {
-        span: s.span(lo),
-        items,
+    Ok(ImportOrExportItem {
+        path: idents.into(),
+        alias,
+        is_glob,
     })
-}
-
-/// Parses a sequence of imports within a single import statement.
-fn parse_multiple_imports(
-    s: &mut ParserContext,
-    parent: &[Ident],
-    brace_stack: &mut i32,
-) -> Result<Vec<ImportItem>> {
-    let mut imports = Vec::new();
-    let mut full_path = parent.to_owned();
-
-    loop {
-        let mut is_glob = false;
-        if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
-            token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star))?;
-            is_glob = true;
-        }
-
-        let (import, final_sep) = seq(s, ident, TokenKind::Dot, false)?;
-        let mut import = import.into_iter().map(|x| *x).collect::<Vec<_>>();
-
-        full_path.append(&mut import);
-
-        match s.peek().kind {
-            TokenKind::Comma => {
-                let l_full_path: Path = full_path.clone().into();
-                imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
-                    alias: None,
-                    is_glob,
-                });
-                token(s, TokenKind::Comma)?;
-                reduce_closing_tokens(s, brace_stack)?;
-                full_path = parent.to_owned();
-            }
-            TokenKind::Close(Delim::Brace) => {
-                decrement_brace_stack(s, brace_stack)?;
-
-                let l_full_path: Path = full_path.clone().into();
-
-                imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
-                    alias: None,
-                    is_glob,
-                });
-                token(s, TokenKind::Close(Delim::Brace))?;
-                reduce_closing_tokens(s, brace_stack)?;
-
-                break;
-            }
-            TokenKind::Open(Delim::Brace) => {
-                *brace_stack += 1;
-                token(s, TokenKind::Open(Delim::Brace))?;
-                let nested_imports = parse_multiple_imports(s, &full_path, brace_stack)?;
-                imports.extend(nested_imports);
-                full_path = parent.to_owned();
-            }
-            TokenKind::Semi => break,
-            TokenKind::Keyword(Keyword::As) => {
-                token(s, TokenKind::Keyword(Keyword::As))?;
-                let alias = Some(*ident(s)?);
-                let l_full_path: Path = full_path.clone().into();
-                imports.push(ImportItem {
-                    span: l_full_path.span,
-                    path: l_full_path,
-                    alias,
-                    is_glob,
-                });
-                reduce_closing_tokens(s, brace_stack)?;
-                full_path = parent.to_owned();
-            }
-            TokenKind::ClosedBinOp(ClosedBinOp::Star) => {
-                // two globs in a row is a syntax error
-                if is_glob {
-                    return Err(Error(ErrorKind::Rule(
-                        "identifier",
-                        s.peek().kind,
-                        s.peek().span,
-                    )));
-                }
-                // a * following an ident directly is a syntax error
-                if !(import.is_empty() && final_sep == FinalSep::Present) {
-                    return Err(Error(ErrorKind::Rule("dot", s.peek().kind, s.peek().span)));
-                }
-            }
-            a => {
-                return Err(Error(ErrorKind::Rule(
-                    "comma or close brace",
-                    a,
-                    s.peek().span,
-                )))
-            }
-        }
-    }
-    Ok(imports)
-}
-
-fn reduce_closing_tokens(s: &mut ParserContext, brace_stack: &mut i32) -> Result<()> {
-    loop {
-        match s.peek().kind {
-            TokenKind::Comma => s.advance(),
-            TokenKind::Close(Delim::Brace) => {
-                decrement_brace_stack(s, brace_stack)?;
-                s.advance();
-            }
-            _ => break,
-        }
-    }
-    Ok(())
-}
-
-fn decrement_brace_stack(s: &mut ParserContext, brace_stack: &mut i32) -> Result<()> {
-    *brace_stack -= 1;
-    if *brace_stack < 0 {
-        return Err(Error(ErrorKind::Rule(
-            "open brace, item, or semicolon",
-            s.peek().kind,
-            s.peek().span,
-        )));
-    }
-    Ok(())
 }
