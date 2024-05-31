@@ -365,6 +365,7 @@ suite("Q# Debugger Tests", function suite() {
 
     // step into call (will be a call into intrinsic.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
+
     await waitUntilPaused([
       {
         id: 1,
