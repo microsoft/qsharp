@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// # Remarks
     /// Use the Adjoint only for uncomputation purposes.
-    @Config(Base)
+    @Config(not Adaptive)
     operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         PhaseCCX(control1, control2, target);
     }
