@@ -29,26 +29,22 @@ struct OperationLimits {
 
 impl OperationLimits {
     // Checks for empty declarations
-    fn is_empty_optional_decl(spec_decl: &Option<SpecDecl>) -> bool {
+    fn is_empty_decl(spec_decl: Option<&SpecDecl>) -> bool {
         match spec_decl {
             None => true,
-            Some(decl) => Self::is_empty_decl(decl),
-        }
-    }
-
-    fn is_empty_decl(spec_decl: &SpecDecl) -> bool {
-        match &spec_decl.body {
-            SpecBody::Gen(_) => true,
-            SpecBody::Impl(_, block) => block.stmts.is_empty(),
+            Some(decl) => match &decl.body {
+                SpecBody::Gen(_) => true,
+                SpecBody::Impl(_, block) => block.stmts.is_empty(),
+            },
         }
     }
 
     // Empty operation means no code for body or specializations(implicit or explicit)
     fn is_empty_op(call_decl: &CallableDecl) -> bool {
-        Self::is_empty_decl(&call_decl.body)
-            && Self::is_empty_optional_decl(&call_decl.adj)
-            && Self::is_empty_optional_decl(&call_decl.ctl)
-            && Self::is_empty_optional_decl(&call_decl.ctl_adj)
+        Self::is_empty_decl(Some(&call_decl.body))
+            && Self::is_empty_decl(call_decl.adj.as_ref())
+            && Self::is_empty_decl(call_decl.ctl.as_ref())
+            && Self::is_empty_decl(call_decl.ctl_adj.as_ref())
     }
 }
 
