@@ -1847,3 +1847,162 @@ fn parse_export_empty() {
                     Export (ImportOrExportDecl [72-79]: [])"#]],
     );
 }
+
+#[test]
+fn parse_glob_import() {
+    check(
+        parse_import_or_export,
+        "import Foo.*;",
+        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.*;",
+        &expect![
+            r#"ImportOrExportDecl [0-26]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").*]"#
+        ],
+    );
+}
+
+#[test]
+fn parse_glob_import_of_parent_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz, Foo.*;",
+        &expect![[
+            r#"ImportOrExportDecl [0-31]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz"), Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_glob_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo.* as Foo;",
+        &expect![[
+            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_aliased_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.* as Quux;",
+        &expect![[
+            r#"ImportOrExportDecl [0-34]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").* as Ident _id_ [29-33] "Quux"]"#
+        ]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_extra_asterisk() {
+    check(
+        parse_import_or_export,
+        "import Foo.**;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_missing_dot() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar**;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 14,
+                        hi: 15,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_multiple_asterisks_in_path() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar.*.*;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    Dot,
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident() {
+    check(
+        parse_import_or_export,
+        "import Foo.*.Bar;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    Dot,
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_top_level_recursive_glob() {
+    check(
+        parse_import_or_export,
+        "import *;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 8,
+                    },
+                ),
+            )
+        "#]],
+    );
+}

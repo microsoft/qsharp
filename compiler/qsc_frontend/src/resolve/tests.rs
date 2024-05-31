@@ -4156,6 +4156,180 @@ fn export_namespace_with_alias() {
 }
 
 #[test]
+fn import_glob() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Main {
+                import Foo.*;
+                operation Main() : Unit {
+                    ApplyX();
+                    ApplyY();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                import namespace7.*;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_aliased_glob() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Main {
+                import Foo as Bar;
+                operation Main() : Unit {
+                    Bar.ApplyX();
+                    Bar.ApplyY();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                import namespace7;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_glob_export() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Bar {
+                export Foo.*;
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                export namespace7.*;
+            }
+
+            // GlobExportNotSupported(Span { lo: 111, hi: 114 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_glob_in_list() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Foo.Bar.Baz {
+                operation ApplyZ() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar.*, Foo.Bar.Baz.ApplyZ;
+                operation Main() : Unit {
+                    ApplyX();
+                    ApplyY();
+                    Baz.ApplyZ();
+                    ApplyZ();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace9 {
+                operation item4() : Unit {}
+            }
+            namespace namespace10 {
+                import namespace8.*, item4;
+                operation item6() : Unit {
+                    item1();
+                    item2();
+                    item4();
+                    item4();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_glob_in_list_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Foo.Bar.Baz {
+                operation ApplyZ() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar as Alias, Foo.Bar.Baz.ApplyZ as Foo;
+                operation Main() : Unit {
+                    Alias.ApplyX();
+                    Alias.ApplyY();
+                    Alias.Baz.ApplyZ();
+                    Foo();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace9 {
+                operation item4() : Unit {}
+            }
+            namespace namespace10 {
+                import namespace8, item4;
+                operation item6() : Unit {
+                    item1();
+                    item2();
+                    item4();
+                    item4();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn import_newtype() {
     check(
         indoc! {r#"

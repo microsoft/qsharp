@@ -12,7 +12,7 @@ use qsc_ast::{
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 
-use qsc_ast::ast::{ImportOrExportDecl, Item, ItemKind, Package};
+use qsc_ast::ast::{ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
@@ -131,6 +131,15 @@ pub(super) enum Error {
     #[diagnostic(help("alias this import or rename the existing symbol"))]
     #[diagnostic(code("Qsc.Resolve.ImportedDuplicate"))]
     ImportedDuplicate(String, #[label] Span),
+
+    #[error("glob import does not resolve to a namespace")]
+    #[diagnostic(help("ensure the path {0} exists and is a namespace"))]
+    #[diagnostic(code("Qsc.Resolve.GlobImportNamespaceNotFound"))]
+    GlobImportNamespaceNotFound(String, #[label] Span),
+
+    #[error("glob exports are not supported")]
+    #[diagnostic(code("Qsc.Resolve.GlobExportNotSupported"))]
+    GlobExportNotSupported(#[label] Span),
 }
 
 #[derive(Debug, Clone)]
@@ -742,6 +751,10 @@ impl Resolver {
     ) {
         let is_export = decl.is_export();
         for item in decl.items() {
+            if item.is_glob {
+                self.bind_glob_import_or_export(item, decl.is_export());
+                continue;
+            }
             let (term_result, ty_result) = (
                 self.resolve_path(NameKind::Term, &item.path),
                 self.resolve_path(NameKind::Ty, &item.path),
@@ -751,7 +764,7 @@ impl Resolver {
                 // try to see if it is a namespace
                 self.handle_namespace_import_or_export(is_export, item, current_namespace, err);
                 continue;
-            }
+            };
 
             let local_name = item.name().name.clone();
 
@@ -835,6 +848,30 @@ impl Resolver {
             };
             // insert the item into the names we know about
             self.names.insert(item.name().id, res);
+        }
+    }
+
+    /// Very similar to [`bind_import`], but for glob imports.
+    /// Globs can only be attached to namespaces, and
+    /// they import all items from the namespace into the current scope.
+    fn bind_glob_import_or_export(&mut self, item: &ImportOrExportItem, is_export: bool) {
+        if is_export {
+            self.errors
+                .push(Error::GlobExportNotSupported(item.path.span));
+            return;
+        }
+        let items = Into::<Idents>::into(item.path.clone());
+        let ns = self.globals.find_namespace(items.str_iter());
+        let alias = item.alias.as_ref().map(|x| Box::new(x.clone()));
+        let Some(ns) = ns else {
+            self.errors.push(Error::GlobImportNamespaceNotFound(
+                item.path.name.to_string(),
+                item.path.span,
+            ));
+            return;
+        };
+        if !is_export {
+            self.bind_open(&items, &alias, ns);
         }
     }
 

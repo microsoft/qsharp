@@ -1794,6 +1794,8 @@ pub struct ImportOrExportItem {
     pub path: Path,
     /// An optional alias for the item being exported.
     pub alias: Option<Ident>,
+    /// Whether this is a glob import/export.
+    pub is_glob: bool,
 }
 
 impl Display for ImportOrExportItem {
@@ -1801,10 +1803,12 @@ impl Display for ImportOrExportItem {
         let ImportOrExportItem {
             ref path,
             ref alias,
+            is_glob,
         } = self;
+        let is_glob = if *is_glob { ".*" } else { "" };
         match alias {
-            Some(alias) => write!(f, "{path} as {alias}"),
-            None => write!(f, "{path}"),
+            Some(alias) => write!(f, "{path}{is_glob} as {alias}",),
+            None => write!(f, "{path}{is_glob}"),
         }
     }
 }
@@ -1814,6 +1818,7 @@ impl WithSpan for ImportOrExportItem {
         ImportOrExportItem {
             path: self.path.with_span(span),
             alias: self.alias.map(|x| x.with_span(span)),
+            is_glob: self.is_glob,
         }
     }
 }

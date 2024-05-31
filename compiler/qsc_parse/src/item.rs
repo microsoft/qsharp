@@ -16,6 +16,8 @@ use super::{
     ty::{self, ty},
     Error, Result,
 };
+
+use crate::lex::ClosedBinOp;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -534,7 +536,6 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 ///     Bar.Baz,
 ///     Bar.Quux as Corge;
 /// ```
-
 fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
@@ -551,7 +552,7 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     };
     s.advance();
     let (items, _) = seq(s, parse_import_or_export_item)?;
-    let _semi = token(s, TokenKind::Semi);
+    token(s, TokenKind::Semi)?;
     Ok(ImportOrExportDecl::new(
         s.span(lo),
         items.into_boxed_slice(),
@@ -560,13 +561,25 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
 }
 
 fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
-    // an import item is a path followed by an optional alias,
-    let path = *(path(s)?);
+    let mut is_glob = false;
+    let mut parts = vec![*ident(s)?];
+    while token(s, TokenKind::Dot).is_ok() {
+        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
+            is_glob = true;
+            break;
+        }
+        parts.push(*ident(s)?);
+    }
+
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
     } else {
         None
     };
 
-    Ok(ImportOrExportItem { path, alias })
+    Ok(ImportOrExportItem {
+        path: parts.into(),
+        alias,
+        is_glob,
+    })
 }
