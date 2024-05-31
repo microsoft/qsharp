@@ -990,20 +990,22 @@ impl AstVisitor<'_> for With<'_> {
             }
             ItemKind::Open(name, alias) => {
                 let scopes = self.resolver.curr_scope_chain.iter().rev();
-                if let Some(namespace) = scopes.into_iter().find_map(|scope| {
-                    let scope = self.resolver.locals.get_scope(*scope);
-                    if let ScopeKind::Namespace(id) = scope.kind {
-                        Some(id)
-                    } else {
-                        None
-                    }
-                }) {
-                    // only local opens at this point
+                let namespace = scopes
+                    .into_iter()
+                    .find_map(|scope| {
+                        let scope = self.resolver.locals.get_scope(*scope);
+                        if let ScopeKind::Namespace(id) = scope.kind {
+                            Some(id)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| self.resolver.globals.namespaces.root_id());
+                // only local opens at this point
 
-                    // TODO: really?
-                    // There is only a namespace parent scope if we aren't executing incremental fragments.
-                    self.resolver.bind_open(name, alias, namespace);
-                }
+                // TODO: really?
+                // There is only a namespace parent scope if we aren't executing incremental fragments.
+                self.resolver.bind_open(name, alias, namespace);
             }
             _ => ast_visit::walk_item(self, item),
         }
