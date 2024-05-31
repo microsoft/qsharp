@@ -229,6 +229,119 @@ fn check_rca_for_mutable_array_dynamically_appended() {
 }
 
 #[test]
+fn check_rca_for_mutable_array_assignment_in_static_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [0, 1];
+        use q = Qubit();
+        if false {
+            set arr = [10];
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_array_assignment_in_dynamic_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [0, 1];
+        use q = Qubit();
+        if M(q) == Zero {
+            set arr = [10];
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_immutable_array_bound_to_dynamic_array() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = M(q) == One ? [0, 1] | [2, 3];
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_array_assign_index_in_classical_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [0, 1];
+        use q = Qubit();
+        if false {
+            set arr w/= 0 <- 10;
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_array_assign_index_in_dynamic_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [0, 1];
+        use q = Qubit();
+        if M(q) == Zero {
+            set arr w/= 0 <- 10;
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
 fn check_rca_for_access_using_classical_index() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(

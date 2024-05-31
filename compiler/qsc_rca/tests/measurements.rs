@@ -45,14 +45,12 @@ fn check_rca_for_dynamic_single_measurement() {
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope | UseOfDynamicResult)
                     value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                dynamic_param_applications: <empty>"#]],
     );
 }
 
@@ -95,14 +93,12 @@ fn check_rca_for_dynamic_single_measurement_and_reset() {
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
-        &expect![
-            r#"
+        &expect![[r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope | UseOfDynamicResult)
                     value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
+                dynamic_param_applications: <empty>"#]],
     );
 }
 

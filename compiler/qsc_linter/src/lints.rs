@@ -11,6 +11,7 @@ macro_rules! lint {
             level: $lint.level,
             message: $lint.message,
             help: $lint.help,
+            kind: $lint.kind,
         }
     };
 }

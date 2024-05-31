@@ -577,31 +577,13 @@ async fn target_profile_update_causes_error_in_stdlib() {
                         1,
                     ),
                     [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotAvailable(
-                                        "ResultAsBool",
-                                        "Microsoft.Quantum.Convert.ResultAsBool",
-                                        Span {
-                                            lo: 121,
-                                            hi: 133,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 95,
-                                                hi: 136,
-                                            },
-                                        ),
-                                    ),
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicBool(
+                                    Span {
+                                        lo: 95,
+                                        hi: 136,
+                                    },
                                 ),
                             ),
                         ),
@@ -728,6 +710,9 @@ fn notebook_document_lints() {
                                 level: Warn,
                                 message: "redundant semicolons",
                                 help: "remove the redundant semicolons",
+                                kind: Ast(
+                                    RedundantSemicolons,
+                                ),
                             },
                         ),
                     ],
@@ -747,6 +732,9 @@ fn notebook_document_lints() {
                                 level: Error,
                                 message: "attempt to divide by zero",
                                 help: "division by zero will fail at runtime",
+                                kind: Ast(
+                                    DivisionByZero,
+                                ),
                             },
                         ),
                     ],
@@ -1492,6 +1480,7 @@ async fn loading_lints_config_from_manifest() {
     .await;
 }
 
+#[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
     let this_file_qs =
@@ -1531,30 +1520,36 @@ async fn lints_update_after_manifest_change() {
     check_lints(
         lints,
         &expect![[r#"
-        [
-            Lint(
-                Lint {
-                    span: Span {
-                        lo: 72,
-                        hi: 79,
+            [
+                Lint(
+                    Lint {
+                        span: Span {
+                            lo: 72,
+                            hi: 79,
+                        },
+                        level: Error,
+                        message: "unnecessary parentheses",
+                        help: "remove the extra parentheses for clarity",
+                        kind: Ast(
+                            NeedlessParens,
+                        ),
                     },
-                    level: Error,
-                    message: "unnecessary parentheses",
-                    help: "remove the extra parentheses for clarity",
-                },
-            ),
-            Lint(
-                Lint {
-                    span: Span {
-                        lo: 64,
-                        hi: 69,
+                ),
+                Lint(
+                    Lint {
+                        span: Span {
+                            lo: 64,
+                            hi: 69,
+                        },
+                        level: Error,
+                        message: "attempt to divide by zero",
+                        help: "division by zero will fail at runtime",
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
                     },
-                    level: Error,
-                    message: "attempt to divide by zero",
-                    help: "division by zero will fail at runtime",
-                },
-            ),
-        ]"#]],
+                ),
+            ]"#]],
     );
 
     // Modify the manifest.
@@ -1573,30 +1568,36 @@ async fn lints_update_after_manifest_change() {
     check_lints(
         lints,
         &expect![[r#"
-        [
-            Lint(
-                Lint {
-                    span: Span {
-                        lo: 72,
-                        hi: 79,
+            [
+                Lint(
+                    Lint {
+                        span: Span {
+                            lo: 72,
+                            hi: 79,
+                        },
+                        level: Warn,
+                        message: "unnecessary parentheses",
+                        help: "remove the extra parentheses for clarity",
+                        kind: Ast(
+                            NeedlessParens,
+                        ),
                     },
-                    level: Warn,
-                    message: "unnecessary parentheses",
-                    help: "remove the extra parentheses for clarity",
-                },
-            ),
-            Lint(
-                Lint {
-                    span: Span {
-                        lo: 64,
-                        hi: 69,
+                ),
+                Lint(
+                    Lint {
+                        span: Span {
+                            lo: 64,
+                            hi: 69,
+                        },
+                        level: Warn,
+                        message: "attempt to divide by zero",
+                        help: "division by zero will fail at runtime",
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
                     },
-                    level: Warn,
-                    message: "attempt to divide by zero",
-                    help: "division by zero will fail at runtime",
-                },
-            ),
-        ]"#]],
+                ),
+            ]"#]],
     );
 }
 
