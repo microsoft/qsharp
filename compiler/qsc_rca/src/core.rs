@@ -826,7 +826,12 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
-    fn analyze_expr_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) -> ComputeKind {
+    fn analyze_expr_struct(
+        &mut self,
+        copy: Option<ExprId>,
+        fields: &[FieldAssign],
+        expr_type: &Ty,
+    ) -> ComputeKind {
         let default_value_kind = ValueKind::Element(RuntimeKind::Static);
         let mut compute_kind = ComputeKind::Classical;
         let mut has_dynamic_sub_exprs = false;
@@ -853,6 +858,16 @@ impl<'a> Analyzer<'a> {
         // If any of the sub-expressions are dynamic, then the tuple expression is dynamic as well.
         if has_dynamic_sub_exprs {
             compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
+        }
+
+        // ToDo: I don't know if this is correct.
+        // If the constructor is dynamic, aggregate the corresponding runtime features depending on its type.
+        if let Some(value_kind) = compute_kind.value_kind() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("expected quantum variant of Compute Kind");
+            };
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
         }
 
         compute_kind
@@ -1747,7 +1762,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     .push((expr_id, *value_expr_id));
                 compute_kind
             }
-            ExprKind::Struct(_, copy, fields) => self.analyze_expr_struct(*copy, fields),
+            ExprKind::Struct(_, copy, fields) => self.analyze_expr_struct(*copy, fields, &expr.ty),
             ExprKind::String(components) => self.analyze_expr_string(components),
             ExprKind::Tuple(exprs) => self.analyze_expr_tuple(exprs),
             ExprKind::UnOp(_, operand_expr_id) => self.analyze_expr_un_op(*operand_expr_id),

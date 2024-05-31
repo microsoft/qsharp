@@ -137,14 +137,25 @@ fn open_alias() {
 }
 
 #[test]
+fn struct_decl_empty() {
+    check(
+        parse,
+        "struct Foo { }",
+        &expect![[r#"
+            Item _id_ [0-14]:
+                Struct _id_ [0-14] (Ident _id_ [7-10] "Foo"): <empty>"#]],
+    );
+}
+
+#[test]
 fn struct_decl() {
     check(
         parse,
         "struct Foo { field : Int }",
         &expect![[r#"
             Item _id_ [0-26]:
-                Struct _id_ [0-26]: Ident _id_ [7-10] "Foo"
-                    FieldDef _id_ [13-24]: Ident _id_ [13-18] "field", Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")"#]],
+                Struct _id_ [0-26] (Ident _id_ [7-10] "Foo"):
+                    FieldDef _id_ [13-24] (Ident _id_ [13-18] "field"): Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")"#]],
     );
 }
 

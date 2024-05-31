@@ -409,10 +409,14 @@ pub struct StructDecl {
 impl Display for StructDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Struct {} {}: {}", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        for field in &*self.fields {
-            write!(indent, "\n{field}")?;
+        write!(indent, "Struct {} {} ({}):", self.id, self.span, self.name)?;
+        if self.fields.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for field in &*self.fields {
+                write!(indent, "\n{field}")?;
+            }
         }
         Ok(())
     }
@@ -441,7 +445,7 @@ impl Display for FieldDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "FieldDef {} {}: {}, {}",
+            "FieldDef {} {} ({}): {}",
             self.id, self.span, self.name, self.ty
         )
     }
