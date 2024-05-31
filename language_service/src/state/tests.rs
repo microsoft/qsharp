@@ -577,31 +577,13 @@ async fn target_profile_update_causes_error_in_stdlib() {
                         1,
                     ),
                     [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotAvailable(
-                                        "ResultAsBool",
-                                        "Microsoft.Quantum.Convert.ResultAsBool",
-                                        Span {
-                                            lo: 121,
-                                            hi: 133,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 95,
-                                                hi: 136,
-                                            },
-                                        ),
-                                    ),
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicBool(
+                                    Span {
+                                        lo: 95,
+                                        hi: 136,
+                                    },
                                 ),
                             ),
                         ),

@@ -166,7 +166,7 @@ function ExplainedSolution(props: { item: ExplainedSolutionItem }) {
 }
 
 async function onload() {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
   const app = document.querySelector("#app") as HTMLDivElement;
 
   function onRender(index: number) {
