@@ -1292,59 +1292,6 @@ pub struct Path {
     pub name: Box<Ident>,
 }
 
-impl Path {
-    /// Appends another path to this path.
-    /// Notably, uses the span of the latter path.
-    /// This is useful for more readable error messages when dealing with nested imports.
-    /// For example:
-    /// `Foo.{Bar, Baz}` produces two paths: `Foo.Bar` and `Foo.Baz`. The span for these would be
-    /// just `Bar` and `Baz`, because if the span for `Baz` went all the way from `Foo` to `Baz`,
-    /// it would not be very useful in error reporting. E.g.,
-    /// ```
-    /// import Foo.{Bar, Baz}'
-    ///        ^^^^^^^^^^^^^ `Foo.Baz` not found
-    /// ```
-    /// is less intuitive than
-    /// ```
-    /// import Foo.{Bar, Baz}'
-    ///                  ^^^ `Foo.Baz` not found
-    /// ```
-    #[must_use]
-    pub fn append(self, other: Path) -> Path {
-        Path {
-            namespace: match self.namespace {
-                Some(ns) => Some(
-                    [
-                        &*ns.0,
-                        &[*self.name.clone()][..],
-                        &other.namespace.unwrap_or_default().0,
-                    ]
-                    .concat()
-                    .into(),
-                ),
-                None => Some(vec![*self.name].into()),
-            },
-            id: NodeId::default(),
-            span: other.span,
-            name: other.name,
-        }
-    }
-
-    /// Pretty-prints the path as a string.
-    #[must_use]
-    pub fn name(&self) -> String {
-        let mut buf = String::new();
-        if let Some(ns) = &self.namespace {
-            for ident in ns.0.iter() {
-                buf.push_str(&ident.name);
-                buf.push('.');
-            }
-        }
-        buf.push_str(&self.name.name);
-        buf
-    }
-}
-
 impl From<Path> for Vec<Ident> {
     fn from(val: Path) -> Self {
         let mut buf = val.namespace.unwrap_or_default().0.to_vec();
@@ -1858,9 +1805,10 @@ impl Display for ImportOrExportItem {
             ref alias,
             is_glob,
         } = self;
+        let is_glob = if *is_glob { ".*" } else { "" };
         match alias {
-            Some(alias) => write!(f, "{path}{} as {alias}", if *is_glob { ".*" } else { "" }),
-            None => write!(f, "{path}"),
+            Some(alias) => write!(f, "{path}{is_glob} as {alias}",),
+            None => write!(f, "{path}{is_glob}"),
         }
     }
 }

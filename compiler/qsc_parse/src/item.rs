@@ -552,7 +552,7 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     };
     s.advance();
     let (items, _) = seq(s, parse_import_or_export_item)?;
-    let _semi = token(s, TokenKind::Semi);
+    token(s, TokenKind::Semi)?;
     Ok(ImportOrExportDecl::new(
         s.span(lo),
         items.into_boxed_slice(),

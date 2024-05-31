@@ -1851,19 +1851,19 @@ fn parse_export_empty() {
 #[test]
 fn parse_glob_import() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.*;",
-        &expect!["ImportDecl [0-13]: [Glob ImportItem [0-12]: Foo ]"],
+        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
     );
 }
 
 #[test]
 fn parse_glob_import_in_list() {
     check(
-        parse_import,
-        "import Foo.{Bar, Baz.*};",
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.*;",
         &expect![
-            "ImportDecl [0-24]: [ ImportItem [7-15]: Foo.Bar , Glob ImportItem [7-20]: Foo.Baz ]"
+            r#"ImportOrExportDecl [0-26]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").*]"#
         ],
     );
 }
@@ -1871,19 +1871,21 @@ fn parse_glob_import_in_list() {
 #[test]
 fn parse_glob_import_of_parent_in_list() {
     check(
-        parse_import,
-        "import Foo.{Bar, Baz, *};",
-        &expect!["ImportDecl [0-25]: [ ImportItem [7-15]: Foo.Bar ,  ImportItem [7-20]: Foo.Baz , Glob ImportItem [7-10]: Foo ]"],
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz, Foo.*;",
+        &expect![[
+            r#"ImportOrExportDecl [0-31]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz"), Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#
+        ]],
     );
 }
 
 #[test]
 fn parse_glob_import_with_alias() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.* as Foo;",
         &expect![[
-            r#"ImportDecl [0-20]: [Glob ImportItem [0-19]: Foo as Ident _id_ [16-19] "Foo"]"#
+            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
         ]],
     );
 }
@@ -1891,10 +1893,10 @@ fn parse_glob_import_with_alias() {
 #[test]
 fn parse_aliased_glob_import_in_list() {
     check(
-        parse_import,
-        "import Foo.{Bar, Baz.* as Quux};",
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.* as Quux;",
         &expect![[
-            r#"ImportDecl [0-32]: [ ImportItem [7-15]: Foo.Bar , Glob ImportItem [7-20]: Foo.Baz as Ident _id_ [26-30] "Quux"]"#
+            r#"ImportOrExportDecl [0-34]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").* as Ident _id_ [29-33] "Quux"]"#
         ]],
     );
 }
@@ -1902,12 +1904,12 @@ fn parse_aliased_glob_import_in_list() {
 #[test]
 fn invalid_glob_syntax_extra_asterisk() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.**;",
         &expect![[r#"
             Error(
-                Rule(
-                    "open brace or semicolon",
+                Token(
+                    Semi,
                     ClosedBinOp(
                         Star,
                     ),
@@ -1922,58 +1924,14 @@ fn invalid_glob_syntax_extra_asterisk() {
 }
 
 #[test]
-fn invalid_glob_syntax_extra_asterisk_in_list() {
-    check(
-        parse_import,
-        "import Foo.{Bar.**};",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "identifier",
-                    ClosedBinOp(
-                        Star,
-                    ),
-                    Span {
-                        lo: 17,
-                        hi: 18,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn invalid_glob_syntax_missing_dot_in_list() {
-    check(
-        parse_import,
-        "import Foo.{Bar*};",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "dot",
-                    ClosedBinOp(
-                        Star,
-                    ),
-                    Span {
-                        lo: 15,
-                        hi: 16,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn invalid_glob_syntax_missing_dot() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.Bar**;",
         &expect![[r#"
             Error(
-                Rule(
-                    "open brace or semicolon",
+                Token(
+                    Semi,
                     ClosedBinOp(
                         Star,
                     ),
@@ -1990,33 +1948,15 @@ fn invalid_glob_syntax_missing_dot() {
 #[test]
 fn invalid_glob_syntax_multiple_asterisks_in_path() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.Bar.*.*;",
         &expect![[r#"
             Error(
-                Rule(
-                    "open brace or semicolon",
+                Token(
+                    Semi,
                     Dot,
                     Span {
                         lo: 16,
-                        hi: 17,
-                    },
-                ),
-            )
-"#]],
-    );
-}
-
-#[test]
-fn invalid_glob_syntax_multiple_asterisks_in_path_in_list() {
-    check(
-        parse_import,
-        "import Foo.{Bar.*.*};",
-        &expect![[r#"
-            Error(
-                MissingSeqEntry(
-                    Span {
-                        lo: 17,
                         hi: 17,
                     },
                 ),
@@ -2028,12 +1968,12 @@ fn invalid_glob_syntax_multiple_asterisks_in_path_in_list() {
 #[test]
 fn invalid_glob_syntax_with_following_ident() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.*.Bar;",
         &expect![[r#"
             Error(
-                Rule(
-                    "open brace or semicolon",
+                Token(
+                    Semi,
                     Dot,
                     Span {
                         lo: 12,
@@ -2046,59 +1986,14 @@ fn invalid_glob_syntax_with_following_ident() {
 }
 
 #[test]
-fn invalid_glob_syntax_with_following_ident_in_list() {
-    check(
-        parse_import,
-        "import Foo.{*.Bar};",
-        &expect![[r#"
-            Error(
-                MissingSeqEntry(
-                    Span {
-                        lo: 13,
-                        hi: 13,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn invalid_glob_syntax_with_following_ident_in_list_2() {
-    check(
-        parse_import,
-        "import Foo.{Bar.*.Baz};",
-        &expect![[r#"
-            Error(
-                MissingSeqEntry(
-                    Span {
-                        lo: 17,
-                        hi: 17,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn parse_import_list_asterisk() {
-    check(
-        parse_import,
-        "import Foo.{*};",
-        &expect!["ImportDecl [0-15]: [Glob ImportItem [7-10]: Foo ]"],
-    );
-}
-
-#[test]
 fn disallow_top_level_recursive_glob() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import *;",
         &expect![[r#"
             Error(
-                Rule(
-                    "identifier",
+                Token(
+                    Semi,
                     ClosedBinOp(
                         Star,
                     ),
