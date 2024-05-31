@@ -118,10 +118,6 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.Resolve.ExportedNonItem"))]
     ExportedNonItem(#[label] Span),
 
-    #[error("exporting external items is not supported")]
-    #[diagnostic(code("Qsc.Resolve.ExportedExternalItem"))]
-    ExportedExternalItem(#[label] Span),
-
     #[error("export statements are not allowed in a local scope")]
     #[diagnostic(code("Qsc.Resolve.ExportFromLocalScope"))]
     ExportFromLocalScope(#[label] Span),
@@ -231,6 +227,12 @@ impl Locals {
     fn get_scope_mut(&mut self, id: ScopeId) -> &mut Scope {
         self.scopes
             .get_mut(id)
+            .unwrap_or_else(|| panic!("scope with id {id:?} should exist"))
+    }
+
+    fn get_scope(&self, id: ScopeId) -> &Scope {
+        self.scopes
+            .get(id)
             .unwrap_or_else(|| panic!("scope with id {id:?} should exist"))
     }
 
@@ -392,6 +394,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                 .resolver
                 .errors
                 .push(Error::ExportFromLocalScope(item.span)),
+            ItemKind::Open(..) => (),
             _ => ast_visit::walk_item(self, item),
         }
     }
@@ -734,28 +737,7 @@ impl Resolver {
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
-                let items = Into::<Idents>::into(item.path.clone());
-                let ns = self.globals.find_namespace(items.str_iter());
-                let alias = item
-                    .alias
-                    .as_ref()
-                    .map(|x| Box::new(x.clone()))
-                    .or(Some(item.path.name.clone()));
-                if let Some(ns) = ns {
-                    if !is_export {
-                        // for imports, we just bind the namespace as an open
-                        self.bind_open(&items, &alias, ns);
-                    } else {
-                        // for exports, we update the namespace tree accordingly:
-                        // update the namespace tree to include the new namespace
-                        let alias = alias.unwrap_or(item.path.name.clone());
-                        self.globals
-                            .namespaces
-                            .insert_with_id(current_namespace, ns, &alias.name);
-                    }
-                } else if !self.errors.contains(err) {
-                    self.errors.push(err.clone());
-                }
+                self.handle_namespace_import_or_export(is_export, item, current_namespace, err);
                 continue;
             }
 
@@ -830,9 +812,9 @@ impl Resolver {
                 (Ok(res @ Res::Item(..)), _) | (_, Ok(res @ Res::Item(..))) => res,
                 (Ok(_), _) | (_, Ok(_)) => {
                     let err = if is_export {
-                        |a| Error::ExportedNonItem(a)
+                        Error::ExportedNonItem
                     } else {
-                        |a| Error::ImportedNonItem(a)
+                        Error::ImportedNonItem
                     };
                     let err = err(item.path.span);
                     if !self.errors.contains(&err) {
@@ -847,8 +829,6 @@ impl Resolver {
                     continue;
                 }
             };
-
-            &self.current_scope_mut();
             // insert the item into the names we know about
             self.names.insert(item.name().id, res);
         }
@@ -882,6 +862,37 @@ impl Resolver {
             .expect("there should be at least one scope at location");
 
         self.locals.get_scope_mut(scope_id)
+    }
+
+    fn handle_namespace_import_or_export(
+        &mut self,
+        is_export: bool,
+        item: &ast::ImportOrExportItem,
+        current_namespace: Option<NamespaceId>,
+        err: &Error,
+    ) {
+        let items = Into::<Idents>::into(item.path.clone());
+        let ns = self.globals.find_namespace(items.str_iter());
+        let alias = item
+            .alias
+            .as_ref()
+            .map(|x| Box::new(x.clone()))
+            .or(Some(item.path.name.clone()));
+        if let Some(ns) = ns {
+            if is_export {
+                // for exports, we update the namespace tree accordingly:
+                // update the namespace tree to include the new namespace
+                let alias = alias.unwrap_or(item.path.name.clone());
+                self.globals
+                    .namespaces
+                    .insert_with_id(current_namespace, ns, &alias.name);
+            } else {
+                // for imports, we just bind the namespace as an open
+                self.bind_open(&items, &alias, ns);
+            }
+        } else if !self.errors.contains(err) {
+            self.errors.push(err.clone());
+        }
     }
 }
 
@@ -944,18 +955,7 @@ impl AstVisitor<'_> for With<'_> {
 
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            // the below line ensures that this namespace opens itself, in case
-            // we are re-opening a namespace. This is important, as without this,
-            // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None, root_id);
-            for item in &*namespace.items {
-                match &*item.kind {
-                    ItemKind::Open(name, alias) => {
-                        visitor.resolver.bind_open(name, alias, ns);
-                    }
-                    _ => (),
-                }
-            }
             ast_visit::walk_namespace(visitor, namespace);
         });
     }
@@ -964,6 +964,20 @@ impl AstVisitor<'_> for With<'_> {
         match &*item.kind {
             ItemKind::ImportOrExport(decl) if decl.is_import() => {
                 self.resolver.bind_import_or_export(decl, None);
+            }
+            ItemKind::Open(name, alias) => {
+                let scopes = self.resolver.curr_scope_chain.iter().rev();
+                if let Some(namespace) = scopes.into_iter().find_map(|scope| {
+                    let scope = self.resolver.locals.get_scope(*scope);
+                    if let ScopeKind::Namespace(id) = scope.kind {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }) {
+                    // There is only a namespace parent scope if we aren't executing incremental fragments.
+                    self.resolver.bind_open(name, alias, namespace);
+                }
             }
             _ => ast_visit::walk_item(self, item),
         }
@@ -1042,11 +1056,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &*stmt.kind {
-            ast::StmtKind::Item(item) => match &*item.kind {
-                _ => {
-                    self.visit_item(item);
-                }
-            },
+            ast::StmtKind::Item(item) => self.visit_item(item),
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
                 // The binding is valid after end of the statement.
@@ -1497,12 +1507,8 @@ fn check_all_scopes<'a>(
     scopes: impl Iterator<Item = &'a Scope>,
 ) -> Option<Result<Res, Error>> {
     let mut vars = true;
-    let scopes = scopes.collect::<Vec<_>>();
-    let scopes_len = scopes.len();
 
-    let mut ix = 0;
-    for scope in scopes.into_iter() {
-        ix += 1;
+    for scope in scopes {
         if let Some(value) = check_scoped_resolutions(
             kind,
             globals,

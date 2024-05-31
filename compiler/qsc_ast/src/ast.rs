@@ -1799,6 +1799,7 @@ impl Display for ImportOrExportDecl {
 
 impl ImportOrExportDecl {
     /// Creates a new `ImportOrExportDecl` with the given span, items, and export flag.
+    #[must_use]
     pub fn new(span: Span, items: Box<[ImportOrExportItem]>, is_export: bool) -> Self {
         Self {
             span,
@@ -1808,11 +1809,13 @@ impl ImportOrExportDecl {
     }
 
     /// Returns true if this is an export declaration.
+    #[must_use]
     pub fn is_export(&self) -> bool {
         self.is_export
     }
 
     /// Returns true if this is an import declaration.
+    #[must_use]
     pub fn is_import(&self) -> bool {
         !self.is_export
     }

@@ -1790,7 +1790,9 @@ fn parse_multiple_imports() {
     check(
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz;",
-        &expect![[r#"ImportOrExportDecl [0-24]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz")]"#]],
+        &expect![[
+            r#"ImportOrExportDecl [0-24]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz")]"#
+        ]],
     );
 }
 
@@ -1799,7 +1801,9 @@ fn parse_import_with_alias() {
     check(
         parse_import_or_export,
         "import Foo as Bar;",
-        &expect![[r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#]],
+        &expect![[
+            r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#
+        ]],
     );
 }
 
@@ -1808,7 +1812,9 @@ fn multi_import_with_alias() {
     check(
         parse_import_or_export,
         "import Foo.Bar as Baz, Foo.Quux;",
-        &expect![[r#"ImportOrExportDecl [0-32]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Ident _id_ [18-21] "Baz", Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux")]"#]],
+        &expect![[
+            r#"ImportOrExportDecl [0-32]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Ident _id_ [18-21] "Baz", Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux")]"#
+        ]],
     );
 }
 
