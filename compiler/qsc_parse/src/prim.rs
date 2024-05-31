@@ -172,8 +172,7 @@ where
     while s.peek().kind == TokenKind::Comma {
         let mut span = s.peek().span;
         span.hi = span.lo;
-        let err = Error(ErrorKind::MissingSeqEntry(span));
-        s.push_error(err);
+        s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
         xs.push(T::default().with_span(span));
         s.advance();
     }
@@ -183,8 +182,7 @@ where
             while s.peek().kind == TokenKind::Comma {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
-                let err = Error(ErrorKind::MissingSeqEntry(span));
-                s.push_error(err);
+                s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
                 xs.push(T::default().with_span(span));
                 s.advance();
             }

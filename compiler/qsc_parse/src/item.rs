@@ -561,39 +561,15 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
 }
 
 fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
-    let lo = s.peek().span.lo;
     let mut is_glob = false;
-    let mut parts = vec![ident(s)?];
+    let mut parts = vec![*ident(s)?];
     while token(s, TokenKind::Dot).is_ok() {
-        if s.peek().kind == TokenKind::ClosedBinOp(ClosedBinOp::Star) {
+        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
             is_glob = true;
-            s.advance();
             break;
         }
-        parts.push(ident(s)?);
+        parts.push(*ident(s)?);
     }
-    let name = parts.pop().expect("path should have at least one part");
-    let namespace = if parts.is_empty() {
-        None
-    } else {
-        Some(
-            parts
-                .iter()
-                .map(|part| Ident {
-                    id: NodeId::default(),
-                    span: part.span,
-                    name: part.name.clone(),
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )
-    };
-    let path = Path {
-        id: NodeId::default(),
-        span: s.span(lo),
-        namespace,
-        name,
-    };
 
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
@@ -602,7 +578,7 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportIt
     };
 
     Ok(ImportOrExportItem {
-        path,
+        path: parts.into(),
         alias,
         is_glob,
     })
