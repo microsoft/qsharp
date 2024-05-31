@@ -228,7 +228,6 @@ impl Locals {
         for (id, existing_scope) in self.scopes.iter_mut().enumerate() {
             if existing_scope.key() == (&kind, span) {
                 // If the scope already exists, return that.
-                // existing_scope.merge(s);
                 return id;
             }
         }
