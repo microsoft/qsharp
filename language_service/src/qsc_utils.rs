@@ -6,14 +6,6 @@ use qsc::line_column::{Encoding, Range};
 use qsc::location::Location;
 use qsc::{ast, hir::PackageId, SourceMap, Span};
 
-pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
-    offset >= span.lo && offset < span.hi
-}
-
-pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
-    offset >= span.lo && offset <= span.hi
-}
-
 pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap) -> Range {
     let lo_source = source_map
         .find_by_offset(span.lo)

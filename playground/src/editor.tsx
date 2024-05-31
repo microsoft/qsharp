@@ -54,6 +54,15 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
       }),
     };
 
+    if (err.uri && err.code) {
+      marker.code = {
+        value: err.code,
+        target: monaco.Uri.parse(err.uri),
+      };
+    } else if (err.code) {
+      marker.code = err.code;
+    }
+
     return marker;
   });
 }

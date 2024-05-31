@@ -19,6 +19,8 @@ serializable_type! {
         pub severity: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub code: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub uri: Option<String>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub related: Vec<Related>
     },
@@ -27,6 +29,7 @@ serializable_type! {
         message: string;
         severity: "error" | "warning" | "info"
         code?: string;
+        uri?: string;
         related?: IRelatedInformation[];
     }"#
 }
@@ -141,6 +144,9 @@ impl VSDiagnostic {
         // e.g. Qsc.Eval.ReleasedQubitNotZero
         let code = err.code().map(|c| c.to_string());
 
+        // e.g. https://aka.ms/qdk.qir
+        let uri = err.url().map(|u| u.to_string());
+
         Self {
             range: range.into(),
             severity: (match err.severity().unwrap_or(Severity::Error) {
@@ -151,6 +157,7 @@ impl VSDiagnostic {
             .to_string(),
             message,
             code,
+            uri,
             related,
         }
     }

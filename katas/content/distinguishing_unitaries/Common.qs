@@ -1,4 +1,5 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
 
     // "Framework" operation for testing tasks for distinguishing unitaries
@@ -57,5 +58,33 @@ namespace Kata.Verification {
         }
         Message("Correct!");
         true
+    }
+
+    operation MinusZ (q : Qubit) : Unit is Adj + Ctl {
+        within { 
+            X(q);
+        }
+        apply {
+            Z(q);
+        }
+    }
+
+    operation XZ (q : Qubit) : Unit is Adj + Ctl {
+        Z(q);
+        X(q);
+    }
+
+    operation MinusY (q : Qubit) : Unit is Adj + Ctl {
+        within {
+            X(q);
+        }
+        apply {
+            Y(q);
+        }
+    }
+
+    operation MinusXZ (q : Qubit) : Unit is Adj + Ctl {
+        X(q);
+        Z(q);
     }
 }

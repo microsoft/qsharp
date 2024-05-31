@@ -725,7 +725,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -736,7 +736,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -960,7 +960,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -971,7 +971,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1014,7 +1014,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1025,7 +1025,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1108,7 +1108,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1119,7 +1119,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1175,7 +1175,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1186,7 +1186,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1456,6 +1456,40 @@ mod given_interpreter {
 
             let (result, output) = entry(&mut interpreter);
             is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn errors_returned_if_sources_do_not_match_profile() {
+            let source = indoc! { r#"
+            namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
+            let result = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::IntegerComputations
+                    | TargetCapabilityFlags::QubitReset,
+                LanguageFeatures::default(),
+            );
+
+            match result {
+                Ok(_) => panic!("Expected error, got interpreter."),
+                Err(errors) => is_error(
+                    &errors,
+                    &expect![[r#"
+                        cannot use a dynamic double value
+                           [<entry>] [A.Test()]
+                        cannot use a double value as an output
+                           [<entry>] [A.Test()]
+                        cannot use a dynamic double value
+                           [test] [set x = 2.0]
+                        cannot use a dynamic double value
+                           [test] [x]
+                    "#]],
+                ),
+            }
         }
 
         #[test]
