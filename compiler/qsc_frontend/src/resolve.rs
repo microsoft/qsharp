@@ -198,6 +198,14 @@ impl Scope {
         };
         items.get(name).map(|x| &x.id)
     }
+
+    fn merge(&mut self, s: Scope) {
+        self.opens.extend(s.opens);
+        self.tys.extend(s.tys);
+        self.terms.extend(s.terms);
+        self.vars.extend(s.vars);
+        self.ty_vars.extend(s.ty_vars);
+    }
 }
 
 type ScopeId = usize;
@@ -219,6 +227,12 @@ impl Locals {
     }
 
     fn push_scope(&mut self, s: Scope) -> ScopeId {
+        for (id, existing_scope) in self.scopes.iter_mut().enumerate() {
+            if existing_scope.kind == s.kind && existing_scope.span == s.span {
+                existing_scope.merge(s);
+                return id;
+            }
+        }
         let id = self.scopes.len();
         self.scopes.insert(id, s);
         id
@@ -951,18 +965,27 @@ impl AstVisitor<'_> for With<'_> {
             .find_namespace(namespace.name.str_iter())
             .expect("namespace should exist by this point");
 
-        let root_id = self.resolver.globals.namespaces.root_id();
+        // let root_id = self.resolver.globals.namespaces.root_id();
 
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            visitor.resolver.bind_open(&namespace.name, &None, root_id);
-            ast_visit::walk_namespace(visitor, namespace);
+            // this should have been done in the previous pass
+            // visitor.resolver.bind_open(&namespace.name, &None, root_id);
+            for item in &*namespace.items {
+                match &*item.kind {
+                    ItemKind::ImportOrExport(..) | ItemKind::Open(..) => {
+                        // skip, should have been handled in previous pass
+                    }
+                    _ => ast_visit::walk_item(visitor, item),
+                }
+            }
         });
     }
 
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
             ItemKind::ImportOrExport(decl) if decl.is_import() => {
+                // these will only be local items at this point
                 self.resolver.bind_import_or_export(decl, None);
             }
             ItemKind::Open(name, alias) => {
@@ -975,6 +998,9 @@ impl AstVisitor<'_> for With<'_> {
                         None
                     }
                 }) {
+                    // only local opens at this point
+
+                    // TODO: really?
                     // There is only a namespace parent scope if we aren't executing incremental fragments.
                     self.resolver.bind_open(name, alias, namespace);
                 }
