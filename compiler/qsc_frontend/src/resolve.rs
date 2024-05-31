@@ -861,7 +861,7 @@ impl Resolver {
         let alias = item.alias.as_ref().map(|x| Box::new(x.clone()));
         let Some(ns) = ns else {
             self.errors.push(Error::GlobImportNamespaceNotFound(
-                item.path.name(),
+                item.path.name.to_string(),
                 item.path.span,
             ));
             return;

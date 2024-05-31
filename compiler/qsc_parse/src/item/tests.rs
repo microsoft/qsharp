@@ -1853,7 +1853,7 @@ fn parse_glob_import() {
     check(
         parse_import_or_export,
         "import Foo.*;",
-        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
+        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-12] (Ident _id_ [7-10] "Foo").*]"#]],
     );
 }
 
@@ -1863,7 +1863,7 @@ fn parse_glob_import_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz.*;",
         &expect![
-            r#"ImportOrExportDecl [0-26]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").*]"#
+            r#"ImportOrExportDecl [0-26]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-25] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").*]"#
         ],
     );
 }
@@ -1874,7 +1874,7 @@ fn parse_glob_import_of_parent_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz, Foo.*;",
         &expect![[
-            r#"ImportOrExportDecl [0-31]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz"), Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#
+            r#"ImportOrExportDecl [0-31]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz"), Path _id_ [25-30] (Ident _id_ [25-28] "Foo").*]"#
         ]],
     );
 }
@@ -1885,7 +1885,7 @@ fn parse_glob_import_with_alias() {
         parse_import_or_export,
         "import Foo.* as Foo;",
         &expect![[
-            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
+            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-12] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
         ]],
     );
 }
@@ -1896,7 +1896,7 @@ fn parse_aliased_glob_import_in_list() {
         parse_import_or_export,
         "import Foo.Bar, Foo.Baz.* as Quux;",
         &expect![[
-            r#"ImportOrExportDecl [0-34]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").* as Ident _id_ [29-33] "Quux"]"#
+            r#"ImportOrExportDecl [0-34]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-25] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").* as Ident _id_ [29-33] "Quux"]"#
         ]],
     );
 }
@@ -1936,8 +1936,8 @@ fn invalid_glob_syntax_missing_dot() {
                         Star,
                     ),
                     Span {
-                        lo: 15,
-                        hi: 16,
+                        lo: 14,
+                        hi: 15,
                     },
                 ),
             )
