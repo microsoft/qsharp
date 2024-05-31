@@ -6,7 +6,7 @@ mod tests;
 
 use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
-use crate::qsc_utils::{into_range, span_contains};
+use crate::qsc_utils::into_range;
 
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
@@ -637,7 +637,7 @@ enum Context {
 
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
-        if span_contains(namespace.span, self.offset) {
+        if namespace.span.contains(self.offset) {
             self.current_namespace_name = Some(namespace.name.clone().into());
             self.context = Context::Namespace;
             self.opens = vec![];
@@ -656,13 +656,13 @@ impl Visitor<'_> for ContextFinder {
                 .push((name.into(), alias.as_ref().map(|alias| alias.name.clone())));
         }
 
-        if span_contains(item.span, self.offset) {
+        if item.span.contains(self.offset) {
             visit::walk_item(self, item);
         }
     }
 
     fn visit_callable_decl(&mut self, decl: &'_ qsc::ast::CallableDecl) {
-        if span_contains(decl.span, self.offset) {
+        if decl.span.contains(self.offset) {
             // This span covers the body too, but the
             // context will get overwritten by visit_block
             // if the offset is inside the actual body
@@ -672,7 +672,7 @@ impl Visitor<'_> for ContextFinder {
     }
 
     fn visit_block(&mut self, block: &'_ qsc::ast::Block) {
-        if span_contains(block.span, self.offset) {
+        if block.span.contains(self.offset) {
             self.context = Context::Block;
         }
     }

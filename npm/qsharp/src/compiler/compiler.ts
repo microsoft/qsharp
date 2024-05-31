@@ -195,10 +195,15 @@ export class Compiler implements ICompiler {
   }
 
   async newGetEstimates(
-    { sources, languageFeatures }: ProgramConfig,
+    { sources, languageFeatures, profile = "unrestricted" }: ProgramConfig,
     params: string,
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params, languageFeatures || []);
+    return this.wasm.get_estimates(
+      sources,
+      params,
+      languageFeatures || [],
+      profile,
+    );
   }
 
   async deprecatedGetEstimates(
@@ -206,7 +211,12 @@ export class Compiler implements ICompiler {
     params: string,
     languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params, languageFeatures);
+    return this.wasm.get_estimates(
+      sources,
+      params,
+      languageFeatures,
+      "unrestricted",
+    );
   }
 
   async getAst(

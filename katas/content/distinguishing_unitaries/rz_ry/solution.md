@@ -1,8 +1,3 @@
-> As a reminder,
-> 
-> $$R_z(\theta) = \begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix} \\
-R_y(\theta) = \begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$$
-
 The key observation here is that $R_z$ is a diagonal matrix and $R_y$ is not, so when applied to the $\ket{0}$ state, the former will leave it unchanged (with an extra phase which is not observable), and the latter will convert it to a superposition $\cos\frac{\theta}{2} \ket{0} + \sin\frac{\theta}{2} \ket{1}$. The question is, how to distinguish those two states if they are not orthogonal (and for most values of $\theta$ they will not be)?
 
 The task description gives you a big hint: it allows you to use the given unitary unlimited number of times, which points to a probabilistic solution (as opposed to deterministic solutions in all previous problems in this kata). Apply the unitary to the $\ket{0}$ state and measure the result; if it is $\ket{1}$, the unitary must be $R_y$, otherwise you can repeat the experiment again. After several iterations of measuring $\ket{0}$ you can conclude that with high probability the unitary is $R_z$.

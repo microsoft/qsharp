@@ -3,7 +3,7 @@
 
 use num_bigint::BigInt;
 use qsc_data_structures::{display::join, functors::FunctorApp};
-use qsc_fir::fir::{Pauli, StoreItemId};
+use qsc_fir::fir::{Functor, Pauli, StoreItemId};
 use std::{
     fmt::{self, Display, Formatter},
     rc::Rc,
@@ -475,4 +475,18 @@ pub fn update_index_range(
         }
     }
     Ok(Value::Array(values.into()))
+}
+
+#[must_use]
+pub fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
+    match functor {
+        Functor::Adj => FunctorApp {
+            adjoint: !app.adjoint,
+            controlled: app.controlled,
+        },
+        Functor::Ctl => FunctorApp {
+            adjoint: app.adjoint,
+            controlled: app.controlled + 1,
+        },
+    }
 }

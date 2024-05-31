@@ -12,7 +12,9 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::CallableId;
-use test_utils::{assert_blocks, assert_callable, get_rir_program};
+use test_utils::{
+    assert_blocks, assert_callable, assert_error, get_partial_evaluation_error, get_rir_program,
+};
 
 #[test]
 fn if_expression_with_true_condition() {
@@ -1287,5 +1289,27 @@ fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() 
             Block 3:Block:
                 Call id(4), args( Qubit(0), )
                 Jump(1)"#]],
+    );
+}
+
+#[test]
+fn if_else_expression_with_result_literal_fails() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                MResetZ(q) == One ? One | MResetZ(q)
+            }
+        }
+        "#,
+    });
+
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unexpected("dynamic value of type Result in conditional expression", PackageSpan { package: PackageId(2), span: Span { lo: 101, hi: 137 } })"#
+        ]],
     );
 }
