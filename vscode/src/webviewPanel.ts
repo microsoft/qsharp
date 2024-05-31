@@ -220,9 +220,12 @@ export function registerWebViewCommands(context: ExtensionContext) {
           {},
         );
         const estimatesStr = await worker.getEstimates(
-          sources,
+          {
+            sources,
+            languageFeatures,
+            profile: getTarget(),
+          },
           JSON.stringify(params),
-          languageFeatures,
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -371,7 +374,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Histogram error. ", e.toString());
-        throw new Error("Run failed");
+        throw new Error("Run failed. " + e.toString());
       } finally {
         worker.terminate();
       }
