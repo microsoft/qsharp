@@ -198,6 +198,11 @@ impl Scope {
         };
         items.get(name).map(|x| &x.id)
     }
+
+    /// A `ScopeKind, Span` pair uniquely identifies a scope.
+    fn key(&self) -> (&ScopeKind, Span) {
+        (&self.kind, self.span)
+    }
 }
 
 type ScopeId = usize;
@@ -218,9 +223,18 @@ impl Locals {
         })
     }
 
-    fn push_scope(&mut self, s: Scope) -> ScopeId {
+    fn push_scope(&mut self, kind: ScopeKind, span: Span) -> ScopeId {
+        // First, check if this scope has already been created in a prior pass.
+        for (id, existing_scope) in self.scopes.iter_mut().enumerate() {
+            if existing_scope.key() == (&kind, span) {
+                // If the scope already exists, return that.
+                return id;
+            }
+        }
+
+        // Add it to the list of known scopes.
         let id = self.scopes.len();
-        self.scopes.insert(id, s);
+        self.scopes.insert(id, Scope::new(kind, span));
         id
     }
 
@@ -463,13 +477,13 @@ impl Resolver {
         dropped_names: Vec<TrackedName>,
     ) -> Self {
         let mut locals = Locals::default();
-        let scope_id = locals.push_scope(Scope::new(
+        let scope_id = locals.push_scope(
             ScopeKind::Block,
             Span {
                 lo: 0,
                 hi: u32::MAX,
             },
-        ));
+        );
         Self {
             names: globals.names,
             dropped_names,
@@ -648,9 +662,7 @@ impl Resolver {
             id
         } else {
             let error = Error::NotFound(name.name().to_string(), name.span());
-            if !self.errors.contains(&error) {
-                self.errors.push(error);
-            }
+            self.errors.push(error);
             return;
         };
 
@@ -753,9 +765,7 @@ impl Resolver {
                         if entry.source == ItemSource::Exported =>
                     {
                         let err = Error::DuplicateExport(local_name.to_string(), item.name().span);
-                        if !self.errors.contains(&err) {
-                            self.errors.push(err);
-                        }
+                        self.errors.push(err);
                         continue;
                     }
                     (false, Some(entry), _) | (true, _, Some(entry))
@@ -763,9 +773,7 @@ impl Resolver {
                     {
                         let err =
                             Error::ImportedDuplicate(local_name.to_string(), item.name().span);
-                        if !self.errors.contains(&err) {
-                            self.errors.push(err);
-                        }
+                        self.errors.push(err);
                         continue;
                     }
                     _ => (),
@@ -817,15 +825,11 @@ impl Resolver {
                         Error::ImportedNonItem
                     };
                     let err = err(item.path.span);
-                    if !self.errors.contains(&err) {
-                        self.errors.push(err);
-                    }
+                    self.errors.push(err);
                     continue;
                 }
                 (Err(err), _) => {
-                    if !self.errors.contains(&err) {
-                        self.errors.push(err);
-                    }
+                    self.errors.push(err);
                     continue;
                 }
             };
@@ -844,7 +848,7 @@ impl Resolver {
     }
 
     fn push_scope(&mut self, span: Span, kind: ScopeKind) {
-        let scope_id = self.locals.push_scope(Scope::new(kind, span));
+        let scope_id = self.locals.push_scope(kind, span);
         self.curr_scope_chain.push(scope_id);
     }
 
@@ -890,7 +894,7 @@ impl Resolver {
                 // for imports, we just bind the namespace as an open
                 self.bind_open(&items, &alias, ns);
             }
-        } else if !self.errors.contains(err) {
+        } else {
             self.errors.push(err.clone());
         }
     }
@@ -951,33 +955,42 @@ impl AstVisitor<'_> for With<'_> {
             .find_namespace(namespace.name.str_iter())
             .expect("namespace should exist by this point");
 
-        let root_id = self.resolver.globals.namespaces.root_id();
-
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            visitor.resolver.bind_open(&namespace.name, &None, root_id);
-            ast_visit::walk_namespace(visitor, namespace);
+            for item in &*namespace.items {
+                match &*item.kind {
+                    ItemKind::ImportOrExport(..) | ItemKind::Open(..) => {
+                        // Global imports and exports should have been handled
+                        // at this point.
+                    }
+                    _ => ast_visit::walk_item(visitor, item),
+                }
+            }
         });
     }
 
     fn visit_item(&mut self, item: &ast::Item) {
         match &*item.kind {
             ItemKind::ImportOrExport(decl) if decl.is_import() => {
+                // Only locally scoped imports and exports are handled here.
                 self.resolver.bind_import_or_export(decl, None);
             }
             ItemKind::Open(name, alias) => {
                 let scopes = self.resolver.curr_scope_chain.iter().rev();
-                if let Some(namespace) = scopes.into_iter().find_map(|scope| {
-                    let scope = self.resolver.locals.get_scope(*scope);
-                    if let ScopeKind::Namespace(id) = scope.kind {
-                        Some(id)
-                    } else {
-                        None
-                    }
-                }) {
-                    // There is only a namespace parent scope if we aren't executing incremental fragments.
-                    self.resolver.bind_open(name, alias, namespace);
-                }
+                let namespace = scopes
+                    .into_iter()
+                    .find_map(|scope| {
+                        let scope = self.resolver.locals.get_scope(*scope);
+                        if let ScopeKind::Namespace(id) = scope.kind {
+                            Some(id)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| self.resolver.globals.namespaces.root_id());
+                // Only locally scoped opens are handled here.
+                // There is only a namespace parent scope if we aren't executing incremental fragments.
+                self.resolver.bind_open(name, alias, namespace);
             }
             _ => ast_visit::walk_item(self, item),
         }
