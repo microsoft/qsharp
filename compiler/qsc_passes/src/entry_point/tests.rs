@@ -66,17 +66,20 @@ fn test_entry_point_attr_missing_implies_main() {
 }
 
 #[test]
-fn test_entry_point_attr_missing_implies_main_alernate_casing() {
+fn test_entry_point_attr_missing_implies_main_alernate_casing_not_allowed() {
     check(
         indoc! {"
             namespace Test {
-                operation maIn() : Int { 41 + 1 }
+                operation main() : Int { 41 + 1 }
             }"},
         "",
         &expect![[r#"
-            Expr 12 [0-0] [Type Int]: Call:
-                Expr 11 [32-36] [Type Int]: Var: Item 1
-                Expr 10 [36-38] [Type Unit]: Unit"#]],
+            [
+                EntryPoint(
+                    NotFound,
+                ),
+            ]
+        "#]],
     );
 }
 

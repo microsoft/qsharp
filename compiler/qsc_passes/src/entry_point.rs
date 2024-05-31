@@ -145,7 +145,7 @@ impl<'a> Visitor<'a> for EntryPointFinder<'a> {
             if item.attrs.iter().any(|a| a == &Attr::EntryPoint) {
                 self.callables.push((callable, item.id));
             }
-            if callable.name.name.as_ref().to_lowercase() == "main" {
+            if callable.name.name.as_ref() == "Main" {
                 self.main.push((callable, item.id));
             }
         }
