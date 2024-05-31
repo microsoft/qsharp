@@ -3,7 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{parse, parse_attr, parse_import, parse_spec_decl, source_name_to_namespace_name};
+use super::{
+    parse, parse_attr, parse_import_or_export, parse_spec_decl, source_name_to_namespace_name,
+};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -1749,7 +1751,7 @@ fn parse_export_basic() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-83]:
-                    Export (ExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
+                    Export (ImportOrExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
     );
 }
 
@@ -1770,57 +1772,53 @@ fn parse_export_list() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-151]:
-                    Export (ExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92] (Ident _id_ [84-87] "Baz") (Ident _id_ [88-92] "Quux"), Path _id_ [94-118] ([Ident _id_ [94-98] "Math", Ident _id_ [99-106] "Quantum", Ident _id_ [107-111] "Some"]) (Ident _id_ [112-118] "Nested"), Path _id_ [120-150] ([Ident _id_ [120-124] "Math", Ident _id_ [125-132] "Quantum", Ident _id_ [133-137] "Some", Ident _id_ [138-143] "Other"]) (Ident _id_ [144-150] "Nested")])"#]],
+                    Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92] (Ident _id_ [84-87] "Baz") (Ident _id_ [88-92] "Quux"), Path _id_ [94-118] ([Ident _id_ [94-98] "Math", Ident _id_ [99-106] "Quantum", Ident _id_ [107-111] "Some"]) (Ident _id_ [112-118] "Nested"), Path _id_ [120-150] ([Ident _id_ [120-124] "Math", Ident _id_ [125-132] "Quantum", Ident _id_ [133-137] "Some", Ident _id_ [138-143] "Other"]) (Ident _id_ [144-150] "Nested")])"#]],
     );
 }
 
 #[test]
 fn parse_single_import() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo;",
-        &expect![[
-            r#"ImportDecl [0-11]: [ImportItem [7-10]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as ]"#
-        ]],
+        &expect![[r#"ImportOrExportDecl [0-11]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo")]"#]],
     );
 }
 
 #[test]
 fn parse_multiple_imports() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.Bar, Foo.Baz;",
-        &expect![[
-            r#"ImportDecl [0-24]: [ImportItem [7-14]: Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as , ImportItem [16-23]: Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz") as ]"#
-        ]],
+        &expect![[r#"ImportOrExportDecl [0-24]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz")]"#]],
     );
 }
 
 #[test]
 fn parse_import_with_alias() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo as Bar;",
-        &expect![[
-            r#"ImportDecl [0-18]: [ImportItem [7-17]: Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Bar]"#
-        ]],
+        &expect![[r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#]],
     );
 }
 
 #[test]
 fn multi_import_with_alias() {
     check(
-        parse_import,
+        parse_import_or_export,
         "import Foo.Bar as Baz, Foo.Quux;",
-        &expect![[
-            r#"ImportDecl [0-32]: [ImportItem [7-21]: Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Baz, ImportItem [23-31]: Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux") as ]"#
-        ]],
+        &expect![[r#"ImportOrExportDecl [0-32]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Ident _id_ [18-21] "Baz", Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux")]"#]],
     );
 }
 
 #[test]
 fn empty_import_statement() {
-    check(parse_import, "import;", &expect!["ImportDecl [0-7]: []"]);
+    check(
+        parse_import_or_export,
+        "import;",
+        &expect!["ImportOrExportDecl [0-7]: []"],
+    );
 }
 
 #[test]
@@ -1840,6 +1838,6 @@ fn parse_export_empty() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-79]:
-                    Export (ExportDecl [72-79]: [])"#]],
+                    Export (ImportOrExportDecl [72-79]: [])"#]],
     );
 }

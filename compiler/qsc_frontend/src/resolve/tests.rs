@@ -111,21 +111,8 @@ impl Visitor<'_> for Renamer<'_> {
                 };
                 self.aliases.insert(vec![alias.name.clone()], ns_id);
             }
-            ItemKind::Export(export) => {
+            ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
-                    if let Some(resolved_id) = self.names.get(item.path.id) {
-                        self.changes.push((item.span(), (*resolved_id).into()));
-                    } else if let Some(namespace_id) = self
-                        .namespaces
-                        .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
-                    {
-                        self.changes.push((item.span(), namespace_id.into()));
-                    }
-                }
-                return;
-            }
-            ItemKind::Import(import) => {
-                for item in import.items() {
                     if let Some(resolved_id) = self.names.get(item.path.id) {
                         self.changes.push((item.span(), (*resolved_id).into()));
                     } else if let Some(namespace_id) = self
@@ -2908,7 +2895,7 @@ fn test_export_statement() {
             namespace namespace7 {
                 operation item1() : Unit {
                 }
-                export { item1 };
+                export item1;
             }
         "#]],
     );
@@ -2951,18 +2938,18 @@ namespace Foo.Bar.Graule {
         &expect![[r#"
 
             namespace namespace7 {
-                export { item2 };
+                export item2;
             }
             namespace namespace10 {
                 function item2() : Unit {}
             }
 
             namespace namespace8 {
-               export { item2 };
+               export item2;
             }
 
             namespace namespace9 {
-                export { item2 };
+                export item2;
             }
 
             namespace namespace11 {
@@ -2976,7 +2963,7 @@ namespace Foo.Bar.Graule {
                     item2();
                 }
                 // and we should be able to re-export it
-                export { item2 };
+                export item2;
             }"#]],
     );
 }
@@ -3349,11 +3336,11 @@ fn reexport_from_full_path_with_alias() {
         &expect![[r#"
             namespace namespace7 {
                 operation item1() : Unit {}
-                export { item1 };
+                export item1;
             }
             namespace namespace8 {
                 open namespace7;
-                export { item1 };
+                export item1;
             }
         "#]],
     );

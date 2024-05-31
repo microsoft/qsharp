@@ -171,9 +171,9 @@ pub struct Namespace {
 
 impl Namespace {
     /// Returns an iterator over the items in the namespace that are exported.
-    pub fn exports(&self) -> impl Iterator<Item = &ExportItem> {
+    pub fn exports(&self) -> impl Iterator<Item = &ImportOrExportItem> {
         self.items.iter().flat_map(|i| match i.kind.as_ref() {
-            ItemKind::Export(export) => &export.items[..],
+            ItemKind::ImportOrExport(decl) if decl.is_export() => &decl.items[..],
             _ => &[],
         })
     }
@@ -273,9 +273,7 @@ pub enum ItemKind {
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
-    Export(ExportDecl),
-    /// An import declaration.
-    Import(ImportDecl),
+    ImportOrExport(ImportOrExportDecl),
 }
 
 impl Display for ItemKind {
@@ -288,8 +286,8 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
-            ItemKind::Export(export) => write!(f, "Export ({export})")?,
-            ItemKind::Import(import) => write!(f, "Import ({import})")?,
+            ItemKind::ImportOrExport(item) if item.is_export => write!(f, "Export ({item})")?,
+            ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
         }
         Ok(())
     }
@@ -1778,14 +1776,16 @@ pub enum SetOp {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Represents an export declaration.
-pub struct ExportDecl {
+pub struct ImportOrExportDecl {
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Box<[ExportItem]>,
+    pub items: Box<[ImportOrExportItem]>,
+    /// Whether this is an export declaration or not. If `false`, then this is an `Import`.
+    is_export: bool,
 }
 
-impl Display for ExportDecl {
+impl Display for ImportOrExportDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let items_str = self
             .items
@@ -1793,29 +1793,48 @@ impl Display for ExportDecl {
             .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ");
-        write!(f, "ExportDecl {}: [{items_str}]", self.span)
+        write!(f, "ImportOrExportDecl {}: [{items_str}]", self.span)
     }
 }
 
-impl ExportDecl {
+impl ImportOrExportDecl {
+    /// Creates a new `ImportOrExportDecl` with the given span, items, and export flag.
+    pub fn new(span: Span, items: Box<[ImportOrExportItem]>, is_export: bool) -> Self {
+        Self {
+            span,
+            items,
+            is_export,
+        }
+    }
+
+    /// Returns true if this is an export declaration.
+    pub fn is_export(&self) -> bool {
+        self.is_export
+    }
+
+    /// Returns true if this is an import declaration.
+    pub fn is_import(&self) -> bool {
+        !self.is_export
+    }
+
     /// Returns an iterator over the items being exported from this namespace.
-    pub fn items(&self) -> impl Iterator<Item = &ExportItem> {
+    pub fn items(&self) -> impl Iterator<Item = &ImportOrExportItem> {
         self.items.iter()
     }
 }
 
 /// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct ExportItem {
+pub struct ImportOrExportItem {
     /// The path to the item being exported.
     pub path: Path,
     /// An optional alias for the item being exported.
     pub alias: Option<Ident>,
 }
 
-impl Display for ExportItem {
+impl Display for ImportOrExportItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let ExportItem {
+        let ImportOrExportItem {
             ref path,
             ref alias,
         } = self;
@@ -1826,16 +1845,16 @@ impl Display for ExportItem {
     }
 }
 
-impl WithSpan for ExportItem {
+impl WithSpan for ImportOrExportItem {
     fn with_span(self, span: Span) -> Self {
-        ExportItem {
+        ImportOrExportItem {
             path: self.path.with_span(span),
             alias: self.alias.map(|x| x.with_span(span)),
         }
     }
 }
 
-impl ExportItem {
+impl ImportOrExportItem {
     /// Returns the span of the export item. This includes the path and , if any exists, the alias.
     #[must_use]
     pub fn span(&self) -> Span {
@@ -1857,83 +1876,6 @@ impl ExportItem {
         match self.alias {
             Some(ref alias) => alias,
             None => &self.path.name,
-        }
-    }
-}
-
-/// An import declaration, which is used to pull in individual symbols into the current
-/// scope.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ImportDecl {
-    /// The span.
-    pub span: Span,
-    /// The items being imported from this namespace.
-    pub items: Vec<ImportItem>,
-}
-impl ImportDecl {
-    /// Returns an iterator over the items being imported.
-    pub fn items(&self) -> impl Iterator<Item = &ImportItem> {
-        self.items.iter()
-    }
-}
-
-impl Display for ImportDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self
-            .items
-            .iter()
-            .map(std::string::ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-        write!(f, "ImportDecl {}: [{items_str}]", self.span)
-    }
-}
-
-/// An individual item being imported by an import statement.
-/// e.g. `import Foo.{Bar, Baz}` is two import items:
-/// one for `Foo.Bar` and one for `Foo.Baz`.
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct ImportItem {
-    /// The items being imported from this namespace.
-    pub path: Path,
-    /// The alias of the imported item.
-    pub alias: Option<Ident>,
-}
-
-impl Display for ImportItem {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let alias_str = self.alias.as_ref().map_or("", |a| a.name.as_ref());
-        write!(
-            f,
-            "ImportItem {}: {} as {alias_str}",
-            self.span(),
-            self.path
-        )
-    }
-}
-
-impl WithSpan for ImportItem {
-    fn with_span(self, span: Span) -> Self {
-        ImportItem {
-            path: self.path.with_span(span),
-            alias: self.alias.map(|x| x.with_span(span)),
-        }
-    }
-}
-
-impl ImportItem {
-    /// Returns the span of the import item. This includes the path and , if any exists, the alias.
-    #[must_use]
-    pub fn span(&self) -> Span {
-        match self.alias {
-            Some(ref alias) => {
-                // join the path and alias spans
-                Span {
-                    lo: self.path.span.lo,
-                    hi: alias.span.hi,
-                }
-            }
-            None => self.path.span,
         }
     }
 }

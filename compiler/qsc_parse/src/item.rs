@@ -24,13 +24,13 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, ExportItem, Ident, Idents,
-    ImportDecl, ImportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, ImportOrExportDecl,
+    ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody,
     SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
     VisibilityKind,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
-use qsc_data_structures::{language_features::LanguageFeatures, span::WithSpan};
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -43,10 +43,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
-    } else if let Some(import) = opt(s, parse_import)? {
-        Box::new(ItemKind::Import(import))
-    } else if let Some(export) = opt(s, parse_export)? {
-        Box::new(ItemKind::Export(export))
+    } else if let Some(decl) = opt(s, parse_import_or_export)? {
+        Box::new(ItemKind::ImportOrExport(decl))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
@@ -526,8 +524,9 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     }
 }
 
-/// Parses an export statement. Exports start with the `export` keyword, followed by a curly brace
-/// and a list of items.
+/// Parses an import or export statement. Exports start with the `export` keyword, followed by a
+/// list of items.
+/// Imports are the same, but with the `import` keyword.
 ///
 /// ```qsharp
 /// export
@@ -536,53 +535,32 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 ///     Bar.Quux as Corge;
 /// ```
 
-fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
+fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
-    token(s, TokenKind::Keyword(Keyword::Export))?;
+    let is_export = match s.peek().kind {
+        TokenKind::Keyword(Keyword::Export) => true,
+        TokenKind::Keyword(Keyword::Import) => false,
+        _ => {
+            return Err(Error(ErrorKind::Rule(
+                "import or export",
+                s.peek().kind,
+                s.peek().span,
+            )))
+        }
+    };
+    s.advance();
     let (items, _) = seq(s, parse_import_or_export_item)?;
     let _semi = token(s, TokenKind::Semi);
-    let items = items
-        .into_iter()
-        .map(|ImportOrExportItem(path, alias, _span)| ExportItem { path, alias });
-    Ok(ExportDecl {
-        span: s.span(lo),
-        items: items.collect(),
-    })
-}
-
-/// Parses import items.
-/// For example:
-/// ```qsharp
-/// import Foo, Foo.Bar as Baz, Foo.Bar.Quux.*;
-/// ```
-fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
-    let lo = s.peek().span.lo;
-    let _doc = parse_doc(s);
-    token(s, TokenKind::Keyword(Keyword::Import))?;
-    let (items, _) = seq(s, parse_import_or_export_item)?;
-    let _semi = token(s, TokenKind::Semi);
-    let items = items
-        .into_iter()
-        .map(|ImportOrExportItem(path, alias, _span)| ImportItem { path, alias });
-    Ok(ImportDecl {
-        span: s.span(lo),
-        items: items.collect(),
-    })
-}
-
-#[derive(Default)]
-struct ImportOrExportItem(Path, Option<Ident>, Span);
-
-impl WithSpan for ImportOrExportItem {
-    fn with_span(self, span: Span) -> Self {
-        ImportOrExportItem(self.0, self.1, span)
-    }
+    Ok(ImportOrExportDecl::new(
+        s.span(lo),
+        items.into_boxed_slice(),
+        is_export,
+    ))
 }
 
 fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
     // an import item is a path followed by an optional alias,
-    let lo = s.peek().span.lo;
     let path = *(path(s)?);
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
@@ -590,5 +568,5 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportIt
         None
     };
 
-    Ok(ImportOrExportItem(path, alias, s.span(lo)))
+    Ok(ImportOrExportItem { path, alias })
 }

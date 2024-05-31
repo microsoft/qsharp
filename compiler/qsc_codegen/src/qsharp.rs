@@ -138,7 +138,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_ty_def(def);
                 self.writeln(";");
             }
-            ItemKind::Export(_) | ItemKind::Import(_) => (),
+            ItemKind::ImportOrExport(_) => (),
         }
     }
 
