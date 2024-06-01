@@ -3,6 +3,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        return TeleportEntanglementSwappingTestLoop(Kata.EntanglementSwapping);
+        return TeleportEntanglementSwappingTestLoop(Kata.EntanglementSwapping());
     }
 }
