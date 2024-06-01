@@ -122,4 +122,61 @@ namespace Kata.Verification {
         Message("Correct.");
         return true;
     }
+
+    operation PrepareAndSendMessage_Reference(qAlice : Qubit, basis : Pauli, state : Bool) : (Bool, Bool) {
+        use qMessage = Qubit();
+        if state {
+            X(qMessage);
+        }
+        if (basis != PauliZ) {
+            H(qMessage);
+        }
+        if (basis == PauliY) {
+            S(qMessage);
+        }
+        let classicalBits = SendMessage_Reference(qAlice, qMessage);
+        Reset(qMessage);
+        return classicalBits;
+    }
+
+    operation ReconstructAndMeasureMessage_Reference(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Bool {
+        ReconstructMessage_Reference(qBob, (b1, b2));
+        return Measure([basis], [qBob]) == One;
+    }
+
+    // ------------------------------------------------------
+    // Runs teleportation for each state that is to be prepared and
+    // sent by Alice. Success is asserted after each teleportation.
+    // Also repeats for each state several times; this is because
+    // code is expected to take different paths each time since
+    // measurements done by Alice are not deterministic.
+    operation TeleportPreparedStateTestLoop(
+        prepareAndSendMessageOp : ((Qubit, Pauli, Bool) => (Bool, Bool)), 
+        reconstructAndMeasureMessageOp : ((Qubit, (Bool, Bool), Pauli) => Bool)
+        ) : Bool {
+        
+        let messages = [(PauliX, false, "|+>"), 
+                        (PauliX, true, "|->"), 
+                        (PauliY, false, "|i>"), 
+                        (PauliY, true, "|-i>"), 
+                        (PauliZ, false, "|0>"), 
+                        (PauliZ, true, "|1>")];
+        let numRepetitions = 100;
+        use (qAlice, qBob) = (Qubit(), Qubit());
+        for (basis, sentState, stateName) in messages {
+            for j in 1 .. numRepetitions {
+                StatePrep_BellState(qAlice, qBob, 0);
+                let classicalBits = prepareAndSendMessageOp(qAlice, basis, sentState);
+                let receivedState = reconstructAndMeasureMessageOp(qBob, classicalBits, basis);
+                if (sentState != receivedState) {
+                    Message($"Sent and received states were not equal for {stateName}.");
+                    ResetAll([qAlice, qBob]);
+                    return false;
+                }
+                ResetAll([qAlice, qBob]);
+            }
+        }
+        Message($"Correct");
+        return true;
+    }
 }
