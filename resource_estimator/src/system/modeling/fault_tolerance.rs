@@ -191,7 +191,7 @@ impl Protocol {
                 .clone();
 
             let physical_qubits_per_logical_qubit_expr = model
-                .logical_cycle_time
+                .physical_qubits_per_logical_qubit
                 .as_ref()
                 .ok_or_else(|| {
                     CannotParseJSON(serde::de::Error::missing_field(
