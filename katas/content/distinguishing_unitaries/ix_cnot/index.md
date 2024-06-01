@@ -1,5 +1,5 @@
 **Input:** An operation that implements a two-qubit unitary transformation:
-either the $I \otimes X$ (the **X** gate applied to the second qubit) or the $CNOT$ gate with the first qubit as control and the second qubit as target.
+either the $I \otimes X$ (the $X$ gate applied to the second qubit) or the $CNOT$ gate with the first qubit as control and the second qubit as target.
 
 **Output:**  0 if the given operation is $I \otimes X$, 1 if the given operation is the $CNOT$ gate.
 

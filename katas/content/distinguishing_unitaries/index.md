@@ -130,7 +130,7 @@ This kata offers you a series of tasks in which you are given one unitary from t
 
 @[exercise]({
     "id": "distinguishing_unitaries__ix_cnot",
-    "title": "IX or CNOT",
+    "title": "I⊗X or CNOT?",
     "path": "./ix_cnot/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -150,7 +150,7 @@ This kata offers you a series of tasks in which you are given one unitary from t
 
 @[exercise]({
     "id": "distinguishing_unitaries__cnot_swap",
-    "title": "CNOT or SWAP",
+    "title": "CNOT or SWAP?",
     "path": "./cnot_swap/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -160,7 +160,7 @@ This kata offers you a series of tasks in which you are given one unitary from t
 
 @[exercise]({
     "id": "distinguishing_unitaries__i_cnot_swap",
-    "title": "Distinguish Two Qubit Unitaries",
+    "title": "Distinguish Two-Qubit Unitaries",
     "path": "./i_cnot_swap/",
     "qsDependencies": [
         "../KatasLibrary.qs",
