@@ -5,6 +5,8 @@
 // The results table is also a legend for the scatter chart.
 
 import { useState } from "preact/hooks";
+import { createRef } from "preact";
+import html2canvas from 'html2canvas';
 import { ColorMap } from "./colormap.js";
 import {
   CreateSingleEstimateResult,
@@ -187,6 +189,29 @@ export function EstimatesOverview(props: {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
 
+  const printRef = createRef();
+
+  const handleDownloadImage = async () => {
+    const element = printRef.current;
+    const canvas = await html2canvas(element, {
+      backgroundColor: getComputedStyle(element).getPropertyValue("--main-background")
+    });
+
+    const data = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+
+    if (typeof link.download === 'string') {
+      link.href = data;
+      link.download = 'image.png';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      window.open(data);
+    }
+  };
+
   const runNameRenderingError =
     props.runNames != null &&
     props.runNames.length > 0 &&
@@ -306,8 +331,13 @@ export function EstimatesOverview(props: {
         </>
       ) : (
         <>
-          {getResultTable()}
-          {getScatterChart()}
+          <button type="button" onClick={handleDownloadImage}>
+            Save as Image
+          </button>
+          <div ref={printRef}>
+            {getResultTable()}
+            {getScatterChart()}
+          </div>
         </>
       )}
     </div>
