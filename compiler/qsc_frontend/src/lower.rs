@@ -239,14 +239,26 @@ impl With<'_> {
                 }
             },
             Ok(hir::Attr::Config) => {
-                if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
-                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                        if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()))
-                {
-                    self.lowerer.errors.push(Error::InvalidAttrArgs(
-                        "runtime capability".to_string(),
-                        attr.arg.span,
-                    ));
+                match &*attr.arg.kind {
+                    // @Config(Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
+
+                    // @Config(not Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
+                        {}
+
+                    // Any other form is not valid so generates an error.
+                    _ => {
+                        self.lowerer.errors.push(Error::InvalidAttrArgs(
+                            "runtime capability".to_string(),
+                            attr.arg.span,
+                        ));
+                    }
                 }
                 None
             }

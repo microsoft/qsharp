@@ -125,11 +125,16 @@ impl Visitor<'_> for Renamer<'_> {
 }
 
 fn check(input: &str, expect: &Expect) {
-    expect.assert_eq(&resolve_names(input));
+    expect.assert_eq(&resolve_names(input, TargetCapabilityFlags::all()));
 }
 
-fn resolve_names(input: &str) -> String {
-    let (package, names, _, errors, namespaces) = compile(input, LanguageFeatures::default());
+fn check_with_capabilities(input: &str, capabilities: TargetCapabilityFlags, expect: &Expect) {
+    expect.assert_eq(&resolve_names(input, capabilities));
+}
+
+fn resolve_names(input: &str, capabilities: TargetCapabilityFlags) -> String {
+    let (package, names, _, errors, namespaces) =
+        compile(input, LanguageFeatures::default(), capabilities);
     let mut renamer = Renamer::new(&names, namespaces);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -146,6 +151,7 @@ fn resolve_names(input: &str) -> String {
 fn compile(
     input: &str,
     language_features: LanguageFeatures,
+    capabilities: TargetCapabilityFlags,
 ) -> (Package, Names, Locals, Vec<Error>, NamespaceTreeRoot) {
     let (namespaces, parse_errors) = qsc_parse::namespaces(input, None, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
@@ -161,7 +167,7 @@ fn compile(
 
     AstAssigner::new().visit_package(&mut package);
 
-    let mut cond_compile = compile::preprocess::Conditional::new(TargetCapabilityFlags::all());
+    let mut cond_compile = compile::preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut package);
     let dropped_names = cond_compile.into_names();
 
@@ -2172,8 +2178,8 @@ fn resolve_local_generic() {
 }
 
 #[test]
-fn dropped_callable() {
-    check(
+fn dropped_base_callable_from_unrestricted() {
+    check_with_capabilities(
         indoc! {"
             namespace A {
                 @Config(Base)
@@ -2184,6 +2190,7 @@ fn dropped_callable() {
                 }
             }
         "},
+        TargetCapabilityFlags::all(),
         &expect![[r#"
             namespace namespace7 {
                 @Config(Base)
@@ -2195,6 +2202,491 @@ fn dropped_callable() {
             }
 
             // NotAvailable("Dropped", "A.Dropped", Span { lo: 100, hi: 107 })
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_base_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Base)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Base)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 100, hi: 107 })
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_not_base_callable_from_base() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not Base)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::empty(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not Base)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 104, hi: 111 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_base_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not Base)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not Base)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_base_and_not_base_callable_from_base() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Base)
+                @Config(not Base)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::empty(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Base)
+                @Config(not Base)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 122, hi: 129 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_unrestricted_callable_from_base() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not Unrestricted)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::empty(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not Unrestricted)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_unrestricted_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not Unrestricted)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not Unrestricted)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_not_unrestricted_callable_from_unrestricted() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not Unrestricted)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::all(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not Unrestricted)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 112, hi: 119 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_adaptive_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_adaptive_callable_from_unrestricted() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::all(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_not_higher_level_callable_from_unrestricted() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::all(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 121, hi: 128 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_higher_level_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not HigherLevelConstructs)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_higher_level_callable_from_base() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::empty(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(not HigherLevelConstructs)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_not_higher_level_and_adaptive_callable_from_base() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::empty(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 143, hi: 150 })
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_not_higher_level_and_adaptive_callable_from_unrestricted() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::all(),
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 143, hi: 150 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_not_higher_level_and_adaptive_callable_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function Dropped() : Unit {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                @Config(not HigherLevelConstructs)
+                function item1() : Unit {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn dropped_floating_point_from_adaptive() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(FloatingPointComputations)
+                function Dropped() : Double {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(FloatingPointComputations)
+                function Dropped() : Double {}
+
+                function item1() : Unit {
+                    Dropped();
+                }
+            }
+
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 123, hi: 130 })
+        "#]],
+    );
+}
+
+#[test]
+fn resolved_adaptive_and_integer_from_adaptive_and_integer() {
+    check_with_capabilities(
+        indoc! {"
+            namespace A {
+                @Config(Adaptive)
+                @Config(IntegerComputations)
+                function Dropped() : Double {}
+
+                function B() : Unit {
+                    Dropped();
+                }
+            }
+        "},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+        &expect![[r#"
+            namespace namespace7 {
+                @Config(Adaptive)
+                @Config(IntegerComputations)
+                function item1() : Double {}
+
+                function item2() : Unit {
+                    item1();
+                }
+            }
         "#]],
     );
 }
@@ -2336,7 +2828,11 @@ fn check_locals(input: &str, expect: &Expect) {
     let cursor_offset = parts[0].len() as u32;
     let source = parts.join("");
 
-    let (_, _, locals, _, _) = compile(&source, LanguageFeatures::default());
+    let (_, _, locals, _, _) = compile(
+        &source,
+        LanguageFeatures::default(),
+        TargetCapabilityFlags::all(),
+    );
 
     let locals = locals.get_all_at_offset(cursor_offset);
     let actual = locals.iter().fold(String::new(), |mut output, l| {

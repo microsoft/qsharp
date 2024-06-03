@@ -36,7 +36,7 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
+    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, Global, Lit,
     LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
     StoreItemId, StringComponent, UnOp,
 };
@@ -52,6 +52,7 @@ use std::{
     rc::Rc,
 };
 use thiserror::Error;
+use val::update_functor_app;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -1872,19 +1873,6 @@ fn eval_binop_xorb(lhs_val: Value, rhs_val: Value) -> Value {
             Value::Int(val ^ rhs)
         }
         _ => panic!("value type does not support xorb"),
-    }
-}
-
-fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
-    match functor {
-        Functor::Adj => FunctorApp {
-            adjoint: !app.adjoint,
-            controlled: app.controlled,
-        },
-        Functor::Ctl => FunctorApp {
-            adjoint: app.adjoint,
-            controlled: app.controlled + 1,
-        },
     }
 }
 

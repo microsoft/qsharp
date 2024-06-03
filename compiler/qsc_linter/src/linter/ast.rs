@@ -76,7 +76,7 @@ pub(crate) trait AstLintPass {
 macro_rules! declare_ast_lints {
     ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr) ),* $(,)?) => {
         // Declare the structs representing each lint.
-        use crate::{Lint, LintLevel, linter::ast::AstLintPass};
+        use crate::{Lint, LintKind, LintLevel, linter::ast::AstLintPass};
         $(declare_ast_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help})*
 
         // This is a silly wrapper module to avoid contaminating the environment
@@ -110,17 +110,18 @@ macro_rules! declare_ast_lints {
             level: LintLevel,
             message: &'static str,
             help: &'static str,
+            kind: LintKind,
         }
 
         impl Default for $lint_name {
             fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help }
+                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help, kind: LintKind::Ast(AstLint::$lint_name) }
             }
         }
 
         impl From<LintLevel> for $lint_name {
             fn from(value: LintLevel) -> Self {
-                Self { level: value, message: $msg, help: $help }
+                Self { level: value, message: $msg, help: $help, kind: LintKind::Ast(AstLint::$lint_name) }
             }
         }
 
@@ -133,10 +134,14 @@ macro_rules! declare_ast_lints {
     (@CONFIG_ENUM $($lint_name:ident),*) => {
         use serde::{Deserialize, Serialize};
 
+        /// An enum listing all existing AST lints.
         #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
         #[serde(rename_all = "camelCase")]
         pub enum AstLint {
-            $($lint_name),*
+            $(
+                #[doc = stringify!($lint_name)]
+                $lint_name
+            ),*
         }
     };
 
