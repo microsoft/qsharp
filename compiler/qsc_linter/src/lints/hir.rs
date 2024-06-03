@@ -39,7 +39,7 @@ impl OperationLimits {
         }
     }
 
-    // Empty operation means no code for body and specializations(implicit or explicit)
+    // Empty operation means no code for body and specializations.
     fn is_empty_op(call_decl: &CallableDecl) -> bool {
         Self::is_empty_decl(Some(&call_decl.body))
             && Self::is_empty_decl(call_decl.adj.as_ref())
