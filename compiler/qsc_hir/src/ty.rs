@@ -657,20 +657,6 @@ impl Udt {
             }),
         }
     }
-
-    // ToDo: will be needed for an HIR pass to ensure all fields are named in struct constructors
-    pub fn get_all_top_field_names(&self) -> Vec<Rc<str>> {
-        match &self.definition.kind {
-            UdtDefKind::Field(_) => Vec::new(),
-            UdtDefKind::Tuple(fields) => fields
-                .iter()
-                .filter_map(|field| match &field.kind {
-                    UdtDefKind::Field(field) => field.name.clone(),
-                    UdtDefKind::Tuple(_) => None,
-                })
-                .collect(),
-        }
-    }
 }
 
 impl Display for Udt {
