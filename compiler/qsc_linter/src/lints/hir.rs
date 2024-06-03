@@ -15,19 +15,19 @@ declare_hir_lints! {
     (NeedlessOperation, LintLevel::Warn, "unnecessary operation declaration", "convert to function")
 }
 
-// Helper to check if an operation has desired operation characteristics
-//
-// empty operations: no lint, special case of `I` operation used for Delay
-// operations with errors (e.g. partially typed code): no lint because linter does not run
-// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
-// non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
+/// Helper to check if an operation has desired operation characteristics
+///
+/// empty operations: no lint, special case of `I` operation used for Delay
+/// operations with errors (e.g. partially typed code): no lint because linter does not run
+/// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
+/// non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
 #[derive(Default)]
-struct OperationLimits {
+struct IsQuantumOperation {
     // Operation Characteristics
-    op_char: bool,
+    is_op: bool,
 }
 
-impl OperationLimits {
+impl IsQuantumOperation {
     // Checks for empty declarations
     fn is_empty_decl(spec_decl: Option<&SpecDecl>) -> bool {
         match spec_decl {
@@ -48,19 +48,19 @@ impl OperationLimits {
     }
 }
 
-impl Visitor<'_> for OperationLimits {
+impl Visitor<'_> for IsQuantumOperation {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         if Self::is_empty_op(decl) {
-            self.op_char = true;
+            self.is_op = true;
         } else {
             visit::walk_callable_decl(self, decl);
         }
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        if !self.op_char {
+        if !self.is_op {
             if let StmtKind::Qubit(..) = &stmt.kind {
-                self.op_char = true;
+                self.is_op = true;
             } else {
                 visit::walk_stmt(self, stmt);
             }
@@ -68,16 +68,16 @@ impl Visitor<'_> for OperationLimits {
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        if !self.op_char {
+        if !self.is_op {
             match &expr.kind {
                 ExprKind::Call(callee, _) => {
                     if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation)
                     {
-                        self.op_char = true;
+                        self.is_op = true;
                     }
                 }
                 ExprKind::Conjugate(..) | ExprKind::Repeat(..) => {
-                    self.op_char = true;
+                    self.is_op = true;
                 }
                 _ => {
                     visit::walk_expr(self, expr);
@@ -87,16 +87,16 @@ impl Visitor<'_> for OperationLimits {
     }
 }
 
-// HIR Lint for `NeedlessOperation`, suggesting to use function
-// We use `OperationLimits` helper to check if a operation has desired operation characteristics
+/// HIR Lint for [`NeedlessOperation`], suggesting to use function
+/// We use [`IsQuantumOperation`] helper to check if a operation has desired operation characteristics
 impl HirLintPass for NeedlessOperation {
     fn check_callable_decl(&self, decl: &CallableDecl, buffer: &mut Vec<Lint>) {
         if decl.kind == CallableKind::Operation {
-            let mut op_limits = OperationLimits::default();
+            let mut op_limits = IsQuantumOperation::default();
 
             op_limits.visit_callable_decl(decl);
 
-            if !op_limits.op_char {
+            if !op_limits.is_op {
                 buffer.push(lint!(self, decl.span));
             }
         }
