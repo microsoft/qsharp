@@ -165,9 +165,9 @@ fn needless_operation_lambda_operations() {
 fn needless_operation_no_lint_for_valid_lambda_operations() {
     check(
         &wrap_in_callable("let op = (q) => H(q);", CallableKind::Function),
-        &expect![[r#"
+        &expect![[r"
             []
-        "#]],
+        "]],
     );
 }
 
