@@ -28,7 +28,7 @@ struct IsQuantumOperation {
 }
 
 impl IsQuantumOperation {
-    // Checks for empty declarations
+    /// Returns `true` if the declaration is empty.
     fn is_empty_decl(spec_decl: Option<&SpecDecl>) -> bool {
         match spec_decl {
             None => true,
@@ -39,7 +39,8 @@ impl IsQuantumOperation {
         }
     }
 
-    // Empty operation means no code for body and specializations.
+    /// Returns `true` if the operation is empty.
+    /// An operation is empty if there is no code for its body and specializations.
     fn is_empty_op(call_decl: &CallableDecl) -> bool {
         Self::is_empty_decl(Some(&call_decl.body))
             && Self::is_empty_decl(call_decl.adj.as_ref())
