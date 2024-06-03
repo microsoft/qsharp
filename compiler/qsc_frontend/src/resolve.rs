@@ -813,7 +813,7 @@ impl AstVisitor<'_> for With<'_> {
                 self.visit_expr(replace);
             }
             ast::ExprKind::Struct(path, copy, fields) => {
-                self.resolver.resolve_path(NameKind::Term, path);
+                self.resolver.resolve_path(NameKind::Ty, path);
                 copy.iter().for_each(|c| self.visit_expr(c));
                 fields.iter().for_each(|f| self.visit_field_assign(f));
             }

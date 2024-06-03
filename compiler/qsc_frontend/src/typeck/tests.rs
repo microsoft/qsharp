@@ -2401,6 +2401,99 @@ fn struct_copy_cons_too_many_fields() {
 }
 
 #[test]
+fn struct_cons_udt_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Triple = (Int, Int, Int);
+                function Foo() : Triple { new Triple { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 68-70 "()" : Unit
+            #23 80-120 "{ new Triple { First = 5, Second = 6 } }" : ?
+            #25 82-118 "new Triple { First = 5, Second = 6 }" : ?
+            #30 103-104 "5" : ?
+            #33 115-116 "6" : ?
+            Error(Type(Error(MissingClassStruct("Triple", Span { lo: 86, hi: 92 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_ty_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int { new Int { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-76 "{ new Int { First = 5, Second = 6 } }" : ?
+            #12 41-74 "new Int { First = 5, Second = 6 }" : ?
+            #17 59-60 "5" : ?
+            #20 71-72 "6" : ?
+            Error(Type(Error(MissingClassStruct("Int", Span { lo: 45, hi: 48 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_ident_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    let q = 3;
+                    new q { First = 5, Second = 6 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-105 "{\n        let q = 3;\n        new q { First = 5, Second = 6 }\n    }" : ?
+            #12 53-54 "q" : Int
+            #14 57-58 "3" : Int
+            #16 68-99 "new q { First = 5, Second = 6 }" : ?
+            #21 84-85 "5" : ?
+            #24 96-97 "6" : ?
+            Error(Resolve(NotFound("q", Span { lo: 72, hi: 73 })))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_call_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Bar() : Pair { new Pair { First = 1, Second = 2 } }
+                function Foo() : Pair { new Bar { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-124 "{ new Pair { First = 1, Second = 2 } }" : UDT<"Pair": Item 1>
+            #25 88-122 "new Pair { First = 1, Second = 2 }" : UDT<"Pair": Item 1>
+            #30 107-108 "1" : Int
+            #33 119-120 "2" : Int
+            #37 141-143 "()" : Unit
+            #41 151-188 "{ new Bar { First = 5, Second = 6 } }" : ?
+            #43 153-186 "new Bar { First = 5, Second = 6 }" : ?
+            #48 171-172 "5" : ?
+            #51 183-184 "6" : ?
+            Error(Resolve(NotFound("Bar", Span { lo: 157, hi: 160 })))
+        "#]],
+    );
+}
+
+#[test]
 fn newtype_does_not_match_base_ty() {
     check(
         indoc! {"
