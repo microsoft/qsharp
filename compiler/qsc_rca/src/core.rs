@@ -184,10 +184,11 @@ impl<'a> Analyzer<'a> {
         // runtime feature is used to mark the array itself as dynamically sized.
         if !application_instance.active_dynamic_scopes.is_empty() {
             default_value_kind = ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
+            let replacement_ty = &self.get_expr(replacement_value_expr_id).ty;
             replacement_value_compute_kind =
                 replacement_value_compute_kind.aggregate(ComputeKind::new_with_runtime_features(
                     RuntimeFeatureFlags::UseOfDynamicallySizedArray,
-                    default_value_kind,
+                    ValueKind::new_static_from_type(replacement_ty),
                 ));
         }
 
