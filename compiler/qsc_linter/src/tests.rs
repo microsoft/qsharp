@@ -162,6 +162,16 @@ fn needless_operation_lambda_operations() {
 }
 
 #[test]
+fn needless_operation_no_lint_for_valid_lambda_operations() {
+    check(
+        &wrap_in_callable("let op = (q) => H(q);", CallableKind::Function),
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
 fn needless_operation_non_empty_op_and_no_specialization() {
     check(
         &wrap_in_callable("let x = 2;", CallableKind::Operation),
