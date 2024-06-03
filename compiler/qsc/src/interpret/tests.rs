@@ -517,22 +517,7 @@ mod given_interpreter {
         }
 
         #[test]
-        fn callables_failing_profile_validation_are_still_registered() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_are_not_registered() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -540,30 +525,31 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
-            // if the callable wasn't registered, this would panic instead of returning an error.
-            verify_same_error(&result, &output);
+            // since the callable wasn't registered, this will return an unbound name error.
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                runtime error: name is not bound
+                   [line_1] [Foo]
+            "#]],
+            );
         }
 
         #[test]
-        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
+        fn callables_failing_profile_validation_also_fail_qir_generation() {
             let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
@@ -571,7 +557,68 @@ mod given_interpreter {
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
+            let res = interpreter.qirgen("{Foo();}");
+            expect![[r#"
+                Err(
+                    [
+                        PartialEvaluation(
+                            WithSource {
+                                sources: [
+                                    Source {
+                                        name: "<entry>",
+                                        contents: "{Foo();}",
+                                        offset: 97,
+                                    },
+                                ],
+                                error: EvaluationFailed(
+                                    "name is not bound",
+                                    PackageSpan {
+                                        package: PackageId(
+                                            3,
+                                        ),
+                                        span: Span {
+                                            lo: 98,
+                                            hi: 101,
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            "#]]
+            .assert_debug_eq(&res);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_do_not_fail() {
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(
                 &mut interpreter,
@@ -579,7 +626,7 @@ mod given_interpreter {
                     let y = 7;
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_value(&result, &output, &Value::unit());
         }
 
         #[test]
@@ -678,7 +725,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -689,7 +736,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -913,7 +960,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -924,7 +971,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -967,7 +1014,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -978,7 +1025,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1061,7 +1108,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1072,7 +1119,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1128,7 +1175,7 @@ mod given_interpreter {
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
@@ -1139,7 +1186,7 @@ mod given_interpreter {
 
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1409,6 +1456,40 @@ mod given_interpreter {
 
             let (result, output) = entry(&mut interpreter);
             is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn errors_returned_if_sources_do_not_match_profile() {
+            let source = indoc! { r#"
+            namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
+            let result = Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::IntegerComputations
+                    | TargetCapabilityFlags::QubitReset,
+                LanguageFeatures::default(),
+            );
+
+            match result {
+                Ok(_) => panic!("Expected error, got interpreter."),
+                Err(errors) => is_error(
+                    &errors,
+                    &expect![[r#"
+                        cannot use a dynamic double value
+                           [<entry>] [A.Test()]
+                        cannot use a double value as an output
+                           [<entry>] [A.Test()]
+                        cannot use a dynamic double value
+                           [test] [set x = 2.0]
+                        cannot use a dynamic double value
+                           [test] [x]
+                    "#]],
+                ),
+            }
         }
 
         #[test]

@@ -97,7 +97,7 @@ mod base_profile {
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               ret void
             }
@@ -106,7 +106,7 @@ mod base_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="1" }
             attributes #1 = { "irreversible" }
@@ -144,8 +144,8 @@ mod base_profile {
 
             define void @ENTRYPOINT__main() #0 {
             block_0:
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
               call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -156,7 +156,7 @@ mod base_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
             attributes #1 = { "irreversible" }
@@ -199,8 +199,8 @@ mod base_profile {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
               call void @__quantum__rt__array_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -213,7 +213,7 @@ mod base_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
             attributes #1 = { "irreversible" }
@@ -269,7 +269,7 @@ mod adaptive_profile {
               call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
               call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               ret void
             }
@@ -278,7 +278,7 @@ mod adaptive_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
             attributes #1 = { "irreversible" }
@@ -323,8 +323,8 @@ mod adaptive_profile {
 
             define void @ENTRYPOINT__main() #0 {
             block_0:
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
               call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -335,7 +335,7 @@ mod adaptive_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="2" }
             attributes #1 = { "irreversible" }
@@ -384,9 +384,9 @@ mod adaptive_profile {
             define void @ENTRYPOINT__main() #0 {
             block_0:
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
               call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
               call void @__quantum__rt__array_record_output(i64 2, i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
               call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -399,7 +399,7 @@ mod adaptive_profile {
 
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="2" }
             attributes #1 = { "irreversible" }

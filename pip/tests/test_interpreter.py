@@ -274,21 +274,23 @@ def test_entry_expr_circuit() -> None:
     )
 
 
-# this is by design
-def test_callables_failing_profile_validation_are_still_registered() -> None:
+def test_callables_failing_profile_validation_are_not_registered() -> None:
     e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
         )
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
+    # In this case, the callable Foo failed compilation late enough that the symbol is bound. This makes later
+    # use of `Foo` valid from a name resolution standpoint, but the callable cannot be invoked because it was found
+    # to be invalid for the current profile. To stay consistent with the behavior of other compilations that
+    # leave unbound symbols, the call will compile but fail to run.
     with pytest.raises(Exception) as excinfo:
         e.interpret("Foo()")
-    assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
+    assert "Qsc.Eval.UnboundName" in str(excinfo)
 
 
-# this is by design
-def test_once_rca_validation_fails_following_calls_also_fail() -> None:
+def test_once_callable_fails_profile_validation_it_fails_compile_to_QIR() -> None:
     e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
@@ -296,8 +298,20 @@ def test_once_rca_validation_fails_following_calls_also_fail() -> None:
         )
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
     with pytest.raises(Exception) as excinfo:
-        e.interpret("let x = 5;")
+        e.qir("{Foo();}")
+    assert "Qsc.PartialEval.EvaluationFailed" in str(excinfo)
+    assert "name is not bound" in str(excinfo)
+
+
+def test_once_rca_validation_fails_following_calls_do_not_fail() -> None:
+    e = Interpreter(TargetProfile.Adaptive_RI)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
+        )
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
+    value = e.interpret("let x = 5; x")
+    assert value == 5
 
 
 def test_adaptive_errors_are_raised_when_interpreting() -> None:
@@ -412,7 +426,7 @@ def test_base_qir_can_be_generated() -> None:
           call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           ret void
         }
@@ -421,7 +435,7 @@ def test_base_qir_can_be_generated() -> None:
 
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-        declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
         attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="1" }
         attributes #1 = { "irreversible" }
