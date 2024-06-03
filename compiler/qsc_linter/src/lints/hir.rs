@@ -23,7 +23,8 @@ declare_hir_lints! {
 /// non-empty operations with no specializations, and no quantum operations: show lint, offer quickfix to convert to function
 #[derive(Default)]
 struct IsQuantumOperation {
-    // Operation Characteristics
+    /// This field is set to `true` after calling `Visitor::visit_callable_decl(...)`
+    /// if the operation satisfies the characteristics described above.
     is_op: bool,
 }
 
