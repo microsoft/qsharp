@@ -6,11 +6,11 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    resolve::{self, Names},
+    resolve::{self, ItemSource, Names},
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast;
+use qsc_ast::ast::{self, ImportOrExportItem};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -123,20 +123,21 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _, _)) =
             self.names.get(namespace.id)
         else {
             panic!("namespace should have item ID");
         };
 
         self.lowerer.parent = Some(id);
+
         let items: Vec<LocalItemId> = namespace
             .items
             .iter()
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_vec_ident(&namespace.name);
+        let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -157,42 +158,45 @@ impl With<'_> {
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
-        let visibility = match scope {
-            ItemScope::Global => item
-                .visibility
-                .as_ref()
-                .map_or(hir::Visibility::Public, lower_visibility),
-            ItemScope::Local => hir::Visibility::Internal,
-        };
-
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(item, _)) => item,
+            Some(&resolve::Res::Item(item, _, item_source)) => (item, item_source),
             _ => panic!("item should have item ID"),
         };
 
-        let (id, kind) = match &*item.kind {
+        let ((id, item_source), kind) = match &*item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) |
             // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
 
             ast::ItemKind::ImportOrExport(_) => return None,
             ast::ItemKind::Callable(callable) => {
-                let id = resolve_id(callable.name.id);
+                let (id, item_source) = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
-                (id, hir::ItemKind::Callable(callable))
+                ((id, item_source), hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
-                let id = resolve_id(name.id);
+                let (id, item_source) = resolve_id(name.id);
                 let udt = self
                     .tys
                     .udts
                     .get(&id)
                     .expect("type item should have lowered UDT");
 
-                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+                ((id, item_source), hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
+        };
+        if item_source == ItemSource::Exported {
+            todo!("why is nothing exported? This is the place where exported gets converted into visibility");
+        }
+        let visibility = match (scope, item_source) {
+            (_, ItemSource::Exported) => hir::Visibility::Public,
+            (ItemScope::Global, _) => item
+                .visibility
+                .as_ref()
+                .map_or(hir::Visibility::Public, lower_visibility),
+            _ => hir::Visibility::Internal,
         };
 
         self.lowerer.items.push(hir::Item {
@@ -717,7 +721,7 @@ impl With<'_> {
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.names.get(path.id) {
-            Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
+            Some(&resolve::Res::Item(item, _, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
@@ -740,7 +744,7 @@ impl With<'_> {
         })
     }
 
-    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+    fn lower_idents(&mut self, name: &ast::Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }

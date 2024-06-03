@@ -40,7 +40,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global or local item.
-    Item(ItemId, ItemStatus),
+    Item(ItemId, ItemStatus, ItemSource),
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
@@ -179,7 +179,7 @@ impl ScopeItemEntry {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Default, Copy)]
+#[derive(PartialEq, Debug, Clone, Default, Copy, Eq, Hash)]
 pub enum ItemSource {
     Exported,
     Imported,
@@ -558,7 +558,7 @@ impl Resolver {
     }
 
     fn check_item_status(&mut self, res: Res, name: String, span: Span) {
-        if let Res::Item(_, ItemStatus::Unimplemented) = res {
+        if let Res::Item(_, ItemStatus::Unimplemented, _) = res {
             self.errors.push(Error::Unimplemented(name, span));
         }
     }
@@ -714,6 +714,7 @@ impl Resolver {
                     Res::Item(
                         id,
                         ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                        ItemSource::Declared,
                     ),
                 );
                 self.current_scope_mut().terms.insert(
@@ -728,6 +729,7 @@ impl Resolver {
                     Res::Item(
                         id,
                         ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                        ItemSource::Declared,
                     ),
                 );
                 let scope = self.current_scope_mut();
@@ -799,13 +801,13 @@ impl Resolver {
                 ItemSource::Imported
             };
 
-            if let Ok(Res::Item(id, _)) = term_result {
+            if let Ok(Res::Item(id, _, _)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
-                        self.globals
-                            .terms
-                            .get_mut_or_default(namespace)
-                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
+                        self.globals.terms.get_mut_or_default(namespace).insert(
+                            local_name.clone(),
+                            Res::Item(id, ItemStatus::Available, item_source),
+                        );
                     }
                 }
                 let scope = self.current_scope_mut();
@@ -814,13 +816,13 @@ impl Resolver {
                     .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
             }
 
-            if let Ok(Res::Item(id, _)) = ty_result {
+            if let Ok(Res::Item(id, _, _3)) = ty_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
-                        self.globals
-                            .tys
-                            .get_mut_or_default(namespace)
-                            .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
+                        self.globals.tys.get_mut_or_default(namespace).insert(
+                            local_name.clone(),
+                            Res::Item(id, ItemStatus::Available, item_source),
+                        );
                     }
                 }
                 let scope = self.current_scope_mut();
@@ -1250,17 +1252,17 @@ impl GlobalTable {
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
-                    self.scope
-                        .tys
-                        .get_mut_or_default(namespace)
-                        .insert(global.name, Res::Item(ty.id, global.status));
+                    self.scope.tys.get_mut_or_default(namespace).insert(
+                        global.name,
+                        Res::Item(ty.id, global.status, ItemSource::Imported),
+                    );
                 }
                 (global::Kind::Term(term), visibility) => {
                     if visibility == hir::Visibility::Public {
-                        self.scope
-                            .terms
-                            .get_mut_or_default(namespace)
-                            .insert(global.name.clone(), Res::Item(term.id, global.status));
+                        self.scope.terms.get_mut_or_default(namespace).insert(
+                            global.name.clone(),
+                            Res::Item(term.id, global.status, ItemSource::Imported),
+                        );
                     }
                     if term.intrinsic {
                         self.scope.intrinsics.insert(global.name);
@@ -1285,7 +1287,11 @@ fn bind_global_items(
 ) {
     names.insert(
         namespace.id,
-        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
+        Res::Item(
+            intrapackage(assigner.next_item()),
+            ItemStatus::Available,
+            ItemSource::Imported,
+        ),
     );
 
     let namespace_id = scope.insert_or_find_namespace(&namespace.name);
@@ -1357,7 +1363,7 @@ fn bind_global_item(
         ast::ItemKind::Callable(decl) => {
             let item_id = next_id();
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status);
+            let res = Res::Item(item_id, status, ItemSource::Declared);
             names.insert(decl.name.id, res);
             let mut errors = Vec::new();
             match scope
@@ -1399,7 +1405,7 @@ fn bind_global_item(
             let item_id = next_id();
 
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status);
+            let res = Res::Item(item_id, status, ItemSource::Declared);
             names.insert(name.id, res);
             match (
                 scope
@@ -1750,7 +1756,7 @@ where
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
         // succeed in cases where both an older, unimplemented API and newer, implemented API with the
         // same name are both in scope without forcing the user to fully qualify the name.
-        candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented)));
+        candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented, _)));
     }
     candidates
 }
@@ -1847,7 +1853,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id, ItemStatus::Available));
+        return Some(Res::Item(id, ItemStatus::Available, ItemSource::Declared));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {

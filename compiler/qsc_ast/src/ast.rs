@@ -167,6 +167,7 @@ pub struct Namespace {
     pub name: Idents,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
+    //    bound_exports: Box<[Item]>,
 }
 
 impl Namespace {
@@ -177,6 +178,14 @@ impl Namespace {
             _ => &[],
         })
     }
+
+    // fn bound_exports(&self) -> impl Iterator<Item = &ItemId> {
+    //     self.bound_exports.iter()
+    // }
+
+    // pub fn push_bound_export(&mut self, item: ItemId) {
+    //     self.bound_exports.push(item);
+    // }
 }
 
 impl Display for Namespace {

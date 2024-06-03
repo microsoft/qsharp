@@ -127,19 +127,23 @@ impl PackageIter<'_> {
         };
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
-        match (&item.kind, &parent) {
-            (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
-                namespace: namespace.into(),
-                name: Rc::clone(&decl.name.name),
-                visibility: item.visibility,
-                status,
-                kind: Kind::Term(Term {
-                    id,
-                    scheme: decl.scheme(),
-                    intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
-                }),
-            }),
-            (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
+        use Visibility::*;
+        match (item.visibility, &item.kind, &parent) {
+            (Internal, _, _) => None,
+            (Public, ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => {
+                Some(Global {
+                    namespace: namespace.into(),
+                    name: Rc::clone(&decl.name.name),
+                    visibility: item.visibility,
+                    status,
+                    kind: Kind::Term(Term {
+                        id,
+                        scheme: decl.scheme(),
+                        intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
+                    }),
+                })
+            }
+            (Public, ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: namespace.into(),
                     name: Rc::clone(&name.name),
@@ -160,7 +164,7 @@ impl PackageIter<'_> {
                     kind: Kind::Ty(Ty { id }),
                 })
             }
-            (ItemKind::Namespace(ident, _), None) => Some(Global {
+            (Public, ItemKind::Namespace(ident, _), None) => Some(Global {
                 namespace: ident.into(),
                 name: "".into(),
                 visibility: Visibility::Public,

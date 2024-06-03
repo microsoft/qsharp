@@ -76,7 +76,7 @@ impl<'a> Renamer<'a> {
 
     fn format_res(res: &Res) -> String {
         match res {
-            Res::Item(item, _) => match item.package {
+            Res::Item(item, _, _) => match item.package {
                 None => format!("item{}", item.item),
                 Some(package) => format!("package{package}_item{}", item.item),
             },
