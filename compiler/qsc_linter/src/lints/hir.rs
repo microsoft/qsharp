@@ -15,7 +15,7 @@ declare_hir_lints! {
     (NeedlessOperation, LintLevel::Warn, "unnecessary operation declaration", "convert to function")
 }
 
-// Helper to check if a operation has desired operation characteristics
+// Helper to check if an operation has desired operation characteristics
 //
 // empty operations: no lint, special case of `I` operation used for Delay
 // operations with errors (e.g. partially typed code): no lint because linter does not run
