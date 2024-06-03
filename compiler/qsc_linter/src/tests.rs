@@ -178,8 +178,6 @@ fn needless_operation_non_empty_op_and_no_specialization() {
     );
 }
 
-// non-empty operations, with specializations, and no quantum operations: show lint, but don't offer quickfix (to avoid deleting user code in any explicit specializations)
-// non-empty operations with no specializations,
 #[test]
 fn needless_operation_non_empty_op_and_specialization() {
     check(
@@ -260,7 +258,6 @@ fn needless_operation_partial_application() {
 
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
-
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
