@@ -33,20 +33,22 @@ namespace IterativePhaseEstimation {
         // Number of iterations
         let n = 4;
         // Perform measurements
-        Message("Computing inner product of vectors (cos(Θ₁/2), sin(Θ₁/2)) and (cos(Θ₂/2), sin(Θ₂/2))");
-        Message("Inner product is -cos(x𝝅/2ⁿ).");
+        Message("Computing inner product of vectors (cos(Θ₁/2), sin(Θ₁/2))⋅(cos(Θ₂/2), sin(Θ₂/2)) ≈ -cos(x𝝅/2ⁿ)");
         let result = PerformMeasurements(theta1, theta2, n);
         // Return result
         return (result, n);
     }
 
     @Config(Adaptive)
+    @Config(not HigherLevelConstructs)
+    @Config(not FloatingPointComputations)
     operation PerformMeasurements(theta1 : Double, theta2 : Double, n : Int) : Int {
         let measurementCount = n + 1;
         return QuantumInnerProduct(theta1, theta2, measurementCount);
     }
 
-    @Config(Unrestricted)
+    @Config(HigherLevelConstructs)
+    @Config(FloatingPointComputations)
     operation PerformMeasurements(theta1 : Double, theta2 : Double, n : Int) : Int {
         Message($"Θ₁={theta1}, Θ₂={theta2}.");
 
@@ -92,7 +94,7 @@ namespace IterativePhaseEstimation {
         use ControlReg = Qubit();
         mutable MeasureControlReg = [Zero, size = Measurements];
         mutable bitValue = 0;
-        //Apply to initialise state, this is defined by the angles theta_1 and theta_2
+        //Apply to initialise state, this is defined by the angles theta1 and theta2
         StateInitialisation(TargetReg, AncilReg, theta1, theta2);
         for index in 0..Measurements - 1 {
             H(ControlReg);
