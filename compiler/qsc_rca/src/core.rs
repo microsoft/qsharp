@@ -895,14 +895,13 @@ impl<'a> Analyzer<'a> {
             compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
         }
 
-        // ToDo: I don't know if this is correct.
         // If the constructor is dynamic, aggregate the corresponding runtime features depending on its type.
-        if let Some(value_kind) = compute_kind.value_kind() {
-            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
-                panic!("expected quantum variant of Compute Kind");
-            };
+        if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
             quantum_properties.runtime_features |=
-                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
+                derive_runtime_features_for_value_kind_associated_to_type(
+                    quantum_properties.value_kind,
+                    expr_type,
+                );
         }
 
         compute_kind

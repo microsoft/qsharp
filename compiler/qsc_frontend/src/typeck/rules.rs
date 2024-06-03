@@ -482,20 +482,22 @@ impl<'a> Context<'a> {
                     },
                 );
 
-                let container = converge(container);
-
                 // Ensure that the copy expression has the same type as the given struct.
                 if let Some(copy) = copy {
                     let copy_ty = self.infer_expr(copy);
-                    self.inferrer
-                        .eq(copy.span, container.ty.clone(), copy_ty.ty);
+                    self.inferrer.eq(copy.span, container.clone(), copy_ty.ty);
                 }
 
                 for field in fields.iter() {
-                    self.infer_field_assign(field.span, &container, &field.field, &field.value);
+                    self.infer_field_assign(
+                        field.span,
+                        container.clone(),
+                        &field.field,
+                        &field.value,
+                    );
                 }
 
-                converge(container.ty)
+                converge(container)
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
@@ -727,7 +729,7 @@ impl<'a> Context<'a> {
     fn infer_field_assign(
         &mut self,
         span: Span,
-        container: &Partial<Ty>,
+        container_ty: Ty,
         field_name: &Ident,
         value: &Expr,
     ) -> Partial<Ty> {
@@ -736,12 +738,13 @@ impl<'a> Context<'a> {
         self.inferrer.class(
             span,
             Class::HasField {
-                record: container.ty.clone(),
+                record: container_ty.clone(),
                 name: field,
                 item: value.ty.clone(),
             },
         );
-        self.diverge_if(value.diverges, value) // ToDo: I don't know what "diverge" means, so I'm not sure if this is correct
+
+        self.diverge_if(value.diverges, converge(container_ty))
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {

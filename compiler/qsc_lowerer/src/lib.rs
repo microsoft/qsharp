@@ -716,7 +716,7 @@ impl Lowerer {
 
     fn lower_field_assign(&mut self, field_assign: &hir::FieldAssign) -> fir::FieldAssign {
         fir::FieldAssign {
-            id: self.lower_id(field_assign.id), // ToDo: Is this correct?
+            id: self.lower_id(field_assign.id),
             span: field_assign.span,
             field: lower_field(&field_assign.field),
             value: self.lower_expr(&field_assign.value),
