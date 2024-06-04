@@ -7,6 +7,6 @@ namespace MyQuantumProgram {
 
     @EntryPoint()
     operation Main() : Unit {
-        use q = Qubit();
+        // TODO: Write your Q# code here.
     }
 }
