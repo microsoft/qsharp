@@ -135,7 +135,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
         }
     }
 
-    // Handles callable, UDT, and type param definitions
+    // Handles callable, UDT, struct, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
         if item.span.contains(self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
@@ -203,7 +203,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         if def.name.span.touches(self.offset) {
                             self.inner.at_struct_def(&def.name, def);
                         } else {
-                            //self.visit_ty_def(def);
+                            self.visit_struct_decl(def);
                         }
 
                         self.context.current_udt_id = context;
@@ -243,6 +243,17 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 }
             } else {
                 walk_ty_def(self, def);
+            }
+        }
+    }
+
+    // Handles struct field definitions
+    fn visit_field_def(&mut self, def: &'package ast::FieldDef) {
+        if def.span.contains(self.offset) {
+            if def.name.span.touches(self.offset) {
+                self.inner.at_field_def(&self.context, &def.name, &def.ty);
+            } else {
+                self.visit_ty(&def.ty);
             }
         }
     }

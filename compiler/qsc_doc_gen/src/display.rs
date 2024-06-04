@@ -95,7 +95,7 @@ impl<'a> CodeDisplay<'a> {
 
     #[must_use]
     pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
-        HirUdt { udt }
+        HirUdt::new(udt)
     }
 
     #[must_use]
@@ -381,12 +381,43 @@ impl Display for StructDef<'_> {
 
 struct HirUdt<'a> {
     udt: &'a ty::Udt,
+    is_struct: bool,
+}
+
+impl<'a> HirUdt<'a> {
+    fn new(udt: &'a ty::Udt) -> Self {
+        HirUdt {
+            udt,
+            is_struct: udt.is_struct(),
+        }
+    }
 }
 
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let udt_def = UdtDef::new(&self.udt.definition);
-        write!(f, "newtype {} = {}", self.udt.name, udt_def)
+        if self.is_struct {
+            write!(f, "struct {} ", self.udt.name)?;
+
+            match &self.udt.definition.kind {
+                ty::UdtDefKind::Tuple(fields) => {
+                    write!(f, "{{ ")?;
+                    if let Some((last, most)) = fields.split_last() {
+                        for field in most {
+                            let field = UdtDef::new(field);
+                            write!(f, "{field}, ")?;
+                        }
+                        let field = UdtDef::new(last);
+                        write!(f, "{field} ")?;
+                    }
+                    write!(f, "}}")?;
+                }
+                ty::UdtDefKind::Field(_) => {}
+            }
+            Ok(())
+        } else {
+            let udt_def = UdtDef::new(&self.udt.definition);
+            write!(f, "newtype {} = {}", self.udt.name, udt_def)
+        }
     }
 }
 
@@ -418,7 +449,7 @@ impl<'a> UdtDef<'a> {
 impl Display for UdtDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(name) = &self.name {
-            write!(f, "{name}: ")?;
+            write!(f, "{name} : ")?;
         }
 
         match &self.kind {
