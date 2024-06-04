@@ -5,7 +5,7 @@
     "title": "Overview"
 })
 
-Quantum oracles are a key part of many quantum algorithms that rely on quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.
+Quantum oracles are a key part of many quantum algorithms that rely on a quantum implementation of a classical function. The algorithms' discussions often assume that the quantum oracle that implements the function of interest is provided.
 However, in practice implementing a quantum oracle for a specific problem can be quite challenging.
 
 This kata continues the exploration of quantum oracles started in the Oracles kata, offering you a variety of practice problems on implementing marking oracles. If you're not familiar with the concept of quantum oracles, make sure to check out the Oracles kata that introduces the key concepts in this topic and offers a lot of simple practice problems.
