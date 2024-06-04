@@ -1,7 +1,7 @@
 namespace Kata {
-    operation ReconstructAndMeasureMessage(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Bool {    
+    operation ReconstructAndMeasureMessage(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Result {    
         // Implement your solution here...
-        return false;
+        return Zero;
     }
     
     // You might find this helper operation from earlier tasks useful.

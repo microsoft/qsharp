@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PrepareAndSendMessage(qAlice : Qubit, basis : Pauli, state : Bool) : (Bool, Bool) {
+    operation PrepareAndSendMessage(qAlice : Qubit, basis : Pauli, state : Result) : (Bool, Bool) {
         // Implement your solution here...
         return (false, false);
     }

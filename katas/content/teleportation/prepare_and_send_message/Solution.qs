@@ -1,13 +1,13 @@
 namespace Kata {
-    operation PrepareAndSendMessage(qAlice : Qubit, basis : Pauli, state : Bool) : (Bool, Bool) {
+    operation PrepareAndSendMessage(qAlice : Qubit, basis : Pauli, state : Result) : (Bool, Bool) {
         use qMessage = Qubit();
-        if state {
+        if state == One {
             X(qMessage);
         }
-        if (basis != PauliZ) {
+        if basis != PauliZ {
             H(qMessage);
         }
-        if (basis == PauliY) {
+        if basis == PauliY {
             S(qMessage);
         }
         let classicalBits = SendMessage(qAlice, qMessage);

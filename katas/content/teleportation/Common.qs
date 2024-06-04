@@ -123,15 +123,15 @@ namespace Kata.Verification {
         return true;
     }
 
-    operation PrepareAndSendMessage_Reference(qAlice : Qubit, basis : Pauli, state : Bool) : (Bool, Bool) {
+    operation PrepareAndSendMessage_Reference(qAlice : Qubit, basis : Pauli, state : Result) : (Bool, Bool) {
         use qMessage = Qubit();
-        if state {
+        if state == One {
             X(qMessage);
         }
-        if (basis != PauliZ) {
+        if basis != PauliZ {
             H(qMessage);
         }
-        if (basis == PauliY) {
+        if basis == PauliY {
             S(qMessage);
         }
         let classicalBits = SendMessage_Reference(qAlice, qMessage);
@@ -139,9 +139,9 @@ namespace Kata.Verification {
         return classicalBits;
     }
 
-    operation ReconstructAndMeasureMessage_Reference(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Bool {
+    operation ReconstructAndMeasureMessage_Reference(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Result {
         ReconstructMessage_Reference(qBob, (b1, b2));
-        return Measure([basis], [qBob]) == One;
+        return Measure([basis], [qBob]);
     }
 
     // ------------------------------------------------------
@@ -151,16 +151,16 @@ namespace Kata.Verification {
     // code is expected to take different paths each time since
     // measurements done by Alice are not deterministic.
     operation TeleportPreparedStateTestLoop(
-        prepareAndSendMessageOp : ((Qubit, Pauli, Bool) => (Bool, Bool)), 
-        reconstructAndMeasureMessageOp : ((Qubit, (Bool, Bool), Pauli) => Bool)
+        prepareAndSendMessageOp : ((Qubit, Pauli, Result) => (Bool, Bool)), 
+        reconstructAndMeasureMessageOp : ((Qubit, (Bool, Bool), Pauli) => Result)
         ) : Bool {
         
-        let messages = [(PauliX, false, "|+>"), 
-                        (PauliX, true, "|->"), 
-                        (PauliY, false, "|i>"), 
-                        (PauliY, true, "|-i>"), 
-                        (PauliZ, false, "|0>"), 
-                        (PauliZ, true, "|1>")];
+        let messages = [(PauliX, Zero, "|+⟩"), 
+                        (PauliX, One, "|-⟩"), 
+                        (PauliY, Zero, "|i⟩"), 
+                        (PauliY, One, "|-i⟩"), 
+                        (PauliZ, Zero, "|0⟩"), 
+                        (PauliZ, One, "|1⟩")];
         let numRepetitions = 100;
         use (qAlice, qBob) = (Qubit(), Qubit());
         for (basis, sentState, stateName) in messages {
@@ -168,8 +168,8 @@ namespace Kata.Verification {
                 StatePrep_BellState(qAlice, qBob, 0);
                 let classicalBits = prepareAndSendMessageOp(qAlice, basis, sentState);
                 let receivedState = reconstructAndMeasureMessageOp(qBob, classicalBits, basis);
-                if (sentState != receivedState) {
-                    Message($"Sent and received states were not equal for {stateName}.");
+                if sentState != receivedState {
+                    Message($"Received incorrect basis state when sending {stateName} in the {basis} basis.");
                     ResetAll([qAlice, qBob]);
                     return false;
                 }

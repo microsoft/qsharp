@@ -66,7 +66,7 @@ We split the teleportation protocol into several steps:
 
 @[exercise]({
     "id": "teleportation__prepare_and_send_message",
-    "title": "Prepare state and send it as message (Alice's task)",
+    "title": "Prepare Message and Send It",
     "path": "./prepare_and_send_message/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -76,7 +76,7 @@ We split the teleportation protocol into several steps:
 
 @[exercise]({
     "id": "teleportation__reconstruct_and_measure_message",
-    "title": "Reconstruct and measure the message state (Bob's task)",
+    "title": "Reconstruct Message and Measure It",
     "path": "./reconstruct_and_measure_message/",
     "qsDependencies": [
         "../KatasLibrary.qs",

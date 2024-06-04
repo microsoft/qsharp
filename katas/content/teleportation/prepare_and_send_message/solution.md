@@ -1,9 +1,10 @@
-The exercise requires to prepare the `qMessage` is an eigenstate of the three Pauli basis.
+The exercise aims to prepare the `qMessage` as the eigenstates of the required Pauli bases.
 
-- Initialize the `qMessage` qubit in $\ket{0}$ or $\ket{1}$ based on the value of state. These are the eigenstates of PauliZ basis.
-- Using H, eigenstates of PauliX can be created from eigenstates of PauliZ. $\ket{+} = H\ket{0}$ and $\ket{-} = H\ket{1}$.
-- Using S, eigenstates of PauliY can be created from eigenstates of PauliX. $\ket{i} = S\ket{+}$ and $\ket{-i} = S\ket{-}$.
-- Finally, use the SendMessage function prepared in previous exercise. 
+- Initialize the `qMessage` qubit in $\ket{0}$ or $\ket{1}$ based on the value of state. These are the eigenstates of Pauli $Z$ gate.
+- Using the $H$ gate, eigenstates of the Pauli $X$ gate can be prepared from the eigenstates of Pauli $Z$. $\ket{+} = H\ket{0}$ and $\ket{-} = H\ket{1}$.
+- Using the $S$ gate, eigenstates of the Pauli $Y$ gate can be prepared from the eigenstates of Pauli $X$. $\ket{i} = S\ket{+}$ and $\ket{-i} = S\ket{-}$.
+
+Finally, use the `SendMessage` operation implemented in earlier exercise to send the message. 
 
 @[solution]({
     "id": "teleportation__prepare_and_send_message_solution",
