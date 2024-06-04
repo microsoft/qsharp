@@ -138,7 +138,7 @@ namespace IterativePhaseEstimation {
         H(AncilReg);
         // Arbitrary controlled rotation based on theta. This is vector v.
         Controlled R([AncilReg], (PauliY, theta1, TargetReg));
-        // X gate on ancilla to change from |+> to |->.
+        // X gate on ancilla to change from |+〉 to |-〉.
         X(AncilReg);
         // Arbitrary controlled rotation based on theta. This is vector c.
         Controlled R([AncilReg], (PauliY, theta2, TargetReg));
