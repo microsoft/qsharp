@@ -186,6 +186,15 @@ impl<'a> Handler<'a> for Rename<'a> {
         }
     }
 
+    fn at_struct_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::StructDecl) {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
+            self.get_spans_for_item_rename(
+                &resolve_package(self.compilation.user_package_id, item_id),
+                type_name,
+            );
+        }
+    }
+
     fn at_type_param_def(
         &mut self,
         context: &LocatorContext<'a>,

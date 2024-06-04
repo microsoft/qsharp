@@ -106,6 +106,14 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         }
     }
 
+    fn at_struct_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::StructDecl) {
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.reference_finder.compilation.get_res(type_name.id)
+        {
+            self.references = self.reference_finder.for_item(item_id);
+        }
+    }
+
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,

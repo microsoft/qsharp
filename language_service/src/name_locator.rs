@@ -45,6 +45,8 @@ pub(crate) trait Handler<'package> {
 
     fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
 
+    fn at_struct_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::StructDecl);
+
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
@@ -186,6 +188,22 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                             self.inner.at_new_type_def(ident, def);
                         } else {
                             self.visit_ty_def(def);
+                        }
+
+                        self.context.current_udt_id = context;
+                    }
+                }
+                ast::ItemKind::Struct(def) => {
+                    if let Some(resolve::Res::Item(item_id, _)) =
+                        self.compilation.get_res(def.name.id)
+                    {
+                        let context = self.context.current_udt_id;
+                        self.context.current_udt_id = Some(item_id);
+
+                        if def.name.span.touches(self.offset) {
+                            self.inner.at_struct_def(&def.name, def);
+                        } else {
+                            //self.visit_ty_def(def);
                         }
 
                         self.context.current_udt_id = context;

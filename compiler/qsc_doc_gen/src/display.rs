@@ -89,6 +89,11 @@ impl<'a> CodeDisplay<'a> {
     }
 
     #[must_use]
+    pub fn ident_struct_def(&self, def: &'a ast::StructDecl) -> impl Display + 'a {
+        StructDef { def }
+    }
+
+    #[must_use]
     pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
         HirUdt { udt }
     }
@@ -335,7 +340,7 @@ struct IdentTyDef<'a> {
     def: &'a ast::TyDef,
 }
 
-impl<'a> Display for IdentTyDef<'a> {
+impl<'a> Display for IdentTyDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -343,6 +348,34 @@ impl<'a> Display for IdentTyDef<'a> {
             self.ident.name,
             TyDef { def: self.def }
         )
+    }
+}
+
+struct StructDef<'a> {
+    def: &'a ast::StructDecl,
+}
+
+impl Display for StructDef<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "struct {} ", self.def.name.name)?;
+
+        write!(f, "{{ ")?;
+        if let Some((last, most)) = self.def.fields.split_last() {
+            for field in most {
+                let id_ty = IdentTy {
+                    ident: &field.name,
+                    ty: &field.ty,
+                };
+                write!(f, "{id_ty}, ")?;
+            }
+            let id_ty = IdentTy {
+                ident: &last.name,
+                ty: &last.ty,
+            };
+            write!(f, "{id_ty} ")?;
+        }
+        write!(f, "}}")?;
+        Ok(())
     }
 }
 

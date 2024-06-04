@@ -88,6 +88,10 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
     }
 
+    fn at_struct_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::StructDecl) {
+        self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
+    }
+
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,

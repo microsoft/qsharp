@@ -154,6 +154,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
+    fn at_struct_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::StructDecl) {
+        let contents = markdown_fenced_block(self.display.ident_struct_def(def));
+        self.hover = Some(Hover {
+            contents,
+            span: self.range(type_name.span),
+        });
+    }
+
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
