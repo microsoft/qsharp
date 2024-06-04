@@ -6,7 +6,6 @@
 
 import { useState } from "preact/hooks";
 import { createRef } from "preact";
-import html2canvas from 'html2canvas';
 import { ColorMap } from "./colormap.js";
 import {
   CreateSingleEstimateResult,
@@ -192,26 +191,9 @@ export function EstimatesOverview(props: {
   const printRef = createRef();
 
   const handleDownloadImage = async () => {
-    const element = printRef.current;
-    const canvas = await html2canvas(element, {
-      backgroundColor: getComputedStyle(element).getPropertyValue("--main-background")
-    });
-
-    const data = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-
-    if (typeof link.download === 'string') {
-      link.href = data;
-      link.download = 'image.png';
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      window.open(data);
-    }
-  };
-
+    console.log("DATA");
+  }
+  
   const runNameRenderingError =
     props.runNames != null &&
     props.runNames.length > 0 &&
