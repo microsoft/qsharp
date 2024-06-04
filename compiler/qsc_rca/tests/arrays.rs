@@ -342,6 +342,56 @@ fn check_rca_for_mutable_array_assign_index_in_dynamic_context() {
 }
 
 #[test]
+fn check_rca_for_mutable_array_assign_index_dynamic_content_in_dynamic_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [Zero];
+        use q = Qubit();
+        let r = M(q);
+        if r == One {
+            set arr w/= 0 <- r;
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_array_assign_index_dynamic_nested_array_content_in_dynamic_context() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        mutable arr = [[Zero]];
+        use q = Qubit();
+        let r = M(q);
+        if r == One {
+            set arr w/= 0 <- [r];
+        }
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
 fn check_rca_for_access_using_classical_index() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
