@@ -290,6 +290,38 @@ fn debug_dj_nisq() {
     expect!["([One, Zero, Zero, Zero, Zero], [Zero, Zero, Zero, Zero, Zero])"].assert_eq(&output);
 }
 
+fn dot_product_phase_estimation() -> SourceMap {
+    SourceMap::new(
+        [(
+            "DotProductPhaseEstimation.qs".into(),
+            include_str!("../../../samples/algorithms/DotProductViaPhaseEstimation.qs").into(),
+        )],
+        None,
+    )
+}
+
+#[test]
+fn run_dot_product_phase_estimation() {
+    let output = compile_and_run(dot_product_phase_estimation());
+    expect![[r#"
+        Computing inner product of vectors (cos(Θ₁/2), sin(Θ₁/2))⋅(cos(Θ₂/2), sin(Θ₂/2)) ≈ -cos(x𝝅/2ⁿ)
+        Θ₁=0.4487989505128276, Θ₂=0.6283185307179586.
+        x = 16, n = 4.
+        Computed value = 1.0, true value = 0.995974293995239
+        (16, 4)"#]].assert_eq(&output);
+}
+
+#[test]
+fn debug_dot_product_phase_estimation() {
+    let output = compile_and_run_debug(dot_product_phase_estimation());
+    expect![[r#"
+        Computing inner product of vectors (cos(Θ₁/2), sin(Θ₁/2))⋅(cos(Θ₂/2), sin(Θ₂/2)) ≈ -cos(x𝝅/2ⁿ)
+        Θ₁=0.4487989505128276, Θ₂=0.6283185307179586.
+        x = 16, n = 4.
+        Computed value = 1.0, true value = 0.995974293995239
+        (16, 4)"#]].assert_eq(&output);
+}
+
 fn entanglement_src() -> SourceMap {
     SourceMap::new(
         [(
