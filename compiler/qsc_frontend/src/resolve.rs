@@ -185,6 +185,7 @@ pub enum ItemSource {
     Imported,
     #[default]
     Declared,
+    Debug(usize),
 }
 
 impl Scope {
@@ -714,12 +715,12 @@ impl Resolver {
                     Res::Item(
                         id,
                         ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
-                        ItemSource::Declared,
+                        ItemSource::Debug(0),
                     ),
                 );
                 self.current_scope_mut().terms.insert(
                     Rc::clone(&decl.name.name),
-                    ScopeItemEntry::new(id, ItemSource::Declared),
+                    ScopeItemEntry::new(id, ItemSource::Debug(1)),
                 );
             }
             ast::ItemKind::Ty(name, _) => {
@@ -729,17 +730,17 @@ impl Resolver {
                     Res::Item(
                         id,
                         ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
-                        ItemSource::Declared,
+                        ItemSource::Debug(2),
                     ),
                 );
                 let scope = self.current_scope_mut();
                 scope.tys.insert(
                     Rc::clone(&name.name),
-                    ScopeItemEntry::new(id, ItemSource::Declared),
+                    ScopeItemEntry::new(id, ItemSource::Debug(3)),
                 );
                 scope.terms.insert(
                     Rc::clone(&name.name),
-                    ScopeItemEntry::new(id, ItemSource::Declared),
+                    ScopeItemEntry::new(id, ItemSource::Debug(4)),
                 );
             }
             ast::ItemKind::Err | ast::ItemKind::ImportOrExport(_) => {}
@@ -777,14 +778,14 @@ impl Resolver {
                 let scope_ty_result = scope.tys.get(&local_name);
                 match (is_export, scope_term_result, scope_ty_result) {
                     (true, Some(entry), _) | (true, _, Some(entry))
-                        if entry.source == ItemSource::Exported =>
+                        if entry.source == ItemSource::Debug(5) =>
                     {
                         let err = Error::DuplicateExport(local_name.to_string(), item.name().span);
                         self.errors.push(err);
                         continue;
                     }
                     (false, Some(entry), _) | (true, _, Some(entry))
-                        if entry.source == ItemSource::Imported =>
+                        if entry.source == ItemSource::Debug(6) =>
                     {
                         let err =
                             Error::ImportedDuplicate(local_name.to_string(), item.name().span);
@@ -796,9 +797,9 @@ impl Resolver {
             }
 
             let item_source = if is_export {
-                ItemSource::Exported
+                ItemSource::Debug(7)
             } else {
-                ItemSource::Imported
+                ItemSource::Debug(8)
             };
 
             if let Ok(Res::Item(id, _, _)) = term_result {
@@ -816,7 +817,7 @@ impl Resolver {
                     .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
             }
 
-            if let Ok(Res::Item(id, _, _3)) = ty_result {
+            if let Ok(Res::Item(id, _, _)) = ty_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
                         self.globals.tys.get_mut_or_default(namespace).insert(
@@ -1363,7 +1364,9 @@ fn bind_global_item(
         ast::ItemKind::Callable(decl) => {
             let item_id = next_id();
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status, ItemSource::Declared);
+            // if this item was in the exports from the namespace, it should be marked as exported
+            // otherwise, declared
+            let res = Res::Item(item_id, status, ItemSource::Debug(10));
             names.insert(decl.name.id, res);
             let mut errors = Vec::new();
             match scope
@@ -1405,7 +1408,7 @@ fn bind_global_item(
             let item_id = next_id();
 
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status, ItemSource::Declared);
+            let res = Res::Item(item_id, status, ItemSource::Debug(11));
             names.insert(name.id, res);
             match (
                 scope
@@ -1853,7 +1856,7 @@ fn resolve_scope_locals(
     }
 
     if let Some(&id) = scope.item(kind, name) {
-        return Some(Res::Item(id, ItemStatus::Available, ItemSource::Declared));
+        return Some(Res::Item(id, ItemStatus::Available, ItemSource::Debug(12)));
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {

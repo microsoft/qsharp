@@ -131,10 +131,42 @@ impl With<'_> {
 
         self.lowerer.parent = Some(id);
 
+        let exports = namespace
+            .exports()
+            .filter_map(|ImportOrExportItem { path, .. }| self.names.get(path.id))
+            .collect::<Vec<_>>();
+
+        /*
+        let exports: Vec<_> = exports
+            .iter()
+            .map(|res| match res {
+                resolve::Res::Item(id, _, source) => id,
+                resolve::Res::Local(_)
+                | resolve::Res::Param(_)
+                | resolve::Res::PrimTy(_)
+                | resolve::Res::UnitTy => todo!(),
+            })
+            .collect();
+            */
+
         let items: Vec<LocalItemId> = namespace
             .items
             .iter()
-            .filter_map(|i| self.lower_item(ItemScope::Global, i))
+            .map(|item| {
+                (
+                    item,
+                    if self
+                        .names
+                        .get(item.id)
+                        .is_some_and(|res| exports.contains(&res))
+                    {
+                        ItemSource::Exported
+                    } else {
+                        ItemSource::Declared
+                    },
+                )
+            })
+            .filter_map(|(i, source)| self.lower_item(ItemScope::Global, i, Some(source)))
             .collect();
 
         let name = self.lower_idents(&namespace.name);
@@ -151,53 +183,73 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    fn lower_item(&mut self, scope: ItemScope, item: &ast::Item) -> Option<LocalItemId> {
+    fn lower_item(
+        &mut self,
+        scope: ItemScope,
+        item: &ast::Item,
+        item_source: Option<ItemSource>,
+    ) -> Option<LocalItemId> {
         let attrs = item
             .attrs
             .iter()
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
+        println!("====begin lowering item====\n");
+        // if it is a function, print its name
+        if let ast::ItemKind::Callable(callable) = &*item.kind {
+            println!("\tcallable name: {:?}", callable.name.name);
+        }
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(item, _, item_source)) => (item, item_source),
+            Some(&resolve::Res::Item(item, _, _)) => item,
             _ => panic!("item should have item ID"),
         };
 
-        let ((id, item_source), kind) = match &*item.kind {
+        let (id, kind) = match &*item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) |
             // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
 
-            ast::ItemKind::ImportOrExport(_) => return None,
+            ast::ItemKind::ImportOrExport(_) => {
+                //todo!("when we lower an export to an item, we need to note something maybe?"));
+                return None;
+            },
             ast::ItemKind::Callable(callable) => {
-                let (id, item_source) = resolve_id(callable.name.id);
+                let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
-                ((id, item_source), hir::ItemKind::Callable(callable))
+                (id,  hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
-                let (id, item_source) = resolve_id(name.id);
+                let id = resolve_id(name.id);
                 let udt = self
                     .tys
                     .udts
                     .get(&id)
                     .expect("type item should have lowered UDT");
 
-                ((id, item_source), hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
         };
-        if item_source == ItemSource::Exported {
-            todo!("why is nothing exported? This is the place where exported gets converted into visibility");
-        }
+
+        println!(
+            "\tsource: {item_source:?}\nlowering item with name: {:?}\n",
+            id
+        );
+
         let visibility = match (scope, item_source) {
-            (_, ItemSource::Exported) => hir::Visibility::Public,
+            (_, Some(ItemSource::Exported)) => hir::Visibility::Public,
+            (_, Some(ItemSource::Declared)) if item.visibility.is_none() => {
+                hir::Visibility::Internal
+            }
             (ItemScope::Global, _) => item
                 .visibility
                 .as_ref()
                 .map_or(hir::Visibility::Public, lower_visibility),
             _ => hir::Visibility::Internal,
         };
+        println!("\tSet visibility for {:?} to {:?}", id, visibility);
 
         self.lowerer.items.push(hir::Item {
             id: id.item,
@@ -382,7 +434,7 @@ impl With<'_> {
             ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
             ast::StmtKind::Item(item) => {
-                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item)?)
+                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item, None)?)
             }
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
