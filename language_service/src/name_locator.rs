@@ -66,7 +66,6 @@ pub(crate) trait Handler<'package> {
     fn at_field_ref(
         &mut self,
         field_ref: &'package ast::Ident,
-        expr_id: &'package ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'package hir::ty::UdtField,
     );
@@ -104,7 +103,7 @@ pub(crate) struct Locator<'inner, 'package, T> {
     context: LocatorContext<'package>,
 }
 
-impl<'inner, 'package, T> Locator<'inner, 'package, T> {
+impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
     pub(crate) fn new(
         inner: &'inner mut T,
         offset: u32,
@@ -124,6 +123,22 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
                 current_udt_id: None,
             },
         }
+    }
+
+    fn get_field_def(
+        &mut self,
+        udt_res: &'package hir::Res,
+        field_ref: &'package ast::Ident,
+    ) -> Option<(hir::ItemId, &'package hir::ty::UdtField)> {
+        let (item, resolved_item_id) = self
+            .compilation
+            .resolve_item_res(self.compilation.user_package_id, udt_res);
+        if let hir::ItemKind::Ty(_, udt) = &item.kind {
+            if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
+                return Some((resolved_item_id, field_def));
+            }
+        }
+        None
     }
 }
 
@@ -298,21 +313,40 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field_ref) if field_ref.span.touches(self.offset) => {
                     if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
-                        let (item, resolved_item_id) = self
-                            .compilation
-                            .resolve_item_res(self.compilation.user_package_id, res);
-                        match &item.kind {
-                            hir::ItemKind::Ty(_, udt) => {
-                                if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
-                                    self.inner.at_field_ref(
-                                        field_ref,
-                                        &expr.id,
-                                        &resolved_item_id,
-                                        field_def,
-                                    );
+                        if let Some((item_id, field_def)) = self.get_field_def(res, field_ref) {
+                            self.inner.at_field_ref(field_ref, &item_id, field_def);
+                        }
+                    }
+                }
+                ast::ExprKind::Struct(ty_name, copy, fields) => {
+                    if ty_name.span.touches(self.offset) {
+                        self.visit_path(ty_name);
+                        return;
+                    }
+
+                    if let Some(copy) = &copy {
+                        if copy.span.touches(self.offset) {
+                            self.visit_expr(copy);
+                            return;
+                        }
+                    }
+
+                    for field in fields.iter() {
+                        if field.span.touches(self.offset) {
+                            if field.field.span.touches(self.offset) {
+                                if let Some(hir::ty::Ty::Udt(_, res)) =
+                                    &self.compilation.get_ty(expr.id)
+                                {
+                                    if let Some((item_id, field_def)) =
+                                        self.get_field_def(res, &field.field)
+                                    {
+                                        self.inner.at_field_ref(&field.field, &item_id, field_def);
+                                    }
                                 }
+                            } else if field.value.span.touches(self.offset) {
+                                self.visit_expr(&field.value);
                             }
-                            _ => panic!("UDT has invalid resolution."),
+                            return;
                         }
                     }
                 }

@@ -113,7 +113,6 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_field_ref(
         &mut self,
         _: &'a ast::Ident,
-        _: &'a ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'a hir::ty::UdtField,
     ) {

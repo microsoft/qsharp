@@ -141,7 +141,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_field_ref(
         &mut self,
         field_ref: &'a ast::Ident,
-        _: &'a ast::NodeId,
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {

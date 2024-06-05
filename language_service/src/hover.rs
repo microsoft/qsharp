@@ -195,11 +195,10 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_field_ref(
         &mut self,
         field_ref: &'a ast::Ident,
-        expr_id: &'a ast::NodeId,
         _: &'_ hir::ItemId,
-        _: &'a hir::ty::UdtField,
+        field_definition: &'a hir::ty::UdtField,
     ) {
-        let contents = markdown_fenced_block(self.display.name_ty_id(&field_ref.name, *expr_id));
+        let contents = markdown_fenced_block(self.display.hir_udt_field(field_definition));
         self.hover = Some(Hover {
             contents,
             span: self.range(field_ref.span),

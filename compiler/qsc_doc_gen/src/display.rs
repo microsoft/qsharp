@@ -94,6 +94,11 @@ impl<'a> CodeDisplay<'a> {
     }
 
     #[must_use]
+    pub fn hir_udt_field(&self, field: &'a ty::UdtField) -> impl Display + '_ {
+        HirUdtField { field }
+    }
+
+    #[must_use]
     pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
         HirUdt::new(udt)
     }
@@ -458,6 +463,19 @@ impl Display for UdtDef<'_> {
             }
             UdtDefKind::TupleTy(defs) => fmt_tuple(f, defs, |def| def),
         }
+    }
+}
+
+struct HirUdtField<'a> {
+    field: &'a ty::UdtField,
+}
+
+impl Display for HirUdtField<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if let Some(name) = &self.field.name {
+            write!(f, "{name} : ")?;
+        }
+        write!(f, "{}", self.field.ty.display())
     }
 }
 

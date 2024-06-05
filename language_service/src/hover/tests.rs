@@ -653,7 +653,7 @@ fn udt_ref() {
     "#},
         &expect![[r#"
             ```qsharp
-            newtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)
+            newtype Bar = (fst : Int, (snd : Int, Double, fourth : String), Double, sixth : Int)
             ```
         "#]],
     );
@@ -673,7 +673,7 @@ fn udt_ref_nested_udt() {
     "#},
         &expect![[r#"
             ```qsharp
-            newtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)
+            newtype Bar = (fst : Int, (snd : Int, Double, fourth : Pair), Double, sixth : Int)
             ```
         "#]],
     );
@@ -692,7 +692,7 @@ fn udt_anno_ref() {
     "#},
         &expect![[r#"
             ```qsharp
-            newtype Pair = (Int, snd: Int)
+            newtype Pair = (Int, snd : Int)
             ```
         "#]],
     );
@@ -711,7 +711,7 @@ fn udt_constructor() {
     "#},
         &expect![[r#"
             ```qsharp
-            newtype Pair = (Int, snd: Int)
+            newtype Pair = (Int, snd : Int)
             ```
         "#]],
     );
