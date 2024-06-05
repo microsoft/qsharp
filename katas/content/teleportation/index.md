@@ -83,3 +83,32 @@ We split the teleportation protocol into several steps:
         "./Common.qs"
     ]
 })
+
+@[section]({
+    "id": "teleportation__testing_standard_teleportation",
+    "title": "Testing standard quantum teleportation"
+})
+
+The following demo puts together previous `StandardTeleport` exercise to successfully teleport the states $\ket{0}$ and $\ket{1}$, as well as superposition states such as $\frac{1}{2}(\ket{0}+\ket{1})$, $\frac{1}{2}(\ket{0}-\ket{1})$, $\frac{1}{2}(\ket{0}+i\ket{1})$ and $\frac{1}{2}(\ket{0}-i\ket{1})$.
+
+@[example]({
+    "id": "teleportation__testing_standard_teleportation_example", 
+    "codePath": "./examples/TestingStandardTeleportation.qs"
+})
+
+@[section]({
+    "id": "teleportation__entanglement_swapping_section",
+    "title": "Entanglement Swapping"
+})
+
+TODO: Do we have to insert any test for explaining the protocol here?
+
+@[exercise]({
+    "id": "teleportation__entanglement_swapping",
+    "title": "Entanglement Swapping",
+    "path": "./entanglement_swapping/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
