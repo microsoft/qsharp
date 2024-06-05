@@ -147,7 +147,6 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
-        // ToDo: if the newtype qualifies as a struct, display as struct
         let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
         self.hover = Some(Hover {
             contents,
@@ -156,7 +155,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     }
 
     fn at_struct_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::StructDecl) {
-        let contents = markdown_fenced_block(self.display.ident_struct_def(def));
+        let contents = markdown_fenced_block(self.display.struct_decl(def));
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),

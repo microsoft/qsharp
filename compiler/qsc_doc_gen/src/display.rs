@@ -89,8 +89,8 @@ impl<'a> CodeDisplay<'a> {
     }
 
     #[must_use]
-    pub fn ident_struct_def(&self, def: &'a ast::StructDecl) -> impl Display + 'a {
-        StructDef { def }
+    pub fn struct_decl(&self, decl: &'a ast::StructDecl) -> impl Display + 'a {
+        StructDecl { decl }
     }
 
     #[must_use]
@@ -345,27 +345,49 @@ struct IdentTyDef<'a> {
     def: &'a ast::TyDef,
 }
 
-impl<'a> Display for IdentTyDef<'_> {
+impl Display for IdentTyDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "newtype {} = {}",
-            self.ident.name,
-            TyDef { def: self.def }
-        )
+        if let Some(fields) = as_struct(self.def) {
+            write!(f, "struct {} ", self.ident.name)?;
+
+            write!(f, "{{ ")?;
+            if let Some((last, most)) = fields.split_last() {
+                for field in most {
+                    let id_ty = IdentTy {
+                        ident: &field.name,
+                        ty: &field.ty,
+                    };
+                    write!(f, "{id_ty}, ")?;
+                }
+                let id_ty = IdentTy {
+                    ident: &last.name,
+                    ty: &last.ty,
+                };
+                write!(f, "{id_ty} ")?;
+            }
+            write!(f, "}}")?;
+            Ok(())
+        } else {
+            write!(
+                f,
+                "newtype {} = {}",
+                self.ident.name,
+                TyDef { def: self.def }
+            )
+        }
     }
 }
 
-struct StructDef<'a> {
-    def: &'a ast::StructDecl,
+struct StructDecl<'a> {
+    decl: &'a ast::StructDecl,
 }
 
-impl Display for StructDef<'_> {
+impl Display for StructDecl<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "struct {} ", self.def.name.name)?;
+        write!(f, "struct {} ", self.decl.name.name)?;
 
         write!(f, "{{ ")?;
-        if let Some((last, most)) = self.def.fields.split_last() {
+        if let Some((last, most)) = self.decl.fields.split_last() {
             for field in most {
                 let id_ty = IdentTy {
                     ident: &field.name,
@@ -668,6 +690,38 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> ty::FunctorSetValue {
         ast::FunctorExprKind::Lit(ast::Functor::Adj) => ty::FunctorSetValue::Adj,
         ast::FunctorExprKind::Lit(ast::Functor::Ctl) => ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
+    }
+}
+
+fn as_struct(ty_def: &ast::TyDef) -> Option<Vec<ast::FieldDef>> {
+    match ty_def.kind.as_ref() {
+        ast::TyDefKind::Paren(inner) => as_struct(inner),
+        ast::TyDefKind::Tuple(fields) => {
+            let mut converted_fields = Vec::new();
+            for field in fields.iter() {
+                let field = remove_parens(field);
+                match field.kind.as_ref() {
+                    ast::TyDefKind::Field(Some(name), field_ty) => {
+                        converted_fields.push(ast::FieldDef {
+                            id: field.id,
+                            span: field.span,
+                            name: name.clone(),
+                            ty: field_ty.clone(),
+                        });
+                    }
+                    _ => return None,
+                }
+            }
+            Some(converted_fields)
+        }
+        ast::TyDefKind::Err | ast::TyDefKind::Field(..) => None,
+    }
+}
+
+fn remove_parens(ty_def: &ast::TyDef) -> &ast::TyDef {
+    match ty_def.kind.as_ref() {
+        ast::TyDefKind::Paren(inner) => remove_parens(inner.as_ref()),
+        _ => ty_def,
     }
 }
 
