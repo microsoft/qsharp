@@ -1,7 +1,6 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

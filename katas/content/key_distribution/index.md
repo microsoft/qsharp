@@ -67,9 +67,14 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
     "id": "key_distribution__random_array",
     "title": "Generate Random Array",
     "path": "./random_array/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "qsDependencies": []
+})
+
+@[exercise]({
+    "id": "key_distribution__prepare_qubits",
+    "title": "Prepare Alice's Qubits",
+    "path": "./prepare_qubits/",
+    "qsDependencies": []
 })
 
 
