@@ -98,7 +98,12 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         }
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
@@ -106,7 +111,12 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         }
     }
 
-    fn at_struct_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::StructDecl) {
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
@@ -118,6 +128,7 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
+        _: &'a hir::Item,
         _: &'a hir::Package,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,

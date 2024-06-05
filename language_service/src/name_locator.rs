@@ -18,7 +18,6 @@ pub(crate) trait Handler<'package> {
         name: &'package ast::Ident,
         decl: &'package ast::CallableDecl,
     );
-
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
@@ -43,14 +42,25 @@ pub(crate) trait Handler<'package> {
         definition: &'package ast::Ident,
     );
 
-    fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
+    fn at_new_type_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        type_name: &'package ast::Ident,
+        def: &'package ast::TyDef,
+    );
 
-    fn at_struct_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::StructDecl);
+    fn at_struct_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        type_name: &'package ast::Ident,
+        def: &'package ast::StructDecl,
+    );
 
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
         item_id: &'_ hir::ItemId,
+        item: &'package hir::Item,
         package: &'package hir::Package,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
@@ -200,7 +210,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         self.context.current_udt_id = Some(item_id);
 
                         if ident.span.touches(self.offset) {
-                            self.inner.at_new_type_def(ident, def);
+                            self.inner.at_new_type_def(&self.context, ident, def);
                         } else {
                             self.visit_ty_def(def);
                         }
@@ -216,7 +226,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         self.context.current_udt_id = Some(item_id);
 
                         if def.name.span.touches(self.offset) {
-                            self.inner.at_struct_def(&def.name, def);
+                            self.inner.at_struct_def(&self.context, &def.name, def);
                         } else {
                             self.visit_struct_decl(def);
                         }
@@ -387,6 +397,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                 self.inner.at_new_type_ref(
                                     path,
                                     &resolved_item_id,
+                                    item,
                                     package,
                                     type_name,
                                     udt,

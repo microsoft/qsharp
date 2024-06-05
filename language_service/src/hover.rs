@@ -146,18 +146,38 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::TyDef,
+    ) {
         let code = self.display.ident_ty_def(type_name, def);
-        let contents = display_udt("", "", code, is_struct(def));
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            is_struct(def),
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
         });
     }
 
-    fn at_struct_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::StructDecl) {
+    fn at_struct_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::StructDecl,
+    ) {
         let code = self.display.struct_decl(def);
-        let contents = display_udt("", "", code, true);
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            true,
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
@@ -168,12 +188,24 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         &mut self,
         path: &'a ast::Path,
         _: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item: &'a hir::Item,
+        package: &'a hir::Package,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
+        let ns = item
+            .parent
+            .and_then(|parent_id| package.items.get(parent_id))
+            .map_or_else(
+                || Rc::from(""),
+                |parent| match &parent.kind {
+                    hir::ItemKind::Namespace(namespace, _) => namespace.name(),
+                    _ => Rc::from(""),
+                },
+            );
+
         let code = self.display.hir_udt(udt);
-        let contents = display_udt("", "", code, udt.is_struct());
+        let contents = display_udt(&item.doc, &ns, code, udt.is_struct());
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),

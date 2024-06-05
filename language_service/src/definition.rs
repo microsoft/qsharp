@@ -84,11 +84,21 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(self.location(definition.span, self.compilation.user_package_id));
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
         self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
     }
 
-    fn at_struct_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::StructDecl) {
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
     }
 
@@ -96,6 +106,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
+        _: &'a hir::Item,
         _: &'a hir::Package,
         type_name: &'a hir::Ident,
         _: &'a hir::ty::Udt,
