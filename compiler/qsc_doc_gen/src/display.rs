@@ -401,8 +401,7 @@ impl Display for StructDecl<'_> {
             };
             write!(f, "{id_ty} ")?;
         }
-        write!(f, "}}")?;
-        Ok(())
+        write!(f, "}}")
     }
 }
 

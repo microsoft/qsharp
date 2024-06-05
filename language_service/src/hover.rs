@@ -147,7 +147,8 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
-        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
+        let code = self.display.ident_ty_def(type_name, def);
+        let contents = display_udt("", "", code, is_struct(def));
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
@@ -155,7 +156,8 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     }
 
     fn at_struct_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::StructDecl) {
-        let contents = markdown_fenced_block(self.display.struct_decl(def));
+        let code = self.display.struct_decl(def);
+        let contents = display_udt("", "", code, true);
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
@@ -170,8 +172,8 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(udt));
-
+        let code = self.display.hir_udt(udt);
+        let contents = display_udt("", "", code, udt.is_struct());
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -314,6 +316,16 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
     param_pats.iter().any(|pat| find_in_pat(pat, node_id))
 }
 
+fn is_struct(ty_def: &ast::TyDef) -> bool {
+    match ty_def.kind.as_ref() {
+        ast::TyDefKind::Paren(inner) => is_struct(inner),
+        ast::TyDefKind::Tuple(fields) => fields
+            .iter()
+            .all(|field| matches!(field.kind.as_ref(), ast::TyDefKind::Field(Some(_), _))),
+        ast::TyDefKind::Err | ast::TyDefKind::Field(..) => false,
+    }
+}
+
 fn display_local(
     param_kind: &LocalKind,
     markdown: &String,
@@ -343,14 +355,27 @@ fn display_local(
 
 fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     let summary = parse_doc_for_summary(doc);
-
-    let mut code = if namespace.is_empty() {
-        code.to_string()
+    let markdown = markdown_fenced_block(code);
+    if namespace.is_empty() {
+        with_doc(&summary, format!("callable\n{markdown}"))
     } else {
-        format!("{namespace}\n{code}")
+        with_doc(&summary, format!("callable of `{namespace}`\n{markdown}"))
+    }
+}
+
+fn display_udt(doc: &str, namespace: &str, code: impl Display, is_struct: bool) -> String {
+    let summary = parse_doc_for_summary(doc);
+    let markdown = markdown_fenced_block(code);
+    let kind = if is_struct {
+        "struct"
+    } else {
+        "user-defined type"
     };
-    code = markdown_fenced_block(code);
-    with_doc(&summary, code)
+    if namespace.is_empty() {
+        with_doc(&summary, format!("{kind}\n{markdown}"))
+    } else {
+        with_doc(&summary, format!("{kind} of `{namespace}`\n{markdown}"))
+    }
 }
 
 fn with_doc(doc: &String, code: impl Display) -> String {
