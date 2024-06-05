@@ -1628,7 +1628,77 @@ fn multiple_packages_disallow_unexported_imports() {
         LanguageFeatures::default(),
     );
 
-    expect![""].assert_eq(&format!("{:#?}", user_code.errors));
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    NotFound(
+                        "PackageA.FunctionA",
+                        Span {
+                            lo: 7,
+                            hi: 25,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Resolve(
+                    NotFound(
+                        "PackageB.FunctionB",
+                        Span {
+                            lo: 34,
+                            hi: 52,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Resolve(
+                    NotFound(
+                        "FunctionA",
+                        Span {
+                            lo: 96,
+                            hi: 105,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Resolve(
+                    NotFound(
+                        "FunctionB",
+                        Span {
+                            lo: 112,
+                            hi: 121,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        AmbiguousTy(
+                            Span {
+                                lo: 96,
+                                hi: 107,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        AmbiguousTy(
+                            Span {
+                                lo: 112,
+                                hi: 123,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]"#]].assert_eq(&format!("{:#?}", user_code.errors));
 }
 
 #[test]

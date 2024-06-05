@@ -131,9 +131,18 @@ impl With<'_> {
 
         self.lowerer.parent = Some(id);
 
+        // Exports are `Res` items, which contain `hir::ItemId`s.
         let exports = namespace
             .exports()
-            .filter_map(|ImportOrExportItem { path, .. }| self.names.get(path.id))
+            .filter_map(|item| self.names.get(item.name().id))
+            .collect::<Vec<_>>();
+
+        let exported_hir_ids = exports
+            .iter()
+            .filter_map(|res| match res {
+                resolve::Res::Item(hir::ItemId { item: id, .. }, _, _) => Some(*id),
+                _ => None,
+            })
             .collect::<Vec<_>>();
 
         /*
@@ -149,26 +158,23 @@ impl With<'_> {
             .collect();
             */
 
-        let items: Vec<LocalItemId> = namespace
+        let items = namespace
             .items
+            // this is an AST id
             .iter()
-            .map(|item| {
-                (
-                    item,
-                    if self
-                        .names
-                        .get(item.id)
-                        .is_some_and(|res| exports.contains(&res))
-                    {
-                        ItemSource::Exported
-                    } else {
-                        ItemSource::Declared
-                    },
-                )
-            })
-            .filter_map(|(i, source)| self.lower_item(ItemScope::Global, i, Some(source)))
-            .collect();
+            .filter_map(|i| self.lower_item(ItemScope::Global, i, &exported_hir_ids[..]))
+            .collect::<Vec<_>>();
 
+        //     if self
+        //         .names
+        //         .get(dbg!(item.id))
+        //         .is_some_and(|res| exports.contains(dbg!(&res)))
+        //     {
+        //         ItemSource::Exported
+        //     } else {
+        //         ItemSource::Declared
+        //     },
+        // )
         let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
@@ -187,7 +193,7 @@ impl With<'_> {
         &mut self,
         scope: ItemScope,
         item: &ast::Item,
-        item_source: Option<ItemSource>,
+        exported_ids: &[hir::LocalItemId],
     ) -> Option<LocalItemId> {
         let attrs = item
             .attrs
@@ -195,11 +201,6 @@ impl With<'_> {
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
-        println!("====begin lowering item====\n");
-        // if it is a function, print its name
-        if let ast::ItemKind::Callable(callable) = &*item.kind {
-            println!("\tcallable name: {:?}", callable.name.name);
-        }
         let resolve_id = |id| match self.names.get(id) {
             Some(&resolve::Res::Item(item, _, _)) => item,
             _ => panic!("item should have item ID"),
@@ -233,23 +234,21 @@ impl With<'_> {
             }
         };
 
-        println!(
-            "\tsource: {item_source:?}\nlowering item with name: {:?}\n",
-            id
-        );
+        let item_source = if exported_ids.contains(&id.item) {
+            ItemSource::Exported
+        } else {
+            ItemSource::Declared
+        };
 
         let visibility = match (scope, item_source) {
-            (_, Some(ItemSource::Exported)) => hir::Visibility::Public,
-            (_, Some(ItemSource::Declared)) if item.visibility.is_none() => {
-                hir::Visibility::Internal
-            }
+            (_, ItemSource::Exported) => hir::Visibility::Public,
+            (_, ItemSource::Declared) if item.visibility.is_none() => hir::Visibility::Internal,
             (ItemScope::Global, _) => item
                 .visibility
                 .as_ref()
                 .map_or(hir::Visibility::Public, lower_visibility),
             _ => hir::Visibility::Internal,
         };
-        println!("\tSet visibility for {:?} to {:?}", id, visibility);
 
         self.lowerer.items.push(hir::Item {
             id: id.item,
@@ -434,7 +433,7 @@ impl With<'_> {
             ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
             ast::StmtKind::Item(item) => {
-                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item, None)?)
+                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item, &[])?)
             }
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
