@@ -120,7 +120,7 @@ fn collect_split_state(
             // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
             // state, and vice-versa below.
             let amplitude = curr_val / other_val;
-            let norm = amplitude.norm();
+            let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
                 dump_norm += norm;
