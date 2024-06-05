@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
@@ -287,4 +288,49 @@ namespace Microsoft.Quantum.Katas {
         totalMisclassifications == 0
     }
 
+
+    /// # Summary
+    /// Given a marking oracle acting on N inputs, and a classical function acting on N bits, 
+    /// checks whether the oracle effect matches that of the function on every classical input.
+    operation CheckOracleImplementsFunction (
+        N : Int, 
+        oracle : (Qubit[], Qubit) => Unit, 
+        f : Bool[] -> Bool
+    ) : Bool {
+        let size = 1 <<< N;
+        use (input, target) = (Qubit[N], Qubit());
+        for k in 0 .. size - 1 {
+            // Prepare k-th bit vector
+            let binaryLE = IntAsBoolArray(k, N);
+            
+            // "binary" is little-endian notation, so the second vector tried has qubit 0 in state 1 and the rest in state 0
+            ApplyPauliFromBitString(PauliX, true, binaryLE, input);
+            
+            // Apply the operation
+            oracle(input, target);
+            
+            // Calculate the expected classical result
+            let val = f(binaryLE);
+
+            // Apply operations that will revert the qubits to the 0 state if the oracle acted correctly.
+            if val {
+                X(target);
+            }
+            ApplyPauliFromBitString(PauliX, true, binaryLE, input);
+
+            if not CheckAllZero(input + [target]) {
+                Message($"Unexpected result on input {binaryLE}.");
+                if not CheckAllZero(input) {
+                    Message("The state of the input qubits changed, or they ended up entangled with the target qubit.");
+                    Message("The state of the system after oracle application:");
+                    DumpMachine();
+                } else {
+                    Message($"Expected result `{val}`, got `{not val}`.");
+                }
+                ResetAll(input + [target]);
+                return false;
+            }
+        }
+        return true;
+    }
 }
