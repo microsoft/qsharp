@@ -167,7 +167,6 @@ pub struct Namespace {
     pub name: Idents,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
-    //    bound_exports: Box<[Item]>,
 }
 
 impl Namespace {
@@ -178,14 +177,6 @@ impl Namespace {
             _ => &[],
         })
     }
-
-    // fn bound_exports(&self) -> impl Iterator<Item = &ItemId> {
-    //     self.bound_exports.iter()
-    // }
-
-    // pub fn push_bound_export(&mut self, item: ItemId) {
-    //     self.bound_exports.push(item);
-    // }
 }
 
 impl Display for Namespace {
@@ -1805,8 +1796,6 @@ pub struct ImportOrExportItem {
     pub alias: Option<Ident>,
     /// Whether this is a glob import/export.
     pub is_glob: bool,
-
-    pub id: NodeId,
 }
 
 impl Display for ImportOrExportItem {
@@ -1815,7 +1804,6 @@ impl Display for ImportOrExportItem {
             ref path,
             ref alias,
             is_glob,
-            id,
         } = self;
         let is_glob = if *is_glob { ".*" } else { "" };
         match alias {
@@ -1831,7 +1819,6 @@ impl WithSpan for ImportOrExportItem {
             path: self.path.with_span(span),
             alias: self.alias.map(|x| x.with_span(span)),
             is_glob: self.is_glob,
-            id: self.id,
         }
     }
 }

@@ -581,6 +581,5 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportIt
         path: parts.into(),
         alias,
         is_glob,
-        id: NodeId::default(),
     })
 }
