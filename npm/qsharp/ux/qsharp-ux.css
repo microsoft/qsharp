@@ -711,3 +711,15 @@ html {
 .qs-estimatesOverview-error {
   color: red;
 }
+
+.qs-estimatesOverview-saveIcon {
+  cursor: pointer;
+  width: 3em;
+  height: 3em;
+}
+
+.qs-estimatesOverview-saveIconSvgPath {
+  fill: #424242 !important;
+  fill-rule: evenodd !important;
+  clip-rule: evenodd !important;
+}
