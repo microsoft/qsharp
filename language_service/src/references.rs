@@ -361,17 +361,34 @@ struct FindFieldRefs<'a> {
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_expr(&mut self, expr: &'_ ast::Expr) {
-        if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
-            self.visit_expr(qualifier);
-            if field_name.name == self.field_name {
-                if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
-                    if self.eq(id) {
-                        self.locations.push(field_name.span);
+        match &*expr.kind {
+            ast::ExprKind::Field(qualifier, field_name) => {
+                self.visit_expr(qualifier);
+                if field_name.name == self.field_name {
+                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                        if self.eq(id) {
+                            self.locations.push(field_name.span);
+                        }
                     }
                 }
             }
-        } else {
-            walk_expr(self, expr);
+            ast::ExprKind::Struct(struct_name, copy, fields) => {
+                self.visit_path(struct_name);
+                if let Some(copy) = copy {
+                    self.visit_expr(copy);
+                }
+                for field in fields.iter() {
+                    if field.field.name == self.field_name {
+                        if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(expr.id) {
+                            if self.eq(id) {
+                                self.locations.push(field.field.span);
+                            }
+                        }
+                    }
+                    self.visit_expr(&field.value);
+                }
+            }
+            _ => walk_expr(self, expr),
         }
     }
 }
