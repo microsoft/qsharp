@@ -80,8 +80,7 @@ export async function saveToPng<T extends HTMLElement>(
   node: T,
   backgroundColor: string,
 ): Promise<string> {
-  let { width, height } = getImageSize(node);
-  height += 10; // Hack to include cutoff region
+  const { width, height } = getImageSize(node);
   const svg = await toSvg(node, width, height);
   const img = await createImage(svg);
 

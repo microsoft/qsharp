@@ -24,7 +24,7 @@ export function getImageSize(node: HTMLElement) {
 
   return {
     width: node.clientWidth + leftBorder + rightBorder,
-    height: node.clientHeight + topBorder + bottomBorder,
+    height: node.clientHeight + topBorder + bottomBorder + 10, // Fixes up truncated region
   };
 }
 
