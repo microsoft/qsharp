@@ -44,7 +44,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         TyKind::Paren(inner) => ty_from_ast(names, inner),
         TyKind::Path(path) => {
             let ty = match names.get(path.id) {
-                Some(&resolve::Res::Item(item, _, _)) => {
+                Some(&resolve::Res::Item(item, _)) => {
                     Ty::Udt(path.name.name.clone(), hir::Res::Item(item))
                 }
                 Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
