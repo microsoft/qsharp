@@ -50,5 +50,6 @@ namespace Microsoft.Quantum.Random {
     operation DrawRandomDouble(min : Double, max : Double) : Double {
         body intrinsic;
     }
+    export DrawRandomInt, DrawRandomDouble;
 
 }

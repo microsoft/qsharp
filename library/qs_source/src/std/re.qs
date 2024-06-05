@@ -122,7 +122,8 @@ namespace Microsoft.Quantum.ResourceEstimation {
         adjoint self;
     }
 
-    internal operation AccountForEstimatesInternal(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit {
+    // internal
+    operation AccountForEstimatesInternal(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit {
         body intrinsic;
     }
 
@@ -144,7 +145,8 @@ namespace Microsoft.Quantum.ResourceEstimation {
         adjoint self;
     }
 
-    internal operation BeginRepeatEstimatesInternal(count : Int) : Unit {
+    // internal
+    operation BeginRepeatEstimatesInternal(count : Int) : Unit {
         body intrinsic;
     }
 
@@ -157,7 +159,8 @@ namespace Microsoft.Quantum.ResourceEstimation {
         adjoint self;
     }
 
-    internal operation EndRepeatEstimatesInternal() : Unit {
+    // internal
+    operation EndRepeatEstimatesInternal() : Unit {
         body intrinsic;
     }
 
@@ -178,4 +181,5 @@ namespace Microsoft.Quantum.ResourceEstimation {
             EndRepeatEstimates();
         }
     }
+    export SingleVariant, BeginEstimateCaching, EndEstimateCaching, AuxQubitCount, TCount, RotationCount, RotationDepth, CczCount, MeasurementCount, PSSPCLayout, AccountForEstimates, BeginRepeatEstimates, EndRepeatEstimates, RepeatEstimates;
 }
