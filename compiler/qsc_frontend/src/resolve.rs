@@ -409,9 +409,6 @@ impl ExportImportVisitor<'_> {
 impl AstVisitor<'_> for ExportImportVisitor<'_> {
     fn visit_item(&mut self, item: &Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
-        item.visibility
-            .iter()
-            .for_each(|v| self.visit_visibility(v));
         match &*item.kind {
             ItemKind::ImportOrExport(decl) if decl.is_export() => self
                 .resolver

@@ -5,7 +5,6 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
     SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
-    Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -25,8 +24,6 @@ pub trait MutVisitor: Sized {
     fn visit_attr(&mut self, attr: &mut Attr) {
         walk_attr(self, attr);
     }
-
-    fn visit_visibility(&mut self, _: &mut Visibility) {}
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {
         walk_ty_def(self, def);
@@ -101,9 +98,6 @@ pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     vis.visit_span(&mut item.span);
     item.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
-    item.visibility
-        .iter_mut()
-        .for_each(|v| vis.visit_visibility(v));
 
     match &mut *item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),

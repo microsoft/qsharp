@@ -6,15 +6,15 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    resolve::{self, ItemSource, Names},
+    resolve::{self, Names},
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self, ImportOrExportItem};
+use qsc_ast::ast::{self};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId},
+    hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
@@ -42,12 +42,6 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
-}
-
-#[derive(Clone, Copy)]
-enum ItemScope {
-    Global,
-    Local,
 }
 
 pub(super) struct Lowerer {
@@ -145,36 +139,12 @@ impl With<'_> {
             })
             .collect::<Vec<_>>();
 
-        /*
-        let exports: Vec<_> = exports
-            .iter()
-            .map(|res| match res {
-                resolve::Res::Item(id, _, source) => id,
-                resolve::Res::Local(_)
-                | resolve::Res::Param(_)
-                | resolve::Res::PrimTy(_)
-                | resolve::Res::UnitTy => todo!(),
-            })
-            .collect();
-            */
-
         let items = namespace
             .items
-            // this is an AST id
             .iter()
-            .filter_map(|i| self.lower_item(ItemScope::Global, i, &exported_hir_ids[..]))
+            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
 
-        //     if self
-        //         .names
-        //         .get(dbg!(item.id))
-        //         .is_some_and(|res| exports.contains(dbg!(&res)))
-        //     {
-        //         ItemSource::Exported
-        //     } else {
-        //         ItemSource::Declared
-        //     },
-        // )
         let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
@@ -191,7 +161,6 @@ impl With<'_> {
 
     fn lower_item(
         &mut self,
-        scope: ItemScope,
         item: &ast::Item,
         exported_ids: &[hir::LocalItemId],
     ) -> Option<LocalItemId> {
@@ -211,7 +180,6 @@ impl With<'_> {
             // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
 
             ast::ItemKind::ImportOrExport(_) => {
-                //todo!("when we lower an export to an item, we need to note something maybe?"));
                 return None;
             },
             ast::ItemKind::Callable(callable) => {
@@ -220,7 +188,7 @@ impl With<'_> {
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
-                (id,  hir::ItemKind::Callable(callable))
+                (id, hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = resolve_id(name.id);
@@ -234,20 +202,10 @@ impl With<'_> {
             }
         };
 
-        let item_source = if exported_ids.contains(&id.item) {
-            ItemSource::Exported
+        let visibility = if exported_ids.contains(&id.item) {
+            Visibility::Public
         } else {
-            ItemSource::Declared
-        };
-
-        let visibility = match (scope, item_source) {
-            (_, ItemSource::Exported) => hir::Visibility::Public,
-            (_, ItemSource::Declared) if item.visibility.is_none() => hir::Visibility::Internal,
-            (ItemScope::Global, _) => item
-                .visibility
-                .as_ref()
-                .map_or(hir::Visibility::Public, lower_visibility),
-            _ => hir::Visibility::Internal,
+            Visibility::Internal
         };
 
         self.lowerer.items.push(hir::Item {
@@ -432,9 +390,7 @@ impl With<'_> {
         let kind = match &*stmt.kind {
             ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => {
-                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item, &[])?)
-            }
+            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item, &[])?),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
                 self.lower_pat(lhs),
@@ -797,13 +753,6 @@ impl With<'_> {
 
     fn lower_idents(&mut self, name: &ast::Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
-    }
-}
-
-fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
-    match visibility.kind {
-        ast::VisibilityKind::Public => hir::Visibility::Public,
-        ast::VisibilityKind::Internal => hir::Visibility::Internal,
     }
 }
 

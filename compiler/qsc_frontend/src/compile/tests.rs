@@ -1698,7 +1698,8 @@ fn multiple_packages_disallow_unexported_imports() {
                     ),
                 ),
             ),
-        ]"#]].assert_eq(&format!("{:#?}", user_code.errors));
+        ]"#]]
+    .assert_eq(&format!("{:#?}", user_code.errors));
 }
 
 #[test]
