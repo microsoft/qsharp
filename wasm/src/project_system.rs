@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
 use qsc::linter::LintConfig;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
-
-use std::iter::FromIterator;
-use std::{path::PathBuf, sync::Arc};
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
+use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
@@ -285,4 +286,73 @@ impl qsc_project::FileSystemAsync for ProjectLoader {
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
         Ok((self.0.list_directory)(path.to_string_lossy().to_string()).await)
     }
+}
+
+serializable_type! {
+    ProgramConfig,
+    {
+        pub package_graph_sources: PackageGraphSources,
+        pub target_profile: String,
+    },
+    r#"export interface IProgramConfig {
+        packageGraphSources: IPackageGraphSources;
+        targetProfile: TargetProfile;
+    }"#,
+    IProgramConfig
+}
+
+serializable_type! {
+    PackageGraphSources,
+    {
+        pub root: PackageInfo,
+        pub packages: Vec<PackageInfo>,
+    },
+    r#"export interface IPackageGraphSources {
+        root: IPackageInfo;
+        packages: IPackageInfo[];
+    }"#,
+    IPackageGraphSources
+}
+
+serializable_type! {
+    PackageInfo,
+    {
+        pub key: PackageKey,
+        pub sources: Vec<(String, String)>,
+        pub language_features: Vec<String>,
+        pub dependencies: FxHashMap<PackageAlias,PackageKey>,
+    },
+    r#"export interface IPackageInfo {
+        key: string;
+        sources: [string, string][];
+        languageFeatures: string[];
+        dependencies: Record<string,string>; // or Map?
+    }"#
+}
+
+type PackageAlias = String;
+type PackageKey = String;
+
+pub(crate) fn into_qsc_args(
+    program: IProgramConfig,
+    entry: Option<String>,
+) -> (
+    qsc::SourceMap,
+    qsc::TargetCapabilityFlags,
+    qsc::LanguageFeatures,
+) {
+    let program: ProgramConfig = program.into();
+    let capabilities = qsc::target::Profile::from_str(&program.target_profile)
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
+        .into();
+    let package_graph = program.package_graph_sources;
+    let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
+    let sources = package_graph.root.sources;
+    let source_map = qsc::SourceMap::new(
+        sources
+            .into_iter()
+            .map(|pair| (pair.0.into(), pair.1.into())),
+        entry.map(std::convert::Into::into),
+    );
+    (source_map, capabilities, language_features)
 }

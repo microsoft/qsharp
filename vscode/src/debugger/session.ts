@@ -111,11 +111,9 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const failureMessage = await this.debugService.loadSource(
-      this.program.sources,
-      this.program.profile,
+    const failureMessage = await this.debugService.loadProgram(
+      { sources: this.program.sources, profile: this.program.profile },
       this.config.entry,
-      this.program.languageFeatures,
     );
     for (const [path, _contents] of this.program.sources) {
       if (failureMessage == "") {

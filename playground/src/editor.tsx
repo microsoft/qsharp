@@ -138,10 +138,10 @@ export function Editor(props: {
     if (code == null) return;
 
     const config = {
-      sources: [["code", code]],
+      sources: [["code", code]] as [string, string][],
       languageFeatures: [],
       profile: profile,
-    } as ProgramConfig;
+    };
 
     if (props.activeTab === "ast-tab") {
       props.setAst(

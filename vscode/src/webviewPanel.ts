@@ -3,7 +3,6 @@
 
 import {
   IOperationInfo,
-  IQSharpError,
   QscEventTarget,
   VSDiagnostic,
   getCompilerWorker,

@@ -27,11 +27,11 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     "./out/compilerWorker.js",
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
-  const docFiles = await worker.getDocumentation(
+  const docFiles = await worker.getDocumentation({
     sources,
     profile,
     languageFeatures,
-  );
+  });
 
   const documentation: string[] = [];
   for (const file of docFiles) {
