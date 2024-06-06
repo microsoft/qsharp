@@ -1,0 +1,18 @@
+namespace Kata.Verification {
+    open Microsoft.Quantum.Katas;
+
+    @EntryPoint()
+    operation CheckSolution() : Bool {
+        for n in 2 .. 6 {
+            for p in 2 .. n - 1 {
+                if not CheckOracleImplementsFunction(n, Kata.PeriodicGivenPeriodOracle(_, _, p), PeriodicGivenPeriodF(_, p)) {
+                    Message($"Test failed for n = {n}, p = {p}");
+                    return false;
+                }
+            }
+        }
+
+        Message("Correct!");
+        true
+    }  
+}

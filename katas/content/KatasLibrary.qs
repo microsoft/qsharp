@@ -333,4 +333,14 @@ namespace Microsoft.Quantum.Katas {
         }
         return true;
     }
+
+    function PeriodicGivenPeriodF(args : Bool[], P : Int) : Bool {
+        let N = Length(args);
+        for i in 0 .. N - P - 1 {
+            if args[i] != args[i + P] {
+                return false;
+            }
+        }
+        return true;
+    }    
 }

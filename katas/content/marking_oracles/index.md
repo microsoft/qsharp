@@ -56,6 +56,51 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     ]
 })
 
+@[exercise]({
+    "id": "marking_oracles__palindrome",
+    "title": "Palindrome",
+    "path": "./palindrome/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__periodic_p",
+    "title": "Periodic of Length P",
+    "path": "./periodic_p/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__periodic",
+    "title": "Periodic of Any Length",
+    "path": "./periodic/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__contains_substring_p",
+    "title": "Contains Substring At Position",
+    "path": "./contains_substring_p/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__pattern_match",
+    "title": "Pattern Match",
+    "path": "./pattern_match/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "marking_oracles__conclusion",
     "title": "Conclusion"
