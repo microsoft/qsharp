@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.Samples {
         } apply {
             let iterations = 5;
             for _ in 1..iterations {
-                // Apply a unitary operatyion to the encoded register that shuold
+                // Apply a unitary operation to the encoded register that should
                 // effectively perform an identity operation but may be noisy
                 // on the quantum hardware and introduce errors.
                 ApplyRotationalIdentity(encodedRegister);

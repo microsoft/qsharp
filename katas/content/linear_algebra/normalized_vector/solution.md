@@ -1,4 +1,4 @@
-We start by calculating the norm of the vector
+You start by calculating the norm of the vector
 
 $$||V|| = \sqrt{\langle V , V \rangle} = \sqrt{-6 \cdot (-6) + (-8i) \cdot 8i} = \sqrt{6^2 + 8^2} = 10$$
 

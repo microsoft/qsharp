@@ -41,17 +41,3 @@ export function getTargetFriendlyName(targetProfile?: string) {
       return "Q#: invalid";
   }
 }
-
-export function getEnablePreviewQirGen(): boolean {
-  return vscode.workspace.getConfiguration("Q#").get<boolean>(
-    "qir.experimentalCodeGeneration",
-    false, // The default value should be set in `package.json` as well.
-  );
-}
-
-export function getEnableAdaptiveProfile(): boolean {
-  return vscode.workspace.getConfiguration("Q#").get<boolean>(
-    "qir.enableAdaptiveProfile",
-    false, // The default value should be set in `package.json` as well.
-  );
-}

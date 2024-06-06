@@ -9,6 +9,7 @@
   "preparing_states",
   "single_qubit_measurements",
   "multi_qubit_measurements",
+  "distinguishing_unitaries",
   "random_numbers",
   "superdense_coding",
   "oracles",

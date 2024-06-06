@@ -19,6 +19,8 @@ serializable_type! {
         pub severity: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub code: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub uri: Option<String>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub related: Vec<Related>
     },
@@ -27,6 +29,7 @@ serializable_type! {
         message: string;
         severity: "error" | "warning" | "info"
         code?: string;
+        uri?: string;
         related?: IRelatedInformation[];
     }"#
 }
@@ -40,6 +43,21 @@ serializable_type! {
     r#"export interface IRelatedInformation {
         location: ILocation,
         message: string;
+    }"#
+}
+
+serializable_type! {
+    QSharpError,
+    {
+        document: String,
+        diagnostic: VSDiagnostic,
+        stack: Option<String>,
+    },
+    r#"export interface IQSharpError {
+        /** Source URI or name */
+        document: string;
+        diagnostic: VSDiagnostic;
+        stack?: string;
     }"#
 }
 
@@ -126,6 +144,9 @@ impl VSDiagnostic {
         // e.g. Qsc.Eval.ReleasedQubitNotZero
         let code = err.code().map(|c| c.to_string());
 
+        // e.g. https://aka.ms/qdk.qir
+        let uri = err.url().map(|u| u.to_string());
+
         Self {
             range: range.into(),
             severity: (match err.severity().unwrap_or(Severity::Error) {
@@ -136,6 +157,7 @@ impl VSDiagnostic {
             .to_string(),
             message,
             code,
+            uri,
             related,
         }
     }
@@ -185,9 +207,7 @@ where
 /// - the first element of the tuple is the document URI, or <project> if the error doesn't have a span
 /// - the second element of the tuple is a [`VSDiagnostic`] that represents the error
 /// - the third element is the stack trace
-pub fn interpret_errors_into_vs_diagnostics(
-    errs: &[interpret::Error],
-) -> Vec<(String, VSDiagnostic, Option<String>)> {
+pub fn interpret_errors_into_qsharp_errors(errs: &[interpret::Error]) -> Vec<QSharpError> {
     let default_uri = "<project>";
     errs.iter()
         .map(|err| {
@@ -205,7 +225,11 @@ pub fn interpret_errors_into_vs_diagnostics(
                 None
             };
 
-            (doc, vsdiagnostic, stack_trace)
+            QSharpError {
+                document: doc,
+                diagnostic: vsdiagnostic,
+                stack: stack_trace,
+            }
         })
         .collect()
 }
@@ -215,8 +239,8 @@ fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
         interpret::Error::Eval(e) => error_labels(e.error()),
         interpret::Error::Compile(e) => error_labels(e),
         interpret::Error::Pass(e) => error_labels(e),
+        interpret::Error::PartialEvaluation(e) => error_labels(e),
         interpret::Error::NoEntryPoint
-        | interpret::Error::PartialEvaluation(_)
         | interpret::Error::UnsupportedRuntimeCapabilities
         | interpret::Error::Circuit(_)
         | interpret::Error::NotAnOperation => Vec::new(),

@@ -12,9 +12,11 @@ namespace MyQuantumApp {
 
         // Strings can be concatenated with `+`
         let myString = myString + "Bar";
+        Message(myString);
 
         // Q# supports string interpolation with the `$` prefix.
         let myString = $"interpolated: {myString}";
+        Message(myString);
 
         return myString;
     }
