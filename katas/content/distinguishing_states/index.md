@@ -41,6 +41,33 @@ This kata is designed to get you familiar with the concept of measurements and u
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_states__a_b",
+    "title": "|A〉 or |B〉?",
+    "path": "./a_b/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__zerozero_oneone",
+    "title": "|00〉 or |11〉?",
+    "path": "./zerozero_oneone/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__four_basis_states",
+    "title": "Distinguish four basis states",
+    "path": "./four_basis_states/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",
     "title": "Distinguishing Non-orthogonal States"
