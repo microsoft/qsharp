@@ -1,6 +1,18 @@
 namespace Kata {
-    operation EntanglementSwapping() : ((Qubit, Qubit) => (Bool, Bool), (Qubit, (Bool, Bool)) => Unit) {
-        return (SendMessage, ReconstructMessage);
+    open Microsoft.Quantum.Convert;
+
+    operation EntanglementSwapping() : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit) {
+        return (SendMessageCharlie, ReconstructMessageBob);
+    }
+
+    operation SendMessageCharlie(qAlice1 : Qubit, qBob1 : Qubit) : Int {
+        let (c1, c2) = SendMessage(qAlice1, qBob1);
+        return BoolArrayAsInt([c1, c2]);
+    } 
+
+    operation ReconstructMessageBob(qBob2 : Qubit, resultCharlie : Int) : Unit {
+        let classicalBits = IntAsBoolArray(resultCharlie, 2);   
+        ReconstructMessage(qBob2, (classicalBits[0], classicalBits[1]));
     }
 
     operation SendMessage(qAlice: Qubit, qMessage: Qubit) : (Bool, Bool) {

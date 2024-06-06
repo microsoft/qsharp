@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
     operation TeleportEntanglementSwappingTestLoop(
-        entanglementSwapping : ((Qubit, Qubit) => (Bool, Bool), (Qubit, (Bool, Bool)) => Unit)
+        entanglementSwapping : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit)
     ) : Bool {
         
         for i in 1 .. 15 {

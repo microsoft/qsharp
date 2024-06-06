@@ -1,6 +1,16 @@
 namespace Kata {
-    operation EntanglementSwapping() : ((Qubit, Qubit) => (Bool, Bool), (Qubit, (Bool, Bool)) => Unit) {
-        return (SendMessage, ReconstructMessage);
+    operation EntanglementSwapping() : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit) {
+        return (SendMessageCharlie, ReconstructMessageBob);
+    }
+
+    // You might find these skeleton operations useful.
+    operation SendMessageCharlie(qAlice1 : Qubit, qBob1 : Qubit) : Int {
+        // Implement your solution here...
+        return -1;
+    } 
+
+    operation ReconstructMessageBob(qBob2 : Qubit, resultCharlie : Int) : Unit {
+        // Implement your solution here...
     }
 
     // You might find these helper operations from earlier tasks useful.
