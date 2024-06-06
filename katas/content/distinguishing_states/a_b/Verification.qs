@@ -18,7 +18,7 @@ namespace Kata.Verification {
 
     // We can use the StatePrep_IsQubitA operation for the testing
     operation CheckSolution() : Bool {
-        for i in 0..10 {
+        for i in 0 .. 10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
             let isCorrect = DistinguishTwoStates_SingleQubit(
                 StatePrep_IsQubitA(alpha, _, _),
@@ -29,7 +29,7 @@ namespace Kata.Verification {
 
             if not isCorrect {
                 Message($"Test fails for alpha={alpha}");
-                return isCorrect;
+                return false;
             }
         }
 

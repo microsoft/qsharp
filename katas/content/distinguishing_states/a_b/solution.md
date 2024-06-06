@@ -2,7 +2,7 @@ We take a similar approach to the previous task: figure out a way to prepare the
 
 To create the input states $\ket{A}$ and $\ket{B}$, a $R_y$ gate with $\theta = 2\alpha$ was applied to the basis states $\ket{0}$ and $\ket{1}$. As a reminder, 
 
-$$R_y(\theta) = \begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\\\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$$
+$$R_y(\theta) = \begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$$
 
 We can return the input state to the basis state by applying $R_y$ gate with $-2\alpha$ as the rotation angle parameter to the input qubit.
 
