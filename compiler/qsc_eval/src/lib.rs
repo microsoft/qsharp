@@ -1115,11 +1115,11 @@ impl State {
             field_vals.len() == field_indexes.len(),
             "number of given field values should match the number of given struct fields"
         );
-        for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
-            strct[*i] = val.clone();
+        for (i, val) in field_indexes.iter().zip(field_vals.into_iter()) {
+            strct[*i] = val;
         }
 
-        self.set_val_register(Value::Tuple(Rc::from(strct)));
+        self.set_val_register(Value::Tuple(strct.into()));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
