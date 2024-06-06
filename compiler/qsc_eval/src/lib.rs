@@ -1096,20 +1096,18 @@ impl State {
             })
             .collect::<Vec<_>>();
 
+        let len = fields.len();
+
         let (field_vals, mut strct) = if copy.is_some() {
             // Get the field values and the copy struct value.
-            let field_vals = self.pop_vals(fields.len() + 1);
+            let field_vals = self.pop_vals(len + 1);
             let (copy, field_vals) = field_vals.split_first().expect("copy value is expected");
 
             // Make a clone of the copy struct value.
             (field_vals.to_vec(), copy.clone().unwrap_tuple().to_vec())
         } else {
-            // Get the field values.
-            let len = fields.len();
-            let field_vals = self.pop_vals(len);
-
             // Make an empty struct of the appropriate size.
-            (field_vals, vec![Value::Int(0); len])
+            (self.pop_vals(len), vec![Value::Int(0); len])
         };
 
         // Insert the field values into the new struct.
