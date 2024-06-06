@@ -176,9 +176,22 @@ impl<'a> Analyzer<'a> {
         // Since this is an assignment, the compute kind of the local variable (array var expression) needs to be updated.
         // The compute kind of the update is determined by the runtime features of the replacement value expression.
         let application_instance = self.get_current_application_instance();
-        let replacement_value_compute_kind =
+        let mut replacement_value_compute_kind =
             *application_instance.get_expr_compute_kind(replacement_value_expr_id);
-        let default_value_kind = ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static);
+
+        let mut default_value_kind = ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static);
+        // If we are within a dynamic scope, the compute kind of the assign index expression is dynamic and an additional
+        // runtime feature is used to mark the array itself as dynamically sized.
+        if !application_instance.active_dynamic_scopes.is_empty() {
+            default_value_kind = ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
+            let replacement_ty = &self.get_expr(replacement_value_expr_id).ty;
+            replacement_value_compute_kind =
+                replacement_value_compute_kind.aggregate(ComputeKind::new_with_runtime_features(
+                    RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+                    ValueKind::new_static_from_type(replacement_ty),
+                ));
+        }
+
         let mut updated_compute_kind = ComputeKind::Classical;
         updated_compute_kind = updated_compute_kind
             .aggregate_runtime_features(replacement_value_compute_kind, default_value_kind);
@@ -547,10 +560,12 @@ impl<'a> Analyzer<'a> {
         };
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
-        let global_callee = self
-            .package_store
-            .get_global(callee.item)
-            .expect("global should exist");
+        let Some(global_callee) = self.package_store.get_global(callee.item) else {
+            // If the callee is not found, that is an indication that it is an item that was removed during
+            // incremental compilation but remains in the name resolution data structures. Assume it is classical
+            // so that it generates an "unbound name" error at runtime.
+            return CallComputeKind::Regular(ComputeKind::Classical);
+        };
         match global_callee {
             Global::Callable(callable_decl) => self.analyze_expr_call_with_spec_callee(
                 &callee,
@@ -682,12 +697,33 @@ impl<'a> Analyzer<'a> {
                 application_instance.get_expr_compute_kind(e).is_dynamic()
             });
         if is_any_sub_expr_dynamic {
-            let dynamic_value_kind = ValueKind::new_dynamic_from_type(expr_type);
-            let dynamic_runtime_features =
+            let dynamic_value_kind = if matches!(expr_type, Ty::Array(..)) {
+                // An array coming from a dynamic conditional should be treated as dynamic in length
+                // and content.
+                ValueKind::Array(
+                    RuntimeKind::Dynamic,
+                    if condition_expr_compute_kind.is_dynamic() {
+                        RuntimeKind::Dynamic
+                    } else {
+                        RuntimeKind::Static
+                    },
+                )
+            } else {
+                ValueKind::new_dynamic_from_type(expr_type)
+            };
+            let mut dynamic_runtime_features =
                 derive_runtime_features_for_value_kind_associated_to_type(
                     dynamic_value_kind,
                     expr_type,
                 );
+            if condition_expr_compute_kind.is_dynamic() {
+                if is_any_result(expr_type) {
+                    dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicResult;
+                }
+                if matches!(expr_type, Ty::Tuple(tup) if !tup.is_empty()) {
+                    dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicTuple;
+                }
+            }
             let dynamic_compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: dynamic_runtime_features,
                 value_kind: dynamic_value_kind,
@@ -1490,13 +1526,11 @@ impl<'a> Analyzer<'a> {
                             dynamic_value_kind,
                             local_type,
                         );
-                    if matches!(local_type, Ty::Array(..)) {
-                        // For arrays updated in a dynamic context, we also need to include the runtime feature
-                        // of dynamic arrays and change the value kind.
-                        dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
-                        dynamic_value_kind =
-                            ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
-                    }
+                    update_features_for_type(
+                        local_type,
+                        &mut dynamic_runtime_features,
+                        &mut dynamic_value_kind,
+                    );
                     let dynamic_compute_kind = ComputeKind::new_with_runtime_features(
                         dynamic_runtime_features,
                         dynamic_value_kind,
@@ -1562,6 +1596,33 @@ impl<'a> Analyzer<'a> {
             }
             _ => panic!("expected a local variable or a tuple"),
         }
+    }
+}
+
+fn update_features_for_type(
+    local_type: &Ty,
+    dynamic_runtime_features: &mut RuntimeFeatureFlags,
+    dynamic_value_kind: &mut ValueKind,
+) {
+    match local_type {
+        Ty::Array(..) => {
+            // For arrays updated in a dynamic context, we also need to include the runtime feature
+            // of dynamic arrays and change the value kind.
+            *dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
+            *dynamic_value_kind = ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
+        }
+        Ty::Tuple(tup) if !tup.is_empty() => {
+            // For tuples updated in a dynamic context, we also need to include the runtime feature
+            // of dynamic tuples and change the value kind.
+            *dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicTuple;
+            *dynamic_value_kind = ValueKind::Element(RuntimeKind::Dynamic);
+        }
+        Ty::Prim(Prim::Result) => {
+            // For result types updated in a dynamic context, we need to include the runtime
+            // feature of dynamic results.
+            *dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicResult;
+        }
+        _ => {}
     }
 }
 
@@ -2378,4 +2439,13 @@ fn split_controls_and_input(
         remainder_expr_id = pats[1];
     }
     (controls, remainder_expr_id)
+}
+
+fn is_any_result(t: &Ty) -> bool {
+    match t {
+        Ty::Prim(Prim::Result) => true,
+        Ty::Array(t) => is_any_result(t),
+        Ty::Tuple(ts) => ts.iter().any(is_any_result),
+        _ => false,
+    }
 }

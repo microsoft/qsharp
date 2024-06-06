@@ -51,13 +51,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -70,12 +64,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all(),
-    );
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
@@ -117,13 +106,7 @@ fn check_partial_eval_stmt(
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -136,12 +119,7 @@ fn check_partial_eval_stmt(
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all(),
-    );
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     fir_expect.assert_eq(&unit_fir.to_string());

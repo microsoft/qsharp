@@ -17,21 +17,27 @@ namespace MyQuantumApp {
 
         // The range 1, 2, 3.
         let range = 1..3;
+        Message($"Range: {range}");
 
         // The range 2, 4.
         let range = 2..2..5;
+        Message($"Range: {range}");
 
         // The range 2, 4, 6.
         let range = 2..2..6;
+        Message($"Range: {range}");
 
         // The range 6, 4, 2.
         let range = 6..-2..2;
+        Message($"Range: {range}");
 
         // The range 2.
         let range = 2..-2..2;
+        Message($"Range: {range}");
 
         // The empty range.
         let range = 2..1;
+        Message($"Range: {range}");
 
         // Ranges are used in for-loop expressions. They must be closed ranges.
 
@@ -40,31 +46,39 @@ namespace MyQuantumApp {
         for i in 0..10 {
             set array += [i^2];
         }
+        Message($"Array: {array}");
 
         // Ranges can be used to create array slices.
 
         // The array [0, 4, 16, 36, 64, 100].
         let newArray = array[0..2..10];
+        Message($"Array slice [0..2..10]: {newArray}");
 
         // Open ranges can also be used to create array slices.
 
         // The array [0, 1, 4, 9, 16].
         let newArray = array[...4];
+        Message($"Array slice [...4]: {newArray}");
 
         // The array [25, 36, 49, 64, 81, 100].
         let newArray = array[5...];
+        Message($"Array slice [5...]: {newArray}");
 
         // The array [4, 25, 64].
         let newArray = array[2..3...];
+        Message($"Array slice [2..3...]: {newArray}");
 
         // The array [0, 9, 36].
         let newArray = array[...3..7];
+        Message($"Array slice [...3..7]: {newArray}");
 
         // The array [0, 1, 4, 9, 16, 25, 36, 49, 64, 81, 100].
         let newArray = array[...];
+        Message($"Array slice [...]: {newArray}");
 
         // The array [100, 49, 16, 1].
         let newArray = array[...-3...];
+        Message($"Array slice [...-3...]: {newArray}");
 
         return range;
     }

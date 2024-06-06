@@ -1972,7 +1972,9 @@ fn integer_div_with_lhs_dynamic_integer_and_rhs_zero_raises_error() {
     });
     assert_error(
         &error,
-        &expect![[r#"EvaluationFailed("division by zero", Span { lo: 142, hi: 147 })"#]],
+        &expect![[
+            r#"EvaluationFailed("division by zero", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 147 } })"#
+        ]],
     );
 }
 
@@ -2070,7 +2072,7 @@ fn integer_exponentiation_with_lhs_classical_integer_and_rhs_dynamic_integer_rai
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("exponent must be a classical integer", Span { lo: 142, hi: 147 })"#
+            r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 147 } })"#
         ]],
     );
 }
@@ -2093,7 +2095,7 @@ fn integer_exponentiation_with_lhs_classical_integer_and_rhs_classical_negative_
     assert_error(
         &error,
         &expect![[
-            r#"EvaluationFailed("exponent must be non-negative", Span { lo: 142, hi: 148 })"#
+            r#"EvaluationFailed("exponent must be non-negative", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 148 } })"#
         ]],
     );
 }
@@ -2273,7 +2275,7 @@ fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_dynamic_integer_raise
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("exponent must be a classical integer", Span { lo: 186, hi: 191 })"#
+            r#"Unexpected("exponent must be a classical integer", PackageSpan { package: PackageId(2), span: Span { lo: 186, hi: 191 } })"#
         ]],
     );
 }

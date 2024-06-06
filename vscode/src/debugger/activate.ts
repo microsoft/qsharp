@@ -10,6 +10,7 @@ import { getRandomGuid } from "../utils";
 
 import * as vscode from "vscode";
 import { loadProject } from "../projectSystem";
+import { clearCommandDiagnostics } from "../diagnostics";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -74,6 +75,8 @@ function registerCommands(context: vscode.ExtensionContext) {
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
+    clearCommandDiagnostics();
+
     if (vscode.debug.activeDebugSession?.type === "qsharp") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;

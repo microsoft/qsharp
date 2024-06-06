@@ -303,11 +303,12 @@ async function validateKata(
 }
 
 test("getAllKatas works", async () => {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-const katasList = await getAllKatas();
+// Run tests for all katas, including unpublished
+const katasList = await getAllKatas({ includeUnpublished: true });
 
 katasList.forEach((kataDesc) => {
   test(`${kataDesc.id} kata is valid`, async () => {
@@ -778,6 +779,26 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
       [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
       "base",
       "SomeBadExpr()",
+      [],
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source that doesn't match profile fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      [
+        [
+          "test.qs",
+          `namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }`,
+        ],
+      ],
+      "adaptive_ri",
+      "A.Test()",
       [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);

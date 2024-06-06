@@ -16,6 +16,7 @@ namespace MyQuantumApp {
         H(q);
         // Now we measure the qubit in Z-basis using the `M` operation.
         let result = M(q);
+        Message($"Measurement result: {result}");
         // We reset the qubit before releasing it using the `Reset` operation.
         Reset(q);
         // Finally, we return the result of the measurement.

@@ -39,6 +39,8 @@ pub struct Lint {
     pub message: &'static str,
     /// The help text the user will see in the code editor.
     pub help: &'static str,
+    /// An enum identifying this lint.
+    pub kind: LintKind,
 }
 
 impl std::fmt::Display for Lint {

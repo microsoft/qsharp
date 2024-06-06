@@ -195,10 +195,15 @@ export class Compiler implements ICompiler {
   }
 
   async newGetEstimates(
-    { sources, languageFeatures }: ProgramConfig,
+    { sources, languageFeatures, profile = "unrestricted" }: ProgramConfig,
     params: string,
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params, languageFeatures || []);
+    return this.wasm.get_estimates(
+      sources,
+      params,
+      languageFeatures || [],
+      profile,
+    );
   }
 
   async deprecatedGetEstimates(
@@ -206,7 +211,12 @@ export class Compiler implements ICompiler {
     params: string,
     languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params, languageFeatures);
+    return this.wasm.get_estimates(
+      sources,
+      params,
+      languageFeatures,
+      "unrestricted",
+    );
   }
 
   async getAst(
@@ -240,6 +250,7 @@ export class Compiler implements ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<void> {
     let sources;
+    let profile: TargetProfile = "unrestricted";
     let languageFeatures: string[] = [];
 
     if (Array.isArray(sourcesOrConfig)) {
@@ -249,6 +260,7 @@ export class Compiler implements ICompiler {
       // this is the new API
       sources = sourcesOrConfig.sources;
       languageFeatures = sourcesOrConfig.languageFeatures || [];
+      profile = sourcesOrConfig.profile || "unrestricted";
     }
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
@@ -259,6 +271,7 @@ export class Compiler implements ICompiler {
       (msg: string) => onCompilerEvent(msg, eventHandler!),
       shots!,
       languageFeatures,
+      profile,
     );
   }
 

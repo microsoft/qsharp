@@ -10,6 +10,7 @@ use qsc_project::Manifest;
 pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
+    pub language_features: Option<LanguageFeatures>,
 }
 
 #[derive(Debug)]
@@ -17,6 +18,29 @@ pub struct DiagnosticUpdate {
     pub uri: String,
     pub version: Option<u32>,
     pub errors: Vec<Error>,
+}
+
+#[derive(Debug)]
+pub enum CodeActionKind {
+    Empty,
+    QuickFix,
+    Refactor,
+    RefactorExtract,
+    RefactorInline,
+    RefactorMove,
+    RefactorRewrite,
+    Source,
+    SourceOrganizeImports,
+    SourceFixAll,
+    Notebook,
+}
+
+#[derive(Debug)]
+pub struct CodeAction {
+    pub title: String,
+    pub edit: Option<WorkspaceEdit>,
+    pub kind: Option<CodeActionKind>,
+    pub is_preferred: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -88,6 +112,11 @@ impl Hash for CompletionItem {
 pub struct Hover {
     pub contents: String,
     pub span: Range,
+}
+
+#[derive(Debug)]
+pub struct WorkspaceEdit {
+    pub changes: Vec<(String, Vec<TextEdit>)>,
 }
 
 #[derive(Debug, PartialEq)]
