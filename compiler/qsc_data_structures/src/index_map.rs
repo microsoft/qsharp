@@ -147,7 +147,15 @@ impl<K, V: Clone> Clone for IndexMap<K, V> {
 impl<K, V: Debug> Debug for IndexMap<K, V> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_struct("IndexMap")
-            .field("values", &self.values)
+            .field(
+                "values",
+                &self
+                    .values
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(k, v)| v.as_ref().map(|val| format!("{k:?}: {val:?}")))
+                    .collect::<Vec<_>>(),
+            )
             .finish()
     }
 }
