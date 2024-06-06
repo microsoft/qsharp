@@ -72,9 +72,20 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
 
 @[exercise]({
     "id": "key_distribution__prepare_qubits",
-    "title": "Prepare Alice's Qubits",
+    "title": "Prepare Qubits (Alice's Task)",
     "path": "./prepare_qubits/",
-    "qsDependencies": []
+    "qsDependencies": [
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "key_distribution__measure_qubits",
+    "title": "Measure Qubits (Bob's Task)",
+    "path": "./measure_qubits/",
+    "qsDependencies": [
+        "./Common.qs"
+    ]
 })
 
 

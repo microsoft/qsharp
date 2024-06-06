@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PrepareAlicesQubits(qs : Qubit[], bases : Bool[], bits : Bool[]) : Unit {
+    operation PrepareQubits(qs : Qubit[], bases : Bool[], bits : Bool[]) : Unit {
         // Implement your solution here...
 
     }
