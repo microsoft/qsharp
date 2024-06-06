@@ -9,7 +9,7 @@ use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
-use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
+use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
@@ -214,11 +214,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
     fn at_field_def(
         &mut self,
-        _: &LocatorContext<'a>,
+        context: &LocatorContext<'a>,
         field_name: &'a ast::Ident,
         ty: &'a ast::Ty,
     ) {
-        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
+        let contents = display_udt_field(
+            &context.current_item_name,
+            self.display.ident_ty(field_name, ty),
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(field_name.span),
@@ -228,14 +231,21 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_field_ref(
         &mut self,
         field_ref: &'a ast::Ident,
-        _: &'_ hir::ItemId,
+        item_id: &'_ hir::ItemId,
         field_definition: &'a hir::ty::UdtField,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt_field(field_definition));
-        self.hover = Some(Hover {
-            contents,
-            span: self.range(field_ref.span),
-        });
+        let (item, _, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+
+        if let hir::ItemKind::Ty(name, _) = &item.kind {
+            let contents =
+                display_udt_field(&name.name, self.display.hir_udt_field(field_definition));
+            self.hover = Some(Hover {
+                contents,
+                span: self.range(field_ref.span),
+            });
+        }
     }
 
     fn at_local_def(
@@ -408,6 +418,11 @@ fn display_udt(doc: &str, namespace: &str, code: impl Display, is_struct: bool) 
     } else {
         with_doc(&summary, format!("{kind} of `{namespace}`\n{markdown}"))
     }
+}
+
+fn display_udt_field(udt_name: &str, code: impl Display) -> String {
+    let markdown = markdown_fenced_block(code);
+    format!("field of `{udt_name}`\n{markdown}")
 }
 
 fn with_doc(doc: &String, code: impl Display) -> String {

@@ -100,6 +100,7 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_callable: Option<&'package ast::CallableDecl>,
     pub(crate) lambda_params: Vec<&'package ast::Pat>,
     pub(crate) current_item_doc: Rc<str>,
+    pub(crate) current_item_name: Rc<str>,
     pub(crate) current_namespace: Rc<str>,
     pub(crate) in_params: bool,
     pub(crate) in_lambda_params: bool,
@@ -130,6 +131,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
                 lambda_params: vec![],
                 in_lambda_params: false,
                 current_item_doc: Rc::from(""),
+                current_item_name: Rc::from(""),
                 current_udt_id: None,
             },
         }
@@ -169,7 +171,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     if decl.name.span.touches(self.offset) {
                         self.inner.at_callable_def(&self.context, &decl.name, decl);
                     } else if decl.span.contains(self.offset) {
-                        let context = self.context.current_callable;
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, decl.name.name.clone());
+                        let context_curr_callable = self.context.current_callable;
                         self.context.current_callable = Some(decl);
 
                         // walk callable decl
@@ -192,8 +196,8 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                 specs.iter().for_each(|s| self.visit_spec_decl(s));
                             }
                         }
-
-                        self.context.current_callable = context;
+                        self.context.current_callable = context_curr_callable;
+                        self.context.current_item_name = context_curr_item_name;
                     }
                     // Note: the `item.span` can cover things like doc
                     // comment, attributes, and visibility keywords, which aren't
@@ -206,6 +210,8 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 ast::ItemKind::Ty(ident, def) => {
                     if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(ident.id)
                     {
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, ident.name.clone());
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
 
@@ -216,12 +222,15 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
 
                         self.context.current_udt_id = context;
+                        self.context.current_item_name = context_curr_item_name;
                     }
                 }
                 ast::ItemKind::Struct(def) => {
                     if let Some(resolve::Res::Item(item_id, _)) =
                         self.compilation.get_res(def.name.id)
                     {
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, def.name.name.clone());
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
 
@@ -232,6 +241,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
 
                         self.context.current_udt_id = context;
+                        self.context.current_item_name = context_curr_item_name;
                     }
                 }
                 _ => {}
