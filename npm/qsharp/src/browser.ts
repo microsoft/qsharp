@@ -5,7 +5,10 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, { TargetProfile } from "../lib/web/qsc_wasm.js";
+import initWasm, {
+  IProjectConfig,
+  TargetProfile,
+} from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -138,14 +141,10 @@ export function getCompilerWorker(worker: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(
-  readFile?: (uri: string) => Promise<string | null>,
-  listDir?: (uri: string) => Promise<[string, number][]>,
-  getManifest?: (uri: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
+  loadProject: (uri: string) => Promise<IProjectConfig | null>,
 ): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
+  return new QSharpLanguageService(wasm, loadProject);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
@@ -167,11 +166,12 @@ export type {
   ILocation,
   IOperationInfo,
   IPosition,
+  IProjectConfig,
   IQSharpError,
   IRange,
   IStackFrame,
-  IWorkspaceEdit,
   IStructStepResult,
+  IWorkspaceEdit,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
@@ -192,7 +192,7 @@ export {
   type LessonItem,
   type Question,
 } from "./katas.js";
-export { type LanguageServiceEvent } from "./language-service/language-service.js";
+export type { LanguageServiceEvent } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
 export { log, type LogLevel, type TargetProfile };
 export type {

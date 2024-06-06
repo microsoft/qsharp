@@ -7,11 +7,10 @@ mod tests;
 use super::compilation::Compilation;
 use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
-use log::{error, trace};
+use log::trace;
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
 
@@ -116,15 +115,19 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
-    /// Callback which lets the service read a file from the target filesystem
-    pub(crate) read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
-    /// Callback which lets the service list directory contents
-    /// on the target file system
-    pub(crate) list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
-    /// Fetch the manifest file for a specific path
-    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
+    load_project_callback: AsyncFunction<'a, String, LoadProjectResult>,
 }
 
+// TODO: consolidate these two types
+pub type LoadProjectResult = Option<LoadProjectResultInner>;
+pub type LoadProjectResultInner = (
+    Arc<str>,                  // compilation uri
+    Vec<(Arc<str>, Arc<str>)>, // sources
+    LanguageFeatures,
+    Vec<LintConfig>,
+);
+
+#[derive(Debug)]
 struct LoadManifestResult {
     compilation_uri: Arc<str>,
     sources: Vec<(Arc<str>, Arc<str>)>,
@@ -136,19 +139,14 @@ impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
+        load_project: impl Fn(String) -> Pin<Box<dyn Future<Output = LoadProjectResult>>> + 'a,
     ) -> Self {
         Self {
             state,
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
-            read_file_callback: Box::new(read_file),
-            list_directory: Box::new(list_directory),
-            get_manifest: Box::new(get_manifest),
+            load_project_callback: Box::new(load_project),
         }
     }
 
@@ -221,27 +219,16 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        let manifest = (self.get_manifest)(doc_uri.to_string()).await;
-        if let Some(ref manifest) = manifest {
-            let res = self.load_project(manifest).await;
-            match res {
-                Ok(o) => Some(LoadManifestResult {
-                    compilation_uri: manifest.compilation_uri(),
-                    sources: o.sources,
-                    language_features: Some(
-                        manifest
-                            .manifest
-                            .language_features
-                            .iter()
-                            .collect::<LanguageFeatures>(),
-                    ),
-                    lints: manifest.manifest.lints.clone(),
-                }),
-                Err(e) => {
-                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    None
-                }
-            }
+        if let Some((compilation_uri, source_map, language_features, lints)) =
+            (self.load_project_callback)(doc_uri.to_string()).await
+        {
+            trace!("Found project at {compilation_uri}");
+            Some(LoadManifestResult {
+                compilation_uri,
+                sources: source_map,
+                language_features: Some(language_features),
+                lints,
+            })
         } else {
             trace!("Running in single file mode");
             None

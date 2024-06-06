@@ -9,6 +9,7 @@ import type {
   ILocation,
   INotebookMetadata,
   IPosition,
+  IProjectConfig,
   IRange,
   ISignatureHelp,
   ITextEdit,
@@ -108,31 +109,20 @@ export class QSharpLanguageService implements ILanguageService {
   private eventHandler =
     new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
 
-  private readFile: (uri: string) => Promise<string | null>;
-
   private backgroundWork: Promise<void>;
 
   constructor(
     wasm: QscWasm,
-    readFile: (uri: string) => Promise<string | null> = () =>
+    loadProject: (uri: string) => Promise<IProjectConfig | null> = () =>
       Promise.resolve(null),
-    listDir: (uri: string) => Promise<[string, number][]> = () =>
-      Promise.resolve([]),
-    getManifest: (uri: string) => Promise<{
-      manifestDirectory: string;
-    } | null> = () => Promise.resolve(null),
   ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService();
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
-      readFile,
-      listDir,
-      getManifest,
+      loadProject,
     );
-
-    this.readFile = readFile;
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {

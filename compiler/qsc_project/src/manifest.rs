@@ -36,6 +36,7 @@ pub struct ManifestDescriptor {
 
 impl ManifestDescriptor {
     /// Generate a canonical compilation URI for the project associated with this manifest
+    // TODO: use this in the JS layer as well?!
     #[must_use]
     pub fn compilation_uri(&self) -> Arc<str> {
         Arc::from(format!(

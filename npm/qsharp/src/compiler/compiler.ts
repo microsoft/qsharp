@@ -110,8 +110,6 @@ export class Compiler implements ICompiler {
         diags = errors;
       },
       () => Promise.resolve(null),
-      () => Promise.resolve([]),
-      () => Promise.resolve(null),
     );
     languageService.update_document("code", 1, code);
     // Yield to let the language service background worker handle the update

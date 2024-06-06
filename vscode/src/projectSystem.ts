@@ -1,15 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getProjectLoader, log } from "qsharp-lang";
+import { IProjectConfig, getProjectLoader, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { Uri } from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
-import {
-  IPackageGraphSources,
-  IPackageInfo,
-} from "../../npm/qsharp/lib/web/qsc_wasm";
+import { IPackageInfo } from "../../npm/qsharp/lib/web/qsc_wasm";
 
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
@@ -18,6 +15,7 @@ import {
 export async function getManifest(uri: string): Promise<
   | ({
       manifestDirectory: string;
+      manifestUri: Uri;
     } & QSharpJsonManifest)
   | null
 > {
@@ -189,18 +187,6 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<
 
 let projectLoader: any | undefined = undefined;
 
-export type ProjectConfig = {
-  /**
-   * Friendly name for the project, based on the name of the Q# document or project directory
-   */
-  projectName: string;
-  packageGraphSources: IPackageGraphSources;
-  lints: {
-    lint: string;
-    level: string;
-  }[];
-};
-
 function parseManifestOrThrow(manifestDocument: {
   uri: vscode.Uri;
   content: string;
@@ -242,7 +228,7 @@ function parseManifestOrThrow(manifestDocument: {
  */
 export async function loadProject(
   documentUri: vscode.Uri,
-): Promise<ProjectConfig> {
+): Promise<IProjectConfig> {
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
     documentUri.toString(),
@@ -253,6 +239,30 @@ export async function loadProject(
     return await singleFileProject(documentUri);
   }
 
+  return loadProjectInner(manifest);
+}
+
+export async function loadProjectNoSingleFile(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig | null> {
+  // TODO: this is a perf fix.... sad
+  await new Promise((r) => setTimeout(r, 0));
+
+  const manifest = await getManifest(documentUri.toString());
+
+  if (manifest === null) {
+    return null;
+  }
+
+  return loadProjectInner(manifest);
+}
+
+async function loadProjectInner(
+  manifest: {
+    manifestDirectory: string;
+    manifestUri: vscode.Uri;
+  } & QSharpJsonManifest,
+): Promise<IProjectConfig> {
   if (!projectLoader) {
     projectLoader = await getProjectLoader(readFile, listDir, getManifest);
   }
@@ -296,15 +306,13 @@ export async function loadProject(
   if (errors.length > 0) {
     for (const error of errors) {
       updateQSharpJsonDiagnostics(manifest.manifestUri, error);
-      // fall back to single file mode
-      // TODO: maybe fall back to single project?
-      return await singleFileProject(documentUri);
     }
   }
 
   return {
     projectName:
       Utils.basename(Uri.parse(manifest.manifestDirectory)) || "Q# Project",
+    projectUri: manifest.manifestUri.toString(),
     packageGraphSources: {
       root,
       packages,
@@ -318,6 +326,7 @@ async function singleFileProject(documentUri: vscode.Uri) {
 
   return {
     projectName: Utils.basename(documentUri),
+    projectUri: documentUri.toString(),
     packageGraphSources: {
       root: {
         key: "root",

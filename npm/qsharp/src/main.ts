@@ -26,7 +26,7 @@ import {
 } from "./language-service/language-service.js";
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
-import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
+import type { IProjectConfig, ProjectLoader } from "../lib/web/qsc_wasm.js";
 
 export { qsharpLibraryUriScheme };
 
@@ -85,14 +85,10 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
 }
 
 export function getLanguageService(
-  readFile?: (uri: string) => Promise<string | null>,
-  listDir?: (uri: string) => Promise<[string, number][]>,
-  getManifest?: (uri: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
+  loadProject?: (uri: string) => Promise<IProjectConfig | null>,
 ): ILanguageService {
   ensureWasm();
-  return new QSharpLanguageService(wasm!, readFile, listDir, getManifest);
+  return new QSharpLanguageService(wasm!, loadProject);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {

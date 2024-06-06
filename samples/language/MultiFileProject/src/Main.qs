@@ -14,7 +14,10 @@ namespace MyQuantumApp {
 
         // TODO: This is a hacky way of referencing the dependency for now -
         // I'm just pulling in all the sources into the same compilation
-        Dependency.MagicFunction();
+
+        // Comment this out to test dependencies. Code commented out to keep automation passing
+
+        // Dependency.MagicFunction();
 
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);

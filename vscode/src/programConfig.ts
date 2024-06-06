@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ProgramConfig } from "qsharp-lang";
+import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
 import { Utils } from "vscode-uri";
 import { isQsharpDocument } from "./common";
 import { getTarget } from "./config";
-import { ProjectConfig, loadProject } from "./projectSystem";
+import { loadProject } from "./projectSystem";
 
 /**
  * Notice the similarity to @type {import("qsharp-lang").ProgramConfig} and @type {ProjectConfig}.
@@ -24,7 +24,7 @@ import { ProjectConfig, loadProject } from "./projectSystem";
  * So all the properties are required.
  */
 
-export type FullProgramConfig = Required<ProgramConfig & ProjectConfig>;
+export type FullProgramConfig = Required<ProgramConfig & IProjectConfig>;
 
 type FullProgramConfigOrError =
   | {

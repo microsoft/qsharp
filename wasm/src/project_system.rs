@@ -14,6 +14,12 @@ use wasm_bindgen_futures::JsFuture;
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<IProjectConfig | null>")]
+    pub type LoadProjectCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
     #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
     pub type ReadFileCallback;
 }
@@ -73,8 +79,9 @@ macro_rules! into_async_rust_fn_with {
 
             let res: JsFuture = res.into();
 
-            Box::pin(map_js_promise(res, move |x| $map_result(x, input.clone())))
-                as Pin<Box<dyn Future<Output = _> + 'static>>
+            Box::pin(map_js_promise(res, move |x| {
+                $map_result(x.into(), input.clone())
+            })) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
         $js_async_fn
     }};
@@ -305,6 +312,8 @@ serializable_type! {
     PackageGraphSources,
     {
         pub root: PackageInfo,
+        // TODO: Might change my mind later and make this a hashmap, depending on if/how we do lookups.
+        // Vec isn't necessary if ordering is going to be done by the lower layers.
         pub packages: Vec<PackageInfo>,
     },
     r#"export interface IPackageGraphSources {
@@ -330,9 +339,36 @@ serializable_type! {
     }"#
 }
 
+serializable_type! {
+    ProjectConfig,
+    {
+        pub project_name: String,
+        pub project_uri: String,
+        pub package_graph_sources: PackageGraphSources,
+        pub lints: Vec<LintConfig>, // TODO: I feel like this will barf at the serialization boundary if you have an invalid lint name
+    },
+    r#"export interface IProjectConfig {
+        /**
+         * Friendly name for the project, based on the name of the Q# document or project directory
+         */
+        projectName: string;
+        /**
+         * Uri for the qsharp.json or the root source file (single file projects)
+         */
+        projectUri: string;
+        packageGraphSources: IPackageGraphSources;
+        lints: {
+          lint: string;
+          level: string;
+        }[];
+    }"#,
+    IProjectConfig
+}
+
 type PackageAlias = String;
 type PackageKey = String;
 
+/// This returns the common parameters that the compiler/interpreter uses
 pub(crate) fn into_qsc_args(
     program: IProgramConfig,
     entry: Option<String>,
@@ -346,19 +382,44 @@ pub(crate) fn into_qsc_args(
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
         .into();
     let package_graph = program.package_graph_sources;
+    let (sources, language_features) = into_package_graph_args(package_graph);
+
+    let source_map = qsc::SourceMap::new(sources, entry.map(std::convert::Into::into));
+
+    (source_map, capabilities, language_features)
+}
+
+/// This returns the common parameters that the language service needs from the manifest
+pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
+    let (sources, language_features) = into_package_graph_args(project.package_graph_sources);
+
+    (
+        project.project_name.into(),
+        sources,
+        language_features,
+        project.lints,
+    )
+}
+
+/// This is the bit that's common to both the compiler and the language service
+#[allow(clippy::type_complexity)]
+fn into_package_graph_args(
+    package_graph: PackageGraphSources,
+) -> (Vec<(Arc<str>, Arc<str>)>, qsc::LanguageFeatures) {
     let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
     let mut sources = package_graph.root.sources;
 
-    // TODO: Properly pass these into the compiler
+    // Concatenate all the dependencies into the sources
+    // TODO: Properly convert these into something that the compiler & language service can use
     for other_package in package_graph.packages {
         sources.extend(other_package.sources);
     }
 
-    let source_map = qsc::SourceMap::new(
+    (
         sources
             .into_iter()
-            .map(|pair| (pair.0.into(), pair.1.into())),
-        entry.map(std::convert::Into::into),
-    );
-    (source_map, capabilities, language_features)
+            .map(|(name, contents)| (name.into(), contents.into()))
+            .collect(),
+        language_features,
+    )
 }
