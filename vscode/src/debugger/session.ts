@@ -94,7 +94,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
 
-    for (const source of program.sources) {
+    for (const source of program.packageGraphSources.root.sources) {
       const uri = vscode.Uri.parse(source[0], true);
 
       // In Debug Protocol requests, the VS Code debug adapter client
@@ -112,10 +112,14 @@ export class QscDebugSession extends LoggingDebugSession {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
     const failureMessage = await this.debugService.loadProgram(
-      { sources: this.program.sources, profile: this.program.profile },
+      {
+        packageGraphSources: this.program.packageGraphSources,
+        profile: this.program.profile,
+      },
       this.config.entry,
     );
-    for (const [path, _contents] of this.program.sources) {
+    for (const [path, _contents] of this.program.packageGraphSources.root
+      .sources) {
       if (failureMessage == "") {
         const locations = await this.debugService.getBreakpoints(path);
         log.trace(`init breakpointLocations: %O`, locations);

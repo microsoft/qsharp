@@ -11,6 +11,11 @@ namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
     operation Main() : Unit {
+
+        // TODO: This is a hacky way of referencing the dependency for now -
+        // I'm just pulling in all the sources into the same compilation
+        Dependency.MagicFunction();
+
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);
 

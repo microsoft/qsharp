@@ -12,7 +12,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     throw new Error(program.errorMsg);
   }
 
-  const { sources, profile, languageFeatures } = program.programConfig;
+  const { packageGraphSources, profile } = program.programConfig;
 
   // Reveal panel and show 'Loading...' for immediate feedback.
   sendMessageToPanel(
@@ -28,9 +28,8 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const docFiles = await worker.getDocumentation({
-    sources,
+    packageGraphSources,
     profile,
-    languageFeatures,
   });
 
   const documentation: string[] = [];

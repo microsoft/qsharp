@@ -55,7 +55,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       if (!program.success) {
         throw new Error(program.errorMsg);
       }
-      const { sources, languageFeatures, projectName } = program.programConfig;
+      const { packageGraphSources, projectName } = program.programConfig;
 
       const qubitType = await window.showQuickPick(
         [
@@ -211,8 +211,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         );
         const estimatesStr = await worker.getEstimates(
           {
-            sources,
-            languageFeatures,
+            packageGraphSources,
             profile: getTarget(),
           },
           JSON.stringify(params),
@@ -300,7 +299,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         throw new Error(program.errorMsg);
       }
 
-      const { sources, languageFeatures } = program.programConfig;
+      const { packageGraphSources } = program.programConfig;
 
       // Start the worker, run the code, and send the results to the webview
       const worker = getCompilerWorker(compilerWorkerScriptPath);
@@ -351,8 +350,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
         const config = {
-          sources,
-          languageFeatures,
+          packageGraphSources,
           profile: getTarget(),
         };
         await worker.run(config, "", parseInt(numberOfShots), evtTarget);

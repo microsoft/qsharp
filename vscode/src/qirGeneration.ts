@@ -29,11 +29,7 @@ export async function getQirForActiveWindow(
     throw new QirGenerationError(program.errorMsg);
   }
 
-  const {
-    languageFeatures,
-    sources,
-    profile: targetProfile,
-  } = program.programConfig;
+  const { packageGraphSources, profile: targetProfile } = program.programConfig;
 
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";
@@ -89,8 +85,7 @@ export async function getQirForActiveWindow(
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
 
     const config = {
-      sources,
-      languageFeatures,
+      packageGraphSources,
       profile: getTarget(),
     } as ProgramConfig;
 

@@ -347,7 +347,13 @@ pub(crate) fn into_qsc_args(
         .into();
     let package_graph = program.package_graph_sources;
     let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
-    let sources = package_graph.root.sources;
+    let mut sources = package_graph.root.sources;
+
+    // TODO: Properly pass these into the compiler
+    for other_package in package_graph.packages {
+        sources.extend(other_package.sources);
+    }
+
     let source_map = qsc::SourceMap::new(
         sources
             .into_iter()
