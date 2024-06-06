@@ -435,7 +435,9 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             for item in &*namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(decl) => {
-                        visitor.resolver.bind_import_or_export(decl, Some(ns));
+                        visitor
+                            .resolver
+                            .bind_import_or_export(decl, Some((ns, &namespace.name)));
                     }
                     ItemKind::Open(name, alias) => {
                         // we only need to bind opens that are in top-level namespaces, outside of callables.
@@ -744,10 +746,33 @@ impl Resolver {
     fn bind_import_or_export(
         &mut self,
         decl: &ImportOrExportDecl,
-        current_namespace: Option<NamespaceId>,
+        current_namespace: Option<(NamespaceId, &Idents)>,
     ) {
+        let (current_namespace, current_namespace_name) = if let Some((a, b)) = current_namespace {
+            (Some(a), Some(b))
+        } else {
+            (None, None)
+        };
+        let current_namespace_name: Option<Rc<str>> = current_namespace_name.map(|x| x.name());
         let is_export = decl.is_export();
-        for item in decl.items() {
+
+        // filter out any dropped names
+        // this is so you can still export an item that has been conditionally removed from compilation
+        // without a resolution error in the export statement itself
+
+        for item in decl
+            .items()
+            .filter(|item| {
+                if let Some(ref current_namespace_name) = current_namespace_name {
+                    let item_as_tracked_name =
+                        path_as_tracked_name(&item.path, current_namespace_name);
+                    !self.dropped_names.contains(&item_as_tracked_name)
+                } else {
+                    true
+                }
+            })
+            .collect::<Vec<_>>()
+        {
             if item.is_glob {
                 self.bind_glob_import_or_export(item, decl.is_export());
                 continue;
@@ -771,6 +796,7 @@ impl Resolver {
                 let scope_term_result = scope.terms.get(&local_name);
                 let scope_ty_result = scope.tys.get(&local_name);
                 match (is_export, scope_term_result, scope_ty_result) {
+                    // if either has already been exported or imported, generate a duplicate import or export error
                     (true, Some(entry), _) | (true, _, Some(entry))
                         if entry.source == ItemSource::Exported =>
                     {
@@ -795,6 +821,8 @@ impl Resolver {
             } else {
                 ItemSource::Imported
             };
+
+            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
 
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
@@ -931,6 +959,13 @@ impl Resolver {
         } else {
             self.errors.push(err.clone());
         }
+    }
+}
+
+fn path_as_tracked_name(path: &ast::Path, current_namespace_name: &Rc<str>) -> TrackedName {
+    TrackedName {
+        name: path.name.name.clone(),
+        namespace: current_namespace_name.clone(),
     }
 }
 
