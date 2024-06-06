@@ -1106,7 +1106,7 @@ impl State {
         } else {
             // Get the field values.
             let len = fields.len();
-            let field_vals = self.pop_vals(fields.len());
+            let field_vals = self.pop_vals(len);
 
             // Make an empty struct of the appropriate size.
             (field_vals, vec![Value::Int(0); len])
