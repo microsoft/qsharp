@@ -1,6 +1,4 @@
-### Solution
-
-> The task is a simple game inspired by a quantum detection problem due to Holevo ("Information-theoretical aspects of quantum measurement", A. Holevo) and Peres/Wootters ("Optimal detection of quantum information", A. Peres and W. K. Wootters). In the game, player A thinks of a number (0,1 or 2) and the opponent, player B, tries to guess any number but the one chosen by player A. 
+> The task is a game inspired by a quantum detection problem due to Holevo ("Information-theoretical aspects of quantum measurement", A. Holevo) and Peres/Wootters ("Optimal detection of quantum information", A. Peres and W. K. Wootters). In the game, player A thinks of a number (0, 1 or 2) and the opponent, player B, tries to guess any number but the one chosen by player A. 
 >
 > Classically, if you just made a guess, you'd have to ask two questions to be right $100\%$ of the time. If instead, player A prepares a qubit with 0, 1, or 2 encoded into three single qubit states that are at an angle of 120 degrees with respect to each other and then hands the state to the opponent, then player B can apply a Positive Operator Valued Measure (POVM) consisting of 3 states that are perpendicular to the states chosen by player A. 
 > It can be shown that this allows B to be right $100\%$ of the time with only 1 measurement, which is something that is not achievable with a von Neumann measurement on 1 qubit.
@@ -14,7 +12,7 @@ $$M = \frac{1}{\sqrt{2}}\left(\begin{array}{rrr}
 \end{array}
 \right)$$
     
-where $\omega = e^{2 \pi i/3}$ denotes a primitive 3rd root of unity. Our task will be to implement the rank 1 POVM given by the columns of $M$ via a von Neumann measurement. This can be done by \"embedding\" $M$ into a larger unitary matrix (taking complex conjugates and transposed):
+where $\omega = e^{2 \pi i/3}$ denotes a primitive third root of unity. Our task will be to implement the rank 1 POVM given by the columns of $M$ via a von Neumann measurement. This can be done by \"embedding\" $M$ into a larger unitary matrix (taking complex conjugate and transpose):
     
 $$M' = \frac{1}{\sqrt{3}}\left(\begin{array}{cccc}
 1 & -1 & 1 & 0 \\ 

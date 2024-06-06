@@ -1,5 +1,5 @@
 namespace Kata {
-    operation IsQubitZeroOrPlusOrInconclusive (q : Qubit) : Int {
+    operation IsQubitZeroPlusOrInconclusive(q : Qubit) : Int {
         // Implement your solution here...
         return -2;
     }

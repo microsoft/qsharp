@@ -1,6 +1,5 @@
 namespace Kata {
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Canon;
     operation IsQubitNotInABC (q : Qubit) : Int {
         let alpha = ArcCos(Sqrt(2.0 / 3.0));
 
@@ -16,11 +15,9 @@ namespace Kata {
         Controlled H([q], a);
         CNOT(a, q);
 
-        // finally, measure in the standard basis
         let res0 = MResetZ(a);
         let res1 = M(q);
 
-        // dispatch on the cases
         if (res0 == Zero and res1 == Zero) {
             return 0;
         }

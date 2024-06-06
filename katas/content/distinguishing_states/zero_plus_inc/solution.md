@@ -1,6 +1,4 @@
-### Solution
-    
-A simple strategy that gives an inconclusive result with probability 0.75 and never errs in case it yields a conclusive result can be obtained from randomizing the choice of measurement basis between the computational basis (std) and the Hadamard basis (had).
+A simple strategy that gives an inconclusive result with probability 0.75 and never errs in case it yields a conclusive result can be obtained from randomizing the choice of measurement basis between the computational basis and the Hadamard basis.
     
 Notice that when measured in the standard basis, the state $\ket{0}$ will always lead to the outcome "0", and the state $\ket{+}$ will lead to outcomes "0" and "1" with probability $\frac12$ each. This means that if we measure "1", we can with certainty conclude that the state was $\ket{+}$.
     
@@ -19,33 +17,35 @@ This leads to the following scenarios (shown are the conditional probabilities
     </tr>
     <tr>
         <td>$\ket{0}$</td>
-        <td>std</td>
+        <td>Computational</td>
         <td>$0$</td>
         <td>$0$</td>
         <td>$1$</td>
     </tr>
     <tr>
         <td>$\ket{+}$</td>
-        <td>std</td>
+        <td>Computational</td>
         <td>$0$</td>
         <td>$\frac12$</td>
         <td>$\frac12$</td>
     </tr>
     <tr>
         <td>$\ket{0}$</td>
-        <td>had</td>
+        <td>Hadamard</td>
         <td>$\frac12$</td>
         <td>$0$</td>
         <td>$\frac12$</td>
     </tr>
     <tr>
         <td>$\ket{+}$</td>
-        <td>had</td>
+        <td>Hadamard</td>
         <td>$0$</td>
         <td>$0$</td>
         <td>$1$</td>
     </tr>
 </table>
+
+Since each of the four scenarios occurs with probability 25%, overall this strategy ends up correctly identifying $\ket{0}$ and $\ket{+}$ states with 12.5% probability each and giving inconclusive result with 75% probability.
 
 > The easiest way to implement the measurement in the Hadamard basis in Q# is to apply an H gate followed by a regular measurement in computational basis.
 

@@ -34,8 +34,8 @@ namespace Kata.Verification {
             // do state prep: convert |0⟩ to outcome with return equal to state
             SetQubitZeroOrPlus(qs[0], state);
 
-            // get the solution's answer and verify that it's a match
-            let ans = Kata.IsQubitZeroOrPlusOrInconclusive(qs[0]);
+            // get the solution's answer and analyze it
+            let ans = Kata.IsQubitZeroPlusOrInconclusive(qs[0]);
 
             // keep track of the number of inconclusive answers given
             if ans == -1 {
@@ -64,7 +64,7 @@ namespace Kata.Verification {
         }
 
         if IntAsDouble(nConclPlus) < thresholdConcl * IntAsDouble(nTotal) {
-            Message($"{nConclPlus} test runs out of {nTotal} returned conclusive |+> which does not meet the required threshold of at least {thresholdConcl * 100.0}%.");
+            Message($"{nConclPlus} test runs out of {nTotal} returned conclusive |+⟩ which does not meet the required threshold of at least {thresholdConcl * 100.0}%.");
             set isCorrect = false;
         }
         

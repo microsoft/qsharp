@@ -42,13 +42,11 @@ namespace Kata.Verification {
 
             // check that the value of ans is 0, 1 or 2
             if (ans < 0 or ans > 2) {
-                // Message("You can not return any value other than 0, 1 or 2.");
                 set bad_value += 1;
             }
 
             // check if upon conclusive result the answer is actually correct
             if ans == state {
-                // Message($"State {state} led to incorrect conclusive response {ans}.");
                 set wrong_state += 1;
             }
 
@@ -60,8 +58,12 @@ namespace Kata.Verification {
             Message("Correct!");
             return true;
         } else {
-            Message($"Returned values other than 0, 1 or 2 {bad_value} times.");
-            Message($"State led to incorrect conclusive response {wrong_state} times");
+            if bad_value > 0 {
+                Message($"Solution returned values other than 0, 1 or 2 {bad_value} times.");
+            }
+            if wrong_state > 0 {
+                Message($"Solution gave incorrect response {wrong_state} times");
+            }
             Message("Incorrect.");
             return false;
         }

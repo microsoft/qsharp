@@ -1,11 +1,9 @@
 namespace Kata {
     open Microsoft.Quantum.Random;
-    operation IsQubitZeroOrPlusOrInconclusive (q : Qubit) : Int {
+    operation IsQubitZeroPlusOrInconclusive(q : Qubit) : Int {
+        // Pick a random basis
         let basis = DrawRandomInt(0, 1);
-
-        // randomize over std and had
         if basis == 0 {
-
             // use standard basis
             let result = M(q);
             // result is One only if the state was |+⟩

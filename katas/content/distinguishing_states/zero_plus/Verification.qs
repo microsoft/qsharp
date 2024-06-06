@@ -12,10 +12,9 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution () : Bool {
-    //    return DistinguishStates_MultiQubit_Threshold(1, 2, 0.8, SetQubitZeroOrPlus, Kata.IsQubitZeroOrPlus);
-       let nTotal = 1000;
-       mutable nOk = 0;
-       let threshold = 0.8;
+        let nTotal = 1000;
+        mutable nOk = 0;
+        let threshold = 0.8;
 
         use qs = Qubit[1];
         for i in 1 .. nTotal {

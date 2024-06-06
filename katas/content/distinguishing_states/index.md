@@ -57,7 +57,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__zero_plus_inc",
-    "title": "|0〉 or |+〉 or Inconclusive?",
+    "title": "|0〉, |+〉 or Inconclusive?",
     "path": "./zero_plus_inc/",
     "qsDependencies": [
         "../KatasLibrary.qs"
