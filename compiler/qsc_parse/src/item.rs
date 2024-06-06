@@ -333,7 +333,6 @@ fn parse_struct(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Open(Delim::Brace))?;
     let (fields, _) = seq(s, |s| {
         let lo = s.peek().span.lo;
-        let _ = opt(s, parse_visibility)?;
         let name = ident(s)?;
         token(s, TokenKind::Colon)?;
         let field_ty = ty(s)?;

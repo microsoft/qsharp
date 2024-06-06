@@ -158,7 +158,6 @@ impl FromStr for Keyword {
             "Zero" => Ok(Self::Zero),
             "One" => Ok(Self::One),
             "namespace" => Ok(Self::Namespace),
-            "new" => Ok(Self::New),
             "mutable" => Ok(Self::Mutable),
             "internal" => Ok(Self::Internal),
             "PauliZ" => Ok(Self::PauliZ),
@@ -176,7 +175,6 @@ impl FromStr for Keyword {
             "within" => Ok(Self::Within),
             "body" => Ok(Self::Body),
             "newtype" => Ok(Self::Newtype),
-            "struct" => Ok(Self::Struct),
             "invert" => Ok(Self::Invert),
             "distribute" => Ok(Self::Distribute),
             "auto" => Ok(Self::Auto),
@@ -185,6 +183,10 @@ impl FromStr for Keyword {
             "until" => Ok(Self::Until),
             "repeat" => Ok(Self::Repeat),
             "fixup" => Ok(Self::Fixup),
+            // The next two are new keywords and their
+            // usage has yet to be measured.
+            "new" => Ok(Self::New),
+            "struct" => Ok(Self::Struct),
             // The next three were not found or measured
             // in the standard library for priority order.
             "PauliY" => Ok(Self::PauliY),

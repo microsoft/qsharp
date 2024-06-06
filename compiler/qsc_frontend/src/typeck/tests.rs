@@ -2422,6 +2422,26 @@ fn struct_cons_udt_not_struct() {
 }
 
 #[test]
+fn struct_cons_struct_like_udt() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+                function Foo() : Pair { new Pair { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #19 78-80 "()" : Unit
+            #23 88-126 "{ new Pair { First = 5, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 90-124 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 109-110 "5" : Int
+            #33 121-122 "6" : Int
+        "##]],
+    );
+}
+
+#[test]
 fn struct_cons_ty_not_struct() {
     check(
         indoc! {"

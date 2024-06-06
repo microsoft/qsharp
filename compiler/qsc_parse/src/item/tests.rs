@@ -160,6 +160,31 @@ fn struct_decl() {
 }
 
 #[test]
+fn struct_decl_no_fields() {
+    check(
+        parse,
+        "struct Foo { }",
+        &expect![[r#"
+            Item _id_ [0-14]:
+                Struct _id_ [0-14] (Ident _id_ [7-10] "Foo"): <empty>"#]],
+    );
+}
+
+#[test]
+fn struct_decl_multiple_fields() {
+    check(
+        parse,
+        "struct Foo { x : Int, y : Double, z : String }",
+        &expect![[r#"
+            Item _id_ [0-46]:
+                Struct _id_ [0-46] (Ident _id_ [7-10] "Foo"):
+                    FieldDef _id_ [13-20] (Ident _id_ [13-14] "x"): Type _id_ [17-20]: Path: Path _id_ [17-20] (Ident _id_ [17-20] "Int")
+                    FieldDef _id_ [22-32] (Ident _id_ [22-23] "y"): Type _id_ [26-32]: Path: Path _id_ [26-32] (Ident _id_ [26-32] "Double")
+                    FieldDef _id_ [34-44] (Ident _id_ [34-35] "z"): Type _id_ [38-44]: Path: Path _id_ [38-44] (Ident _id_ [38-44] "String")"#]],
+    );
+}
+
+#[test]
 fn ty_decl() {
     check(
         parse,

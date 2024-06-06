@@ -890,7 +890,7 @@ impl<'a> Analyzer<'a> {
             has_dynamic_sub_exprs |= expr_compute_kind.is_dynamic();
         }
 
-        // If any of the sub-expressions are dynamic, then the tuple expression is dynamic as well.
+        // If any of the sub-expressions are dynamic, then the struct expression is dynamic as well.
         if has_dynamic_sub_exprs {
             compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
         }
