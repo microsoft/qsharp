@@ -969,9 +969,10 @@ impl<'a> PartialEvaluator<'a> {
                 expr_package_span,
             )),
             ExprKind::Return(expr_id) => self.eval_expr_return(*expr_id),
-            ExprKind::Struct(..) => {
-                panic!("instruction generation for struct constructor expressions is invalid")
-            }
+            ExprKind::Struct(..) => Err(Error::Unexpected(
+                "instruction generation for struct constructor expressions is invalid".to_string(),
+                expr_package_span,
+            )),
             ExprKind::String(_) => Err(Error::Unexpected(
                 "dynamic strings are invalid".to_string(),
                 expr_package_span,
