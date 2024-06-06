@@ -10,6 +10,7 @@ use std::{
 };
 
 pub use qsc_linter::LintConfig;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Arc};
 
@@ -25,6 +26,15 @@ pub struct Manifest {
     pub language_features: Vec<String>,
     #[serde(default)]
     pub lints: Vec<LintConfig>,
+    #[serde(default)]
+    pub dependencies: FxHashMap<String, Dependency>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum Dependency {
+    GitHub { github: String, revision: String },
+    Path { path: String },
 }
 
 /// Describes the contents and location of a Q# manifest file.

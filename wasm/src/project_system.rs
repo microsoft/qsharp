@@ -217,6 +217,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
             lints,
             author: Option::default(),
             license: Option::default(),
+            dependencies: FxHashMap::default(),
         },
         manifest_dir,
     })

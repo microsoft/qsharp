@@ -17,7 +17,7 @@ namespace MyQuantumApp {
 
         // Comment this out to test dependencies. Code commented out to keep automation passing
 
-        // Dependency.MagicFunction();
+        Dependency.MagicFunction();
 
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);

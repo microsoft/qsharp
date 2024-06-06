@@ -1191,6 +1191,7 @@ dependencies = [
  "qsc_linter",
  "qsc_project",
  "regex-lite",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
