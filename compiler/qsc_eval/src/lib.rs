@@ -1096,52 +1096,32 @@ impl State {
             })
             .collect::<Vec<_>>();
 
-        if copy.is_some() {
+        let (field_vals, mut strct) = if copy.is_some() {
             // Get the field values and the copy struct value.
             let field_vals = self.pop_vals(fields.len() + 1);
             let (copy, field_vals) = field_vals.split_first().expect("copy value is expected");
 
             // Make a clone of the copy struct value.
-            let mut strct = match copy {
-                Value::Tuple(vals) => {
-                    let mut clone_vals = vec![];
-                    for val in vals.iter() {
-                        clone_vals.push(val.clone());
-                    }
-                    clone_vals
-                }
-                _ => panic!("tuple value is expected for struct copy value"),
-            };
-
-            // Insert the field values into the new struct.
-            assert!(
-                field_vals.len() == field_indexes.len(),
-                "number of given field values should match the number of given struct fields"
-            );
-            for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
-                strct[*i] = val.clone();
-            }
-
-            self.set_val_register(Value::Tuple(Rc::from(strct)));
+            (field_vals.to_vec(), copy.clone().unwrap_tuple().to_vec())
         } else {
-            let len = fields.len();
             // Get the field values.
+            let len = fields.len();
             let field_vals = self.pop_vals(fields.len());
 
             // Make an empty struct of the appropriate size.
-            let mut strct = vec![Value::Int(0); len];
+            (field_vals, vec![Value::Int(0); len])
+        };
 
-            // Insert the field values into the new struct.
-            assert!(
-                field_vals.len() == field_indexes.len(),
-                "number of given field values should match the number of given struct fields"
-            );
-            for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
-                strct[*i] = val.clone();
-            }
-
-            self.set_val_register(Value::Tuple(Rc::from(strct)));
+        // Insert the field values into the new struct.
+        assert!(
+            field_vals.len() == field_indexes.len(),
+            "number of given field values should match the number of given struct fields"
+        );
+        for (i, val) in field_indexes.iter().zip(field_vals.iter()) {
+            strct[*i] = val.clone();
         }
+
+        self.set_val_register(Value::Tuple(Rc::from(strct)));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
