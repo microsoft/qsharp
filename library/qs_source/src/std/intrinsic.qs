@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Adaptive)
+    @Config(QubitReset)
     operation M(qubit : Qubit) : Result {
         __quantum__qis__m__body(qubit)
     }
@@ -249,7 +249,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Base)
+    @Config(not QubitReset)
     operation M(qubit : Qubit) : Result {
         Measure([PauliZ], [qubit])
     }
@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Output
     /// `Zero` if the +1 eigenvalue is observed, and `One` if
     /// the -1 eigenvalue is observed.
-    @Config(Adaptive)
+    @Config(QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";
@@ -339,7 +339,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
-    @Config(Base)
+    @Config(not QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";
@@ -1120,5 +1120,5 @@ namespace Microsoft.Quantum.Intrinsic {
         body intrinsic;
     }
 
-
+    export CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
 }
