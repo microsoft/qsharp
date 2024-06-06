@@ -15,4 +15,4 @@ Your solution:
     
 The state of the qubit at the end of the operation does not matter.
     
-> This task is an example of unambiguous state discrimination.\n
+> This task is an example of unambiguous state discrimination.

@@ -8,18 +8,48 @@ A similar argument applies to the scenario where we measure in the Hadamard basi
     
 This leads to the following scenarios (shown are the conditional probabilities
     of the resulting answers in each of the above scenarios).
-    
-    
-   State     | Basis |    P(0)   |    P(1)   |   P(-1)
--------------|-------|-----------|-----------|----------
- $\ket{0}$ |  std  |     $0$   |     $0$   |    $1$
- $\ket{+}$ |  std  |     $0$   | $\frac12$ | $\frac12$
- $\ket{0}$ |  had  | $\frac12$ |     $0$   | $\frac12$
- $\ket{+}$ |  had  |     $0$   |     $0$   |    $1$
-    
+
+<table>
+    <tr>
+        <th>State</th>
+        <th>Basis</th>
+        <th>P(0)</th>
+        <th>P(1)</th>
+        <th>P(-1)</th>
+    </tr>
+    <tr>
+        <td>$\ket{0}$</td>
+        <td>std</td>
+        <td>$0$</td>
+        <td>$0$</td>
+        <td>$1$</td>
+    </tr>
+    <tr>
+        <td>$\ket{+}$</td>
+        <td>std</td>
+        <td>$0$</td>
+        <td>$\frac12$</td>
+        <td>$\frac12$</td>
+    </tr>
+    <tr>
+        <td>$\ket{0}$</td>
+        <td>had</td>
+        <td>$\frac12$</td>
+        <td>$0$</td>
+        <td>$\frac12$</td>
+    </tr>
+    <tr>
+        <td>$\ket{+}$</td>
+        <td>had</td>
+        <td>$0$</td>
+        <td>$0$</td>
+        <td>$1$</td>
+    </tr>
+</table>
+
 > The easiest way to implement the measurement in the Hadamard basis in Q# is to apply an H gate followed by a regular measurement in computational basis.
 
 @[solution]({
-    "id": "distinguishing_states__zero_one_solution",
+    "id": "distinguishing_states__zero_plus_inc_solution",
     "codePath": "Solution.qs"
 })

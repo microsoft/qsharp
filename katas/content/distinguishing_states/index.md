@@ -51,8 +51,25 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "|0〉 or |+〉?",
     "path": "./zero_plus/",
     "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__zero_plus_inc",
+    "title": "|0〉 or |+〉 or Inconclusive?",
+    "path": "./zero_plus_inc/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__peres_wooters_game",
+    "title": "Peres/Wooters game",
+    "path": "./peres_wooters_game/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
     ]
 })
 
