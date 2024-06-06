@@ -54,6 +54,15 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
       }),
     };
 
+    if (err.uri && err.code) {
+      marker.code = {
+        value: err.code,
+        target: monaco.Uri.parse(err.uri),
+      };
+    } else if (err.code) {
+      marker.code = err.code;
+    }
+
     return marker;
   });
 }
@@ -130,7 +139,7 @@ export function Editor(props: {
 
     const config = {
       sources: [["code", code]],
-      languageFeatures: ["preview-qir-gen"],
+      languageFeatures: [],
       profile: profile,
     } as ProgramConfig;
 
@@ -183,7 +192,7 @@ export function Editor(props: {
     props.evtTarget.clearResults();
     const config = {
       sources: [["code", code]],
-      languageFeatures: ["preview-qir-gen"],
+      languageFeatures: [],
       profile: profile,
     } as ProgramConfig;
 

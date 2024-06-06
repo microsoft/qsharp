@@ -9,7 +9,7 @@ use qsc::{
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
-    line_column::{Encoding, Position},
+    line_column::{Encoding, Position, Range},
     resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
@@ -191,6 +191,25 @@ impl Compilation {
         source.offset + offset
     }
 
+    pub(crate) fn source_range_to_package_span(
+        &self,
+        source_name: &str,
+        source_range: Range,
+        position_encoding: Encoding,
+    ) -> Span {
+        let lo = self.source_position_to_package_offset(
+            source_name,
+            source_range.start,
+            position_encoding,
+        );
+        let hi = self.source_position_to_package_offset(
+            source_name,
+            source_range.end,
+            position_encoding,
+        );
+        Span { lo, hi }
+    }
+
     /// Gets the span of the whole source file.
     pub(crate) fn package_span_of_source(&self, source_name: &str) -> Span {
         let unit = self.user_unit();
@@ -254,11 +273,6 @@ fn run_fir_passes(
 ) {
     if !errors.is_empty() {
         // can't run passes on a package with errors
-        return;
-    }
-
-    if target_profile == Profile::Base {
-        // baseprofchk will handle the case where the target profile is Base
         return;
     }
 

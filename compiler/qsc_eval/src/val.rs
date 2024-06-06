@@ -3,11 +3,13 @@
 
 use num_bigint::BigInt;
 use qsc_data_structures::{display::join, functors::FunctorApp};
-use qsc_fir::fir::{Pauli, StoreItemId};
+use qsc_fir::fir::{Functor, Pauli, StoreItemId};
 use std::{
     fmt::{self, Display, Formatter},
     rc::Rc,
 };
+
+use crate::{error::PackageSpan, AsIndex, Error, Range as EvalRange};
 
 pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
@@ -378,5 +380,113 @@ impl Value {
             Value::Tuple(_) => "Tuple",
             Value::Var(_) => "Var",
         }
+    }
+}
+
+pub fn index_array(
+    arr: &[Value],
+    index: i64,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let i = index.as_index(span)?;
+    match arr.get(i) {
+        Some(v) => Ok(v.clone()),
+        None => Err(Error::IndexOutOfRange(index, span)),
+    }
+}
+
+pub fn make_range(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> std::result::Result<EvalRange, Error> {
+    if step == 0 {
+        Err(Error::RangeStepZero(span))
+    } else {
+        let len: i64 = match arr.len().try_into() {
+            Ok(len) => Ok(len),
+            Err(_) => Err(Error::ArrayTooLarge(span)),
+        }?;
+        let (start, end) = if step > 0 {
+            (start.unwrap_or(0), end.unwrap_or(len - 1))
+        } else {
+            (start.unwrap_or(len - 1), end.unwrap_or(0))
+        };
+        Ok(EvalRange::new(start, step, end))
+    }
+}
+
+pub fn slice_array(
+    arr: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let range = make_range(arr, start, step, end, span)?;
+    let mut slice = vec![];
+    for i in range {
+        slice.push(index_array(arr, i, span)?);
+    }
+
+    Ok(Value::Array(slice.into()))
+}
+
+pub fn update_index_single(
+    values: &[Value],
+    index: i64,
+    update: Value,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    if index < 0 {
+        return Err(Error::InvalidNegativeInt(index, span));
+    }
+    let i = index.as_index(span)?;
+    let mut values = values.to_vec();
+    match values.get_mut(i) {
+        Some(value) => {
+            *value = update;
+        }
+        None => return Err(Error::IndexOutOfRange(index, span)),
+    }
+    Ok(Value::Array(values.into()))
+}
+
+pub fn update_index_range(
+    values: &[Value],
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
+    update: Value,
+    span: PackageSpan,
+) -> std::result::Result<Value, Error> {
+    let range = make_range(values, start, step, end, span)?;
+    let mut values = values.to_vec();
+    let update = update.unwrap_array();
+    for (idx, update) in range.into_iter().zip(update.iter()) {
+        let i = idx.as_index(span)?;
+        match values.get_mut(i) {
+            Some(value) => {
+                *value = update.clone();
+            }
+            None => return Err(Error::IndexOutOfRange(idx, span)),
+        }
+    }
+    Ok(Value::Array(values.into()))
+}
+
+#[must_use]
+pub fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
+    match functor {
+        Functor::Adj => FunctorApp {
+            adjoint: !app.adjoint,
+            controlled: app.controlled,
+        },
+        Functor::Ctl => FunctorApp {
+            adjoint: app.adjoint,
+            controlled: app.controlled + 1,
+        },
     }
 }

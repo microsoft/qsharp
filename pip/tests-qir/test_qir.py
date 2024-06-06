@@ -21,7 +21,7 @@ def test_compile_qir_input_data() -> None:
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
     module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 24
+    assert len(module.functions) == 5
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
@@ -71,7 +71,7 @@ def test_compile_qir_all_gates() -> None:
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
     module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 24
+    assert len(module.functions) == 23
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
@@ -105,13 +105,11 @@ def test_compile_qir_all_gates() -> None:
     check_call(19, "__quantum__qis__h__body", 1)
     check_call(20, "__quantum__qis__cz__body", 2)
     check_call(21, "__quantum__qis__h__body", 1)
-    check_call(22, "__quantum__qis__mz__body", 2)
-    check_call(23, "__quantum__qis__mz__body", 2)
+    check_call(22, "__quantum__qis__m__body", 2)
+    check_call(23, "__quantum__qis__m__body", 2)
     check_call(24, "__quantum__rt__tuple_record_output", 2)
     check_call(25, "__quantum__rt__result_record_output", 2)
     check_call(26, "__quantum__rt__result_record_output", 2)
 
-    # TODO: these checks fail at the moment. They should become asserts with the release
-    # of PyQIR 0.10.0.
-    # assert required_num_qubits(module.functions[0]) == 2
-    # assert required_num_results(module.functions[0]) == 2
+    assert required_num_qubits(module.functions[0]) == 5
+    assert required_num_results(module.functions[0]) == 2
