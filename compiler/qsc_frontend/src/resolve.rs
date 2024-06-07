@@ -743,6 +743,7 @@ impl Resolver {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn bind_import_or_export(
         &mut self,
         decl: &ImportOrExportDecl,
@@ -753,15 +754,19 @@ impl Resolver {
         } else {
             (None, None)
         };
-        let current_namespace_name: Option<Rc<str>> = current_namespace_name.map(|x| x.name());
-        let is_export = decl.is_export();
 
-        // filter out any dropped names
-        // this is so you can still export an item that has been conditionally removed from compilation
-        // without a resolution error in the export statement itself
+        let current_namespace_name: Option<Rc<str>> = current_namespace_name.map(Idents::name);
+        let is_export = decl.is_export();
 
         for item in decl
             .items()
+            // filter out any dropped names
+            // this is so you can still export an item that has been conditionally removed from compilation
+            // without a resolution error in the export statement itself
+            // This is not a perfect solution, re-exporting an aliased name from another namespace that has been
+            // conditionally compiled out will still fail. However, this is the only way to solve this
+            // problem without upleveling the preprocessor into the resolver, so it can do resolution-aware
+            // dropped_names population.
             .filter(|item| {
                 if let Some(ref current_namespace_name) = current_namespace_name {
                     let item_as_tracked_name =

@@ -1499,6 +1499,7 @@ mod given_interpreter {
                 operation Main() : Unit {
                     Message("hello there...")
                 }
+                export Main;
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
@@ -1526,6 +1527,8 @@ mod given_interpreter {
                 operation Main() : String {
                     Hello()
                 }
+
+                export Hello, Main;
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
@@ -1686,12 +1689,14 @@ mod given_interpreter {
                 function Hello() : String {
                     "hello there..."
                 }
+                export Hello;
             }
             namespace Test2 {
                 open Test;
                 operation Main() : String {
                     Hello()
                 }
+                export Main;
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
@@ -1759,6 +1764,7 @@ mod given_interpreter {
                             ResetAll(qs);
                             res
                         }
+                        export B;
                     }
                     "
                     .into(),
@@ -1814,6 +1820,7 @@ mod given_interpreter {
                             ResetAll(qs);
                             res
                         }
+                        export B;
                     }
                     "
                     .into(),
@@ -1847,6 +1854,7 @@ mod given_interpreter {
                         operation B(): Int {
                             42 / 0
                         }
+                        export B;
                     }
                     "
                     .into(),
