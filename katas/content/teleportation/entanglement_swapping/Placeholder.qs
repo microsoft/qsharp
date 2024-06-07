@@ -3,7 +3,7 @@ namespace Kata {
         return (SendMessageCharlie, ReconstructMessageBob);
     }
 
-    // You might find these skeleton operations useful.
+    // The skeleton operations for two parts of the protocol.
     operation SendMessageCharlie(qAlice1 : Qubit, qBob1 : Qubit) : Int {
         // Implement your solution here...
         return -1;

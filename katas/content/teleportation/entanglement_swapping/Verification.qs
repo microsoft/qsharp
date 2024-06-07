@@ -26,7 +26,8 @@ namespace Kata.Verification {
             
             // Assert that Alice's and Bob's qubits end up in |0⟩ state.
             if not CheckAllZero([qAlice2, qBob2]) {
-                Message($"Incorrect. The entanglement swapping was not successful.");
+                Message($"Incorrect.");
+                Message($"Entanglement swapping was not successful, as qubits qAlice2 and qBob2 didn't end up in the state |Φ⁺⟩ = 1/sqrt(2) (|00⟩ + |11⟩)");
                 EntangleWrapper_Reference([qAlice2, qBob2]);
                 Message("The state of the qubits [qAlice1, qAlice2, qBob1, qBob2] after teleportation:");
                 DumpMachine();

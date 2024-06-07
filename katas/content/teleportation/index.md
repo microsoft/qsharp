@@ -89,7 +89,9 @@ We split the teleportation protocol into several steps:
     "title": "Testing standard quantum teleportation"
 })
 
-The following demo puts together previous `StandardTeleport` exercise to successfully teleport the states $\ket{0}$ and $\ket{1}$, as well as superposition states such as $\frac{1}{2}(\ket{0}+\ket{1})$, $\frac{1}{2}(\ket{0}-\ket{1})$, $\frac{1}{2}(\ket{0}+i\ket{1})$ and $\frac{1}{2}(\ket{0}-i\ket{1})$.
+In this lesson, your goal is to put together the code from the previous exercises to teleport the states $\ket{0}$ and $\ket{1}$, as well as superposition states $\frac{1}{2}(\ket{0}+\ket{1})$, $\frac{1}{2}(\ket{0}-\ket{1})$, $\frac{1}{2}(\ket{0}+i\ket{1})$ and $\frac{1}{2}(\ket{0}-i\ket{1})$, and to verify that teleportation succeeds each time.
+
+> This is an open-ended task that is not tested automatically, unlike the previous exercises. Follow the suggestions in the comments to write your code and test it!
 
 @[example]({
     "id": "teleportation__testing_standard_teleportation_example", 
@@ -102,6 +104,9 @@ The following demo puts together previous `StandardTeleport` exercise to success
 })
 
 There are multiple variants of teleportation protocol that involve more than two parties. In this lesson, we'll take a look at two of them:
+
+- Entanglement swapping allows us to propagate entanglement across space, enabling protocols such as quantum repeater.
+- In teleportation with three entangled qubits, a state is transferred from Alice to a third participant Charlie, but this may only be accomplished if Charlie has the trust of the second participant Bob.
 
 @[exercise]({
     "id": "teleportation__entanglement_swapping",

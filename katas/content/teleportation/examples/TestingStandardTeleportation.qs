@@ -15,22 +15,21 @@ namespace Kata {
         // To effectively test the solution, experiment needs to be repeated multiple times
         let numRepetitions = 100;
 
-        // 1. Initialize qubit for Alice and Bob
-        // ..
-
         // Loop through all the states to test each one of them individually
         for (basis, sentState, stateName) in messages {
 
             // Loop through multiple iterations for each state
             for j in 1 .. numRepetitions {
-
+                // 1. Initialize qubits for Alice and Bob
+                // ..
+        
                 // 2. Prepare the entangled state between Alice and Bob
                 // ..
 
                 // 3. Prepare the Message qubit and send classical message
                 // ..
 
-                // 4. Reconstruct Bob's qubit using the measurement result
+                // 4. Reconstruct Bob's qubit using the classical message
                 // ..
 
                 // 5. Verify if the state was teleported correctly. If not, indicate failure
