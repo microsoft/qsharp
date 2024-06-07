@@ -94,7 +94,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__pattern_match",
-    "title": "Pattern Match",
+    "title": "Pattern Matching",
     "path": "./pattern_match/",
     "qsDependencies": [
         "../KatasLibrary.qs"
