@@ -761,6 +761,203 @@ fn udt_field_ref() {
 }
 
 #[test]
+fn identifier_struct() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, snd = 4 };
+                let b = ◉↘a◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            local
+            ```qsharp
+            a : Pair
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct ◉P↘air◉ { fst : Int, snd : Int }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : ◉Pa↘ir◉ {
+                new Pair { fst = 3, snd = 4 }
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_ref_nested_struct() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            struct Bar { fst: Int, snd : Pair }
+            operation Foo() : ◉B↘ar◉ {
+                new Bar { fst = 1, snd = new Pair { fst = 2, snd = 3 } }
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Bar { fst : Int, snd : Pair }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_anno_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a : ◉P↘air◉ = new Pair { fst = 3, snd = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_constructor() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new ◉P↘air◉ { fst = 3, snd = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_fn_constructor() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = ◉P↘air◉(3, 4);
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, ◉s↘nd◉ : Int }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, snd = 4 };
+                let b = a::◉s↘nd◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_cons_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, ◉s↘nd◉ = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn primitive_type() {
     check_none(indoc! {r#"
         namespace Test {
@@ -1164,6 +1361,57 @@ fn std_callable_with_udt() {
 }
 
 #[test]
+fn struct_field_incorrect() {
+    check_none(indoc! {r#"
+        namespace Test {
+            struct Foo { fst : Int, snd : Int }
+            operation Bar() : Unit {
+                let foo = new Foo { fst = 1, snd = 2 };
+                let x : Int = foo::◉n↘one◉;
+            }
+        }
+    "#});
+}
+
+#[test]
+fn std_struct_return_type() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation ◉Fo↘o◉() : FakeStruct {}
+    }
+    "#,
+        &expect![[r#"
+            callable of `Test`
+            ```qsharp
+            operation Foo() : FakeStruct
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_struct() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            ◉Takes↘Struct◉();
+        }
+    }
+    "#,
+        &expect![[r#"
+            callable of `FakeStdLib`
+            ```qsharp
+            function TakesStruct(input : FakeStruct) : FakeStruct
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn std_callable_with_type_param() {
     check(
         r#"
@@ -1197,6 +1445,27 @@ fn std_udt_udt_field() {
     "#,
         &expect![[r#"
             field of `Udt`
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_struct_struct_field() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : FakeStruct {
+            let f = new StructWrapper { inner = new FakeStruct { x = 1, y = 2 } };
+            f::inner::◉x◉↘
+        }
+    }
+    "#,
+        &expect![[r#"
+            field of `FakeStruct`
             ```qsharp
             x : Int
             ```
