@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
-    function PalindromeF(args : Bool[]) : Bool {
+    function F_Palindrome(args : Bool[]) : Bool {
         let N = Length(args);
         for i in 0 .. N / 2 - 1 {
             if args[i] != args[N - i - 1] {

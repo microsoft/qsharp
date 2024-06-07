@@ -58,7 +58,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__palindrome",
-    "title": "Palindrome",
+    "title": "Palindrome Checker",
     "path": "./palindrome/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -67,7 +67,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__periodic_p",
-    "title": "Periodic of Length P",
+    "title": "Is Bit String Periodic with Period P?",
     "path": "./periodic_p/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -76,7 +76,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__periodic",
-    "title": "Periodic of Any Length",
+    "title": "Is Bit String Periodic?",
     "path": "./periodic/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -85,7 +85,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__contains_substring_p",
-    "title": "Contains Substring At Position",
+    "title": "Does Bit String Contain Substring At Position?",
     "path": "./contains_substring_p/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -94,7 +94,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__pattern_match",
-    "title": "Pattern Match",
+    "title": "Pattern Matching",
     "path": "./pattern_match/",
     "qsDependencies": [
         "../KatasLibrary.qs"
