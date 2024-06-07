@@ -77,7 +77,4 @@ impl qsc_ast::mut_visit::MutVisitor for AstDespanner {
         span.hi = 0;
         span.lo = 0;
     }
-    fn visit_visibility(&mut self, vis: &mut qsc_ast::ast::Visibility) {
-        self.visit_span(&mut vis.span);
-    }
 }

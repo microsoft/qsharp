@@ -45,6 +45,8 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
                 }
                 adjoint self;
             }
+
+            export B;
         }
         "#};
     let source2 = indoc! { r#"
@@ -56,6 +58,8 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
                 }
                 adjoint invert;
             }
+
+            export A;
         }
         "#};
 

@@ -181,5 +181,6 @@ namespace Microsoft.Quantum.Measurement {
 
         number
     }
+    export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger;
 
 }

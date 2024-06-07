@@ -899,7 +899,6 @@ fn internal_ty() {
         "internal newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-28]:
-                Visibility _id_ [0-8] (Internal)
                 New Type (Ident _id_ [17-20] "Foo"): TyDef _id_ [23-27]: Field:
                     Type _id_ [23-27]: Path: Path _id_ [23-27] (Ident _id_ [23-27] "Unit")"#]],
     );
@@ -912,7 +911,6 @@ fn internal_function() {
         "internal function Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-33]:
-                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-33] (Function):
                     name: Ident _id_ [18-21] "Foo"
                     input: Pat _id_ [21-23]: Unit
@@ -933,7 +931,6 @@ fn internal_function_doc() {
                 doc:
                     This is a
                     doc comment.
-                Visibility _id_ [47-55] (Internal)
                 Callable _id_ [56-78] (Function):
                     name: Ident _id_ [65-68] "Foo"
                     input: Pat _id_ [68-70]: Unit
@@ -949,7 +946,6 @@ fn internal_operation() {
         "internal operation Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-34]:
-                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-34] (Operation):
                     name: Ident _id_ [19-22] "Foo"
                     input: Pat _id_ [22-24]: Unit

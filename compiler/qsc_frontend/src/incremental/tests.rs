@@ -119,7 +119,7 @@ fn one_callable() {
             Package:
                 Item 0 [0-44] (Public):
                     Namespace (Ident 5 [10-13] "Foo"): Item 1
-                Item 1 [16-42] (Public):
+                Item 1 [16-42] (Internal):
                     Parent: 0
                     Callable 0 [16-42] (operation):
                         name: Ident 1 [26-30] "Main"
