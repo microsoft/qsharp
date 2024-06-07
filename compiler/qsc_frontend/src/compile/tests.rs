@@ -404,7 +404,7 @@ fn insert_core_call() {
         Package:
             Item 0 [0-43] (Public):
                 Namespace (Ident 5 [10-11] "A"): Item 1
-            Item 1 [18-41] (Public):
+            Item 1 [18-41] (Internal):
                 Parent: 0
                 Callable 0 [18-41] (operation):
                     name: Ident 1 [28-31] "Foo"
@@ -434,6 +434,7 @@ fn package_dependency() {
                     function Foo() : Int {
                         1
                     }
+                    export Foo;
                 }
             "}
             .into(),
@@ -477,7 +478,7 @@ fn package_dependency() {
         Package:
             Item 0 [0-78] (Public):
                 Namespace (Ident 9 [10-18] "Package2"): Item 1
-            Item 1 [25-76] (Public):
+            Item 1 [25-76] (Internal):
                 Parent: 0
                 Callable 0 [25-76] (function):
                     name: Ident 1 [34-37] "Bar"
@@ -556,7 +557,7 @@ fn package_dependency_internal_error() {
         Package:
             Item 0 [0-78] (Public):
                 Namespace (Ident 9 [10-18] "Package2"): Item 1
-            Item 1 [25-76] (Public):
+            Item 1 [25-76] (Internal):
                 Parent: 0
                 Callable 0 [25-76] (function):
                     name: Ident 1 [34-37] "Bar"
@@ -587,6 +588,7 @@ fn package_dependency_udt() {
                     function Foo(bar : Bar) : Int {
                         bar!
                     }
+                    export Foo, Bar;
                 }
             "}
             .into(),
@@ -630,7 +632,7 @@ fn package_dependency_udt() {
         Package:
             Item 0 [0-93] (Public):
                 Namespace (Ident 11 [10-18] "Package2"): Item 1
-            Item 1 [25-91] (Public):
+            Item 1 [25-91] (Internal):
                 Parent: 0
                 Callable 0 [25-91] (function):
                     name: Ident 1 [34-37] "Baz"
@@ -662,6 +664,7 @@ fn package_dependency_nested_udt() {
                     newtype Bar = Int;
                     newtype Baz = Int;
                     newtype Foo = (bar : Bar, Baz);
+                    export Bar, Baz, Foo;
                 }
             "}
             .into(),
@@ -710,7 +713,7 @@ fn package_dependency_nested_udt() {
         Package:
             Item 0 [0-274] (Public):
                 Namespace (Ident 40 [10-18] "Package2"): Item 1
-            Item 1 [25-272] (Public):
+            Item 1 [25-272] (Internal):
                 Parent: 0
                 Callable 0 [25-272] (function):
                     name: Ident 1 [34-38] "Test"
@@ -962,12 +965,24 @@ fn unimplemented_call_from_dependency_produces_error() {
         [
             Error(
                 Resolve(
-                    Unimplemented(
+                    NotFound(
                         "Bar",
                         Span {
                             lo: 69,
                             hi: 72,
                         },
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        AmbiguousTy(
+                            Span {
+                                lo: 69,
+                                hi: 74,
+                            },
+                        ),
                     ),
                 ),
             ),

@@ -827,6 +827,8 @@ impl Resolver {
                 ItemSource::Imported
             };
 
+            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
+
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {

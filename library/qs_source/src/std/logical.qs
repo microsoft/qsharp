@@ -28,4 +28,5 @@ namespace Microsoft.Quantum.Logical {
     function Xor(first : Bool, second : Bool) : Bool {
         first != second
     }
+    export Xor;
 }

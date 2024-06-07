@@ -257,6 +257,7 @@ fn unrestricted_profile_result_comparison() {
                     ResetAll([q1, q2]);
                     [r1, r2]
                 }
+                export Main;
             }
         ",
         Profile::Unrestricted,
@@ -467,6 +468,8 @@ fn operation_with_qubits() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
+            export Test;
         }",
         Profile::Unrestricted,
     );
@@ -497,6 +500,8 @@ fn operation_with_qubits_base_profile() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
+            export Test;
         }",
         Profile::Base,
     );
@@ -544,6 +549,7 @@ fn operation_with_qubit_arrays() {
                 X(q);
                 MeasureEachZ(q1)
             }
+            export Test;
         }",
         Profile::Unrestricted,
     );
@@ -596,6 +602,8 @@ fn adjoint_operation() {
                 controlled (cs, ...) {
                 }
             }
+
+            export Foo;
         }",
         Profile::Unrestricted,
     );
@@ -661,6 +669,8 @@ fn controlled_operation() {
                     CNOT(q1, q2);
                 }
             }
+
+            export SWAP;
         }",
         Profile::Unrestricted,
     );
@@ -746,6 +756,8 @@ fn operation_with_non_qubit_args() {
 
             operation Test(q1: Qubit, q2: Qubit, i: Int) : Unit {
             }
+
+            export Test;
         }",
         Profile::Unrestricted,
     );

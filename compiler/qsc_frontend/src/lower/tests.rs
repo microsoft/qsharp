@@ -171,7 +171,7 @@ fn lift_local_function() {
             Package:
                 Item 0 [0-120] (Public):
                     Namespace (Ident 23 [10-11] "A"): Item 1
-                Item 1 [18-118] (Public):
+                Item 1 [18-118] (Internal):
                     Parent: 0
                     Callable 0 [18-118] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -223,7 +223,7 @@ fn lift_local_operation() {
             Package:
                 Item 0 [0-143] (Public):
                     Namespace (Ident 22 [10-11] "A"): Item 1
-                Item 1 [18-141] (Public):
+                Item 1 [18-141] (Internal):
                     Parent: 0
                     Callable 0 [18-141] (operation):
                         name: Ident 1 [28-31] "Foo"
@@ -274,7 +274,7 @@ fn lift_local_newtype() {
             Package:
                 Item 0 [0-110] (Public):
                     Namespace (Ident 16 [10-11] "A"): Item 1
-                Item 1 [18-108] (Public):
+                Item 1 [18-108] (Internal):
                     Parent: 0
                     Callable 0 [18-108] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -317,12 +317,12 @@ fn lift_newtype() {
             Package:
                 Item 0 [0-97] (Public):
                     Namespace (Ident 12 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-36] (Public):
+                Item 1 [18-36] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-36]:
                         TyDef [32-35]: Field:
                             type: Int
-                Item 2 [41-95] (Public):
+                Item 2 [41-95] (Internal):
                     Parent: 0
                     Callable 1 [41-95] (operation):
                         name: Ident 2 [51-54] "Bar"
@@ -357,12 +357,12 @@ fn lift_newtype_tuple() {
             Package:
                 Item 0 [0-112] (Public):
                     Namespace (Ident 14 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-46] (Public):
+                Item 1 [18-46] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-46]:
                         TyDef [32-45]: Field:
                             type: (Int, Double)
-                Item 2 [51-110] (Public):
+                Item 2 [51-110] (Internal):
                     Parent: 0
                     Callable 1 [51-110] (operation):
                         name: Ident 2 [61-64] "Bar"
@@ -400,7 +400,7 @@ fn lift_newtype_tuple_fields() {
             Package:
                 Item 0 [0-140] (Public):
                     Namespace (Ident 19 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-52] (Public):
+                Item 1 [18-52] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-52]:
                         TyDef [32-51]: Tuple:
@@ -410,7 +410,7 @@ fn lift_newtype_tuple_fields() {
                             TyDef [41-50]: Field:
                                 name: b [41-42]
                                 type: Double
-                Item 2 [57-138] (Public):
+                Item 2 [57-138] (Internal):
                     Parent: 0
                     Callable 1 [57-138] (operation):
                         name: Ident 2 [67-70] "Bar"
@@ -452,12 +452,12 @@ fn lift_newtype_nested_tuple() {
             Package:
                 Item 0 [0-128] (Public):
                     Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-54] (Public):
+                Item 1 [18-54] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-54]:
                         TyDef [32-53]: Field:
                             type: (Int, (Double, Bool))
-                Item 2 [59-126] (Public):
+                Item 2 [59-126] (Internal):
                     Parent: 0
                     Callable 1 [59-126] (operation):
                         name: Ident 2 [69-72] "Bar"
@@ -497,7 +497,7 @@ fn lift_newtype_nested_tuple_fields() {
             Package:
                 Item 0 [0-159] (Public):
                     Namespace (Ident 21 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-63] (Public):
+                Item 1 [18-63] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-63]:
                         TyDef [32-62]: Tuple:
@@ -511,7 +511,7 @@ fn lift_newtype_nested_tuple_fields() {
                                 TyDef [53-60]: Field:
                                     name: c [53-54]
                                     type: Bool
-                Item 2 [68-157] (Public):
+                Item 2 [68-157] (Internal):
                     Parent: 0
                     Callable 1 [68-157] (operation):
                         name: Ident 2 [78-81] "Bar"
@@ -557,7 +557,7 @@ fn lift_newtype_from_newtype() {
             Package:
                 Item 0 [0-207] (Public):
                     Namespace (Ident 27 [10-11] "A"): Item 1, Item 2, Item 3
-                Item 1 [18-63] (Public):
+                Item 1 [18-63] (Internal):
                     Parent: 0
                     Type (Ident 0 [26-29] "Foo"): UDT [18-63]:
                         TyDef [32-62]: Tuple:
@@ -571,7 +571,7 @@ fn lift_newtype_from_newtype() {
                                 TyDef [53-60]: Field:
                                     name: c [53-54]
                                     type: Bool
-                Item 2 [68-99] (Public):
+                Item 2 [68-99] (Internal):
                     Parent: 0
                     Type (Ident 1 [76-79] "Bar"): UDT [68-99]:
                         TyDef [82-98]: Tuple:
@@ -581,7 +581,7 @@ fn lift_newtype_from_newtype() {
                             TyDef [91-97]: Field:
                                 name: y [91-92]
                                 type: UDT<"Foo": Item 1>
-                Item 3 [104-205] (Public):
+                Item 3 [104-205] (Internal):
                     Parent: 0
                     Callable 2 [104-205] (operation):
                         name: Ident 3 [114-117] "Baz"
@@ -631,7 +631,7 @@ fn lambda_function_empty_closure() {
             Package:
                 Item 0 [0-89] (Public):
                     Namespace (Ident 24 [10-11] "A"): Item 1
-                Item 1 [18-87] (Public):
+                Item 1 [18-87] (Internal):
                     Parent: 0
                     Callable 0 [18-87] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -681,7 +681,7 @@ fn lambda_function_empty_closure_passed() {
             Package:
                 Item 0 [0-108] (Public):
                     Namespace (Ident 30 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-61] (Public):
+                Item 1 [18-61] (Internal):
                     Parent: 0
                     Callable 0 [18-61] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -696,7 +696,7 @@ fn lambda_function_empty_closure_passed() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [66-106] (Public):
+                Item 2 [66-106] (Internal):
                     Parent: 0
                     Callable 10 [66-106] (function):
                         name: Ident 11 [75-78] "Bar"
@@ -746,7 +746,7 @@ fn lambda_function_closure() {
             Package:
                 Item 0 [0-108] (Public):
                     Namespace (Ident 30 [10-11] "A"): Item 1
-                Item 1 [18-106] (Public):
+                Item 1 [18-106] (Internal):
                     Parent: 0
                     Callable 0 [18-106] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -803,7 +803,7 @@ fn lambda_function_closure_repeated_var() {
             Package:
                 Item 0 [0-112] (Public):
                     Namespace (Ident 32 [10-11] "A"): Item 1
-                Item 1 [18-110] (Public):
+                Item 1 [18-110] (Internal):
                     Parent: 0
                     Callable 0 [18-110] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -862,7 +862,7 @@ fn lambda_function_closure_passed() {
             Package:
                 Item 0 [0-139] (Public):
                     Namespace (Ident 36 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-61] (Public):
+                Item 1 [18-61] (Internal):
                     Parent: 0
                     Callable 0 [18-61] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -877,7 +877,7 @@ fn lambda_function_closure_passed() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [66-137] (Public):
+                Item 2 [66-137] (Internal):
                     Parent: 0
                     Callable 10 [66-137] (function):
                         name: Ident 11 [75-78] "Bar"
@@ -934,7 +934,7 @@ fn lambda_function_nested_closure() {
             Package:
                 Item 0 [0-209] (Public):
                     Namespace (Ident 64 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-71] (Public):
+                Item 1 [18-71] (Internal):
                     Parent: 0
                     Callable 0 [18-71] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -951,7 +951,7 @@ fn lambda_function_nested_closure() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [76-207] (Public):
+                Item 2 [76-207] (Internal):
                     Parent: 0
                     Callable 12 [76-207] (function):
                         name: Ident 13 [85-88] "Bar"
@@ -1030,7 +1030,7 @@ fn lambda_operation_empty_closure() {
             Package:
                 Item 0 [0-149] (Public):
                     Namespace (Ident 32 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-101] (Public):
+                Item 1 [18-101] (Internal):
                     Parent: 0
                     Callable 0 [18-101] (operation):
                         name: Ident 1 [28-31] "Foo"
@@ -1050,7 +1050,7 @@ fn lambda_operation_empty_closure() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [106-147] (Public):
+                Item 2 [106-147] (Internal):
                     Parent: 0
                     Callable 14 [106-147] (operation):
                         name: Ident 15 [116-119] "Bar"
@@ -1102,7 +1102,7 @@ fn lambda_operation_closure() {
             Package:
                 Item 0 [0-224] (Public):
                     Namespace (Ident 40 [10-11] "A"): Item 1, Item 2, Item 3
-                Item 1 [18-75] (Public):
+                Item 1 [18-75] (Internal):
                     Parent: 0
                     Callable 0 [18-75] (operation):
                         name: Ident 1 [28-35] "MResetZ"
@@ -1113,7 +1113,7 @@ fn lambda_operation_closure() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [80-130] (Public):
+                Item 2 [80-130] (Internal):
                     Parent: 0
                     Callable 5 [80-130] (operation):
                         name: Ident 6 [90-93] "Foo"
@@ -1130,7 +1130,7 @@ fn lambda_operation_closure() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 3 [135-222] (Public):
+                Item 3 [135-222] (Internal):
                     Parent: 0
                     Callable 15 [135-222] (operation):
                         name: Ident 16 [145-148] "Bar"
@@ -1185,7 +1185,7 @@ fn lambda_adj() {
             Package:
                 Item 0 [0-153] (Public):
                     Namespace (Ident 32 [10-11] "A"): Item 1, Item 2, Item 3
-                Item 1 [18-55] (Public):
+                Item 1 [18-55] (Internal):
                     Parent: 0
                     Callable 0 [18-55] (operation):
                         name: Ident 1 [28-29] "X"
@@ -1197,7 +1197,7 @@ fn lambda_adj() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [60-106] (Public):
+                Item 2 [60-106] (Internal):
                     Parent: 0
                     Callable 6 [60-106] (operation):
                         name: Ident 7 [70-73] "Foo"
@@ -1211,7 +1211,7 @@ fn lambda_adj() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 3 [111-151] (Public):
+                Item 3 [111-151] (Internal):
                     Parent: 0
                     Callable 12 [111-151] (operation):
                         name: Ident 13 [121-124] "Bar"
@@ -1261,7 +1261,7 @@ fn partial_app_one_hole() {
             Package:
                 Item 0 [0-113] (Public):
                     Namespace (Ident 45 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-64] (Public):
+                Item 1 [18-64] (Internal):
                     Parent: 0
                     Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1278,7 +1278,7 @@ fn partial_app_one_hole() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [69-111] (Public):
+                Item 2 [69-111] (Internal):
                     Parent: 0
                     Callable 13 [69-111] (function):
                         name: Ident 14 [78-81] "Bar"
@@ -1332,7 +1332,7 @@ fn partial_app_two_holes() {
             Package:
                 Item 0 [0-113] (Public):
                     Namespace (Ident 41 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-64] (Public):
+                Item 1 [18-64] (Internal):
                     Parent: 0
                     Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1349,7 +1349,7 @@ fn partial_app_two_holes() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [69-111] (Public):
+                Item 2 [69-111] (Internal):
                     Parent: 0
                     Callable 13 [69-111] (function):
                         name: Ident 14 [78-81] "Bar"
@@ -1401,7 +1401,7 @@ fn partial_app_nested_tuple() {
             Package:
                 Item 0 [0-157] (Public):
                     Namespace (Ident 60 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-95] (Public):
+                Item 1 [18-95] (Internal):
                     Parent: 0
                     Callable 0 [18-95] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1419,7 +1419,7 @@ fn partial_app_nested_tuple() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [100-155] (Public):
+                Item 2 [100-155] (Internal):
                     Parent: 0
                     Callable 16 [100-155] (function):
                         name: Ident 17 [109-112] "Bar"
@@ -1482,7 +1482,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
             Package:
                 Item 0 [0-160] (Public):
                     Namespace (Ident 64 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-95] (Public):
+                Item 1 [18-95] (Internal):
                     Parent: 0
                     Callable 0 [18-95] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1500,7 +1500,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [100-158] (Public):
+                Item 2 [100-158] (Internal):
                     Parent: 0
                     Callable 16 [100-158] (function):
                         name: Ident 17 [109-112] "Bar"
@@ -1654,7 +1654,7 @@ fn partial_app_unknown_callable() {
             Package:
                 Item 0 [0-72] (Public):
                     Namespace (Ident 14 [10-11] "A"): Item 1
-                Item 1 [18-70] (Public):
+                Item 1 [18-70] (Internal):
                     Parent: 0
                     Callable 0 [18-70] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1690,7 +1690,7 @@ fn partial_app_too_many_args() {
             Package:
                 Item 0 [0-103] (Public):
                     Namespace (Ident 22 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-51] (Public):
+                Item 1 [18-51] (Internal):
                     Parent: 0
                     Callable 0 [18-51] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1703,7 +1703,7 @@ fn partial_app_too_many_args() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [56-101] (Public):
+                Item 2 [56-101] (Internal):
                     Parent: 0
                     Callable 8 [56-101] (function):
                         name: Ident 9 [65-68] "Bar"
@@ -1741,7 +1741,7 @@ fn partial_app_bound_to_non_arrow_ty() {
             Package:
                 Item 0 [0-131] (Public):
                     Namespace (Ident 45 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-64] (Public):
+                Item 1 [18-64] (Internal):
                     Parent: 0
                     Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
@@ -1758,7 +1758,7 @@ fn partial_app_bound_to_non_arrow_ty() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [69-129] (Public):
+                Item 2 [69-129] (Internal):
                     Parent: 0
                     Callable 13 [69-129] (function):
                         name: Ident 14 [78-81] "Bar"
@@ -1816,7 +1816,7 @@ fn partial_app_hole_as_callee() {
             Package:
                 Item 0 [0-141] (Public):
                     Namespace (Ident 21 [10-11] "A"): Item 1
-                Item 1 [18-139] (Public):
+                Item 1 [18-139] (Internal):
                     Parent: 0
                     EntryPoint
                     Callable 0 [36-139] (operation):
@@ -1917,14 +1917,14 @@ fn item_docs() {
                     Doc:
                         This is a namespace.
                     Namespace (Ident 11 [43-44] "A"): Item 1, Item 2, Item 3
-                Item 1 [59-111] (Public):
+                Item 1 [59-111] (Internal):
                     Parent: 0
                     Doc:
                         This is a newtype.
                     Type (Ident 0 [102-105] "Foo"): UDT [59-111]:
                         TyDef [108-110]: Field:
                             type: Unit
-                Item 2 [125-183] (Public):
+                Item 2 [125-183] (Internal):
                     Parent: 0
                     Doc:
                         This is a function.
@@ -1938,7 +1938,7 @@ fn item_docs() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 3 [197-258] (Public):
+                Item 3 [197-258] (Internal):
                     Parent: 0
                     Doc:
                         This is an operation.
@@ -1963,7 +1963,7 @@ fn nested_params() {
             Package:
                 Item 0 [0-57] (Public):
                     Namespace (Ident 6 [10-14] "Test"): Item 1
-                Item 1 [17-55] (Public):
+                Item 1 [17-55] (Internal):
                     Parent: 0
                     Callable 0 [17-55] (function):
                         name: Ident 1 [26-29] "Foo"
@@ -1989,7 +1989,7 @@ fn lambda_with_invalid_free_variable() {
             Package:
                 Item 0 [0-71] (Public):
                     Namespace (Ident 17 [10-14] "Test"): Item 1
-                Item 1 [16-70] (Public):
+                Item 1 [16-70] (Internal):
                     Parent: 0
                     Callable 0 [16-70] (operation):
                         name: Ident 1 [26-27] "T"
@@ -2031,7 +2031,7 @@ fn duplicate_commas_in_tydef() {
             Package:
                 Item 0 [0-45] (Public):
                     Namespace (Ident 1 [10-14] "test"): Item 1
-                Item 1 [21-43] (Public):
+                Item 1 [21-43] (Internal):
                     Parent: 0
                     Type (Ident 0 [29-32] "Foo"): UDT [21-43]:
                         TyDef [35-42]: Tuple:
@@ -2054,7 +2054,7 @@ fn duplicate_commas_in_generics() {
             Package:
                 Item 0 [0-59] (Public):
                     Namespace (Ident 6 [10-14] "test"): Item 1
-                Item 1 [21-57] (Public):
+                Item 1 [21-57] (Internal):
                     Parent: 0
                     Callable 0 [21-57] (function):
                         name: Ident 1 [30-33] "Foo"
@@ -2085,7 +2085,7 @@ fn duplicate_commas_in_pat() {
             Package:
                 Item 0 [0-81] (Public):
                     Namespace (Ident 13 [10-14] "test"): Item 1
-                Item 1 [21-79] (Public):
+                Item 1 [21-79] (Internal):
                     Parent: 0
                     Callable 0 [21-79] (operation):
                         name: Ident 1 [31-34] "Foo"
@@ -2120,7 +2120,7 @@ fn duplicate_commas_in_tuple() {
             Package:
                 Item 0 [0-77] (Public):
                     Namespace (Ident 12 [10-14] "test"): Item 1
-                Item 1 [21-75] (Public):
+                Item 1 [21-75] (Internal):
                     Parent: 0
                     Callable 0 [21-75] (operation):
                         name: Ident 1 [31-34] "Foo"
@@ -2154,7 +2154,7 @@ fn duplicate_commas_in_arg_tuple() {
             Package:
                 Item 0 [0-95] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-93] (Public):
+                Item 1 [21-93] (Internal):
                     Parent: 0
                     Callable 0 [21-93] (operation):
                         name: Ident 1 [31-34] "Foo"
@@ -2189,7 +2189,7 @@ fn ignore_item_in_attribute() {
             Package:
                 Item 0 [0-112] (Public):
                     Namespace (Ident 5 [10-14] "Test"): Item 1
-                Item 1 [29-102] (Public):
+                Item 1 [29-102] (Internal):
                     Parent: 0
                     Callable 0 [78-102] (function):
                         name: Ident 1 [87-90] "Foo"
