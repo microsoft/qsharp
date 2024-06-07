@@ -1,4 +1,8 @@
-To apply standard teleportation, entanglement pair should be brought back to $\ket{\Phi ^+}$. Correction with both `Z` and `X` gate can help achieve the transformation from $\ket{\Psi ^-}$ to $\ket{\Phi ^+}$.
+Bob's side of this protocol can be represented as a sequence of two steps:
+ 1. Transform the Bell pair he shares with Alice back to $\ket{\Phi ^+}$. This can be done by applying the $Z$ and $X$ gates to Bob's qubit.
+ 2. Apply the standard teleportation protocol.
+ 
+The final set of corrections we need is the $Z$ and $X$ gates, followed by the standard teleportation corrections:
 - For 00, both Z and X correction is required.
 - For 01, only X correction is required.
 - For 10, only Z correction is required.

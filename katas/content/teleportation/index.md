@@ -120,7 +120,7 @@ There are multiple variants of teleportation protocol that involve more than two
 
 @[section]({
     "id": "teleportation__different_entanglement_pair",
-    "title": "Teleportation using different entangled pair"
+    "title": "Teleportation Using Different Entangled Pair"
 })
 
 In this lesson we will take a look at the changes in the reconstruction process (Bob's task) if the qubits shared between Alice and Bob are entangled in a different state. Alice's part of the protocol remains the same in all exercises.
@@ -129,14 +129,14 @@ As a reminder, the standard teleportation protocol requires shared qubits in sta
 
 In each exercise, the inputs are:
 
-- Bob's part of the entangled pair of qubits `qBob`.
-- The tuple of classical bits received from Alice, in the format used in `SendMessage` exercise.
+1. Bob's part of the entangled pair of qubits `qBob`.
+2. The tuple of classical bits received from Alice, in the format used in `SendMessage` exercise.
 
 The goal is to transform Bob's qubit `qBob` into the state in which the message qubit had been originally.
 
 @[exercise]({
-    "id": "teleportation__reconstruct_and_message_phi_minus",
-    "title": "Reconstruct message with |Φ⁻⟩",
+    "id": "teleportation__reconstruct_message_phi_minus",
+    "title": "Reconstruct Message with |Φ⁻⟩",
     "path": "./reconstruct_message_phi_minus",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -145,8 +145,8 @@ The goal is to transform Bob's qubit `qBob` into the state in which the message 
 })
 
 @[exercise]({
-    "id": "teleportation__reconstruct_and_message_psi_plus",
-    "title": "Reconstruct message with |Ψ⁺⟩",
+    "id": "teleportation__reconstruct_message_psi_plus",
+    "title": "Reconstruct Message with |Ψ⁺⟩",
     "path": "./reconstruct_message_psi_plus",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -155,8 +155,8 @@ The goal is to transform Bob's qubit `qBob` into the state in which the message 
 })
 
 @[exercise]({
-    "id": "teleportation__reconstruct_and_message_psi_minus",
-    "title": "Reconstruct message with |Ψ⁻⟩",
+    "id": "teleportation__reconstruct_message_psi_minus",
+    "title": "Reconstruct Message with |Ψ⁻⟩",
     "path": "./reconstruct_message_psi_minus",
     "qsDependencies": [
         "../KatasLibrary.qs",
