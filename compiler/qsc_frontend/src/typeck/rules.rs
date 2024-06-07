@@ -7,7 +7,6 @@ use super::{
     Error, Table,
 };
 use crate::resolve::{self, Names, Res};
-use core::panic;
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
