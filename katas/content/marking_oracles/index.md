@@ -76,7 +76,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__periodic",
-    "title": "Periodic of Any Length",
+    "title": "Is Bit String Periodic?",
     "path": "./periodic/",
     "qsDependencies": [
         "../KatasLibrary.qs"
