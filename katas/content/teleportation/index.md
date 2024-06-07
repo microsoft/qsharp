@@ -86,7 +86,7 @@ We split the teleportation protocol into several steps:
 
 @[section]({
     "id": "teleportation__testing_standard_teleportation",
-    "title": "Testing standard quantum teleportation"
+    "title": "Testing Quantum Teleportation"
 })
 
 In this lesson, your goal is to put together the code from the previous exercises to teleport the states $\ket{0}$ and $\ket{1}$, as well as superposition states $\frac{1}{2}(\ket{0}+\ket{1})$, $\frac{1}{2}(\ket{0}-\ket{1})$, $\frac{1}{2}(\ket{0}+i\ket{1})$ and $\frac{1}{2}(\ket{0}-i\ket{1})$, and to verify that teleportation succeeds each time.
@@ -97,6 +97,54 @@ In this lesson, your goal is to put together the code from the previous exercise
     "id": "teleportation__testing_standard_teleportation_example", 
     "codePath": "./examples/TestingStandardTeleportation.qs"
 })
+
+
+@[section]({
+    "id": "teleportation__different_entanglement_pair",
+    "title": "Teleportation Using Different Entangled Pair"
+})
+
+In this lesson we will take a look at the changes in the reconstruction process (Bob's task) if the qubits shared between Alice and Bob are entangled in a different state. Alice's part of the protocol remains the same in all exercises.
+
+As a reminder, the standard teleportation protocol requires shared qubits in state $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}}(\ket{00} + \ket{11})$.
+
+In each exercise, the inputs are:
+
+1. Bob's part of the entangled pair of qubits `qBob`.
+2. The tuple of classical bits received from Alice, in the format used in `SendMessage` exercise.
+
+The goal is to transform Bob's qubit `qBob` into the state in which the message qubit had been originally.
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message_phi_minus",
+    "title": "Reconstruct Message with |Φ⁻⟩",
+    "path": "./reconstruct_message_phi_minus",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message_psi_plus",
+    "title": "Reconstruct Message with |Ψ⁺⟩",
+    "path": "./reconstruct_message_psi_plus",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message_psi_minus",
+    "title": "Reconstruct Message with |Ψ⁻⟩",
+    "path": "./reconstruct_message_psi_minus",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 
 @[section]({
     "id": "teleportation__three_parties",

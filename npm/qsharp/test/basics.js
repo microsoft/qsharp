@@ -607,7 +607,7 @@ test("language service configuration update", async () => {
     "test.qs",
     1,
     `namespace Sample {
-    operation main() : Unit {
+    operation Test() : Unit {
     }
 }`,
   );
@@ -629,7 +629,7 @@ test("language service configuration update", async () => {
         messages: [
           "entry point not found\n" +
             "\n" +
-            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present",
         ],
       },
       {
@@ -730,7 +730,7 @@ test("debug service loading source without entry point attr fails - web worker",
         [
           "test.qs",
           `namespace Sample {
-    operation main() : Result[] {
+    operation test() : Result[] {
         use q1 = Qubit();
         Y(q1);
         let m1 = M(q1);
@@ -757,7 +757,7 @@ test("debug service loading source with syntax error fails - web worker", async 
         [
           "test.qs",
           `namespace Sample {
-    operation main() : Result[]
+    operation test() : Result[]
     }
 }`,
         ],
