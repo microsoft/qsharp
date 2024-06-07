@@ -18,7 +18,7 @@ namespace Kata.Verification {
             (4, 1, [true, true, false]),
             (5, 3, [false])
         ] {
-            if not CheckOracleImplementsFunction(n, Kata.ContainsSubstringAtPositionOracle(_, _, r, p), ContainsSubstringAtPositionF(_, r, p)) {
+            if not CheckOracleImplementsFunction(n, Kata.Oracle_ContainsSubstringAtPosition(_, _, r, p), ContainsSubstringAtPositionF(_, r, p)) {
                 Message($"Test failed for n = {n}, p = {p}, r = {r}");
                 return false;    
             }

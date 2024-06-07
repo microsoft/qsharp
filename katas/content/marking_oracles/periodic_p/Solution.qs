@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PeriodicGivenPeriodOracle (x : Qubit[], y : Qubit, p : Int) : Unit is Adj + Ctl {
+    operation Oracle_PeriodicGivenPeriod (x : Qubit[], y : Qubit, p : Int) : Unit is Adj + Ctl {
         let n = Length(x);
         // Compute XORs of the bits that should be equal in the first N - P qubits
         within {

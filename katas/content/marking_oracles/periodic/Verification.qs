@@ -14,7 +14,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         for n in 2 .. 6 {
-            if not CheckOracleImplementsFunction(n, Kata.PeriodicOracle, F_Periodic) {
+            if not CheckOracleImplementsFunction(n, Kata.Oracle_Periodic, F_Periodic) {
                 Message($"Test failed for n = {n}");
                 return false;    
             }

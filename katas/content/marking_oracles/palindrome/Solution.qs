@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PalindromeOracle (x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
+    operation Oracle_Palindrome (x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         let N = Length(x);
         // Compute XORs of the bits that should be equal in the first qubits
         within {

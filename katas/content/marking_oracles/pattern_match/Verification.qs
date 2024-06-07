@@ -19,7 +19,7 @@ namespace Kata.Verification {
             (4, [1, 3], [true, false]),
             (5, [0, 1, 4], [true, true, false])
         ] {
-            if not CheckOracleImplementsFunction(n, Kata.PatternMatchingOracle(_, _, a, r), F_PatternMatching(_, a, r)) {
+            if not CheckOracleImplementsFunction(n, Kata.Oracle_PatternMatching(_, _, a, r), F_PatternMatching(_, a, r)) {
                 Message($"Test failed for n = {n}, a = {a}, r = {r}");
                 return false;    
             }
