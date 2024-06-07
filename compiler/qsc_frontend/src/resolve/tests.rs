@@ -4858,3 +4858,31 @@ fn import_newtype() {
             }"#]],
     );
 }
+
+#[test]
+fn internal_visibility_within_compile_unit_is_sane() {
+    check(
+        indoc! {"
+            namespace A {
+                operation DumpMachine() : Unit {}
+            }
+            namespace Main {
+                open A;
+                operation Main() : Unit {
+                    DumpMachine();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
