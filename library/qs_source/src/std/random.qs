@@ -51,5 +51,6 @@ namespace Microsoft.Quantum.Random {
         body intrinsic;
     }
 
-    export DrawRandomInt, DrawRandomDouble;
+    export DrawRandomInt,
+    DrawRandomDouble;
 }

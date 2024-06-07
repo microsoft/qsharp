@@ -265,5 +265,26 @@ namespace Microsoft.Quantum.Intrinsic {
 
         targets
     }
-    export CH, CCH, ApplyGlobalPhase, ControllableGlobalPhase, GlobalPhase, CRz, CS, CT, MapPauli, EntangleForJointMeasure, CollectControls, AdjustForSingleControl, AND, PhaseCCX, CCZ, CCY, CRxx, CRyy, CRzz, IndicesOfNonIdentity, RemovePauliI, SpreadZ;
+    export CH,
+    CCH,
+    ApplyGlobalPhase,
+    ControllableGlobalPhase,
+    GlobalPhase,
+    CRz,
+    CS,
+    CT,
+    MapPauli,
+    EntangleForJointMeasure,
+    CollectControls,
+    AdjustForSingleControl,
+    AND,
+    PhaseCCX,
+    CCZ,
+    CCY,
+    CRxx,
+    CRyy,
+    CRzz,
+    IndicesOfNonIdentity,
+    RemovePauliI,
+    SpreadZ;
 }

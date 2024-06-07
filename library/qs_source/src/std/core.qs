@@ -106,6 +106,10 @@ namespace Microsoft.Quantum.Core {
         }
         return true;
     }
-    export RangeStart, RangeEnd, RangeStep, RangeReverse, IsRangeEmpty;
+    export RangeStart,
+    RangeEnd,
+    RangeStep,
+    RangeReverse,
+    IsRangeEmpty;
 
 }

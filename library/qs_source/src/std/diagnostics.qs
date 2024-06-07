@@ -149,6 +149,11 @@ namespace Microsoft.Quantum.Diagnostics {
         areEqual
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual;
+    export DumpMachine,
+    DumpRegister,
+    CheckZero,
+    CheckAllZero,
+    Fact,
+    CheckOperationsAreEqual;
 
 }

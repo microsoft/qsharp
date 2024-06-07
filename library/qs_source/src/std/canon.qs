@@ -579,6 +579,25 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
+    export ApplyToEach,
+    ApplyToEachA,
+    ApplyToEachC,
+    ApplyToEachCA,
+    CX,
+    CY,
+    CZ,
+    Fst,
+    Snd,
+    ApplyCNOTChain,
+    ApplyP,
+    ApplyPauli,
+    ApplyPauliFromBitString,
+    ApplyPauliFromInt,
+    ApplyControlledOnInt,
+    ApplyControlledOnBitString,
+    ApplyQFT,
+    SwapReverseRegister,
+    ApplyXorInPlace,
+    ApplyXorInPlaceL;
 
 }
