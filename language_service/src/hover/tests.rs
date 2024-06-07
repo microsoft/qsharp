@@ -60,8 +60,8 @@ fn callable_unit_types() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit
             ```
             ---
@@ -81,8 +81,8 @@ fn callable_with_callable_types() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(x : (Int => Int)) : (Int => Int)
             ```
             ---
@@ -101,8 +101,8 @@ fn callable_with_type_params() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B
             ```
             ---
@@ -122,8 +122,8 @@ fn callable_ref() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit
             ```
         "#]],
@@ -143,8 +143,8 @@ fn callable_with_type_params_ref() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar<'A, 'B>(a : 'A, b : 'B) : 'B
             ```
         "#]],
@@ -161,8 +161,8 @@ fn callable_unit_types_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit is Ctl
             ```
             ---
@@ -181,8 +181,8 @@ fn callable_with_callable_types_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(x : (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
             ```
             ---
@@ -202,8 +202,8 @@ fn callable_ref_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit is Adj
             ```
         "#]],
@@ -633,6 +633,7 @@ fn udt() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Pair = (Int, snd : Int)
             ```
@@ -652,6 +653,7 @@ fn udt_ref() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Bar = (fst : Int, (snd : Int, Double, fourth : String), Double, sixth : Int)
             ```
@@ -672,6 +674,7 @@ fn udt_ref_nested_udt() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Bar = (fst : Int, (snd : Int, Double, fourth : Pair), Double, sixth : Int)
             ```
@@ -691,6 +694,7 @@ fn udt_anno_ref() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Pair = (Int, snd : Int)
             ```
@@ -710,6 +714,7 @@ fn udt_constructor() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Pair = (Int, snd : Int)
             ```
@@ -726,6 +731,7 @@ fn udt_field() {
         }
     "#},
         &expect![[r#"
+            field of `Pair`
             ```qsharp
             snd : Int
             ```
@@ -746,6 +752,7 @@ fn udt_field_ref() {
         }
     "#},
         &expect![[r#"
+            field of `Pair`
             ```qsharp
             snd : Int
             ```
@@ -778,8 +785,8 @@ fn foreign_call() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation Fake() : Unit
             ```
         "#]],
@@ -798,8 +805,8 @@ fn foreign_call_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeCtlAdj() : Unit is Adj + Ctl
             ```
         "#]],
@@ -818,8 +825,8 @@ fn foreign_call_with_param() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeWithParam(x : Int) : Unit
             ```
         "#]],
@@ -838,8 +845,8 @@ fn callable_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -862,8 +869,8 @@ fn callable_summary_stuff_before() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -887,8 +894,8 @@ fn callable_summary_other_header_before() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -912,8 +919,8 @@ fn callable_summary_other_header_after() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -939,8 +946,8 @@ fn callable_summary_other_headers() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -963,8 +970,8 @@ fn callable_headers_but_no_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -992,8 +999,8 @@ fn callable_summary_only_header_matches() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -1016,8 +1023,8 @@ fn callable_summary_successive_headers() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -1039,8 +1046,8 @@ fn callable_empty_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
         "#]],
@@ -1096,8 +1103,8 @@ fn callable_generic_functor_display() {
             }
         "},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(op : (Qubit => Unit is Adj)) : Unit
             ```
         "#]],
@@ -1128,8 +1135,8 @@ fn std_udt_return_type() {
     }
     "#,
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Udt
             ```
         "#]],
@@ -1148,8 +1155,8 @@ fn std_callable_with_udt() {
     }
     "#,
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             function TakesUdt(input : Udt) : Udt
             ```
         "#]],
@@ -1168,8 +1175,8 @@ fn std_callable_with_type_param() {
     }
     "#,
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeWithTypeParam<'A>(a : 'A) : 'A
             ```
         "#]],
@@ -1189,9 +1196,10 @@ fn std_udt_udt_field() {
     }
     "#,
         &expect![[r#"
-        ```qsharp
-        x : Int
-        ```
+            field of `Udt`
+            ```qsharp
+            x : Int
+            ```
         "#]],
     );
 }
@@ -1238,6 +1246,7 @@ fn notebook_callable_def_across_cells() {
             ("cell2", "◉C↘allee◉();"),
         ],
         &expect![[r#"
+            callable
             ```qsharp
             operation Callee() : Unit
             ```
