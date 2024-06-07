@@ -58,7 +58,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__palindrome",
-    "title": "Palindrome",
+    "title": "Palindrome Checker",
     "path": "./palindrome/",
     "qsDependencies": [
         "../KatasLibrary.qs"
