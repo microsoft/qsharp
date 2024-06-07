@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PeriodicGivenPeriodOracle (input : Qubit[], target : Qubit, P : Int) : Unit is Adj + Ctl {
+    operation PeriodicGivenPeriodOracle (x : Qubit[], y : Qubit, p : Int) : Unit is Adj + Ctl {
         // Implement your solution here...
 
     }    

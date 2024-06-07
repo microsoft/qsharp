@@ -1,9 +1,9 @@
 **Inputs:** 
 
-1. An array of $N$ qubits in an arbitrary state $\ket{x}$ (input register),
-2. A qubit in an arbitrary state $\ket{y}$ (target qubit),
-3. An array of $K$ distinct indices in the input register,
-4. A bit pattern of length K represented as a Bool[] ($1 ≤ K ≤ N$).
+1. $N$ qubits in an arbitrary state $\ket{x}$ (input/query register).
+2. A qubit in an arbitrary state $\ket{y}$ (output/target qubit).
+3. An array $a$ of $K$ distinct indices in the input register ($1 ≤ K ≤ N$).
+4. A bit pattern $r$ of length $K$ represented as a `Bool[]`.
 
 **Goal:** 
 Implement a quantum oracle which checks whether the input register matches the given pattern, i.e., the bits at the given indices match the corresponding bits in the pattern ("false" and "true" values represent states $\ket{0}$ and $\ket{1}$, respectively).

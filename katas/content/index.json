@@ -15,6 +15,5 @@
   "oracles",
   "deutsch_algo",
   "deutsch_jozsa",
-  "qec_shor",
-  "marking_oracles"
+  "qec_shor"
 ]

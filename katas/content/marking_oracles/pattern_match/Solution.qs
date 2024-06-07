@@ -1,9 +1,9 @@
 namespace Kata {
     open Microsoft.Quantum.Arrays;
-    
-    operation PatternMatchingOracle (input : Qubit[], target : Qubit, indices : Int[], pattern : Bool[]) : Unit is Adj + Ctl {
+
+    operation PatternMatchingOracle (x : Qubit[], y : Qubit, a : Int[], r : Bool[]) : Unit is Adj + Ctl {
         // Get the list of qubits that should be used as controls
-        let ctrl = Subarray(indices, input);
-        ApplyControlledOnBitString(pattern, X, ctrl, target);
+        let ctrl = Subarray(a, x);
+        ApplyControlledOnBitString(r, X, ctrl, y);
     }
 }

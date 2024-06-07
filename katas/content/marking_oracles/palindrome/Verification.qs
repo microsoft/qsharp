@@ -14,7 +14,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         for n in 2 .. 6 {
-            if not CheckOracleImplementsFunction(n, Kata.PalindromeOracle, PalindromeF) {
+            if not CheckOracleImplementsFunction(n, Kata.PalindromeOracle, F_Palindrome) {
                 Message($"Test failed for n = {n}");
                 return false;
             }

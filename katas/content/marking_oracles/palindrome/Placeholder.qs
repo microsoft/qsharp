@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PalindromeOracle (input : Qubit[], target : Qubit) : Unit is Adj + Ctl {
+    operation PalindromeOracle (x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         // Implement your solution here...
 
     }    

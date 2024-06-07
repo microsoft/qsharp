@@ -1,5 +1,5 @@
 namespace Kata {
-    operation ContainsSubstringAtPositionOracle (input : Qubit[], target : Qubit, pattern : Bool[], P : Int) : Unit is Adj + Ctl {
-        ApplyControlledOnBitString(pattern, X, input[P .. P + Length(pattern) - 1], target);
+    operation ContainsSubstringAtPositionOracle (x : Qubit[], y : Qubit, r : Bool[], p : Int) : Unit is Adj + Ctl {
+        ApplyControlledOnBitString(r, X, x[p .. p + Length(r) - 1], y);
     }
 }

@@ -1,7 +1,7 @@
 **Inputs:** 
 
-1. An array of $N$ qubits in an arbitrary state $\ket{x}$ (input register).
-2. A qubit in an arbitrary state $\ket{y}$ (target qubit).
+1. $N$ qubits in an arbitrary state $\ket{x}$ (input/query register).
+2. A qubit in an arbitrary state $\ket{y}$ (output/target qubit).
 
 **Goal:** 
 Implement a quantum oracle which checks whether the input register is a palindrome, i.e., implements the function $f(x) = 1$ if $x$ is a palindrome, and 0 otherwise. A bit string is a palindrome if it equal its reverse, or, in other words, its first bit equals its last bit, its second bit equals its second-to-last bit, and so on.

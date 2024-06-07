@@ -1,5 +1,5 @@
 namespace Kata {
-    operation ContainsSubstringAtPositionOracle (input : Qubit[], target : Qubit, pattern : Bool[], P : Int) : Unit is Adj + Ctl {
+    operation ContainsSubstringAtPositionOracle (x : Qubit[], y : Qubit, r : Bool[], p : Int) : Unit is Adj + Ctl {
         // Implement your solution here...
 
     }    
