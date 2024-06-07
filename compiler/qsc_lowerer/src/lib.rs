@@ -602,6 +602,23 @@ impl Lowerer {
                 self.exec_graph.push(self.ret_node);
                 fir::ExprKind::Return(expr)
             }
+            hir::ExprKind::Struct(name, copy, fields) => {
+                let res = self.lower_res(name);
+                let copy = copy.as_ref().map(|c| {
+                    let id = self.lower_expr(c);
+                    self.exec_graph.push(ExecGraphNode::Store);
+                    id
+                });
+                let fields = fields
+                    .iter()
+                    .map(|f| {
+                        let f = self.lower_field_assign(f);
+                        self.exec_graph.push(ExecGraphNode::Store);
+                        f
+                    })
+                    .collect();
+                fir::ExprKind::Struct(res, copy, fields)
+            }
             hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(
                 items
                     .iter()
@@ -695,6 +712,15 @@ impl Lowerer {
         };
         self.exprs.insert(id, expr);
         id
+    }
+
+    fn lower_field_assign(&mut self, field_assign: &hir::FieldAssign) -> fir::FieldAssign {
+        fir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: lower_field(&field_assign.field),
+            value: self.lower_expr(&field_assign.value),
+        }
     }
 
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {

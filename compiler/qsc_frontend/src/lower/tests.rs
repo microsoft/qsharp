@@ -617,6 +617,194 @@ fn lift_newtype_from_newtype() {
 }
 
 #[test]
+fn lower_struct_decl() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-73] (Public):
+                    Namespace (Ident 1 [10-11] "A"): Item 1
+                Item 1 [18-71] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-71]:
+                        TyDef [18-71]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double"#]],
+    );
+}
+
+#[test]
+fn lower_struct_constructor() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                }
+                operation Bar() : Unit {
+                    let z = new Foo { x = 1, y = 2.3 };
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-152] (Public):
+                    Namespace (Ident 14 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-71] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-71]:
+                        TyDef [18-71]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double
+                Item 2 [76-150] (Public):
+                    Parent: 0
+                    Callable 1 [76-150] (operation):
+                        name: Ident 2 [86-89] "Bar"
+                        input: Pat 3 [89-91] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [76-150]: Impl:
+                            Block 5 [99-150] [Type Unit]:
+                                Stmt 6 [109-144]: Local (Immutable):
+                                    Pat 7 [113-114] [Type UDT<"Foo": Item 1>]: Bind: Ident 8 [113-114] "z"
+                                    Expr 9 [117-143] [Type UDT<"Foo": Item 1>]: Struct (Item 1):
+                                        FieldsAssign 10 [127-132]: (Path([0])) Expr 11 [131-132] [Type Int]: Lit: Int(1)
+                                        FieldsAssign 12 [134-141]: (Path([1])) Expr 13 [138-141] [Type Double]: Lit: Double(2.3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lower_struct_copy_constructor() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                }
+                operation Bar() : Foo {
+                    let z = new Foo { x = 1, y = 2.3 };
+                    new Foo { ...z, x = 4 };
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-184] (Public):
+                    Namespace (Ident 19 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-71] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-71]:
+                        TyDef [18-71]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double
+                Item 2 [76-182] (Public):
+                    Parent: 0
+                    Callable 1 [76-182] (operation):
+                        name: Ident 2 [86-89] "Bar"
+                        input: Pat 3 [89-91] [Type Unit]: Unit
+                        output: UDT<"Foo": Item 1>
+                        functors: empty set
+                        body: SpecDecl 4 [76-182]: Impl:
+                            Block 5 [98-182] [Type Unit]:
+                                Stmt 6 [108-143]: Local (Immutable):
+                                    Pat 7 [112-113] [Type UDT<"Foo": Item 1>]: Bind: Ident 8 [112-113] "z"
+                                    Expr 9 [116-142] [Type UDT<"Foo": Item 1>]: Struct (Item 1):
+                                        FieldsAssign 10 [126-131]: (Path([0])) Expr 11 [130-131] [Type Int]: Lit: Int(1)
+                                        FieldsAssign 12 [133-140]: (Path([1])) Expr 13 [137-140] [Type Double]: Lit: Double(2.3)
+                                Stmt 14 [152-176]: Semi: Expr 15 [152-175] [Type UDT<"Foo": Item 1>]: Struct (Item 1):
+                                    Copy: Expr 16 [165-166] [Type UDT<"Foo": Item 1>]: Var: Local 8
+                                    FieldsAssign 17 [168-173]: (Path([0])) Expr 18 [172-173] [Type Int]: Lit: Int(4)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lower_struct_copy_constructor_with_alternative_fields() {
+    check_hir(
+        indoc! {r#"
+            namespace A {
+                struct Foo {
+                    x: Int,
+                    y: Double,
+                    z: String
+                }
+                operation Bar() : Foo {
+                    let z = new Foo { x = 1, y = 2.3, z = "four" };
+                    new Foo { ...z, z = "five", y = 6.7 };
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-228] (Public):
+                    Namespace (Ident 23 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-89] (Public):
+                    Parent: 0
+                    Type (Ident 0 [25-28] "Foo"): UDT [18-89]:
+                        TyDef [18-89]: Tuple:
+                            TyDef [39-45]: Field:
+                                name: x [39-40]
+                                type: Int
+                            TyDef [55-64]: Field:
+                                name: y [55-56]
+                                type: Double
+                            TyDef [74-83]: Field:
+                                name: z [74-75]
+                                type: String
+                Item 2 [94-226] (Public):
+                    Parent: 0
+                    Callable 1 [94-226] (operation):
+                        name: Ident 2 [104-107] "Bar"
+                        input: Pat 3 [107-109] [Type Unit]: Unit
+                        output: UDT<"Foo": Item 1>
+                        functors: empty set
+                        body: SpecDecl 4 [94-226]: Impl:
+                            Block 5 [116-226] [Type Unit]:
+                                Stmt 6 [126-173]: Local (Immutable):
+                                    Pat 7 [130-131] [Type UDT<"Foo": Item 1>]: Bind: Ident 8 [130-131] "z"
+                                    Expr 9 [134-172] [Type UDT<"Foo": Item 1>]: Struct (Item 1):
+                                        FieldsAssign 10 [144-149]: (Path([0])) Expr 11 [148-149] [Type Int]: Lit: Int(1)
+                                        FieldsAssign 12 [151-158]: (Path([1])) Expr 13 [155-158] [Type Double]: Lit: Double(2.3)
+                                        FieldsAssign 14 [160-170]: (Path([2])) Expr 15 [164-170] [Type String]: String:
+                                            Lit: "four"
+                                Stmt 16 [182-220]: Semi: Expr 17 [182-219] [Type UDT<"Foo": Item 1>]: Struct (Item 1):
+                                    Copy: Expr 18 [195-196] [Type UDT<"Foo": Item 1>]: Var: Local 8
+                                    FieldsAssign 19 [198-208]: (Path([2])) Expr 20 [202-208] [Type String]: String:
+                                        Lit: "five"
+                                    FieldsAssign 21 [210-217]: (Path([1])) Expr 22 [214-217] [Type Double]: Lit: Double(6.7)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
 fn lambda_function_empty_closure() {
     check_hir(
         indoc! {"
