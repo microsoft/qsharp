@@ -97,3 +97,28 @@ fn check_rca_for_struct_copy_constructor_with_dynamic_value() {
         ],
     );
 }
+
+#[test]
+fn check_rca_for_struct_dynamic_constructor_overwritten_with_classic_value() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Math;
+        use q = Qubit();
+        let i = M(q) == Zero ? 0.0 | 1.0;
+        let c = new Complex { Real = 0.0, Imag = i };
+        new Complex { ...c, Imag = 0.0 }"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | UseOfDynamicUdt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
