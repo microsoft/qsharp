@@ -85,7 +85,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__contains_substring_p",
-    "title": "Contains Substring At Position",
+    "title": "Does Bit String Contain Substring At Position?",
     "path": "./contains_substring_p/",
     "qsDependencies": [
         "../KatasLibrary.qs"
