@@ -38,7 +38,7 @@ fn quick_fixes(
     let diagnostics = compilation
         .errors
         .iter()
-        .filter(|error| is_error_relevant(error, source_name, span));
+        .filter(|error| is_error_relevant(error, span));
 
     // An example of what quickfixes could look like if they were generated here.
     // The other option I considered was generating the quickfixes when the errors
@@ -96,31 +96,27 @@ fn quick_fixes(
     code_actions
 }
 
-/// Returns true if the error:
-///  - is in the file named `source_name`
-///  - has a `Range` and it overlaps with the `code_action`'s range
-fn is_error_relevant(error: &WithSource<ErrorKind>, source_name: &str, span: Span) -> bool {
-    let Some((uri, error_span)) = resolve_source_and_span(error) else {
+/// Returns true if the error has a `Range` and it overlaps
+/// with the code action's range.
+fn is_error_relevant(error: &WithSource<ErrorKind>, span: Span) -> bool {
+    let Some(error_span) = resolve_span(error) else {
         return false;
     };
-    uri == source_name && span.intersection(&error_span).is_some()
+    span.intersection(&error_span).is_some()
 }
 
 /// Extracts the uri and `Span` from an error.
-fn resolve_source_and_span(e: &WithSource<ErrorKind>) -> Option<(String, Span)> {
+fn resolve_span(e: &WithSource<ErrorKind>) -> Option<Span> {
     e.labels()
         .into_iter()
         .flatten()
         .map(|labeled_span| {
-            let (source, source_span) = e.resolve_span(labeled_span.inner());
-            let start = u32::try_from(source_span.offset()).expect("offset should fit in u32");
-            let len = u32::try_from(source_span.len()).expect("length should fit in u32");
-            let span = qsc::Span {
+            let start = u32::try_from(labeled_span.offset()).expect("offset should fit in u32");
+            let len = u32::try_from(labeled_span.len()).expect("length should fit in u32");
+            qsc::Span {
                 lo: start,
                 hi: start + len,
-            };
-
-            (source.name.to_string(), span)
+            }
         })
         .next()
 }

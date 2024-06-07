@@ -70,11 +70,18 @@ fn use_of_dynamic_int_yields_no_errors() {
 }
 
 #[test]
-fn use_of_dynamic_pauli_yields_no_errors() {
+fn use_of_dynamic_pauli_yields_error() {
     check_profile(
         USE_DYNAMIC_PAULI,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicPauli(
+                    Span {
+                        lo: 104,
+                        hi: 134,
+                    },
+                ),
+            ]
         "#]],
     );
 }

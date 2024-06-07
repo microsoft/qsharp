@@ -493,6 +493,46 @@ fn dump_register_target_in_minus_with_other_in_one() {
 }
 
 #[test]
+fn dump_register_all_qubits_normalized_is_same_as_dump_machine() {
+    check_intrinsic_output(
+        "",
+        indoc! {
+        "{
+            open Microsoft.Quantum.Diagnostics;
+            use qs = Qubit[2];
+
+            let alpha = -4.20025;
+            let beta = 2.04776;
+            let gamma = -5.47097;
+
+            within{
+                Ry(alpha, qs[0]);
+                Ry(beta, qs[1]);
+                CNOT(qs[0], qs[1]);
+                Ry(gamma, qs[1]);
+            }
+            apply{
+                DumpRegister(qs);
+                DumpMachine();
+            }
+        }"
+        },
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
 fn message() {
     check_intrinsic_output(
         "",

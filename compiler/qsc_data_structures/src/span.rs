@@ -17,14 +17,21 @@ pub struct Span {
 }
 
 impl Span {
-    /// Returns true if the position is within the range.
+    /// Returns true if the position is within the span. Meaning it is in the
+    /// right open interval `[self.lo, self.hi)`.
     #[must_use]
     pub fn contains(&self, offset: u32) -> bool {
         (self.lo..self.hi).contains(&offset)
     }
 
-    /// Intersect `range` with this range and returns a new range or `None`
-    /// if the ranges have no overlap.
+    /// Returns true if the position is in the closed interval `[self.lo, self.hi]`.
+    #[must_use]
+    pub fn touches(&self, offset: u32) -> bool {
+        (self.lo..=self.hi).contains(&offset)
+    }
+
+    /// Intersect `other` with `self` and returns a new `Span` or `None`
+    /// if the spans have no overlap.
     #[must_use]
     pub fn intersection(&self, other: &Self) -> Option<Self> {
         let lo = self.lo.max(other.lo);

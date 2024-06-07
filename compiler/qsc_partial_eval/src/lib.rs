@@ -21,7 +21,8 @@ use qsc_eval::{
     output::GenericReceiver,
     resolve_closure,
     val::{
-        self, index_array, slice_array, update_index_range, update_index_single, Value, Var, VarTy,
+        self, index_array, slice_array, update_functor_app, update_index_range,
+        update_index_single, Value, Var, VarTy,
     },
     Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
 };
@@ -1645,6 +1646,12 @@ impl<'a> PartialEvaluator<'a> {
             return Ok(control_flow);
         }
 
+        // If the variable is a literal, we can evaluate the unary operation directly.
+        if !matches!(value, Value::Var(_)) {
+            let result = eval_un_op_with_literals(un_op, value);
+            return Ok(EvalControlFlow::Continue(result));
+        }
+
         // For all the other supported unary operations we have to generate an instruction, so create a variable to
         // store the result.
         let variable_id = self.resource_manager.next_var();
@@ -2738,6 +2745,44 @@ impl<'a> PartialEvaluator<'a> {
             .insert("__quantum__rt__int_record_output".into(), callable_id);
         self.program.callables.insert(callable_id, callable);
         callable_id
+    }
+}
+
+fn eval_un_op_with_literals(un_op: UnOp, value: Value) -> Value {
+    match un_op {
+        UnOp::Neg => match value {
+            Value::Int(i) => Value::Int(-i),
+            Value::Double(d) => Value::Double(-d),
+            Value::BigInt(b) => Value::BigInt(-b),
+            _ => panic!("invalid type for negation operator {}", value.type_name()),
+        },
+        UnOp::NotB => match value {
+            Value::Int(i) => Value::Int(!i),
+            Value::BigInt(b) => Value::BigInt(!b),
+            _ => panic!(
+                "invalid type for bitwise negation operator {}",
+                value.type_name()
+            ),
+        },
+        UnOp::NotL => match value {
+            Value::Bool(b) => Value::Bool(!b),
+            _ => panic!(
+                "invalid type for logical negation operator {}",
+                value.type_name()
+            ),
+        },
+        UnOp::Functor(functor) => match value {
+            Value::Closure(inner) => Value::Closure(
+                val::Closure {
+                    functor: update_functor_app(functor, inner.functor),
+                    ..*inner
+                }
+                .into(),
+            ),
+            Value::Global(id, app) => Value::Global(id, update_functor_app(functor, app)),
+            _ => panic!("value should be callable"),
+        },
+        UnOp::Pos | UnOp::Unwrap => value,
     }
 }
 

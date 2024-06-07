@@ -33,3 +33,87 @@ We split the teleportation protocol into several steps:
         "./Common.qs"
     ]
 })
+
+@[exercise]({
+    "id": "teleportation__send_message",
+    "title": "Send Message (Alice's Task)",
+    "path": "./send_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message",
+    "title": "Reconstruct Message (Bob's Task)",
+    "path": "./reconstruct_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__standard_teleportation_protocol",
+    "title": "Standard Teleportation Protocol",
+    "path": "./standard_teleportation_protocol/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__prepare_and_send_message",
+    "title": "Prepare Message and Send It",
+    "path": "./prepare_and_send_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_and_measure_message",
+    "title": "Reconstruct Message and Measure It",
+    "path": "./reconstruct_and_measure_message/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[section]({
+    "id": "teleportation__testing_standard_teleportation",
+    "title": "Testing standard quantum teleportation"
+})
+
+In this lesson, your goal is to put together the code from the previous exercises to teleport the states $\ket{0}$ and $\ket{1}$, as well as superposition states $\frac{1}{2}(\ket{0}+\ket{1})$, $\frac{1}{2}(\ket{0}-\ket{1})$, $\frac{1}{2}(\ket{0}+i\ket{1})$ and $\frac{1}{2}(\ket{0}-i\ket{1})$, and to verify that teleportation succeeds each time.
+
+> This is an open-ended task that is not tested automatically, unlike the previous exercises. Follow the suggestions in the comments to write your code and test it!
+
+@[example]({
+    "id": "teleportation__testing_standard_teleportation_example", 
+    "codePath": "./examples/TestingStandardTeleportation.qs"
+})
+
+@[section]({
+    "id": "teleportation__three_parties",
+    "title": "Teleportation with Three Parties"
+})
+
+There are multiple variants of teleportation protocol that involve more than two parties. In this lesson, we'll take a look at two of them:
+
+- Entanglement swapping allows us to propagate entanglement across space, enabling protocols such as quantum repeater.
+- In teleportation with three entangled qubits, a state is transferred from Alice to a third participant Charlie, but this may only be accomplished if Charlie has the trust of the second participant Bob.
+
+@[exercise]({
+    "id": "teleportation__entanglement_swapping",
+    "title": "Entanglement Swapping",
+    "path": "./entanglement_swapping/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
