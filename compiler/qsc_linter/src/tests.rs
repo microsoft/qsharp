@@ -37,7 +37,7 @@ fn multiple_lints() {
                     help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
-                    source: "operation RunProgram() : Unit {\n            let x = ((1 + 2)) / 0;;;;\n        }",
+                    source: "RunProgram",
                     level: Warn,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
@@ -151,7 +151,7 @@ fn needless_operation_lambda_operations() {
         &expect![[r#"
             [
                 SrcLint {
-                    source: "(a) => a + 1",
+                    source: "",
                     level: Warn,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
@@ -178,7 +178,7 @@ fn needless_operation_non_empty_op_and_no_specialization() {
         &expect![[r#"
             [
                 SrcLint {
-                    source: "operation RunProgram() : Unit {\n            let x = 2;\n        }",
+                    source: "RunProgram",
                     level: Warn,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
@@ -202,7 +202,7 @@ fn needless_operation_non_empty_op_and_specialization() {
         &expect![[r#"
             [
                 SrcLint {
-                    source: "operation Run(target : Qubit) : Unit is Adj {\n    body ... {\n        Message(\"hi\");\n    }\n    adjoint self;\n}",
+                    source: "Run",
                     level: Warn,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
@@ -256,7 +256,7 @@ fn needless_operation_partial_application() {
         &expect![[r#"
             [
                 SrcLint {
-                    source: "operation PartialApplication(q1 : Qubit) : Qubit => Unit {\n    return PrepareBellState(q1, _);\n}",
+                    source: "PartialApplication",
                     level: Warn,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
