@@ -437,7 +437,7 @@ async fn package_type_update_causes_error() {
         .update_document(
             "single/foo.qs",
             1,
-            "namespace Foo { operation Main() : Unit {} }",
+            "namespace Foo { operation Test() : Unit {} }",
         )
         .await;
 
