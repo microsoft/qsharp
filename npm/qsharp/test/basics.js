@@ -650,14 +650,14 @@ test("language service in notebook", async () => {
   });
 
   await languageService.updateNotebookDocument("notebook.ipynb", 1, {}, [
-    { uri: "cell1", version: 1, code: "function Main() : Unit {}" },
+    { uri: "cell1", version: 1, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 1, code: "Foo()" },
   ]);
 
   // Above document should have generated a resolve error.
 
   await languageService.updateNotebookDocument("notebook.ipynb", 2, {}, [
-    { uri: "cell1", version: 2, code: "function Main() : Unit {}" },
+    { uri: "cell1", version: 2, code: "operation Main() : Unit {}" },
     { uri: "cell2", version: 2, code: "Main()" },
   ]);
 
