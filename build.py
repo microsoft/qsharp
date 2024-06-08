@@ -228,6 +228,95 @@ if build_cli:
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
     step_end()
 
+
+def install_python_test_requirements(cwd, interpreter):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "test_requirements.txt",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def install_python_int_test_requirements(cwd, interpreter):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "int_test_requirements.txt",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def install_qsharp_python_package(cwd, wheelhouse, interpreter):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheelhouse,
+        "qsharp",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def build_qsharp_wheel(cwd, out_dir, interpreter, pip_env_dir):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "wheel",
+        "--wheel-dir",
+        out_dir,
+        "-v",
+        cwd,
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd, env=pip_env_dir)
+
+
+def run_python_tests(test_dir, interpreter):
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+
+
+def run_python_integration_tests(test_dir, interpreter):
+    print("Running the Python integration tests")
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+
+
+def run_python_qir_tests(qir_test_dir, interpreter):
+    # Try to install PyQIR and if successful, run additional tests.
+    qir_install_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "test_requirements.txt",
+    ]
+    subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
+    pyqir_check_args = [python_bin, "-c", "import pyqir"]
+    if (
+        subprocess.run(
+            pyqir_check_args, check=False, text=True, cwd=qir_test_dir
+        ).returncode
+        == 0
+    ):
+        print("Running tests for the pip package with PyQIR")
+        pytest_args = [python_bin, "-m", "pytest"]
+        subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
+    else:
+        print("Could not import PyQIR, skipping tests")
+
+
 if build_pip:
     step_start("Building the pip package")
 
@@ -239,69 +328,21 @@ if build_pip:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
-    pip_build_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "wheel",
-        "--wheel-dir",
-        wheels_dir,
-        "-v",
-        pip_src,
-    ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
+    build_qsharp_wheel(pip_src, wheels_dir, python_bin, pip_env)
 
     if run_tests:
         print("Running tests for the pip package")
 
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            "--no-index",
-            "--find-links=" + wheels_dir,
-            f"qsharp",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(
-            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
+        install_python_test_requirements(pip_src, python_bin)
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+        run_python_tests(os.path.join(pip_src, "tests"), python_bin)
+        run_python_qir_tests(os.path.join(pip_src, "tests-qir"), python_bin)
+
+    if args.integration_tests:
+        run_python_integration_tests(
+            os.path.join(pip_src, "tests-integration"), python_bin
         )
 
-        qir_test_dir = os.path.join(pip_src, "tests-qir")
-        # Try to install PyQIR and if successful, run additional tests.
-        qir_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
-        pyqir_check_args = [python_bin, "-c", "import pyqir"]
-        if (
-            subprocess.run(
-                pyqir_check_args, check=False, text=True, cwd=qir_test_dir
-            ).returncode
-            == 0
-        ):
-            print("Running tests for the pip package with PyQIR")
-            pytest_args = [python_bin, "-m", "pytest"]
-            subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
-        else:
-            print("Could not import PyQIR, skipping tests")
     step_end()
 
 if build_widgets:
