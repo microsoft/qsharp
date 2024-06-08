@@ -12,7 +12,7 @@ use crate::linter::hir::declare_hir_lints;
 use super::lint;
 
 declare_hir_lints! {
-    (NeedlessOperation, LintLevel::Warn, "unnecessary operation declaration", "convert to function")
+    (NeedlessOperation, LintLevel::Warn, "operation does not contain any quantum operations", "this callable can be declared as a function instead")
 }
 
 /// Helper to check if an operation has desired operation characteristics
