@@ -21,7 +21,7 @@ async fn no_error() {
         .update_document(
             "single/foo.qs",
             1,
-            "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
 
@@ -80,7 +80,7 @@ async fn clear_error() {
         .update_document(
             "single/foo.qs",
             2,
-            "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
 
@@ -109,7 +109,7 @@ async fn close_last_doc_in_project() {
         .update_document(
             "project/src/other_file.qs",
             1,
-            "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
@@ -131,7 +131,7 @@ async fn close_last_doc_in_project() {
                 "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
-                    latest_str_content: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
         "#]],
@@ -140,13 +140,13 @@ async fn close_last_doc_in_project() {
                 sources: [
                     Source {
                         name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
                         name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 58,
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -172,8 +172,8 @@ async fn close_last_doc_in_project() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 58,
-                                                hi: 58,
+                                                lo: 59,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -603,7 +603,7 @@ fn notebook_document_no_errors() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "function Main() : Unit {}"),
+            ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
         ]
         .into_iter(),
@@ -626,7 +626,7 @@ fn notebook_document_errors() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "function Main() : Unit {}"),
+            ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
         ]
         .into_iter(),
@@ -648,8 +648,8 @@ fn notebook_document_errors() {
                                     NotFound(
                                         "Foo",
                                         Span {
-                                            lo: 26,
-                                            hi: 29,
+                                            lo: 27,
+                                            hi: 30,
                                         },
                                     ),
                                 ),
@@ -661,8 +661,8 @@ fn notebook_document_errors() {
                                     Error(
                                         AmbiguousTy(
                                             Span {
-                                                lo: 26,
-                                                hi: 31,
+                                                lo: 27,
+                                                hi: 32,
                                             },
                                         ),
                                     ),
@@ -753,7 +753,7 @@ fn notebook_update_remove_cell_clears_errors() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "function Main() : Unit {}"),
+            ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
         ]
         .into_iter(),
@@ -775,8 +775,8 @@ fn notebook_update_remove_cell_clears_errors() {
                                     NotFound(
                                         "Foo",
                                         Span {
-                                            lo: 26,
-                                            hi: 29,
+                                            lo: 27,
+                                            hi: 30,
                                         },
                                     ),
                                 ),
@@ -788,8 +788,8 @@ fn notebook_update_remove_cell_clears_errors() {
                                     Error(
                                         AmbiguousTy(
                                             Span {
-                                                lo: 26,
-                                                hi: 31,
+                                                lo: 27,
+                                                hi: 32,
                                             },
                                         ),
                                     ),
@@ -805,7 +805,7 @@ fn notebook_update_remove_cell_clears_errors() {
     updater.update_notebook_document(
         "notebook.ipynb",
         &NotebookMetadata::default(),
-        [("cell1", 1, "function Main() : Unit {}")].into_iter(),
+        [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
     expect_errors(
@@ -831,7 +831,7 @@ fn close_notebook_clears_errors() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "function Main() : Unit {}"),
+            ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
         ]
         .into_iter(),
@@ -853,8 +853,8 @@ fn close_notebook_clears_errors() {
                                     NotFound(
                                         "Foo",
                                         Span {
-                                            lo: 26,
-                                            hi: 29,
+                                            lo: 27,
+                                            hi: 30,
                                         },
                                     ),
                                 ),
@@ -866,8 +866,8 @@ fn close_notebook_clears_errors() {
                                     Error(
                                         AmbiguousTy(
                                             Span {
-                                                lo: 26,
-                                                hi: 31,
+                                                lo: 27,
+                                                hi: 32,
                                             },
                                         ),
                                     ),
@@ -905,7 +905,7 @@ async fn update_doc_updates_project() {
         .update_document(
             "project/src/other_file.qs",
             1,
-            "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
@@ -929,7 +929,7 @@ async fn update_doc_updates_project() {
                 "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
-                    latest_str_content: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
         "#]],
@@ -938,13 +938,13 @@ async fn update_doc_updates_project() {
                 sources: [
                     Source {
                         name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
                         name: "project/src/this_file.qs",
                         contents: "namespace Foo { we should see this in the source }",
-                        offset: 58,
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -971,8 +971,8 @@ async fn update_doc_updates_project() {
                                             ),
                                             Ident,
                                             Span {
-                                                lo: 74,
-                                                hi: 76,
+                                                lo: 75,
+                                                hi: 77,
                                             },
                                         ),
                                     ),
@@ -1001,7 +1001,7 @@ async fn close_doc_prioritizes_fs() {
         .update_document(
             "project/src/other_file.qs",
             1,
-            "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+            "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
         )
         .await;
     updater
@@ -1022,7 +1022,7 @@ async fn close_doc_prioritizes_fs() {
                 "project/src/other_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
-                    latest_str_content: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
         "#]],
@@ -1031,13 +1031,13 @@ async fn close_doc_prioritizes_fs() {
                 sources: [
                     Source {
                         name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() function Main() : Unit {} }",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
                         name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 58,
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -1063,8 +1063,8 @@ async fn close_doc_prioritizes_fs() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 58,
-                                                hi: 58,
+                                                lo: 59,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -1112,13 +1112,13 @@ async fn delete_manifest() {
                 sources: [
                     Source {
                         name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { function Other() : Unit { } }",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
                         name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 70,
+                        offset: 71,
                     },
                 ],
                 common_prefix: Some(
@@ -1197,13 +1197,13 @@ async fn delete_manifest_then_close() {
                 sources: [
                     Source {
                         name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { function Other() : Unit { } }",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
                         name: "project/src/this_file.qs",
                         contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 70,
+                        offset: 71,
                     },
                 ],
                 common_prefix: Some(
@@ -1432,7 +1432,7 @@ async fn doc_switches_project_on_close() {
 
 #[tokio::test]
 async fn loading_lints_config_from_manifest() {
-    let this_file_qs = "namespace Foo { function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1738,7 +1738,7 @@ fn test_fs() -> FsNode {
                         [
                             file(
                                 "other_file.qs",
-                                "// DISK CONTENTS\n namespace OtherFile { function Other() : Unit { } }",
+                                "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                             ),
                             file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }"),
                         ],

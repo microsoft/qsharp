@@ -110,7 +110,7 @@ async fn single_document_update() {
     ls.update_document(
         "foo.qs",
         1,
-        "namespace Foo { @EntryPoint() function Bar() : Unit {} }",
+        "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
     );
 
     worker.apply_pending().await;
@@ -135,7 +135,7 @@ async fn single_document_update() {
                 sources: [
                     Source {
                         name: "foo.qs",
-                        contents: "namespace Foo { @EntryPoint() function Bar() : Unit {} }",
+                        contents: "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
                         offset: 0,
                     },
                 ],
@@ -191,13 +191,13 @@ async fn document_in_project() {
                 sources: [
                     Source {
                         name: "other_file.qs",
-                        contents: "namespace OtherFile { function Other() : Unit {} }",
+                        contents: "namespace OtherFile { operation Other() : Unit {} }",
                         offset: 0,
                     },
                     Source {
                         name: "this_file.qs",
                         contents: "namespace Foo { }",
-                        offset: 51,
+                        offset: 52,
                     },
                 ],
                 common_prefix: None,
@@ -327,7 +327,7 @@ fn create_update_worker<'a>(
                 tokio::spawn(ready(match file.as_str() {
                     "other_file.qs" => (
                         Arc::from(file),
-                        Arc::from("namespace OtherFile { function Other() : Unit {} }"),
+                        Arc::from("namespace OtherFile { operation Other() : Unit {} }"),
                     ),
                     "this_file.qs" => (Arc::from(file), Arc::from("namespace Foo { }")),
                     _ => panic!("unknown file"),
