@@ -39,8 +39,8 @@ fn multiple_lints() {
                 SrcLint {
                     source: "operation RunProgram() : Unit {\n            let x = ((1 + 2)) / 0;;;;\n        }",
                     level: Warn,
-                    message: "unnecessary operation declaration",
-                    help: "convert to function",
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
                 },
             ]
         "#]],
@@ -153,8 +153,8 @@ fn needless_operation_lambda_operations() {
                 SrcLint {
                     source: "(a) => a + 1",
                     level: Warn,
-                    message: "unnecessary operation declaration",
-                    help: "convert to function",
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
                 },
             ]
         "#]],
@@ -180,8 +180,8 @@ fn needless_operation_non_empty_op_and_no_specialization() {
                 SrcLint {
                     source: "operation RunProgram() : Unit {\n            let x = 2;\n        }",
                     level: Warn,
-                    message: "unnecessary operation declaration",
-                    help: "convert to function",
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
                 },
             ]
         "#]],
@@ -200,15 +200,15 @@ fn needless_operation_non_empty_op_and_specialization() {
         }
     "},
         &expect![[r#"
-        [
-            SrcLint {
-                source: "operation Run(target : Qubit) : Unit is Adj {\n    body ... {\n        Message(\"hi\");\n    }\n    adjoint self;\n}",
-                level: Warn,
-                message: "unnecessary operation declaration",
-                help: "convert to function",
-            },
-        ]
-    "#]],
+            [
+                SrcLint {
+                    source: "operation Run(target : Qubit) : Unit is Adj {\n    body ... {\n        Message(\"hi\");\n    }\n    adjoint self;\n}",
+                    level: Warn,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                },
+            ]
+        "#]],
     );
 }
 
@@ -258,8 +258,8 @@ fn needless_operation_partial_application() {
                 SrcLint {
                     source: "operation PartialApplication(q1 : Qubit) : Qubit => Unit {\n    return PrepareBellState(q1, _);\n}",
                     level: Warn,
-                    message: "unnecessary operation declaration",
-                    help: "convert to function",
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
                 },
             ]
         "#]],
