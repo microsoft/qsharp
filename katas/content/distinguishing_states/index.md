@@ -68,6 +68,60 @@ This kata is designed to get you familiar with the concept of measurements and u
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_states__all_zeros_w",
+    "title": "|0.. .0〉 state or W state?",
+    "path": "./all_zeros_w/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__ghz_w",
+    "title": "GHZ state or W state?",
+    "path": "./ghz_w/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__four_bell_states",
+    "title": "Distinguish four Bell states",
+    "path": "./four_bell_states/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__four_orthogonal_two_qubit",
+    "title": "Distinguish four orthogonal 2-qubit states",
+    "path": "./four_orthogonal_two_qubit/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__four_orthogonal_two_qubit_part_two",
+    "title": "Distinguish four orthogonal 2-qubit states, part 2",
+    "path": "./four_orthogonal_two_qubit_part_two/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__two_orthogonal_three_qubit",
+    "title": "Distinguish two orthogonal states on three qubits",
+    "path": "./two_orthogonal_three_qubit/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",
     "title": "Distinguishing Non-orthogonal States"
