@@ -99,7 +99,7 @@ impl HirLintPass for NeedlessOperation {
             op_limits.visit_callable_decl(decl);
 
             if !op_limits.is_op {
-                buffer.push(lint!(self, decl.span));
+                buffer.push(lint!(self, decl.name.span));
             }
         }
     }
