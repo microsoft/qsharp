@@ -124,7 +124,7 @@ impl With<'_> {
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
-            self.names.get(namespace.name.id)
+            self.names.get(namespace.id)
         else {
             panic!("namespace should have item ID");
         };
@@ -136,7 +136,7 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_ident(&namespace.name);
+        let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -190,6 +190,19 @@ impl With<'_> {
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
+            ast::ItemKind::Struct(decl) => {
+                let id = resolve_id(decl.name.id);
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
+
+                (
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                )
+            }
         };
 
         self.lowerer.items.push(hir::Item {
@@ -226,14 +239,26 @@ impl With<'_> {
                 }
             },
             Ok(hir::Attr::Config) => {
-                if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
-                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                        if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()))
-                {
-                    self.lowerer.errors.push(Error::InvalidAttrArgs(
-                        "runtime capability".to_string(),
-                        attr.arg.span,
-                    ));
+                match &*attr.arg.kind {
+                    // @Config(Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
+
+                    // @Config(not Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
+                        {}
+
+                    // Any other form is not valid so generates an error.
+                    _ => {
+                        self.lowerer.errors.push(Error::InvalidAttrArgs(
+                            "runtime capability".to_string(),
+                            attr.arg.span,
+                        ));
+                    }
                 }
                 None
             }
@@ -532,6 +557,14 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
+            ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
+                self.lower_path(name),
+                copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
+                fields
+                    .iter()
+                    .map(|f| Box::new(self.lower_field_assign(&ty, f)))
+                    .collect(),
+            ),
             ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
                 components
                     .iter()
@@ -573,6 +606,15 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_field_assign(&mut self, ty: &Ty, field_assign: &ast::FieldAssign) -> hir::FieldAssign {
+        hir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: self.lower_field(ty, &field_assign.field.name),
+            value: Box::new(self.lower_expr(&field_assign.value)),
         }
     }
 
@@ -744,6 +786,10 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+
+    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+        name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }
 

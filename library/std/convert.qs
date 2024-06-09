@@ -41,7 +41,6 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool` representing the `input`.
-    @Config(Adaptive)
     function ResultAsBool(input : Result) : Bool {
         input == One
     }
@@ -56,7 +55,6 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result` representing the `input`.
-    @Config(Adaptive)
     function BoolAsResult(input : Bool) : Result {
         if input { One } else { Zero }
     }
@@ -107,7 +105,7 @@ namespace Microsoft.Quantum.Convert {
             set result += [(runningValue &&& 1) != 0];
             set runningValue >>>= 1;
         }
-        Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
+        Fact(runningValue == 0, "`number` is too large to fit into array of length `bits`.");
 
         result
     }
@@ -183,7 +181,6 @@ namespace Microsoft.Quantum.Convert {
     /// // The following returns 1
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
-    @Config(Adaptive)
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
@@ -208,7 +205,6 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool[]` representing the `input`.
-    @Config(Adaptive)
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
         for r in input {
@@ -228,7 +224,6 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result[]` representing the `input`.
-    @Config(Adaptive)
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {

@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     compilation::{Compilation, CompilationKind},
     protocol::{CodeLens, CodeLensCommand, OperationInfo},
-    qsc_utils::{into_range, span_contains},
+    qsc_utils::into_range,
 };
 use qsc::{
     circuit::qubit_param_info,
@@ -30,7 +30,7 @@ pub(crate) fn get_code_lenses(
 
     // Get callables in the current source file.
     let callables = user_unit.package.items.values().filter_map(|item| {
-        if span_contains(source_span, item.span.lo) {
+        if source_span.contains(item.span.lo) {
             // We don't support any commands for internal operations.
             if matches!(item.visibility, Visibility::Internal) {
                 return None;
@@ -42,7 +42,7 @@ pub(crate) fn get_code_lenses(
                     .and_then(|parent_id| user_unit.package.items.get(parent_id))
                     .map(|parent| &parent.kind)
                 {
-                    let namespace = ns.name.to_string();
+                    let namespace = ns.name();
                     let range = into_range(position_encoding, decl.span, &user_unit.sources);
                     let name = decl.name.name.clone();
 

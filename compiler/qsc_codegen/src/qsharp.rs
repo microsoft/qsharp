@@ -15,8 +15,8 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Lit, Mutability, Pat, PatKind, Path,
-    Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
+    FunctorExpr, FunctorExprKind, Ident, Idents, Item, ItemKind, Lit, Mutability, Pat, PatKind,
+    Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
     StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
     Visibility, VisibilityKind,
 };
@@ -104,7 +104,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_namespace(&mut self, namespace: &'_ Namespace) {
         self.write("namespace ");
-        self.visit_ident(&namespace.name);
+        self.visit_idents(&namespace.name);
         self.writeln("{");
         namespace.items.iter().for_each(|i| {
             self.visit_item(i);
@@ -124,7 +124,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             ItemKind::Callable(decl) => self.visit_callable_decl(decl),
             ItemKind::Open(ns, alias) => {
                 self.write("open ");
-                self.visit_ident(ns);
+                self.visit_idents(ns);
                 if let Some(alias) = alias {
                     self.write(" as ");
                     self.visit_ident(alias);
@@ -138,6 +138,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_ty_def(def);
                 self.writeln(";");
             }
+            ItemKind::Struct(decl) => self.visit_struct_decl(decl),
         }
     }
 
@@ -218,6 +219,26 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.writeln("}");
             }
         }
+    }
+
+    fn visit_struct_decl(&mut self, decl: &'_ ast::StructDecl) {
+        self.write("struct ");
+        self.visit_ident(&decl.name);
+        self.writeln(" {");
+        if let Some((last, most)) = decl.fields.split_last() {
+            for i in most {
+                self.visit_field_def(i);
+                self.write(", ");
+            }
+            self.visit_field_def(last);
+        }
+        self.writeln("}");
+    }
+
+    fn visit_field_def(&mut self, def: &'_ ast::FieldDef) {
+        self.visit_ident(&def.name);
+        self.write(" : ");
+        self.visit_ty(&def.ty);
     }
 
     fn visit_spec_decl(&mut self, decl: &'_ SpecDecl) {
@@ -490,6 +511,27 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write("return ");
                 self.visit_expr(expr);
             }
+            ExprKind::Struct(name, copy, assigns) => {
+                self.write("new ");
+                self.visit_path(name);
+                self.writeln(" {");
+                if let Some(copy) = copy {
+                    self.write("...");
+                    self.visit_expr(copy);
+                    if !assigns.is_empty() {
+                        self.writeln(",");
+                    }
+                }
+                if let Some((last, most)) = assigns.split_last() {
+                    for assign in most {
+                        self.visit_field_assign(assign);
+                        self.writeln(",");
+                    }
+                    self.visit_field_assign(last);
+                    self.writeln("");
+                }
+                self.writeln("}");
+            }
             ExprKind::UnOp(op, expr) => {
                 let op_str = unop_as_str(op);
                 if op == &UnOp::Unwrap {
@@ -639,6 +681,12 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         }
     }
 
+    fn visit_field_assign(&mut self, assign: &'_ ast::FieldAssign) {
+        self.visit_ident(&assign.field);
+        self.write(" = ");
+        self.visit_expr(&assign.value);
+    }
+
     fn visit_pat(&mut self, pat: &'_ Pat) {
         match &*pat.kind {
             PatKind::Bind(name, ty) => {
@@ -710,8 +758,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     }
 
     fn visit_path(&mut self, path: &'_ Path) {
-        for ns in &path.namespace {
-            self.visit_ident(ns);
+        if let Some(ns) = &path.namespace {
+            self.visit_idents(ns);
             self.write(".");
         }
         self.visit_ident(&path.name);
@@ -719,6 +767,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_ident(&mut self, id: &'_ Ident) {
         self.write(&id.name);
+    }
+
+    fn visit_idents(&mut self, idents: &'_ Idents) {
+        self.write(&idents.name());
     }
 }
 

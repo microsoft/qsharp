@@ -32,10 +32,72 @@ This kata is designed to get you familiar with the concept of measurements and u
     ]
 })
 
+@[exercise]({
+    "id": "distinguishing_states__plus_minus",
+    "title": "|+〉 or |-〉?",
+    "path": "./plus_minus/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__a_b",
+    "title": "|A〉 or |B〉?",
+    "path": "./a_b/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__zerozero_oneone",
+    "title": "|00〉 or |11〉?",
+    "path": "./zerozero_oneone/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__four_basis_states",
+    "title": "Distinguish four basis states",
+    "path": "./four_basis_states/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",
     "title": "Distinguishing Non-orthogonal States"
+})
+
+@[exercise]({
+    "id": "distinguishing_states__zero_plus",
+    "title": "|0〉 or |+〉?",
+    "path": "./zero_plus/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__zero_plus_inc",
+    "title": "|0〉, |+〉 or Inconclusive?",
+    "path": "./zero_plus_inc/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__peres_wooters_game",
+    "title": "Peres/Wooters game",
+    "path": "./peres_wooters_game/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({

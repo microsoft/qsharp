@@ -1678,6 +1678,60 @@ fn call_op_unit() {
 }
 
 #[test]
+fn struct_cons_empty() {
+    check(
+        expr,
+        "new Foo { }",
+        &expect![[
+            r#"Expr _id_ [0-11]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")): <empty>"#
+        ]],
+    );
+}
+
+#[test]
+fn struct_cons() {
+    check(
+        expr,
+        "new Foo { field1 = 3, field2 = 6, field3 = { 2 + 15 } }",
+        &expect![[r#"
+            Expr _id_ [0-55]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                FieldsAssign _id_ [10-20]: (Ident _id_ [10-16] "field1") Expr _id_ [19-20]: Lit: Int(3)
+                FieldsAssign _id_ [22-32]: (Ident _id_ [22-28] "field2") Expr _id_ [31-32]: Lit: Int(6)
+                FieldsAssign _id_ [34-53]: (Ident _id_ [34-40] "field3") Expr _id_ [43-53]: Expr Block: Block _id_ [43-53]:
+                    Stmt _id_ [45-51]: Expr: Expr _id_ [45-51]: BinOp (Add):
+                        Expr _id_ [45-46]: Lit: Int(2)
+                        Expr _id_ [49-51]: Lit: Int(15)"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        expr,
+        "new Foo { ...foo, field1 = 3, field3 = { 2 + 15 } }",
+        &expect![[r#"
+            Expr _id_ [0-51]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")
+                FieldsAssign _id_ [18-28]: (Ident _id_ [18-24] "field1") Expr _id_ [27-28]: Lit: Int(3)
+                FieldsAssign _id_ [30-49]: (Ident _id_ [30-36] "field3") Expr _id_ [39-49]: Expr Block: Block _id_ [39-49]:
+                    Stmt _id_ [41-47]: Expr: Expr _id_ [41-47]: BinOp (Add):
+                        Expr _id_ [41-42]: Lit: Int(2)
+                        Expr _id_ [45-47]: Lit: Int(15)"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_empty() {
+    check(
+        expr,
+        "new Foo { ...foo }",
+        &expect![[r#"
+            Expr _id_ [0-18]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")"#]],
+    );
+}
+
+#[test]
 fn call_op_one() {
     check(
         expr,

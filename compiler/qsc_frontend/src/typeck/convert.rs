@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::resolve::{self, Names};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
-    PatKind, SetOp, Spec, TyDef, TyDefKind, TyKind,
+    PatKind, Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -42,25 +42,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
-        TyKind::Path(path) => {
-            let ty = match names.get(path.id) {
-                Some(&resolve::Res::Item(item, _)) => {
-                    Ty::Udt(path.name.name.clone(), hir::Res::Item(item))
-                }
-                Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
-                Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
-                // a path should never resolve to a parameter,
-                // as there is a syntactic difference between
-                // paths and parameters.
-                // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
-                    "A path should never resolve \
-                    to a local or a parameter, as there is syntactic differentiation."
-                ),
-                None => Ty::Err,
-            };
-            (ty, Vec::new())
-        }
+        TyKind::Path(path) => (ty_from_path(names, path), Vec::new()),
         TyKind::Param(name) => match names.get(name.id) {
             Some(resolve::Res::Param(id)) => (Ty::Param(name.name.clone(), *id), Vec::new()),
             Some(_) => unreachable!(
@@ -80,6 +62,43 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             (Ty::Tuple(tys), errors)
         }
         TyKind::Err => (Ty::Err, Vec::new()),
+    }
+}
+
+pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
+    match names.get(path.id) {
+        Some(&resolve::Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
+        Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
+        Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
+        // a path should never resolve to a parameter,
+        // as there is a syntactic difference between
+        // paths and parameters.
+        // So realistically, by construction, `Param` here is unreachable.
+        Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+            "A path should never resolve \
+            to a local or a parameter, as there is syntactic differentiation."
+        ),
+        None => Ty::Err,
+    }
+}
+
+/// Convert a struct declaration into a UDT type definition.
+pub(super) fn ast_struct_decl_as_ty_def(decl: &StructDecl) -> TyDef {
+    TyDef {
+        id: decl.id,
+        span: decl.span,
+        kind: Box::new(TyDefKind::Tuple(
+            decl.fields
+                .iter()
+                .map(|f| {
+                    Box::new(TyDef {
+                        id: f.id,
+                        span: f.span,
+                        kind: Box::new(TyDefKind::Field(Some(f.name.clone()), f.ty.clone())),
+                    })
+                })
+                .collect(),
+        )),
     }
 }
 

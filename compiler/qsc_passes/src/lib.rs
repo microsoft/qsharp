@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod baseprofck;
 mod borrowck;
 mod callable_limits;
 mod capabilitiesck;
@@ -36,14 +35,16 @@ use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
+pub(crate) static CORE_NAMESPACE: &[&str] = &["Microsoft", "Quantum", "Core"];
+pub(crate) static QIR_RUNTIME_NAMESPACE: &[&str] = &["QIR", "Runtime"];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
 pub enum Error {
-    BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
-    CapabilitiesCk(capabilitiesck::Error),
+    CapabilitiesCk(qsc_rca::errors::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
@@ -66,15 +67,19 @@ pub fn lower_hir_to_fir(
 }
 
 pub struct PassContext {
-    capabilities: TargetCapabilityFlags,
     borrow_check: borrowck::Checker,
+}
+
+impl Default for PassContext {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PassContext {
     #[must_use]
-    pub fn new(capabilities: TargetCapabilityFlags) -> Self {
+    pub fn new() -> Self {
         Self {
-            capabilities,
             borrow_check: borrowck::Checker::default(),
         }
     }
@@ -114,12 +119,6 @@ impl PassContext {
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
-        let base_prof_errors = if self.capabilities == TargetCapabilityFlags::empty() {
-            baseprofck::check_base_profile_compliance(package)
-        } else {
-            Vec::new()
-        };
-
         callable_errors
             .into_iter()
             .map(Error::CallableLimits)
@@ -127,7 +126,6 @@ impl PassContext {
             .chain(spec_errors.into_iter().map(Error::SpecGen))
             .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
             .chain(entry_point_errors)
-            .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
             .collect()
     }
 
@@ -145,14 +143,8 @@ pub fn run_default_passes(
     core: &Table,
     unit: &mut CompileUnit,
     package_type: PackageType,
-    capabilities: TargetCapabilityFlags,
 ) -> Vec<Error> {
-    PassContext::new(capabilities).run_default_passes(
-        &mut unit.package,
-        &mut unit.assigner,
-        core,
-        package_type,
-    )
+    PassContext::new().run_default_passes(&mut unit.package, &mut unit.assigner, core, package_type)
 }
 
 pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
@@ -171,13 +163,7 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
     ReplaceQubitAllocation::new(&table, &mut core.assigner).visit_package(&mut core.package);
     Validator::default().visit_package(&core.package);
 
-    let base_prof_errors = baseprofck::check_base_profile_compliance(&core.package);
-
-    borrow_errors
-        .into_iter()
-        .map(Error::BorrowCk)
-        .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
-        .collect()
+    borrow_errors.into_iter().map(Error::BorrowCk).collect()
 }
 
 pub fn run_fir_passes(

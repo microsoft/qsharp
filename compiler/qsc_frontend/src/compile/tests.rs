@@ -3,9 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
 
-use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -339,9 +339,13 @@ fn insert_core_call() {
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
+            let ns = self
+                .core
+                .find_namespace(["QIR", "Runtime"].iter().copied())
+                .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .resolve_term(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -1254,4 +1258,213 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn hierarchical_namespace_basic() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo.Bar {
+                    operation Baz() : Unit {}
+                }
+                namespace Main {
+                    open Foo;
+                    operation Main() : Unit {
+                        Bar.Baz();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let store = PackageStore::new(super::core());
+    let lib = compile(
+        &store,
+        &[],
+        lib_sources,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+}
+
+#[test]
+fn implicit_namespace_basic() {
+    let sources = SourceMap::new(
+        [
+            (
+                "Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            (
+                "Main.qs".into(),
+                indoc! {"
+                    @EntryPoint()
+                    operation Bar() : Unit {
+                        Test.Bar();
+                        open Foo.Bar;
+                        Baz.Quux();
+                    }
+            "}
+                .into(),
+            ),
+            (
+                "Foo/Bar/Baz.qs".into(),
+                indoc! {"
+                    operation Quux() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn reject_bad_filename_implicit_namespace() {
+    let sources = SourceMap::new(
+        [
+            (
+                "123Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            (
+                "Test-File.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {
+                    }
+            "}
+                .into(),
+            ),
+            (
+                "Namespace.Foo.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    expect![[r#"
+        [
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 0,
+                                hi: 25,
+                            },
+                            "123Test",
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 27,
+                                hi: 53,
+                            },
+                            "Test-File",
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 55,
+                                hi: 80,
+                            },
+                            "Namespace.Foo",
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn test_longest_common_prefix_1() {
+    assert_eq!(longest_common_prefix(&["/a/b/c", "/a/b/d"]), "/a/b/");
+}
+
+#[test]
+fn test_longest_common_prefix_2() {
+    assert_eq!(longest_common_prefix(&["foo", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_3() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_4() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_5() {
+    assert_eq!(
+        longest_common_prefix(&[
+            "code\\project\\src\\Main.qs",
+            "code\\project\\src\\Helper.qs"
+        ]),
+        "code\\project\\src\\"
+    );
+}
+
+#[test]
+fn test_longest_common_prefix_6() {
+    assert_eq!(
+        longest_common_prefix(&["code/project/src/Bar.qs", "code/project/src/Baz.qs"]),
+        "code/project/src/"
+    );
+}
+
+#[test]
+fn test_longest_common_prefix_two_relative_paths() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b", "a/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_relative_path() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_file_name() {
+    expect![""].assert_eq(longest_common_prefix(&["a"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common() {
+    expect!["/"].assert_eq(longest_common_prefix(&["/a/b", "/b/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common_no_leading() {
+    expect![""].assert_eq(longest_common_prefix(&["a/b", "b/c"]));
 }

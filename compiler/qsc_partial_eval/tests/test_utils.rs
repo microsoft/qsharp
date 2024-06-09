@@ -9,7 +9,10 @@ use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, Error, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
-use qsc_rir::rir::{BlockId, CallableId, Program};
+use qsc_rir::{
+    passes::check_and_transform,
+    rir::{BlockId, CallableId, Program},
+};
 
 pub fn assert_block_instructions(program: &Program, block_id: BlockId, expected_insts: &Expect) {
     let block = program.get_block(block_id);
@@ -37,7 +40,19 @@ pub fn assert_error(error: &Error, expected_error: &Expect) {
 
 #[must_use]
 pub fn get_partial_evaluation_error(source: &str) -> Error {
-    let maybe_program = compile_and_partially_evaluate(source);
+    let maybe_program = compile_and_partially_evaluate(source, TargetCapabilityFlags::all());
+    match maybe_program {
+        Ok(_) => panic!("partial evaluation succeeded"),
+        Err(error) => error,
+    }
+}
+
+#[must_use]
+pub fn get_partial_evaluation_error_with_capabilities(
+    source: &str,
+    capabilities: TargetCapabilityFlags,
+) -> Error {
+    let maybe_program = compile_and_partially_evaluate(source, capabilities);
     match maybe_program {
         Ok(_) => panic!("partial evaluation succeeded"),
         Err(error) => error,
@@ -46,20 +61,39 @@ pub fn get_partial_evaluation_error(source: &str) -> Error {
 
 #[must_use]
 pub fn get_rir_program(source: &str) -> Program {
-    let maybe_program = compile_and_partially_evaluate(source);
+    let maybe_program = compile_and_partially_evaluate(source, TargetCapabilityFlags::all());
+    match maybe_program {
+        Ok(program) => {
+            // Verify the program can go through transformations.
+            check_and_transform(&mut program.clone());
+            program
+        }
+        Err(error) => panic!("partial evaluation failed: {error:?}"),
+    }
+}
+
+#[must_use]
+pub fn get_rir_program_with_capabilities(
+    source: &str,
+    capabilities: TargetCapabilityFlags,
+) -> Program {
+    let maybe_program = compile_and_partially_evaluate(source, capabilities);
     match maybe_program {
         Ok(program) => program,
         Err(error) => panic!("partial evaluation failed: {error:?}"),
     }
 }
 
-fn compile_and_partially_evaluate(source: &str) -> Result<Program, Error> {
-    let compilation_context = CompilationContext::new(source);
+fn compile_and_partially_evaluate(
+    source: &str,
+    capabilities: TargetCapabilityFlags,
+) -> Result<Program, Error> {
+    let compilation_context = CompilationContext::new(source, capabilities);
     partially_evaluate(
         &compilation_context.fir_store,
         &compilation_context.compute_properties,
         &compilation_context.entry,
-        TargetCapabilityFlags::empty(),
+        capabilities,
     )
 }
 
@@ -70,13 +104,13 @@ struct CompilationContext {
 }
 
 impl CompilationContext {
-    fn new(source: &str) -> Self {
+    fn new(source: &str, capabilities: TargetCapabilityFlags) -> Self {
         let source_map = SourceMap::new([("test".into(), source.into())], Some("".into()));
         let compiler = Compiler::new(
             true,
             source_map,
             PackageType::Exe,
-            TargetCapabilityFlags::all(),
+            capabilities,
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");

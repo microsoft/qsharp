@@ -43,7 +43,7 @@ $$
     "id": "multi_qubit_gates__anti_controlled_gate_a",
     "codePath": "./SolutionA.qs"
 })
-Alternatively, we can notice that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonint) library operation.
+Alternatively, we can notice that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $\ket{0}$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonint) library operation.
 
 Notice that the `ApplyControlledOnInt` operation uses an array of qubits as control, not by a single qubit. 
 

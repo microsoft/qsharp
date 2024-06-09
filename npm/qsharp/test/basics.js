@@ -303,11 +303,12 @@ async function validateKata(
 }
 
 test("getAllKatas works", async () => {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-const katasList = await getAllKatas();
+// Run tests for all katas, including unpublished
+const katasList = await getAllKatas({ includeUnpublished: true });
 
 katasList.forEach((kataDesc) => {
   test(`${kataDesc.id} kata is valid`, async () => {
@@ -606,7 +607,7 @@ test("language service configuration update", async () => {
     "test.qs",
     1,
     `namespace Sample {
-    operation main() : Unit {
+    operation Test() : Unit {
     }
 }`,
   );
@@ -628,7 +629,7 @@ test("language service configuration update", async () => {
         messages: [
           "entry point not found\n" +
             "\n" +
-            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present",
         ],
       },
       {
@@ -729,7 +730,7 @@ test("debug service loading source without entry point attr fails - web worker",
         [
           "test.qs",
           `namespace Sample {
-    operation main() : Result[] {
+    operation test() : Result[] {
         use q1 = Qubit();
         Y(q1);
         let m1 = M(q1);
@@ -756,7 +757,7 @@ test("debug service loading source with syntax error fails - web worker", async 
         [
           "test.qs",
           `namespace Sample {
-    operation main() : Result[]
+    operation test() : Result[]
     }
 }`,
         ],
@@ -778,6 +779,26 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
       [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
       "base",
       "SomeBadExpr()",
+      [],
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source that doesn't match profile fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadSource(
+      [
+        [
+          "test.qs",
+          `namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }`,
+        ],
+      ],
+      "adaptive_ri",
+      "A.Test()",
       [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);

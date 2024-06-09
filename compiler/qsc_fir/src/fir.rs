@@ -846,7 +846,7 @@ pub struct SpecImpl {
 impl Display for SpecImpl {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "SpecImpl:",)?;
+        write!(indent, "SpecImpl:")?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nbody: {}", self.body)?;
         match &self.adj {
@@ -897,8 +897,6 @@ pub enum ExecGraphNode {
     Bind(PatId),
     /// An expression to execute.
     Expr(ExprId),
-    /// A statement to track for debugging.
-    Stmt(StmtId),
     /// An unconditional jump with to given location.
     Jump(u32),
     /// A conditional jump with to given location, where the jump is only taken if the condition is
@@ -913,6 +911,11 @@ pub enum ExecGraphNode {
     Unit,
     /// The end of the control flow graph.
     Ret,
+    /// The end of the control flow graph plus a pop of the current debug frame. Used instead of `Ret`
+    /// when debugging.
+    RetFrame,
+    /// A statement to track for debugging.
+    Stmt(StmtId),
     /// A push of a new scope, used when tracking variables for debugging.
     PushScope,
     /// A pop of the current scope, used when tracking variables for debugging.
@@ -1072,6 +1075,8 @@ pub enum ExprKind {
     Range(Option<ExprId>, Option<ExprId>, Option<ExprId>),
     /// A return: `return a`.
     Return(ExprId),
+    /// A struct constructor.
+    Struct(Res, Option<ExprId>, Vec<FieldAssign>),
     /// A string.
     String(Vec<StringComponent>),
     /// Update array index: `a w/ b <- c`.
@@ -1114,6 +1119,7 @@ impl Display for ExprKind {
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
             ExprKind::Range(start, step, end) => display_range(indent, *start, *step, *end)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, *copy, fields)?,
             ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::UpdateIndex(expr1, expr2, expr3) => {
                 display_update_index(indent, *expr1, *expr2, *expr3)?;
@@ -1288,6 +1294,27 @@ fn display_range(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Res,
+    copy: Option<ExprId>,
+    fields: &Vec<FieldAssign>,
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent]) -> fmt::Result {
     write!(indent, "String:")?;
     indent = set_indentation(indent, 1);
@@ -1371,6 +1398,29 @@ fn display_while(mut indent: Indented<Formatter>, cond: ExprId, block: BlockId) 
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Field,
+    /// The value to assign to the field.
+    pub value: ExprId,
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// A string component.

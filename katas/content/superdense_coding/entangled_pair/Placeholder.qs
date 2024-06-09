@@ -1,5 +1,5 @@
 namespace Kata {
-    operation CreateEntangledPair(qs : Qubit[]) : Unit is Adj {
+    operation CreateEntangledPair(qAlice : Qubit, qBob : Qubit) : Unit is Adj {
         // Implement your solution here...
 
     }

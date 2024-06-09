@@ -8,7 +8,7 @@ import { IServiceEventTarget } from "../workers/common.js";
 // Create strongly typed compiler events
 export type QscEventData =
   | { type: "Message"; detail: string }
-  | { type: "DumpMachine"; detail: { state: Dump; stateLatex: string } }
+  | { type: "DumpMachine"; detail: { state: Dump; stateLatex: string | null } }
   | { type: "Result"; detail: Result };
 
 export type QscEvents = Event & QscEventData;
@@ -93,7 +93,7 @@ export class QscEventTarget implements IQscEventTarget {
     this.queueUiRefresh();
   }
 
-  private onDumpMachine(detail: { state: Dump; stateLatex: string }) {
+  private onDumpMachine(detail: { state: Dump; stateLatex: string | null }) {
     this.ensureActiveShot();
 
     const shotIdx = this.results.length - 1;

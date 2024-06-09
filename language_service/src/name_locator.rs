@@ -5,7 +5,7 @@ use std::mem::replace;
 use std::rc::Rc;
 
 use crate::compilation::Compilation;
-use crate::qsc_utils::{find_ident, span_contains, span_touches};
+use crate::qsc_utils::find_ident;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
@@ -127,27 +127,27 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
 
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
-        if span_contains(namespace.span, self.offset) {
-            self.context.current_namespace = namespace.name.name.clone();
+        if namespace.span.contains(self.offset) {
+            self.context.current_namespace = namespace.name.name();
             walk_namespace(self, namespace);
         }
     }
 
     // Handles callable, UDT, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
-        if span_contains(item.span, self.offset) {
+        if item.span.contains(self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
-                    if span_touches(decl.name.span, self.offset) {
+                    if decl.name.span.touches(self.offset) {
                         self.inner.at_callable_def(&self.context, &decl.name, decl);
-                    } else if span_contains(decl.span, self.offset) {
+                    } else if decl.span.contains(self.offset) {
                         let context = self.context.current_callable;
                         self.context.current_callable = Some(decl);
 
                         // walk callable decl
                         decl.generics.iter().for_each(|p| {
-                            if span_touches(p.span, self.offset) {
+                            if p.span.touches(self.offset) {
                                 if let Some(resolve::Res::Param(param_id)) =
                                     self.compilation.get_res(p.id)
                                 {
@@ -182,7 +182,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
 
-                        if span_touches(ident.span, self.offset) {
+                        if ident.span.touches(self.offset) {
                             self.inner.at_new_type_def(ident, def);
                         } else {
                             self.visit_ty_def(def);
@@ -212,10 +212,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
 
     // Handles UDT field definitions
     fn visit_ty_def(&mut self, def: &'package ast::TyDef) {
-        if span_contains(def.span, self.offset) {
+        if def.span.contains(self.offset) {
             if let ast::TyDefKind::Field(ident, ty) = &*def.kind {
                 if let Some(ident) = ident {
-                    if span_touches(ident.span, self.offset) {
+                    if ident.span.touches(self.offset) {
                         self.inner.at_field_def(&self.context, ident, ty);
                     } else {
                         self.visit_ty(ty);
@@ -231,7 +231,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
 
     // Handles type param references
     fn visit_ty(&mut self, ty: &'package ast::Ty) {
-        if span_touches(ty.span, self.offset) {
+        if ty.span.touches(self.offset) {
             if let ast::TyKind::Param(param) = &*ty.kind {
                 if let Some(resolve::Res::Param(param_id)) = self.compilation.get_res(param.id) {
                     if let Some(curr) = self.context.current_callable {
@@ -249,10 +249,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
 
     // Handles local variable definitions
     fn visit_pat(&mut self, pat: &'package ast::Pat) {
-        if span_touches(pat.span, self.offset) {
+        if pat.span.touches(self.offset) {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, anno) => {
-                    if span_touches(ident.span, self.offset) {
+                    if ident.span.touches(self.offset) {
                         self.inner.at_local_def(&self.context, ident, pat);
                     } else if let Some(ty) = anno {
                         self.visit_ty(ty);
@@ -265,11 +265,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
 
     // Handles UDT field references
     fn visit_expr(&mut self, expr: &'package ast::Expr) {
-        if span_touches(expr.span, self.offset) {
+        if expr.span.touches(self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field_ref)
-                    if span_touches(field_ref.span, self.offset) =>
-                {
+                ast::ExprKind::Field(udt, field_ref) if field_ref.span.touches(self.offset) => {
                     if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
                         let (item, resolved_item_id) = self
                             .compilation
@@ -304,7 +302,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
 
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
-        if span_touches(path.span, self.offset) {
+        if path.span.touches(self.offset) {
             let res = self.compilation.get_res(path.id);
             if let Some(res) = res {
                 match &res {

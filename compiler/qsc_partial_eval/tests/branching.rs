@@ -12,7 +12,9 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::CallableId;
-use test_utils::{assert_blocks, assert_callable, get_rir_program};
+use test_utils::{
+    assert_blocks, assert_callable, assert_error, get_partial_evaluation_error, get_rir_program,
+};
 
 #[test]
 fn if_expression_with_true_condition() {
@@ -369,21 +371,21 @@ fn if_else_expression_with_dynamic_condition() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(5), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)
-        Block 3:Block:
-            Call id(4), args( Qubit(0), )
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(5), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)
+            Block 3:Block:
+                Call id(4), args( Qubit(0), )
+                Jump(1)"#]],
     );
 }
 
@@ -483,31 +485,31 @@ fn if_elif_else_expression_with_dynamic_condition() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(6), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(2), )
-            Jump(1)
-        Block 3:Block:
-            Variable(2, Boolean) = Call id(2), args( Result(1), )
-            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
-            Branch Variable(3, Boolean), 5, 6
-        Block 4:Block:
-            Jump(1)
-        Block 5:Block:
-            Call id(4), args( Qubit(2), )
-            Jump(4)
-        Block 6:Block:
-            Call id(5), args( Qubit(2), )
-            Jump(4)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(6), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(2), )
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Boolean) = Call id(2), args( Result(1), )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Branch Variable(3, Boolean), 5, 6
+            Block 4:Block:
+                Jump(1)
+            Block 5:Block:
+                Call id(4), args( Qubit(2), )
+                Jump(4)
+            Block 6:Block:
+                Call id(5), args( Qubit(2), )
+                Jump(4)"#]],
     );
 }
 
@@ -738,21 +740,21 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(5), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)
-        Block 3:Block:
-            Call id(4), args( Qubit(0), )
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(5), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)
+            Block 3:Block:
+                Call id(4), args( Qubit(0), )
+                Jump(1)"#]],
     );
 }
 
@@ -824,20 +826,20 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(4), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)
-        Block 3:Block:
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)
+            Block 3:Block:
+                Jump(1)"#]],
     );
 }
 
@@ -907,25 +909,25 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_co
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 1
-        Block 1:Block:
-            Call id(4), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(2, Boolean) = Call id(2), args( Result(1), )
-            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
-            Branch Variable(3, Boolean), 4, 3
-        Block 3:Block:
-            Jump(1)
-        Block 4:Block:
-            Call id(3), args( Qubit(2), )
-            Jump(3)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 1
+            Block 1:Block:
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Boolean) = Call id(2), args( Result(1), )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Branch Variable(3, Boolean), 4, 3
+            Block 3:Block:
+                Jump(1)
+            Block 4:Block:
+                Call id(3), args( Qubit(2), )
+                Jump(3)"#]],
     );
 }
 
@@ -1046,40 +1048,40 @@ fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 6
-        Block 1:Block:
-            Call id(7), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(2, Boolean) = Call id(2), args( Result(1), )
-            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
-            Branch Variable(3, Boolean), 4, 5
-        Block 3:Block:
-            Jump(1)
-        Block 4:Block:
-            Call id(3), args( Qubit(2), )
-            Jump(3)
-        Block 5:Block:
-            Call id(4), args( Qubit(2), )
-            Jump(3)
-        Block 6:Block:
-            Variable(4, Boolean) = Call id(2), args( Result(1), )
-            Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(true)
-            Branch Variable(5, Boolean), 8, 9
-        Block 7:Block:
-            Jump(1)
-        Block 8:Block:
-            Call id(5), args( Qubit(2), )
-            Jump(7)
-        Block 9:Block:
-            Call id(6), args( Qubit(2), )
-            Jump(7)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 6
+            Block 1:Block:
+                Call id(7), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Boolean) = Call id(2), args( Result(1), )
+                Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
+                Branch Variable(3, Boolean), 4, 5
+            Block 3:Block:
+                Jump(1)
+            Block 4:Block:
+                Call id(3), args( Qubit(2), )
+                Jump(3)
+            Block 5:Block:
+                Call id(4), args( Qubit(2), )
+                Jump(3)
+            Block 6:Block:
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Store Variable(4, Boolean)
+                Branch Variable(5, Boolean), 8, 9
+            Block 7:Block:
+                Jump(1)
+            Block 8:Block:
+                Call id(5), args( Qubit(2), )
+                Jump(7)
+            Block 9:Block:
+                Call id(6), args( Qubit(2), )
+                Jump(7)"#]],
     );
 }
 
@@ -1271,21 +1273,43 @@ fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() 
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(5), args( Qubit(0), )
-            Call id(6), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)
-        Block 3:Block:
-            Call id(4), args( Qubit(0), )
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(5), args( Qubit(0), )
+                Call id(6), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)
+            Block 3:Block:
+                Call id(4), args( Qubit(0), )
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn if_else_expression_with_result_literal_fails() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                MResetZ(q) == One ? One | MResetZ(q)
+            }
+        }
+        "#,
+    });
+
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unexpected("dynamic value of type Result in conditional expression", PackageSpan { package: PackageId(2), span: Span { lo: 101, hi: 137 } })"#
+        ]],
     );
 }

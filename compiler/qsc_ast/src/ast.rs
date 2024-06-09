@@ -164,7 +164,7 @@ pub struct Namespace {
     /// The documentation.
     pub doc: Rc<str>,
     /// The namespace name.
-    pub name: Box<Ident>,
+    pub name: Idents,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
 }
@@ -259,9 +259,11 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(Box<Ident>, Option<Box<Ident>>),
+    Open(Idents, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// A `struct` declaration.
+    Struct(Box<StructDecl>),
 }
 
 impl Display for ItemKind {
@@ -274,6 +276,7 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Struct(s) => write!(f, "{s}")?,
         }
         Ok(())
     }
@@ -387,6 +390,70 @@ impl Display for TyDefKind {
             TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
+    }
+}
+
+/// A struct definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct StructDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the struct.
+    pub name: Box<Ident>,
+    /// The type definition kind.
+    pub fields: Box<[Box<FieldDef>]>,
+}
+
+impl Display for StructDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Struct {} {} ({}):", self.id, self.span, self.name)?;
+        if self.fields.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for field in &*self.fields {
+                write!(indent, "\n{field}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl WithSpan for StructDecl {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+/// A struct field definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct FieldDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the field.
+    pub name: Box<Ident>,
+    /// The type of the field.
+    pub ty: Box<Ty>,
+}
+
+impl Display for FieldDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldDef {} {} ({}): {}",
+            self.id, self.span, self.name, self.ty
+        )
+    }
+}
+
+impl WithSpan for FieldDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 
@@ -807,6 +874,8 @@ pub enum ExprKind {
     Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(Box<Path>, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -847,6 +916,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1058,6 +1128,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Path,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -1099,6 +1190,35 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Box<Ident>,
+    /// The value to assign to the field.
+    pub value: Box<Expr>,
+}
+
+impl WithSpan for FieldAssign {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// An interpolated string component.
@@ -1273,7 +1393,7 @@ pub struct Path {
     /// The span.
     pub span: Span,
     /// The namespace.
-    pub namespace: Option<Box<Ident>>,
+    pub namespace: Option<Idents>,
     /// The declaration name.
     pub name: Box<Ident>,
 }
@@ -1304,6 +1424,133 @@ pub struct Ident {
     pub span: Span,
     /// The identifier name.
     pub name: Rc<str>,
+}
+
+/// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
+/// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
+/// dot-separated paths.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+pub struct Idents(pub Box<[Ident]>);
+
+impl From<Idents> for Vec<Rc<str>> {
+    fn from(v: Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<&Idents> for Vec<Rc<str>> {
+    fn from(v: &Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<Vec<Ident>> for Idents {
+    fn from(v: Vec<Ident>) -> Self {
+        Idents(v.into_boxed_slice())
+    }
+}
+
+impl From<Idents> for Vec<Ident> {
+    fn from(v: Idents) -> Self {
+        v.0.to_vec()
+    }
+}
+
+impl Display for Idents {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut buf = Vec::with_capacity(self.0.len());
+
+        for ident in self.0.iter() {
+            buf.push(format!("{ident}"));
+        }
+        if buf.len() > 1 {
+            // use square brackets only if there are more than one ident
+            write!(f, "[{}]", buf.join(", "))
+        } else {
+            write!(f, "{}", buf[0])
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a Idents {
+    type IntoIter = std::slice::Iter<'a, Ident>;
+    type Item = &'a Ident;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a> From<&'a Idents> for IdentsStrIter<'a> {
+    fn from(v: &'a Idents) -> Self {
+        IdentsStrIter(v)
+    }
+}
+
+/// An iterator which yields string slices of the names of the idents in a [`Idents`].
+/// Note that [`Idents`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct IdentsStrIter<'a>(pub &'a Idents);
+
+impl<'a> IntoIterator for IdentsStrIter<'a> {
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
+    type Item = &'a str;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(|i| i.name.as_ref())
+    }
+}
+
+impl FromIterator<Ident> for Idents {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        Idents(iter.into_iter().collect())
+    }
+}
+
+impl From<Path> for Idents {
+    fn from(p: Path) -> Self {
+        let mut buf = p.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*p.name);
+        Self(buf.into_boxed_slice())
+    }
+}
+
+impl Idents {
+    /// constructs an iterator over the [Ident]s that this contains.
+    /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
+    pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
+        self.0.iter()
+    }
+
+    /// constructs an iterator over the elements of `self` as string slices.
+    /// see [`Self::iter`] for an iterator over the [Ident]s.
+    #[must_use]
+    pub fn str_iter(&self) -> IdentsStrIter {
+        self.into()
+    }
+
+    /// the conjoined span of all idents in the `Idents`
+    #[must_use]
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
+    }
+
+    /// The stringified dot-separated path of the idents in this [`Idents`]
+    /// E.g. `a.b.c`
+    #[must_use]
+    pub fn name(&self) -> Rc<str> {
+        if self.0.len() == 1 {
+            return self.0[0].name.clone();
+        }
+        let mut buf = String::new();
+        for ident in self.0.iter() {
+            if !buf.is_empty() {
+                buf.push('.');
+            }
+            buf.push_str(&ident.name);
+        }
+        Rc::from(buf)
+    }
 }
 
 impl Default for Ident {

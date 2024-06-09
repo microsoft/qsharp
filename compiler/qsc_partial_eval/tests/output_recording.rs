@@ -5,7 +5,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use test_utils::get_rir_program;
+use test_utils::{assert_error, get_partial_evaluation_error, get_rir_program};
 
 pub mod test_utils;
 
@@ -83,7 +83,7 @@ fn output_recording_for_tuple_of_different_types() {
                     Call id(5), args( Variable(1, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -159,7 +159,7 @@ fn output_recording_for_nested_tuples() {
                     Variable(0, Boolean) = Call id(2), args( Result(0), )
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                     Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+                    Variable(3, Boolean) = Store Variable(2, Boolean)
                     Call id(3), args( Integer(3), Pointer, )
                     Call id(4), args( Result(0), Pointer, )
                     Call id(3), args( Integer(2), Pointer, )
@@ -169,7 +169,7 @@ fn output_recording_for_nested_tuples() {
                     Call id(5), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -255,7 +255,7 @@ fn output_recording_for_tuple_of_arrays() {
                     Variable(0, Boolean) = Call id(2), args( Result(0), )
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                     Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+                    Variable(3, Boolean) = Store Variable(2, Boolean)
                     Call id(3), args( Integer(2), Pointer, )
                     Call id(4), args( Result(0), Pointer, )
                     Call id(5), args( Integer(2), Pointer, )
@@ -263,7 +263,7 @@ fn output_recording_for_tuple_of_arrays() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -347,7 +347,7 @@ fn output_recording_for_array_of_tuples() {
                     Variable(0, Boolean) = Call id(2), args( Result(0), )
                     Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                     Variable(2, Boolean) = Call id(2), args( Result(0), )
-                    Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+                    Variable(3, Boolean) = Store Variable(2, Boolean)
                     Call id(3), args( Integer(2), Pointer, )
                     Call id(4), args( Integer(2), Pointer, )
                     Call id(5), args( Result(0), Pointer, )
@@ -357,7 +357,7 @@ fn output_recording_for_array_of_tuples() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -399,7 +399,7 @@ fn output_recording_for_literal_bool() {
                     Call id(1), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -429,7 +429,7 @@ fn output_recording_for_literal_int() {
                     output_type: <VOID>
                     body: 0
                 Callable 1: Callable:
-                    name: __quantum__rt__integer_record_output
+                    name: __quantum__rt__int_record_output
                     call_type: OutputRecording
                     input_type:
                         [0]: Integer
@@ -441,7 +441,7 @@ fn output_recording_for_literal_int() {
                     Call id(1), args( Integer(42), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -512,18 +512,15 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     Call id(4), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_one() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -533,14 +530,16 @@ fn output_recording_fails_with_result_literal_one() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_zero() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -550,14 +549,16 @@ fn output_recording_fails_with_result_literal_zero() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_in_array() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -568,14 +569,16 @@ fn output_recording_fails_with_result_literal_in_array() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }
 
 #[test]
-#[should_panic(
-    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
-)]
 fn output_recording_fails_with_result_literal_in_tuple() {
-    let _ = get_rir_program(indoc! {
+    let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -586,4 +589,9 @@ fn output_recording_fails_with_result_literal_in_tuple() {
         }
         "#,
     });
+
+    assert_error(
+        &error,
+        &expect!["OutputResultLiteral(PackageSpan { package: PackageId(2), span: Span { lo: 50, hi: 54 } })"],
+    );
 }

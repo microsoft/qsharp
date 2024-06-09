@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, FieldAssign, Ident, Item,
+    ItemKind, Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
+    StringComponent,
 };
 
 pub trait MutVisitor<'a>: Sized {
@@ -171,6 +172,12 @@ pub fn walk_expr<'a>(vis: &mut impl MutVisitor<'a>, expr: ExprId) {
             start.iter().for_each(|s| vis.visit_expr(*s));
             step.iter().for_each(|s| vis.visit_expr(*s));
             end.iter().for_each(|e| vis.visit_expr(*e));
+        }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter().for_each(|c| vis.visit_expr(*c));
+            fields
+                .iter()
+                .for_each(|FieldAssign { value, .. }| vis.visit_expr(*value));
         }
         ExprKind::String(components) => {
             for component in components {
