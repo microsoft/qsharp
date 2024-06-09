@@ -162,10 +162,8 @@ export function ScatterChart(props: {
     const element = saveRef.current;
     const backgroundColor =
       getComputedStyle(element).getPropertyValue("--main-background");
-    const checkVSCodeEnv = getComputedStyle(element).getPropertyValue(
-      "--vscode-foreground",
-    );
-    const isVSCodeEnv = true ? checkVSCodeEnv : false;
+    const isVSCodeEnv = true;
+    // const isVSCodeEnv = false;
 
     if (isVSCodeEnv) {
       const data = await saveToPng(element, backgroundColor);
