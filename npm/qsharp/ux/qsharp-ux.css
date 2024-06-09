@@ -716,10 +716,15 @@ html {
   cursor: pointer;
   width: 3em;
   height: 3em;
+  background-color: var(--main-background);
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  border: none;
 }
 
 .qs-estimatesOverview-saveIconSvgPath {
-  fill: #424242 !important;
+  fill: var(--main-color) !important;
   fill-rule: evenodd !important;
   clip-rule: evenodd !important;
 }

@@ -6,6 +6,7 @@
 import {
   getImageSize,
   createImage,
+  svgToDataURI,
   nodeToDataURI,
   toArray,
 } from "./saveImageUtil.js";
@@ -66,14 +67,12 @@ export async function cloneNode<T extends HTMLElement>(
     .then((clonedNode) => decorate(node, clonedNode));
 }
 
-export async function toSvg<T extends HTMLElement>(
+export async function saveToSvg<T extends HTMLElement>(
   node: T,
-  width: number,
-  height: number,
 ): Promise<string> {
-  const clonedNode = (await cloneNode(node)) as HTMLElement;
-  const dataURI = await nodeToDataURI(clonedNode, width, height);
-  return dataURI;
+  const clonedNode = (await cloneNode(node)) as Element;
+  const uri = await svgToDataURI(clonedNode);
+  return uri;
 }
 
 export async function saveToPng<T extends HTMLElement>(
@@ -81,8 +80,11 @@ export async function saveToPng<T extends HTMLElement>(
   backgroundColor: string,
 ): Promise<string> {
   const { width, height } = getImageSize(node);
-  const svg = await toSvg(node, width, height);
-  const img = await createImage(svg);
+  // const clonedNode = (await cloneNode(node)) as Element;
+  const clonedNode = (await cloneNode(node)) as HTMLElement;
+  // const uri = await svgToDataURI(clonedNode);
+  const uri = await nodeToDataURI(clonedNode, width, height);
+  const img = await createImage(uri);
 
   const ratio = window.devicePixelRatio || 1;
   const canvas = document.createElement("canvas");

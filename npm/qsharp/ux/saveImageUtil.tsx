@@ -10,13 +10,13 @@ export function toArray<T>(arrayLike: any): T[] {
   return arr;
 }
 
-function px(node: HTMLElement, styleProperty: string) {
+function px<T extends HTMLElement>(node: T, styleProperty: string) {
   const win = node.ownerDocument.defaultView || window;
   const val = win.getComputedStyle(node).getPropertyValue(styleProperty);
   return val ? parseFloat(val.replace("px", "")) : 0;
 }
 
-export function getImageSize(node: HTMLElement) {
+export function getImageSize<T extends HTMLElement>(node: T) {
   const leftBorder = px(node, "border-left-width");
   const rightBorder = px(node, "border-right-width");
   const topBorder = px(node, "border-top-width");
@@ -24,7 +24,7 @@ export function getImageSize(node: HTMLElement) {
 
   return {
     width: node.clientWidth + leftBorder + rightBorder,
-    height: node.clientHeight + topBorder + bottomBorder + 10, // Fixes up truncated region
+    height: node.clientHeight + topBorder + bottomBorder, //+ 12, // Fixes up truncated region
   };
 }
 
@@ -40,7 +40,7 @@ export function createImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function svgToDataURI(svg: SVGElement): Promise<string> {
+export async function svgToDataURI(svg: Element): Promise<string> {
   return Promise.resolve()
     .then(() => new XMLSerializer().serializeToString(svg))
     .then(encodeURIComponent)

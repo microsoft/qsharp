@@ -5,7 +5,6 @@
 // The results table is also a legend for the scatter chart.
 
 import { useState } from "preact/hooks";
-import { createRef } from "preact";
 import { ColorMap } from "./colormap.js";
 import {
   CreateSingleEstimateResult,
@@ -15,7 +14,6 @@ import {
 } from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
 import { Axis, PlotItem, ScatterChart, ScatterSeries } from "./scatterChart.js";
-import { saveToPng } from "./saveImage.js";
 
 const columnNames = [
   "Run name",
@@ -189,27 +187,6 @@ export function EstimatesOverview(props: {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
 
-  const printRef = createRef();
-
-  const handleSaveImage = async () => {
-    const element = printRef.current;
-    const backgroundColor =
-      getComputedStyle(element).getPropertyValue("--main-background");
-    const data = await saveToPng(element, backgroundColor);
-
-    const link = document.createElement("a");
-    if (typeof link.download === "string") {
-      link.href = data;
-      link.download = "image.png";
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      window.open(data);
-    }
-  };
-
   const runNameRenderingError =
     props.runNames != null &&
     props.runNames.length > 0 &&
@@ -329,31 +306,8 @@ export function EstimatesOverview(props: {
         </>
       ) : (
         <>
-          <button
-            role="button"
-            onClick={handleSaveImage}
-            className={"qs-estimatesOverview-saveIcon"}
-            style="position: absolute; top: 5px; right: 5px;"
-          >
-            <span>
-              <svg
-                width="75%"
-                height="75%"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  className={"qs-estimatesOverview-saveIconSvgPath"}
-                  d="M12.0147 2.8595L13.1397 3.9845L13.25 4.25V12.875L12.875 13.25H3.125L2.75 12.875V3.125L3.125 2.75H11.75L12.0147 2.8595ZM3.5 3.5V12.5H12.5V4.406L11.5947 3.5H10.25V6.5H5V3.5H3.5ZM8 3.5V5.75H9.5V3.5H8Z"
-                />
-              </svg>
-            </span>
-          </button>
-          <div ref={printRef}>
-            {getResultTable()}
-            {getScatterChart()}
-          </div>
+          {getResultTable()}
+          {getScatterChart()}
         </>
       )}
     </div>
