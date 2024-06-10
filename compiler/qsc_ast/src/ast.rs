@@ -333,6 +333,22 @@ pub struct TyDef {
     pub kind: Box<TyDefKind>,
 }
 
+impl TyDef {
+    /// Returns true if the tye definition satisfies the conditions for a struct.
+    /// Conditions for a struct are that the `TyDef` is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match self.kind.as_ref() {
+            TyDefKind::Paren(inner) => inner.is_struct(),
+            TyDefKind::Tuple(fields) => fields
+                .iter()
+                .all(|field| matches!(field.kind.as_ref(), TyDefKind::Field(Some(_), _))),
+            TyDefKind::Err | TyDefKind::Field(..) => false,
+        }
+    }
+}
+
 impl Display for TyDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)

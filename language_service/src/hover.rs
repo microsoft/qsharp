@@ -76,19 +76,8 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         package: &'a hir::Package,
         decl: &'a hir::CallableDecl,
     ) {
-        let ns = item
-            .parent
-            .and_then(|parent_id| package.items.get(parent_id))
-            .map_or_else(
-                || Rc::from(""),
-                |parent| match &parent.kind {
-                    hir::ItemKind::Namespace(namespace, _) => namespace.name(),
-                    _ => Rc::from(""),
-                },
-            );
-
+        let ns = get_namespace_name(item, package);
         let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
-
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -157,7 +146,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &context.current_item_doc,
             &context.current_namespace,
             code,
-            is_struct(def),
+            def.is_struct(),
         );
         self.hover = Some(Hover {
             contents,
@@ -193,17 +182,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let ns = item
-            .parent
-            .and_then(|parent_id| package.items.get(parent_id))
-            .map_or_else(
-                || Rc::from(""),
-                |parent| match &parent.kind {
-                    hir::ItemKind::Namespace(namespace, _) => namespace.name(),
-                    _ => Rc::from(""),
-                },
-            );
-
+        let ns = get_namespace_name(item, package);
         let code = self.display.hir_udt(udt);
         let contents = display_udt(&item.doc, &ns, code, udt.is_struct());
         self.hover = Some(Hover {
@@ -325,6 +304,18 @@ impl HoverGenerator<'_> {
     }
 }
 
+fn get_namespace_name(item: &hir::Item, package: &hir::Package) -> Rc<str> {
+    item.parent
+        .and_then(|parent_id| package.items.get(parent_id))
+        .map_or_else(
+            || Rc::from(""),
+            |parent| match &parent.kind {
+                hir::ItemKind::Namespace(namespace, _) => namespace.name(),
+                _ => Rc::from(""),
+            },
+        )
+}
+
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
     match curr_callable {
         Some(decl) => match &*decl.body {
@@ -356,16 +347,6 @@ fn is_param(param_pats: &[&ast::Pat], node_id: ast::NodeId) -> bool {
     }
 
     param_pats.iter().any(|pat| find_in_pat(pat, node_id))
-}
-
-fn is_struct(ty_def: &ast::TyDef) -> bool {
-    match ty_def.kind.as_ref() {
-        ast::TyDefKind::Paren(inner) => is_struct(inner),
-        ast::TyDefKind::Tuple(fields) => fields
-            .iter()
-            .all(|field| matches!(field.kind.as_ref(), ast::TyDefKind::Field(Some(_), _))),
-        ast::TyDefKind::Err | ast::TyDefKind::Field(..) => false,
-    }
 }
 
 fn display_local(
