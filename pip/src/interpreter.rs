@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
+    cli::{exec_qsc, exec_qsi, exec_subcommand},
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
+    MapPyErr,
 };
 use miette::Report;
 use num_bigint::BigUint;
@@ -39,6 +41,9 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
+    m.add_function(wrap_pyfunction!(exec_qsc, m)?)?;
+    m.add_function(wrap_pyfunction!(exec_qsi, m)?)?;
+    m.add_function(wrap_pyfunction!(exec_subcommand, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
@@ -578,42 +583,6 @@ impl Circuit {
 
     fn json(&self, _py: Python) -> PyResult<String> {
         serde_json::to_string(&self.0).map_err(|e| PyException::new_err(e.to_string()))
-    }
-}
-
-trait MapPyErr<T, E> {
-    fn map_py_err(self) -> core::result::Result<T, PyErr>;
-}
-
-impl<T, E> MapPyErr<T, E> for core::result::Result<T, E>
-where
-    E: IntoPyErr,
-{
-    fn map_py_err(self) -> core::result::Result<T, PyErr>
-    where
-        E: IntoPyErr,
-    {
-        self.map_err(IntoPyErr::into_py_err)
-    }
-}
-
-trait IntoPyErr {
-    fn into_py_err(self) -> PyErr;
-}
-
-impl IntoPyErr for Report {
-    fn into_py_err(self) -> PyErr {
-        PyException::new_err(format!("{self:?}"))
-    }
-}
-
-impl IntoPyErr for Vec<interpret::Error> {
-    fn into_py_err(self) -> PyErr {
-        let mut message = String::new();
-        for error in self {
-            writeln!(message, "{error}").expect("string should be writable");
-        }
-        PyException::new_err(message)
     }
 }
 

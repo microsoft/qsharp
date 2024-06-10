@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod cli;
 pub mod codegen;
 pub mod compile;
 pub mod error;

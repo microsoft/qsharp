@@ -27,3 +27,8 @@ build-backend = "maturin"
 
 [tool.maturin]
 module-name = "qsharp._native"
+
+[project.scripts]
+qsc = "qsharp._native:exec_qsc"
+qsi = "qsharp._native:exec_qsi"
+qsharp = "qsharp._native:exec_subcommand"
