@@ -349,24 +349,10 @@ impl Display for IdentTyDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(fields) = as_struct(self.def) {
             write!(f, "struct {} ", self.ident.name)?;
-
-            write!(f, "{{ ")?;
-            if let Some((last, most)) = fields.split_last() {
-                for field in most {
-                    let id_ty = IdentTy {
-                        ident: &field.name,
-                        ty: &field.ty,
-                    };
-                    write!(f, "{id_ty}, ")?;
-                }
-                let id_ty = IdentTy {
-                    ident: &last.name,
-                    ty: &last.ty,
-                };
-                write!(f, "{id_ty} ")?;
-            }
-            write!(f, "}}")?;
-            Ok(())
+            fmt_brace_seq(f, &fields, |item| IdentTy {
+                ident: &item.name,
+                ty: &item.ty,
+            })
         } else {
             write!(
                 f,
@@ -385,23 +371,10 @@ struct StructDecl<'a> {
 impl Display for StructDecl<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "struct {} ", self.decl.name.name)?;
-
-        write!(f, "{{ ")?;
-        if let Some((last, most)) = self.decl.fields.split_last() {
-            for field in most {
-                let id_ty = IdentTy {
-                    ident: &field.name,
-                    ty: &field.ty,
-                };
-                write!(f, "{id_ty}, ")?;
-            }
-            let id_ty = IdentTy {
-                ident: &last.name,
-                ty: &last.ty,
-            };
-            write!(f, "{id_ty} ")?;
-        }
-        write!(f, "}}")
+        fmt_brace_seq(f, &self.decl.fields, |item| IdentTy {
+            ident: &item.name,
+            ty: &item.ty,
+        })
     }
 }
 
@@ -422,20 +395,10 @@ impl<'a> HirUdt<'a> {
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if self.is_struct {
-            write!(f, "struct {} ", self.udt.name)?;
-
             match &self.udt.definition.kind {
                 ty::UdtDefKind::Tuple(fields) => {
-                    write!(f, "{{ ")?;
-                    if let Some((last, most)) = fields.split_last() {
-                        for field in most {
-                            let field = UdtDef::new(field);
-                            write!(f, "{field}, ")?;
-                        }
-                        let field = UdtDef::new(last);
-                        write!(f, "{field} ")?;
-                    }
-                    write!(f, "}}")?;
+                    write!(f, "struct {} ", self.udt.name)?;
+                    fmt_brace_seq(f, fields, UdtDef::new)?;
                 }
                 ty::UdtDefKind::Field(_) => {}
             }
@@ -631,6 +594,24 @@ where
         write!(formatter, "Unit")?;
     }
     Ok(())
+}
+
+fn fmt_brace_seq<'a, I, O>(
+    f: &mut Formatter<'_>,
+    items: &'a [I],
+    write_item: impl Fn(&'a I) -> O,
+) -> Result
+where
+    O: Display,
+{
+    write!(f, "{{ ")?;
+    if let Some((last, most)) = items.split_last() {
+        for item in most {
+            write!(f, "{}, ", write_item(item))?;
+        }
+        write!(f, "{} ", write_item(last))?;
+    }
+    write!(f, "}}")
 }
 
 fn display_type_params(generics: &[GenericParam]) -> String {
