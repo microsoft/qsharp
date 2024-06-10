@@ -1567,6 +1567,7 @@ fn multiple_packages_reference_exports() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn multiple_packages_disallow_unexported_imports() {
     let mut store = PackageStore::new(super::core());
 
