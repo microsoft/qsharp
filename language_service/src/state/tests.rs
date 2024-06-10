@@ -437,7 +437,7 @@ async fn package_type_update_causes_error() {
         .update_document(
             "single/foo.qs",
             1,
-            "namespace Foo { operation Main() : Unit {} }",
+            "namespace Foo { operation Test() : Unit {} }",
         )
         .await;
 
@@ -685,8 +685,8 @@ fn notebook_document_lints() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "operation Foo() : Unit { let x = 4;;;; }"),
-            ("cell2", 1, "operation Bar() : Unit { let y = 5 / 0; }"),
+            ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
+            ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
         ]
         .into_iter(),
     );
@@ -704,8 +704,8 @@ fn notebook_document_lints() {
                         Lint(
                             Lint {
                                 span: Span {
-                                    lo: 35,
-                                    hi: 38,
+                                    lo: 34,
+                                    hi: 37,
                                 },
                                 level: Warn,
                                 message: "redundant semicolons",
@@ -726,8 +726,8 @@ fn notebook_document_lints() {
                         Lint(
                             Lint {
                                 span: Span {
-                                    lo: 74,
-                                    hi: 79,
+                                    lo: 72,
+                                    hi: 77,
                                 },
                                 level: Error,
                                 message: "attempt to divide by zero",
@@ -1484,7 +1484,7 @@ async fn loading_lints_config_from_manifest() {
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
     let this_file_qs =
-        "namespace Foo { @EntryPoint() operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+        "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1524,8 +1524,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 72,
-                            hi: 79,
+                            lo: 71,
+                            hi: 78,
                         },
                         level: Error,
                         message: "unnecessary parentheses",
@@ -1538,8 +1538,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 64,
-                            hi: 69,
+                            lo: 63,
+                            hi: 68,
                         },
                         level: Error,
                         message: "attempt to divide by zero",
@@ -1572,8 +1572,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 72,
-                            hi: 79,
+                            lo: 71,
+                            hi: 78,
                         },
                         level: Warn,
                         message: "unnecessary parentheses",
@@ -1586,8 +1586,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 64,
-                            hi: 69,
+                            lo: 63,
+                            hi: 68,
                         },
                         level: Warn,
                         message: "attempt to divide by zero",

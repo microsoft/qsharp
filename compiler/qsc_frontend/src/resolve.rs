@@ -569,6 +569,19 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
+            ast::ItemKind::Struct(decl) => {
+                let id = intrapackage(assigner.next_item());
+                self.names.insert(
+                    decl.name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
+                let scope = self.current_scope_mut();
+                scope.tys.insert(Rc::clone(&decl.name.name), id);
+                scope.terms.insert(Rc::clone(&decl.name.name), id);
+            }
             ast::ItemKind::Err => {}
         }
     }
@@ -799,6 +812,11 @@ impl AstVisitor<'_> for With<'_> {
                 }
                 self.visit_expr(replace);
             }
+            ast::ExprKind::Struct(path, copy, fields) => {
+                self.resolver.resolve_path(NameKind::Ty, path);
+                copy.iter().for_each(|c| self.visit_expr(c));
+                fields.iter().for_each(|f| self.visit_field_assign(f));
+            }
             _ => ast_visit::walk_expr(self, expr),
         }
     }
@@ -990,81 +1008,101 @@ fn bind_global_item(
 ) -> Result<(), Vec<Error>> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let item_id = next_id();
-            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status);
-            names.insert(decl.name.id, res);
-            let mut errors = Vec::new();
-            match scope
-                .terms
-                .get_mut_or_default(namespace)
-                .entry(Rc::clone(&decl.name.name))
-            {
-                Entry::Occupied(_) => {
-                    let namespace_name = scope
-                        .namespaces
-                        .find_namespace_by_id(&namespace)
-                        .0
-                        .join(".");
-                    errors.push(Error::Duplicate(
-                        decl.name.name.to_string(),
-                        namespace_name.to_string(),
-                        decl.name.span,
-                    ));
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(res);
-                }
-            }
-
-            if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
-                errors.push(Error::DuplicateIntrinsic(
-                    decl.name.name.to_string(),
-                    decl.name.span,
-                ));
-            }
-
-            if errors.is_empty() {
-                Ok(())
-            } else {
-                Err(errors)
-            }
+            bind_callable(decl, namespace, next_id, item, names, scope)
         }
-        ast::ItemKind::Ty(name, _) => {
-            let item_id = next_id();
-            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-            let res = Res::Item(item_id, status);
-            names.insert(name.id, res);
-            match (
-                scope
-                    .terms
-                    .get_mut_or_default(namespace)
-                    .entry(Rc::clone(&name.name)),
-                scope
-                    .tys
-                    .get_mut_or_default(namespace)
-                    .entry(Rc::clone(&name.name)),
-            ) {
-                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
-                    let namespace_name = scope
-                        .namespaces
-                        .find_namespace_by_id(&namespace)
-                        .0
-                        .join(".");
-                    Err(vec![Error::Duplicate(
-                        name.name.to_string(),
-                        namespace_name,
-                        name.span,
-                    )])
-                }
-                (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
-                    term_entry.insert(res);
-                    ty_entry.insert(res);
-                    Ok(())
-                }
-            }
-        }
+        ast::ItemKind::Ty(name, _) => bind_ty(name, namespace, next_id, item, names, scope),
+        ast::ItemKind::Struct(decl) => bind_ty(&decl.name, namespace, next_id, item, names, scope),
         ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
+    }
+}
+
+fn bind_callable(
+    decl: &CallableDecl,
+    namespace: NamespaceId,
+    next_id: impl FnOnce() -> ItemId,
+    item: &ast::Item,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Vec<Error>> {
+    let item_id = next_id();
+    let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+    let res = Res::Item(item_id, status);
+    names.insert(decl.name.id, res);
+    let mut errors = Vec::new();
+
+    match scope
+        .terms
+        .get_mut_or_default(namespace)
+        .entry(Rc::clone(&decl.name.name))
+    {
+        Entry::Occupied(_) => {
+            let namespace_name = scope
+                .namespaces
+                .find_namespace_by_id(&namespace)
+                .0
+                .join(".");
+            errors.push(Error::Duplicate(
+                decl.name.name.to_string(),
+                namespace_name.to_string(),
+                decl.name.span,
+            ));
+        }
+        Entry::Vacant(entry) => {
+            entry.insert(res);
+        }
+    }
+    if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
+        errors.push(Error::DuplicateIntrinsic(
+            decl.name.name.to_string(),
+            decl.name.span,
+        ));
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn bind_ty(
+    name: &Ident,
+    namespace: NamespaceId,
+    next_id: impl FnOnce() -> ItemId,
+    item: &ast::Item,
+    names: &mut IndexMap<NodeId, Res>,
+    scope: &mut GlobalScope,
+) -> Result<(), Vec<Error>> {
+    let item_id = next_id();
+    let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+    let res = Res::Item(item_id, status);
+    names.insert(name.id, res);
+    match (
+        scope
+            .terms
+            .get_mut_or_default(namespace)
+            .entry(Rc::clone(&name.name)),
+        scope
+            .tys
+            .get_mut_or_default(namespace)
+            .entry(Rc::clone(&name.name)),
+    ) {
+        (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+            let namespace_name = scope
+                .namespaces
+                .find_namespace_by_id(&namespace)
+                .0
+                .join(".");
+            Err(vec![Error::Duplicate(
+                name.name.to_string(),
+                namespace_name,
+                name.span,
+            )])
+        }
+        (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
+            term_entry.insert(res);
+            ty_entry.insert(res);
+            Ok(())
+        }
     }
 }
 
