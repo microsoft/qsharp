@@ -804,7 +804,7 @@ pub enum CallableImpl {
     /// A specialized callable implementation.
     Spec(SpecImpl),
     /// An intrinsic with a simulation override.
-    CodeGenIntrinsic(SpecDecl),
+    SimulatableIntrinsic(SpecDecl),
 }
 
 impl Display for CallableImpl {
@@ -819,8 +819,8 @@ impl Display for CallableImpl {
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{spec_impl}")?;
             }
-            CallableImpl::CodeGenIntrinsic(spec_decl) => {
-                write!(indent, "CodeGenIntrinsic:")?;
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                write!(indent, "SimulatableIntrinsic:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{spec_decl}")?;
             }

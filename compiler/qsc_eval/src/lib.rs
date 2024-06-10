@@ -1018,7 +1018,7 @@ impl State {
                 );
                 Ok(())
             }
-            CallableImpl::CodeGenIntrinsic(spec_decl) => {
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
                 self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
                 self.push_scope(env);
 

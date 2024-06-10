@@ -2130,7 +2130,7 @@ fn codegen_intrinsic_succeeds_with_no_specializations() {
     check(
         indoc! {r#"
             namespace A {
-                @CodeGenIntrinsic()
+                @SimulatableIntrinsic()
                 operation Foo(q : Qubit) : Unit {
                     Bar(q);
                 }
@@ -2143,7 +2143,7 @@ fn codegen_intrinsic_succeeds_with_no_specializations() {
                     Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-97] (Public):
                     Parent: 0
-                    CodeGenIntrinsic
+                    SimulatableIntrinsic
                     Callable 0 [42-97] (operation):
                         name: Ident 1 [52-55] "Foo"
                         input: Pat 2 [56-65] [Type Qubit]: Bind: Ident 3 [56-57] "q"
@@ -2177,7 +2177,7 @@ fn codegen_intrinsic_fails_with_adj_specialization() {
     check(
         indoc! {r#"
             namespace A {
-                @CodeGenIntrinsic()
+                @SimulatableIntrinsic()
                 operation Foo(q : Qubit) : Unit is Adj {
                     Bar(q);
                 }
@@ -2186,7 +2186,7 @@ fn codegen_intrinsic_fails_with_adj_specialization() {
         "#},
         &expect![[r#"
             [
-                CodeGenIntrinsic(
+                SimulatableIntrinsic(
                     Span {
                         lo: 42,
                         hi: 104,
@@ -2202,7 +2202,7 @@ fn codegen_intrinsic_fails_with_ctl_specialization() {
     check(
         indoc! {r#"
             namespace A {
-                @CodeGenIntrinsic()
+                @SimulatableIntrinsic()
                 operation Foo(q : Qubit) : Unit is Ctl {
                     Bar(q);
                 }
@@ -2211,7 +2211,7 @@ fn codegen_intrinsic_fails_with_ctl_specialization() {
         "#},
         &expect![[r#"
             [
-                CodeGenIntrinsic(
+                SimulatableIntrinsic(
                     Span {
                         lo: 42,
                         hi: 104,

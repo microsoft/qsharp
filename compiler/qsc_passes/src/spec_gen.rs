@@ -63,10 +63,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.SpecGen.MissingBody"))]
     MissingBody(#[label] Span),
 
-    #[error("specialization generation is not supported for callables with the attribute `CodeGenIntrinsic`")]
-    #[diagnostic(code("Qsc.SpecGen.CodeGenIntrinsic"))]
+    #[error("specialization generation is not supported for callables with the attribute `SimulatableIntrinsic`")]
+    #[diagnostic(code("Qsc.SpecGen.SimulatableIntrinsic"))]
     #[diagnostic(help("try removing the specializations for this callable and providing them via a separate wrapper operation"))]
-    CodeGenIntrinsic(#[label] Span),
+    SimulatableIntrinsic(#[label] Span),
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
@@ -216,7 +216,7 @@ impl<'a> SpecImplPass<'a> {
 
 impl<'a> MutVisitor for SpecImplPass<'a> {
     fn visit_item(&mut self, item: &mut Item) {
-        self.is_codegen_intrinsic = item.attrs.contains(&Attr::CodeGenIntrinsic);
+        self.is_codegen_intrinsic = item.attrs.contains(&Attr::SimulatableIntrinsic);
         walk_item(self, item);
         self.is_codegen_intrinsic = false;
     }
@@ -249,7 +249,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             return;
         };
         if self.is_codegen_intrinsic && has_specializations {
-            self.errors.push(Error::CodeGenIntrinsic(decl.span));
+            self.errors.push(Error::SimulatableIntrinsic(decl.span));
             return;
         }
 

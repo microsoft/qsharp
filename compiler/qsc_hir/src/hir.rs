@@ -1319,7 +1319,7 @@ pub enum Attr {
     Unimplemented,
     /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
     /// and any implementation should be ignored.
-    CodeGenIntrinsic,
+    SimulatableIntrinsic,
 }
 
 impl FromStr for Attr {
@@ -1330,7 +1330,7 @@ impl FromStr for Attr {
             "Config" => Ok(Self::Config),
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
-            "CodeGenIntrinsic" => Ok(Self::CodeGenIntrinsic),
+            "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             _ => Err(()),
         }
     }

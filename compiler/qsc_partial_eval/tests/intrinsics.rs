@@ -1062,7 +1062,7 @@ fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
             operation Op1() : Unit {
                 body intrinsic;
             }
-            @CodeGenIntrinsic()
+            @SimulatableIntrinsic()
             operation Op2() : Unit {
                 Op1();
             }

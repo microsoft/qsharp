@@ -262,8 +262,10 @@ impl With<'_> {
                 }
                 None
             }
-            Ok(hir::Attr::CodeGenIntrinsic) => match &*attr.arg.kind {
-                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::CodeGenIntrinsic),
+            Ok(hir::Attr::SimulatableIntrinsic) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => {
+                    Some(hir::Attr::SimulatableIntrinsic)
+                }
                 _ => {
                     self.lowerer
                         .errors

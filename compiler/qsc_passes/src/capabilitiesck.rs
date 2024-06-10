@@ -123,7 +123,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
 
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
         match callable_impl {
-            CallableImpl::Intrinsic | CallableImpl::CodeGenIntrinsic(_) => {
+            CallableImpl::Intrinsic | CallableImpl::SimulatableIntrinsic(_) => {
                 self.check_spec_decl(FunctorSetValue::Empty, None);
             }
             CallableImpl::Spec(spec_impl) => {

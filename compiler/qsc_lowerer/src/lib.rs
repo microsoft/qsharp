@@ -258,9 +258,9 @@ impl Lowerer {
                 "intrinsic callables should not have specializations"
             );
             CallableImpl::Intrinsic
-        } else if attrs.contains(&hir::Attr::CodeGenIntrinsic) {
+        } else if attrs.contains(&hir::Attr::SimulatableIntrinsic) {
             let body = self.lower_spec_decl(&decl.body);
-            CallableImpl::CodeGenIntrinsic(body)
+            CallableImpl::SimulatableIntrinsic(body)
         } else {
             let body = self.lower_spec_decl(&decl.body);
             let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
@@ -879,7 +879,7 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
         .iter()
         .filter_map(|attr| match attr {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
-            hir::Attr::CodeGenIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
+            hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
         })
         .collect()
 }

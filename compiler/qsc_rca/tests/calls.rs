@@ -235,7 +235,7 @@ fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_in
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        @CodeGenIntrinsic()
+        @SimulatableIntrinsic()
         operation Foo() : Unit {
             mutable a = 0;
             use q = Qubit();
@@ -264,7 +264,7 @@ fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_in
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        @CodeGenIntrinsic()
+        @SimulatableIntrinsic()
         operation Foo(q : Qubit) : Unit {
             mutable a = 0;
             if M(q) == Zero {

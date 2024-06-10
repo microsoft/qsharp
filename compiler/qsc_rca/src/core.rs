@@ -1243,7 +1243,7 @@ impl<'a> Analyzer<'a> {
 
         // Continue with the analysis differently depending on whether the callable is an intrinsic or not.
         match &callable_decl.implementation {
-            CallableImpl::Intrinsic | CallableImpl::CodeGenIntrinsic(_) => {
+            CallableImpl::Intrinsic | CallableImpl::SimulatableIntrinsic(_) => {
                 self.analyze_intrinsic_callable();
             }
             CallableImpl::Spec(spec_impl) => {
@@ -1801,7 +1801,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             CallableImpl::Intrinsic => {
                 self.analyze_intrinsic_callable();
             }
-            CallableImpl::CodeGenIntrinsic(spec_decl) => {
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
                 // Treat this as an intrinsic callable.
                 self.analyze_intrinsic_callable();
                 // Additionally, mark all the statements so that they appear visited.
