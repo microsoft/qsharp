@@ -4,7 +4,7 @@
 use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::linter::LintConfig;
+use qsc::{linter::LintConfig, PackageStore};
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -370,6 +370,7 @@ type PackageAlias = String;
 type PackageKey = String;
 
 /// This returns the common parameters that the compiler/interpreter uses
+/// compiles all dependency crates up until the user code
 pub(crate) fn into_qsc_args(
     program: IProgramConfig,
     entry: Option<String>,
@@ -377,50 +378,145 @@ pub(crate) fn into_qsc_args(
     qsc::SourceMap,
     qsc::TargetCapabilityFlags,
     qsc::LanguageFeatures,
+    qsc::PackageStore,
 ) {
     let program: ProgramConfig = program.into();
     let capabilities = qsc::target::Profile::from_str(&program.target_profile)
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
         .into();
     let package_graph = program.package_graph_sources;
-    let (sources, language_features) = into_package_graph_args(package_graph);
+    let (ordered_packages, user_code) =
+        into_package_graph_args(package_graph).expect("TODO handle this err: dependency cycle");
 
-    let source_map = qsc::SourceMap::new(sources, entry.map(std::convert::Into::into));
+    let mut package_store = qsc::PackageStore::new(qsc::compile::core());
+    let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
-    (source_map, capabilities, language_features)
+    for package_to_compile in ordered_packages {
+        // if this is the first package in the order, it should have zero dependencies
+        if package_store.is_empty() {
+            assert!(package_to_compile.dependencies.is_empty())
+        }
+        let sources: Vec<(Arc<str>, Arc<str>)> = package_to_compile
+            .sources
+            .into_iter()
+            .map(|(path, contents)| (path.into(), contents.into()))
+            .collect::<Vec<_>>();
+        let source_map = qsc::SourceMap::new(sources, None);
+        let dependencies = package_to_compile
+            .dependencies
+            .iter()
+            .map(|(alias, key)| {
+                (
+                    alias.clone(),
+                    canonical_package_identifier_to_package_id_mapping
+                        .get(key)
+                        .copied()
+                        .expect("TODO handle this err: missing package"),
+                )
+            })
+            .collect::<FxHashMap<_, _>>();
+        // TODO use aliases to resolve dependencies
+        // for now just use the package key
+        let dependencies = dependencies.iter().map(|(_, b)| *b).collect::<Vec<_>>();
+        let (compile_unit, dependency_errors) = qsc::compile::compile(
+            &package_store,
+            &dependencies[..],
+            source_map,
+            qsc::PackageType::Lib,
+            capabilities,
+            qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
+        );
+
+        if !dependency_errors.is_empty() {
+            todo!("handle errors in dependencies");
+        }
+
+        let package_id = package_store.insert(compile_unit);
+        canonical_package_identifier_to_package_id_mapping
+            .insert(package_to_compile.key, package_id);
+    }
+
+    let source_map = qsc::SourceMap::new(
+        user_code
+            .sources
+            .into_iter()
+            .map(|(a, b)| (Arc::from(a), Arc::from(b)))
+            .collect::<Vec<_>>(),
+        entry.map(std::convert::Into::into),
+    );
+
+    (
+        source_map,
+        capabilities,
+        qsc::LanguageFeatures::from_iter(user_code.language_features),
+        package_store,
+    )
 }
 
 /// This returns the common parameters that the language service needs from the manifest
 pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
-    let (sources, language_features) = into_package_graph_args(project.package_graph_sources);
-
-    (
-        project.project_name.into(),
-        sources,
-        language_features,
-        project.lints,
-    )
+    todo!()
 }
 
 /// This is the bit that's common to both the compiler and the language service
 #[allow(clippy::type_complexity)]
 fn into_package_graph_args(
     package_graph: PackageGraphSources,
-) -> (Vec<(Arc<str>, Arc<str>)>, qsc::LanguageFeatures) {
-    let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
-    let mut sources = package_graph.root.sources;
+) -> Result<(Vec<PackageInfo>, PackageInfo), DependencyCycle> {
+    let language_features =
+        qsc::LanguageFeatures::from_iter(package_graph.root.language_features.clone());
+    package_graph.compilation_order()
+}
 
-    // Concatenate all the dependencies into the sources
-    // TODO: Properly convert these into something that the compiler & language service can use
-    for other_package in package_graph.packages {
-        sources.extend(other_package.sources);
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+impl PackageGraphSources {
+    /// Produces an iterator over the packages in the order they should be compiled
+    fn compilation_order(self) -> Result<(Vec<PackageInfo>, PackageInfo), DependencyCycle> {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        for package in &self.packages {
+            in_degree.entry(&package.key).or_insert(0);
+            for dep in package.dependencies.values() {
+                graph.entry(dep).or_default().push(&package.key);
+                *in_degree.entry(&package.key).or_insert(0) += 1;
+            }
+        }
+
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree.get_mut(neighbor).unwrap();
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        if sorted_keys.len() != self.packages.len() {
+            return Err(DependencyCycle);
+        }
+
+        let mut sorted_packages = self.packages;
+        sorted_packages
+            .sort_by_key(|pkg| sorted_keys.iter().position(|key| *key == pkg.key).unwrap());
+
+        Ok((sorted_packages, self.root))
     }
-
-    (
-        sources
-            .into_iter()
-            .map(|(name, contents)| (name.into(), contents.into()))
-            .collect(),
-        language_features,
-    )
 }

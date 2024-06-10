@@ -226,6 +226,11 @@ impl PackageStore {
     }
 
     #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+    }
+
+    #[must_use]
     pub fn core(&self) -> &global::Table {
         &self.core
     }
