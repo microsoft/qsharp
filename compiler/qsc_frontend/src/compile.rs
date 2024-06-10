@@ -47,6 +47,13 @@ pub struct CompileUnit {
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
 }
+impl CompileUnit {
+    pub fn expose(&mut self) {
+        for (_item_id, item) in self.package.items.iter_mut() {
+            item.visibility = hir::Visibility::Public;
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct AstPackage {

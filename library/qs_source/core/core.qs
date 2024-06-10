@@ -56,4 +56,7 @@ namespace Microsoft.Quantum.Core {
 
         output
     }
+
+    export Length,
+    Repeated;
 }

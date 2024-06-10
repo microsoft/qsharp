@@ -467,6 +467,7 @@ fn operation_with_qubits() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -497,6 +498,7 @@ fn operation_with_qubits_base_profile() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Base,
     );
@@ -596,6 +598,7 @@ fn adjoint_operation() {
                 controlled (cs, ...) {
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -661,6 +664,7 @@ fn controlled_operation() {
                     CNOT(q1, q2);
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -703,35 +707,109 @@ fn internal_operation() {
 
     let circ_err = interpreter
         .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
-        .expect_err("circuit generation should fail");
+        .expect("circuit generation should not fail");
 
     expect![[r#"
-        [
-            Compile(
-                WithSource {
-                    sources: [
-                        Source {
-                            name: "line_0",
-                            contents: "Test.Test",
-                            offset: 0,
+        Circuit {
+            operations: [
+                Operation {
+                    gate: "H",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
                         },
                     ],
-                    error: Frontend(
-                        Error(
-                            Resolve(
-                                NotFound(
-                                    "Test.Test",
-                                    Span {
-                                        lo: 0,
-                                        hi: 9,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ),
+                    children: [],
                 },
-            ),
-        ]
+                Operation {
+                    gate: "X",
+                    display_args: None,
+                    is_controlled: true,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+            ],
+            qubits: [
+                Qubit {
+                    id: 0,
+                    num_children: 1,
+                },
+                Qubit {
+                    id: 1,
+                    num_children: 1,
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&circ_err);
 }
@@ -746,6 +824,7 @@ fn operation_with_non_qubit_args() {
 
             operation Test(q1: Qubit, q2: Qubit, i: Int) : Unit {
             }
+
         }",
         Profile::Unrestricted,
     );

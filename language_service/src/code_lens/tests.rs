@@ -54,6 +54,7 @@ fn one_entrypoint() {
             @EntryPoint()
             ◉operation Main() : Unit{
             }◉
+            export Main;
         }"#,
         &expect![[r#"
             [
@@ -86,6 +87,7 @@ fn two_entrypoints() {
             @EntryPoint()
             ◉operation Foo() : Unit{
             }◉
+            export Main, Foo;
         }"#,
         &expect![[r#"
             [
@@ -143,6 +145,7 @@ fn qubit_operation_circuit() {
         namespace Test {
             ◉operation Foo(q: Qubit) : Unit {
             }◉
+            export Foo;
         }"#,
         &expect![[r#"
             [
@@ -171,6 +174,7 @@ fn qubit_arrays_operation_circuit() {
         namespace Test {
             ◉operation Foo(q: Qubit, q1: Qubit[], q2: Qubit[][]) : Unit {
             }◉
+            export Foo;
         }"#,
         &expect![[r#"
             [

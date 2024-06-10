@@ -52,7 +52,7 @@ impl Compiler {
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(
+        let (mut unit, errors) = compile(
             &store,
             &dependencies,
             sources,
@@ -63,6 +63,9 @@ impl Compiler {
         if !errors.is_empty() {
             return Err(errors);
         }
+
+        // make the user code fully public, so increments on top of this can access them
+        unit.expose();
 
         let source_package_id = store.insert(unit);
         dependencies.push(source_package_id);

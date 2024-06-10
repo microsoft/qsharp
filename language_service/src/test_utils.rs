@@ -116,6 +116,7 @@ where
                 operation FakeCtlAdj() : Unit is Ctl + Adj {}
                 newtype Complex = (Real: Double, Imag: Double);
                 function TakesComplex(input : Complex) : Unit {}
+                export Fake, FakeWithParam, FakeCtlAdj, Complex, TakesComplex;
             }"
             .into(),
         )],
@@ -174,10 +175,12 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
                 }
                 operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
                 internal operation Hidden() : Unit {}
+                export Fake, FakeWithParam, FakeCtlAdj, Udt, UdtWrapper, UdtFn, UdtFnWithUdtParams, TakesUdt, RefFake, FakeWithTypeParam;
             }
 
             namespace Microsoft.Quantum.Unstable {
                 operation UnstableFake() : Unit {}
+                export UnstableFake;
             }"#
             .into(),
         )],
