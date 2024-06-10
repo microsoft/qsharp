@@ -99,6 +99,36 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
 
 
 @[section]({
+    "id": "key_distribution__bb84_e2e",
+    "title": "BB84 Protocol End-to-End"
+})
+
+In this lesson, your goal is to put together the code from the previous exercises to simulate the complete BB84 protocol, from Alice choosing her bits and sending qubits to Bob to them figuring out the shared key.
+
+> This is an open-ended task that is not tested automatically, unlike the previous exercises. Follow the suggestions in the comments to write your code and test it!
+
+@[example]({"id": "key_distribution__bb84_demo", "codePath": "./examples/BB84Demo.qs"})
+
+
+@[section]({
+    "id": "key_distribution__bb84_eavesdropper",
+    "title": "Detecting an Eavesdropper"
+})
+
+Now, let's consider adding an eavesdropper Eve in the protocol.
+
+Eve can intercept a qubit from the quantum channel that Alice and Bob are using. 
+She can try to get some information from it by measuring it. Then she prepares a new qubit and sends it back to the channel for Bob to receive. 
+Eve hopes that if she got lucky with her measurement, that when Bob measures the qubit he doesn't get an error so she won't be caught!
+
+How can Alice and Bob detect an eavesdropper? 
+
+To do this, they need to reveal a part of their shared key publicly to check that they both got the same bits on the qubits for which they used the same bases. If Eve doesn't guess which basis to use for measurement, she'll introduce an error in the protocol by sending $\ket{+}$ or $\ket{-}$ when the computational basis was used or $\ket{0}$ or $\ket{1}$ when the Hadamard basis was used, thus sometimes causing Bob's measurement result differ from the bit Alice encoded even when their bases matched. By comparing their results on a random subset of bits, Alice and Bob will be able to find such discrepancies and detect Eve's presence.
+
+> Feel free to experiment with the code above to introduce an eavesdropper into it and to model the information they can get about the key and the way they can be detected.
+
+
+@[section]({
     "id": "key_distribution__conclusion",
     "title": "Conclusion"
 })

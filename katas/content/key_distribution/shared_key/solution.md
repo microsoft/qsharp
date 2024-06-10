@@ -1,8 +1,10 @@
-We need to do three steps to generate an array of random values:
+If Alice and Bob exchanged a qubit and used the same bases for preparing and measuring it, the bit produced by Bob's measurement would be the same as the one Alice encoded. Thus, they do not need to share the bits they chose or obtained over the classical communication channel. Sharing the bases used for each of the qubit is sufficient to understand if their bits match or not.
 
-1. Create a mutable array of size $N$ - it will need a default value that can be `false`.
-2. For each index from $0$ to $N-1$, choose one of the two values `true` or `false` at random, and assign that value to the array element at that index. We could choose a random bit by allocating a qubit, preparing it in the $\ket{+}$ state, and measuring it. However, we don't need those bits to have quantum origin, so we can use a Q# library operation `DrawRandomInt` instead.
-3. Finally, return the generated array.
+To complete this task, we need to perform the following steps:
+
+1. Declare an empty mutable array, let's name it `key`.
+2. Decide which bits we can add to our key based on the comparison between bases used by Alice and Bob. You can iterate using an index in the range from $0$ to $N - 1$ and compare the bases in the corresponding positions.
+3. Return the required `key`.
 
 @[solution]({
     "id": "key_distribution__shared_key_solution",
