@@ -170,8 +170,6 @@ impl<'a> Handler<'a> for Rename<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
         self.get_spans_for_item_rename(item_id, &path.name);
@@ -232,8 +230,6 @@ impl<'a> Handler<'a> for Rename<'a> {
         &mut self,
         path: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {

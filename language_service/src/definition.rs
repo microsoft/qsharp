@@ -55,8 +55,6 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         decl: &'a hir::CallableDecl,
     ) {
         self.definition = Some(self.location(
@@ -106,8 +104,6 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         type_name: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {

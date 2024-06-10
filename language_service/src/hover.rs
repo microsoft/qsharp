@@ -71,11 +71,13 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
+        item_id: &'_ hir::ItemId,
         decl: &'a hir::CallableDecl,
     ) {
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+
         let ns = get_namespace_name(item, package);
         let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
         self.hover = Some(Hover {
@@ -176,12 +178,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
+        item_id: &'_ hir::ItemId,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+
         let ns = get_namespace_name(item, package);
         let code = self.display.hir_udt(udt);
         let contents = display_udt(&item.doc, &ns, code, udt.is_struct());

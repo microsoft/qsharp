@@ -68,8 +68,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
         self.references = self.reference_finder.for_item(item_id);
@@ -128,8 +126,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
