@@ -88,6 +88,15 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
     ]
 })
 
+@[exercise]({
+    "id": "key_distribution__shared_key",
+    "title": "Generate the Shared Key",
+    "path": "./shared_key/",
+    "qsDependencies": [
+        "./Common.qs"
+    ]
+})
+
 
 @[section]({
     "id": "key_distribution__conclusion",
