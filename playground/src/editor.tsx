@@ -104,9 +104,9 @@ export function Editor(props: {
   const [profile, setProfile] = useState(props.profile);
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
-  const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
-    [],
-  );
+  const [errors, setErrors] = useState<
+    { location: string; severity: monaco.MarkerSeverity; msg: string[] }[]
+  >([]);
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
   function markErrors(version?: number) {
@@ -128,6 +128,7 @@ export function Editor(props: {
 
     const errList = markers.map((err) => ({
       location: `main.qs@(${err.startLineNumber},${err.startColumn})`,
+      severity: err.severity,
       msg: err.message.split("\n\n"),
     }));
     setErrors(errList);
@@ -291,7 +292,9 @@ export function Editor(props: {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
       markErrors(evt.detail.version);
-      setHasCheckErrors(diagnostics.length > 0);
+      setHasCheckErrors(
+        diagnostics.filter((d) => d.severity === "error").length > 0,
+      );
     }
 
     props.languageService.addEventListener("diagnostics", onDiagnostics);
@@ -479,13 +482,15 @@ export function Editor(props: {
           Cancel
         </button>
       </div>
-      <div class="error-list">
+      <div class="diag-list">
         {errors.map((err) => (
-          <div class="error-row">
+          <div
+            className={`diag-row ${err.severity === monaco.MarkerSeverity.Error ? "error-row" : "warning-row"}`}
+          >
             <span>{err.location}: </span>
             <span>{err.msg[0]}</span>
             {err.msg.length > 1 ? (
-              <div class="error-help">{err.msg[1]}</div>
+              <div class="diag-help">{err.msg[1]}</div>
             ) : null}
           </div>
         ))}
