@@ -571,15 +571,15 @@ impl<'a> Display for TyDef<'a> {
     }
 }
 
-fn fmt_tuple<'a, 'b, D, I>(
-    formatter: &'a mut Formatter,
-    elements: &'b [I],
-    map: impl Fn(&'b I) -> D,
+fn fmt_tuple<'a, I, O>(
+    formatter: &mut Formatter,
+    items: &'a [I],
+    map: impl Fn(&'a I) -> O,
 ) -> Result
 where
-    D: Display,
+    O: Display,
 {
-    let mut elements = elements.iter();
+    let mut elements = items.iter();
     if let Some(elem) = elements.next() {
         write!(formatter, "({}", map(elem))?;
         if elements.len() == 0 {
@@ -597,21 +597,21 @@ where
 }
 
 fn fmt_brace_seq<'a, I, O>(
-    f: &mut Formatter<'_>,
+    formatter: &mut Formatter<'_>,
     items: &'a [I],
-    write_item: impl Fn(&'a I) -> O,
+    map: impl Fn(&'a I) -> O,
 ) -> Result
 where
     O: Display,
 {
-    write!(f, "{{ ")?;
+    write!(formatter, "{{ ")?;
     if let Some((last, most)) = items.split_last() {
         for item in most {
-            write!(f, "{}, ", write_item(item))?;
+            write!(formatter, "{}, ", map(item))?;
         }
-        write!(f, "{} ", write_item(last))?;
+        write!(formatter, "{} ", map(last))?;
     }
-    write!(f, "}}")
+    write!(formatter, "}}")
 }
 
 fn display_type_params(generics: &[GenericParam]) -> String {
