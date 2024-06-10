@@ -334,6 +334,13 @@ namespace Microsoft.Quantum.Katas {
         return true;
     }
 
+    operation IncrementBE (register : Qubit[]) : Unit is Adj + Ctl {
+        if Length(register) > 1 {
+            Controlled IncrementBE([register[0]], register[1 ...]);
+        }
+        X(register[0]);
+    }
+
     function F_PeriodicGivenPeriod(args : Bool[], P : Int) : Bool {
         let N = Length(args);
         for i in 0 .. N - P - 1 {
@@ -342,5 +349,14 @@ namespace Microsoft.Quantum.Katas {
             }
         }
         return true;
-    }    
+    }
+
+    function  F_ContainsSubstringAtPosition(args : Bool[], r : Bool[], p : Int) : Bool {
+        for i in 0 .. Length(r) - 1 {
+            if r[i] != args[i + p] {
+                return false;
+            }
+        }
+        return true;
+    }      
 }

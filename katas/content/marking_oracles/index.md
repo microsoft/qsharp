@@ -101,6 +101,33 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     ]
 })
 
+@[exercise]({
+    "id": "marking_oracles__contains_substring",
+    "title": "Contains Substring",
+    "path": "./contains_substring/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__balanced",
+    "title": "0s and 1s Balanced",
+    "path": "./balanced/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__majority",
+    "title": "0s or 1s Majority",
+    "path": "./majority/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "marking_oracles__conclusion",
     "title": "Conclusion"
