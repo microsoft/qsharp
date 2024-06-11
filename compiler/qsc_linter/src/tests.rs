@@ -38,7 +38,7 @@ fn multiple_lints() {
                 },
                 SrcLint {
                     source: "RunProgram",
-                    level: Warn,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                 },
@@ -152,7 +152,7 @@ fn needless_operation_lambda_operations() {
             [
                 SrcLint {
                     source: "",
-                    level: Warn,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                 },
@@ -179,7 +179,7 @@ fn needless_operation_non_empty_op_and_no_specialization() {
             [
                 SrcLint {
                     source: "RunProgram",
-                    level: Warn,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                 },
@@ -203,7 +203,7 @@ fn needless_operation_non_empty_op_and_specialization() {
             [
                 SrcLint {
                     source: "Run",
-                    level: Warn,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                 },
@@ -257,7 +257,7 @@ fn needless_operation_partial_application() {
             [
                 SrcLint {
                     source: "PartialApplication",
-                    level: Warn,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                 },

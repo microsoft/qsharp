@@ -328,6 +328,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 
   languageService.updateConfiguration({
     targetProfile: targetProfile,
+    lints: [{ lint: "needlessOperation", level: "warn" }],
   });
 }
 
