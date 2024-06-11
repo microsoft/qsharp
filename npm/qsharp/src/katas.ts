@@ -11,8 +11,7 @@ export type Example = {
 
 export type TextContent = {
   type: "text-content";
-  asHtml: string;
-  asMarkdown: string;
+  content: string;
 };
 
 export type ContentItem = Example | TextContent;

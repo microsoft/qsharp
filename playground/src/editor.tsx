@@ -6,8 +6,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
-  Exercise,
-  getExerciseSources,
   ICompilerWorker,
   ILanguageServiceWorker,
   LanguageServiceEvent,
@@ -17,6 +15,7 @@ import {
   ProgramConfig,
   TargetProfile,
 } from "qsharp-lang";
+import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
 
