@@ -11,6 +11,7 @@
   "multi_qubit_measurements",
   "distinguishing_unitaries",
   "random_numbers",
+  "teleportation",
   "superdense_coding",
   "oracles",
   "deutsch_algo",
