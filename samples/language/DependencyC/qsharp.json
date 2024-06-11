@@ -1,0 +1,7 @@
+{
+    "dependencies": {
+        "Foo": {
+            "path": "../DependencyB"
+        }
+    }
+}

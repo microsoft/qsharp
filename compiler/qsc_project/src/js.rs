@@ -36,6 +36,4 @@ pub struct ProjectSystemCallbacks<'a> {
     /// Callback which lets the service list directory contents
     /// on the target file system
     pub list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
-    /// Fetch the manifest file for a specific path
-    pub get_manifest: AsyncFunction<'a, String, Option<crate::ManifestDescriptor>>,
 }

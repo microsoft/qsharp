@@ -231,23 +231,16 @@ pub struct ProjectLoader(ProjectSystemCallbacks<'static>);
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        read_file: ReadFileCallback,
-        list_directory: ListDirectoryCallback,
-        get_manifest: GetManifestCallback,
-    ) -> Self {
+    pub fn new(read_file: ReadFileCallback, list_directory: ListDirectoryCallback) -> Self {
         let read_file = read_file.into();
         let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
 
         let list_directory = list_directory.into();
         let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
 
-        let get_manifest: JsValue = get_manifest.into();
-        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
         ProjectLoader(ProjectSystemCallbacks {
             read_file: Box::new(read_file),
             list_directory: Box::new(list_directory),
-            get_manifest: Box::new(get_manifest),
         })
     }
 
@@ -313,13 +306,11 @@ serializable_type! {
     PackageGraphSources,
     {
         pub root: PackageInfo,
-        // TODO: Might change my mind later and make this a hashmap, depending on if/how we do lookups.
-        // Vec isn't necessary if ordering is going to be done by the lower layers.
-        pub packages: Vec<PackageInfo>,
+        pub packages: FxHashMap<PackageKey,PackageInfo>,
     },
     r#"export interface IPackageGraphSources {
         root: IPackageInfo;
-        packages: IPackageInfo[];
+        packages: Record<string,IPackageInfo>;
     }"#,
     IPackageGraphSources
 }
@@ -327,16 +318,14 @@ serializable_type! {
 serializable_type! {
     PackageInfo,
     {
-        pub key: PackageKey,
         pub sources: Vec<(String, String)>,
         pub language_features: Vec<String>,
         pub dependencies: FxHashMap<PackageAlias,PackageKey>,
     },
     r#"export interface IPackageInfo {
-        key: string;
         sources: [string, string][];
         languageFeatures: string[];
-        dependencies: Record<string,string>; // or Map?
+        dependencies: Record<string,string>;
     }"#
 }
 
@@ -412,7 +401,7 @@ fn into_package_graph_args(
 
     // Concatenate all the dependencies into the sources
     // TODO: Properly convert these into something that the compiler & language service can use
-    for other_package in package_graph.packages {
+    for (_, other_package) in package_graph.packages {
         sources.extend(other_package.sources);
     }
 

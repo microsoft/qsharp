@@ -33,8 +33,15 @@ pub struct Manifest {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum Dependency {
-    GitHub { github: String, revision: String },
+    GitHub { github: GitHubRef },
     Path { path: String },
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct GitHubRef {
+    owner: String,
+    repo: String,
+    r#ref: String,
 }
 
 /// Describes the contents and location of a Q# manifest file.

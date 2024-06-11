@@ -1,7 +1,10 @@
 {
     "dependencies": {
         "Foo": {
-            "path": "../Dependency"
+            "path": "../DependencyA"
+        },
+        "Bar": {
+            "path": "../DependencyC"
         }
     }
 }

@@ -6,46 +6,46 @@ import * as vscode from "vscode";
 import { Uri } from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
-import { IPackageInfo } from "../../npm/qsharp/lib/web/qsc_wasm";
+import { IPackageInfo, ProjectLoader } from "../../npm/qsharp/lib/web/qsc_wasm";
 
 /**
  * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
  * was malformed.
  */
-export async function getManifest(uri: string): Promise<
-  | ({
-      manifestDirectory: string;
-      manifestUri: Uri;
-    } & QSharpJsonManifest)
-  | null
-> {
-  const manifestDocument = await findManifestDocument(uri);
-  if (manifestDocument === null) {
-    return null;
-  }
-  let result;
-  try {
-    result = await getManifestThrowsOnParseFailure(uri);
-  } catch (e) {
-    log.warn(
-      `failed to parse manifest at ${manifestDocument.uri.toString()}`,
-      e,
-    );
-    updateQSharpJsonDiagnostics(
-      manifestDocument.uri,
-      "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-    );
-    return null;
-  }
-  return result;
-}
+// async function getManifest(uri: string): Promise<
+//   | ({
+//       manifestDirectory: Uri;
+//       manifestUri: Uri;
+//     } & QSharpJsonManifest)
+//   | null
+// > {
+//   const manifestDocument = await findManifestDocument(uri);
+//   if (manifestDocument === null) {
+//     return null;
+//   }
+//   let result;
+//   try {
+//     result = await getManifestThrowsOnParseFailure(uri);
+//   } catch (e) {
+//     log.warn(
+//       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
+//       e,
+//     );
+//     updateQSharpJsonDiagnostics(
+//       manifestDocument.uri,
+//       "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
+//     );
+//     return null;
+//   }
+//   return result;
+// }
 
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
 async function findManifestDocument(
   currentDocumentUriString: string,
-): Promise<{ uri: vscode.Uri; content: string } | null> {
+): Promise<{ directory: vscode.Uri; uri: vscode.Uri; content: string } | null> {
   // file://home/foo/bar/src/document.qs
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
@@ -81,7 +81,7 @@ async function findManifestDocument(
         await tryReadManifestInDir(uriToQuery);
 
       if (listing) {
-        return listing;
+        return { directory: Utils.dirname(listing.uri), ...listing };
       }
     }
     if (uriToQuery.toString().endsWith("src")) {
@@ -170,22 +170,7 @@ async function readFileUri(
   }
 }
 
-async function getManifestThrowsOnParseFailure(uri: string): Promise<
-  | ({
-      manifestDirectory: string;
-      manifestUri: Uri;
-    } & QSharpJsonManifest)
-  | null
-> {
-  const manifestDocument = await findManifestDocument(uri);
-
-  if (manifestDocument) {
-    return parseManifestOrThrow(manifestDocument);
-  }
-  return null;
-}
-
-let projectLoader: any | undefined = undefined;
+let projectLoader: ProjectLoader | undefined = undefined;
 
 function parseManifestOrThrow(manifestDocument: {
   uri: vscode.Uri;
@@ -206,10 +191,8 @@ function parseManifestOrThrow(manifestDocument: {
 
   updateQSharpJsonDiagnostics(manifestDocument.uri);
 
-  const manifestDirectory = Utils.dirname(manifestDocument.uri);
   return {
     manifestUri: manifestDocument.uri,
-    manifestDirectory: manifestDirectory.toString(),
     ...parsedManifest,
   };
 }
@@ -229,17 +212,15 @@ function parseManifestOrThrow(manifestDocument: {
 export async function loadProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
-  // get the project using this.program
-  const manifest = await getManifestThrowsOnParseFailure(
-    documentUri.toString(),
-  );
+  const manifestDocument = await findManifestDocument(documentUri.toString());
 
-  if (manifest === null) {
+  if (!manifestDocument) {
     // return just the one file if we are in single file mode
     return await singleFileProject(documentUri);
   }
 
-  return loadProjectInner(manifest);
+  // Shouldn't return null because we already passed in content
+  return (await loadProjectInner(manifestDocument))!;
 }
 
 export async function loadProjectNoSingleFile(
@@ -248,80 +229,64 @@ export async function loadProjectNoSingleFile(
   // TODO: this is a perf fix.... sad
   await new Promise((r) => setTimeout(r, 0));
 
-  const manifest = await getManifest(documentUri.toString());
+  const manifestDocument = await findManifestDocument(documentUri.toString());
 
-  if (manifest === null) {
+  if (!manifestDocument) {
     return null;
   }
 
-  return loadProjectInner(manifest);
+  return loadProjectInner(manifestDocument);
 }
 
-async function loadProjectInner(
-  manifest: {
-    manifestDirectory: string;
-    manifestUri: vscode.Uri;
-  } & QSharpJsonManifest,
-): Promise<IProjectConfig> {
-  if (!projectLoader) {
-    projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+export async function loadProjectInner(manifestDocument: {
+  directory: vscode.Uri;
+  uri: vscode.Uri;
+  content?: string;
+}): Promise<IProjectConfig | null> {
+  const directory = manifestDocument.directory;
+  const manifestUri = manifestDocument.uri;
+  const packages = {};
+  const errors: string[] = [];
+
+  const content =
+    manifestDocument.content ||
+    (await tryReadManifestInDir(directory))?.content;
+  if (!content) {
+    return null;
   }
 
-  const root = await loadPackage(manifest);
-  const packages = [];
-  const errors: string[] = [];
-  for (const dep in manifest.dependencies) {
-    const s = manifest.dependencies[dep];
-    if ("path" in s) {
-      let uri;
-      try {
-        const thisDir = vscode.Uri.parse(manifest.manifestDirectory, true);
-        uri = Utils.resolvePath(thisDir, s.path);
-        log.info(
-          `current directory: ${thisDir}, path: ${s.path}, resolved path: ${uri.toString()}`,
-        );
-      } catch (e) {
-        errors.push(`Invalid path for dependency ${dep}: ${s.path}`);
-        continue;
-      }
-      const manifestDocument = await tryReadManifestInDir(uri);
-      if (manifestDocument) {
-        const manifest = parseManifestOrThrow(manifestDocument);
-        const depPackage = await loadPackage(manifest);
-        packages.push(depPackage);
-        // TODO: recursively load dependencies
-      } else {
-        errors.push(
-          `Could not read qsharp.json manifest at ${s.path} for dependency ${dep}`,
-        );
-      }
-      // TODO: relative paths
-    } else {
-      // TODO: github
-      // TODO: add some kind of limit in case someone wants to DOS the extension with 1000000 dependencies
-      // TODO: github projects shouldn't contain local references
-    }
-  }
+  const pkg = await collectLocalPackage(packages, errors, directory);
 
   if (errors.length > 0) {
     for (const error of errors) {
-      updateQSharpJsonDiagnostics(manifest.manifestUri, error);
+      updateQSharpJsonDiagnostics(manifestUri, error);
     }
   }
 
+  if (!pkg) {
+    return null;
+  }
+
+  const packageGraphSources = {
+    root: pkg,
+    packages,
+  };
+
+  log.info(
+    `resolved package graph with sources: ${JSON.stringify(packageGraphSources, undefined, 2)}`,
+  );
+
   return {
-    projectName:
-      Utils.basename(Uri.parse(manifest.manifestDirectory)) || "Q# Project",
-    projectUri: manifest.manifestUri.toString(),
-    packageGraphSources: {
-      root,
-      packages,
-    },
-    lints: manifest.lints || [],
+    projectName: Utils.basename(directory) || "Q# Project",
+    projectUri: manifestUri.toString(),
+    packageGraphSources: packageGraphSources,
+    lints: pkg.manifest.lints || [],
   };
 }
 
-async function singleFileProject(documentUri: vscode.Uri) {
+async function singleFileProject(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig> {
   const file = await vscode.workspace.openTextDocument(documentUri);
 
   return {
@@ -329,7 +294,6 @@ async function singleFileProject(documentUri: vscode.Uri) {
     projectUri: documentUri.toString(),
     packageGraphSources: {
       root: {
-        key: "root",
         sources: [[documentUri.toString(), file.getText()]] as [
           string,
           string,
@@ -337,31 +301,55 @@ async function singleFileProject(documentUri: vscode.Uri) {
         languageFeatures: [],
         dependencies: {},
       },
-      packages: [],
+      packages: {},
     },
     lints: [],
   };
 }
 
 async function loadPackage(
-  manifest: {
-    manifestDirectory: string;
-  } & QSharpJsonManifest,
+  manifestDirectory: Uri,
+  manifest: QSharpJsonManifest,
 ): Promise<IPackageInfo> {
-  const sources = await loadSources(manifest);
-  return {
-    key: "root",
+  if (!projectLoader) {
+    projectLoader = await getProjectLoader(readFile, listDir);
+  }
+
+  const sources = await projectLoader.load_project({
+    manifestDirectory: manifestDirectory.toString(),
+    ...manifest,
+  });
+  const manifestDependencies = manifest.dependencies || {};
+  const dependencies = Object.keys(manifestDependencies).reduce(
+    (aliasToKey: { [alias: string]: string }, alias) => {
+      aliasToKey[alias] = getKeyForDependencyDefinition(
+        manifestDirectory,
+        manifestDependencies[alias],
+      );
+      return aliasToKey;
+    },
+    {},
+  );
+
+  const packageInfo = {
     sources,
     languageFeatures: manifest.languageFeatures || [],
-    dependencies: {},
+    dependencies,
   };
+  return packageInfo;
 }
 
-async function loadSources(manifestDescriptor: {
-  manifestDirectory: string;
-}): Promise<[string, string][]> {
-  return await projectLoader.load_project(manifestDescriptor);
-}
+type DependencyDefinition =
+  | {
+      github: {
+        owner: string;
+        repo: string;
+        ref: string;
+      };
+    }
+  | {
+      path: string;
+    };
 
 interface QSharpJsonManifest {
   languageFeatures?: string[];
@@ -370,6 +358,89 @@ interface QSharpJsonManifest {
     level: string;
   }[];
   dependencies?: {
-    [alias: string]: { github: string; revision: string } | { path: string };
+    [alias: string]: DependencyDefinition;
   };
+}
+
+type PackageKey = string;
+const globalCache: Record<PackageKey, IPackageInfo> = {};
+
+async function collectLocalPackage(
+  packages: Record<PackageKey, IPackageInfo>,
+  errors: string[],
+  directory: Uri,
+): Promise<(IPackageInfo & { manifest: QSharpJsonManifest }) | undefined> {
+  const manifestDocument = await tryReadManifestInDir(directory);
+  if (manifestDocument) {
+    const manifest = parseManifestOrThrow(manifestDocument);
+    const pkg = await loadPackage(directory, manifest);
+    for (const alias in pkg.dependencies) {
+      const depKey = pkg.dependencies[alias];
+
+      const cached = globalCache[depKey];
+      if (cached) {
+        log.info(`package ${depKey} already in cache`);
+        packages[depKey] = cached;
+        continue;
+      }
+
+      const dependencyDefinition = decodeDependencyDefinitionFromKey(depKey);
+      if ("github" in dependencyDefinition) {
+        throw new Error("support github");
+      }
+
+      let depDirectory: Uri;
+
+      try {
+        depDirectory = Uri.parse(dependencyDefinition.path, true);
+      } catch (e) {
+        errors.push(
+          `Invalid path for dependency: ${dependencyDefinition.path}`,
+        );
+        continue;
+      }
+
+      const depPkg = await collectLocalPackage(packages, errors, depDirectory);
+      if (depPkg) {
+        log.info(`package ${depKey} added to cache`);
+        globalCache[depKey] = depPkg;
+        packages[depKey] = depPkg;
+      }
+
+      // TODO: absolute paths
+      // TODO: os-specific slashes
+    }
+    return { ...pkg, manifest: manifest };
+  } else {
+    errors.push(
+      `Could not read qsharp.json manifest at ${directory} for dependency`,
+    );
+  }
+}
+
+function getKeyForDependencyDefinition(
+  fromDirectory: Uri,
+  dependencyDefinition: DependencyDefinition,
+): string {
+  if ("github" in dependencyDefinition) {
+    // TODO: github
+    // TODO: add some kind of limit in case someone wants to DOS the extension with 1000000 dependencies
+    // TODO: github projects shouldn't contain local references
+    throw new Error("GitHub dependencies are not supported yet");
+  }
+  // TODO: terribly malformed paths?
+  const key = Utils.resolvePath(
+    fromDirectory,
+    dependencyDefinition.path,
+  ).toString();
+  log.info(
+    `getKeyForDependencyDefinition: ${fromDirectory.toString()},${JSON.stringify(dependencyDefinition)} -> ${key}`,
+  );
+  return key;
+}
+
+function decodeDependencyDefinitionFromKey(key: string): DependencyDefinition {
+  log.info(`decodeDependencyDefinitionFromKey: ${key} -> { path: ${key} }`);
+  // TODO: support github keys
+  return { path: key };
 }
