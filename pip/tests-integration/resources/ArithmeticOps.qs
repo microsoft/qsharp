@@ -31,5 +31,4 @@ namespace Test {
         ResetAll(qs);
         return (count, countPos, countNeg, countMul);
     }
-
 }
