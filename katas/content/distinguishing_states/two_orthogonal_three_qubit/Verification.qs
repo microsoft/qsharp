@@ -30,7 +30,7 @@ namespace Kata.Verification {
             ["1/sqrt(3) (|100⟩ + ω |010⟩ + ω² |001⟩)", "1/sqrt(3) (|100⟩ + ω² |010⟩ + ω |001⟩)"]);
 
         if not isCorrect {
-            Message("Incorrect!");
+            Message("Incorrect.");
         } else {
             Message("Correct!");
         }

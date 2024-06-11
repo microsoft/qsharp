@@ -1,5 +1,5 @@
 namespace Kata {
-    operation TwoQubitStatePartTwo(qs : Qubit[]) : Int {
+    operation TwoQubitStateTwo(qs : Qubit[]) : Int {
         H(qs[1]);
 
         CNOT(qs[0], qs[1]);

@@ -1,5 +1,5 @@
 namespace Kata {
-    operation TwoQubitStatePartTwo(qs : Qubit[]) : Int {
+    operation TwoQubitStateTwo(qs : Qubit[]) : Int {
         // Implement your solution here...
 
         return -1;

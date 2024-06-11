@@ -34,7 +34,7 @@ namespace Kata.Verification {
                 ["|GHZ⟩", "|W⟩"]);
 
             if not isCorrect {
-                Message("Incorrect!");
+                Message("Incorrect.");
                 return false;
             }
         }

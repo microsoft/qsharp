@@ -28,7 +28,7 @@ namespace Kata.Verification {
         );
 
         if not isCorrect {
-            Message("Incorrect!");
+            Message("Incorrect.");
         } else {
             Message("Correct!");
         }

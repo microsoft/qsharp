@@ -1,5 +1,5 @@
 **Input:** 
-$N$ qubits (stored in an array of length $N$) which are guaranteed to be either in the $\ket{0...0}$ state or in the [W state](https://en.wikipedia.org/wiki/W_state) state (an equal superposition of all basis states that have exactly one $\ket{1}$ in them).
+$N$ qubits (stored in an array of length $N$) which are guaranteed to be either in the $\ket{0...0}$ state or in the W state - an equal superposition of all $N$ basis states that have exactly one $\ket{1}$ in them. (For example, for $N = 3$ the W state is $\frac1{\sqrt3} (\ket{100} + \ket{010} + \ket{001})$).
 
 **Output:**
 * 0 if the qubits were in the $\ket{0...0}$ state,

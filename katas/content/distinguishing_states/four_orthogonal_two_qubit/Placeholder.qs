@@ -5,7 +5,7 @@ namespace Kata {
         return -1;
     }
 
-    // You might find this helper operation from an earlier task - Distinguish four basis states, useful.
+    // You might find this helper operation from an earlier task useful.
     operation BasisStateMeasurement(qs : Qubit[]) : Int {
         let m1 = M(qs[0]) == Zero ? 0 | 1;
         let m2 = M(qs[1]) == Zero ? 0 | 1;

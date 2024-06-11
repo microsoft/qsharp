@@ -2,7 +2,7 @@ If the qubits are entangled in one of the Bell states, you can't simply measure 
 
 First, let's take a look at the preparation of the Bell states starting with the $\ket{00}$ basis state.
 
->A more detailed discussion of preparing all the Bell states can be found in the task All Bell states of the Superposition kata.
+> A more detailed discussion of preparing all the Bell states can be found in the task "All Bell States" of the Preparing Quantum States kata.
 
 The unitary transformation $\text{CNOT}\cdot(H \otimes I)$ (which corresponds to applying the $H$ gate to the first qubit, followed by applying the $\text{CNOT}$ gate with the first qubit as control and the second qubit as target) transforms the 4 basis vectors of the computational basis into the 4 Bell states.
 
@@ -18,7 +18,7 @@ After this the original states will be transformed as follows:
 | 2     | $\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} \big (\ket{01} + \ket{10}\big)$        | $\ket{01}$      |
 | 3     | $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{01} - \ket{10}\big)$        | $\ket{11}$      |
 
-These are the same four 2-qubit basis states we've seen in task Distinguish four basis states, though in different order compared to that task, so mapping the measurement results to the return values will differ slightly.
+These are the same four two-qubit basis states we've seen in the task "Distinguish Four Basis States", though in a different order compared to that task, so mapping the measurement results to the return values will differ slightly.
 
 @[solution]({
     "id": "distinguishing_states__four_bell_states_solution",

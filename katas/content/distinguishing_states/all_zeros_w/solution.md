@@ -1,4 +1,4 @@
-Here is an example of the W state for $N = 3: \frac{1}{\sqrt{3}}(\ket{001}+\ket{010}+\ket{100})$. We can see that each basis state in this expression always has exactly one qubit in the $\ket{1}$ state, while in the $\ket{0...0}$ state, all qubits are in the $\ket{0}$ state.
+We can see that each basis state in the W state always has exactly one qubit in the $\ket{1}$ state, while in the $\ket{0...0}$ state, all qubits are in the $\ket{0}$ state.
 
 We can use this to arrive to the solution: we will count the number of qubits that were measured in `One` state; if this number equals 1, we had a W state, if it equals 0, we know it was the $\ket{0...0}$ state.
 

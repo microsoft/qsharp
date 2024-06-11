@@ -23,7 +23,7 @@ namespace Kata.Verification {
                 ["|0...0⟩", "|W⟩"]);
 
             if not isCorrect {
-                Message("Incorrect!");
+                Message("Incorrect.");
                 return false;
             }
         }

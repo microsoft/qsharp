@@ -5,7 +5,7 @@ namespace Kata.Verification {
     // 1 - (-|00⟩ + |01⟩ - |10⟩ - |11⟩) / 2
     // 2 - (-|00⟩ - |01⟩ + |10⟩ - |11⟩) / 2
     // 3 - (-|00⟩ - |01⟩ - |10⟩ + |11⟩) / 2
-    operation StatePrep_TwoQubitStatePartTwo(
+    operation StatePrep_TwoQubitStateTwo(
         qs : Qubit[],
         state : Int,
         dummyVar : Double
@@ -26,18 +26,16 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let solution = Kata.TwoQubitStatePartTwo;
-        let reference = StatePrep_TwoQubitStatePartTwo;
         let isCorrect = DistinguishStates_MultiQubit(
             2, 4,
-            reference,
-            solution,
+            StatePrep_TwoQubitStateTwo,
+            Kata.TwoQubitStateTwo,
             false,
             ["(+|00⟩ - |01⟩ - |10⟩ - |11⟩) / 2", "(-|00⟩ + |01⟩ - |10⟩ - |11⟩) / 2", "(-|00⟩ - |01⟩ + |10⟩ - |11⟩) / 2", "(-|00⟩ - |01⟩ - |10⟩ + |11⟩) / 2"]
         );
 
         if not isCorrect {
-            Message("Incorrect!");
+            Message("Incorrect.");
         } else {
             Message("Correct!");
         }

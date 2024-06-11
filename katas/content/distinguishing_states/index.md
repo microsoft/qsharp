@@ -70,7 +70,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__all_zeros_w",
-    "title": "|0.. .0〉 state or W state?",
+    "title": "|0...0〉 State or W State?",
     "path": "./all_zeros_w/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -79,7 +79,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__ghz_w",
-    "title": "GHZ state or W state?",
+    "title": "GHZ State or W State?",
     "path": "./ghz_w/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -88,7 +88,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__four_bell_states",
-    "title": "Distinguish four Bell states",
+    "title": "Distinguish Four Bell States",
     "path": "./four_bell_states/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -97,7 +97,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__four_orthogonal_two_qubit",
-    "title": "Distinguish four orthogonal 2-qubit states",
+    "title": "Distinguish Four Two-Qubit States",
     "path": "./four_orthogonal_two_qubit/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -106,7 +106,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__four_orthogonal_two_qubit_part_two",
-    "title": "Distinguish four orthogonal 2-qubit states, part 2",
+    "title": "Distinguish Four Two-Qubit States - 2",
     "path": "./four_orthogonal_two_qubit_part_two/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -115,7 +115,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__two_orthogonal_three_qubit",
-    "title": "Distinguish two orthogonal states on three qubits",
+    "title": "Distinguish Two Three-Qubit States",
     "path": "./two_orthogonal_three_qubit/",
     "qsDependencies": [
         "../KatasLibrary.qs"

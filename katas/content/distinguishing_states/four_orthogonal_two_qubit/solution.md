@@ -1,4 +1,4 @@
-Similarly to the previous task, let's see whether these states can be converted back to the basis states from the task Distinguish four basis states.
+Similarly to the previous task, let's see whether these states can be converted back to the basis states from the task "Distinguish Four Basis States".
 
 To find a transformation that would convert the basis states to $\ket{S_0},...\ket{S_3}$, let's write out the coefficients of these states as column vectors side by side, so that they form a matrix.
 
@@ -13,7 +13,7 @@ $$\frac{1}{2} \begin{bmatrix} 1 & 1 & 1 & 1 \\ 1 & -1 & 1 & -1 \\ 1 & 1 & -1 & -
 
 and similarly for the rest of the states.
 
-Notice that the top left $2\times2$ block of this matrix is the same as the top right and the bottom left, and same as the bottom right block multiplied by $-1$. This means that we can represent this transformation as a tensor product of two $H$ gates (for background on this, check Multi-Qubit Gates):
+Notice that the top left $2\times2$ block of this matrix is the same as the top right and the bottom left, and same as the bottom right block multiplied by $-1$. This means that we can represent this transformation as a tensor product of two $H$ gates (for background on this, check the Multi-Qubit Gates kata):
 
 $$ H \otimes H = 
 \frac{1}{\sqrt{2}} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \otimes \frac{1}{\sqrt{2}} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} = 
