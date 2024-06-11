@@ -2,9 +2,9 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
     operation GHZ_State_Reference(qs : Qubit[]) : Unit is Adj {
-        H(Head(qs));
-        for q in Rest(qs) {
-            CNOT(Head(qs), q);
+        H(qs[0]);
+        for q in qs[1 ... ] {
+            CNOT(qs[0], q);
         }
     }
 

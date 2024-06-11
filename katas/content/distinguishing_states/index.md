@@ -61,10 +61,11 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__four_basis_states",
-    "title": "Distinguish four basis states",
+    "title": "Distinguish Four Basis States",
     "path": "./four_basis_states/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -100,7 +101,8 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Distinguish Four Two-Qubit States",
     "path": "./four_orthogonal_two_qubit/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -109,7 +111,8 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Distinguish Four Two-Qubit States - 2",
     "path": "./four_orthogonal_two_qubit_part_two/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 

@@ -10,7 +10,7 @@ namespace Kata.Verification {
         state : Int,
         dummyVar : Double
     ) : Unit is Adj {
-        StatePrep_BasisStateMeasurement(qs, state);
+        StatePrep_BasisStateMeasurement(qs, state, dummyVar);
 
         // Now apply all gates for unitary in reference impl (in reverse + adjoint)
         within {

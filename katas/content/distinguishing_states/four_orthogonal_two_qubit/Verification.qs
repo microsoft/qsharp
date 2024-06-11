@@ -10,7 +10,7 @@ namespace Kata.Verification {
         state : Int,
         dummyVar : Double
     ) : Unit is Adj {
-        StatePrep_BasisStateMeasurement(qs, state);
+        StatePrep_BasisStateMeasurement(qs, state, dummyVar);
 
         H(qs[0]);
         H(qs[1]);
