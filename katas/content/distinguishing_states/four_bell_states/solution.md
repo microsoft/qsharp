@@ -11,12 +11,34 @@ $$\text{CNOT}\cdot(H \otimes I) = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0
 To transform the Bell states back to the basis states, you can apply adjoint of this transformation, which will undo its effects. In this case, both gates used are self-adjoint, so the adjoint transformation will require applying the same gates in reverse order (first $\text{CNOT}$, then $H$).
 
 After this the original states will be transformed as follows:
-| Return value | Original state | Maps to basis state |
-|     :---:    |     :---:      |        :---:        |
-| 0     | $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} \big (\ket{00} + \ket{11}\big)$        | $\ket{00}$      |
-| 1     | $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{00} - \ket{11}\big)$        | $\ket{10}$      |
-| 2     | $\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} \big (\ket{01} + \ket{10}\big)$        | $\ket{01}$      |
-| 3     | $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{01} - \ket{10}\big)$        | $\ket{11}$      |
+
+<table>
+      <tr>
+        <th>Return value</th>
+        <th>Original state</th>
+        <th>Maps to basis state</th>
+      </tr>
+      <tr>
+        <td>0</td>
+        <td>$\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} \big (\ket{00} + \ket{11}\big)$</td>
+        <td>$\ket{00}$</td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>$\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{00} - \ket{11}\big)$</td>
+        <td>$\ket{10}$</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>$\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} \big (\ket{01} + \ket{10}\big)$</td>
+        <td>$\ket{01}$</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>$\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{01} - \ket{10}\big)$</td>
+        <td>$\ket{11}$</td>
+      </tr>
+    </table>
 
 These are the same four two-qubit basis states we've seen in the task "Distinguish Four Basis States", though in a different order compared to that task, so mapping the measurement results to the return values will differ slightly.
 
