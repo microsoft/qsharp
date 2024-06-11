@@ -29,7 +29,7 @@ It is a lot harder to recognize the necessary transformation, though. The coeffi
   </tr>
   <tr>
     <td>$\ket{11}$</td>
-    <td>$|\\Psi^{-}\\rangle = \\frac{1}{\\sqrt{2}} \\big (|01\\rangle - |10\\rangle\\big)$</td>
+    <td>$\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} \big (\ket{01} - \ket{10}\big)$</td>
     <td>$\frac{1}{2} \big (\ket{00} - \ket{01} - \ket{10} - \ket{11}\big) = \ket{S_0}$</td>
     <td>0</td>
   </tr>
