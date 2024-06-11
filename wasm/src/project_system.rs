@@ -418,6 +418,7 @@ pub(crate) fn into_qsc_args(
         // TODO use aliases to resolve dependencies
         // for now just use the package key
         let dependencies = dependencies.iter().map(|(_, b)| *b).collect::<Vec<_>>();
+        log::info!("compiling package: {}", package_to_compile.key);
         let (compile_unit, dependency_errors) = qsc::compile::compile(
             &package_store,
             &dependencies[..],
@@ -426,7 +427,7 @@ pub(crate) fn into_qsc_args(
             capabilities,
             qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
         );
-
+        log::info!("\tcompiled package: {}", package_to_compile.key);
         if !dependency_errors.is_empty() {
             todo!("handle errors in dependencies");
         }
@@ -455,17 +456,14 @@ pub(crate) fn into_qsc_args(
 
 /// This returns the common parameters that the language service needs from the manifest
 pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
-    todo!()
-}
+    let (sources, language_features, x, y) = into_package_graph_args(project.package_graph_sources);
 
-/// This is the bit that's common to both the compiler and the language service
-#[allow(clippy::type_complexity)]
-fn into_package_graph_args(
-    package_graph: PackageGraphSources,
-) -> Result<(Vec<PackageInfo>, PackageInfo), DependencyCycle> {
-    let language_features =
-        qsc::LanguageFeatures::from_iter(package_graph.root.language_features.clone());
-    package_graph.compilation_order()
+    (
+        project.project_name.into(),
+        sources,
+        language_features,
+        project.lints,
+    )
 }
 
 #[derive(Debug)]
@@ -516,6 +514,8 @@ impl PackageGraphSources {
         let mut sorted_packages = self.packages;
         sorted_packages
             .sort_by_key(|pkg| sorted_keys.iter().position(|key| *key == pkg.key).unwrap());
+
+        log::info!("Determined package ordering: {:?}", sorted_keys);
 
         Ok((sorted_packages, self.root))
     }
