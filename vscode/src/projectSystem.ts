@@ -247,6 +247,7 @@ export async function loadProjectInner(manifestDocument: {
   const manifestUri = manifestDocument.uri;
   const packages = {};
   const errors: string[] = [];
+  const stack: PackageKey[] = [];
 
   const content =
     manifestDocument.content ||
@@ -255,7 +256,7 @@ export async function loadProjectInner(manifestDocument: {
     return null;
   }
 
-  const pkg = await collectLocalPackage(packages, errors, directory);
+  const root = await collectLocalPackage(stack, packages, errors, directory);
 
   if (errors.length > 0) {
     for (const error of errors) {
@@ -263,12 +264,12 @@ export async function loadProjectInner(manifestDocument: {
     }
   }
 
-  if (!pkg) {
+  if (!root) {
     return null;
   }
 
   const packageGraphSources = {
-    root: pkg,
+    root,
     packages,
   };
 
@@ -276,11 +277,16 @@ export async function loadProjectInner(manifestDocument: {
     `resolved package graph with sources: ${JSON.stringify(packageGraphSources, undefined, 2)}`,
   );
 
+  // Use only the lint config from the root package
+  const rootPackage = globalCache[getKeyForLocalPackage(directory)];
+  const lints =
+    "manifest" in rootPackage ? rootPackage.manifest.lints ?? [] : [];
+
   return {
     projectName: Utils.basename(directory) || "Q# Project",
     projectUri: manifestUri.toString(),
     packageGraphSources: packageGraphSources,
-    lints: pkg.manifest.lints || [],
+    lints,
   };
 }
 
@@ -363,59 +369,111 @@ interface QSharpJsonManifest {
 }
 
 type PackageKey = string;
-const globalCache: Record<PackageKey, IPackageInfo> = {};
 
 async function collectLocalPackage(
+  stack: PackageKey[],
   packages: Record<PackageKey, IPackageInfo>,
   errors: string[],
   directory: Uri,
-): Promise<(IPackageInfo & { manifest: QSharpJsonManifest }) | undefined> {
-  const manifestDocument = await tryReadManifestInDir(directory);
-  if (manifestDocument) {
-    const manifest = parseManifestOrThrow(manifestDocument);
-    const pkg = await loadPackage(directory, manifest);
-    for (const alias in pkg.dependencies) {
-      const depKey = pkg.dependencies[alias];
+): Promise<IPackageInfo | undefined> {
+  const key = getKeyForLocalPackage(directory);
 
-      const cached = globalCache[depKey];
-      if (cached) {
-        log.info(`package ${depKey} already in cache`);
-        packages[depKey] = cached;
-        continue;
-      }
+  const result = await readManifestAndSources(key, directory);
 
-      const dependencyDefinition = decodeDependencyDefinitionFromKey(depKey);
-      if ("github" in dependencyDefinition) {
-        throw new Error("support github");
-      }
-
-      let depDirectory: Uri;
-
-      try {
-        depDirectory = Uri.parse(dependencyDefinition.path, true);
-      } catch (e) {
-        errors.push(
-          `Invalid path for dependency: ${dependencyDefinition.path}`,
-        );
-        continue;
-      }
-
-      const depPkg = await collectLocalPackage(packages, errors, depDirectory);
-      if (depPkg) {
-        log.info(`package ${depKey} added to cache`);
-        globalCache[depKey] = depPkg;
-        packages[depKey] = depPkg;
-      }
-
-      // TODO: absolute paths
-      // TODO: os-specific slashes
-    }
-    return { ...pkg, manifest: manifest };
-  } else {
-    errors.push(
-      `Could not read qsharp.json manifest at ${directory} for dependency`,
-    );
+  if ("error" in result) {
+    errors.push(result.error);
+    return undefined;
   }
+
+  const { packageInfo: pkg } = result;
+
+  stack.push(key);
+
+  for (const alias in pkg.dependencies) {
+    const depKey = pkg.dependencies[alias];
+    log.info(`adding dependency ${alias}: ${depKey} for package ${key}`);
+
+    if (stack.includes(depKey)) {
+      log.info(`circular dependency detected from ${depKey}`);
+      errors.push(
+        `Circular dependency detected: ${stack.join(" -> ")} -> ${depKey}`,
+      );
+      continue;
+    }
+
+    const dependencyDefinition = decodeDependencyDefinitionFromKey(depKey);
+    if ("github" in dependencyDefinition) {
+      throw new Error("support github");
+    }
+
+    let depDirectory: Uri;
+
+    try {
+      depDirectory = Uri.parse(dependencyDefinition.path, true);
+    } catch (e) {
+      errors.push(`Invalid path for dependency: ${dependencyDefinition.path}`);
+      continue;
+    }
+
+    const depPkg = await collectLocalPackage(
+      stack,
+      packages,
+      errors,
+      depDirectory,
+    );
+    if (depPkg) {
+      packages[depKey] = depPkg;
+    }
+
+    // TODO: absolute paths
+    // TODO: os-specific slashes
+  }
+  stack.pop();
+  return pkg;
+}
+
+const globalCache: Record<
+  PackageKey,
+  | {
+      manifest: QSharpJsonManifest;
+      packageInfo: IPackageInfo;
+    }
+  | {
+      error: string;
+    }
+> = {};
+async function readManifestAndSources(key: PackageKey, directory: vscode.Uri) {
+  const cached = globalCache[key];
+  if (cached) {
+    log.info(`package ${key} already in cache`);
+    return cached;
+  }
+
+  const manifestDocument = await tryReadManifestInDir(directory);
+  if (!manifestDocument) {
+    globalCache[key] = {
+      error: `No qsharp.json found in directory ${directory.toString()}`,
+    };
+    return globalCache[key];
+  }
+
+  let manifest;
+  try {
+    manifest = parseManifestOrThrow(manifestDocument);
+  } catch (e) {
+    globalCache[key] = {
+      error: `Could not parse qsharp.json in directory ${directory.toString()}`,
+    };
+    return globalCache[key];
+  }
+  const pkg = {
+    packageInfo: await loadPackage(directory, manifest),
+    manifest,
+  };
+
+  log.info(`adding package ${key} to cache`);
+  globalCache[key] = pkg;
+  return pkg;
 }
 
 function getKeyForDependencyDefinition(
@@ -428,15 +486,20 @@ function getKeyForDependencyDefinition(
     // TODO: github projects shouldn't contain local references
     throw new Error("GitHub dependencies are not supported yet");
   }
-  // TODO: terribly malformed paths?
-  const key = Utils.resolvePath(
+  const absoluteDir = Utils.resolvePath(
     fromDirectory,
     dependencyDefinition.path,
-  ).toString();
+  );
+  // TODO: terribly malformed paths?
+  const key = getKeyForLocalPackage(absoluteDir);
   log.info(
     `getKeyForDependencyDefinition: ${fromDirectory.toString()},${JSON.stringify(dependencyDefinition)} -> ${key}`,
   );
   return key;
+}
+
+function getKeyForLocalPackage(absoluteDir: URI) {
+  return absoluteDir.toString();
 }
 
 function decodeDependencyDefinitionFromKey(key: string): DependencyDefinition {

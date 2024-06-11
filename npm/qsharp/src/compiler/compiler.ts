@@ -265,12 +265,11 @@ export function toPackageGraphSources(
   return "sources" in program
     ? {
         root: {
-          key: "root",
           sources: program.sources,
           languageFeatures: program.languageFeatures || [],
           dependencies: {},
         },
-        packages: [],
+        packages: {},
       }
     : program.packageGraphSources;
 }

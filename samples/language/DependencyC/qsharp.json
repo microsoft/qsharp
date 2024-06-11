@@ -2,6 +2,9 @@
     "dependencies": {
         "Foo": {
             "path": "../DependencyB"
+        },
+        "Circular": {
+            "path": "../DependencyC"
         }
     }
 }
