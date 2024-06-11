@@ -14,7 +14,7 @@ namespace Kata.Verification {
         if base {  // ∣+⟩ / ∣-⟩
             return bit ? "|-⟩" | "|+⟩";
         } else {  // ∣0⟩ / ∣1⟩
-            return bit ? "|1⟩" | "|-⟩";
+            return bit ? "|1⟩" | "|0⟩";
         }
     }
 

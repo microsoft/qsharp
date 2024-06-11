@@ -5,7 +5,7 @@
     "title": "Overview"
 })
 
-Quantum key distribution is a type of quantum communication protocols that allow two parties to generate shared secret keys - random strings of bits known only to those two parties. These shared keys can then be used for a variety of different classical cryptographic protocols like encryption or authentication.
+Quantum key distribution is a type of quantum communication protocol that allows two parties to generate shared secret keys - random strings of bits known only to those two parties. These shared keys can then be used for a variety of different classical cryptographic protocols like encryption or authentication.
 
 Quantum key distribution protocols include two parties, commonly referred to as Alice and Bob, that have two communication channels between them, one quantum channel that allows Alice to send qubits to Bob and one bidirectional classical channel.
 The quantum channel in such protocols is usually implemented with photons acting as qubits.
@@ -50,7 +50,7 @@ The second basis, Hadamard basis (sometimes also called the diagonal basis), use
 
 The bases used in the protocol are selected such that if an eavesdropper tries to measure a qubit in transit and chooses the wrong basis, then they just get a 0 or 1 measurement result with equal probability.
 
-Alice has to make two random choices per qubit she prepares, one for which basis to prepare in, and the other for what bit value she wants to send, choosing each option with $50\%$ probability.
+Alice has to make two random choices for each qubit she prepares, one for which basis to prepare in, and the other for what bit value she wants to send, choosing each option with $50\%$ probability.
 If Alice decides to send $N$ qubits, she needs to make $2N$ random choices, usually implemented as two arrays of $N$ choices each.
 
 Once Bob receives the qubits from Alice, he needs to decide in which basis, computational or Hadamard, to measure each of them, and these decisions are also random, with each basis chosen with $50\%$ probability.
@@ -59,7 +59,7 @@ Finally, at the end of the first phase of the protocol Alice has a list of the b
 
 To extract the shared key, they need to figure out when they both used the same basis, and toss the data from qubits where they used different bases. If Alice and Bob did not use the same basis to prepare and measure the qubits in, the measurement results Bob got will be just random bits with $50\%$ probability for both the `Zero` and `One` outcomes. But if they used the same basis, Bob's measurement result will match the bit Alice sent.
 
-This means that by exchanging information about the bases Alice and Bob used for preparation and measurements via a public classical communication channel they can deduce which parts of their lists of bits they kept private are identical, and use them as their shared key!
+This means that by exchanging information about the bases Alice and Bob used for preparation and measurements via a public classical communication channel, they can deduce which parts of their lists of bits they kept private are identical, and use them as their shared key!
 
 Now that we've learned the theory behind the BB84 protocol, let's implement its steps to see it in action!
 
