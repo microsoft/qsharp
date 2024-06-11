@@ -241,18 +241,6 @@ def install_python_test_requirements(cwd, interpreter):
     subprocess.run(command_args, check=True, text=True, cwd=cwd)
 
 
-def install_python_int_test_requirements(cwd, interpreter):
-    command_args = [
-        interpreter,
-        "-m",
-        "pip",
-        "install",
-        "-r",
-        "int_test_requirements.txt",
-    ]
-    subprocess.run(command_args, check=True, text=True, cwd=cwd)
-
-
 def install_qsharp_python_package(cwd, wheelhouse, interpreter):
     command_args = [
         interpreter,
@@ -287,22 +275,21 @@ def run_python_tests(test_dir, interpreter):
 
 
 def run_python_integration_tests(test_dir, interpreter):
-    print("Running the Python integration tests")
-    command_args = [interpreter, "-m", "pytest"]
-    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+    install_python_test_requirements(test_dir, interpreter)
+    check_args = [python_bin, "-c", "import qirrunner"]
+    check_result = subprocess.run(check_args, check=False, text=True, cwd=test_dir)
+    if check_result.returncode == 0:
+        print("Running the Python integration tests")
+        command_args = [interpreter, "-m", "pytest"]
+        subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+    else:
+        print("Could not import qir-runn, skipping QIR integration tests")
 
 
 def run_python_qir_tests(qir_test_dir, interpreter):
     # Try to install PyQIR and if successful, run additional tests.
-    qir_install_args = [
-        interpreter,
-        "-m",
-        "pip",
-        "install",
-        "-r",
-        "test_requirements.txt",
-    ]
-    subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
+    install_python_test_requirements(qir_test_dir, interpreter)
+
     pyqir_check_args = [python_bin, "-c", "import pyqir"]
     if (
         subprocess.run(
