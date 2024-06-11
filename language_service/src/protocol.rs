@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use qsc::line_column::Range;
-use qsc::PackageType;
-use qsc::{compile::Error, target::Profile, LanguageFeatures};
-use qsc_linter::LintConfig;
-use qsc_project::Manifest;
+use qsc::{
+    compile::Error, linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures,
+    PackageType,
+};
 
 /// A change to the workspace configuration
 #[derive(Clone, Debug, Default)]
