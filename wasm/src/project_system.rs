@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::redundant_closure_call)]
 use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
@@ -60,6 +61,7 @@ impl From<ManifestDescriptorObject> for Option<ManifestDescriptor> {
 /// Ultimately, it returns a function that accepts a String and returns a Rust future that represents a JS Promise. Awaiting that
 /// Rust future will await the resolution of the promise.
 /// The name of this macro should be read like "convert a JS promise into an async rust function with this mapping function"
+
 macro_rules! into_async_rust_fn_with {
     ($js_async_fn: ident, $map_result: expr) => {{
         use crate::project_system::{map_js_promise, to_js_function};
@@ -385,12 +387,13 @@ pub(crate) fn into_qsc_args(
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
         .into();
     let package_graph = program.package_graph_sources;
-    let (ordered_packages, user_code) =
-        into_package_graph_args(package_graph).expect("TODO handle this err: dependency cycle");
 
     let mut package_store = qsc::PackageStore::new(qsc::compile::core());
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
+    let (ordered_packages, user_code) = package_graph
+        .compilation_order()
+        .expect("TODO error handling");
     for package_to_compile in ordered_packages {
         // if this is the first package in the order, it should have zero dependencies
         if package_store.is_empty() {
@@ -455,14 +458,15 @@ pub(crate) fn into_qsc_args(
 }
 
 /// This returns the common parameters that the language service needs from the manifest
-pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
-    let (sources, language_features, x, y) = into_package_graph_args(project.package_graph_sources);
+pub(crate) fn into_project_args(project: IProjectConfig) -> qsls::LoadProjectResultInner {
+    let (sources, capabilities, features, store) = into_qsc_args(project, None);
 
     (
         project.project_name.into(),
         sources,
-        language_features,
+        features,
         project.lints,
+        store,
     )
 }
 

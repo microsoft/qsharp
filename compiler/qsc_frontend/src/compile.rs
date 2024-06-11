@@ -73,6 +73,15 @@ pub struct SourceMap {
     entry: Option<Source>,
 }
 
+impl Into<Vec<(Arc<str>, Arc<str>)>> for SourceMap {
+    fn into(self) -> Vec<(Arc<str>, Arc<str>)> {
+        self.sources
+            .into_iter()
+            .map(|source| (source.name, source.contents))
+            .collect()
+    }
+}
+
 impl SourceMap {
     pub fn new(
         sources: impl IntoIterator<Item = (SourceName, SourceContents)>,

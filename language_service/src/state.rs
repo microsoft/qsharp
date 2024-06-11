@@ -121,10 +121,11 @@ pub(super) struct CompilationStateUpdater<'a> {
 // TODO: consolidate these two types
 pub type LoadProjectResult = Option<LoadProjectResultInner>;
 pub type LoadProjectResultInner = (
-    Arc<str>,                  // compilation uri
-    Vec<(Arc<str>, Arc<str>)>, // sources
+    Arc<str>,       // compilation uri
+    qsc::SourceMap, // sources
     LanguageFeatures,
     Vec<LintConfig>,
+    qsc::PackageStore,
 );
 
 #[derive(Debug)]
@@ -219,13 +220,13 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        if let Some((compilation_uri, source_map, language_features, lints)) =
+        if let Some((compilation_uri, source_map, language_features, lints, store)) =
             (self.load_project_callback)(doc_uri.to_string()).await
         {
             trace!("Found project at {compilation_uri}");
             Some(LoadManifestResult {
                 compilation_uri,
-                sources: source_map,
+                sources: source_map.into(),
                 language_features: Some(language_features),
                 lints,
             })
@@ -294,7 +295,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }) = project
             {
                 self.insert_buffer_aware_compilation(
-                    sources,
+                    sources.into(),
                     &compilation_uri,
                     language_features,
                     &lints_config,
