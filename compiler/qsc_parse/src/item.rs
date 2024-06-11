@@ -24,8 +24,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, Item, ItemKind,
-    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents, Item, ItemKind,
+    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl,
     TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -40,6 +40,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         open
     } else if let Some(ty) = opt(s, parse_newtype)? {
         ty
+    } else if let Some(strct) = opt(s, parse_struct)? {
+        strct
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
     } else if visibility.is_some() {
@@ -76,6 +78,7 @@ fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
         TokenKind::Keyword(Keyword::Internal),
         TokenKind::Keyword(Keyword::Open),
         TokenKind::Keyword(Keyword::Newtype),
+        TokenKind::Keyword(Keyword::Struct),
         TokenKind::Keyword(Keyword::Operation),
         TokenKind::Keyword(Keyword::Function),
     ];
@@ -321,6 +324,34 @@ fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     }
     token(s, TokenKind::Semi)?;
     Ok(Box::new(ItemKind::Ty(name, def)))
+}
+
+fn parse_struct(s: &mut ParserContext) -> Result<Box<ItemKind>> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Struct))?;
+    let name = ident(s)?;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let (fields, _) = seq(s, |s| {
+        let lo = s.peek().span.lo;
+        let name = ident(s)?;
+        token(s, TokenKind::Colon)?;
+        let field_ty = ty(s)?;
+        Ok(Box::new(FieldDef {
+            id: NodeId::default(),
+            span: s.span(lo),
+            name,
+            ty: Box::new(field_ty),
+        }))
+    })?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    let decl = StructDecl {
+        id: NodeId::default(),
+        span: s.span(lo),
+        name,
+        fields: fields.into_boxed_slice(),
+    };
+
+    Ok(Box::new(ItemKind::Struct(Box::new(decl))))
 }
 
 fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {

@@ -697,6 +697,7 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
                     | Operation
                     | Function
                     | Newtype
+                    | Struct
                     | Namespace
                     | Open
                     | Body
@@ -714,7 +715,10 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
 
 fn is_starter_keyword(keyword: &Keyword) -> bool {
     use Keyword::*;
-    matches!(keyword, For | While | Repeat | If | Within | Return | Fail)
+    matches!(
+        keyword,
+        For | While | Repeat | If | Within | New | Return | Fail
+    )
 }
 
 fn is_newline_after_brace(cooked: &TokenKind, delim_state: Delimiter) -> bool {

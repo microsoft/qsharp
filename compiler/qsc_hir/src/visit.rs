@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Idents, Item, ItemKind, Package, Pat, PatKind,
-    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, FieldAssign, Ident, Idents, Item, ItemKind, Package, Pat,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -33,6 +33,10 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &'a FieldAssign) {
+        walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &'a Pat) {
@@ -165,6 +169,10 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter().for_each(|c| vis.visit_expr(c));
+            fields.iter().for_each(|f| vis.visit_field_assign(f));
+        }
         ExprKind::String(components) => {
             for component in components {
                 match component {
@@ -189,6 +197,10 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         | ExprKind::Lit(_)
         | ExprKind::Var(_, _) => {}
     }
+}
+
+pub fn walk_field_assign<'a>(vis: &mut impl Visitor<'a>, assign: &'a FieldAssign) {
+    vis.visit_expr(&assign.value);
 }
 
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
