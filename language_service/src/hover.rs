@@ -9,7 +9,7 @@ use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
-use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
+use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
@@ -71,24 +71,15 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
+        item_id: &'_ hir::ItemId,
         decl: &'a hir::CallableDecl,
     ) {
-        let ns = item
-            .parent
-            .and_then(|parent_id| package.items.get(parent_id))
-            .map_or_else(
-                || Rc::from(""),
-                |parent| match &parent.kind {
-                    hir::ItemKind::Namespace(namespace, _) => namespace.name(),
-                    _ => Rc::from(""),
-                },
-            );
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
 
+        let ns = get_namespace_name(item, package);
         let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
-
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -146,8 +137,38 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
-        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
+    fn at_new_type_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::TyDef,
+    ) {
+        let code = self.display.ident_ty_def(type_name, def);
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            def.is_struct(),
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: self.range(type_name.span),
+        });
+    }
+
+    fn at_struct_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::StructDecl,
+    ) {
+        let code = self.display.struct_decl(def);
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            true,
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
@@ -157,13 +178,17 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item_id: &'_ hir::ItemId,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(udt));
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
 
+        let ns = get_namespace_name(item, package);
+        let code = self.display.hir_udt(udt);
+        let contents = display_udt(&item.doc, &ns, code, udt.is_struct());
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -172,11 +197,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
     fn at_field_def(
         &mut self,
-        _: &LocatorContext<'a>,
+        context: &LocatorContext<'a>,
         field_name: &'a ast::Ident,
         ty: &'a ast::Ty,
     ) {
-        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
+        let contents = display_udt_field(
+            &context.current_item_name,
+            self.display.ident_ty(field_name, ty),
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(field_name.span),
@@ -186,15 +214,21 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_field_ref(
         &mut self,
         field_ref: &'a ast::Ident,
-        expr_id: &'a ast::NodeId,
-        _: &'_ hir::ItemId,
-        _: &'a hir::ty::UdtField,
+        item_id: &'_ hir::ItemId,
+        field_definition: &'a hir::ty::UdtField,
     ) {
-        let contents = markdown_fenced_block(self.display.name_ty_id(&field_ref.name, *expr_id));
-        self.hover = Some(Hover {
-            contents,
-            span: self.range(field_ref.span),
-        });
+        let (item, _, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+
+        if let hir::ItemKind::Ty(name, _) = &item.kind {
+            let contents =
+                display_udt_field(&name.name, self.display.hir_udt_field(field_definition));
+            self.hover = Some(Hover {
+                contents,
+                span: self.range(field_ref.span),
+            });
+        }
     }
 
     fn at_local_def(
@@ -274,6 +308,18 @@ impl HoverGenerator<'_> {
     }
 }
 
+fn get_namespace_name(item: &hir::Item, package: &hir::Package) -> Rc<str> {
+    item.parent
+        .and_then(|parent_id| package.items.get(parent_id))
+        .map_or_else(
+            || Rc::from(""),
+            |parent| match &parent.kind {
+                hir::ItemKind::Namespace(namespace, _) => namespace.name(),
+                _ => Rc::from(""),
+            },
+        )
+}
+
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
     match curr_callable {
         Some(decl) => match &*decl.body {
@@ -336,14 +382,32 @@ fn display_local(
 
 fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     let summary = parse_doc_for_summary(doc);
-
-    let mut code = if namespace.is_empty() {
-        code.to_string()
+    let markdown = markdown_fenced_block(code);
+    if namespace.is_empty() {
+        with_doc(&summary, format!("callable\n{markdown}"))
     } else {
-        format!("{namespace}\n{code}")
+        with_doc(&summary, format!("callable of `{namespace}`\n{markdown}"))
+    }
+}
+
+fn display_udt(doc: &str, namespace: &str, code: impl Display, is_struct: bool) -> String {
+    let summary = parse_doc_for_summary(doc);
+    let markdown = markdown_fenced_block(code);
+    let kind = if is_struct {
+        "struct"
+    } else {
+        "user-defined type"
     };
-    code = markdown_fenced_block(code);
-    with_doc(&summary, code)
+    if namespace.is_empty() {
+        with_doc(&summary, format!("{kind}\n{markdown}"))
+    } else {
+        with_doc(&summary, format!("{kind} of `{namespace}`\n{markdown}"))
+    }
+}
+
+fn display_udt_field(udt_name: &str, code: impl Display) -> String {
+    let markdown = markdown_fenced_block(code);
+    format!("field of `{udt_name}`\n{markdown}")
 }
 
 fn with_doc(doc: &String, code: impl Display) -> String {
