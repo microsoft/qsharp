@@ -161,7 +161,7 @@ Now, let's see how we can use Q# to solve these two problems.
    To do this, we can represent $\ket \psi$ as follows:
    $$\frac 2 3 \ket{00} + \big( \frac 1 {\sqrt 5} \ket{0} + \frac 2 {\sqrt 5} \ket{1} \big) \frac {\sqrt 5} 3 \ket{1}$$
    This representation tells us how we should rotate individual qubits.
-2. To figure out the measurement outcome probabilities in the computational basis, we can just use `DumpMachine` function that lists probabilities associated with each basis state present in the superposition.
+2. To figure out the measurement outcome probabilities in the computational basis, we can just use the `DumpMachine` function that lists probabilities associated with each basis state present in the superposition.
 3. To figure out the measurement outcome probabilities in the Pauli X basis, we can apply a transformation that maps the two-qubit Pauli X basis into the two-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
 4. View probabilities of each basis state with the `DumpMachine` function. Thanks to the previous step, the following state equivalence holds:
 
