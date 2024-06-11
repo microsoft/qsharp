@@ -397,7 +397,13 @@ async function readManifestAndSources(
   const manifestDependencies = manifest.dependencies || {};
   for (const alias of Object.keys(manifestDependencies)) {
     const dependencyDefinition = manifestDependencies[alias];
-
+    if ("path" in dependencyDefinition && "path" in thisPkg) {
+      // Needs to be canonical
+      dependencyDefinition.path = resolvePath(
+        thisPkg.path,
+        dependencyDefinition.path,
+      )!;
+    }
     dependencies[alias] = getKeyForDependencyDefinition(dependencyDefinition);
   }
 
@@ -419,8 +425,13 @@ async function readManifestAndSources(
   return pkg;
 }
 
-function resolvePath(base: string, relative: string): string {
-  return Utils.resolvePath(Uri.parse(base, true), relative).toString();
+function resolvePath(base: string, relative: string): string | null {
+  try {
+    return Utils.resolvePath(Uri.parse(base, true), relative).toString();
+  } catch (e) {
+    log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
+    return null;
+  }
 }
 
 async function githubFetch(url: string) {
@@ -567,25 +578,24 @@ async function readLocalManifestAndSources(
 ): Promise<
   { sources: [string, string][]; manifestContent: string } | { error: string }
 > {
+  const manifestPath = resolvePath(directory, "qsharp.json");
+
+  if (!manifestPath) {
+    return {
+      error: `Could not find qsharp.json in directory ${directory}`,
+    };
+  }
+
+  const manifestContent = await readFile(manifestPath);
+  if (!manifestContent) {
+    return {
+      error: `Could not read qsharp.json in directory ${directory}`,
+    };
+  }
+
   if (!projectLoader) {
     projectLoader = await getProjectLoader(readFile, listDir);
   }
-  let directoryUri: Uri;
-  try {
-    directoryUri = Uri.parse(directory, true);
-  } catch (e) {
-    return {
-      error: `Invalid path for dependency: ${directory}`,
-    };
-  }
-
-  const manifestContent = (await tryReadManifestInDir(directoryUri))?.content;
-  if (!manifestContent) {
-    return {
-      error: `No qsharp.json found in directory ${directory}`,
-    };
-  }
-
   const sources = await projectLoader.load_project({
     manifestDirectory: directory,
   });
@@ -605,6 +615,5 @@ function getKeyForDependencyDefinition(
 
 function decodeDependencyDefinitionFromKey(key: string): DependencyDefinition {
   log.trace(`decodeDependencyDefinitionFromKey: ${key} -> { path: ${key} }`);
-  // TODO: support github keys
   return JSON.parse(key);
 }
