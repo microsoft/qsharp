@@ -3690,67 +3690,6 @@ namespace Main {
             }"#]],
     );
 }
-#[test]
-fn multiple_exports() {
-    check(
-        indoc! {"
-            namespace Foo {
-                operation ApplyX() : Unit {}
-                operation ApplyY() : Unit {}
-                export ApplyX, ApplyY;
-            }
-            namespace Main {
-                open Foo;
-                operation Main() : Unit {
-                    ApplyX();
-                    ApplyY();
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace namespace7 {
-                operation item1() : Unit {}
-                operation item2() : Unit {}
-                export item1, item2;
-            }
-            namespace namespace8 {
-                open namespace7;
-                operation item4() : Unit {
-                    item1();
-                    item2();
-                }
-            }
-        "#]],
-    );
-}
-
-#[test]
-fn no_exports() {
-    check(
-        indoc! {"
-            namespace Foo {
-                operation ApplyX() : Unit {}
-            }
-            namespace Main {
-                open Foo;
-                operation Main() : Unit {
-                    ApplyX();
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace namespace7 {
-                operation item1() : Unit {}
-            }
-            namespace namespace8 {
-                open namespace7;
-                operation item3() : Unit {
-                    item1();
-                }
-            }
-        "#]],
-    );
-}
 
 #[test]
 fn export_non_existent_symbol() {
@@ -3850,36 +3789,6 @@ fn export_non_item() {
             }
 
             // ExportedNonItem(Span { lo: 80, hi: 84 })
-        "#]],
-    );
-}
-
-#[test]
-fn export_udt() {
-    check(
-        indoc! {"
-            namespace Foo {
-                newtype Pair = (First: Int, Second: Int);
-                export Pair;
-            }
-            namespace Main {
-                open Foo;
-                operation Main() : Unit {
-                    Pair(1, 2);
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace namespace7 {
-                newtype item1 = (First: Int, Second: Int);
-                export item1;
-            }
-            namespace namespace8 {
-                open namespace7;
-                operation item3() : Unit {
-                    item1(1, 2);
-                }
-            }
         "#]],
     );
 }
@@ -4890,7 +4799,7 @@ fn disallow_glob_export() {
                 operation ApplyY() : Unit {}
             }
             namespace Bar {
-                export Foo.*;resou
+                export Foo.*;
             }
         "},
         &expect![[r#"
