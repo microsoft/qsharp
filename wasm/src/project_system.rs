@@ -5,7 +5,7 @@
 use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::{linter::LintConfig, PackageStore};
+use qsc::{linter::LintConfig, LanguageFeatures, PackageStore};
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -458,9 +458,8 @@ pub(crate) fn into_qsc_args(
 }
 
 /// This returns the common parameters that the language service needs from the manifest
-pub(crate) fn into_project_args(project: IProjectConfig) -> qsls::LoadProjectResultInner {
-    let (sources, capabilities, features, store) = into_qsc_args(project, None);
-
+pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
+    let (sources, features, store) = into_package_graph_args(project.package_graph_sources);
     (
         project.project_name.into(),
         sources,
@@ -468,6 +467,12 @@ pub(crate) fn into_project_args(project: IProjectConfig) -> qsls::LoadProjectRes
         project.lints,
         store,
     )
+}
+
+fn into_package_graph_args(
+    package_graph: PackageGraphSources,
+) -> (qsc::SourceMap, qsc::LanguageFeatures, qsc::PackageStore) {
+    todo!()
 }
 
 #[derive(Debug)]
