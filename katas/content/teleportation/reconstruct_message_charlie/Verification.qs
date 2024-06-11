@@ -5,7 +5,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
     
     operation ReconstructMessageWhenThreeEntangledQubitsTestLoop(
-        reconstructmessagewhenthreeentangledqubits : (Qubit, (Bool, Bool), Bool) => Unit
+        reconstructMessage : (Qubit, (Bool, Bool), Bool) => Unit
     ) : Bool {
         
         let setupPsiOps = [(I, "|0⟩"), (X, "|1⟩"), (H, "|+⟩"), (Ry(ArcCos(0.6) * 2.0, _), "0.6|0⟩ + 0.8|1⟩")];
@@ -18,7 +18,7 @@ namespace Kata.Verification {
                 EntangleThreeQubitsWrapper_Reference([qAlice, qBob, qCharlie]);
                 let (b1, b2) = SendMessage_Reference(qAlice, qMessage);
                 let b3 = ResultAsBool(M(qBob));
-                reconstructmessagewhenthreeentangledqubits(qCharlie, (b1, b2), b3);
+                reconstructMessage(qCharlie, (b1, b2), b3);
                 Adjoint psiOp(qCharlie);
                 if not CheckZero(qCharlie) {
                     Message($"Incorrect. The state {psiName} was teleported incorrectly.");
@@ -31,7 +31,7 @@ namespace Kata.Verification {
                 ResetAll([qMessage, qAlice, qBob, qCharlie]);
             }
         }
-        Message($"Correct.");
+        Message($"Correct!");
         return true;
     }
 

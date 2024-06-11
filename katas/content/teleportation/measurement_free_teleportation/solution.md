@@ -1,7 +1,17 @@
-Requirement is to not perform any measurement and still achieve the goal of teleportation.
+Let's see how we can perform teleportation without using measurements.
 
-- Similar to `SendMessage` operation in previous exercise, perform $CNOT$ and Hadamard operation but this time without any measurement of `qMessage` or `qAlice` qubit.
-- Just like in case of `ReconstructMessage`, correction is required to effectively teleport the `qMessage` qubit. Substitute of measurement would be controlled operations and thus $Z$ gate is applied based on `qMessage` while $X$ gate is applied based on `qAlice`.
+We start similarly to the `SendMessage` operation in the earlier exercise, by applying a $CNOT$ gate followed by a Hadamard gate. After this, the state of the three-qubit system will be the same as it is in the regular teleportation protocol:
+
+$$\frac12 \left( \ket{00} (\alpha \ket{0} + \beta \ket{1}) + \ket{01} (\alpha \ket{1} + \beta \ket{0}) + \ket{10} (\alpha \ket{0} - \beta \ket{1}) + \ket{11} (\alpha \ket{1} - \beta \ket{0}) \right)$$
+
+Now, in the standard protocol we would measure the first two qubits to collapse the last one into one of superpositions involving coefficients $\alpha$ and $\beta$. Instead, let's see how we can adjust the state of the Bob's qubit to become $\alpha \ket{0} + \beta \ket{1}$ for each of the possible values of the first two qubits.
+
+To do this, we need to replace each measurement followed by a classically conditioned gate with a controlled gate:
+
+- The $Z$ gate applied based on the measurement result of `qMessage` becomes a Controlled $Z$ with `qMessage` as control and `qBob` as target.
+- The $X$ gate applied based on the measurement result of `qAlice` becomes a Controlled $Z$ with `qAlice` as control and `qBob` as target.
+
+You can check that these two gates convert Bob's qubit into the required state, and leave the first two qubits in an equal superposition of all basis states.
 
 @[solution]({
     "id": "teleportation__measurement_free_teleportation_solution",

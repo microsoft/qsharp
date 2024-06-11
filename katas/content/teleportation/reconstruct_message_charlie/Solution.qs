@@ -3,10 +3,7 @@ namespace Kata {
         if b1 {
             Z(qCharlie);
         }
-        if b2 {
-            X(qCharlie);
-        }
-        if b3 {
+        if b2 != b3 {
             X(qCharlie);
         }
     }

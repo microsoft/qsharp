@@ -1,4 +1,4 @@
-In this exercise apply the principle of deferred measurement to the teleportation circuit.
+In this exercise you will apply the principle of deferred measurement to the teleportation circuit.
 
 **Inputs:** 
 1. The two qubits `qAlice` and `qBob` in $\ket{\Phi^{+}}$ state.

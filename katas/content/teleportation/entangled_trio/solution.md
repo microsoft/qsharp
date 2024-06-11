@@ -1,8 +1,12 @@
-Observe the required state closely, $\ket{\Psi^{3}} = \frac{1}{2}(\ket{000}+\ket{011}+\ket{101}+\ket{110})$. Based on `qAlice` qubit, bell state of `qBob` and `qCharlie` is decided.
+We can represent the required state as follows:
 
-- Starting with $\ket{000}$, first step would be to entangle `qBob` and `qCharlie`. This can be done using Hadamard and $CNOT$ operations, similar to `Entangle` exercise. This gives the resultant state as $\frac{1}{\sqrt{2}}(\ket{000} + \ket{011})$
-- Applying Hadamard on `qAlice` qubit would give us the state as $\frac{1}{2}(\ket{000} + \ket{011} + \ket{100} + \ket{111})$.
-- Finally using $CNOT$, entanglement can be achieved between `qAlice` and `qBob` or `qAlice` and `qCharlie`. This would give the desired result in either of the cases. 
+$$\frac{1}{2}(\ket{000}+\ket{011}+\ket{101}+\ket{110}) = \frac1{\sqrt2} \left( \ket{0} \otimes \frac1{\sqrt2}(\ket{00} + \ket{11}) + \ket{1} \otimes \frac1{\sqrt2}(\ket{01} + \ket{10}) \right)$$
+ 
+In other words, depending on the state of qubit `qAlice`, the other two qubits are prepared in one of the Bell states.
+
+- Starting with $\ket{000}$, the first step is to prepare `qBob` and `qCharlie` in the Bell state $\frac{1}{\sqrt{2}}(\ket{00} + \ket{11})$. This can be done using Hadamard and $CNOT$ operations, similar to the `Entangle` exercise. This gives the resultant state as $\frac{1}{\sqrt{2}}(\ket{000} + \ket{011})$.
+- After this, applying a Hadamard gate to `qAlice` qubit gives us the state as $\frac{1}{2}(\ket{000} + \ket{011} + \ket{100} + \ket{111})$.
+- Finally, we need to adjust the basis states for which `qAlice` is in the $\ket{1}$ state, flipping the Bell state we have on the other two qubits to a different one. We can do this using a $CNOT$ gate with `qAlice` as control and either `qBob` or `qCharlie` as target.
 
 @[solution]({
     "id": "teleportation__entangled_trio_solution",

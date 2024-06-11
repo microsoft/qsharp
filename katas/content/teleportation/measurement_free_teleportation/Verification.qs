@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
     
     operation MeasurementFreeTeleportTestLoop(
-        measurementfreeteleport : (Qubit, Qubit, Qubit) => Unit
+        measurementFreeTeleport : (Qubit, Qubit, Qubit) => Unit
     ) : Bool {
         let setupPsiOps = [(I, "|0⟩"), (X, "|1⟩"), (H, "|+⟩"), (Ry(ArcCos(0.6) * 2.0, _), "0.6|0⟩ + 0.8|1⟩")];
         let numRepetitions = 100;
@@ -13,7 +13,7 @@ namespace Kata.Verification {
                 use (qMessage, qAlice, qBob) = (Qubit(), Qubit(), Qubit());
                 psiOp(qMessage);
                 StatePrep_BellState(qAlice, qBob, 0);
-                measurementfreeteleport(qAlice, qBob, qMessage);
+                measurementFreeTeleport(qAlice, qBob, qMessage);
                 Adjoint psiOp(qBob);
                 if not CheckZero(qBob) {
                     Message($"Incorrect. The state {psiName} was teleported incorrectly.");
@@ -27,7 +27,7 @@ namespace Kata.Verification {
             }
         }
 
-        Message("Correct.");
+        Message("Correct!");
         return true;
     }
 
