@@ -165,3 +165,40 @@ There are multiple variants of teleportation protocol that involve more than two
         "./Common.qs"
     ]
 })
+
+@[exercise]({
+    "id": "teleportation__entangled_trio",
+    "title": "Entangled Trio",
+    "path": "./entangled_trio",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message_charlie",
+    "title": "Reconstruct Message (Charlie's Task)",
+    "path": "./reconstruct_message_charlie",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[section]({
+    "id": "teleportation__principle_of_deferred_measurement",
+    "title": "Principle of Deferred Measurement"
+})
+
+The principle of deferred measurement claims that measurements can be moved from an intermediate stage of a quantum circuit to the end of the circuit. If the measurement results are used to perform classically controlled operations (the fixup done on Bob's side), they can be replaced by controlled quantum operations.
+
+@[exercise]({
+    "id": "teleportation__measurement_free_teleportation",
+    "title": "Measurement-Free Teleportation",
+    "path": "./measurement_free_teleportation",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
