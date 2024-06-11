@@ -257,7 +257,7 @@ export function Editor(props: {
 
       performance.mark("update-document-start");
       await props.languageService.updateDocument(
-        srcModel.uri.toString(),
+        "code.qs",
         srcModel.getVersionId(),
         srcModel.getValue(),
       );

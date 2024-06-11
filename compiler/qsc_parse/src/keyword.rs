@@ -41,6 +41,7 @@ pub enum Keyword {
     Mutable,
     Namespace,
     Newtype,
+    New,
     Not,
     One,
     Open,
@@ -54,6 +55,7 @@ pub enum Keyword {
     Return,
     Slf,
     Set,
+    Struct,
     True,
     Underscore,
     Until,
@@ -98,6 +100,7 @@ impl Keyword {
             Self::Mutable => "mutable",
             Self::Namespace => "namespace",
             Self::Newtype => "newtype",
+            Self::New => "new",
             Self::Not => "not",
             Self::One => "One",
             Self::Open => "open",
@@ -111,6 +114,7 @@ impl Keyword {
             Self::Return => "return",
             Self::Slf => "self",
             Self::Set => "set",
+            Self::Struct => "struct",
             Self::True => "true",
             Self::Underscore => "_",
             Self::Until => "until",
@@ -185,6 +189,10 @@ impl FromStr for Keyword {
             "until" => Ok(Self::Until),
             "repeat" => Ok(Self::Repeat),
             "fixup" => Ok(Self::Fixup),
+            // The next two are new keywords and their
+            // usage has yet to be measured.
+            "new" => Ok(Self::New),
+            "struct" => Ok(Self::Struct),
             // The next three were not found or measured
             // in the standard library for priority order.
             "PauliY" => Ok(Self::PauliY),

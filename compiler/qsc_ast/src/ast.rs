@@ -272,6 +272,8 @@ pub enum ItemKind {
     Open(Idents, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// A `struct` declaration.
+    Struct(Box<StructDecl>),
     /// An export declaration
     ImportOrExport(ImportOrExportDecl),
 }
@@ -286,6 +288,7 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Struct(s) => write!(f, "{s}")?,
             ItemKind::ImportOrExport(item) if item.is_export => write!(f, "Export ({item})")?,
             ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
         }
@@ -342,6 +345,22 @@ pub struct TyDef {
     pub span: Span,
     /// The type definition kind.
     pub kind: Box<TyDefKind>,
+}
+
+impl TyDef {
+    /// Returns true if the tye definition satisfies the conditions for a struct.
+    /// Conditions for a struct are that the `TyDef` is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match self.kind.as_ref() {
+            TyDefKind::Paren(inner) => inner.is_struct(),
+            TyDefKind::Tuple(fields) => fields
+                .iter()
+                .all(|field| matches!(field.kind.as_ref(), TyDefKind::Field(Some(_), _))),
+            TyDefKind::Err | TyDefKind::Field(..) => false,
+        }
+    }
 }
 
 impl Display for TyDef {
@@ -401,6 +420,70 @@ impl Display for TyDefKind {
             TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
+    }
+}
+
+/// A struct definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct StructDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the struct.
+    pub name: Box<Ident>,
+    /// The type definition kind.
+    pub fields: Box<[Box<FieldDef>]>,
+}
+
+impl Display for StructDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Struct {} {} ({}):", self.id, self.span, self.name)?;
+        if self.fields.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for field in &*self.fields {
+                write!(indent, "\n{field}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl WithSpan for StructDecl {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+/// A struct field definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct FieldDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the field.
+    pub name: Box<Ident>,
+    /// The type of the field.
+    pub ty: Box<Ty>,
+}
+
+impl Display for FieldDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldDef {} {} ({}): {}",
+            self.id, self.span, self.name, self.ty
+        )
+    }
+}
+
+impl WithSpan for FieldDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 
@@ -821,6 +904,8 @@ pub enum ExprKind {
     Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(Box<Path>, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -861,6 +946,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1072,6 +1158,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Path,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -1113,6 +1220,35 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Box<Ident>,
+    /// The value to assign to the field.
+    pub value: Box<Expr>,
+}
+
+impl WithSpan for FieldAssign {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// An interpolated string component.

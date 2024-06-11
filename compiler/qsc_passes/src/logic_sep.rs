@@ -186,6 +186,7 @@ impl SepCheck {
             | ExprKind::Index(..)
             | ExprKind::Lit(..)
             | ExprKind::Range(..)
+            | ExprKind::Struct(..)
             | ExprKind::String(..)
             | ExprKind::UpdateIndex(..)
             | ExprKind::Tuple(..)

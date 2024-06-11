@@ -3,8 +3,8 @@
 
 use crate::{
     ast::{
-        Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
+        Attr, Block, CallableDecl, Expr, FieldAssign, FunctorExpr, Ident, Item, Namespace, NodeId,
+        Package, Pat, Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
     },
     visit::{self, Visitor},
 };
@@ -63,6 +63,16 @@ impl Visitor<'_> for Validator {
         visit::walk_callable_decl(self, decl);
     }
 
+    fn visit_struct_decl(&mut self, decl: &'_ crate::ast::StructDecl) {
+        self.check(decl.id, decl);
+        visit::walk_struct_decl(self, decl);
+    }
+
+    fn visit_field_def(&mut self, def: &'_ crate::ast::FieldDef) {
+        self.check(def.id, def);
+        visit::walk_field_def(self, def);
+    }
+
     fn visit_spec_decl(&mut self, decl: &SpecDecl) {
         self.check(decl.id, decl);
         visit::walk_spec_decl(self, decl);
@@ -91,6 +101,11 @@ impl Visitor<'_> for Validator {
     fn visit_expr(&mut self, expr: &Expr) {
         self.check(expr.id, expr);
         visit::walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &FieldAssign) {
+        self.check(assign.id, assign);
+        visit::walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &Pat) {

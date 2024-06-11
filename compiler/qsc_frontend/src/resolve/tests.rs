@@ -924,6 +924,24 @@ fn ty_decl() {
 }
 
 #[test]
+fn struct_decl() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+                function B(a : A) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+                function item2(local11 : item1) : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn ty_decl_duplicate_error() {
     check(
         indoc! {"
@@ -939,6 +957,26 @@ fn ty_decl_duplicate_error() {
             }
 
             // Duplicate("A", "Foo", Span { lo: 50, hi: 51 })
+        "#]],
+    );
+}
+
+#[test]
+fn struct_decl_duplicate_error() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+                struct A { first : Bool }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+                struct item2 { first : Bool }
+            }
+
+            // Duplicate("A", "Foo", Span { lo: 43, hi: 44 })
         "#]],
     );
 }
@@ -962,6 +1000,24 @@ fn ty_decl_duplicate_error_on_built_in_ty() {
 }
 
 #[test]
+fn struct_decl_duplicate_error_on_built_in_ty() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                struct Pauli {}
+            }
+        "},
+        &expect![[r#"
+            namespace namespace4 {
+                struct item1 {}
+            }
+
+            // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 46, hi: 51 })
+        "#]],
+    );
+}
+
+#[test]
 fn ty_decl_in_ty_decl() {
     check(
         indoc! {"
@@ -980,6 +1036,24 @@ fn ty_decl_in_ty_decl() {
 }
 
 #[test]
+fn struct_decl_in_struct_decl() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+                struct B { a : A }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+                struct item2 { a : item1 }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn ty_decl_recursive() {
     check(
         indoc! {"
@@ -990,6 +1064,22 @@ fn ty_decl_recursive() {
         &expect![[r#"
             namespace namespace7 {
                 newtype item1 = item1;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_decl_recursive() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { a : A }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 { a : item1 }
             }
         "#]],
     );
@@ -1013,6 +1103,82 @@ fn ty_decl_cons() {
 
                 function item2() : item1 {
                     item1()
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_decl_call_cons() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+
+                function B() : A {
+                    A()
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+
+                function item2() : item1 {
+                    item1()
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_decl_cons() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+
+                function B() : A {
+                    new A {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+
+                function item2() : item1 {
+                    new item1 {}
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_decl_cons_with_fields() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A {}
+                struct B {}
+                struct C { a : A, b : B }
+
+                function D() : C {
+                    new C { a = new A {}, b = new B {} }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 {}
+                struct item2 {}
+                struct item3 { a : item1, b : item2 }
+
+                function item4() : item3 {
+                    new item3 { a = new item1 {}, b = new item2 {} }
                 }
             }
         "#]],
@@ -4724,7 +4890,7 @@ fn disallow_glob_export() {
                 operation ApplyY() : Unit {}
             }
             namespace Bar {
-                export Foo.*;
+                export Foo.*;resou
             }
         "},
         &expect![[r#"
