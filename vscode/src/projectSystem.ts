@@ -6,39 +6,11 @@ import * as vscode from "vscode";
 import { Uri } from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
-import { IPackageInfo, ProjectLoader } from "../../npm/qsharp/lib/web/qsc_wasm";
-
-/**
- * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
- * was malformed.
- */
-// async function getManifest(uri: string): Promise<
-//   | ({
-//       manifestDirectory: Uri;
-//       manifestUri: Uri;
-//     } & QSharpJsonManifest)
-//   | null
-// > {
-//   const manifestDocument = await findManifestDocument(uri);
-//   if (manifestDocument === null) {
-//     return null;
-//   }
-//   let result;
-//   try {
-//     result = await getManifestThrowsOnParseFailure(uri);
-//   } catch (e) {
-//     log.warn(
-//       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
-//       e,
-//     );
-//     updateQSharpJsonDiagnostics(
-//       manifestDocument.uri,
-//       "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-//     );
-//     return null;
-//   }
-//   return result;
-// }
+import {
+  IPackageInfo,
+  PackageKey,
+  ProjectLoader,
+} from "../../npm/qsharp/lib/web/qsc_wasm";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
@@ -273,7 +245,7 @@ export async function loadProjectInner(manifestDocument: {
     packages,
   };
 
-  log.info(
+  log.debug(
     `resolved package graph with sources: ${JSON.stringify(packageGraphSources, undefined, 2)}`,
   );
 
@@ -329,8 +301,8 @@ async function loadPackage(
   const dependencies = Object.keys(manifestDependencies).reduce(
     (aliasToKey: { [alias: string]: string }, alias) => {
       aliasToKey[alias] = getKeyForDependencyDefinition(
-        manifestDirectory,
         manifestDependencies[alias],
+        manifestDirectory,
       );
       return aliasToKey;
     },
@@ -351,6 +323,7 @@ type DependencyDefinition =
         owner: string;
         repo: string;
         ref: string;
+        path?: string;
       };
     }
   | {
@@ -367,8 +340,6 @@ interface QSharpJsonManifest {
     [alias: string]: DependencyDefinition;
   };
 }
-
-type PackageKey = string;
 
 async function collectLocalPackage(
   stack: PackageKey[],
@@ -391,9 +362,11 @@ async function collectLocalPackage(
 
   for (const alias in pkg.dependencies) {
     const depKey = pkg.dependencies[alias];
-    log.info(`adding dependency ${alias}: ${depKey} for package ${key}`);
+    log.trace(`adding dependency ${alias}: ${depKey} for package ${key}`);
 
     if (stack.includes(depKey)) {
+      // TODO: ok to disallow circular dependencies?
+      // Technically we could support them but it's a pain
       log.info(`circular dependency detected from ${depKey}`);
       errors.push(
         `Circular dependency detected: ${stack.join(" -> ")} -> ${depKey}`,
@@ -402,25 +375,30 @@ async function collectLocalPackage(
     }
 
     const dependencyDefinition = decodeDependencyDefinitionFromKey(depKey);
+    let depPkg: IPackageInfo | undefined;
+
     if ("github" in dependencyDefinition) {
-      throw new Error("support github");
+      depPkg = await collectGitHubPackage(
+        stack,
+        packages,
+        errors,
+        dependencyDefinition.github,
+      );
+    } else {
+      let depDirectory: Uri;
+
+      try {
+        depDirectory = Uri.parse(dependencyDefinition.path, true);
+      } catch (e) {
+        errors.push(
+          `Invalid path for dependency: ${dependencyDefinition.path}`,
+        );
+        continue;
+      }
+
+      depPkg = await collectLocalPackage(stack, packages, errors, depDirectory);
     }
 
-    let depDirectory: Uri;
-
-    try {
-      depDirectory = Uri.parse(dependencyDefinition.path, true);
-    } catch (e) {
-      errors.push(`Invalid path for dependency: ${dependencyDefinition.path}`);
-      continue;
-    }
-
-    const depPkg = await collectLocalPackage(
-      stack,
-      packages,
-      errors,
-      depDirectory,
-    );
     if (depPkg) {
       packages[depKey] = depPkg;
     }
@@ -432,6 +410,81 @@ async function collectLocalPackage(
   return pkg;
 }
 
+async function collectGitHubPackage(
+  stack: PackageKey[],
+  packages: Record<PackageKey, IPackageInfo>,
+  errors: string[],
+  github: {
+    owner: string;
+    repo: string;
+    ref: string;
+    path?: string;
+  },
+): Promise<IPackageInfo | undefined> {
+  const key = getKeyForDependencyDefinition({ github });
+
+  const result = await readGithubManifestAndSources(key, github);
+
+  if ("error" in result) {
+    errors.push(result.error);
+    return undefined;
+  }
+
+  const { packageInfo: pkg } = result;
+
+  stack.push(key);
+
+  for (const alias in pkg.dependencies) {
+    const depKey = pkg.dependencies[alias];
+    log.trace(`adding dependency ${alias}: ${depKey} for package ${key}`);
+
+    if (stack.includes(depKey)) {
+      // TODO: ok to disallow circular dependencies?
+      // Technically we could support them but it's a pain
+      log.info(`circular dependency detected from ${depKey}`);
+      errors.push(
+        `Circular dependency detected: ${stack.join(" -> ")} -> ${depKey}`,
+      );
+      continue;
+    }
+
+    const dependencyDefinition = decodeDependencyDefinitionFromKey(depKey);
+    let depPkg: IPackageInfo | undefined;
+
+    if ("github" in dependencyDefinition) {
+      depPkg = await collectGitHubPackage(
+        stack,
+        packages,
+        errors,
+        dependencyDefinition.github,
+      );
+    } else {
+      let depDirectory: Uri;
+
+      try {
+        depDirectory = Uri.parse(dependencyDefinition.path, true);
+      } catch (e) {
+        errors.push(
+          `Invalid path for dependency: ${dependencyDefinition.path}`,
+        );
+        continue;
+      }
+
+      depPkg = await collectLocalPackage(stack, packages, errors, depDirectory);
+    }
+
+    if (depPkg) {
+      packages[depKey] = depPkg;
+    }
+
+    // TODO: absolute paths
+    // TODO: os-specific slashes
+  }
+  stack.pop();
+  return pkg;
+}
+
+// TODO: what's the point of caching local deps? when do we invalidate?
 const globalCache: Record<
   PackageKey,
   | {
@@ -442,10 +495,16 @@ const globalCache: Record<
       error: string;
     }
 > = {};
-async function readManifestAndSources(key: PackageKey, directory: vscode.Uri) {
+async function readManifestAndSources(
+  key: PackageKey,
+  directory: vscode.Uri,
+): Promise<
+  | { manifest: QSharpJsonManifest; packageInfo: IPackageInfo }
+  | { error: string }
+> {
   const cached = globalCache[key];
   if (cached) {
-    log.info(`package ${key} already in cache`);
+    log.trace(`package ${key} already in cache`);
     return cached;
   }
 
@@ -471,39 +530,227 @@ async function readManifestAndSources(key: PackageKey, directory: vscode.Uri) {
     manifest,
   };
 
-  log.info(`adding package ${key} to cache`);
+  log.trace(`adding package ${key} to cache`);
   globalCache[key] = pkg;
   return pkg;
 }
 
-function getKeyForDependencyDefinition(
-  fromDirectory: Uri,
-  dependencyDefinition: DependencyDefinition,
-): string {
-  if ("github" in dependencyDefinition) {
-    // TODO: github
-    // TODO: add some kind of limit in case someone wants to DOS the extension with 1000000 dependencies
-    // TODO: github projects shouldn't contain local references
-    throw new Error("GitHub dependencies are not supported yet");
+async function readGithubManifestAndSources(
+  key: PackageKey,
+  github: { owner: string; repo: string; ref: string; path?: string },
+): Promise<
+  | { manifest: QSharpJsonManifest; packageInfo: IPackageInfo }
+  | { error: string }
+> {
+  const cached = globalCache[key];
+  if (cached) {
+    log.trace(`package ${key} already in cache`);
+    return cached;
   }
-  const absoluteDir = Utils.resolvePath(
-    fromDirectory,
-    dependencyDefinition.path,
+
+  // https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28#get-a-tree
+  // curl -L \
+  //   -H "Accept: application/vnd.github+json" \
+  //   -H "Authorization: Bearer <YOUR-TOKEN>" \
+  //   -H "X-GitHub-Api-Version: 2022-11-28" \
+  //   https://api.github.com/repos/OWNER/REPO/git/trees/TREE_SHA
+  const response = await fetch(
+    `https://api.github.com/repos/${github.owner}/${github.repo}/git/trees/${github.ref}?recursive=1`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/vnd.github.raw+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    },
   );
-  // TODO: terribly malformed paths?
-  const key = getKeyForLocalPackage(absoluteDir);
-  log.info(
-    `getKeyForDependencyDefinition: ${fromDirectory.toString()},${JSON.stringify(dependencyDefinition)} -> ${key}`,
+  log.info(`fetching github dependency ${key}`);
+  if (!response.ok) {
+    globalCache[key] = {
+      error: `Failed to fetch github dependency ${key}: ${response.status} ${response.statusText}`,
+    };
+    return globalCache[key];
+  }
+
+  const res = await response.json();
+  log.info(`got tree: ${JSON.stringify(res)}`);
+  const tree = res.tree as {
+    path: string;
+    mode: string;
+    type: string;
+    sha: string;
+    url: string;
+  }[];
+  const subtree = tree.filter((entry) =>
+    entry.path.startsWith(github.path ?? ""),
+  );
+  const qsharpJsonPath = (github.path ?? "") + "qsharp.json";
+  const qsharpJsonEntry = subtree.find(
+    (entry) => entry.path === qsharpJsonPath,
+  );
+
+  if (!qsharpJsonEntry) {
+    globalCache[key] = {
+      // TODO: unacceptable! handle large trees (maybe by requiring sign in)
+      error: res.truncated
+        ? `${key} has too many files, try with a smaller repo`
+        : `No qsharp.json found for dependency ${key}`,
+    };
+    return globalCache[key];
+  }
+
+  const manifestContentsResponse = await fetch(qsharpJsonEntry.url, {
+    method: "GET",
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!manifestContentsResponse.ok) {
+    globalCache[key] = {
+      error: `Failed to fetch qsharp.json for dependency ${key}: ${manifestContentsResponse.status} ${manifestContentsResponse.statusText}`,
+    };
+    return globalCache[key];
+  }
+
+  log.info(`found manifest at ${qsharpJsonEntry.url}`);
+
+  let manifest: QSharpJsonManifest;
+  try {
+    const manifestContent = await manifestContentsResponse.text();
+    manifest = JSON.parse(manifestContent);
+  } catch (e) {
+    globalCache[key] = {
+      error: `Failed to parse qsharp.json for dependency ${key}: ${e}`,
+    };
+    return globalCache[key];
+  }
+
+  const srcPrefix = (github.path ?? "") + "src/";
+  const srcEntries = subtree.filter(
+    (entry) =>
+      entry.path.startsWith(srcPrefix) &&
+      entry.type === "blob" &&
+      entry.path.endsWith(".qs"),
+  );
+
+  log.info(`found sources ${JSON.stringify(srcEntries.map((s) => s.path))}`);
+
+  const sources: [string, string][] = [];
+
+  for (const srcEntry of srcEntries) {
+    const srcContentsResponse = await githubFetch(srcEntry.url);
+    if (!srcContentsResponse.ok) {
+      globalCache[key] = {
+        error: `Failed to fetch source file ${srcEntry.path}: ${srcContentsResponse.status} ${srcContentsResponse.statusText}`,
+      };
+      return globalCache[key];
+    }
+    const srcContents = await srcContentsResponse.text();
+
+    try {
+      // TODO: this doesn't yet work because of implicit namespaces and the way I hackily concatenate the sourcemaps
+      // const absolutePath = Uri.from({
+      //   scheme: "qsharp-github-source",
+      //   authority: key,
+      //   path: "/" + srcEntry.path,
+      // }).toString();
+      sources.push(["GitHub" + "/" + srcEntry.path, srcContents]);
+    } catch (e) {
+      globalCache[key] = {
+        error: `failed to create uri from ${key} and /${srcEntry.path}: ${e}`,
+      };
+      return globalCache[key];
+    }
+  }
+
+  const dependencies: { [alias: string]: PackageKey } = {};
+  const manifestDependencies = manifest.dependencies || {};
+  for (const alias in Object.keys(manifestDependencies)) {
+    if ("path" in manifestDependencies[alias]) {
+      globalCache[key] = {
+        error: `Local dependencies not supported for github dependencies - package ${key}, dependency ${alias}`,
+      };
+      return globalCache[key];
+    }
+
+    dependencies[alias] = getKeyForDependencyDefinition(
+      manifestDependencies[alias],
+    );
+  }
+
+  const packageInfo = {
+    sources,
+    languageFeatures: manifest.languageFeatures || [],
+    dependencies,
+  };
+  log.debug(
+    `resolved package info for dep ${key}: ${JSON.stringify(packageInfo)}`,
+  );
+  const pkg = {
+    packageInfo,
+    manifest,
+  };
+
+  log.trace(`adding package ${key} to cache`);
+  globalCache[key] = pkg;
+  return pkg;
+}
+
+async function githubFetch(url: string) {
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+
+  if (!resp.ok) {
+    log.warn(`githubFetch: ${url} -> ${resp.status} ${resp.statusText}`);
+  }
+
+  resp.headers.forEach((value, name) => {
+    log.info(`githubFetch response header: ${name}: ${value}`);
+  });
+
+  return resp;
+}
+
+function getKeyForDependencyDefinition(
+  dependencyDefinition: DependencyDefinition,
+  fromDirectory?: Uri,
+): string {
+  const key =
+    "github" in dependencyDefinition
+      ? (() => {
+          return JSON.stringify(dependencyDefinition);
+          // TODO: add some kind of limit in case someone wants to DOS the extension with 1000000 dependencies
+          // TODO: github projects shouldn't contain local references
+        })()
+      : (() => {
+          // Needs to be canonical
+          const absoluteDir = Utils.resolvePath(
+            fromDirectory!,
+            dependencyDefinition.path,
+          );
+
+          // TODO: terribly malformed paths?
+          return getKeyForLocalPackage(absoluteDir);
+        })();
+
+  log.trace(
+    `getKeyForDependencyDefinition: ${fromDirectory?.toString()},${JSON.stringify(dependencyDefinition)} -> ${key}`,
   );
   return key;
 }
 
-function getKeyForLocalPackage(absoluteDir: URI) {
-  return absoluteDir.toString();
+function getKeyForLocalPackage(absoluteDir: URI): PackageKey {
+  return JSON.stringify({ path: absoluteDir.toString() });
 }
 
 function decodeDependencyDefinitionFromKey(key: string): DependencyDefinition {
-  log.info(`decodeDependencyDefinitionFromKey: ${key} -> { path: ${key} }`);
+  log.trace(`decodeDependencyDefinitionFromKey: ${key} -> { path: ${key} }`);
   // TODO: support github keys
-  return { path: key };
+  return JSON.parse(key);
 }

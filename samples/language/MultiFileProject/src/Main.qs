@@ -12,12 +12,17 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
 
-        // TODO: This is a hacky way of referencing the dependency for now -
+        // TODO: This is a hacky way of referencing the dependencies for now -
         // I'm just pulling in all the sources into the same compilation
 
+        // these are coming from local deps
         DependencyA.MagicFunction();
         DependencyB.MagicFunction();
         DependencyC.MagicFunction();
+
+        // this is coming from github - sezna/qsharp-project-template
+        // obviously namespace is all sorts of wonky but it's ok for now
+        src.Diagnostics.DumpMachine_();
 
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);

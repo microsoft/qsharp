@@ -308,9 +308,12 @@ serializable_type! {
         pub root: PackageInfo,
         pub packages: FxHashMap<PackageKey,PackageInfo>,
     },
-    r#"export interface IPackageGraphSources {
+    r#"
+    export type PackageKey = string;
+
+    export interface IPackageGraphSources {
         root: IPackageInfo;
-        packages: Record<string,IPackageInfo>;
+        packages: Record<PackageKey,IPackageInfo>;
     }"#,
     IPackageGraphSources
 }
