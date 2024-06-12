@@ -1,10 +1,10 @@
-Like in the previous solution, we are looking for the index Q where the two bit strings differ. Let's define a function `FindFirstSuperpositionDiff()` which searches for an index Q which has 2 properties:
+Like in the previous solution, we are looking for the index Q where the two bit strings differ. Let's define a function `FindFirstSuperpositionDiff()` which searches for an index Q which has two properties:
 
 1. The value of all arrays in `bits1` at the index Q is either `true` or `false`, and the value of all arrays in `bits2` at the index Q is either `true` or `false`. If this is not the case, you cannot be sure that measuring the corresponding qubit will always return the same result.
-2. This value is different for `bits1` and `bits2`.
-> Indeed, if you want to distinguish states $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$ and $\frac{1}{\sqrt2}\big(\ket{000} + \ket{001}\big)$, there are two qubits that will produce a fixed measurement result for each state - the first one and the second one. However, measuring the first qubit will give $0$ for both states, while measuring the second qubit will give $1$ for the first state and $0$ for the second state, allowing to distinguish the states.
+   > For example, if you are given the state $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$, and if you measure the third qubit, $50\%$ of the time you will get $0$ and $50\%$ of the time $1$, therefore to get reliable information you want to measure one of the first two qubits.
 
-> For example, if you are given the state $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$, and if you measure the third qubit, $50\%$ of the time you will get $0$ and $50\%$ of the time $1$, therefore to get reliable information you want to measure one of the first two qubits.
+2. This value is different for `bits1` and `bits2`.
+   > Indeed, if you want to distinguish states $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$ and $\frac{1}{\sqrt2}\big(\ket{000} + \ket{001}\big)$, there are two qubits that will produce a fixed measurement result for each state - the first one and the second one. However, measuring the first qubit will give $0$ for both states, while measuring the second qubit will give $1$ for the first state and $0$ for the second state, allowing to distinguish the states.
 
 To do this, we will iterate over all qubit indices, and for each of them we'll calculate the number of 1s in that position in `bits1` and `bits2`.
 

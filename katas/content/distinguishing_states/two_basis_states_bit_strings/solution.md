@@ -1,4 +1,4 @@
-To solve this task we will use two steps. Like many other programming languages, Q# allows you to write functions to make code more readable and reusable.
+To solve this task, we will use two steps. Like many other programming languages, Q# allows you to write functions to make code more readable and reusable.
 
 The first step is to find first bit that differs between bit strings `bit1` and `bit2`. For that we define a function `FindFirstDiff()` which loops through both `Bool[]`s and returns the first index where the bit strings differ.
 

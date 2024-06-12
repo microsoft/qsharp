@@ -12,11 +12,12 @@ You are guaranteed that there exists an index of a qubit Q for which:
 * all the bit strings in the first array have the same value in this position (all `bits1[j][Q]` are the same),
 * all the bit strings in the second array have the same value in this position (all `bits2[j][Q]` are the same),
 * these values are different for the first and the second arrays.
-> For example, for arrays `[[false, true, false], [false, true, true]]` and `[[true, false, true], [false, false, true]]` return 0 corresponds to state $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$, return 1 corresponds to state $\frac{1}{\sqrt2}\big(\ket{101} + \ket{001}\big)$, and you can distinguish these states perfectly by measuring the second qubit.
 
 **Output:**
 
 * 0 if qubits were in the superposition state described by the first array,
 * 1 if they were in the superposition state described by the second array.
+
+> For example, for arrays `[[false, true, false], [false, true, true]]` and `[[true, false, true], [false, false, true]]` return 0 corresponds to state $\frac{1}{\sqrt2}\big(\ket{010} + \ket{011}\big)$, return 1 corresponds to state $\frac{1}{\sqrt2}\big(\ket{101} + \ket{001}\big)$, and you can distinguish these states perfectly by measuring the second qubit.
 
 **You are allowed to use exactly one measurement.** The state of the qubits at the end of the operation does not matter.

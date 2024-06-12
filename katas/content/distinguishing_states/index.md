@@ -71,7 +71,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__two_basis_states_bit_strings",
-    "title": "Distinguish Two Basis States Given By Bit Strings",
+    "title": "Distinguish Two Basis States Given by Bit Strings",
     "path": "./two_basis_states_bit_strings/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -81,7 +81,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__two_superposition_states_bit_strings_one",
-    "title": "Distinguish Two Superposition States Given By Two Arrays Of Bit Strings - 1 Measurement",
+    "title": "Distinguish Two States Given by Two Arrays of Bit Strings in One Measurement",
     "path": "./two_superposition_states_bit_strings_one/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -91,7 +91,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[exercise]({
     "id": "distinguishing_states__two_superposition_states_bit_strings",
-    "title": "Distinguish Two Superposition States Given By Two Arrays Of Bit Strings",
+    "title": "Distinguish Two States Given by Two Arrays of Bit Strings",
     "path": "./two_superposition_states_bit_strings/",
     "qsDependencies": [
         "../KatasLibrary.qs",

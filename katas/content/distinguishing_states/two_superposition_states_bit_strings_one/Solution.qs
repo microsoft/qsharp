@@ -16,7 +16,7 @@ namespace Kata {
                     set val2 += 1;
                 }
             }
-            if ((val1 == Length(bits1) and val2 == 0) or (val1 == 0 and val2 == Length(bits2))) {
+            if (val1 == Length(bits1) and val2 == 0) or (val1 == 0 and val2 == Length(bits2)) {
                 return i;
             }
         }

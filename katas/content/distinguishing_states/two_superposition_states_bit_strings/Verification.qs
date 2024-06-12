@@ -17,9 +17,7 @@ namespace Kata.Verification{
                                      Kata.SuperpositionMeasurement(_, bits1, bits2), false,
                                      stateNames);
 
-        if isCorrect {
-            Message("Correct!");
-        } else{
+        if not isCorrect {
             Message($"Incorrect for: [{stateNames[0]}, {stateNames[1]}]")
         }
 
@@ -27,61 +25,24 @@ namespace Kata.Verification{
     }
 
     operation CheckSolution () : Bool {
-        mutable isCorrect = true;
-
         // note that bit strings in the comments (big endian) are the reverse of the bit strings passed to the solutions (little endian)
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            2,
-            [2],  // [10]
-            [1]
-        ); // [01]
+        for (n, ints1, ints2) in [
+            (2, [2], [1]),                        // [10] vs [01]
+            (2, [2, 1], [3, 0]),                  // [10,01] vs [11,00]
+            (2, [2], [3, 0]),                     // [10] vs [11,00]
+            (2, [1, 2], [3]),                     // [01,10] vs [11]
+            (3, [5, 7], [2]),                     // [101,111] vs [010]
+            (4, [15, 6], [0, 14]),                // [1111,0110] vs [0000,1110]
+            (4, [15, 7], [0, 8, 10, 13]),         // [1111,0111] vs [0000,1000,1010,1101]
+            (4, [13, 11, 7, 3], [2, 5]),          // [1101,1011,0111,0011] vs [0010,0101]
+            (5, [30, 14, 10, 7], [1, 17, 21, 27]) // [11110,01110,01010,00111] vs [00001,10001,10101,11011]
+        ] {
+            if not CheckSuperpositionBitstringsMeasurement(n, ints1, ints2) {
+                return false;
+            }
+        }
 
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            2,
-            [2,1], // [10,01]
-            [3,0] // [11,00]
-        );
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            2,
-            [2],    // [10]
-            [3,0]) // [11,00]
-        ;
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            4,
-            [15,6], // [1111,0110]
-            [0,14] // [0000,1110]
-        );
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            4,
-            [15,7],      // [1111,0111]
-            [0,8,10,13] // [0000,1000,1010,1101]
-        );
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            5,
-            [30,14,10,7], // [11110,01110,01010,00111]
-            [1,17,21,27] // [00001,10001,10101,11011]
-        );
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            2,
-            [2,1], // [10,01]
-            [3] // [11]
-        );
-
-        set isCorrect = isCorrect and CheckSuperpositionBitstringsMeasurement(
-            3,
-            [7,5], // [111,101]
-            [2] // [010]
-        );
-
-        return isCorrect and CheckSuperpositionBitstringsMeasurement(
-            4,
-            [13,11,7,3], // [1101,1011,0111,0011]
-            [5,2] // [0101,0010]
-        );
+        Message("Correct!");
+        true
     }
 }
