@@ -128,6 +128,24 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     ]
 })
 
+@[exercise]({
+    "id": "marking_oracles__bit_sum_div_3",
+    "title": "Bit Sum Divisible By 3",
+    "path": "./bit_sum_div_3/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "marking_oracles__num_div_3",
+    "title": "Number Divisible By 3",
+    "path": "./num_div_3/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "marking_oracles__conclusion",
     "title": "Conclusion"
