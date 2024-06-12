@@ -39,7 +39,6 @@ fn name_value_attr(name: &str, value: &str) -> Attr {
                 kind: Box::new(ExprKind::Path(Box::new(Path {
                     id: NodeId::default(),
                     span: Span::default(),
-                    leading_expr: None,
                     namespace: None,
                     name: Box::new(Ident {
                         name: value.into(),

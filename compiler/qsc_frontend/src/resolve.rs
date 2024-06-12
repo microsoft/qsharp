@@ -603,13 +603,9 @@ impl Resolver {
                 Ok(res) if matches!(res, Res::Local(_)) => {
                     // The Path is a Field Accessor
                     self.names.insert(first.id, res);
-                    return;
+                    return Ok(res);
                 }
-                Err(err) if !matches!(err, Error::NotFound(_, _)) => {
-                    // Local was found but has issues
-                    self.errors.push(err);
-                    return;
-                }
+                Err(err) if !matches!(err, Error::NotFound(_, _)) => return Err(err), // Local was found but has issues
                 _ => {} // The Path is assumed to not be a Field Accessor, so move on to process it as a regular Path
             }
         }

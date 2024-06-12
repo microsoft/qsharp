@@ -107,7 +107,6 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     Ok(Box::new(Path {
         id: NodeId::default(),
         span: s.span(lo),
-        leading_expr: None,
         namespace,
         name,
     }))

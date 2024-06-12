@@ -1422,8 +1422,6 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// Optional leading expression.
-    pub leading_expr: Option<Box<Expr>>,
     /// The namespace.
     pub namespace: Option<Idents>,
     /// The declaration name.
@@ -1879,7 +1877,7 @@ pub enum SetOp {
     Intersect,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 /// Represents an export declaration.
 pub struct ImportOrExportDecl {
     /// The span.
@@ -1932,7 +1930,7 @@ impl ImportOrExportDecl {
 }
 
 /// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct ImportOrExportItem {
     /// The path to the item being exported.
     pub path: Path,
