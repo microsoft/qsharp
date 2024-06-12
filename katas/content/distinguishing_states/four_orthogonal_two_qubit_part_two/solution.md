@@ -6,7 +6,7 @@ It is a lot harder to recognize the necessary transformation, though. The coeffi
   <tr>
     <th>Basis state</th>
     <th>Bell state</th>
-    <th>Input state (after applying $H$ gate to the second qubit)</th>
+    <th>State after applying $H$ gate</th>
     <th>Return value</th>
   </tr>
   <tr>
