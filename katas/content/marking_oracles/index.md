@@ -103,7 +103,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__contains_substring",
-    "title": "Contains Substring",
+    "title": "Does Bit String Contain Substring?",
     "path": "./contains_substring/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -112,7 +112,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__balanced",
-    "title": "0s and 1s Balanced",
+    "title": "Is Bit String Balanced?",
     "path": "./balanced/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -121,7 +121,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__majority",
-    "title": "0s or 1s Majority",
+    "title": "Majority Function",
     "path": "./majority/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -130,7 +130,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__bit_sum_div_3",
-    "title": "Bit Sum Divisible By 3",
+    "title": "Is Bit Sum Divisible by 3?",
     "path": "./bit_sum_div_3/",
     "qsDependencies": [
         "../KatasLibrary.qs"
@@ -139,7 +139,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__num_div_3",
-    "title": "Number Divisible By 3",
+    "title": "Is Number Divisible by 3?",
     "path": "./num_div_3/",
     "qsDependencies": [
         "../KatasLibrary.qs"
