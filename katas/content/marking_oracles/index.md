@@ -112,7 +112,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__balanced",
-    "title": "0s and 1s Balanced",
+    "title": "Is Bit String Balanced?",
     "path": "./balanced/",
     "qsDependencies": [
         "../KatasLibrary.qs"
