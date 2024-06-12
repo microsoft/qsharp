@@ -16,9 +16,9 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, Ty},
 };
-use std::{clone::Clone, rc::Rc, str::FromStr, vec};
+use std::{clone::Clone, iter, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -535,7 +535,7 @@ impl With<'_> {
                     .generics
                     .get(expr.id)
                     .map_or(Vec::new(), Clone::clone);
-                hir::ExprKind::Var(self.lower_path(path), args)
+                self.lower_path(path, args)
             }
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -549,7 +549,7 @@ impl With<'_> {
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
             ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
-                self.lower_path(name),
+                self.node_id_to_res(name.id),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
                     .iter()
@@ -754,13 +754,80 @@ impl With<'_> {
         }
     }
 
-    fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.names.get(path.id) {
+    fn node_id_to_res(&mut self, id: ast::NodeId) -> hir::Res {
+        match self.names.get(id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }
+    }
+
+    fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
+        // fn node_id_to_res(with: &mut With, id: ast::NodeId) -> hir::Res {
+        //     match with.names.get(id) {
+        //         Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
+        //         Some(&resolve::Res::Local(node)) => hir::Res::Local(with.lower_id(node)),
+        //         Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
+        //         | None => hir::Res::Err,
+        //     }
+        // }
+
+        if let Some(parts) = &path.namespace {
+            let parts: Vec<ast::Ident> = parts.into();
+            let (first, rest) = parts
+                .split_first()
+                .expect("path should have at least one part");
+            // This is the indication that the path is a field accessor
+            if self.names.contains_key(first.id) {
+                let lo = first.span.lo;
+                let mut kind = hir::ExprKind::Var(self.node_id_to_res(first.id), Vec::new());
+                let mut prev = first;
+                for part in rest.iter().chain(iter::once(path.name.as_ref())) {
+                    let prev_expr = hir::Expr {
+                        id: self.assigner.next_node(),
+                        span: Span {
+                            lo,
+                            hi: prev.span.hi,
+                        },
+                        ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
+                        kind,
+                    };
+                    let field = self.lower_field(&prev_expr.ty, &part.name);
+                    kind = hir::ExprKind::Field(Box::new(prev_expr), field);
+                    prev = part;
+                }
+                return kind;
+
+                // let mut expr = hir::Expr {
+                //     id: self.assigner.next_node(),
+                //     span: Span {
+                //         lo,
+                //         hi: first.span.hi,
+                //     },
+                //     ty: self.tys.terms.get(first.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
+                //     kind,
+                // };
+                // for part in rest {
+                //     let field = self.lower_field(&expr.ty, &part.name);
+                //     let kind = hir::ExprKind::Field(Box::new(expr), field);
+                //     expr = hir::Expr {
+                //         id: self.assigner.next_node(),
+                //         span: Span {
+                //             lo,
+                //             hi: part.span.hi,
+                //         },
+                //         ty: self.tys.terms.get(part.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
+                //         kind,
+                //     };
+                // }
+                // let field = self.lower_field(&expr.ty, &path.name.name);
+                // return hir::ExprKind::Field(Box::new(expr), field);
+            }
+        }
+
+        // if path is not field accessor, it is regular path
+        hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args)
     }
 
     fn lower_ident(&mut self, ident: &ast::Ident) -> hir::Ident {

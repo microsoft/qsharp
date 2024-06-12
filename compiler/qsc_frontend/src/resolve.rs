@@ -431,6 +431,35 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
 
+        // ToDo: only grab the scopes once
+        //let scopes = self.locals.get_scopes(&self.curr_scope_chain);
+
+        if let (NameKind::Term, Some(parts)) = (kind, namespace) {
+            let parts: Vec<ast::Ident> = parts.into();
+            let first = parts
+                .first()
+                .expect("path `parts` should have at least one element");
+            match resolve(
+                NameKind::Term,
+                &self.globals,
+                self.locals.get_scopes(&self.curr_scope_chain),
+                first,
+                &None,
+            ) {
+                Ok(res) if matches!(res, Res::Local(_)) => {
+                    // The Path is a Field Accessor
+                    self.names.insert(first.id, res);
+                    return;
+                }
+                Err(err) if !matches!(err, Error::NotFound(_, _)) => {
+                    // Local was found but has issues
+                    self.errors.push(err);
+                    return;
+                }
+                _ => {} // The Path is assumed to not be a Field Accessor, so move on to process it as a regular Path
+            }
+        }
+
         match resolve(
             kind,
             &self.globals,
