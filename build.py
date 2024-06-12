@@ -283,7 +283,7 @@ def run_python_integration_tests(test_dir, interpreter):
         command_args = [interpreter, "-m", "pytest"]
         subprocess.run(command_args, check=True, text=True, cwd=test_dir)
     else:
-        print("Could not import qir-runn, skipping QIR integration tests")
+        print("Could not import qir-runner, skipping QIR integration tests")
 
 
 def run_python_qir_tests(qir_test_dir, interpreter):
@@ -326,6 +326,7 @@ if build_pip:
         run_python_qir_tests(os.path.join(pip_src, "tests-qir"), python_bin)
 
     if args.integration_tests:
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
         run_python_integration_tests(
             os.path.join(pip_src, "tests-integration"), python_bin
         )
