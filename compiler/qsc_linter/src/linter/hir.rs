@@ -123,7 +123,7 @@ macro_rules! declare_hir_lints {
         use serde::{Deserialize, Serialize};
 
         /// An enum listing all existing HIR lints.
-        #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
         #[serde(rename_all = "camelCase")]
         pub enum HirLint {
             $(

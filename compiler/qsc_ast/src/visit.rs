@@ -118,6 +118,14 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
             vis.visit_ty_def(def);
         }
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
+        ItemKind::ImportOrExport(decl) => {
+            for item in decl.items.iter() {
+                vis.visit_path(&item.path);
+                if let Some(ref alias) = item.alias {
+                    vis.visit_ident(alias);
+                }
+            }
+        }
     }
 }
 

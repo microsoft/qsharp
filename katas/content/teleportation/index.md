@@ -111,9 +111,9 @@ As a reminder, the standard teleportation protocol requires shared qubits in sta
 In each exercise, the inputs are:
 
 1. Bob's part of the entangled pair of qubits `qBob`.
-2. The tuple of classical bits received from Alice, in the format used in `SendMessage` exercise.
+2. The tuple of classical bits received from Alice, in the format used in the `SendMessage` exercise.
 
-The goal is to transform Bob's qubit `qBob` into the state in which the message qubit had been originally.
+The goal is to transform Bob's qubit `qBob` into the state in which the message qubit has been originally.
 
 @[exercise]({
     "id": "teleportation__reconstruct_message_phi_minus",
@@ -165,3 +165,51 @@ There are multiple variants of teleportation protocol that involve more than two
         "./Common.qs"
     ]
 })
+
+@[exercise]({
+    "id": "teleportation__entangled_trio",
+    "title": "Entangled Trio",
+    "path": "./entangled_trio",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "teleportation__reconstruct_message_charlie",
+    "title": "Reconstruct Message (Charlie's Task)",
+    "path": "./reconstruct_message_charlie",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[section]({
+    "id": "teleportation__principle_of_deferred_measurement",
+    "title": "Principle of Deferred Measurement"
+})
+
+The principle of deferred measurement claims that measurements can be moved from an intermediate stage of a quantum circuit to the end of the circuit. If the measurement results are used to perform classically controlled operations (such as the fixup done on Bob's side), they can be replaced by controlled quantum operations.
+
+The principle of deferred measurement is typically considered in the context of quantum computations rather than quantum communication protocols such as teleportation protocol. It requires that qubits involved in all parts of the protocol are close enough physically to allow performing multi-qubit gates on them, and in teleportation protocol Alice's and Bob's qubits are separated by physical distance. Otherwise, it would be trivial to use a $SWAP$ gate to swap the state Alice's message qubit with Bob's qubit to achieve the goal of teleportation protocol!
+
+However, teleportation protocol makes for a nice simple example of applying the principle of deferred measurement to modify the computation, so there is some merit to considering it.
+
+@[exercise]({
+    "id": "teleportation__measurement_free_teleportation",
+    "title": "Measurement-Free Teleportation",
+    "path": "./measurement_free_teleportation",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[section]({
+    "id": "teleportation__conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! In this kata you learned to implement teleportation protocol and several variants of this protocol that act under different assumptions.

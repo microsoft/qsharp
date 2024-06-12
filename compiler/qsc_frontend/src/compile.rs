@@ -514,8 +514,14 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
+    // bind all symbols in `add_local_package`
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
+
+    // bind all exported symbols in a follow-on step
+    resolver.bind_and_resolve_imports_and_exports(package);
+
+    // resolve all symbols
     resolver.with(assigner).visit_package(package);
     let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);

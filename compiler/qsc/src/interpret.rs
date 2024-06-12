@@ -964,11 +964,11 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
         match stmt_res.kind {
-            qsc_fir::fir::StmtKind::Expr(expr) | qsc_fir::fir::StmtKind::Local(_, _, expr) => {
+            fir::StmtKind::Expr(expr) | fir::StmtKind::Local(_, _, expr) => {
                 self.add_stmt(stmt_res);
                 visit::walk_expr(self, expr);
             }
-            qsc_fir::fir::StmtKind::Item(_) | qsc_fir::fir::StmtKind::Semi(_) => {
+            fir::StmtKind::Item(_) | fir::StmtKind::Semi(_) => {
                 self.add_stmt(stmt_res);
             }
         };

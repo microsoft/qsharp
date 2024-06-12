@@ -1586,3 +1586,12 @@ pub enum BinOp {
     /// Bitwise XOR: `^^^`.
     XorB,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Represents an export declaration.
+pub struct ExportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Vec<Idents>,
+}
