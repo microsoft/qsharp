@@ -135,7 +135,7 @@ macro_rules! declare_ast_lints {
         use serde::{Deserialize, Serialize};
 
         /// An enum listing all existing AST lints.
-        #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
         #[serde(rename_all = "camelCase")]
         pub enum AstLint {
             $(

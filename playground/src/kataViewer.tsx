@@ -6,13 +6,14 @@
 import { render } from "preact";
 import { useEffect } from "preact/hooks";
 
+// This viewer uses the html version of the katas bundle and MathJax, as quantum.microsoft.com does
 import {
   Exercise,
   ExplainedSolutionItem,
   Kata,
   Lesson,
   getAllKatas,
-} from "qsharp-lang";
+} from "qsharp-lang/katas";
 
 declare global {
   // The below are added by the MathJax and Highlight.js scripts
@@ -106,14 +107,14 @@ function LessonEl(props: { lesson: Lesson }) {
         switch (item.type) {
           case "text-content":
             return (
-              <div dangerouslySetInnerHTML={{ __html: item.asHtml }}></div>
+              <div dangerouslySetInnerHTML={{ __html: item.content }}></div>
             );
           case "question":
             return (
               <>
                 <h3>Question</h3>
                 <div
-                  dangerouslySetInnerHTML={{ __html: item.description.asHtml }}
+                  dangerouslySetInnerHTML={{ __html: item.description.content }}
                 />
                 <h3>Answer</h3>
                 {item.answer.items.map((answer) => (
@@ -138,7 +139,7 @@ function ExerciseEl(props: { exercise: Exercise }) {
   return (
     <>
       <h2>{"Exercise: " + item.title}</h2>
-      <div dangerouslySetInnerHTML={{ __html: item.description.asHtml }} />
+      <div dangerouslySetInnerHTML={{ __html: item.description.content }} />
       <pre>
         <code>{item.placeholderCode}</code>
       </pre>
@@ -155,7 +156,7 @@ function ExplainedSolution(props: { item: ExplainedSolutionItem }) {
   return (
     <div>
       {item.type === "text-content" ? (
-        <div dangerouslySetInnerHTML={{ __html: item.asHtml }}></div>
+        <div dangerouslySetInnerHTML={{ __html: item.content }}></div>
       ) : (
         <pre>
           <code>{item.code}</code>

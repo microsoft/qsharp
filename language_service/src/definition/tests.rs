@@ -242,6 +242,138 @@ fn udt_field_ref() {
 }
 
 #[test]
+fn struct_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉B↘ar◉ { a : Int, b : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : Unit {
+            let x = new B↘ar { a = 1, b = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_sig() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : B↘ar {
+            new Bar { a = 1, b = 2.3 }
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_param() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        operation Foo(x: B↘ar) : Unit {}
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_anno() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : Unit {
+            let x: B↘ar = new Bar { a = 1, b = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_ty_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        newtype Foo = (a: B↘ar, b: Double);
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_struct_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        struct Foo { a : B↘ar, b : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { ◉f↘st◉ : Int, snd : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { fst : Int, ◉snd◉ : Double }
+        operation Foo() : Unit {
+            let a = new Pair { fst = 1, snd = 2.3 };
+            let b = a::s↘nd;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_cons() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { fst : Int, ◉snd◉ : Double }
+        operation Foo() : Unit {
+            let a = new Pair { fst = 1, s↘nd = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
 fn lambda_param() {
     assert_definition(
         r#"

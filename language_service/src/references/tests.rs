@@ -371,6 +371,230 @@ fn std_field_ref() {
 }
 
 #[test]
+fn struct_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉B↘ar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉Bar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_fn_constructor() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉Bar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉B↘ar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct Bar { fst : Int, snd : Int }
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo(x : Fak↘eStruct) : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 16,
+                            column: 23,
+                        },
+                        end: Position {
+                            line: 16,
+                            column: 33,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 2,
+                            column: 22,
+                        },
+                        end: Position {
+                            line: 2,
+                            column: 32,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉f↘st◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉fst◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉fst◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉f↘st◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_cons() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉fst◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉f↘st◉ = 1, snd = 2 };
+                let baz = bar::◉fst◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct Bar { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉f↘st◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_field_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = bar::↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 16,
+                            column: 36,
+                        },
+                        end: Position {
+                            line: 16,
+                            column: 37,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 23,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 24,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn local_def() {
     check_include_decl(
         r#"

@@ -42,6 +42,7 @@ const katexOpts = {
 mdValidator.use(mk.default, katexOpts);
 
 const validate = true; // Consider making this a command-line option
+let emitHtml = true;
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
@@ -288,8 +289,10 @@ function createTextContent(markdown) {
     }
   }
 
-  const html = md.render(markdown);
-  return { type: "text-content", asHtml: html, asMarkdown: markdown };
+  return {
+    type: "text-content",
+    content: emitHtml ? md.render(markdown) : markdown,
+  };
 }
 
 function createSolution(baseFolderPath, properties) {
@@ -725,7 +728,10 @@ function generateKatasContent(katasPath, outputPath) {
     mkdirSync(outputPath);
   }
 
-  const contentJsPath = join(outputPath, "katas-content.generated.ts");
+  const contentJsPath = join(
+    outputPath,
+    emitHtml ? "katas-content.generated.ts" : "katas-content.generated.md.ts",
+  );
   writeFileSync(
     contentJsPath,
     `export default ${JSON.stringify(katasContent, undefined, 2)}`,
@@ -733,4 +739,8 @@ function generateKatasContent(katasPath, outputPath) {
   );
 }
 
+// Generate HTML and Markdown versions of the katas bundle
+emitHtml = true;
+generateKatasContent(katasContentPath, katasGeneratedContentPath);
+emitHtml = false;
 generateKatasContent(katasContentPath, katasGeneratedContentPath);
