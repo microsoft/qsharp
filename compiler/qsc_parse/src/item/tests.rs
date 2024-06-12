@@ -3,7 +3,9 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{parse, parse_attr, parse_spec_decl, source_name_to_namespace_name};
+use super::{
+    parse, parse_attr, parse_import_or_export, parse_spec_decl, source_name_to_namespace_name,
+};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -247,6 +249,7 @@ fn udt_item_doc() {
                         Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
+
 #[test]
 fn callable_param_doc() {
     check(
@@ -268,6 +271,7 @@ fn callable_param_doc() {
                     body: Block: Block _id_ [74-76]: <empty>"#]],
     );
 }
+
 #[test]
 fn callable_return_doc() {
     check(
@@ -1775,5 +1779,278 @@ fn helpful_error_on_dotted_alias() {
                     ),
                 ),
             ]"#]],
+    );
+}
+
+#[test]
+fn parse_export_basic() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Export (ImportOrExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
+    );
+}
+
+#[test]
+fn parse_export_list() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-161] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-151]:
+                    Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92] (Ident _id_ [84-87] "Baz") (Ident _id_ [88-92] "Quux"), Path _id_ [94-118] ([Ident _id_ [94-98] "Math", Ident _id_ [99-106] "Quantum", Ident _id_ [107-111] "Some"]) (Ident _id_ [112-118] "Nested"), Path _id_ [120-150] ([Ident _id_ [120-124] "Math", Ident _id_ [125-132] "Quantum", Ident _id_ [133-137] "Some", Ident _id_ [138-143] "Other"]) (Ident _id_ [144-150] "Nested")])"#]],
+    );
+}
+
+#[test]
+fn parse_single_import() {
+    check(
+        parse_import_or_export,
+        "import Foo;",
+        &expect![[r#"ImportOrExportDecl [0-11]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo")]"#]],
+    );
+}
+
+#[test]
+fn parse_multiple_imports() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz;",
+        &expect![[
+            r#"ImportOrExportDecl [0-24]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz")]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo as Bar;",
+        &expect![[
+            r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#
+        ]],
+    );
+}
+
+#[test]
+fn multi_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar as Baz, Foo.Quux;",
+        &expect![[
+            r#"ImportOrExportDecl [0-32]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar") as Ident _id_ [18-21] "Baz", Path _id_ [23-31] (Ident _id_ [23-26] "Foo") (Ident _id_ [27-31] "Quux")]"#
+        ]],
+    );
+}
+
+#[test]
+fn empty_import_statement() {
+    check(
+        parse_import_or_export,
+        "import;",
+        &expect!["ImportOrExportDecl [0-7]: []"],
+    );
+}
+
+#[test]
+fn parse_export_empty() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-89] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-79]:
+                    Export (ImportOrExportDecl [72-79]: [])"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import() {
+    check(
+        parse_import_or_export,
+        "import Foo.*;",
+        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.*;",
+        &expect![
+            r#"ImportOrExportDecl [0-26]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").*]"#
+        ],
+    );
+}
+
+#[test]
+fn parse_glob_import_of_parent_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz, Foo.*;",
+        &expect![[
+            r#"ImportOrExportDecl [0-31]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz"), Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_glob_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo.* as Foo;",
+        &expect![[
+            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_aliased_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.* as Quux;",
+        &expect![[
+            r#"ImportOrExportDecl [0-34]: [Path _id_ [7-14] (Ident _id_ [7-10] "Foo") (Ident _id_ [11-14] "Bar"), Path _id_ [16-23] (Ident _id_ [16-19] "Foo") (Ident _id_ [20-23] "Baz").* as Ident _id_ [29-33] "Quux"]"#
+        ]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_extra_asterisk() {
+    check(
+        parse_import_or_export,
+        "import Foo.**;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_missing_dot() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar**;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 14,
+                        hi: 15,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_multiple_asterisks_in_path() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar.*.*;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    Dot,
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident() {
+    check(
+        parse_import_or_export,
+        "import Foo.*.Bar;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    Dot,
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_top_level_recursive_glob() {
+    check(
+        parse_import_or_export,
+        "import *;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Semi,
+                    ClosedBinOp(
+                        Star,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 8,
+                    },
+                ),
+            )
+        "#]],
     );
 }

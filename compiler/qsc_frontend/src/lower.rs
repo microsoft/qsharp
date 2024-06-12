@@ -130,7 +130,7 @@ impl With<'_> {
         };
 
         self.lowerer.parent = Some(id);
-        let items = namespace
+        let items: Vec<LocalItemId> = namespace
             .items
             .iter()
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
@@ -171,7 +171,10 @@ impl With<'_> {
         };
 
         let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Err | ast::ItemKind::Open(..) |
+            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+
+            ast::ItemKind::ImportOrExport(_) => return None,
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;

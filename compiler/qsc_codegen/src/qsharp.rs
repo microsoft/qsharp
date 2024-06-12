@@ -15,10 +15,10 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Idents, Item, ItemKind, Lit, Mutability, Pat, PatKind,
-    Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
-    StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
-    Visibility, VisibilityKind,
+    FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item, ItemKind, Lit,
+    Mutability, Pat, PatKind, Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody,
+    SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind,
+    TyKind, UnOp, Visibility, VisibilityKind,
 };
 use qsc_ast::ast::{Namespace, Package};
 use qsc_ast::visit::Visitor;
@@ -139,6 +139,33 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.writeln(";");
             }
             ItemKind::Struct(decl) => self.visit_struct_decl(decl),
+            ItemKind::ImportOrExport(decl) => {
+                if decl.is_export() {
+                    self.write("export ");
+                } else {
+                    self.write("import ");
+                }
+
+                for (
+                    ix,
+                    ImportOrExportItem {
+                        ref path,
+                        ref is_glob,
+                        ..
+                    },
+                ) in decl.items.iter().enumerate()
+                {
+                    let is_last = ix == decl.items.len() - 1;
+                    self.visit_path(path);
+                    if *is_glob {
+                        self.write(".*");
+                    }
+                    if !is_last {
+                        self.write(", ");
+                    };
+                }
+                self.write(";");
+            }
         }
     }
 

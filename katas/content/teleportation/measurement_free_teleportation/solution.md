@@ -9,7 +9,7 @@ Now, in the standard protocol we would measure the first two qubits to collapse 
 To do this, we need to replace each measurement followed by a classically conditioned gate with a controlled gate:
 
 - The $Z$ gate applied based on the measurement result of `qMessage` becomes a Controlled $Z$ with `qMessage` as control and `qBob` as target.
-- The $X$ gate applied based on the measurement result of `qAlice` becomes a Controlled $Z$ with `qAlice` as control and `qBob` as target.
+- The $X$ gate applied based on the measurement result of `qAlice` becomes a Controlled $X$ with `qAlice` as control and `qBob` as target.
 
 You can check that these two gates convert Bob's qubit into the required state, and leave the first two qubits in an equal superposition of all basis states.
 
