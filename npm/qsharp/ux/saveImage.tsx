@@ -3,6 +3,7 @@
 
 // Writes resource estimator output to PNG file
 
+import { RefObject } from "preact";
 import {
   getImageSize,
   createImage,
@@ -80,9 +81,7 @@ export async function saveToPng<T extends HTMLElement>(
   backgroundColor: string,
 ): Promise<string> {
   const { width, height } = getImageSize(node);
-  // const clonedNode = (await cloneNode(node)) as Element;
   const clonedNode = (await cloneNode(node)) as HTMLElement;
-  // const uri = await svgToDataURI(clonedNode);
   const uri = await nodeToDataURI(clonedNode, width, height);
   const img = await createImage(uri);
 
@@ -97,4 +96,25 @@ export async function saveToPng<T extends HTMLElement>(
 
   context.drawImage(img, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL();
+}
+
+export async function saveRefToImage(
+  saveRef: RefObject<any>,
+  filename = "image.png",
+) {
+  const element = saveRef.current;
+  const backgroundColor =
+    getComputedStyle(element).getPropertyValue("--main-background");
+  const data = await saveToPng(element, backgroundColor);
+  const link = document.createElement("a");
+  if (typeof link.download === "string") {
+    link.href = data;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else {
+    window.open(data);
+  }
 }

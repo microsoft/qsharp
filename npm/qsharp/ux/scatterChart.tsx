@@ -4,7 +4,7 @@
 import { useRef, useEffect } from "preact/hooks";
 import { createRef } from "preact";
 import * as utils from "../src/utils.js";
-import { saveToPng, saveToSvg } from "./saveImage.js";
+import { saveRefToImage } from "./saveImage.js";
 
 export type ScatterSeries = {
   color: string;
@@ -107,7 +107,7 @@ export function ScatterChart(props: {
     const centerX = (pointRect.left + pointRect.right) / 2;
     const divRect = topDiv.getBoundingClientRect();
     tooltip.style.left = `${centerX - divRect.left - halfWidth}px`;
-    tooltip.style.top = `${centerY - divRect.top}px`;// + 12}px`;
+    tooltip.style.top = `${centerY - divRect.top}px`; // + 12}px`;
     tooltip.style.visibility = "visible";
   }
 
@@ -159,39 +159,7 @@ export function ScatterChart(props: {
   const saveRef = createRef();
 
   const handleSaveImage = async () => {
-    const element = saveRef.current;
-    const backgroundColor =
-      getComputedStyle(element).getPropertyValue("--main-background");
-    const isVSCodeEnv = true;
-    // const isVSCodeEnv = false;
-
-    if (isVSCodeEnv) {
-      const data = await saveToPng(element, backgroundColor);
-      const link = document.createElement("a");
-      if (typeof link.download === "string") {
-        link.href = data;
-        link.download = "image.png";
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        window.open(data);
-      }
-    } else {
-      const data = await saveToSvg(element);
-      const link = document.createElement("a");
-      if (typeof link.download === "string") {
-        link.href = data;
-        link.download = "image.svg";
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        window.open(data);
-      }
-    }
+    saveRefToImage(saveRef);
   };
 
   // Need to render first to get the element layout to position the tooltip
