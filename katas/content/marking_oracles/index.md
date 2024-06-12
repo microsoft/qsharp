@@ -139,7 +139,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__num_div_3",
-    "title": "Number Divisible By 3",
+    "title": "Is Number Divisible by 3?",
     "path": "./num_div_3/",
     "qsDependencies": [
         "../KatasLibrary.qs"
