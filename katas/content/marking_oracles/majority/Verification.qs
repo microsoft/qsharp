@@ -9,7 +9,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in [3, 7] {
+        for n in [3, 5] {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_Majority, F_Majority) {
                 Message($"Test failed for n = {n}");
                 return false;

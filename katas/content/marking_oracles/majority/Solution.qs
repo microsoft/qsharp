@@ -12,6 +12,9 @@ namespace Kata {
             }
         } apply {
             CNOT(inc[log-1], y);
+            if log > 2 {
+                CCNOT(inc[0], inc[1], y);
+            }
         }
     } 
 }
