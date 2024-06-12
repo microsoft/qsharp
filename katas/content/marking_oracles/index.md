@@ -130,7 +130,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__bit_sum_div_3",
-    "title": "Bit Sum Divisible By 3",
+    "title": "Is Bit Sum Divisible by 3?",
     "path": "./bit_sum_div_3/",
     "qsDependencies": [
         "../KatasLibrary.qs"
