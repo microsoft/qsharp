@@ -9,6 +9,7 @@
   "preparing_states",
   "single_qubit_measurements",
   "multi_qubit_measurements",
+  "distinguishing_states",
   "distinguishing_unitaries",
   "random_numbers",
   "key_distribution",

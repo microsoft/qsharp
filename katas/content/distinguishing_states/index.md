@@ -70,11 +70,42 @@ This kata is designed to get you familiar with the concept of measurements and u
 })
 
 @[exercise]({
+    "id": "distinguishing_states__two_basis_states_bit_strings",
+    "title": "Distinguish Two Basis States Given By Bit Strings",
+    "path": "./two_basis_states_bit_strings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__two_superposition_states_bit_strings_one",
+    "title": "Distinguish Two Superposition States Given By Two Arrays Of Bit Strings - 1 Measurement",
+    "path": "./two_superposition_states_bit_strings_one/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "distinguishing_states__two_superposition_states_bit_strings",
+    "title": "Distinguish Two Superposition States Given By Two Arrays Of Bit Strings",
+    "path": "./two_superposition_states_bit_strings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
     "id": "distinguishing_states__all_zeros_w",
     "title": "|0...0〉 State or W State?",
     "path": "./all_zeros_w/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -83,7 +114,8 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "GHZ State or W State?",
     "path": "./ghz_w/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -121,7 +153,8 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Distinguish Two Three-Qubit States",
     "path": "./two_orthogonal_three_qubit/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
