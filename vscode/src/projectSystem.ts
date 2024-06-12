@@ -336,6 +336,7 @@ async function collectPackage(
     );
 
     if (depPkg) {
+      // TODO: do we end up adding the same package twice??
       packages[depKey] = depPkg;
     }
 
@@ -594,7 +595,11 @@ async function readLocalManifestAndSources(
   }
 
   if (!projectLoader) {
-    projectLoader = await getProjectLoader(readFile, listDir);
+    projectLoader = await getProjectLoader(
+      readFile,
+      listDir,
+      async ([a, b]) => resolvePath(a, b) || "",
+    );
   }
   const sources = await projectLoader.load_project({
     manifestDirectory: directory,

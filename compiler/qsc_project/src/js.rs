@@ -36,4 +36,5 @@ pub struct ProjectSystemCallbacks<'a> {
     /// Callback which lets the service list directory contents
     /// on the target file system
     pub list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
+    pub resolve_path: AsyncFunction<'a, (String, String), String>,
 }

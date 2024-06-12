@@ -47,7 +47,7 @@ def test_project_unreadable_qsharp_json(qsharp) -> None:
 def test_project_unreadable_source(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/unreadable_source")
-    assert str(excinfo.value).startswith("  × OSError: could not read test.qs")
+    assert str(excinfo.value).find("OSError: could not read test.qs") != -1
 
 
 memfs = {

@@ -1622,7 +1622,11 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().load_project(&file)))),
+        |file| {
+            Box::pin(ready(
+                TEST_FS.with(|fs| fs.borrow().load_project_with_deps(&file)),
+            ))
+        },
     )
 }
 
@@ -1649,7 +1653,7 @@ fn new_updater_with_file_system<'a>(
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        move |file| Box::pin(ready(fs1.borrow().load_project(&file))),
+        move |file| Box::pin(ready(fs1.borrow().load_project_with_deps(&file))),
     )
 }
 

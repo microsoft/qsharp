@@ -85,6 +85,28 @@ impl FsNode {
         }
     }
 
+    pub fn resolve_path(base: &str, path: &str) -> String {
+        let mut parts = base.split('/').collect::<Vec<_>>();
+
+        for part in path.split('/') {
+            if part == ".." {
+                match parts.pop() {
+                    Some(_) => continue,
+                    None => panic!("path traversal outside of root"),
+                }
+            }
+            parts.push(part);
+        }
+
+        parts.join("/")
+
+        // TODO: shouldn't we need a little more validation than this?
+        // like checking that the resolved path is actually within the root?
+        // or like checking that the resolved path is actually a file or directory?
+        // or like checking that the resolved path is not a symlink?
+        // thanks copilot!
+    }
+
     pub fn get_manifest(&self, file: &str) -> Option<ManifestDescriptor> {
         let mut curr = Some(self);
         let mut curr_path = String::new();
@@ -140,16 +162,18 @@ impl FsNode {
         };
     }
 
-    pub fn load_project(&self, file: &str) -> LoadProjectResult {
+    pub fn load_project_with_deps(&self, file: &str) -> LoadProjectResult {
         let manifest = self.get_manifest(file);
 
         if let Some(manifest) = manifest {
-            let project = FileSystem::load_project(self, &manifest);
+            // TODO: I guess this should actually consume the deps?
+            let project = FileSystem::load_project_with_deps(self, &manifest.manifest_dir, None);
             if let Ok(project) = project {
+                let project = project.package_graph_sources.root;
                 Some((
                     manifest.compilation_uri(),
                     project.sources,
-                    LanguageFeatures::from_iter(project.manifest.language_features),
+                    LanguageFeatures::from_iter(project.language_features),
                     manifest.manifest.lints,
                 ))
             } else {
@@ -170,6 +194,14 @@ impl FileSystem for FsNode {
 
     fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
         Ok(self.list_directory(path.to_string_lossy().into()))
+    }
+
+    fn resolve_path(
+        &self,
+        base: &std::path::Path,
+        path: &std::path::Path,
+    ) -> miette::Result<std::path::PathBuf> {
+        Ok(Self::resolve_path(&base.to_string_lossy(), &path.to_string_lossy()).into())
     }
 }
 

@@ -32,6 +32,13 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
+    // TODO: this is a clunky signature
+    #[wasm_bindgen(typescript_type = "(args: [string, string]) => Promise<string>")]
+    pub type ResolvePathCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
     #[wasm_bindgen(typescript_type = "{ manifestDirectory: string }")]
     pub type ManifestDescriptorObject;
 }
@@ -81,6 +88,34 @@ macro_rules! into_async_rust_fn_with {
 
             Box::pin(map_js_promise(res, move |x| {
                 $map_result(x.into(), input.clone())
+            })) as Pin<Box<dyn Future<Output = _> + 'static>>
+        };
+        $js_async_fn
+    }};
+}
+
+macro_rules! into_async_rust_fn_with_2 {
+    ($js_async_fn: ident, $map_result: expr) => {{
+        use crate::project_system::{map_js_promise, to_js_function};
+        use std::future::Future;
+        use std::pin::Pin;
+        use wasm_bindgen::JsValue;
+        use wasm_bindgen_futures::JsFuture;
+
+        let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
+
+        let $js_async_fn = move |(input1, input2): (String, String)| {
+            let path1 = JsValue::from_str(&input1);
+            let path2 = JsValue::from_str(&input2);
+            let res: js_sys::Promise = $js_async_fn
+                .call2(&JsValue::NULL, &path1, &path2)
+                .expect("callback should succeed")
+                .into();
+
+            let res: JsFuture = res.into();
+
+            Box::pin(map_js_promise(res, move |x| {
+                $map_result(x.into(), String::new())
             })) as Pin<Box<dyn Future<Output = _> + 'static>>
         };
         $js_async_fn
@@ -141,6 +176,13 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
             .collect::<Vec<_>>(),
             Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
     }
+}
+
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn resolve_path_transformer(js_val: JsValue, _: String) -> String {
+    js_val
+        .as_string()
+        .expect("expected string from resolve_path")
 }
 
 /// Given a [`JsValue`] representing the result of a call to a read file function,
@@ -231,16 +273,24 @@ pub struct ProjectLoader(ProjectSystemCallbacks<'static>);
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
-    pub fn new(read_file: ReadFileCallback, list_directory: ListDirectoryCallback) -> Self {
+    pub fn new(
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        resolve_path: ResolvePathCallback,
+    ) -> Self {
         let read_file = read_file.into();
         let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
 
         let list_directory = list_directory.into();
         let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
 
+        let resolve_path = resolve_path.into();
+        let resolve_path = into_async_rust_fn_with_2!(resolve_path, resolve_path_transformer);
+
         ProjectLoader(ProjectSystemCallbacks {
             read_file: Box::new(read_file),
             list_directory: Box::new(list_directory),
+            resolve_path: Box::new(resolve_path),
         })
     }
 
@@ -286,6 +336,19 @@ impl qsc_project::FileSystemAsync for ProjectLoader {
 
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
         Ok((self.0.list_directory)(path.to_string_lossy().to_string()).await)
+    }
+
+    async fn resolve_path(
+        &self,
+        base: &std::path::Path,
+        path: &std::path::Path,
+    ) -> miette::Result<std::path::PathBuf> {
+        Ok((self.0.resolve_path)((
+            base.to_string_lossy().to_string(),
+            path.to_string_lossy().to_string(),
+        ))
+        .await
+        .into())
     }
 }
 

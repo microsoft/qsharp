@@ -113,6 +113,7 @@ impl Interpreter {
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
@@ -130,7 +131,7 @@ impl Interpreter {
         };
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            let project = file_system(
+            let mut project = file_system(
                 py,
                 read_file.expect(
                     "file system hooks should have been passed in with a manifest descriptor",
@@ -138,10 +139,19 @@ impl Interpreter {
                 list_directory.expect(
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
+                resolve_path.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
             )
-            .load_project(&manifest_descriptor.0)
+            .load_project_with_deps(&manifest_descriptor.0.manifest_dir, None) // TODO: global cache!
             .map_py_err()?;
-            SourceMap::new(project.sources, None)
+
+            // TODO: properly consume dependencies
+            let mut sources = project.package_graph_sources.root.sources;
+            for dep in project.package_graph_sources.packages.values_mut() {
+                sources.append(&mut dep.sources);
+            }
+            SourceMap::new(sources, None)
         } else {
             SourceMap::default()
         };

@@ -4,7 +4,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use expect_test::Expect;
-use qsc_project::{FileSystem, Manifest, StdFs};
+use qsc_project::{FileSystem, Manifest, Project, StdFs};
 
 pub fn check(project_path: &PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -15,7 +15,11 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
         .expect("manifest should load")
         .expect("manifest should contain descriptor");
     let fs = StdFs;
-    let mut project = fs.load_project(&manifest).expect("project should load");
+    let mut project = fs
+        .load_project_with_deps(&manifest.manifest_dir, None)
+        .expect("project should load")
+        .package_graph_sources
+        .root;
 
     // remove the prefix absolute path
     for (path, _contents) in &mut project.sources {
@@ -29,6 +33,11 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     }
 
     project.sources.sort();
+
+    let project = Project {
+        sources: project.sources,
+        manifest: manifest.manifest,
+    };
 
     expect.assert_eq(&format!("{project:#?}"));
 }

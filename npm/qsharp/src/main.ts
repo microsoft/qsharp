@@ -63,9 +63,12 @@ export function getCompiler(): ICompiler {
 export function getProjectLoader(
   readFile: (path: string) => Promise<string | null>,
   loadDirectory: (path: string) => Promise<[string, number][]>,
+  resolvePath: (base: string, relative: string) => Promise<string>,
 ): ProjectLoader {
   ensureWasm();
-  return new wasm!.ProjectLoader(readFile, loadDirectory);
+  return new wasm!.ProjectLoader(readFile, loadDirectory, ([a, b]) =>
+    resolvePath(a, b),
+  );
 }
 
 export function getCompilerWorker(): ICompilerWorker {

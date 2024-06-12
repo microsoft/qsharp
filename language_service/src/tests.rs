@@ -326,7 +326,11 @@ fn create_update_worker<'a>(
                     .collect::<Vec<_>>(),
             ));
         },
-        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().load_project(&file)))),
+        |file| {
+            Box::pin(ready(
+                TEST_FS.with(|fs| fs.borrow().load_project_with_deps(&file)),
+            ))
+        },
     );
     worker
 }
