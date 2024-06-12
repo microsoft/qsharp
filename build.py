@@ -229,7 +229,7 @@ if build_cli:
     step_end()
 
 
-def install_python_test_requirements(cwd, interpreter):
+def install_python_test_requirements(cwd, interpreter, check: bool = True):
     command_args = [
         interpreter,
         "-m",
@@ -237,8 +237,10 @@ def install_python_test_requirements(cwd, interpreter):
         "install",
         "-r",
         "test_requirements.txt",
+        "--only-binary",
+        "qirrunner",
     ]
-    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+    subprocess.run(command_args, check=check, text=True, cwd=cwd)
 
 
 def install_qsharp_python_package(cwd, wheelhouse, interpreter):
@@ -275,7 +277,9 @@ def run_python_tests(test_dir, interpreter):
 
 
 def run_python_integration_tests(test_dir, interpreter):
-    install_python_test_requirements(test_dir, interpreter)
+    # don't check to see if pip succeeds. We'll see if the import works later.
+    # If it doesn't, we'll skip the tests.
+    install_python_test_requirements(test_dir, interpreter, False)
     check_args = [python_bin, "-c", "import qirrunner"]
     check_result = subprocess.run(check_args, check=False, text=True, cwd=test_dir)
     if check_result.returncode == 0:
