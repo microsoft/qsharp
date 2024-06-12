@@ -7,7 +7,6 @@ import { RefObject } from "preact";
 import {
   getImageSize,
   createImage,
-  svgToDataURI,
   nodeToDataURI,
   toArray,
 } from "./saveImageUtil.js";
