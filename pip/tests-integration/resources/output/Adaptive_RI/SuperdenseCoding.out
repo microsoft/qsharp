@@ -6,9 +6,9 @@ METADATA	required_num_qubits	3
 METADATA	required_num_results	4
 OUTPUT	TUPLE	2
 OUTPUT	TUPLE	2
-OUTPUT	BOOL	true
+OUTPUT	BOOL	false
 OUTPUT	BOOL	false
 OUTPUT	TUPLE	2
-OUTPUT	BOOL	true
+OUTPUT	BOOL	false
 OUTPUT	BOOL	false
 END	0

@@ -1,2 +1,2 @@
 pytest
-qirrunner==0.7.0
+qirrunner==0.7.1
