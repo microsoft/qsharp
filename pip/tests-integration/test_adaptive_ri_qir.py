@@ -144,6 +144,12 @@ def save_qir_to_temp_file_and_execute(qir: str) -> str:
             return actual_output
 
 
+def assert_strings_equal_ignore_line_endings(lhs, rhs):
+    normalized_lhs = lhs.replace("\r\n", "\n")
+    normalized_rhs = rhs.replace("\r\n", "\n")
+    assert normalized_lhs == normalized_rhs
+
+
 @pytest.mark.parametrize("file_path", get_input_files())
 def test_adaptive_ri_qir(file_path: str) -> None:
     source = read_file(file_path)
@@ -160,5 +166,4 @@ def test_adaptive_ri_output(file_path: str) -> None:
     output_file_path = get_output_out_file(file_path)
     expected_output = read_file(output_file_path)
     actual_output = save_qir_to_temp_file_and_execute(qir)
-    print(actual_output)
-    assert actual_output == expected_output
+    assert_strings_equal_ignore_line_endings(actual_output, expected_output)
