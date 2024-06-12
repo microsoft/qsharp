@@ -68,14 +68,6 @@ export async function cloneNode<T extends HTMLElement>(
     .then((clonedNode) => decorate(node, clonedNode));
 }
 
-export async function saveToSvg<T extends HTMLElement>(
-  node: T,
-): Promise<string> {
-  const clonedNode = (await cloneNode(node)) as Element;
-  const uri = await svgToDataURI(clonedNode);
-  return uri;
-}
-
 export async function saveToPng<T extends HTMLElement>(
   node: T,
   backgroundColor: string,
