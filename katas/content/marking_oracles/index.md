@@ -103,7 +103,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__contains_substring",
-    "title": "Contains Substring",
+    "title": "Does Bit String Contain Substring?",
     "path": "./contains_substring/",
     "qsDependencies": [
         "../KatasLibrary.qs"
