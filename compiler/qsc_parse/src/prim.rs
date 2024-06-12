@@ -166,7 +166,8 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
-
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,

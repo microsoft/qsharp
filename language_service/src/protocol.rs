@@ -2,15 +2,18 @@
 // Licensed under the MIT License.
 
 use qsc::line_column::Range;
-use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
-use qsc_project::Manifest;
+use qsc::{
+    compile::Error, linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures,
+    PackageType,
+};
 
 /// A change to the workspace configuration
-#[derive(Clone, Debug, Default, Copy)]
+#[derive(Clone, Debug, Default)]
 pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
+    pub lints_config: Option<Vec<LintConfig>>,
 }
 
 #[derive(Debug)]

@@ -129,6 +129,15 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ty_def(def);
         }
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
+        ItemKind::ImportOrExport(export) => {
+            vis.visit_span(&mut export.span);
+            for item in export.items.iter_mut() {
+                vis.visit_path(&mut item.path);
+                if let Some(ref mut alias) = item.alias {
+                    vis.visit_ident(alias);
+                }
+            }
+        }
     }
 }
 

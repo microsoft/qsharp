@@ -6,20 +6,25 @@ import "modern-normalize/modern-normalize.css";
 import "./main.css";
 
 import { render } from "preact";
-import {
+
+import type {
   CompilerState,
+  VSDiagnostic,
+  LogLevel,
+  ILanguageService,
+} from "qsharp-lang";
+
+import {
   QscEventTarget,
   getCompilerWorker,
   loadWasmModule,
-  getAllKatas,
-  Kata,
-  VSDiagnostic,
   log,
-  LogLevel,
   samples,
   getLanguageServiceWorker,
-  ILanguageService,
 } from "qsharp-lang";
+
+// The playground Katas viewer uses the Markdown version of the katas
+import { Kata, getAllKatas } from "qsharp-lang/katas-md";
 
 import { Nav } from "./nav.js";
 import { Editor, getProfile } from "./editor.js";

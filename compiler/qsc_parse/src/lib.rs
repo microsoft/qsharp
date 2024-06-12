@@ -83,7 +83,7 @@ enum ErrorKind {
     #[error("file name {1} could not be converted into valid namespace name")]
     #[diagnostic(code("Qsc.Parse.InvalidFileName"))]
     InvalidFileName(#[label] Span, String),
-    #[error("expected an item or EOF, found {0}")]
+    #[error("expected an item or closing brace, found {0}")]
     #[diagnostic(code("Qsc.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
 }
