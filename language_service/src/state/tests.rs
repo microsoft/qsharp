@@ -1613,7 +1613,7 @@ async fn lints_prefer_workspace_over_defaults() {
         ..WorkspaceConfigurationUpdate::default()
     });
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
