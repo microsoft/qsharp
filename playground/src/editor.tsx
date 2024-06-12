@@ -284,6 +284,9 @@ export function Editor(props: {
     props.languageService.updateConfiguration({
       targetProfile: profile,
       packageType: props.kataExercise ? "lib" : "exe",
+      lints: props.kataExercise
+        ? []
+        : [{ lint: "needlessOperation", level: "warn" }],
     });
 
     function onDiagnostics(evt: LanguageServiceEvent) {
@@ -326,7 +329,6 @@ export function Editor(props: {
     // and run the tabs again.
     props.languageService.updateConfiguration({
       targetProfile: profile,
-      packageType: props.kataExercise ? "lib" : "exe",
     });
     irRef.current();
   }, [profile]);

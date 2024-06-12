@@ -83,21 +83,13 @@ impl Default for Configuration {
 }
 
 #[derive(Default, Clone, Debug)]
-struct PartialConfiguration {
+pub struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
-    pub lints_config: Option<Vec<LintConfig>>,
+    pub lints_config: Vec<LintConfig>,
 }
 
-impl PartialConfiguration {
-    pub fn from_language_features(features: Option<LanguageFeatures>) -> Self {
-        Self {
-            language_features: features,
-            ..Default::default()
-        }
-    }
-}
 pub(super) struct CompilationStateUpdater<'a> {
     /// Compilation state which is shared with readers. It can only be accessed
     /// by dynamically borrowing. Mutable references to `CompilationState` should not
@@ -211,7 +203,7 @@ impl<'a> CompilationStateUpdater<'a> {
             sources,
             &compilation_uri,
             language_features,
-            &lints_config,
+            lints_config,
         );
 
         self.publish_diagnostics();
@@ -257,7 +249,7 @@ impl<'a> CompilationStateUpdater<'a> {
         mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
         language_features: Option<LanguageFeatures>,
-        lints_config: &[LintConfig],
+        lints_config: Vec<LintConfig>,
     ) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
@@ -270,8 +262,11 @@ impl<'a> CompilationStateUpdater<'a> {
                 }
             }
 
-            let compilation_overrides =
-                PartialConfiguration::from_language_features(language_features);
+            let compilation_overrides = PartialConfiguration {
+                language_features,
+                lints_config,
+                ..PartialConfiguration::default()
+            };
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
@@ -280,7 +275,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 configuration.package_type,
                 configuration.target_profile,
                 configuration.language_features,
-                lints_config,
+                &configuration.lints_config,
             );
 
             state.compilations.insert(
@@ -310,7 +305,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     sources,
                     &compilation_uri,
                     language_features,
-                    &lints_config,
+                    lints_config,
                 );
             }
         }
@@ -371,7 +366,10 @@ impl<'a> CompilationStateUpdater<'a> {
                 target_profile: notebook_metadata.target_profile,
                 package_type: None,
                 language_features: Some(notebook_metadata.language_features),
-                lints_config: notebook_metadata.manifest.map(|manifest| manifest.lints),
+                lints_config: notebook_metadata
+                    .manifest
+                    .map(|manifest| manifest.lints)
+                    .unwrap_or_default(),
             };
             let configuration = merge_configurations(&notebook_configuration, &configuration);
 
@@ -390,11 +388,8 @@ impl<'a> CompilationStateUpdater<'a> {
                     (Arc::from(cell_uri), Arc::from(cell_contents))
                 }),
                 configuration.target_profile,
-                notebook_configuration.language_features.unwrap_or_default(),
-                notebook_configuration
-                    .lints_config
-                    .as_ref()
-                    .unwrap_or(&vec![]),
+                configuration.language_features,
+                &configuration.lints_config,
             );
 
             state.compilations.insert(
@@ -487,6 +482,11 @@ impl<'a> CompilationStateUpdater<'a> {
             self.configuration.language_features = language_features;
         }
 
+        if let Some(lints_config) = configuration.lints_config {
+            need_recompile |= self.configuration.lints_config != lints_config;
+            self.configuration.lints_config = lints_config;
+        }
+
         // Possible optimization: some projects will have overrides for these configurations,
         // so workspace updates won't impact them. We could exclude those projects
         // from recompilation, but we don't right now.
@@ -502,10 +502,7 @@ impl<'a> CompilationStateUpdater<'a> {
             for (compilation, package_specific_configuration) in state.compilations.values_mut() {
                 let configuration =
                     merge_configurations(package_specific_configuration, &self.configuration);
-                let lints_config = package_specific_configuration
-                    .lints_config
-                    .clone()
-                    .unwrap_or_default();
+                let lints_config = package_specific_configuration.lints_config.clone();
                 compilation.recompile(
                     configuration.package_type,
                     configuration.target_profile,
@@ -594,6 +591,19 @@ fn merge_configurations(
     compilation_overrides: &PartialConfiguration,
     workspace_scope: &Configuration,
 ) -> Configuration {
+    let mut merged_lints = workspace_scope.lints_config.clone();
+    let mut override_lints = compilation_overrides.lints_config.clone();
+    override_lints.retain(|override_lint| {
+        for merged_lint in &mut merged_lints {
+            if merged_lint.kind == override_lint.kind {
+                merged_lint.level = override_lint.level;
+                return false;
+            }
+        }
+        true
+    });
+    merged_lints.extend(override_lints);
+
     Configuration {
         target_profile: compilation_overrides
             .target_profile
@@ -604,9 +614,6 @@ fn merge_configurations(
         language_features: compilation_overrides
             .language_features
             .unwrap_or(workspace_scope.language_features),
-        lints_config: compilation_overrides
-            .lints_config
-            .clone()
-            .unwrap_or(workspace_scope.lints_config.clone()),
+        lints_config: merged_lints,
     }
 }
