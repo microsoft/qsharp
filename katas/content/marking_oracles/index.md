@@ -121,7 +121,7 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 
 @[exercise]({
     "id": "marking_oracles__majority",
-    "title": "0s or 1s Majority",
+    "title": "Majority Function",
     "path": "./majority/",
     "qsDependencies": [
         "../KatasLibrary.qs"
