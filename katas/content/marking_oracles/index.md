@@ -25,7 +25,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "K-th Bit",
     "path": "./kth_bit/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -34,7 +35,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Parity Function",
     "path": "./parity/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -43,7 +45,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Product Function",
     "path": "./product/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -52,7 +55,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Product Function with Negation",
     "path": "./product_negation/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -61,7 +65,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Palindrome Checker",
     "path": "./palindrome/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -70,7 +75,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Is Bit String Periodic with Period P?",
     "path": "./periodic_p/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -79,7 +85,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Is Bit String Periodic?",
     "path": "./periodic/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -88,7 +95,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Does Bit String Contain Substring At Position?",
     "path": "./contains_substring_p/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -97,7 +105,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Pattern Matching",
     "path": "./pattern_match/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -106,7 +115,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Does Bit String Contain Substring?",
     "path": "./contains_substring/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -115,7 +125,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Is Bit String Balanced?",
     "path": "./balanced/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -124,7 +135,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Majority Function",
     "path": "./majority/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -133,7 +145,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Is Bit Sum Divisible by 3?",
     "path": "./bit_sum_div_3/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
@@ -142,7 +155,8 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
     "title": "Is Number Divisible by 3?",
     "path": "./num_div_3/",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
