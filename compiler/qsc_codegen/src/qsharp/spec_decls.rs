@@ -86,7 +86,7 @@ fn strip_visibility() {
             namespace A {
                 operation B() : Unit {}
             }"#]],
-    )
+    );
 }
 
 #[test]

@@ -109,12 +109,9 @@ export async function getDebugService(): Promise<IDebugService> {
 export async function getProjectLoader(
   readFile: (path: string) => Promise<string | null>,
   loadDirectory: (path: string) => Promise<[string, number][]>,
-  getManifest: (path: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
 ): Promise<wasm.ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
+  return new wasm.ProjectLoader(readFile, loadDirectory);
 }
 
 // Create the debugger inside a WebWorker and proxy requests.

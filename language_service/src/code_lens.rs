@@ -11,7 +11,7 @@ use crate::{
 };
 use qsc::{
     circuit::qubit_param_info,
-    hir::{Attr, ItemKind, Visibility},
+    hir::{Attr, ItemKind},
     line_column::Encoding,
 };
 
@@ -31,11 +31,6 @@ pub(crate) fn get_code_lenses(
     // Get callables in the current source file.
     let callables = user_unit.package.items.values().filter_map(|item| {
         if source_span.contains(item.span.lo) {
-            // We don't support any commands for internal operations.
-            if matches!(item.visibility, Visibility::Internal) {
-                return None;
-            }
-
             if let ItemKind::Callable(decl) = &item.kind {
                 if let Some(ItemKind::Namespace(ns, _)) = item
                     .parent

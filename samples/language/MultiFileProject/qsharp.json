@@ -1,7 +1,17 @@
 {
     "dependencies": {
         "Foo": {
-            "path": "../Dependency"
+            "path": "../DependencyA"
+        },
+        "Bar": {
+            "path": "../DependencyC"
+        },
+        "GitHub": {
+            "github": {
+                "owner": "sezna",
+                "repo": "qsharp-project-template",
+                "ref": "60c31cb90533f057238c24765a944661da31c84e"
+            }
         }
     }
 }

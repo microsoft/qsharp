@@ -689,6 +689,7 @@ fn controlled_operation() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn internal_operation() {
     let mut interpreter = interpreter(
         r"
