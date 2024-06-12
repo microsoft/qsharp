@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Katas;
     open Microsoft.Quantum.Math;
     
     operation Oracle_Balanced (x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
@@ -14,4 +13,11 @@ namespace Kata {
             ApplyControlledOnInt(N / 2, X, inc, y);
         }
     }
+
+    operation IncrementBE (register : Qubit[]) : Unit is Adj + Ctl {
+        if Length(register) > 1 {
+            Controlled IncrementBE([register[0]], register[1 ...]);
+        }
+        X(register[0]);
+    }    
 }
