@@ -1,6 +1,6 @@
 **Inputs:** 
 
-1. $N$ qubits in an arbitrary state $\ket{x}$ (input/query register).
+1. $N$ qubits in an arbitrary state $\ket{x}$ (input/query register). $N$ will be one of the values $3, 5, 7$.
 2. A qubit in an arbitrary state $\ket{y}$ (output/target qubit).
 
 **Goal:** 
