@@ -4,7 +4,7 @@
 import { useRef, useEffect } from "preact/hooks";
 import { createRef } from "preact";
 import * as utils from "../src/utils.js";
-import { saveRefToImage } from "./saveImage.js";
+import { saveToImage } from "./saveImage.js";
 
 export type ScatterSeries = {
   color: string;
@@ -107,7 +107,7 @@ export function ScatterChart(props: {
     const centerX = (pointRect.left + pointRect.right) / 2;
     const divRect = topDiv.getBoundingClientRect();
     tooltip.style.left = `${centerX - divRect.left - halfWidth}px`;
-    tooltip.style.top = `${centerY - divRect.top}px`; // + 12}px`;
+    tooltip.style.top = `${centerY - divRect.top}px`;
     tooltip.style.visibility = "visible";
   }
 
@@ -159,7 +159,7 @@ export function ScatterChart(props: {
   const saveRef = createRef();
 
   const handleSaveImage = async () => {
-    saveRefToImage(saveRef);
+    saveToImage(saveRef!.current);
   };
 
   // Need to render first to get the element layout to position the tooltip

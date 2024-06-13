@@ -3,7 +3,6 @@
 
 // Writes resource estimator output to PNG file
 
-import { RefObject } from "preact";
 import {
   getImageSize,
   createImage,
@@ -58,16 +57,14 @@ function decorate<T extends HTMLElement>(nativeNode: T, clonedNode: T): T {
   return clonedNode;
 }
 
-export async function cloneNode<T extends HTMLElement>(
-  node: T,
-): Promise<T | null> {
+async function cloneNode<T extends HTMLElement>(node: T): Promise<T | null> {
   return Promise.resolve(node)
     .then((clonedNode) => cloneSingleNode(clonedNode) as Promise<T>)
     .then((clonedNode) => cloneChildren(node, clonedNode))
     .then((clonedNode) => decorate(node, clonedNode));
 }
 
-export async function saveToPng<T extends HTMLElement>(
+async function saveToPng<T extends HTMLElement>(
   node: T,
   backgroundColor: string,
 ): Promise<string> {
@@ -89,11 +86,10 @@ export async function saveToPng<T extends HTMLElement>(
   return canvas.toDataURL();
 }
 
-export async function saveRefToImage(
-  saveRef: RefObject<any>,
+export async function saveToImage<T extends HTMLElement>(
+  element: T,
   filename = "image.png",
 ) {
-  const element = saveRef.current;
   const backgroundColor =
     getComputedStyle(element).getPropertyValue("--main-background");
   const data = await saveToPng(element, backgroundColor);
