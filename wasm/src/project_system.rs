@@ -476,6 +476,8 @@ pub(crate) fn into_qsc_args(
     qsc::SourceMap,
     qsc::TargetCapabilityFlags,
     qsc::LanguageFeatures,
+    qsc::PackageStore,
+    Vec<qsc::hir::PackageId>,
 ) {
     let program: ProgramConfig = program.into();
     let capabilities = qsc::target::Profile::from_str(&program.target_profile)
@@ -486,12 +488,20 @@ pub(crate) fn into_qsc_args(
         user_code,
         user_code_dependencies,
     } = qsc_packages::BuildableProgram::new(program.into());
-    let package_graph = program.package_graph_sources;
-    let (sources, language_features) = into_package_graph_args(package_graph);
+    // let package_graph = program.package_graph_sources;
+    // let (sources, language_features) = into_package_graph_args(package_graph);
+    let sources = user_code.sources;
 
     let source_map = qsc::SourceMap::new(sources, entry.map(std::convert::Into::into));
+    let language_features = qsc::LanguageFeatures::from_iter(user_code.language_features);
 
-    (source_map, capabilities, language_features)
+    (
+        source_map,
+        capabilities,
+        language_features,
+        store,
+        user_code_dependencies,
+    )
 }
 
 /// This returns the common parameters that the language service needs from the manifest

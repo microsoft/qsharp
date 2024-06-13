@@ -19,12 +19,14 @@ pub fn get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    mut package_store: PackageStore,
+    dependencies: Vec<qsc_hir::hir::PackageId>,
 ) -> Result<String, Vec<Error>> {
     if capabilities == TargetCapabilityFlags::all() {
         return Err(vec![Error::UnsupportedRuntimeCapabilities]);
     }
-    let core = compile::core();
-    let mut package_store = PackageStore::new(core);
+    // let core = compile::core();
+    // let mut package_store = PackageStore::new(core);
     let std = compile::std(&package_store, capabilities);
     let std = package_store.insert(std);
 

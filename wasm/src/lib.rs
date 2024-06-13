@@ -56,27 +56,29 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(program: IProgramConfig) -> Result<String, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     if capabilities == Profile::Unrestricted.into() {
         return Err("Invalid target profile for QIR generation".to_string());
     }
 
-    _get_qir(source_map, language_features, capabilities)
+    _get_qir(source_map, language_features, capabilities, store, deps)
 }
 
 pub(crate) fn _get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    store: PackageStore,
+    deps: Vec<PackageId>,
 ) -> Result<String, String> {
-    qsc::codegen::get_qir(sources, language_features, capabilities)
+    qsc::codegen::get_qir(sources, language_features, capabilities, store, deps)
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 #[wasm_bindgen]
 pub fn get_estimates(program: IProgramConfig, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let mut interpreter = interpret::Interpreter::new(
         true,
@@ -100,7 +102,7 @@ pub fn get_circuit(
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let (package_type, entry_point) = match operation {
         Some(p) => {
@@ -321,7 +323,8 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
 ) -> Result<bool, JsValue> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, Some(expr.into()));
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, Some(expr.into()));
 
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -404,7 +407,7 @@ serializable_type! {
 #[wasm_bindgen]
 #[must_use]
 pub fn generate_docs(additional_program: Option<IProgramConfig>) -> Vec<IDocFile> {
-    let docs = if let Some((source_map, capabilities, language_features)) =
+    let docs = if let Some((source_map, capabilities, language_features, store, deps)) =
         additional_program.map(|p| into_qsc_args(p, None))
     {
         qsc_doc_gen::generate_docs::generate_docs(

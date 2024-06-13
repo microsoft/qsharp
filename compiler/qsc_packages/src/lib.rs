@@ -27,6 +27,8 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
         .into();
 
     let mut package_store = qsc::PackageStore::new(qsc::compile::core());
+    let std = qsc::compile::std(&package_store, capabilities);
+    package_store.insert(std);
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
     let (ordered_packages, user_code) = program
         .package_graph_sources
