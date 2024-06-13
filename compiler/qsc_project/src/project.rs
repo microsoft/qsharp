@@ -397,7 +397,7 @@ type PackageKey = Arc<str>;
 type PackageAlias = Arc<str>;
 type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PackageInfo {
     pub sources: Vec<(Arc<str>, Arc<str>)>,
     pub language_features: Vec<String>,
@@ -413,4 +413,63 @@ pub struct ProgramConfig {
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
+}
+
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+impl PackageGraphSources {
+    /// Produces an iterator over the packages in the order they should be compiled
+    pub fn compilation_order(
+        self,
+    ) -> Result<(Vec<(Arc<str>, PackageInfo)>, PackageInfo), DependencyCycle> {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        for (key, package_info) in &self.packages {
+            in_degree.entry(&key).or_insert(0);
+            for dep in package_info.dependencies.values() {
+                graph.entry(dep).or_default().push(&key);
+                *in_degree.entry(&key).or_insert(0) += 1;
+            }
+        }
+
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree.get_mut(neighbor).unwrap();
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        if sorted_keys.len() != self.packages.len() {
+            return Err(DependencyCycle);
+        }
+
+        let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        sorted_packages.sort_by_key(|(a_key, pkg)| {
+            sorted_keys
+                .iter()
+                .position(|key| key.as_str() == &**a_key)
+                .unwrap()
+        });
+
+        Ok((sorted_packages, self.root))
+    }
 }
