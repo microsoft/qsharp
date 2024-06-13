@@ -3,6 +3,7 @@
 
 use crate::{manifest::GitHubRef, Dependency, Manifest, ManifestDescriptor};
 use std::{
+    cell::RefCell,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -111,6 +112,7 @@ pub trait FileSystemAsync {
         }
         Ok(files)
     }
+
     /// Given a [ManifestDescriptor], load project sources.
     async fn load_project_sources(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
         let project_path = manifest.manifest_dir.clone();
@@ -223,28 +225,36 @@ pub trait FileSystemAsync {
 
     async fn read_manifest_and_sources_cached(
         &self,
-        global_cache: &mut FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>,
+        global_cache: &RefCell<FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>>,
         key: PackageKey,
         this_pkg: &Dependency,
     ) -> miette::Result<(Manifest, PackageInfo)> {
-        if let Some(cached) = global_cache.get(&key) {
-            return cached.clone().map_err(miette::ErrReport::msg);
+        // It should be exceedingly rare (if not impossible) for the cache
+        // to be inaccessible, but that's ok. We'll get it next time.
+
+        if let Ok(cache) = global_cache.try_borrow() {
+            if let Some(cached) = cache.get(&key) {
+                return cached.clone().map_err(miette::ErrReport::msg);
+            }
         }
 
         let result = self.read_manifest_and_sources(this_pkg).await;
-        global_cache.insert(
-            key,
-            match &result {
-                Ok(result) => Ok(result.clone()),
-                Err(e) => Err(e.to_string()),
-            },
-        );
+
+        if let Ok(mut cache) = global_cache.try_borrow_mut() {
+            cache.insert(
+                key,
+                match &result {
+                    Ok(result) => Ok(result.clone()),
+                    Err(e) => Err(e.to_string()),
+                },
+            );
+        }
         result
     }
 
     async fn collect_package(
         &self,
-        global_cache: &mut FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>,
+        global_cache: &RefCell<FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>>,
         stack: &mut Vec<PackageKey>,
         packages: &mut FxHashMap<PackageKey, PackageInfo>,
         errors: &mut Vec<miette::Report>,
@@ -303,7 +313,7 @@ pub trait FileSystemAsync {
     async fn load_project_with_deps(
         &self,
         directory: &Path,
-        global_cache: Option<&mut PackageCache>,
+        global_cache: Option<&RefCell<PackageCache>>,
     ) -> miette::Result<ProgramConfig> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
@@ -313,7 +323,7 @@ pub trait FileSystemAsync {
 
         let root = self
             .collect_package(
-                global_cache.unwrap_or(&mut FxHashMap::default()),
+                global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
                 &mut stack,
                 &mut packages,
                 &mut errors,
@@ -378,7 +388,7 @@ pub trait FileSystem {
     fn load_project_with_deps(
         &self,
         directory: &Path,
-        global_cache: Option<&mut PackageCache>,
+        global_cache: Option<&RefCell<PackageCache>>,
     ) -> miette::Result<ProgramConfig> {
         // rather than rewriting all the async code in the project loader,
         // we're calling the async implementation here, doing some tricks to make it run
@@ -408,7 +418,7 @@ fn decode_dependency_defintion_from_key(key: &PackageKey) -> Dependency {
 
 type PackageKey = Arc<str>;
 type PackageAlias = Arc<str>;
-type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>;
+pub type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>;
 
 #[derive(Clone, Debug)]
 pub struct PackageInfo {

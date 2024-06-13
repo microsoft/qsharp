@@ -6,10 +6,12 @@ use async_trait::async_trait;
 use js_sys::JsString;
 use qsc::linter::LintConfig;
 use qsc_packages::BuildableProgram;
-use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
+use qsc_project::{
+    EntryType, JSFileEntry, Manifest, ManifestDescriptor, PackageCache, ProjectSystemCallbacks,
+};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, path::PathBuf, rc::Rc, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
@@ -314,6 +316,8 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
 #[wasm_bindgen]
 pub struct ProjectLoader(ProjectSystemCallbacks<'static>);
 
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
@@ -343,17 +347,13 @@ impl ProjectLoader {
         })
     }
 
-    pub async fn load_project_with_deps(
-        &self,
-        directory: String,
-        // TODO: the package cache is a real problem
-        // global_cache: Option<&mut PackageCache>,
-    ) -> IProjectConfig {
-        // TODO: yes.... i am crying
-        let r: ProjectConfig = qsc_project::FileSystemAsync::load_project_with_deps(
+    pub async fn load_project_with_deps(&self, directory: String) -> IProjectConfig {
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
+        let project_config: ProjectConfig = qsc_project::FileSystemAsync::load_project_with_deps(
             self,
             std::path::Path::new(&directory),
-            None,
+            Some(&package_cache),
         )
         .await
         .map_or_else(
@@ -432,7 +432,8 @@ impl ProjectLoader {
                 }
             },
         );
-        r.into()
+
+        project_config.into()
     }
 
     pub async fn load_project(&self, manifest: ManifestDescriptorObject) -> ProjectSources {
