@@ -164,6 +164,7 @@ pub trait FileSystemAsync {
             miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
         })?;
 
+        // TODO: file list should be required for github packages (and possibly local packages too)
         let mut sources = vec![];
         for file in &manifest.files {
             let path = format!("{path}/{file}");

@@ -363,6 +363,7 @@ if build_samples:
         for dp, _, filenames in project_directories
         for f in filenames
         if f == "qsharp.json"
+        if "ExpectErrors" not in dp
     ]
     cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
@@ -456,6 +457,7 @@ if build_pip and build_widgets and args.integration_tests:
             or f.startswith("circuits.")
             or f.startswith("iterative_phase_estimation.")
             or f.startswith("repeat_until_success.")
+            or f.startswith("python-deps.")
         )
     ]
     python_bin = use_python_env(samples_src)

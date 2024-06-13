@@ -12,9 +12,42 @@ suite("Q# Language Service Tests", function suite() {
 
   const workspaceFolderUri = workspaceFolder.uri;
   const docUri = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
+  const projectMainDocUri = vscode.Uri.joinPath(
+    workspaceFolderUri,
+    "packages",
+    // TODO: I wanted to call this main-package but my current hacky way of
+    // concatenating source lists makes that an invalid namespace way.
+    // Change it back when we have things properly implemented so we can validate
+    // that we support dashes in project folder names.
+    "MainPackage",
+    "src",
+    "Main.qs",
+  );
+  const projectDepDocUri = vscode.Uri.joinPath(
+    workspaceFolderUri,
+    "packages",
+    // TODO: I wanted to call this main-package but my current hacky way of
+    // concatenating source lists makes that an invalid namespace way.
+    // Change it back when we have things properly implemented so we can validate
+    // that we support dashes in project folder names.
+    "DepPackage",
+    "src",
+    "Main.qs",
+  );
 
   this.beforeAll(async () => {
     await activateExtension();
+
+    // Pre-open the text documents that are going to be interacted with in
+    // the tests. This just gives the language a service a bit of time to load
+    // fully in the background before the test cases run. Is it a hack? Absolutely.
+    // But we don't currently have to await background language service tasks.
+    // This is the best we can do to ensure the features have been initialized
+    // before we start testing.
+    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(projectMainDocUri);
+    // Give it a tiny bit of time to settle
+    await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   test("Q# language is registered", async () => {
@@ -172,5 +205,35 @@ suite("Q# Language Service Tests", function suite() {
     for (const lens of actualCodeLenses) {
       assert.include(doc.getText(lens.range), "operation Test()");
     }
+  });
+
+  test("Package dependencies", async () => {
+    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    vscode.commands.executeCommand("workbench.action.problems.focus");
+
+    // Sanity check the test setup - is this the correct position?
+    const text = doc.getText(
+      new vscode.Range(new vscode.Position(1, 10), new vscode.Position(1, 20)),
+    );
+    assert.equal(text, "MyFunction");
+
+    // Verify go-to-definition works across packages
+    const actualDefinition = (await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      projectMainDocUri,
+      new vscode.Position(1, 15), // cursor on the usage of "MyFunction"
+    )) as vscode.Location[];
+
+    // Returned location should be in DepPackage on teh definition of "MyFunction"
+    assert.lengthOf(actualDefinition, 1);
+    const location = actualDefinition[0];
+    assert.equal(location.uri.toString(), projectDepDocUri.toString());
+    assert.equal(location.range.start.line, 1);
+    assert.equal(location.range.start.character, 13);
+
+    // No errors if package dependencies are properly resolved
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(projectMainDocUri);
+    assert.isEmpty(actualDiagnostics);
   });
 });
