@@ -33,6 +33,7 @@ export function ScatterChart(props: {
   yAxis: Axis;
   onPointSelected(seriesIndex: number, pointIndex: number): void;
   selectedPoint?: [number, number];
+  allowSaveImage: boolean;
 }) {
   const selectedTooltipDiv = useRef<HTMLDivElement>(null);
 
@@ -325,25 +326,27 @@ export function ScatterChart(props: {
       </svg>
       <div class="qs-scatterChart-selectedInfo" ref={selectedTooltipDiv}></div>
       <div class="qs-scatterChart-tooltip"></div>
-      <button
-        role="button"
-        onClick={handleSaveImage}
-        className={"qs-estimatesOverview-saveIcon"}
-      >
-        <span>
-          <svg
-            width="75%"
-            height="75%"
-            viewBox="0 0 16 16"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              className={"qs-estimatesOverview-saveIconSvgPath"}
-              d="M12.0147 2.8595L13.1397 3.9845L13.25 4.25V12.875L12.875 13.25H3.125L2.75 12.875V3.125L3.125 2.75H11.75L12.0147 2.8595ZM3.5 3.5V12.5H12.5V4.406L11.5947 3.5H10.25V6.5H5V3.5H3.5ZM8 3.5V5.75H9.5V3.5H8Z"
-            />
-          </svg>
-        </span>
-      </button>
+      {props.allowSaveImage ? (
+        <button
+          role="button"
+          onClick={handleSaveImage}
+          className={"qs-estimatesOverview-saveIcon"}
+        >
+          <span>
+            <svg
+              width="75%"
+              height="75%"
+              viewBox="0 0 16 16"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                className={"qs-estimatesOverview-saveIconSvgPath"}
+                d="M12.0147 2.8595L13.1397 3.9845L13.25 4.25V12.875L12.875 13.25H3.125L2.75 12.875V3.125L3.125 2.75H11.75L12.0147 2.8595ZM3.5 3.5V12.5H12.5V4.406L11.5947 3.5H10.25V6.5H5V3.5H3.5ZM8 3.5V5.75H9.5V3.5H8Z"
+              />
+            </svg>
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }
