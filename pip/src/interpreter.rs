@@ -22,12 +22,12 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor},
+    project::{FileSystem, Manifest, ManifestDescriptor, PackageCache},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use std::fmt::Write;
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -100,6 +100,8 @@ impl FromPyObject<'_> for PyManifestDescriptor {
     }
 }
 
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
@@ -132,6 +134,8 @@ impl Interpreter {
             (None, None) => vec![],
         };
 
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let mut project = file_system(
                 py,
@@ -148,7 +152,7 @@ impl Interpreter {
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
             )
-            .load_project_with_deps(&manifest_descriptor.0.manifest_dir, None) // TODO: global cache!
+            .load_project_with_deps(&manifest_descriptor.0.manifest_dir, Some(&package_cache))
             .map_py_err()?;
 
             // TODO: this is a bit too aggressive? Should be a warning instead?
