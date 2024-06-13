@@ -203,6 +203,18 @@ impl FileSystem for FsNode {
     ) -> miette::Result<std::path::PathBuf> {
         Ok(Self::resolve_path(&base.to_string_lossy(), &path.to_string_lossy()).into())
     }
+
+    fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        Err(miette::Error::msg(
+            "github references not supported for this file system",
+        ))
+    }
 }
 
 pub(crate) fn dir<const COUNT: usize>(

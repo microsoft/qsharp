@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{manifest::ManifestDescriptor, Dependency, Manifest};
+use crate::{manifest::GitHubRef, Dependency, Manifest, ManifestDescriptor};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -48,14 +48,13 @@ pub trait DirEntry {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-#[cfg(feature = "async")]
 use async_trait::async_trait;
+use futures::FutureExt;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
-#[cfg(feature = "async")]
 #[async_trait(?Send)]
 pub trait FileSystemAsync {
-    type Entry: DirEntry + Send + Sync;
+    type Entry: DirEntry;
     /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
@@ -64,6 +63,16 @@ pub trait FileSystemAsync {
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
     async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
+
+    // TODO: stretching the definition of "file system" here...
+    // maybe we can call this struct "HostAsync" or something
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>>;
 
     /// Given an initial path, fetch files matching <initial_path>/**/*.qs
     async fn collect_project_sources(
@@ -103,7 +112,7 @@ pub trait FileSystemAsync {
         Ok(files)
     }
     /// Given a [ManifestDescriptor], load project sources.
-    async fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
+    async fn load_project_sources(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
         let project_path = manifest.manifest_dir.clone();
         let qs_files = self.collect_project_sources(&project_path).await?;
 
@@ -119,122 +128,66 @@ pub trait FileSystemAsync {
             sources,
         })
     }
-}
 
-/// Filters out any hidden files (files that start with '.')
-fn filter_hidden_files<Entry: DirEntry>(
-    listing: impl Iterator<Item = Entry>,
-) -> impl Iterator<Item = Entry> {
-    listing.filter(|x| !x.entry_name().starts_with('.'))
-}
-
-/// This trait is used to abstract filesystem logic with regards to Q# projects.
-/// A Q# project requires some multi-file structure, but that may not actually be
-/// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
-/// cached implementation. This interface defines the minimal filesystem requirements
-/// for the Q# project system to function correctly.
-pub trait FileSystem {
-    type Entry: DirEntry;
-    /// Given a path, parse its contents and return a tuple representing (`FileName`, `FileContents`).
-    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
-
-    /// Given a path, list its directory contents (if any).
-    fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
-
-    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
-
-    /// Given an initial path, fetch files matching <`initial_path`>/**/*.qs
-    fn collect_project_sources(&self, initial_path: &Path) -> miette::Result<Vec<Self::Entry>> {
-        let listing = self.list_directory(initial_path)?;
-        if let Some(src_dir) = listing.into_iter().find(|x| {
-            let Ok(entry_type) = x.entry_type() else {
-                return false;
-            };
-            entry_type == EntryType::Folder && x.entry_name() == "src"
-        }) {
-            self.collect_project_sources_inner(&src_dir.path())
-        } else {
-            Err(miette::ErrReport::msg(
-                "No `src` directory found for project.",
-            ))
-        }
-    }
-
-    fn collect_project_sources_inner(
-        &self,
-        initial_path: &Path,
-    ) -> miette::Result<Vec<Self::Entry>> {
-        let listing = self.list_directory(initial_path)?;
-        let mut files = vec![];
-        for item in filter_hidden_files(listing.into_iter()) {
-            match item.entry_type() {
-                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
-                Ok(EntryType::Folder) => {
-                    files.append(&mut self.collect_project_sources_inner(&item.path())?);
-                }
-                _ => (),
-            }
-        }
-        Ok(files)
-    }
-
-    /// Given a [`ManifestDescriptor`], load project sources.
-    fn load_project_sources(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let project_path = manifest.manifest_dir.clone();
-        let qs_files = self.collect_project_sources(&project_path)?;
-
-        let qs_files = qs_files.into_iter().map(|file| file.path());
-
-        let qs_sources = qs_files.map(|path| self.read_file(&path));
-
-        let sources = qs_sources.collect::<miette::Result<_>>()?;
-        Ok(Project {
-            manifest: manifest.manifest.clone(),
-            sources,
-        })
-    }
-
-    fn parse_manifest_in_dir(&self, directory: &Path) -> Result<Manifest, miette::Error> {
-        let listing = self.list_directory(directory)?;
-        let qsharp_json = listing
-            .into_iter()
-            .find(|e| e.entry_name() == "qsharp.json")
-            .ok_or(miette::ErrReport::msg(
-                "No `qsharp.json` file found in project directory.",
-            ))?;
-        let (_, manifest_content) = self.read_file(&qsharp_json.path())?;
+    async fn parse_manifest_in_dir(&self, directory: &Path) -> Result<Manifest, miette::Error> {
+        let manifest_path = self
+            .resolve_path(directory, Path::new("qsharp.json"))
+            .await?;
+        let (_, manifest_content) = self.read_file(&manifest_path).await?;
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
         })?;
         Ok(manifest)
     }
 
-    fn read_local_manifest_and_sources(&self, directory: &Path) -> miette::Result<Project> {
-        let manifest = self.parse_manifest_in_dir(directory)?;
+    async fn read_local_manifest_and_sources(&self, directory: &Path) -> miette::Result<Project> {
+        let manifest = self.parse_manifest_in_dir(directory).await?;
 
         self.load_project_sources(&ManifestDescriptor {
             manifest_dir: directory.to_path_buf(),
             manifest,
         })
+        .await
     }
 
-    fn read_github_manifest_and_sources(&self) -> miette::Result<Project> {
-        // TODO: support them obviously
-        Err(miette::ErrReport::msg(
-            "GitHub dependencies are not supported yet.",
-        ))
+    async fn read_github_manifest_and_sources(&self, dep: &GitHubRef) -> miette::Result<Project> {
+        let path = dep
+            .path
+            .as_ref()
+            .map(|p| if p == "/" { "" } else { p })
+            .unwrap_or_default();
+        let manifest_path = format!("{path}/qsharp.json",);
+        let manifest_content = self
+            .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &manifest_path)
+            .await?;
+        let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
+            miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
+        })?;
+
+        let mut sources = vec![];
+        for file in &manifest.files {
+            let path = format!("{path}/{file}");
+            let contents = self
+                .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
+                .await?;
+            // TODO: make up a canonical name here with magic URL scheme
+            sources.push((format!("GitHub/{path}").into(), contents));
+        }
+
+        Ok(Project { sources, manifest })
     }
 
-    fn read_manifest_and_sources(
+    async fn read_manifest_and_sources(
         &self,
         // global_cache: &mut FxHashMap<PackageKey, miette::Result<(Manifest, PackageInfo)>>,
         // key: PackageKey,
         this_pkg: &Dependency,
     ) -> miette::Result<(Manifest, PackageInfo)> {
         let mut project = match this_pkg {
-            Dependency::GitHub { .. } => self.read_github_manifest_and_sources()?,
+            Dependency::GitHub { github } => self.read_github_manifest_and_sources(github).await?,
             Dependency::Path { path } => {
-                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())?
+                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())
+                    .await?
             }
         };
 
@@ -246,7 +199,8 @@ pub trait FileSystem {
                         .resolve_path(
                             PathBuf::from(this_path).as_path(),
                             PathBuf::from(dep_path.clone()).as_path(),
-                        )?
+                        )
+                        .await?
                         .to_string_lossy()
                         .into();
                 }
@@ -265,7 +219,8 @@ pub trait FileSystem {
             },
         ))
     }
-    fn read_manifest_and_sources_cached(
+
+    async fn read_manifest_and_sources_cached(
         &self,
         global_cache: &mut FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>,
         key: PackageKey,
@@ -275,7 +230,7 @@ pub trait FileSystem {
             return cached.clone().map_err(miette::ErrReport::msg);
         }
 
-        let result = self.read_manifest_and_sources(this_pkg);
+        let result = self.read_manifest_and_sources(this_pkg).await;
         global_cache.insert(
             key,
             match &result {
@@ -286,7 +241,7 @@ pub trait FileSystem {
         result
     }
 
-    fn collect_package(
+    async fn collect_package(
         &self,
         global_cache: &mut FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>,
         stack: &mut Vec<PackageKey>,
@@ -295,7 +250,9 @@ pub trait FileSystem {
         this_pkg: &Dependency,
     ) -> Option<PackageInfo> {
         let key = key_for_dependency_definition(this_pkg);
-        let result = self.read_manifest_and_sources_cached(global_cache, key.clone(), this_pkg);
+        let result = self
+            .read_manifest_and_sources_cached(global_cache, key.clone(), this_pkg)
+            .await;
         let pkg = match result {
             Ok(pkg) => pkg.1,
             Err(e) => {
@@ -326,8 +283,9 @@ pub trait FileSystem {
                 continue;
             }
 
-            if let Some(dep_pkg) =
-                self.collect_package(global_cache, stack, packages, errors, &dependency)
+            if let Some(dep_pkg) = self
+                .collect_package(global_cache, stack, packages, errors, &dependency)
+                .await
             {
                 // TODO: do we ever end up processing the same package twice, and is that a big deal?
                 packages.insert(dep_key.clone(), dep_pkg);
@@ -341,26 +299,28 @@ pub trait FileSystem {
         Some(pkg)
     }
 
-    fn load_project_with_deps(
+    async fn load_project_with_deps(
         &self,
         directory: &Path,
         global_cache: Option<&mut PackageCache>,
     ) -> miette::Result<ProgramConfig> {
-        let manifest = self.parse_manifest_in_dir(directory)?;
+        let manifest = self.parse_manifest_in_dir(directory).await?;
 
         let mut errors = vec![];
         let mut packages = FxHashMap::default();
         let mut stack = vec![];
 
-        let root = self.collect_package(
-            global_cache.unwrap_or(&mut FxHashMap::default()),
-            &mut stack,
-            &mut packages,
-            &mut errors,
-            &Dependency::Path {
-                path: directory.to_string_lossy().into(),
-            },
-        );
+        let root = self
+            .collect_package(
+                global_cache.unwrap_or(&mut FxHashMap::default()),
+                &mut stack,
+                &mut packages,
+                &mut errors,
+                &Dependency::Path {
+                    path: directory.to_string_lossy().into(),
+                },
+            )
+            .await;
 
         match root {
             None => Err(miette::ErrReport::msg(format!(
@@ -380,6 +340,57 @@ pub trait FileSystem {
                 errors,
             }),
         }
+    }
+}
+
+/// Filters out any hidden files (files that start with '.')
+fn filter_hidden_files<Entry: DirEntry>(
+    listing: impl Iterator<Item = Entry>,
+) -> impl Iterator<Item = Entry> {
+    listing.filter(|x| !x.entry_name().starts_with('.'))
+}
+
+/// This trait is used to abstract filesystem logic with regards to Q# projects.
+/// A Q# project requires some multi-file structure, but that may not actually be
+/// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
+/// cached implementation. This interface defines the minimal filesystem requirements
+/// for the Q# project system to function correctly.
+pub trait FileSystem {
+    type Entry: DirEntry;
+    /// Given a path, parse its contents and return a tuple representing (`FileName`, `FileContents`).
+    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
+
+    /// Given a path, list its directory contents (if any).
+    fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
+
+    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
+
+    fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>>;
+
+    fn load_project_with_deps(
+        &self,
+        directory: &Path,
+        global_cache: Option<&mut PackageCache>,
+    ) -> miette::Result<ProgramConfig> {
+        // rather than rewriting all the async code in the project loader,
+        // we're calling the async implementation here, doing some tricks to make it run
+        // synchronously
+
+        let fs = ToFileSystemAsync { fs: self };
+
+        // This is a bit risky. It will fail at runtime if there are *any* await
+        // points in the async code. Right now, we know that will never be the case
+        // because we just passed in our synchronous FS functions to the project loader.
+        // But what if someone unwittingly sneaks anpther await point into the async implementation
+        // in the future?
+        FutureExt::now_or_never(fs.load_project_with_deps(directory, global_cache))
+            .expect("fun should be a function that returns immediately")
     }
 }
 
@@ -413,4 +424,40 @@ pub struct ProgramConfig {
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
+}
+
+/// Turns a `FileSystem` into a `FileSystemAsync`
+struct ToFileSystemAsync<'a, FS>
+where
+    FS: ?Sized,
+{
+    fs: &'a FS,
+}
+
+#[async_trait(?Send)]
+impl<FS, E> FileSystemAsync for ToFileSystemAsync<'_, FS>
+where
+    E: DirEntry,
+    FS: FileSystem<Entry = E> + ?Sized,
+{
+    type Entry = E;
+
+    async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
+        self.fs.read_file(path)
+    }
+    async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>> {
+        self.fs.list_directory(path)
+    }
+    async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
+        self.fs.resolve_path(base, path)
+    }
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>> {
+        self.fs.fetch_github(owner, repo, r#ref, path)
+    }
 }

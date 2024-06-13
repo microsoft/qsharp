@@ -110,10 +110,16 @@ export async function getProjectLoader(
   readFile: (path: string) => Promise<string | null>,
   loadDirectory: (path: string) => Promise<[string, number][]>,
   resolvePath: (base: string, relative: string) => Promise<string>,
+  fetchGithub: (
+    owner: string,
+    repo: string,
+    ref: string,
+    path: string,
+  ) => Promise<string | null>,
 ): Promise<wasm.ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(readFile, loadDirectory, ([a, b]) =>
-    resolvePath(a, b),
+  return new wasm.ProjectLoader(readFile, loadDirectory, resolvePath, (args) =>
+    fetchGithub(args[0], args[1], args[2], args[3]),
   );
 }
 

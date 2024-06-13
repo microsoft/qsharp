@@ -28,6 +28,8 @@ pub struct Manifest {
     pub lints: Vec<LintConfig>,
     #[serde(default)]
     pub dependencies: FxHashMap<String, Dependency>,
+    #[serde(default)]
+    pub files: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -39,9 +41,10 @@ pub enum Dependency {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GitHubRef {
-    owner: String,
-    repo: String,
-    r#ref: String,
+    pub owner: String,
+    pub repo: String,
+    pub r#ref: String,
+    pub path: Option<String>,
 }
 
 /// Describes the contents and location of a Q# manifest file.

@@ -80,6 +80,19 @@ impl FileSystem for Py<'_> {
         resolve_path(self.py, &self.fs_hooks.resolve_path, base, path)
             .map_err(|e| diagnostic_from(self.py, &e))
     }
+
+    fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        // TODO: support them then
+        Err(miette::Error::msg(
+            "github references not supported for this file system",
+        ))
+    }
 }
 
 fn read_file(py: Python, read_file: &PyObject, path: &Path) -> PyResult<(Arc<str>, Arc<str>)> {
