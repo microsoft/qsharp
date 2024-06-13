@@ -22,23 +22,22 @@ impl BuildableProgram {
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildableProgram {
     // TODO profile is no longer in program config -- why?
-    let capabilities = qsc::target::Profile::from_str("unrestricted") // TODO
-        .unwrap_or_else(|()| panic!("Invalid target : {}", todo!("program.targetProfile")))
-        .into();
+    let capabilities =
+        qsc::target::Profile::from_str(&program.target_profile) // TODO
+            .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
+            .into();
 
     let mut package_store = qsc::PackageStore::new(qsc::compile::core());
     let std = qsc::compile::std(&package_store, capabilities);
-    package_store.insert(std);
+    let std_id = package_store.insert(std);
+
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
+
     let (ordered_packages, user_code) = program
         .package_graph_sources
         .compilation_order()
         .expect("TODO error handling");
     for (package_name, package_to_compile) in ordered_packages {
-        // if this is the first package in the order, it should have zero dependencies
-        if package_store.is_empty() {
-            assert!(package_to_compile.dependencies.is_empty())
-        }
         let sources: Vec<(Arc<str>, Arc<str>)> = package_to_compile
             .sources
             .into_iter()
@@ -60,7 +59,11 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
             .collect::<FxHashMap<_, _>>();
         // TODO use aliases to resolve dependencies
         // for now just use the package key
-        let dependencies = dependencies.iter().map(|(_, b)| *b).collect::<Vec<_>>();
+        let dependencies = dependencies
+            .iter()
+            .map(|(_, b)| *b)
+            .chain(std::iter::once(std_id))
+            .collect::<Vec<_>>();
         let (compile_unit, dependency_errors) = qsc::compile::compile(
             &package_store,
             &dependencies[..],
@@ -70,7 +73,7 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
             qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
         );
         if !dependency_errors.is_empty() {
-            todo!("handle errors in dependencies");
+            todo!("handle errors in dependencies: {dependency_errors:?}");
         }
 
         let package_id = package_store.insert(compile_unit);

@@ -430,7 +430,8 @@ impl From<ProgramConfig> for qsc_project::ProgramConfig {
         Self {
             package_graph_sources: value.package_graph_sources.into(),
             target_profile: value.target_profile,
-            lints: todo!(),
+            // TODO inherit lints
+            lints: Default::default(),
             // not sure what to do with this yet, assuming it's the accumulated errors from the packages
             errors: Default::default(),
         }
