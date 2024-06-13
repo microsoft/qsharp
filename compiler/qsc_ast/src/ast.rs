@@ -1422,6 +1422,8 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// Optional leading expression.
+    pub leading_expr: Option<Box<Expr>>,
     /// The namespace.
     pub namespace: Option<Idents>,
     /// The declaration name.
@@ -1447,22 +1449,71 @@ impl From<Vec<Ident>> for Path {
             hi: name.span.hi,
         };
         Self {
+            id: NodeId::default(),
+            span,
+            leading_expr: None,
             namespace,
             name: name.into(),
-            span,
-            id: NodeId::default(),
         }
     }
 }
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
+        if self.leading_expr.is_none() && self.namespace.is_none() {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
+        } else {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "Path {} {}:", self.id, self.span)?;
+            indent = set_indentation(indent, 1);
+
+            write!(indent, "\nexpr: ")?;
+            if let Some(expr) = &self.leading_expr {
+                write!(indent, "{expr}")?;
+            } else {
+                write!(indent, "<none>")?;
+            }
+
+            if let Some(parts) = &self.namespace {
+                for part in parts {
+                    write!(indent, "\n{part}")?;
+                }
+            }
+
+            write!(indent, "\n{}", self.name)?;
         }
         Ok(())
+
+        // if let Some(ns) = &self.namespace {
+        //     write!(f, "Path {} {}: ({}) ({})", self.id, self.span, ns, self.name)?;
+        // } else {
+        //     write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
+        // }
+        // Ok(())
+
+        // let mut indent = set_indentation(indented(f), 0);
+        // write!(
+        //     indent,
+        //     "Callable {} {} ({:?}):",
+        //     self.id, self.span, self.kind
+        // )?;
+        // indent = set_indentation(indent, 1);
+        // write!(indent, "\nname: {}", self.name)?;
+        // if !self.generics.is_empty() {
+        //     write!(indent, "\ngenerics:")?;
+        //     indent = set_indentation(indent, 2);
+        //     for param in &*self.generics {
+        //         write!(indent, "\n{param}")?;
+        //     }
+        //     indent = set_indentation(indent, 1);
+        // }
+        // write!(indent, "\ninput: {}", self.input)?;
+        // write!(indent, "\noutput: {}", self.output)?;
+        // if let Some(f) = &self.functors {
+        //     write!(indent, "\nfunctors: {}", f.as_ref())?;
+        // }
+        // write!(indent, "\nbody: {}", self.body)?;
+        // Ok(())
     }
 }
 

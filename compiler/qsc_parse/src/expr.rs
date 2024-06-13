@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, path, recovering_token, seq, shorten, token},
+    prim::{ident, opt, pat, path, recovering_token, seq, shorten, single_ident_path, token},
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
@@ -21,7 +21,7 @@ use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, FieldAssign, Functor, Lit, NodeId, Pat, PatKind,
-    Pauli, StringComponent, TernOp, UnOp,
+    Path, Pauli, StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
 use std::{result, str::FromStr};
@@ -206,7 +206,8 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
-    } else if let Some(p) = opt(s, path)? {
+    //} else if let Some(p) = opt(s, path)? {
+    } else if let Some(p) = opt(s, single_ident_path)? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {
         Err(Error(ErrorKind::Rule(
@@ -634,6 +635,10 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Rich(field_op),
             precedence: 15,
         }),
+        OpName::Token(TokenKind::Dot) => Some(MixfixOp {
+            kind: OpKind::Rich(path_field_op),
+            precedence: 15,
+        }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
             kind: OpKind::Rich(index_op),
             precedence: 15,
@@ -668,6 +673,41 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
 
 fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+}
+
+fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+    let rest = path(s)?;
+    let id = NodeId::default();
+    let span = Span {
+        lo: lhs.span.lo,
+        hi: rest.span.hi,
+    };
+    let name = rest.name;
+    let result = if let ExprKind::Path(path) = *lhs.kind {
+        let parts = {
+            let mut v = vec![*path.name];
+            if let Some(parts) = rest.namespace {
+                v.append(&mut parts.into());
+            }
+            v.into()
+        };
+        Path {
+            id,
+            span,
+            leading_expr: None,
+            namespace: Some(parts),
+            name,
+        }
+    } else {
+        Path {
+            id,
+            span,
+            leading_expr: Some(lhs),
+            namespace: rest.namespace,
+            name,
+        }
+    };
+    Ok(Box::new(ExprKind::Path(Box::new(result))))
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
