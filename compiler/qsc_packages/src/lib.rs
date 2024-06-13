@@ -13,8 +13,14 @@ pub struct BuildableProgram {
     pub user_code_dependencies: Vec<qsc::hir::PackageId>,
 }
 
+impl BuildableProgram {
+    pub fn new(program: qsc_project::ProgramConfig) -> Self {
+        prepare_package_store(program)
+    }
+}
+
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
-pub(crate) fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildableProgram {
+pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildableProgram {
     // TODO profile is no longer in program config -- why?
     let capabilities = qsc::target::Profile::from_str("unrestricted") // TODO
         .unwrap_or_else(|()| panic!("Invalid target : {}", todo!("program.targetProfile")))
@@ -128,6 +134,20 @@ mod tests {
             lints: vec![],
             errors: vec![],
         }
+    }
+
+    fn pretty_print_buildable_program(program: &super::BuildableProgram) -> String {
+        let mut buf = String::new();
+        buf.push_str("store:\n___________\n");
+        for (id, unit) in program.store.iter() {
+            buf.push_str(&format!("{id} : {:?}\n", unit));
+        }
+
+        buf.push_str("user_code:\n___________\n");
+        buf.push_str(&format!("{:?}", program.user_code));
+        buf.push_str("user_code_dependencies:\n___________\n");
+        buf.push_str(&format!("{:?}\n", program.user_code_dependencies));
+        buf
     }
 
     #[test]

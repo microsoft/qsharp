@@ -378,6 +378,7 @@ pub trait FileSystem {
                 },
                 lints: manifest.lints,
                 errors,
+                target_profile: todo!(),
             }),
         }
     }
@@ -413,6 +414,7 @@ pub struct ProgramConfig {
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
+    pub target_profile: String,
 }
 
 #[derive(Debug)]

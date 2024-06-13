@@ -5,6 +5,7 @@ use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
 use qsc::linter::LintConfig;
+use qsc_packages::BuildableProgram;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -424,6 +425,49 @@ serializable_type! {
 type PackageAlias = String;
 type PackageKey = String;
 
+impl From<ProgramConfig> for qsc_project::ProgramConfig {
+    fn from(value: ProgramConfig) -> Self {
+        Self {
+            package_graph_sources: value.package_graph_sources.into(),
+            target_profile: value.target_profile,
+            lints: todo!(),
+            // not sure what to do with this yet, assuming it's the accumulated errors from the packages
+            errors: Default::default(),
+        }
+    }
+}
+
+impl From<PackageGraphSources> for qsc_project::PackageGraphSources {
+    fn from(value: PackageGraphSources) -> Self {
+        Self {
+            root: value.root.into(),
+            packages: value
+                .packages
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), v.into()))
+                .collect(),
+        }
+    }
+}
+
+impl From<PackageInfo> for qsc_project::PackageInfo {
+    fn from(value: PackageInfo) -> Self {
+        Self {
+            sources: value
+                .sources
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), Arc::from(v)))
+                .collect(),
+            language_features: value.language_features,
+            dependencies: value
+                .dependencies
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), Arc::from(v)))
+                .collect(),
+        }
+    }
+}
+
 /// This returns the common parameters that the compiler/interpreter uses
 pub(crate) fn into_qsc_args(
     program: IProgramConfig,
@@ -437,6 +481,11 @@ pub(crate) fn into_qsc_args(
     let capabilities = qsc::target::Profile::from_str(&program.target_profile)
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
         .into();
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+    } = qsc_packages::BuildableProgram::new(program.into());
     let package_graph = program.package_graph_sources;
     let (sources, language_features) = into_package_graph_args(package_graph);
 
