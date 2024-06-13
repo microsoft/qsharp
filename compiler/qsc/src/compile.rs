@@ -101,7 +101,7 @@ fn process_compile_unit(
 ///
 /// # Panics
 ///
-/// Panics if the core library does not compile without errors.
+/// Panics if the core library compiles with errors.
 #[must_use]
 pub fn core() -> CompileUnit {
     let mut unit = qsc_frontend::compile::core();

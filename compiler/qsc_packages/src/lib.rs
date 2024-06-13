@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 use std::{str::FromStr, sync::Arc};
 
-use qsc::SourceMap;
 use rustc_hash::FxHashMap;
 
 /// A program that is ready to be built -- dependencies have all been built, and the user code is ready.
@@ -140,6 +139,7 @@ mod tests {
             },
             lints: vec![],
             errors: vec![],
+            target_profile: "unrestricted".into(),
         }
     }
 

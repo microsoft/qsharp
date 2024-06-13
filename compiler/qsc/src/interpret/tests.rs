@@ -1773,7 +1773,10 @@ mod given_interpreter {
             );
 
             let mut store = crate::PackageStore::new(crate::compile::core());
-            let dependencies = vec![store.insert(crate::compile::std(&store, capabilities))];
+            let dependencies = vec![(
+                store.insert(crate::compile::std(&store, capabilities)),
+                None,
+            )];
 
             let (unit, errors) = crate::compile::compile(
                 &store,

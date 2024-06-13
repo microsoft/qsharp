@@ -61,7 +61,8 @@ fn code_with_errors_returns_errors() {
 mod base_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-    use qsc_frontend::compile::SourceMap;
+    use qsc_frontend::compile::{PackageStore, SourceMap};
+    use qsc_project::ProgramConfig;
 
     use crate::codegen::get_qir;
 
@@ -86,8 +87,9 @@ mod base_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -136,8 +138,9 @@ mod base_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -189,7 +192,8 @@ mod base_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-        let qir = get_qir(sources, language_features, capabilities, todo!(), todo!())
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
             .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
@@ -233,7 +237,7 @@ mod base_profile {
 mod adaptive_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-    use qsc_frontend::compile::SourceMap;
+    use qsc_frontend::compile::{PackageStore, SourceMap};
 
     use crate::codegen::get_qir;
 
@@ -258,8 +262,9 @@ mod adaptive_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -315,8 +320,9 @@ mod adaptive_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -375,8 +381,9 @@ mod adaptive_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -424,6 +431,7 @@ mod adaptive_profile {
 }
 
 mod adaptive_ri_profile {
+    use crate::PackageStore;
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
@@ -453,8 +461,9 @@ mod adaptive_ri_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -512,8 +521,9 @@ mod adaptive_ri_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -574,8 +584,9 @@ mod adaptive_ri_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -637,8 +648,9 @@ mod adaptive_ri_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let store = PackageStore::new(crate::compile::core());
+        let qir = get_qir(sources, language_features, capabilities, store, &[])
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque

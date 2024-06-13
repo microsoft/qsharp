@@ -71,7 +71,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
     let (mut package_store, std_package_id) = compile_fake_stdlib();
     let (unit, errors) = compile::compile(
         &package_store,
-        &[std_package_id],
+        &[(std_package_id, None)],
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
@@ -188,7 +188,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
     );
     let (std_compile_unit, std_errors) = compile::compile(
         &package_store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),

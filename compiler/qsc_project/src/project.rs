@@ -4,6 +4,7 @@
 use crate::{manifest::GitHubRef, Dependency, Manifest, ManifestDescriptor};
 use std::{
     cell::RefCell,
+    os,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -437,6 +438,42 @@ pub struct ProgramConfig {
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
     pub target_profile: String,
+}
+
+impl ProgramConfig {
+    /// Given a source map and profile, create a default program config which
+    /// has no dependencies.
+    /// Useful for testing and single-file scenarios.
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        target_profile: String,
+    ) -> Self {
+        let sources = sources
+            .into_iter()
+            .map(|(name, contents)| (name.into(), contents.into()))
+            .collect();
+        let root = PackageInfo {
+            sources,
+            language_features: vec![],
+            dependencies: FxHashMap::default(),
+        };
+        Self {
+            package_graph_sources: PackageGraphSources {
+                root: root.clone(),
+                packages: vec![(
+                    key_for_dependency_definition(&Dependency::Path {
+                        path: "root".into(),
+                    }),
+                    root,
+                )]
+                .into_iter()
+                .collect(),
+            },
+            lints: Default::default(),
+            errors: Default::default(),
+            target_profile,
+        }
+    }
 }
 
 #[derive(Debug)]

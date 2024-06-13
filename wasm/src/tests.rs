@@ -3,7 +3,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, SourceMap, TargetCapabilityFlags};
+use qsc::{interpret, LanguageFeatures, PackageStore, SourceMap, TargetCapabilityFlags};
 
 use crate::_get_qir;
 
@@ -47,10 +47,14 @@ fn test_compile() {
     M(q)
     }}";
 
+    let store = qsc::PackageStore::new(qsc::compile::core());
+
     let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
         TargetCapabilityFlags::empty(),
+        store,
+        &[],
     );
     assert!(result.is_ok());
 }
@@ -486,10 +490,12 @@ fn code_with_errors_returns_errors() {
     let language_features = LanguageFeatures::default();
     let capabilities = TargetCapabilityFlags::empty();
 
+    let store = PackageStore::new(qsc::compile::core());
+
     expect![[r#"
         Err(
             "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
         )
     "#]]
-    .assert_debug_eq(&_get_qir(sources, language_features, capabilities));
+    .assert_debug_eq(&_get_qir(sources, language_features, capabilities, store, &[]));
 }
