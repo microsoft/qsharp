@@ -532,6 +532,38 @@ impl<'a> Context<'a> {
         // );
         // self.diverge_if(record.diverges, converge(item_ty))
 
+        // If the path has a leading expr, it must be a field accessor
+        if let Some(leading) = &path.leading_expr {
+            let mut record = self.infer_expr(leading);
+
+            let parts: Vec<ast::Ident> = {
+                if let Some(parts) = &path.namespace {
+                    parts.into()
+                } else {
+                    Vec::new()
+                }
+            };
+
+            for part in parts.iter().chain(iter::once(path.name.as_ref())) {
+                let span = Span {
+                    lo: expr.span.lo,
+                    hi: part.span.hi,
+                };
+                let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
+                self.inferrer.class(
+                    span,
+                    Class::HasField {
+                        record: record.ty.clone(),
+                        name: part.name.to_string(),
+                        item: item_ty.clone(),
+                    },
+                );
+                self.record(part.id, item_ty.clone());
+                record = self.diverge_if(record.diverges, converge(item_ty));
+            }
+            return record;
+        }
+
         if let Some(parts) = &path.namespace {
             let parts: Vec<ast::Ident> = parts.into();
             let (first, rest) = parts

@@ -1229,7 +1229,9 @@ impl AstVisitor<'_> for With<'_> {
                 });
             }
             ast::ExprKind::Path(path) => {
-                if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
+                if let Some(leading) = path.leading_expr.as_ref() {
+                    self.visit_expr(leading);
+                } else if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
                     self.resolver.errors.push(e);
                 };
             }
