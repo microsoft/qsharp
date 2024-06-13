@@ -95,4 +95,17 @@ impl FileSystem for StdFs {
     fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
         std::fs::canonicalize(base.join(path)).into_diagnostic()
     }
+
+    fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        r#ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        let _ = r#ref;
+        Err(miette::Error::msg(
+            "github references not supported for this file system",
+        ))
+    }
 }

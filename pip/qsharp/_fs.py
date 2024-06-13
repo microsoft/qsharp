@@ -26,7 +26,7 @@ def list_directory(dir_path: str) -> List[Dict[str, str]]:
 
 
 def resolve(base: str, path: str) -> str:
-    return os.path.normpath(os.path.join(base, path))
+    return os.path.normpath(join(base, path))
 
 
 def exists(path) -> bool:

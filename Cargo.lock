@@ -1197,6 +1197,8 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "expect-test",
+ "futures",
+ "log",
  "miette",
  "qsc_linter",
  "qsc_project",

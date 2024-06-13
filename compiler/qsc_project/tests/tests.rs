@@ -38,6 +38,7 @@ fn basic_manifest() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -71,6 +72,7 @@ fn circular_imports() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -104,6 +106,7 @@ fn different_files_same_manifest() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -127,6 +130,7 @@ fn empty_manifest() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -162,6 +166,7 @@ fn folder_structure() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -192,6 +197,7 @@ fn hidden_files() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -226,6 +232,7 @@ fn peer_file() {
                     language_features: [],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );
@@ -251,6 +258,7 @@ fn language_feature() {
                     ],
                     lints: [],
                     dependencies: {},
+                    files: [],
                 },
             }"#]],
     );

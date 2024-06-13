@@ -33,9 +33,18 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    // TODO: this is a clunky signature
-    #[wasm_bindgen(typescript_type = "(args: [string, string]) => Promise<string>")]
+    // TODO: communicate failure somehow
+    #[wasm_bindgen(typescript_type = "(base: string, path: string) => Promise<string>")]
     pub type ResolvePathCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(
+        // TODO: EWWWW
+        typescript_type = "(githubRef: [string, string, string, string]) => Promise<string | null>"
+    )]
+    pub type FetchGithubCallback;
 }
 
 #[wasm_bindgen]
@@ -123,6 +132,38 @@ macro_rules! into_async_rust_fn_with_2 {
     }};
 }
 
+macro_rules! into_async_rust_fn_with_4 {
+    ($js_async_fn: ident, $map_result: expr) => {{
+        use crate::project_system::{map_js_promise, to_js_function};
+        use std::future::Future;
+        use std::pin::Pin;
+        use wasm_bindgen::JsValue;
+        use wasm_bindgen_futures::JsFuture;
+
+        let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
+
+        let $js_async_fn =
+            move |(input1, input2, input3, input4): (String, String, String, String)| {
+                let path1 = JsValue::from_str(&input1);
+                let path2 = JsValue::from_str(&input2);
+                let path3 = JsValue::from_str(&input3);
+                let path4 = JsValue::from_str(&input4);
+                let tuple = js_sys::Array::of4(&path1, &path2, &path3, &path4);
+                let res: js_sys::Promise = $js_async_fn
+                    .call1(&JsValue::NULL, &tuple)
+                    .expect("callback should succeed")
+                    .into();
+
+                let res: JsFuture = res.into();
+
+                Box::pin(map_js_promise(res, move |x| {
+                    $map_result(x.into(), String::new())
+                })) as Pin<Box<dyn Future<Output = _> + 'static>>
+            };
+        $js_async_fn
+    }};
+}
+
 pub(crate) async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
 where
     F: Fn(JsValue) -> T,
@@ -180,10 +221,11 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
 }
 
 #[allow(clippy::needless_pass_by_value)]
-pub(crate) fn resolve_path_transformer(js_val: JsValue, _: String) -> String {
+pub(crate) fn resolve_path_transformer(js_val: JsValue, _: String) -> Arc<str> {
     js_val
         .as_string()
         .expect("expected string from resolve_path")
+        .into()
 }
 
 /// Given a [`JsValue`] representing the result of a call to a read file function,
@@ -261,6 +303,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
             author: Option::default(),
             license: Option::default(),
             dependencies: FxHashMap::default(),
+            files: Vec::default(),
         },
         manifest_dir,
     })
@@ -278,6 +321,7 @@ impl ProjectLoader {
         read_file: ReadFileCallback,
         list_directory: ListDirectoryCallback,
         resolve_path: ResolvePathCallback,
+        fetch_github: FetchGithubCallback,
     ) -> Self {
         let read_file = read_file.into();
         let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
@@ -288,11 +332,107 @@ impl ProjectLoader {
         let resolve_path = resolve_path.into();
         let resolve_path = into_async_rust_fn_with_2!(resolve_path, resolve_path_transformer);
 
+        let fetch_github = fetch_github.into();
+        let fetch_github = into_async_rust_fn_with_4!(fetch_github, resolve_path_transformer);
+
         ProjectLoader(ProjectSystemCallbacks {
             read_file: Box::new(read_file),
             list_directory: Box::new(list_directory),
             resolve_path: Box::new(resolve_path),
+            fetch_github: Box::new(fetch_github),
         })
+    }
+
+    pub async fn load_project_with_deps(
+        &self,
+        directory: String,
+        // TODO: the package cache is a real problem
+        // global_cache: Option<&mut PackageCache>,
+    ) -> IProjectConfig {
+        // TODO: yes.... i am crying
+        let r: ProjectConfig = qsc_project::FileSystemAsync::load_project_with_deps(
+            self,
+            std::path::Path::new(&directory),
+            None,
+        )
+        .await
+        .map_or_else(
+            |e| ProjectConfig {
+                project_name: String::new(),
+                project_uri: String::new(),
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: Vec::new(),
+                        language_features: Vec::new(),
+                        dependencies: FxHashMap::default(),
+                    },
+                    packages: FxHashMap::default(),
+                },
+                lints: Vec::new(),
+                errors: vec![e.to_string()],
+            },
+            |proj| {
+                ProjectConfig {
+                    project_name: String::new(), // TODO: ew
+                    project_uri: String::new(),  // TODO: ew
+                    package_graph_sources: PackageGraphSources {
+                        root: PackageInfo {
+                            sources: proj
+                                .package_graph_sources
+                                .root
+                                .sources
+                                .into_iter()
+                                .map(|(path, contents)| (path.to_string(), contents.to_string()))
+                                .collect(),
+                            language_features: proj
+                                .package_graph_sources
+                                .root
+                                .language_features
+                                .into_iter()
+                                .collect(),
+                            dependencies: proj
+                                .package_graph_sources
+                                .root
+                                .dependencies
+                                .into_iter()
+                                .map(|(k, v)| (k.to_string(), v.to_string()))
+                                .collect(),
+                        },
+                        packages: proj
+                            .package_graph_sources
+                            .packages
+                            .into_iter()
+                            .map(|(k, v)| {
+                                (
+                                    k.to_string(),
+                                    PackageInfo {
+                                        sources: v
+                                            .sources
+                                            .into_iter()
+                                            .map(|(path, contents)| {
+                                                (path.to_string(), contents.to_string())
+                                            })
+                                            .collect(),
+                                        language_features: v
+                                            .language_features
+                                            .into_iter()
+                                            .collect(),
+                                        dependencies: v
+                                            .dependencies
+                                            .into_iter()
+                                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                                            .collect(),
+                                    },
+                                )
+                            })
+                            .collect(),
+                    },
+                    lints: proj.lints.into_iter().map(Into::into).collect(),
+                    errors: proj.errors.into_iter().map(|r| r.to_string()).collect(),
+                }
+            },
+        );
+        r.into()
     }
 
     pub async fn load_project(&self, manifest: ManifestDescriptorObject) -> ProjectSources {
@@ -300,7 +440,8 @@ impl ProjectLoader {
         match manifest {
             #[allow(clippy::from_iter_instead_of_collect)]
             Some(manifest) => {
-                let res = qsc_project::FileSystemAsync::load_project(self, &manifest)
+                // TODO: we shouldn't need this anymore... later
+                let res = qsc_project::FileSystemAsync::load_project_sources(self, &manifest)
                     .await
                     .map_or_else(
                         |_| js_sys::Array::new(),
@@ -349,7 +490,24 @@ impl qsc_project::FileSystemAsync for ProjectLoader {
             path.to_string_lossy().to_string(),
         ))
         .await
+        .to_string()
         .into())
+    }
+
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<std::sync::Arc<str>> {
+        Ok((self.0.fetch_github)((
+            owner.to_string(),
+            repo.to_string(),
+            r#ref.to_string(),
+            path.to_string(),
+        ))
+        .await)
     }
 }
 
@@ -403,6 +561,7 @@ serializable_type! {
         pub project_uri: String,
         pub package_graph_sources: PackageGraphSources,
         pub lints: Vec<LintConfig>, // TODO: I feel like this will barf at the serialization boundary if you have an invalid lint name
+        pub errors: Vec<String>,
     },
     r#"export interface IProjectConfig {
         /**
@@ -418,6 +577,7 @@ serializable_type! {
           lint: string;
           level: string;
         }[];
+        errors: string[];
     }"#,
     IProjectConfig
 }

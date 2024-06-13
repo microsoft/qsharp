@@ -19,11 +19,6 @@ namespace MyQuantumApp {
         DependencyA.MagicFunction();
         DependencyB.MagicFunction();
 
-        // DependencyC contains a circular dependency - this should rightfully
-        // cause an error to be shown for the qsharp.json, but the language
-        // service should still be functional for this line
-        DependencyC.MagicFunction();
-
         // this is coming from github - minestarks/qsharp-project-template
         // obviously namespace is all sorts of wonky but it's ok for now
         // GitHub.src.Diagnostics.DumpMachine_(); // This does work in VS Code. Just commented out to get CI passing.

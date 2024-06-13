@@ -17,7 +17,6 @@ pub use error::Error;
 pub use fs::StdFs;
 pub use js::{JSFileEntry, ProjectSystemCallbacks};
 pub use manifest::{Dependency, Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
-#[cfg(feature = "async")]
 pub use project::FileSystemAsync;
 pub use project::{
     DirEntry, EntryType, FileSystem, PackageGraphSources, PackageInfo, ProgramConfig, Project,
