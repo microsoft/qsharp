@@ -190,8 +190,14 @@ impl Interpreter {
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
-            .map_err(into_errors)?;
+        let compiler = Compiler::new(
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+            todo!("dependencies"),
+        )
+        .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {

@@ -107,11 +107,11 @@ impl Compilation {
     {
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
             language_features,
+            todo!("dependencies"),
         )
         .expect("expected incremental compiler creation to succeed");
 
