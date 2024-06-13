@@ -39,7 +39,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
 
     let mut unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources.unwrap_or_default(),
         TargetCapabilityFlags::all(),
         LanguageFeatures::empty(),

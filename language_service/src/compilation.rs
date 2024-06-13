@@ -65,7 +65,7 @@ impl Compilation {
 
         let (unit, mut errors) = compile::compile(
             &package_store,
-            &[std_package_id],
+            &[(std_package_id, None)],
             source_map,
             package_type,
             target_profile.into(),

@@ -55,7 +55,7 @@ fn code_with_errors_returns_errors() {
             ],
         )
     "#]]
-    .assert_debug_eq(&get_qir(sources, language_features, capabilities));
+    .assert_debug_eq(&get_qir(sources, language_features, capabilities, todo!(), &[]));
 }
 
 mod base_profile {
@@ -189,8 +189,8 @@ mod base_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-        let qir =
-            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        let qir = get_qir(sources, language_features, capabilities, todo!(), todo!())
+            .expect("Failed to generate QIR");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque

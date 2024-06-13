@@ -62,7 +62,13 @@ pub fn get_qir(program: IProgramConfig) -> Result<String, String> {
         return Err("Invalid target profile for QIR generation".to_string());
     }
 
-    _get_qir(source_map, language_features, capabilities, store, deps)
+    _get_qir(
+        source_map,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    )
 }
 
 pub(crate) fn _get_qir(
@@ -70,8 +76,9 @@ pub(crate) fn _get_qir(
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
     store: PackageStore,
-    deps: Vec<PackageId>,
+    deps: &qsc::compile::Dependencies,
 ) -> Result<String, String> {
+    log::info!("deps are {:?}", deps);
     qsc::codegen::get_qir(sources, language_features, capabilities, store, deps)
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
@@ -170,7 +177,7 @@ pub fn get_ast(
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
-            &[*std],
+            &[(*std, None)],
             sources,
             PackageType::Exe,
             profile.into(),
@@ -194,7 +201,7 @@ pub fn get_hir(
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
-            &[*std],
+            &[(*std, None)],
             sources,
             PackageType::Exe,
             profile.into(),

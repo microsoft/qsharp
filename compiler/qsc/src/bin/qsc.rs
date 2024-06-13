@@ -145,7 +145,7 @@ fn main() -> miette::Result<ExitCode> {
     let sources = SourceMap::new(sources, Some(entry.into()));
     let (unit, errors) = compile(
         &store,
-        &dependencies,
+        todo!("use into_qsc_args"),
         sources,
         package_type,
         capabilities,

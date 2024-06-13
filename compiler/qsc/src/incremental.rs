@@ -54,7 +54,7 @@ impl Compiler {
 
         let (mut unit, errors) = compile(
             &store,
-            &dependencies,
+            todo!(),
             sources,
             package_type,
             capabilities,

@@ -339,7 +339,7 @@ pub trait FileSystemAsync {
                 },
                 lints: manifest.lints,
                 errors,
-                target_profile: todo!(),
+                target_profile: "unrestricted".into(), // TODO(alex)
             }),
         }
     }
@@ -483,6 +483,8 @@ impl PackageGraphSources {
                 .position(|key| key.as_str() == &**a_key)
                 .unwrap()
         });
+
+        log::info!("build plan: {:#?}", sorted_keys);
 
         Ok((sorted_packages, self.root))
     }

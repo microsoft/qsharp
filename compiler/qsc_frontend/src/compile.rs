@@ -47,6 +47,7 @@ pub struct CompileUnit {
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
 }
+
 impl CompileUnit {
     pub fn expose(&mut self) {
         for (_item_id, item) in self.package.items.iter_mut() {
@@ -181,6 +182,9 @@ pub struct Source {
 pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
+
+// this is only `None` for the legacy stdlib and core
+pub type Dependencies = [(PackageId, Option<Arc<str>>)];
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -342,7 +346,7 @@ impl MutVisitor for Offsetter {
 #[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
@@ -362,7 +366,7 @@ pub fn compile(
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     mut ast_package: ast::Package,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
@@ -460,7 +464,7 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
 
     let mut unit = compile(
         store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         sources,
         capabilities,
         LanguageFeatures::default(),
@@ -508,7 +512,7 @@ fn parse_all(
 
 fn resolve_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
@@ -519,11 +523,11 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for &id in dependencies {
+    for (ref id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -543,7 +547,7 @@ fn resolve_all(
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     package: &ast::Package,
     names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
@@ -552,11 +556,11 @@ fn typeck_all(
         globals.add_external_package(PackageId::CORE, &unit.package);
     }
 
-    for &id in dependencies {
+    for (id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be added to package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package);
     }
 
     let mut checker = Checker::new(globals);

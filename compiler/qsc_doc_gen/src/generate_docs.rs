@@ -45,7 +45,7 @@ impl Compilation {
 
             let unit = compile(
                 &package_store,
-                &[std_package_id],
+                &[(std_package_id, None)],
                 sources,
                 actual_capabilities,
                 actual_language_features,

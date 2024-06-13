@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::sync::Arc;
+
 use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
 
@@ -467,7 +469,7 @@ fn package_dependency() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -540,7 +542,7 @@ fn package_dependency_internal_error() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -621,7 +623,7 @@ fn package_dependency_udt() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -702,7 +704,7 @@ fn package_dependency_nested_udt() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -782,7 +784,7 @@ fn std_dependency() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -814,7 +816,7 @@ fn std_dependency_base_profile() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
@@ -842,7 +844,7 @@ fn introduce_prelude_ambiguity() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -956,7 +958,7 @@ fn unimplemented_call_from_dependency_produces_error() {
     );
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1109,7 +1111,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
     );
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1161,7 +1163,7 @@ fn duplicate_intrinsic_from_dependency() {
 
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1212,7 +1214,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::V2PreviewSyntax,
@@ -1267,7 +1269,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
@@ -1557,7 +1559,10 @@ fn multiple_packages_reference_exports() {
 
     let user_code = compile(
         &store,
-        &[package_a, package_b],
+        &[
+            (package_a, Some(Arc::from("PackageA"))),
+            (package_b, Some(Arc::from("PackageB"))),
+        ],
         user_code,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1638,7 +1643,10 @@ fn multiple_packages_disallow_unexported_imports() {
 
     let user_code = compile(
         &store,
-        &[package_a, package_b],
+        &[
+            (package_a, Some(Arc::from("PackageA"))),
+            (package_b, Some(Arc::from("PackageB"))),
+        ],
         user_code,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),

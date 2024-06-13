@@ -22,7 +22,7 @@ fn compile(data: &[u8]) {
         STORE_STD.with(|(store, std)| {
             let mut _unit = qsc::compile::compile(
                 store,
-                &[*std],
+                &[(*std, None)],
                 sources,
                 qsc::PackageType::Lib,
                 Profile::Unrestricted.into(),

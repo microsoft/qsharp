@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap;
 pub struct BuildableProgram {
     pub store: qsc::PackageStore,
     pub user_code: qsc_project::PackageInfo,
-    pub user_code_dependencies: Vec<qsc::hir::PackageId>,
+    pub user_code_dependencies: Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
 }
 
 impl BuildableProgram {
@@ -61,8 +61,8 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
         // for now just use the package key
         let dependencies = dependencies
             .iter()
-            .map(|(_, b)| *b)
-            .chain(std::iter::once(std_id))
+            .map(|(alias, b)| (*b, Some(alias.clone())))
+            .chain(std::iter::once((std_id, None)))
             .collect::<Vec<_>>();
         let (compile_unit, dependency_errors) = qsc::compile::compile(
             &package_store,
@@ -84,11 +84,13 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
         .dependencies
         .iter()
         .map(|(alias, key)| {
-            //                alias.clone(),
-            canonical_package_identifier_to_package_id_mapping
-                .get(key)
-                .copied()
-                .expect("TODO handle this err: missing package")
+            (
+                canonical_package_identifier_to_package_id_mapping
+                    .get(key)
+                    .copied()
+                    .expect("TODO handle this err: missing package"),
+                Some(alias.clone()),
+            )
         })
         .collect::<Vec<_>>();
 

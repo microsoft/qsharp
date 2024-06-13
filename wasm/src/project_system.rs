@@ -638,7 +638,7 @@ pub(crate) fn into_qsc_args(
     qsc::TargetCapabilityFlags,
     qsc::LanguageFeatures,
     qsc::PackageStore,
-    Vec<qsc::hir::PackageId>,
+    Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
 ) {
     let program: ProgramConfig = program.into();
     let capabilities = qsc::target::Profile::from_str(&program.target_profile)
