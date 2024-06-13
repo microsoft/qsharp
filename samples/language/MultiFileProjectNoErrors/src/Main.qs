@@ -16,8 +16,7 @@ namespace MyQuantumApp {
         // I'm just pulling in all the sources into the same compilation
 
         // these are coming from local deps
-        DependencyA.MagicFunction();
-        DependencyB.MagicFunction();
+        Foo.DependencyA.MagicFunction();
 
         // this is coming from github - minestarks/qsharp-project-template
         // obviously namespace is all sorts of wonky but it's ok for now

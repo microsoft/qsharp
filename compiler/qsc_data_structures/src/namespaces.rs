@@ -179,6 +179,20 @@ impl NamespaceTreeRoot {
             .children
             .insert(Rc::from(alias), existing_ns);
     }
+
+    pub fn insert_or_find_namespace_from_root(
+        &mut self,
+        ns: impl Into<Vec<Rc<str>>>,
+        root: NamespaceId,
+    ) -> NamespaceId {
+        let (root_name, mut root_contents) = self.find_namespace_by_id(&root);
+        let id = root_contents
+            .borrow_mut()
+            .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
+
+        let id = id.expect("empty name should not be passed into namespace insertion");
+        id
+    }
 }
 
 impl Default for NamespaceTreeRoot {
