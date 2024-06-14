@@ -108,7 +108,7 @@ export function ScatterChart(props: {
     const centerX = (pointRect.left + pointRect.right) / 2;
     const divRect = topDiv.getBoundingClientRect();
     tooltip.style.left = `${centerX - divRect.left - halfWidth}px`;
-    tooltip.style.top = `${centerY - divRect.top}px`;
+    tooltip.style.top = `${centerY - divRect.top + 12}px`;
     tooltip.style.visibility = "visible";
   }
 
