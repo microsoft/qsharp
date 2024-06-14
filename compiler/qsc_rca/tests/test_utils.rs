@@ -21,11 +21,11 @@ impl CompilationContext {
     #[must_use]
     pub fn new(capabilities: TargetCapabilityFlags) -> Self {
         let compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             capabilities,
             LanguageFeatures::default(),
+            &[],
         )
         .expect("should be able to create a new compiler");
         let fir_store = lower_hir_package_store(compiler.package_store());

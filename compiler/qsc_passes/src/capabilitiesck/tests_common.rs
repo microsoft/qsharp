@@ -50,11 +50,11 @@ struct CompilationContext {
 impl CompilationContext {
     fn new(source: &str) -> Self {
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            &[],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.package_id());
@@ -75,11 +75,11 @@ impl CompilationContext {
 
     fn new_for_exe(source: &str) -> Self {
         let compiler = Compiler::new(
-            true,
             SourceMap::new([("test".into(), source.into())], Some("".into())),
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            &[],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.source_package_id());

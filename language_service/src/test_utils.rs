@@ -124,11 +124,11 @@ where
     );
 
     let mut compiler = Compiler::new(
-        false,
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        &[],
     )
     .expect("expected incremental compiler creation to succeed");
 
