@@ -206,7 +206,6 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
-    //} else if let Some(p) = opt(s, path)? {
     } else if let Some(p) = opt(s, single_ident_path)? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {

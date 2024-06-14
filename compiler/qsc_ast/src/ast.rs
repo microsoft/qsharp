@@ -1496,37 +1496,6 @@ impl Display for Path {
             write!(indent, "\n{}", self.name)?;
         }
         Ok(())
-
-        // if let Some(ns) = &self.namespace {
-        //     write!(f, "Path {} {}: ({}) ({})", self.id, self.span, ns, self.name)?;
-        // } else {
-        //     write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
-        // }
-        // Ok(())
-
-        // let mut indent = set_indentation(indented(f), 0);
-        // write!(
-        //     indent,
-        //     "Callable {} {} ({:?}):",
-        //     self.id, self.span, self.kind
-        // )?;
-        // indent = set_indentation(indent, 1);
-        // write!(indent, "\nname: {}", self.name)?;
-        // if !self.generics.is_empty() {
-        //     write!(indent, "\ngenerics:")?;
-        //     indent = set_indentation(indent, 2);
-        //     for param in &*self.generics {
-        //         write!(indent, "\n{param}")?;
-        //     }
-        //     indent = set_indentation(indent, 1);
-        // }
-        // write!(indent, "\ninput: {}", self.input)?;
-        // write!(indent, "\noutput: {}", self.output)?;
-        // if let Some(f) = &self.functors {
-        //     write!(indent, "\nfunctors: {}", f.as_ref())?;
-        // }
-        // write!(indent, "\nbody: {}", self.body)?;
-        // Ok(())
     }
 }
 

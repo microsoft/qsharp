@@ -89,6 +89,9 @@ pub fn single_ident_path(s: &mut ParserContext) -> Result<Box<Path>> {
     }))
 }
 
+/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
+/// this can be either a namespace name (in an open statement or namespace declaration) or
+/// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
 pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     let lo = s.peek().span.lo;
     let mut parts = vec![ident(s)?];
@@ -117,50 +120,6 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
         id: NodeId::default(),
         span: s.span(lo),
         leading_expr: None,
-        namespace,
-        name,
-    }))
-}
-
-/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
-/// this can be either a namespace name (in an open statement or namespace declaration) or
-/// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
-pub(super) fn special_path(s: &mut ParserContext) -> Result<Box<Path>> {
-    let lo = s.peek().span.lo;
-    let mut leading_expr = None;
-    let first = if let Some(first) = opt(s, ident)? {
-        first
-    } else {
-        //leading_expr = Some(expr::expr(s)?);
-        println!("weird location");
-        ident(s)?
-    };
-    let mut parts = vec![first];
-    while token(s, TokenKind::Dot).is_ok() {
-        parts.push(ident(s)?);
-    }
-
-    let name = parts.pop().expect("path should have at least one part");
-    let namespace = if parts.is_empty() {
-        None
-    } else {
-        Some(
-            parts
-                .iter()
-                .map(|part| Ident {
-                    id: NodeId::default(),
-                    span: part.span,
-                    name: part.name.clone(),
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )
-    };
-
-    Ok(Box::new(Path {
-        id: NodeId::default(),
-        span: s.span(lo),
-        leading_expr,
         namespace,
         name,
     }))
