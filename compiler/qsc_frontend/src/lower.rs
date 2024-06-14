@@ -10,7 +10,7 @@ use crate::{
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast;
+use qsc_ast::ast::{self, Ident};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -18,7 +18,7 @@ use qsc_hir::{
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, GenericArg, Ty},
 };
-use std::{clone::Clone, iter, rc::Rc, str::FromStr, vec};
+use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -767,151 +767,63 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
-        // fn node_id_to_res(with: &mut With, id: ast::NodeId) -> hir::Res {
-        //     match with.names.get(id) {
-        //         Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
-        //         Some(&resolve::Res::Local(node)) => hir::Res::Local(with.lower_id(node)),
-        //         Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
-        //         | None => hir::Res::Err,
-        //     }
-        // }
+        let lo = path.span.lo;
 
         // If the path has a leading expr, it must be a field accessor
         if let Some(leading) = &path.leading_expr {
             let leading = self.lower_expr(leading);
 
-            if let Some(parts) = &path.namespace {
-                let parts: Vec<ast::Ident> = parts.into();
-                let (first, rest) = parts
-                    .split_first()
-                    .expect("path should have at least one part");
-
-                let lo = leading.span.lo;
-                let field = self.lower_field(&leading.ty, &first.name);
-                let mut kind = hir::ExprKind::Field(Box::new(leading), field);
-                let mut prev = first;
-                for part in rest.iter().chain(iter::once(path.name.as_ref())) {
-                    let prev_expr = hir::Expr {
-                        id: self.assigner.next_node(),
-                        span: Span {
-                            lo,
-                            hi: prev.span.hi,
-                        },
-                        ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-                        kind,
-                    };
-                    let field = self.lower_field(&prev_expr.ty, &part.name);
-                    kind = hir::ExprKind::Field(Box::new(prev_expr), field);
-                    prev = part;
-                }
-                return kind;
-            } else {
-                let field = self.lower_field(&leading.ty, &path.name.name);
-                return hir::ExprKind::Field(Box::new(leading), field);
-            }
-
-            // let mut prev = first;
-
-            // let parts: Vec<ast::Ident> = {
-            //     if let Some(parts) = &path.namespace {
-            //         parts.into()
-            //     } else {
-            //         Vec::new()
-            //     }
-            // };
-
-            // if let Some((first, rest)) = parts
-            //     .iter()
-            //     .chain(iter::once(path.name.as_ref()))
-            //     .collect::<Vec<_>>()
-            //     .split_first()
-            // {
-            //     for part in rest {
-            //         let prev_expr = hir::Expr {
-            //             id: self.assigner.next_node(),
-            //             span: Span {
-            //                 lo: first.span.lo,
-            //                 hi: prev.span.hi,
-            //             },
-            //             ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-            //             kind: hir::ExprKind::Field(Box::new(prev), self.lower_field(&prev.ty, &part.name)),
-            //         };
-            //         prev = prev_expr;
-            //     }
-            // }
-
-            // for part in parts.iter().chain(iter::once(path.name.as_ref())) {
-            //     let prev_expr = hir::Expr {
-            //         id: self.assigner.next_node(),
-            //         span: Span {
-            //             lo,
-            //             hi: prev.span.hi,
-            //         },
-            //         ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-            //         kind,
-            //     };
-            //     let field = self.lower_field(&prev_expr.ty, &part.name);
-            //     kind = hir::ExprKind::Field(Box::new(prev_expr), field);
-            //     prev = part;
-            // }
-            // return kind;
+            let parts = path.flatten_path();
+            let first = parts.first().expect("path should have at least one part");
+            let field = self.lower_field(&leading.ty, &first.name);
+            return self.path_parts_to_fields(
+                hir::ExprKind::Field(Box::new(leading), field),
+                &parts,
+                lo,
+            );
         }
 
-        if let Some(parts) = &path.namespace {
-            let parts: Vec<ast::Ident> = parts.into();
-            let (first, rest) = parts
-                .split_first()
-                .expect("path should have at least one part");
+        if path.namespace.is_some() {
+            let parts = path.flatten_path();
+            let first = parts.first().expect("path should have at least one part");
             // This is the indication that the path is a field accessor
             if self.names.contains_key(first.id) {
-                let lo = first.span.lo;
-                let mut kind = hir::ExprKind::Var(self.node_id_to_res(first.id), Vec::new());
-                let mut prev = first;
-                for part in rest.iter().chain(iter::once(path.name.as_ref())) {
-                    let prev_expr = hir::Expr {
-                        id: self.assigner.next_node(),
-                        span: Span {
-                            lo,
-                            hi: prev.span.hi,
-                        },
-                        ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-                        kind,
-                    };
-                    let field = self.lower_field(&prev_expr.ty, &part.name);
-                    kind = hir::ExprKind::Field(Box::new(prev_expr), field);
-                    prev = part;
-                }
-                return kind;
-
-                // let mut expr = hir::Expr {
-                //     id: self.assigner.next_node(),
-                //     span: Span {
-                //         lo,
-                //         hi: first.span.hi,
-                //     },
-                //     ty: self.tys.terms.get(first.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-                //     kind,
-                // };
-                // for part in rest {
-                //     let field = self.lower_field(&expr.ty, &part.name);
-                //     let kind = hir::ExprKind::Field(Box::new(expr), field);
-                //     expr = hir::Expr {
-                //         id: self.assigner.next_node(),
-                //         span: Span {
-                //             lo,
-                //             hi: part.span.hi,
-                //         },
-                //         ty: self.tys.terms.get(part.id).map_or(Ty::Err, Clone::clone), // ToDo: update type-check to assign a type
-                //         kind,
-                //     };
-                // }
-                // let field = self.lower_field(&expr.ty, &path.name.name);
-                // return hir::ExprKind::Field(Box::new(expr), field);
+                let res = self.node_id_to_res(first.id);
+                return self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, lo);
             }
         }
 
-        // if path is not field accessor, it is regular path
+        // If path is not field accessor, it is regular path.
         hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args)
+    }
+
+    fn path_parts_to_fields(
+        &mut self,
+        init_kind: hir::ExprKind,
+        parts: &[Ident],
+        lo: u32,
+    ) -> hir::ExprKind {
+        let (first, rest) = parts
+            .split_first()
+            .expect("path should have at least one part");
+
+        let mut kind = init_kind;
+        let mut prev = first;
+        for part in rest {
+            let prev_expr = hir::Expr {
+                id: self.assigner.next_node(),
+                span: Span {
+                    lo,
+                    hi: prev.span.hi,
+                },
+                ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone),
+                kind,
+            };
+            let field = self.lower_field(&prev_expr.ty, &part.name);
+            kind = hir::ExprKind::Field(Box::new(prev_expr), field);
+            prev = part;
+        }
+        kind
     }
 
     fn lower_ident(&mut self, ident: &ast::Ident) -> hir::Ident {

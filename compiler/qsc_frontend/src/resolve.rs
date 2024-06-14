@@ -585,9 +585,6 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
 
-        // ToDo: only grab the scopes once
-        //let scopes = self.locals.get_scopes(&self.curr_scope_chain);
-
         if let (NameKind::Term, Some(parts)) = (kind, namespace) {
             let parts: Vec<ast::Ident> = parts.into();
             let first = parts

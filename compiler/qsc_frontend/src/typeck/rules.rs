@@ -519,61 +519,48 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        // let record = self.infer_expr(record);
-        // let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
-        // self.inferrer.class(
-        //     expr.span,
-        //     Class::HasField {
-        //         record: record.ty,
-        //         name: name.name.to_string(),
-        //         item: item_ty.clone(),
-        //     },
-        // );
-        // self.diverge_if(record.diverges, converge(item_ty))
+    fn infer_path_parts(
+        &mut self,
+        init_record: Partial<Ty>,
+        rest: &[Ident],
+        lo: u32,
+    ) -> Partial<Ty> {
+        let mut record = init_record;
+        for part in rest {
+            let span = Span {
+                lo,
+                hi: part.span.hi,
+            };
+            let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: record.ty.clone(),
+                    name: part.name.to_string(),
+                    item: item_ty.clone(),
+                },
+            );
+            self.record(part.id, item_ty.clone());
+            record = self.diverge_if(record.diverges, converge(item_ty));
+        }
+        record
+    }
 
+    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
         // If the path has a leading expr, it must be a field accessor
         if let Some(leading) = &path.leading_expr {
-            let mut record = self.infer_expr(leading);
-
-            let parts: Vec<ast::Ident> = {
-                if let Some(parts) = &path.namespace {
-                    parts.into()
-                } else {
-                    Vec::new()
-                }
-            };
-
-            for part in parts.iter().chain(iter::once(path.name.as_ref())) {
-                let span = Span {
-                    lo: expr.span.lo,
-                    hi: part.span.hi,
-                };
-                let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                self.inferrer.class(
-                    span,
-                    Class::HasField {
-                        record: record.ty.clone(),
-                        name: part.name.to_string(),
-                        item: item_ty.clone(),
-                    },
-                );
-                self.record(part.id, item_ty.clone());
-                record = self.diverge_if(record.diverges, converge(item_ty));
-            }
-            return record;
+            let record = self.infer_expr(leading);
+            return self.infer_path_parts(record, &path.flatten_path(), expr.span.lo);
         }
 
-        if let Some(parts) = &path.namespace {
-            let parts: Vec<ast::Ident> = parts.into();
+        if path.namespace.is_some() {
+            let parts = path.flatten_path();
             let (first, rest) = parts
                 .split_first()
                 .expect("path should have at least one part");
             // This is the indication that the path is a field accessor
             if let Some(&Res::Local(first_ref)) = self.names.get(first.id) {
-                //return converge(Ty::Err);
-
-                let mut record = converge(
+                let record = converge(
                     self.table
                         .terms
                         .get(first_ref)
@@ -581,48 +568,7 @@ impl<'a> Context<'a> {
                         .clone(),
                 );
                 self.record(first.id, record.ty.clone());
-
-                for part in rest.iter().chain(iter::once(path.name.as_ref())) {
-                    let span = Span {
-                        lo: expr.span.lo,
-                        hi: part.span.hi,
-                    };
-                    let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
-                    self.inferrer.class(
-                        span,
-                        Class::HasField {
-                            record: record.ty.clone(),
-                            name: part.name.to_string(),
-                            item: item_ty.clone(),
-                        },
-                    );
-                    self.record(part.id, item_ty.clone());
-                    record = self.diverge_if(record.diverges, converge(item_ty));
-                }
-                return record;
-
-                // let mut ty = self
-                //     .table
-                //     .terms
-                //     .get(first_ref)
-                //     .expect("local should have type")
-                //     .clone();
-
-                // for part in rest.iter().chain(iter::once(path.name.as_ref())) {
-                //     match ty {
-                //         Ty::Udt(_, hir::Res::Item(item_id)) => {
-                //             let udt = self.table.udts.get(&item_id).expect("item should be a UDT");
-                //             let field = part.name.to_string();
-                //             let field = udt
-                //                 .find_field_by_name(field.as_str())
-                //                 .expect("field should be in struct");
-                //             ty = field.ty.clone();
-                //         }
-                //         _ => return converge(Ty::Err),
-                //     }
-                // }
-
-                return todo!();
+                return self.infer_path_parts(record, rest, expr.span.lo);
             }
         }
 
