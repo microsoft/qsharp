@@ -21,7 +21,7 @@ pub(crate) trait Handler<'package> {
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
-        item_id: &'_ hir::ItemId,
+        item_id: &hir::ItemId,
         decl: &'package hir::CallableDecl,
     );
 
@@ -57,7 +57,7 @@ pub(crate) trait Handler<'package> {
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
-        item_id: &'_ hir::ItemId,
+        item_id: &hir::ItemId,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
     );
@@ -65,14 +65,14 @@ pub(crate) trait Handler<'package> {
     fn at_field_def(
         &mut self,
         context: &LocatorContext<'package>,
-        field_name: &'package ast::Ident,
+        field_name: &ast::Ident,
         ty: &'package ast::Ty,
     );
 
     fn at_field_ref(
         &mut self,
-        field_ref: &'package ast::Ident,
-        item_id: &'_ hir::ItemId,
+        field_ref: &ast::Ident,
+        item_id: &hir::ItemId,
         field_def: &'package hir::ty::UdtField,
     );
 
@@ -87,7 +87,7 @@ pub(crate) trait Handler<'package> {
         &mut self,
         context: &LocatorContext<'package>,
         path: &'package ast::Path,
-        node_id: &'package ast::NodeId,
+        node_id: ast::NodeId,
         definition: &'package ast::Ident,
     );
 }
@@ -133,10 +133,10 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
         }
     }
 
-    fn get_field_def(
+    fn get_field_def<'other>(
         &mut self,
         udt_res: &'package hir::Res,
-        field_ref: &'package ast::Ident,
+        field_ref: &'other ast::Ident,
     ) -> Option<(hir::ItemId, &'package hir::ty::UdtField)> {
         let (item, resolved_item_id) = self
             .compilation
@@ -382,8 +382,70 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if path.span.touches(self.offset) {
-            let res = self.compilation.get_res(path.id);
-            if let Some(res) = res {
+            let parts = path.flatten_path();
+
+            // If the path has a leading expression, it is a field accessor
+            if let Some(leading) = &path.leading_expr {
+                if leading.span.touches(self.offset) {
+                    self.visit_expr(leading);
+                } else {
+                    // Loop through the parts of the path to find the first part that touches the offset
+                    let mut last_id = leading.id;
+                    for part in &parts {
+                        if part.span.touches(self.offset) {
+                            if let Some(hir::ty::Ty::Udt(_, res)) =
+                                &self.compilation.get_ty(last_id)
+                            {
+                                if let Some((item_id, field_def)) = self.get_field_def(res, part) {
+                                    self.inner.at_field_ref(part, &item_id, field_def);
+                                }
+                            }
+                            break;
+                        }
+                        last_id = part.id;
+                    }
+                    return;
+                }
+            }
+
+            if path.namespace.is_some() {
+                let (first, rest) = parts
+                    .split_first()
+                    .expect("paths should have at least one part");
+                // If the left-most identifier is a local variable, the path is a field accessor
+                if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {
+                    if first.span.touches(self.offset) {
+                        if let Some(curr) = self.context.current_callable {
+                            if let Some(definition) = find_ident(node_id, curr) {
+                                self.inner
+                                    .at_local_ref(&self.context, path, first.id, definition);
+                            }
+                        }
+                    } else {
+                        // Loop through the parts of the path to find the first part that touches the offset
+                        let mut last_id = first.id;
+                        for part in rest {
+                            if part.span.touches(self.offset) {
+                                if let Some(hir::ty::Ty::Udt(_, res)) =
+                                    &self.compilation.get_ty(last_id)
+                                {
+                                    if let Some((item_id, field_def)) =
+                                        self.get_field_def(res, part)
+                                    {
+                                        self.inner.at_field_ref(part, &item_id, field_def);
+                                    }
+                                }
+                                break;
+                            }
+                            last_id = part.id;
+                        }
+                    }
+                    return;
+                }
+            }
+
+            // Otherwise, the path is a reference to a callable, UDT, or namespace
+            if let Some(res) = self.compilation.get_res(path.id) {
                 match &res {
                     resolve::Res::Item(item_id, _) => {
                         let (item, _, resolved_item_id) = self
@@ -407,15 +469,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     }
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.context.current_callable {
-                            {
-                                if let Some(definition) = find_ident(node_id, curr) {
-                                    self.inner.at_local_ref(
-                                        &self.context,
-                                        path,
-                                        node_id,
-                                        definition,
-                                    );
-                                }
+                            if let Some(definition) = find_ident(node_id, curr) {
+                                self.inner
+                                    .at_local_ref(&self.context, path, *node_id, definition);
                             }
                         }
                     }

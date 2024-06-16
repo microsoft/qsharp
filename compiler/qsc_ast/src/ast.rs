@@ -1425,7 +1425,7 @@ pub struct Path {
     /// Optional leading expression.
     pub leading_expr: Option<Box<Expr>>,
     /// The namespace.
-    pub namespace: Option<Idents>,
+    pub namespace: Option<Idents>, // ToDo: rename 'segments'
     /// The declaration name.
     pub name: Box<Ident>,
 }
