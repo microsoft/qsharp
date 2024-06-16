@@ -69,7 +69,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.20"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "54f2ffc097861146a2cc6595edaaffa7e2fdbf15", default-features = false }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "2fac7354f4e98c3efc05f8fd4180a02d0b712907" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
 
