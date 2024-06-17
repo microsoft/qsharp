@@ -87,8 +87,7 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
-                LintKind::Ast(AstLint::DivisionByZero)
-                | LintKind::Ast(AstLint::DeprecatedUDT)
+                LintKind::Ast(AstLint::DivisionByZero | AstLint::DeprecatedNewtype)
                 | LintKind::Hir(HirLint::NeedlessOperation) => (),
             }
         }
