@@ -993,7 +993,7 @@ fn struct_field_path_first_ref() {
         }
     "#},
         &expect![[r#"
-            local
+            parameter of `Foo`
             ```qsharp
             a : A
             ```
