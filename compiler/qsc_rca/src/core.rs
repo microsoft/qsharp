@@ -1313,7 +1313,6 @@ impl<'a> Analyzer<'a> {
         let application_instance = self.get_current_application_instance_mut();
         let local = Local {
             var: ident.id,
-            pat: pat.id,
             ty: pat.ty.clone(),
             kind: local_kind,
         };
@@ -2479,7 +2478,6 @@ fn derive_specialization_controls(
         match &pat.kind {
             PatKind::Bind(ident) => Some(Local {
                 var: ident.id,
-                pat: pat_id,
                 ty: pat.ty.clone(),
                 kind: LocalKind::SpecInput,
             }),
