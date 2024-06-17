@@ -26,6 +26,15 @@ clippy_ver = (0, 1, 78)
 print = functools.partial(print, flush=True)
 
 
+def get_installed_rust_targets() -> str:
+    try:
+        args = ["rustup", "target", "list", "--installed"]
+        return subprocess.check_output(args, universal_newlines=True)
+    except subprocess.CalledProcessError as e:
+        message = f"Unable to determine installed rust targets: {str(e)}"
+        raise Exception(message)
+
+
 def check_prereqs(install=False):
     ### Check the Python version ###
     if (
@@ -110,23 +119,23 @@ def check_prereqs(install=False):
     else:
         raise Exception("Unable to determine the clippy version")
 
+    installed_rust_targets = get_installed_rust_targets()
+
+    # Ensure the required wasm target is installed
+    target = "wasm32-unknown-unknown"
+    if target not in installed_rust_targets:
+        print("WASM rust target is not installed.")
+        print("Please install the missing target by running:")
+        print("rustup target add wasm32-unknown-unknown")
+
     # On MacOS, ensure the required targets are installed
     if platform.system() == "Darwin":
-        try:
-            output = subprocess.check_output(
-                ["rustup", "target", "list", "--installed"], universal_newlines=True
-            )
-            targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
-            if not all(target in output for target in targets):
-                print("One or both rust targets are not installed.")
-                print("Please install the missing targets by running:")
-                print("rustup target add aarch64-apple-darwin")
-                print("rustup target add x86_64-apple-darwin")
-        except subprocess.CalledProcessError as e:
-            print(
-                f"An error occurred while checking the rust targets: {str(e)}",
-                file=sys.stderr,
-            )
+        targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+        if not all(target in installed_rust_targets for target in targets):
+            print("One or both rust targets are not installed.")
+            print("Please install the missing targets by running:")
+            print("rustup target add aarch64-apple-darwin")
+            print("rustup target add x86_64-apple-darwin")
 
     ### Check the Node.js version ###
     try:
