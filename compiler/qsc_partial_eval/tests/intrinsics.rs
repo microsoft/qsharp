@@ -1078,6 +1078,30 @@ fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
         }
     "});
 
+    let op1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op1
+                call_type: Regular
+                input_type: <VOID>
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let op2_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        op2_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op2
+                call_type: Regular
+                input_type: <VOID>
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
