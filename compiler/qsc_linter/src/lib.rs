@@ -38,7 +38,7 @@
 //! ```
 //! declare_ast_lints!{
 //!   ...
-//!   (DoubleParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
+//!   (DoubleParens, LintLevel::Warn, "unnecessary parentheses", "remove the extra parentheses for clarity"),
 //! }
 //! ```
 //!
