@@ -150,24 +150,6 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    @Config(Adaptive)
-    internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
-        body ... {
-            __quantum__qis__ccx__body(control1, control2, target);
-        }
-        adjoint ... {
-            __quantum__qis__h__body(target);
-            if MResetZ(target) == One {
-                __quantum__qis__cz__body(control1, control2);
-            }
-        }
-    }
-
-    @Config(not Adaptive)
-    internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
-        PhaseCCX(control1, control2, target);
-    }
-
     internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // https://arxiv.org/pdf/1210.0974.pdf#page=2
         H(target);

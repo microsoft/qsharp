@@ -11,6 +11,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
+use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
 use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc};
 
 #[tokio::test]
@@ -315,7 +316,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::AdaptiveRI),
         package_type: Some(PackageType::Lib),
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     updater
@@ -368,7 +369,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: Some(PackageType::Lib),
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     updater
@@ -429,16 +430,15 @@ async fn package_type_update_causes_error() {
     let mut updater = new_updater(&errors);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: None,
         package_type: Some(PackageType::Lib),
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     updater
         .update_document(
             "single/foo.qs",
             1,
-            "namespace Foo { operation Main() : Unit {} }",
+            "namespace Foo { operation Test() : Unit {} }",
         )
         .await;
 
@@ -450,9 +450,8 @@ async fn package_type_update_causes_error() {
     );
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: None,
         package_type: Some(PackageType::Exe),
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     expect_errors(
@@ -485,7 +484,7 @@ async fn target_profile_update_fixes_error() {
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
         package_type: Some(PackageType::Lib),
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     updater
@@ -524,8 +523,7 @@ async fn target_profile_update_fixes_error() {
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Unrestricted),
-        package_type: None,
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     expect_errors(
@@ -564,8 +562,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
-        package_type: None,
-        language_features: None,
+        ..WorkspaceConfigurationUpdate::default()
     });
 
     expect_errors(
@@ -686,8 +683,8 @@ fn notebook_document_lints() {
         "notebook.ipynb",
         &NotebookMetadata::default(),
         [
-            ("cell1", 1, "operation Foo() : Unit { let x = 4;;;; }"),
-            ("cell2", 1, "operation Bar() : Unit { let y = 5 / 0; }"),
+            ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
+            ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
         ]
         .into_iter(),
     );
@@ -705,8 +702,8 @@ fn notebook_document_lints() {
                         Lint(
                             Lint {
                                 span: Span {
-                                    lo: 35,
-                                    hi: 38,
+                                    lo: 34,
+                                    hi: 37,
                                 },
                                 level: Warn,
                                 message: "redundant semicolons",
@@ -727,8 +724,8 @@ fn notebook_document_lints() {
                         Lint(
                             Lint {
                                 span: Span {
-                                    lo: 74,
-                                    hi: 79,
+                                    lo: 72,
+                                    hi: 77,
                                 },
                                 level: Error,
                                 message: "attempt to divide by zero",
@@ -1485,7 +1482,7 @@ async fn loading_lints_config_from_manifest() {
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
     let this_file_qs =
-        "namespace Foo { @EntryPoint() operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+        "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1525,8 +1522,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 72,
-                            hi: 79,
+                            lo: 71,
+                            hi: 78,
                         },
                         level: Error,
                         message: "unnecessary parentheses",
@@ -1539,8 +1536,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 64,
-                            hi: 69,
+                            lo: 63,
+                            hi: 68,
                         },
                         level: Error,
                         message: "attempt to divide by zero",
@@ -1573,8 +1570,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 72,
-                            hi: 79,
+                            lo: 71,
+                            hi: 78,
                         },
                         level: Warn,
                         message: "unnecessary parentheses",
@@ -1587,8 +1584,8 @@ async fn lints_update_after_manifest_change() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 64,
-                            hi: 69,
+                            lo: 63,
+                            hi: 68,
                         },
                         level: Warn,
                         message: "attempt to divide by zero",
@@ -1600,6 +1597,89 @@ async fn lints_update_after_manifest_change() {
                 ),
             ]"#]],
     );
+}
+
+#[tokio::test]
+async fn lints_prefer_workspace_over_defaults() {
+    let this_file_qs =
+        "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors);
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        lints_config: Some(vec![LintConfig {
+            kind: LintKind::Ast(AstLint::DivisionByZero),
+            level: LintLevel::Warn,
+        }]),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Trigger a document update.
+    updater
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .await;
+
+    // Check generated lints.
+    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    check_lints(
+        lints,
+        &expect![[r#"
+            [
+                Lint(
+                    Lint {
+                        span: Span {
+                            lo: 134,
+                            hi: 139,
+                        },
+                        level: Warn,
+                        message: "attempt to divide by zero",
+                        help: "division by zero will fail at runtime",
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
+                    },
+                ),
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn lints_prefer_manifest_over_workspace() {
+    let this_file_qs =
+        "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "lints": [{ "lint": "divisionByZero", "level": "allow" }] }"#,
+                ),
+                dir("src", [file("this_file.qs", this_file_qs)]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        lints_config: Some(vec![LintConfig {
+            kind: LintKind::Ast(AstLint::DivisionByZero),
+            level: LintLevel::Warn,
+        }]),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    // Triger a document update.
+    updater
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .await;
+
+    // No lints expected ("allow" wins over "warn")
+    assert_eq!(received_errors.borrow().len(), 0);
 }
 
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);

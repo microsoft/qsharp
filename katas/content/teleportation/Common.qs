@@ -179,4 +179,17 @@ namespace Kata.Verification {
         Message($"Correct");
         return true;
     }
+
+    operation EntangleThreeQubitsWrapper_Reference(qs : Qubit[]) : Unit is Adj {
+        let (qAlice, qBob, qCharlie) = (qs[0], qs[1], qs[2]);
+        // Starting with |000⟩
+        H(qBob);
+        // Now state is 1/sqrt(2) (|000⟩ + |010⟩)
+        CNOT(qBob, qCharlie);
+        // 1/sqrt(2) (|000⟩ + |011⟩)
+        H(qAlice);
+        // 1/2 (|000⟩ + |011⟩ + |100⟩ + |111⟩)
+        CNOT(qAlice, qCharlie);
+        // Final state:  1/2 (|000⟩ + |011⟩ + |101⟩ + |110⟩)
+    }
 }
