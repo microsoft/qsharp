@@ -12,7 +12,16 @@ from qsharp._native import (
 )
 
 from typing import Optional, List
-from qirrunner import run, OutputHandler
+
+
+try:
+    from qirrunner import run, OutputHandler
+
+    QIR_RUNNER_AVAILABLE = True
+except ImportError:
+    QIR_RUNNER_AVAILABLE = False
+
+SKIP_REASON = "QIR runner is not available"
 
 
 def execute_qir(file_path: str) -> str:
@@ -151,6 +160,7 @@ def assert_strings_equal_ignore_line_endings(lhs, rhs):
 
 
 @pytest.mark.parametrize("file_path", get_input_files())
+@pytest.mark.skipif(not QIR_RUNNER_AVAILABLE, reason=SKIP_REASON)
 def test_adaptive_ri_qir(file_path: str) -> None:
     source = read_file(file_path)
     ll_file_path = get_output_ll_file(file_path)
@@ -160,6 +170,7 @@ def test_adaptive_ri_qir(file_path: str) -> None:
 
 
 @pytest.mark.parametrize("file_path", get_input_files())
+@pytest.mark.skipif(not QIR_RUNNER_AVAILABLE, reason=SKIP_REASON)
 def test_adaptive_ri_output(file_path: str) -> None:
     source = read_file(file_path)
     qir = compile_qsharp(source)

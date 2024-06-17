@@ -280,32 +280,8 @@ def run_python_integration_tests(test_dir, interpreter):
     # don't check to see if pip succeeds. We'll see if the import works later.
     # If it doesn't, we'll skip the tests.
     install_python_test_requirements(test_dir, interpreter, False)
-    check_args = [python_bin, "-c", "import qirrunner"]
-    check_result = subprocess.run(check_args, check=False, text=True, cwd=test_dir)
-    if check_result.returncode == 0:
-        print("Running the Python integration tests")
-        command_args = [interpreter, "-m", "pytest"]
-        subprocess.run(command_args, check=True, text=True, cwd=test_dir)
-    else:
-        print("Could not import qir-runner, skipping QIR integration tests")
-
-
-def run_python_qir_tests(qir_test_dir, interpreter):
-    # Try to install PyQIR and if successful, run additional tests.
-    install_python_test_requirements(qir_test_dir, interpreter)
-
-    pyqir_check_args = [python_bin, "-c", "import pyqir"]
-    if (
-        subprocess.run(
-            pyqir_check_args, check=False, text=True, cwd=qir_test_dir
-        ).returncode
-        == 0
-    ):
-        print("Running tests for the pip package with PyQIR")
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
-    else:
-        print("Could not import PyQIR, skipping tests")
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
 
 
 if build_pip:
@@ -320,22 +296,28 @@ if build_pip:
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
     build_qsharp_wheel(pip_src, wheels_dir, python_bin, pip_env)
+    step_end()
 
     if run_tests:
-        print("Running tests for the pip package")
+        step_start("Running tests for the pip package")
 
         install_python_test_requirements(pip_src, python_bin)
         install_qsharp_python_package(pip_src, wheels_dir, python_bin)
         run_python_tests(os.path.join(pip_src, "tests"), python_bin)
-        run_python_qir_tests(os.path.join(pip_src, "tests-qir"), python_bin)
+
+        step_end()
 
     if args.integration_tests:
+        step_start("Running integration tests for the pip package")
+
         install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+
         run_python_integration_tests(
             os.path.join(pip_src, "tests-integration"), python_bin
         )
 
-    step_end()
+        step_end()
+
 
 if build_widgets:
     step_start("Building the Python widgets")
