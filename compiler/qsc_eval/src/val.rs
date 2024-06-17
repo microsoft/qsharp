@@ -382,17 +382,15 @@ impl Value {
         }
     }
 
+    /// Returns any qubits contained in the value as a vector. This does not
+    /// consume the value, and will recursively search through any nested values.
     #[must_use]
-    pub fn to_qubits(&self) -> Vec<Qubit> {
+    pub fn qubits(&self) -> Vec<Qubit> {
         match self {
-            Value::Array(arr) => arr.iter().flat_map(Value::to_qubits).collect(),
-            Value::Closure(closure) => closure
-                .fixed_args
-                .iter()
-                .flat_map(Value::to_qubits)
-                .collect(),
+            Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
+            Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
             Value::Qubit(q) => vec![*q],
-            Value::Tuple(tup) => tup.iter().flat_map(Value::to_qubits).collect(),
+            Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
 
             Value::BigInt(_)
             | Value::Bool(_)
