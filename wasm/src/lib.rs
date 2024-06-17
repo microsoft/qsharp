@@ -11,7 +11,8 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::{into_async_rust_fn_with, into_qsc_args, IProgramConfig};
 use qsc::{
-    compile, format_state_id, get_latex,
+    compile::{self, Dependencies},
+    format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -88,11 +89,12 @@ pub fn get_estimates(program: IProgramConfig, params: &str) -> Result<String, St
     let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let mut interpreter = interpret::Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         capabilities,
         language_features,
+        store,
+        &deps[..],
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -124,11 +126,12 @@ pub fn get_circuit(
     };
 
     let mut interpreter = interpret::Interpreter::new(
-        true,
         source_map,
         package_type,
         capabilities,
         LanguageFeatures::from_iter(language_features),
+        store,
+        &deps[..],
     )
     .map_err(interpret_errors_into_qsharp_errors_json)?;
 
@@ -273,6 +276,8 @@ fn run_internal_with_features<F>(
     shots: u32,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    store: PackageStore,
+    dependencies: &Dependencies,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -285,11 +290,12 @@ where
         .to_string();
     let mut out = CallbackReceiver { event_cb };
     let mut interpreter = match interpret::Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         capabilities,
         language_features,
+        store,
+        dependencies,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -341,7 +347,15 @@ pub fn run(
         // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
     };
-    match run_internal_with_features(source_map, event_cb, shots, language_features, capabilities) {
+    match run_internal_with_features(
+        source_map,
+        event_cb,
+        shots,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }

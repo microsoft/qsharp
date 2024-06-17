@@ -4,7 +4,6 @@
 use crate::{manifest::GitHubRef, Dependency, Manifest, ManifestDescriptor};
 use std::{
     cell::RefCell,
-    os,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -524,7 +523,7 @@ impl PackageGraphSources {
         // }
 
         let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
-        sorted_packages.sort_by_key(|(a_key, pkg)| {
+        sorted_packages.sort_by_key(|(a_key, _pkg)| {
             sorted_keys
                 .iter()
                 .position(|key| key.as_str() == &**a_key)

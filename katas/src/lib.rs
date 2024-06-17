@@ -28,13 +28,18 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
+    let mut store = qsc::PackageStore::new(qsc::compile::core());
+
+    let std_id = store.insert(qsc::compile::std(&store, Profile::Unrestricted.into()));
     let mut interpreter: Interpreter = Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )?;
+
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

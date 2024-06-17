@@ -174,11 +174,12 @@ impl Interpreter {
         let language_features = LanguageFeatures::from_iter(language_features);
 
         match interpret::Interpreter::new(
-            true,
             sources,
             PackageType::Lib,
             target.into(),
             language_features,
+            todo!("store"),
+            todo!("deps"),
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

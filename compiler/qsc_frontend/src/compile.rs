@@ -556,10 +556,14 @@ fn typeck_all(
         globals.add_external_package(PackageId::CORE, &unit.package);
     }
 
-    for (id, alias) in dependencies {
+    for (id, _alias) in dependencies {
         let unit = store
             .get(*id)
             .expect("dependency should be added to package store before compilation");
+        // we can ignore the dependency alias here, because the
+        // typechecker doesn't do any name resolution -- it only operates on item ids.
+        // because of this, the typechecker doesn't actually need to care about visibility
+        // or the names of items at all.
         globals.add_external_package(*id, &unit.package);
     }
 

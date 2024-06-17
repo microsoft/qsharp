@@ -90,6 +90,9 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     let mut features = LanguageFeatures::from_iter(cli.features);
+    // when we load the project, need to set these
+    let store = todo!();
+    let dependencies = todo!();
 
     if sources.is_empty() {
         let fs = StdFs;
@@ -117,11 +120,12 @@ fn main() -> miette::Result<ExitCode> {
         } else {
             Interpreter::new
         })(
-            !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             features,
+            store,
+            dependencies,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -141,11 +145,12 @@ fn main() -> miette::Result<ExitCode> {
     } else {
         Interpreter::new
     })(
-        !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
         TargetCapabilityFlags::all(),
         features,
+        todo!("store -- respect cli.nostdlib"),
+        todo!("dependencies"),
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

@@ -30,7 +30,14 @@ impl DebugService {
         let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
             into_qsc_args(program, entry);
 
-        match Debugger::new(source_map, capabilities, Encoding::Utf16, language_features) {
+        match Debugger::new(
+            source_map,
+            capabilities,
+            Encoding::Utf16,
+            language_features,
+            package_store,
+            &user_code_dependencies[..],
+        ) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 String::new()

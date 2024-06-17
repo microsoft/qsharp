@@ -41,11 +41,9 @@ impl Compiler {
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        mut store: PackageStore,
         dependencies: &Dependencies,
     ) -> Result<Self, Errors> {
-        let core = core();
-        let mut store = PackageStore::new(core);
-
         let (mut unit, errors) = compile(
             &store,
             dependencies,

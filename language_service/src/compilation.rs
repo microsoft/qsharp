@@ -111,6 +111,7 @@ impl Compilation {
             PackageType::Lib,
             target_profile.into(),
             language_features,
+            todo!("store"),
             todo!("dependencies"),
         )
         .expect("expected incremental compiler creation to succeed");
