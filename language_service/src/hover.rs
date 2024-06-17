@@ -266,7 +266,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        path: &'a ast::Path,
+        name: &ast::Ident,
         node_id: ast::NodeId,
         definition: &'a ast::Ident,
     ) {
@@ -293,7 +293,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: self.range(path.span),
+            span: self.range(name.span),
         });
     }
 }

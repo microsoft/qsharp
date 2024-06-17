@@ -86,7 +86,7 @@ pub(crate) trait Handler<'package> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'package>,
-        path: &'package ast::Path,
+        name: &ast::Ident,
         node_id: ast::NodeId,
         definition: &'package ast::Ident,
     );
@@ -418,7 +418,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         if let Some(curr) = self.context.current_callable {
                             if let Some(definition) = find_ident(node_id, curr) {
                                 self.inner
-                                    .at_local_ref(&self.context, path, first.id, definition);
+                                    .at_local_ref(&self.context, first, *node_id, definition);
                             }
                         }
                     } else {
@@ -470,8 +470,12 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     resolve::Res::Local(node_id) => {
                         if let Some(curr) = self.context.current_callable {
                             if let Some(definition) = find_ident(node_id, curr) {
-                                self.inner
-                                    .at_local_ref(&self.context, path, *node_id, definition);
+                                self.inner.at_local_ref(
+                                    &self.context,
+                                    &path.name,
+                                    *node_id,
+                                    definition,
+                                );
                             }
                         }
                     }

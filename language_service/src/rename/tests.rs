@@ -386,6 +386,102 @@ fn struct_field_complex_ref() {
 }
 
 #[test]
+fn struct_field_path_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉↘c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_first_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(◉↘a◉ : A) : Unit {
+                let x = ◉a◉.b.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_first_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(◉a◉ : A) : Unit {
+                let x = ◉↘a◉.b.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { ◉↘b◉ : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉b◉ }.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { ◉b◉ : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉↘b◉ }.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
 fn no_rename_namespace() {
     assert_no_rename(
         r#"

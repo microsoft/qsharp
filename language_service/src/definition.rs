@@ -139,7 +139,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_local_ref(
         &mut self,
         _: &LocatorContext<'a>,
-        _: &'a ast::Path,
+        _: &ast::Ident,
         _: ast::NodeId,
         definition: &'a ast::Ident,
     ) {

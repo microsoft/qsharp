@@ -595,6 +595,173 @@ fn std_struct_field_ref() {
 }
 
 #[test]
+fn struct_field_path_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_field_path_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = bar.↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 16,
+                            column: 36,
+                        },
+                        end: Position {
+                            line: 16,
+                            column: 37,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 22,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 23,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn std_struct_field_path_with_expr_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = { bar }.↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 16,
+                            column: 36,
+                        },
+                        end: Position {
+                            line: 16,
+                            column: 37,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 26,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 27,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn local_def() {
     check_include_decl(
         r#"

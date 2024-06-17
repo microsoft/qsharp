@@ -273,12 +273,12 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        path: &'a ast::Path,
+        name: &ast::Ident,
         node_id: ast::NodeId,
         _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.get_spans_for_local_rename(node_id, &path.name, curr);
+            self.get_spans_for_local_rename(node_id, name, curr);
         }
     }
 }
