@@ -56,7 +56,6 @@ impl<'a> CycleDetector<'a> {
                 locals_map.insert(
                     ident.id,
                     Local {
-                        pat: pat_id,
                         var: ident.id,
                         ty: pat.ty.clone(),
                         kind,
