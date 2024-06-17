@@ -13,12 +13,16 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
+    let mut store = qsc::PackageStore::new(qsc::compile::core());
+    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
     run_internal_with_features(
         sources,
         event_cb,
         shots,
         LanguageFeatures::default(),
         TargetCapabilityFlags::all(),
+        store,
+        &[(std_id, None)],
     )
 }
 

@@ -123,11 +123,13 @@ where
         None,
     );
 
+    let store = qsc::PackageStore::new(qsc::compile::core());
     let mut compiler = Compiler::new(
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        store,
         &[],
     )
     .expect("expected incremental compiler creation to succeed");

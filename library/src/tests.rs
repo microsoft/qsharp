@@ -58,12 +58,16 @@ pub fn test_expression_with_lib_and_profile_and_sim(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
+    let mut store = qsc::PackageStore::new(qsc::compile::core());
+    let std_id = store.insert(qsc::compile::std(&store, profile.into()));
+
     let mut interpreter = Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("test should compile");
     let result = interpreter
