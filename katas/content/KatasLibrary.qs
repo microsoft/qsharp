@@ -332,35 +332,5 @@ namespace Microsoft.Quantum.Katas {
             }
         }
         return true;
-    }
-
-    function F_PeriodicGivenPeriod(args : Bool[], P : Int) : Bool {
-        let N = Length(args);
-        for i in 0 .. N - P - 1 {
-            if args[i] != args[i + P] {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    operation WState_Arbitrary_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
-        let N = Length(qs);
-
-        if N == 1 {
-            // base case of recursion: |1⟩
-            X(qs[0]);
-        } else {
-            // |W_N⟩ = |0⟩|W_(N-1)⟩ + |1⟩|0...0⟩
-            // do a rotation on the first qubit to split it into |0⟩ and |1⟩ with proper weights
-            // |0⟩ -> sqrt((N-1)/N) |0⟩ + 1/sqrt(N) |1⟩
-            let theta = ArcSin(1.0 / Sqrt(IntAsDouble(N)));
-            Ry(2.0 * theta, qs[0]);
-
-            // do a zero-controlled W-state generation for qubits 1..N-1
-            X(qs[0]);
-            Controlled WState_Arbitrary_Reference(qs[0..0], qs[1..N - 1]);
-            X(qs[0]);
-        }
-    }
+    } 
 }

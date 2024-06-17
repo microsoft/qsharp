@@ -14,6 +14,7 @@ export function EstimatesPanel(props: {
   runNames: string[];
   calculating: boolean;
   onRowDeleted: (rowId: string) => void;
+  allowSaveImage?: boolean;
 }) {
   const [estimate, setEstimate] = useState<SingleEstimateResult | null>(null);
 
@@ -63,6 +64,7 @@ export function EstimatesPanel(props: {
         setEstimate={setEstimate}
         runNames={props.runNames}
         colors={props.colors}
+        allowSaveImage={props.allowSaveImage || false}
       ></EstimatesOverview>
       {!estimate ? null : (
         <>
