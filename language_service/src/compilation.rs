@@ -105,14 +105,17 @@ impl Compilation {
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
+        // TODO(alex) verify that we don't have a program config here
+        let mut store = PackageStore::new(compile::core());
+        let std_id = store.insert(compile::std(&store, target_profile.into()));
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
             language_features,
-            todo!("store"),
-            todo!("dependencies"),
+            store,
+            &[(std_id, None)],
         )
         .expect("expected incremental compiler creation to succeed");
 

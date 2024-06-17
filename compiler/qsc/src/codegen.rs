@@ -13,7 +13,7 @@ use qsc_frontend::{
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
-use crate::{compile, interpret::Error};
+use crate::interpret::Error;
 
 pub fn get_qir(
     sources: SourceMap,

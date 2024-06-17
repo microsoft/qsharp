@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, core, std};
+use crate::compile::{self, compile};
 use miette::Diagnostic;
 
 use qsc_ast::ast;

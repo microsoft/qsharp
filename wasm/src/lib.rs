@@ -428,7 +428,7 @@ serializable_type! {
 #[wasm_bindgen]
 #[must_use]
 pub fn generate_docs(additional_program: Option<IProgramConfig>) -> Vec<IDocFile> {
-    let docs = if let Some((source_map, capabilities, language_features, store, deps)) =
+    let docs = if let Some((source_map, capabilities, language_features, _store, _deps)) =
         additional_program.map(|p| into_qsc_args(p, None))
     {
         qsc_doc_gen::generate_docs::generate_docs(

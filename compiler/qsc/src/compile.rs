@@ -8,7 +8,6 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
 };
-use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
 
