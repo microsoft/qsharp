@@ -477,12 +477,6 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
             let parts = path.flatten_path();
             let first = parts.first().expect("paths should have at least one part");
             if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {
-                let res = self.compilation.get_res(path.id);
-                if let Some(resolve::Res::Local(node_id)) = res {
-                    if *node_id == self.node_id {
-                        panic!("bad location to be in");
-                    }
-                }
                 if *node_id == self.node_id {
                     self.locations.push(first.span);
                 }
