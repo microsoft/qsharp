@@ -174,6 +174,13 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
                 }
                 operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
                 internal operation Hidden() : Unit {}
+                struct FakeStruct { x : Int, y : Int }
+                struct StructWrapper { inner : FakeStruct }
+                struct StructFn { inner : Int -> Int }
+                struct StructFnWithStructParams { inner : FakeStruct -> FakeStruct }
+                function TakesStruct(input : FakeStruct) : FakeStruct {
+                    fail "not implemented"
+                }
             }
 
             namespace Microsoft.Quantum.Unstable {

@@ -3193,6 +3193,92 @@ fn indirect_callable_with_std_udt_with_params() {
 }
 
 #[test]
+fn indirect_callable_with_std_struct() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let fn = new StructFn { inner = (x) -> x };
+            fn::inner(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Int -> Int)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    4,
+                                ),
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    4,
+                                ),
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn indirect_callable_with_std_struct_with_params() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            let fn = new StructFnWithStructParams { inner = TakesStruct };
+            fn::inner(↘)
+        }
+    }
+    "#,
+        &expect![[r#"
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(FakeStruct -> FakeStruct)",
+                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    11,
+                                ),
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    11,
+                                ),
+                                documentation: None,
+                            },
+                        ],
+                    },
+                ],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn call_with_type_param() {
     check(
         indoc! {r#"

@@ -11,7 +11,9 @@ use crate::{
     },
     serializable_type,
 };
-use qsc::{self, line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
+use qsc::{
+    self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
+};
 use qsc_project::Manifest;
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
@@ -103,6 +105,7 @@ impl LanguageService {
                 language_features: config
                     .languageFeatures
                     .map(|features| features.iter().collect::<LanguageFeatures>()),
+                lints_config: config.lints,
             });
     }
 
@@ -344,11 +347,13 @@ serializable_type! {
         pub targetProfile: Option<String>,
         pub packageType: Option<String>,
         pub languageFeatures: Option<Vec<String>>,
+        pub lints: Option<Vec<LintConfig>>
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
+        lints?: { lint: string; level: string }[];
     }"#,
     IWorkspaceConfiguration
 }

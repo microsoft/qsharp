@@ -169,6 +169,16 @@ pub struct Namespace {
     pub items: Box<[Box<Item>]>,
 }
 
+impl Namespace {
+    /// Returns an iterator over the items in the namespace that are exported.
+    pub fn exports(&self) -> impl Iterator<Item = &ImportOrExportItem> {
+        self.items.iter().flat_map(|i| match i.kind.as_ref() {
+            ItemKind::ImportOrExport(decl) if decl.is_export() => &decl.items[..],
+            _ => &[],
+        })
+    }
+}
+
 impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
@@ -262,6 +272,10 @@ pub enum ItemKind {
     Open(Idents, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// A `struct` declaration.
+    Struct(Box<StructDecl>),
+    /// An export declaration
+    ImportOrExport(ImportOrExportDecl),
 }
 
 impl Display for ItemKind {
@@ -274,6 +288,9 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Struct(s) => write!(f, "{s}")?,
+            ItemKind::ImportOrExport(item) if item.is_export => write!(f, "Export ({item})")?,
+            ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
         }
         Ok(())
     }
@@ -328,6 +345,22 @@ pub struct TyDef {
     pub span: Span,
     /// The type definition kind.
     pub kind: Box<TyDefKind>,
+}
+
+impl TyDef {
+    /// Returns true if the tye definition satisfies the conditions for a struct.
+    /// Conditions for a struct are that the `TyDef` is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match self.kind.as_ref() {
+            TyDefKind::Paren(inner) => inner.is_struct(),
+            TyDefKind::Tuple(fields) => fields
+                .iter()
+                .all(|field| matches!(field.kind.as_ref(), TyDefKind::Field(Some(_), _))),
+            TyDefKind::Err | TyDefKind::Field(..) => false,
+        }
+    }
 }
 
 impl Display for TyDef {
@@ -387,6 +420,70 @@ impl Display for TyDefKind {
             TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
+    }
+}
+
+/// A struct definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct StructDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the struct.
+    pub name: Box<Ident>,
+    /// The type definition kind.
+    pub fields: Box<[Box<FieldDef>]>,
+}
+
+impl Display for StructDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Struct {} {} ({}):", self.id, self.span, self.name)?;
+        if self.fields.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for field in &*self.fields {
+                write!(indent, "\n{field}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl WithSpan for StructDecl {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+/// A struct field definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct FieldDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the field.
+    pub name: Box<Ident>,
+    /// The type of the field.
+    pub ty: Box<Ty>,
+}
+
+impl Display for FieldDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldDef {} {} ({}): {}",
+            self.id, self.span, self.name, self.ty
+        )
+    }
+}
+
+impl WithSpan for FieldDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 
@@ -807,6 +904,8 @@ pub enum ExprKind {
     Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(Box<Path>, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -847,6 +946,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1058,6 +1158,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Path,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -1099,6 +1220,35 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Box<Ident>,
+    /// The value to assign to the field.
+    pub value: Box<Expr>,
+}
+
+impl WithSpan for FieldAssign {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// An interpolated string component.
@@ -1278,6 +1428,33 @@ pub struct Path {
     pub name: Box<Ident>,
 }
 
+impl From<Path> for Vec<Ident> {
+    fn from(val: Path) -> Self {
+        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*val.name);
+        buf
+    }
+}
+
+impl From<Vec<Ident>> for Path {
+    fn from(mut v: Vec<Ident>) -> Self {
+        let name = v
+            .pop()
+            .expect("parser should never produce empty vector of idents");
+        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
+        let span = Span {
+            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
+            hi: name.span.hi,
+        };
+        Self {
+            namespace,
+            name: name.into(),
+            span,
+            id: NodeId::default(),
+        }
+    }
+}
+
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(ns) = &self.namespace {
@@ -1430,6 +1607,15 @@ impl Idents {
             buf.push_str(&ident.name);
         }
         Rc::from(buf)
+    }
+
+    /// Appends another ident to this [`Idents`].
+    /// Returns a new [`Idents`] with the appended ident.
+    #[must_use = "this method returns a new value and does not mutate the original value"]
+    pub fn push(&self, other: Ident) -> Self {
+        let mut buf = self.0.to_vec();
+        buf.push(other);
+        Self(buf.into_boxed_slice())
     }
 }
 
@@ -1683,4 +1869,118 @@ pub enum SetOp {
     Union,
     /// The set intersection.
     Intersect,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Represents an export declaration.
+pub struct ImportOrExportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Box<[ImportOrExportItem]>,
+    /// Whether this is an export declaration or not. If `false`, then this is an `Import`.
+    is_export: bool,
+}
+
+impl Display for ImportOrExportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self
+            .items
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "ImportOrExportDecl {}: [{items_str}]", self.span)
+    }
+}
+
+impl ImportOrExportDecl {
+    /// Creates a new `ImportOrExportDecl` with the given span, items, and export flag.
+    #[must_use]
+    pub fn new(span: Span, items: Box<[ImportOrExportItem]>, is_export: bool) -> Self {
+        Self {
+            span,
+            items,
+            is_export,
+        }
+    }
+
+    /// Returns true if this is an export declaration.
+    #[must_use]
+    pub fn is_export(&self) -> bool {
+        self.is_export
+    }
+
+    /// Returns true if this is an import declaration.
+    #[must_use]
+    pub fn is_import(&self) -> bool {
+        !self.is_export
+    }
+
+    /// Returns an iterator over the items being exported from this namespace.
+    pub fn items(&self) -> impl Iterator<Item = &ImportOrExportItem> {
+        self.items.iter()
+    }
+}
+
+/// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct ImportOrExportItem {
+    /// The path to the item being exported.
+    pub path: Path,
+    /// An optional alias for the item being exported.
+    pub alias: Option<Ident>,
+    /// Whether this is a glob import/export.
+    pub is_glob: bool,
+}
+
+impl Display for ImportOrExportItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let ImportOrExportItem {
+            ref path,
+            ref alias,
+            is_glob,
+        } = self;
+        let is_glob = if *is_glob { ".*" } else { "" };
+        match alias {
+            Some(alias) => write!(f, "{path}{is_glob} as {alias}",),
+            None => write!(f, "{path}{is_glob}"),
+        }
+    }
+}
+
+impl WithSpan for ImportOrExportItem {
+    fn with_span(self, span: Span) -> Self {
+        ImportOrExportItem {
+            path: self.path.with_span(span),
+            alias: self.alias.map(|x| x.with_span(span)),
+            is_glob: self.is_glob,
+        }
+    }
+}
+
+impl ImportOrExportItem {
+    /// Returns the span of the export item. This includes the path and , if any exists, the alias.
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self.alias {
+            Some(ref alias) => {
+                // join the path and alias spans
+                Span {
+                    lo: self.path.span.lo,
+                    hi: alias.span.hi,
+                }
+            }
+            None => self.path.span,
+        }
+    }
+
+    /// Returns the alias ident, if any, or the name from the path if no alias is present.
+    #[must_use]
+    pub fn name(&self) -> &Ident {
+        match self.alias {
+            Some(ref alias) => alias,
+            None => &self.path.name,
+        }
+    }
 }

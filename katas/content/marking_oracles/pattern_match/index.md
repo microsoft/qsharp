@@ -7,6 +7,7 @@
 
 **Goal:** 
 Implement a quantum oracle which checks whether the input register matches the given pattern, i.e., the bits at the given indices match the corresponding bits in the pattern ("false" and "true" values represent states $\ket{0}$ and $\ket{1}$, respectively).
+The value of input register $x_{a_j}$ should match the pattern element $r_j$ for all $j$ between $0$ and $K - 1$, inclusive.
 
 For example, for $N = 3$ a pattern `[false, true]` at indices `[0, 2]` would match two basis states: $\ket{001}$ and $\ket{011}$.
 

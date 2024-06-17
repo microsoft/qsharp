@@ -6,8 +6,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   CompilerState,
-  Exercise,
-  getExerciseSources,
   ICompilerWorker,
   ILanguageServiceWorker,
   LanguageServiceEvent,
@@ -17,6 +15,7 @@ import {
   ProgramConfig,
   TargetProfile,
 } from "qsharp-lang";
+import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
 
@@ -285,6 +284,9 @@ export function Editor(props: {
     props.languageService.updateConfiguration({
       targetProfile: profile,
       packageType: props.kataExercise ? "lib" : "exe",
+      lints: props.kataExercise
+        ? []
+        : [{ lint: "needlessOperation", level: "warn" }],
     });
 
     function onDiagnostics(evt: LanguageServiceEvent) {
@@ -327,7 +329,6 @@ export function Editor(props: {
     // and run the tabs again.
     props.languageService.updateConfiguration({
       targetProfile: profile,
-      packageType: props.kataExercise ? "lib" : "exe",
     });
     irRef.current();
   }, [profile]);

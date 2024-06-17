@@ -87,9 +87,12 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
+    resolver.bind_and_resolve_imports_and_exports(&package);
+
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
+
     let mut checker = Checker::new(super::GlobalTable::new());
     checker.check_package(&names, &package);
     let (tys, ty_errors) = checker.into_table();
@@ -2186,6 +2189,329 @@ fn newtype_cons_wrong_input() {
             #22 76-81 "(5.0)" : Double
             #23 77-80 "5.0" : Double
             Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 70, hi: 81 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-124 "{ new Pair { First = 5, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-122 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 119-120 "6" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_wrong_input() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5.0, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-126 "{ new Pair { First = 5.0, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-124 "new Pair { First = 5.0, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 107-110 "5.0" : Double
+            #33 121-122 "6" : Int
+            Error(Type(Error(TyMismatch("Double", "Int", Span { lo: 99, hi: 110 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_wrong_field() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, NotSecond = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-127 "{ new Pair { First = 5, NotSecond = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-125 "new Pair { First = 5, NotSecond = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 122-123 "6" : Int
+            Error(Type(Error(MissingClassHasField("Pair", "NotSecond", Span { lo: 110, hi: 123 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_dup_field() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, First = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-123 "{ new Pair { First = 5, First = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-121 "new Pair { First = 5, First = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 118-119 "6" : Int
+            Error(Type(Error(DuplicateField("Pair", "First", Span { lo: 110, hi: 119 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_too_few_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-112 "{ new Pair { First = 5 } }" : UDT<"Pair": Item 1>
+            #25 88-110 "new Pair { First = 5 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 88, hi: 110 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_too_many_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, Second = 6, Third = 7 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-135 "{ new Pair { First = 5, Second = 6, Third = 7 } }" : UDT<"Pair": Item 1>
+            #25 88-133 "new Pair { First = 5, Second = 6, Third = 7 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 119-120 "6" : Int
+            #36 130-131 "7" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 88, hi: 133 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 122, hi: 131 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-177 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-171 "new Pair { ...pair }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_with_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair, First = 7 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-188 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair, First = 7 }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-182 "new Pair { ...pair, First = 7 }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+            #45 179-180 "7" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_too_many_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair, First = 7, Second = 8, Third = 9 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-211 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair, First = 7, Second = 8, Third = 9 }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-205 "new Pair { ...pair, First = 7, Second = 8, Third = 9 }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+            #45 179-180 "7" : Int
+            #48 191-192 "8" : Int
+            #51 202-203 "9" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 151, hi: 205 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 194, hi: 203 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_udt_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Triple = (Int, Int, Int);
+                function Foo() : Triple { new Triple { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 68-70 "()" : Unit
+            #23 80-120 "{ new Triple { First = 5, Second = 6 } }" : ?
+            #25 82-118 "new Triple { First = 5, Second = 6 }" : ?
+            #30 103-104 "5" : ?
+            #33 115-116 "6" : ?
+            Error(Type(Error(MissingClassStruct("Triple", Span { lo: 86, hi: 92 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_struct_like_udt() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+                function Foo() : Pair { new Pair { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #19 78-80 "()" : Unit
+            #23 88-126 "{ new Pair { First = 5, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 90-124 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 109-110 "5" : Int
+            #33 121-122 "6" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn struct_cons_ty_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int { new Int { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-76 "{ new Int { First = 5, Second = 6 } }" : ?
+            #12 41-74 "new Int { First = 5, Second = 6 }" : ?
+            #17 59-60 "5" : ?
+            #20 71-72 "6" : ?
+            Error(Type(Error(MissingClassStruct("Int", Span { lo: 45, hi: 48 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_ident_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    let q = 3;
+                    new q { First = 5, Second = 6 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-105 "{\n        let q = 3;\n        new q { First = 5, Second = 6 }\n    }" : ?
+            #12 53-54 "q" : Int
+            #14 57-58 "3" : Int
+            #16 68-99 "new q { First = 5, Second = 6 }" : ?
+            #21 84-85 "5" : ?
+            #24 96-97 "6" : ?
+            Error(Resolve(NotFound("q", Span { lo: 72, hi: 73 })))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_call_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Bar() : Pair { new Pair { First = 1, Second = 2 } }
+                function Foo() : Pair { new Bar { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-124 "{ new Pair { First = 1, Second = 2 } }" : UDT<"Pair": Item 1>
+            #25 88-122 "new Pair { First = 1, Second = 2 }" : UDT<"Pair": Item 1>
+            #30 107-108 "1" : Int
+            #33 119-120 "2" : Int
+            #37 141-143 "()" : Unit
+            #41 151-188 "{ new Bar { First = 5, Second = 6 } }" : ?
+            #43 153-186 "new Bar { First = 5, Second = 6 }" : ?
+            #48 171-172 "5" : ?
+            #51 183-184 "6" : ?
+            Error(Resolve(NotFound("Bar", Span { lo: 157, hi: 160 })))
         "#]],
     );
 }

@@ -16,6 +16,8 @@ use super::{
     ty::{self, ty},
     Error, Result,
 };
+
+use crate::lex::ClosedBinOp;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, path, recovering, recovering_token, shorten},
@@ -24,9 +26,10 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Idents, Item, ItemKind,
-    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
+    ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
+    Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind,
+    TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -40,8 +43,12 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         open
     } else if let Some(ty) = opt(s, parse_newtype)? {
         ty
+    } else if let Some(strct) = opt(s, parse_struct)? {
+        strct
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if let Some(decl) = opt(s, parse_import_or_export)? {
+        Box::new(ItemKind::ImportOrExport(decl))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
@@ -76,6 +83,7 @@ fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
         TokenKind::Keyword(Keyword::Internal),
         TokenKind::Keyword(Keyword::Open),
         TokenKind::Keyword(Keyword::Newtype),
+        TokenKind::Keyword(Keyword::Struct),
         TokenKind::Keyword(Keyword::Operation),
         TokenKind::Keyword(Keyword::Function),
     ];
@@ -132,6 +140,7 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
+
 pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     if s.peek().kind == TokenKind::Eof {
         return Ok(Namespace {
@@ -323,6 +332,34 @@ fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     Ok(Box::new(ItemKind::Ty(name, def)))
 }
 
+fn parse_struct(s: &mut ParserContext) -> Result<Box<ItemKind>> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Struct))?;
+    let name = ident(s)?;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let (fields, _) = seq(s, |s| {
+        let lo = s.peek().span.lo;
+        let name = ident(s)?;
+        token(s, TokenKind::Colon)?;
+        let field_ty = ty(s)?;
+        Ok(Box::new(FieldDef {
+            id: NodeId::default(),
+            span: s.span(lo),
+            name,
+            ty: Box::new(field_ty),
+        }))
+    })?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    let decl = StructDecl {
+        id: NodeId::default(),
+        span: s.span(lo),
+        name,
+        fields: fields.into_boxed_slice(),
+    };
+
+    Ok(Box::new(ItemKind::Struct(Box::new(decl))))
+}
+
 fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
     match tydef.kind.as_ref() {
         TyDefKind::Field(Some(_), _) | TyDefKind::Err => None,
@@ -510,6 +547,7 @@ fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
         )))
     }
 }
+
 /// Checks that the inputs of the callable are surrounded by parens
 pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     if matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
@@ -517,4 +555,62 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     } else {
         Err(Error(ErrorKind::MissingParens(inputs.span)))
     }
+}
+
+/// Parses an import or export statement. Exports start with the `export` keyword, followed by a
+/// list of items.
+/// Imports are the same, but with the `import` keyword.
+///
+/// ```qsharp
+/// export
+///     Foo,
+///     Bar.Baz,
+///     Bar.Quux as Corge;
+/// ```
+fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
+    let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
+    let is_export = match s.peek().kind {
+        TokenKind::Keyword(Keyword::Export) => true,
+        TokenKind::Keyword(Keyword::Import) => false,
+        _ => {
+            return Err(Error(ErrorKind::Rule(
+                "import or export",
+                s.peek().kind,
+                s.peek().span,
+            )))
+        }
+    };
+    s.advance();
+    let (items, _) = seq(s, parse_import_or_export_item)?;
+    token(s, TokenKind::Semi)?;
+    Ok(ImportOrExportDecl::new(
+        s.span(lo),
+        items.into_boxed_slice(),
+        is_export,
+    ))
+}
+
+fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
+    let mut is_glob = false;
+    let mut parts = vec![*ident(s)?];
+    while token(s, TokenKind::Dot).is_ok() {
+        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
+            is_glob = true;
+            break;
+        }
+        parts.push(*ident(s)?);
+    }
+
+    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
+        Some(*(ident(s)?))
+    } else {
+        None
+    };
+
+    Ok(ImportOrExportItem {
+        path: parts.into(),
+        alias,
+        is_glob,
+    })
 }

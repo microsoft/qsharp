@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+indoc = { workspace = true }
 qsc_parse = { path = "../qsc_parse" }
 serde_json = { workspace = true }
 qsc = { path = "../qsc" }

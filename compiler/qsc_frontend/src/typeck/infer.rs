@@ -10,7 +10,7 @@ use qsc_hir::{
         Prim, Scheme, Ty, Udt,
     },
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
     collections::{hash_map::Entry, VecDeque},
     fmt::Debug,
@@ -47,6 +47,12 @@ pub(super) enum Class {
         name: String,
         item: Ty,
     },
+    Struct(Ty),
+    HasStructShape {
+        record: Ty,
+        is_copy: bool,
+        fields: Vec<(String, Span)>,
+    },
     HasIndex {
         container: Ty,
         index: Ty,
@@ -73,13 +79,14 @@ impl Class {
             | Self::Eq(ty)
             | Self::Integral(ty)
             | Self::Num(ty)
-            | Self::Show(ty) => {
+            | Self::Show(ty)
+            | Self::Struct(ty) => {
                 vec![ty]
             }
             Self::Call { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
             Self::Exp { base, .. } => vec![base],
-            Self::HasField { record, .. } => vec![record],
+            Self::HasField { record, .. } | Self::HasStructShape { record, .. } => vec![record],
             Self::HasIndex {
                 container, index, ..
             } => vec![container, index],
@@ -114,6 +121,16 @@ impl Class {
                 record: f(record),
                 name,
                 item: f(item),
+            },
+            Self::Struct(ty) => Self::Struct(f(ty)),
+            Self::HasStructShape {
+                record,
+                is_copy,
+                fields,
+            } => Self::HasStructShape {
+                record: f(record),
+                is_copy,
+                fields,
             },
             Self::HasIndex {
                 container,
@@ -157,6 +174,12 @@ impl Class {
             Class::HasField { record, name, item } => {
                 check_has_field(udts, &record, name, item, span)
             }
+            Class::Struct(ty) => check_struct(udts, &ty, span),
+            Class::HasStructShape {
+                record,
+                is_copy,
+                fields,
+            } => check_has_struct_shape(udts, &record, is_copy, &fields, span),
             Class::HasIndex {
                 container,
                 index,
@@ -928,6 +951,74 @@ fn check_has_field(
                 span,
             ))],
         ),
+    }
+}
+
+fn ty_to_udt<'a>(udts: &'a FxHashMap<ItemId, Udt>, record: &Ty) -> Option<&'a Udt> {
+    match record {
+        Ty::Udt(_, Res::Item(id)) => udts.get(id),
+        _ => None,
+    }
+}
+
+fn check_struct(
+    udts: &FxHashMap<ItemId, Udt>,
+    record: &Ty,
+    span: Span,
+) -> (Vec<Constraint>, Vec<Error>) {
+    match ty_to_udt(udts, record) {
+        Some(udt) if udt.is_struct() => (Vec::new(), Vec::new()),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClassStruct(record.display(), span))],
+        ),
+    }
+}
+
+fn check_has_struct_shape(
+    udts: &FxHashMap<ItemId, Udt>,
+    record: &Ty,
+    is_copy: bool,
+    fields: &[(String, Span)],
+    span: Span,
+) -> (Vec<Constraint>, Vec<Error>) {
+    let mut errors = Vec::new();
+
+    // Check for duplicate fields.
+    let mut seen = FxHashSet::default();
+    for (field_name, field_span) in fields {
+        if !seen.insert(field_name) {
+            errors.push(Error(ErrorKind::DuplicateField(
+                record.display(),
+                field_name.clone(),
+                *field_span,
+            )));
+        }
+    }
+
+    match ty_to_udt(udts, record) {
+        Some(udt) => {
+            // We could compare the actual field names, but the HasField constraint already
+            // ensures all the listed fields are valid, and we just checked against duplicates,
+            // so we can just check the count.
+
+            let definition_field_count = match &udt.definition.kind {
+                qsc_hir::ty::UdtDefKind::Field(_) => 0,
+                qsc_hir::ty::UdtDefKind::Tuple(fields) => fields.len(),
+            };
+
+            if (is_copy && fields.len() > definition_field_count)
+                || (!is_copy && fields.len() != definition_field_count)
+            {
+                errors.push(Error(ErrorKind::MissingClassCorrectFieldCount(
+                    record.display(),
+                    span,
+                )));
+            }
+
+            (Vec::new(), errors)
+        }
+        None => (Vec::new(), errors),
     }
 }
 
