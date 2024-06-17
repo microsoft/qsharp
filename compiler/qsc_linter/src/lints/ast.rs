@@ -10,7 +10,7 @@ declare_ast_lints! {
     (DivisionByZero, LintLevel::Error, "attempt to divide by zero", "division by zero will fail at runtime"),
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
-    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` delcarations", "`newtype` declarations are deprecated"),
+    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` declarations", "`newtype` declarations are deprecated"),
 }
 
 impl AstLintPass for DivisionByZero {

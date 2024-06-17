@@ -277,7 +277,7 @@ fn deprecated_newtype_usage() {
                 SrcLint {
                     source: "newtype Foo = ();",
                     level: Warn,
-                    message: "deprecated `newtype` delcarations",
+                    message: "deprecated `newtype` declarations",
                     help: "`newtype` declarations are deprecated",
                 },
             ]
