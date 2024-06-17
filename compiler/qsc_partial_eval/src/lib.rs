@@ -17,7 +17,7 @@ use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::{functors::FunctorApp, span::Span, target::TargetCapabilityFlags};
 use qsc_eval::{
-    self, exec_graph_section,
+    self, are_ctls_unique, exec_graph_section,
     output::GenericReceiver,
     resolve_closure,
     val::{
@@ -1138,6 +1138,7 @@ impl<'a> PartialEvaluator<'a> {
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
+        let args_span = self.get_expr_package_span(args_expr_id);
         let (callee_control_flow, args_control_flow) =
             self.try_eval_callee_and_args(callee_expr_id, args_expr_id)?;
 
@@ -1181,12 +1182,16 @@ impl<'a> PartialEvaluator<'a> {
             );
             None
         };
-        let (args, ctls_arg) = self.resolve_args(
-            (store_item_id.package, callable_decl.input).into(),
-            args_value.clone(),
-            ctls,
-            fixed_args,
-        );
+        let (args, ctls_arg) = self
+            .resolve_args(
+                (store_item_id.package, callable_decl.input).into(),
+                args_value.clone(),
+                ctls,
+                fixed_args,
+            )
+            .map_err(|()| {
+                Error::EvaluationFailed("qubis in invocation are not unique".to_string(), args_span)
+            })?;
         let call_scope = Scope::new(
             store_item_id.package,
             Some((store_item_id.item, functor_app)),
@@ -1340,12 +1345,14 @@ impl<'a> PartialEvaluator<'a> {
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
-        let (args, ctls_arg) = self.resolve_args(
-            (store_item_id.package, callable_decl.input).into(),
-            args_value,
-            None,
-            None,
-        );
+        let (args, ctls_arg) = self
+            .resolve_args(
+                (store_item_id.package, callable_decl.input).into(),
+                args_value,
+                None,
+                None,
+            )
+            .expect("no controls to verify");
         assert!(
             ctls_arg.is_none(),
             "intrinsic operations cannot have controls"
@@ -2261,7 +2268,7 @@ impl<'a> PartialEvaluator<'a> {
         value: Value,
         ctls: Option<(StorePatId, u8)>,
         fixed_args: Option<Rc<[Value]>>,
-    ) -> (Vec<Arg>, Option<Arg>) {
+    ) -> Result<(Vec<Arg>, Option<Arg>), ()> {
         let mut value = value;
         let ctls_arg = if let Some((ctls_pat_id, ctls_count)) = ctls {
             let mut ctls = vec![];
@@ -2271,6 +2278,9 @@ impl<'a> PartialEvaluator<'a> {
                 };
                 ctls.extend_from_slice(&c.clone().unwrap_array());
                 value = rest.clone();
+            }
+            if !are_ctls_unique(&ctls, &value) {
+                return Err(());
             }
             let ctls_pat = self.package_store.get_pat(ctls_pat_id);
             let ctls_value = Value::Array(ctls.into());
@@ -2321,12 +2331,10 @@ impl<'a> PartialEvaluator<'a> {
                 let pat_value_tuples = pats.iter().zip(values.to_vec());
                 for (pat_id, value) in pat_value_tuples {
                     // At this point we should no longer have control qubits so pass None.
-                    let (mut element_args, None) = self.resolve_args(
-                        (store_pat_id.package, *pat_id).into(),
-                        value,
-                        None,
-                        None,
-                    ) else {
+                    let (mut element_args, None) = self
+                        .resolve_args((store_pat_id.package, *pat_id).into(), value, None, None)
+                        .expect("no controls to verify")
+                    else {
                         panic!("no control qubits are expected");
                     };
                     args.append(&mut element_args);
@@ -2334,7 +2342,7 @@ impl<'a> PartialEvaluator<'a> {
                 args
             }
         };
-        (args, ctls_arg)
+        Ok((args, ctls_arg))
     }
 
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<EvalControlFlow, Error> {

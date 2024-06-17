@@ -43,6 +43,7 @@ use qsc_fir::fir::{
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
 use rand::{rngs::StdRng, SeedableRng};
+use rustc_hash::FxHashSet;
 use std::ops;
 use std::{
     cell::RefCell,
@@ -1015,7 +1016,8 @@ impl State {
                     arg,
                     functor.controlled,
                     fixed_args,
-                );
+                )
+                .map_err(|()| Error::QubitUniqueness(arg_span))?;
                 Ok(())
             }
         }
@@ -1388,7 +1390,7 @@ impl State {
         args_val: Value,
         ctl_count: u8,
         fixed_args: Option<Rc<[Value]>>,
-    ) {
+    ) -> Result<(), ()> {
         match spec_pat {
             Some(spec_pat) => {
                 assert!(
@@ -1406,6 +1408,10 @@ impl State {
                     tup = rest.clone();
                 }
 
+                if !are_ctls_unique(&ctls, &tup) {
+                    return Err(());
+                }
+
                 self.bind_value(env, globals, spec_pat, Value::Array(ctls.into()));
                 self.bind_value(env, globals, decl_pat, merge_fixed_args(fixed_args, tup));
             }
@@ -1416,6 +1422,7 @@ impl State {
                 merge_fixed_args(fixed_args, args_val),
             ),
         }
+        Ok(())
     }
 
     fn to_global_span(&self, span: Span) -> PackageSpan {
@@ -1424,6 +1431,21 @@ impl State {
             span,
         }
     }
+}
+
+pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
+    let mut qubits = FxHashSet::default();
+    for ctl in ctls.iter().flat_map(Value::to_qubits) {
+        if !qubits.insert(ctl) {
+            return false;
+        }
+    }
+    for qubit in tup.to_qubits() {
+        if qubits.contains(&qubit) {
+            return false;
+        }
+    }
+    true
 }
 
 fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {

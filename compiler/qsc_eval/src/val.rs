@@ -87,7 +87,7 @@ impl From<usize> for Result {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Qubit(pub usize);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -379,6 +379,31 @@ impl Value {
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",
             Value::Var(_) => "Var",
+        }
+    }
+
+    #[must_use]
+    pub fn to_qubits(&self) -> Vec<Qubit> {
+        match self {
+            Value::Array(arr) => arr.iter().flat_map(Value::to_qubits).collect(),
+            Value::Closure(closure) => closure
+                .fixed_args
+                .iter()
+                .flat_map(Value::to_qubits)
+                .collect(),
+            Value::Qubit(q) => vec![*q],
+            Value::Tuple(tup) => tup.iter().flat_map(Value::to_qubits).collect(),
+
+            Value::BigInt(_)
+            | Value::Bool(_)
+            | Value::Double(_)
+            | Value::Global(..)
+            | Value::Int(_)
+            | Value::Pauli(_)
+            | Value::Range(_)
+            | Value::Result(_)
+            | Value::String(_)
+            | Value::Var(_) => Vec::new(),
         }
     }
 }
