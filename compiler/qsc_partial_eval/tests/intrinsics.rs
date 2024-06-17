@@ -975,6 +975,22 @@ fn call_to_draw_random_double_panics() {
 }
 
 #[test]
+#[should_panic(expected = "`DrawRandomBool` is not a supported by partial evaluation")]
+fn call_to_draw_random_bool_panics() {
+    _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Random;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = DrawRandomBool(0.0);
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
 fn call_to_length_in_inner_function_succeeds() {
     let program = get_rir_program(indoc! {
         r#"
