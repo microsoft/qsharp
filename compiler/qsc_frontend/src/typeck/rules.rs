@@ -17,7 +17,7 @@ use qsc_hir::{
     ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty},
 };
 use rustc_hash::FxHashMap;
-use std::{convert::identity, iter};
+use std::convert::identity;
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
