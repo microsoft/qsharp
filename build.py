@@ -230,6 +230,18 @@ if build_cli:
 
 
 def install_python_test_requirements(cwd, interpreter, check: bool = True):
+    # installing pytest with the test_requirements.txt file sometimes fails
+    # so we install pytest first
+    print("Installing pytest")
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "pytest==8.2.2",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+    print(f"Installing test requirements {command_args} in {cwd}")
     command_args = [
         interpreter,
         "-m",
@@ -239,6 +251,8 @@ def install_python_test_requirements(cwd, interpreter, check: bool = True):
         "test_requirements.txt",
         "--only-binary",
         "qirrunner",
+        "--only-binary",
+        "pyqir",
     ]
     subprocess.run(command_args, check=check, text=True, cwd=cwd)
 
@@ -271,16 +285,16 @@ def build_qsharp_wheel(cwd, out_dir, interpreter, pip_env_dir):
     subprocess.run(command_args, check=True, text=True, cwd=cwd, env=pip_env_dir)
 
 
-def run_python_tests(test_dir, interpreter):
+def run_python_tests(cwd, interpreter):
     command_args = [interpreter, "-m", "pytest"]
-    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
 
 
-def run_python_integration_tests(test_dir, interpreter):
+def run_python_integration_tests(cwd, interpreter):
     # don't check to see if pip succeeds. We'll see if the import works later.
     # If it doesn't, we'll skip the tests.
     command_args = [interpreter, "-m", "pytest"]
-    subprocess.run(command_args, check=True, text=True, cwd=test_dir)
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
 
 
 if build_pip:
