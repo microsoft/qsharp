@@ -203,7 +203,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
 fn clean_namespace_name(name: &str) -> String {
     name.chars()
         .map(|c| match c {
-            ' ' | '-' | ':' => '_',
+            '-' => '_',
             _ => c,
         })
         .collect()
