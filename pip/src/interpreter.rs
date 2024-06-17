@@ -22,12 +22,12 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor},
+    project::{FileSystem, Manifest, ManifestDescriptor, PackageCache},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use std::fmt::Write;
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -100,9 +100,12 @@ impl FromPyObject<'_> for PyManifestDescriptor {
     }
 }
 
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
@@ -113,6 +116,8 @@ impl Interpreter {
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
@@ -129,8 +134,10 @@ impl Interpreter {
             (None, None) => vec![],
         };
 
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            let project = file_system(
+            let mut project = file_system(
                 py,
                 read_file.expect(
                     "file system hooks should have been passed in with a manifest descriptor",
@@ -138,10 +145,28 @@ impl Interpreter {
                 list_directory.expect(
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
+                resolve_path.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
+                fetch_github.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
             )
-            .load_project(&manifest_descriptor.0)
+            .load_project_with_deps(&manifest_descriptor.0.manifest_dir, Some(&package_cache))
             .map_py_err()?;
-            SourceMap::new(project.sources, None)
+
+            // TODO: this is a bit too aggressive? Should be a warning instead?
+            if !project.errors.is_empty() {
+                let first_err = project.errors.remove(0);
+                return Err(first_err.into_py_err());
+            }
+
+            // TODO: properly consume dependencies
+            let mut sources = project.package_graph_sources.root.sources;
+            for dep in project.package_graph_sources.packages.values_mut() {
+                sources.append(&mut dep.sources);
+            }
+            SourceMap::new(sources, None)
         } else {
             SourceMap::default()
         };
@@ -314,8 +339,12 @@ fn format_errors(errors: Vec<interpret::Error>) -> String {
                 write!(message, "{stack_trace}").unwrap();
             }
             let additional_help = python_help(&e);
-            let report = Report::new(e);
-            write!(message, "{report:?}").unwrap();
+            let report = Report::new(e.clone());
+            // TODO: There's a weird panic here when we call DumpMachine_() from the
+            // GitHub package, most likely a preexisting bug, but marking to investigate
+            // later.
+            write!(message, "{report:?}")
+                .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
             if let Some(additional_help) = additional_help {
                 writeln!(message, "{additional_help}").unwrap();
             }

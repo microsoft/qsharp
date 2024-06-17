@@ -75,7 +75,8 @@ def init(
     :param project_root: An optional path to a root directory with a Q# project to include.
         It must contain a qsharp.json project manifest.
     """
-    from ._fs import read_file, list_directory, exists, join
+    from ._fs import read_file, list_directory, exists, join, resolve
+    from ._http import fetch_github
 
     global _interpreter
 
@@ -116,6 +117,8 @@ def init(
         manifest_descriptor,
         read_file,
         list_directory,
+        resolve,
+        fetch_github,
     )
 
     # Return the configuration information to provide a hint to the

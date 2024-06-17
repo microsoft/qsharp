@@ -5,7 +5,7 @@ allocator::assign_global!();
 
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
-use miette::{diagnostic, Context, IntoDiagnostic, Report};
+use miette::{Context, IntoDiagnostic, Report};
 use qsc::hir::PackageId;
 use qsc::{compile::compile, PassContext};
 use qsc_codegen::qir::fir_to_qir;
@@ -17,8 +17,7 @@ use qsc_frontend::{
 use qsc_hir::hir::Package;
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::PackageType;
-use qsc_project::{Dependency, FileSystem, Manifest, StdFs};
-use std::str::FromStr;
+use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
     concat, fs,
     io::{self, Read},
@@ -125,29 +124,13 @@ fn main() -> miette::Result<ExitCode> {
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
-            let project = fs.load_project(&manifest)?;
-            let mut project_sources = project.sources;
+            let mut project = fs.load_project_with_deps(&manifest.manifest_dir, None)?;
+            let mut project_sources = project.package_graph_sources.root.sources;
 
             // Concatenate all the dependencies into the sources
             // TODO: Properly convert these into something that the compiler & language service can use
-            for (alias, dep) in project.manifest.dependencies {
-                if let Dependency::Path { path } = dep {
-                    let dep_manifest = PathBuf::from_str(&path)
-                        .map(|p| manifest.manifest_dir.join(p).join("qsharp.json"))
-                        .expect("PathBuf::from_str sholudn't fail");
-                    let manifest = Manifest::load(Some(dep_manifest.clone())).map_err(|e| {
-                        eprintln!(
-                            "loading manifest at {} failed for dependency {alias}",
-                            dep_manifest.to_string_lossy()
-                        );
-                        e
-                    })?;
-                    let manifest = manifest.ok_or(diagnostic!(
-                        "dependency {alias} at {path} could not be loaded"
-                    ))?;
-                    let mut dep_project = fs.load_project(&manifest)?;
-                    project_sources.append(&mut dep_project.sources);
-                }
+            for dep in project.package_graph_sources.packages.values_mut() {
+                project_sources.append(&mut dep.sources);
             }
 
             sources.append(&mut project_sources);

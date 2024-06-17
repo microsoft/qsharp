@@ -95,8 +95,14 @@ fn main() -> miette::Result<ExitCode> {
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
-            let project = fs.load_project(&manifest)?;
-            let mut project_sources = project.sources;
+            let mut project = fs.load_project_with_deps(&manifest.manifest_dir, None)?;
+            let mut project_sources = project.package_graph_sources.root.sources;
+
+            // Concatenate all the dependencies into the sources
+            // TODO: Properly convert these into something that the compiler & language service can use
+            for dep in project.package_graph_sources.packages.values_mut() {
+                project_sources.append(&mut dep.sources);
+            }
 
             sources.append(&mut project_sources);
 
