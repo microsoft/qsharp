@@ -279,7 +279,6 @@ def run_python_tests(test_dir, interpreter):
 def run_python_integration_tests(test_dir, interpreter):
     # don't check to see if pip succeeds. We'll see if the import works later.
     # If it doesn't, we'll skip the tests.
-    install_python_test_requirements(test_dir, interpreter, False)
     command_args = [interpreter, "-m", "pytest"]
     subprocess.run(command_args, check=True, text=True, cwd=test_dir)
 
@@ -309,12 +308,12 @@ if build_pip:
 
     if args.integration_tests:
         step_start("Running integration tests for the pip package")
+        test_dir = os.path.join(pip_src, "tests-integration")
 
+        install_python_test_requirements(test_dir, python_bin, check=False)
         install_qsharp_python_package(pip_src, wheels_dir, python_bin)
 
-        run_python_integration_tests(
-            os.path.join(pip_src, "tests-integration"), python_bin
-        )
+        run_python_integration_tests(test_dir, python_bin)
 
         step_end()
 
