@@ -38,13 +38,13 @@
 //! ```
 //! declare_ast_lints!{
 //!   ...
-//!   (DoubleParens, LintLevel::Warn, "unnecesary double parentheses"),
+//!   (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
 //! }
 //! ```
 //!
 //! Then we implement the right `LintPass` for our new lint, in this case `linter::ast::AstLintPass`
 //! ```
-//! impl linter::ast::AstLintPass for DoubleParens {
+//! impl linter::ast::AstLintPass for NeedlessParens {
 //!     // we only need to impl the relevant check_* method, all the other ones
 //!     // will default to an empty method that will get optmized by rust
 //!     fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
