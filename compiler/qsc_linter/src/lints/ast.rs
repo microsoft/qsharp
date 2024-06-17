@@ -5,12 +5,15 @@ use super::lint;
 use crate::linter::ast::declare_ast_lints;
 use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, Stmt, StmtKind};
 use qsc_data_structures::span::Span;
+use qsc_frontend::resolve::Res;
+use qsc_hir::hir;
 
 declare_ast_lints! {
     (DivisionByZero, LintLevel::Error, "attempt to divide by zero", "division by zero will fail at runtime"),
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
-    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` declarations", "`newtype` declarations are deprecated"),
+    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
+    (DeprecatedFunctionConstructor, LintLevel::Warn, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
 }
 
 impl AstLintPass for DivisionByZero {
@@ -124,6 +127,25 @@ impl AstLintPass for DeprecatedNewtype {
     fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
         if let ItemKind::Ty(_, _) = item.kind.as_ref() {
             buffer.push(lint!(self, item.span));
+        }
+    }
+}
+
+/// Crates a lint for deprecated function constructors of structs.
+impl AstLintPass for DeprecatedFunctionConstructor {
+    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+        if let ExprKind::Path(path) = expr.kind.as_ref() {
+            // ToDo: check if the path id maps to an item that is a struct:
+            // if let Some(&Res::Item(item_id, _)) = self.compilation.names.get(path.id) {
+            //     let (item, _, _) = self
+            //         .compilation
+            //         .resolve_item_relative_to_user_package(item_id);
+            //     if let hir::ItemKind::Ty(_, udt) = item.kind {
+            //         if udt.is_struct() {
+            //             buffer.push(lint!(self, expr.span));
+            //         }
+            //     }
+            // }
         }
     }
 }

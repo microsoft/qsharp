@@ -278,7 +278,7 @@ fn deprecated_newtype_usage() {
                     source: "newtype Foo = ();",
                     level: Warn,
                     message: "deprecated `newtype` declarations",
-                    help: "`newtype` declarations are deprecated",
+                    help: "`newtype` declarations are deprecated, use `struct` instead",
                 },
             ]
         "#]],
