@@ -266,6 +266,25 @@ fn needless_operation_partial_application() {
     );
 }
 
+#[test]
+fn deprecated_newtype_usage() {
+    check(
+        indoc! {"
+        newtype Foo = ();
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "newtype Foo = ();",
+                    level: Warn,
+                    message: "deprecated `newtype` delcarations",
+                    help: "`newtype` declarations are deprecated",
+                },
+            ]
+        "#]],
+    );
+}
+
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());

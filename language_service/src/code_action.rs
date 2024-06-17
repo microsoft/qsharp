@@ -88,6 +88,7 @@ fn quick_fixes(
                     is_preferred: None,
                 }),
                 LintKind::Ast(AstLint::DivisionByZero)
+                | LintKind::Ast(AstLint::DeprecatedUDT)
                 | LintKind::Hir(HirLint::NeedlessOperation) => (),
             }
         }

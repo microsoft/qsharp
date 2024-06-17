@@ -3,17 +3,18 @@
 
 use super::lint;
 use crate::linter::ast::declare_ast_lints;
-use qsc_ast::ast::{BinOp, ExprKind, Lit, StmtKind};
+use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, Stmt, StmtKind};
 use qsc_data_structures::span::Span;
 
 declare_ast_lints! {
     (DivisionByZero, LintLevel::Error, "attempt to divide by zero", "division by zero will fail at runtime"),
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
+    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` delcarations", "`newtype` declarations are deprecated"),
 }
 
 impl AstLintPass for DivisionByZero {
-    fn check_expr(&self, expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
+    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(0) = **lit {
@@ -30,12 +31,7 @@ impl NeedlessParens {
     /// and `expr` has higher precedence than `+`, then the
     /// parentheses are needless. Parentheses around a literal
     /// are also needless.
-    fn push(
-        &self,
-        parent: &qsc_ast::ast::Expr,
-        child: &qsc_ast::ast::Expr,
-        buffer: &mut Vec<Lint>,
-    ) {
+    fn push(&self, parent: &Expr, child: &Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::Paren(expr) = &*child.kind {
             if precedence(parent) < precedence(expr) {
                 buffer.push(lint!(self, child.span));
@@ -45,7 +41,7 @@ impl NeedlessParens {
 }
 
 impl AstLintPass for NeedlessParens {
-    fn check_expr(&self, expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
+    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         match &*expr.kind {
             ExprKind::BinOp(_, left, right) => {
                 self.push(expr, left, buffer);
@@ -59,7 +55,7 @@ impl AstLintPass for NeedlessParens {
     }
 
     /// Checks the assignment statements.
-    fn check_stmt(&self, stmt: &qsc_ast::ast::Stmt, buffer: &mut Vec<Lint>) {
+    fn check_stmt(&self, stmt: &Stmt, buffer: &mut Vec<Lint>) {
         if let StmtKind::Local(_, _, right) = &*stmt.kind {
             if let ExprKind::Paren(_) = &*right.kind {
                 buffer.push(lint!(self, right.span));
@@ -83,8 +79,8 @@ impl AstLintPass for RedundantSemicolons {
     /// semicolon is parsed as an Empty statement. If we have multiple empty
     /// statements in a row, we group them as single lint, that spans from
     /// the first redundant semicolon to the last redundant semicolon.
-    fn check_block(&self, block: &qsc_ast::ast::Block, buffer: &mut Vec<Lint>) {
-        // a finte state machine that keeps track of the span of the redundant semicolons
+    fn check_block(&self, block: &Block, buffer: &mut Vec<Lint>) {
+        // a finite state machine that keeps track of the span of the redundant semicolons
         // None: no redundant semicolons
         // Some(_): one or more redundant semicolons
         let mut seq: Option<Span> = None;
@@ -101,7 +97,7 @@ impl AstLintPass for RedundantSemicolons {
     }
 }
 
-fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
+fn precedence(expr: &Expr) -> u8 {
     match &*expr.kind {
         ExprKind::Lit(_) => 15,
         ExprKind::Paren(_) => 14,
@@ -120,5 +116,14 @@ fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
         },
         ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) => 1,
         _ => 0,
+    }
+}
+
+/// Crates a lint for deprecated user-defined types declarations using `newtype`.
+impl AstLintPass for DeprecatedNewtype {
+    fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
+        if let ItemKind::Ty(_, _) = item.kind.as_ref() {
+            buffer.push(lint!(self, item.span));
+        }
     }
 }
