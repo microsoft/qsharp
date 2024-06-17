@@ -110,6 +110,24 @@ def check_prereqs(install=False):
     else:
         raise Exception("Unable to determine the clippy version")
 
+    # On MacOS, ensure the required targets are installed
+    if platform.system() == "Darwin":
+        try:
+            output = subprocess.check_output(
+                ["rustup", "target", "list", "--installed"], universal_newlines=True
+            )
+            targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+            if not all(target in output for target in targets):
+                print("One or both rust targets are not installed.")
+                print("Please install the missing targets by running:")
+                print("rustup target add aarch64-apple-darwin")
+                print("rustup target add x86_64-apple-darwin")
+        except subprocess.CalledProcessError as e:
+            print(
+                f"An error occurred while checking the rust targets: {str(e)}",
+                file=sys.stderr,
+            )
+
     ### Check the Node.js version ###
     try:
         node_version = subprocess.check_output(["node", "-v"])

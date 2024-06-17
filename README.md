@@ -27,6 +27,11 @@ To build this repository there are dependencies that need to be installed. These
 
 - Python (<https://python.org>)
 - Rust (<https://www.rust-lang.org/tools/install>)
+  - On MacOS, ensure that both `aarch64` and `x86_64` targets are installed or you will encounter linking errors.
+    ```shell
+    rustup target add x86_64-apple-darwin
+    rustup target add aarch64-apple-darwin
+    ```
 - Node.js (<https://nodejs.org/>)
 - wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
 - A [C compiler](https://docs.rs/cc/latest/cc/#compile-time-requirements)
