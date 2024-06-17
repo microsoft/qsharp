@@ -18,7 +18,7 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
-/// A represention of a local symbol.
+/// A representation of a local symbol.
 #[derive(Clone, Debug)]
 pub struct Local {
     pub var: LocalVarId,
