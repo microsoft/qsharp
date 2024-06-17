@@ -16,10 +16,10 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Package, Pat, PatKind, Res,
-        SpecBody, SpecDecl, SpecGen,
+        Attr, Block, CallableDecl, CallableKind, Functor, Ident, Item, NodeId, Package, Pat,
+        PatKind, Res, SpecBody, SpecDecl, SpecGen,
     },
-    mut_visit::MutVisitor,
+    mut_visit::{walk_item, MutVisitor},
     ty::{Prim, Ty},
 };
 use std::option::Option;
@@ -62,6 +62,11 @@ pub enum Error {
     #[error("specialization generation missing required body implementation")]
     #[diagnostic(code("Qsc.SpecGen.MissingBody"))]
     MissingBody(#[label] Span),
+
+    #[error("specialization generation is not supported for callables with the attribute `SimulatableIntrinsic`")]
+    #[diagnostic(code("Qsc.SpecGen.SimulatableIntrinsic"))]
+    #[diagnostic(help("try removing the specializations for this callable and providing them via a separate wrapper operation"))]
+    SimulatableIntrinsic(#[label] Span),
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
@@ -144,6 +149,7 @@ fn generate_spec_impls(core: &Table, package: &mut Package, assigner: &mut Assig
         core,
         assigner,
         errors: Vec::new(),
+        is_codegen_intrinsic: false,
     };
     pass.visit_package(package);
     pass.errors
@@ -153,6 +159,7 @@ struct SpecImplPass<'a> {
     core: &'a Table,
     assigner: &'a mut Assigner,
     errors: Vec<Error>,
+    is_codegen_intrinsic: bool,
 }
 
 impl<'a> SpecImplPass<'a> {
@@ -208,6 +215,12 @@ impl<'a> SpecImplPass<'a> {
 }
 
 impl<'a> MutVisitor for SpecImplPass<'a> {
+    fn visit_item(&mut self, item: &mut Item) {
+        self.is_codegen_intrinsic = item.attrs.contains(&Attr::SimulatableIntrinsic);
+        walk_item(self, item);
+        self.is_codegen_intrinsic = false;
+    }
+
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         let body = &decl.body;
 
@@ -227,15 +240,18 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
         let adj = &mut decl.adj;
         let ctl = &mut decl.ctl;
         let ctl_adj = &mut decl.ctl_adj;
+        let has_specializations = adj.is_some() || ctl.is_some() || ctl_adj.is_some();
 
         let SpecBody::Impl(_, body_block) = &body.body else {
-            if body.body == SpecBody::Gen(SpecGen::Intrinsic)
-                && [adj, ctl, ctl_adj].into_iter().any(|x| Option::is_some(x))
-            {
+            if body.body == SpecBody::Gen(SpecGen::Intrinsic) && has_specializations {
                 self.errors.push(Error::MissingBody(body.span));
             }
             return;
         };
+        if self.is_codegen_intrinsic && has_specializations {
+            self.errors.push(Error::SimulatableIntrinsic(decl.span));
+            return;
+        }
 
         if let Some(ctl) = ctl.as_mut() {
             match ctl.body {

@@ -1054,3 +1054,63 @@ fn call_to_pauli_i_rotation_for_global_phase_is_noop() {
             Return"#]],
     );
 }
+
+#[test]
+fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Unit {
+                body intrinsic;
+            }
+            @SimulatableIntrinsic()
+            operation Op2() : Unit {
+                Op1();
+            }
+            operation Op3() : Unit {
+                Op1();
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                Op1();
+                Op2();
+                Op3();
+            }
+        }
+    "});
+
+    let op1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op1
+                call_type: Regular
+                input_type: <VOID>
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let op2_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        op2_callable_id,
+        &expect![[r#"
+            Callable:
+                name: Op2
+                call_type: Regular
+                input_type: <VOID>
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( )
+            Call id(2), args( )
+            Call id(1), args( )
+            Call id(3), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
