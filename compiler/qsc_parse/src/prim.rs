@@ -8,7 +8,7 @@ use super::{keyword::Keyword, scan::ParserContext, ty::ty, Error, Parser, Result
 use crate::{
     item::throw_away_doc,
     lex::{Delim, TokenKind},
-    ErrorKind,
+    ErrorKind, Prediction,
 };
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::{Span, WithSpan};
@@ -43,7 +43,22 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
     }
 }
 
+pub(super) fn keyword(s: &mut ParserContext, k: Keyword) -> Result<()> {
+    s.push_prediction(vec![Prediction::Keyword(k.as_str())]);
+    if s.peek().kind == TokenKind::Keyword(k) {
+        s.advance();
+        Ok(())
+    } else {
+        Err(Error(ErrorKind::Token(
+            TokenKind::Keyword(k),
+            s.peek().kind,
+            s.peek().span,
+        )))
+    }
+}
+
 pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
+    s.push_prediction(vec![Prediction::TyParam]);
     let peek = s.peek();
     if peek.kind == TokenKind::AposIdent {
         let name = s.read().into();
@@ -64,7 +79,7 @@ pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
 
 pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     let peek = s.peek();
-    if peek.kind == TokenKind::Ident {
+    if s.peek().kind == TokenKind::Ident {
         let name = s.read().into();
         s.advance();
         Ok(Box::new(Ident {
@@ -126,7 +141,7 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
 pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
-    let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
+    let kind = if keyword(s, Keyword::Underscore).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(Box::new(ty(s)?))
         } else {

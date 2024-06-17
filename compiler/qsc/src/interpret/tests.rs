@@ -1789,9 +1789,14 @@ mod given_interpreter {
             assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
             let package_id = store.insert(unit);
 
-            let mut interpreter =
-                Interpreter::from(store, package_id, capabilities, language_features)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::from(
+                store,
+                package_id,
+                dependencies,
+                capabilities,
+                language_features,
+            )
+            .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_value(
                 &result,

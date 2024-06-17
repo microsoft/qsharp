@@ -96,3 +96,131 @@ fn check_map<T>(
         Err(error) => expect.assert_eq(&format!("{error:#?}\n\n{errors:#?}")),
     }
 }
+
+#[test]
+fn test_completion_end_of_keyword() {
+    let input = "namespace Foo { open ".to_string();
+    let cursor = 20_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    assert_eq!(format!("{v:?}"), "[Keyword(\"internal\"), Keyword(\"open\"), Keyword(\"newtype\"), Keyword(\"function\"), Keyword(\"operation\")]");
+}
+
+#[test]
+fn test_completion_after_open() {
+    let input = "namespace Foo { open ".to_string();
+    let cursor = 21_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // a namespace follows the open keyword
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_begin_ident() {
+    let input = "namespace Foo { open X".to_string();
+    let cursor = 21_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // right at the beginning of the namespace name.
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_middle_ident() {
+    let input = "namespace Foo { open ABCD".to_string();
+    let cursor = 23_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // middle of the namespace name
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_end_ident() {
+    let input = "namespace Foo { open ABCD ".to_string();
+    let cursor = 25_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // end of the namespace name
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_middle() {
+    let input = "namespace Foo { open ABCD; open Foo; operation Main() : Unit {} }".to_string();
+    let cursor = 23_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_lotsawhitespace() {
+    let input = r"namespace MyQuantumApp { open Microsoft.Quantum.Diagnostics;      }".to_string();
+    let cursor = 61_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    assert_eq!(format!("{v:?}"), "[Keyword(\"internal\"), Keyword(\"open\"), Keyword(\"newtype\"), Keyword(\"function\"), Keyword(\"operation\")]");
+}
+
+#[test]
+fn test_completion_after_semicolon() {
+    let input = r"namespace MyQuantumApp { open Microsoft.Quantum.Diagnostics;      }".to_string();
+    let cursor = 60_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    assert_eq!(format!("{v:?}"), "[Keyword(\"internal\"), Keyword(\"open\"), Keyword(\"newtype\"), Keyword(\"function\"), Keyword(\"operation\")]");
+}
+
+#[test]
+fn test_completion_before_attr() {
+    let input =
+        r"namespace Foo { open Microsoft.Quantum.Diagnostics;          @EntryPoint() operation Main() : Unit {} }".to_string();
+    let cursor = 55_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    assert_eq!(format!("{v:?}"), "[Keyword(\"internal\"), Keyword(\"open\"), Keyword(\"newtype\"), Keyword(\"function\"), Keyword(\"operation\")]");
+}
+
+#[test]
+fn test_completion_whitespace_at_end() {
+    let input = "namespace Foo { open     ".to_string();
+    let cursor = 21_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // a namespace follows the open keyword
+    assert_eq!(format!("{v:?}"), "[Namespace]");
+}
+
+#[test]
+fn test_completion_empty_source() {
+    let input = String::new();
+    let cursor = 0_u32;
+    let mut scanner = ParserContext::predict_mode(&input, cursor);
+    let _ = crate::item::parse_namespaces(&mut scanner);
+    let v = scanner.into_predictions();
+
+    // a namespace follows the open keyword
+    assert_eq!(format!("{v:?}"), "[Keyword(\"namespace\")]");
+}

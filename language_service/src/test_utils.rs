@@ -87,6 +87,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
             kind: CompilationKind::OpenProject,
             compile_errors: errors,
             project_errors: Vec::new(),
+            dependencies: vec![std_package_id],
         },
         cursor_location,
         target_spans,
@@ -144,7 +145,7 @@ where
         compiler.update(increment);
     }
 
-    let (package_store, package_id) = compiler.into_package_store();
+    let (package_store, package_id, dependencies) = compiler.into_package_store();
 
     Compilation {
         package_store,
@@ -152,6 +153,7 @@ where
         compile_errors: errors,
         kind: CompilationKind::Notebook,
         project_errors: Vec::new(),
+        dependencies,
     }
 }
 

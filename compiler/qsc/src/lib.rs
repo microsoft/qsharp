@@ -35,11 +35,16 @@ pub mod project {
     };
 }
 
+pub use qsc_passes::PackageType;
+
+pub mod completion {
+    pub use qsc_frontend::Prediction;
+}
 pub use qsc_data_structures::{
     language_features::LanguageFeatures, namespaces::*, span::Span, target::TargetCapabilityFlags,
 };
 
-pub use qsc_passes::{lower_hir_to_fir, PackageType, PassContext};
+pub use qsc_passes::{lower_hir_to_fir, PassContext};
 
 pub mod line_column {
     pub use qsc_data_structures::line_column::{Encoding, Position, Range};

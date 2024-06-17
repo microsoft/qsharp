@@ -20,7 +20,8 @@ use super::{
 use crate::lex::ClosedBinOp;
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, path, recovering, recovering_token, shorten},
+    prim::{barrier, keyword, path, recovering, recovering_token, shorten},
+    scan::Prediction,
     stmt::check_semis,
     ty::array_or_arrow,
     ErrorKind,
@@ -230,7 +231,7 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
-    token(s, TokenKind::Keyword(Keyword::Namespace))?;
+    keyword(s, Keyword::Namespace)?;
     let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = parse_namespace_block_contents(s)?;
@@ -283,6 +284,7 @@ pub(crate) fn parse_doc(s: &mut ParserContext) -> Option<String> {
 fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
+    s.push_prediction(vec![Prediction::Attr]);
     let name = ident(s)?;
     let arg = expr(s)?;
     Ok(Box::new(Attr {
@@ -295,7 +297,7 @@ fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
 
 fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
     let lo = s.peek().span.lo;
-    token(s, TokenKind::Keyword(Keyword::Internal))?;
+    keyword(s, Keyword::Internal)?;
     Ok(Visibility {
         id: NodeId::default(),
         span: s.span(lo),
@@ -304,12 +306,13 @@ fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
 }
 
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
-    token(s, TokenKind::Keyword(Keyword::Open))?;
+    keyword(s, Keyword::Open)?;
+    s.push_prediction(vec![Prediction::Namespace]);
     let mut name = vec![*(ident(s)?)];
     while let Ok(_dot) = token(s, TokenKind::Dot) {
         name.push(*(ident(s)?));
     }
-    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
+    let alias = if keyword(s, Keyword::As).is_ok() {
         Some(ident(s)?)
     } else {
         None
@@ -326,7 +329,7 @@ fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
 }
 
 fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
-    token(s, TokenKind::Keyword(Keyword::Newtype))?;
+    keyword(s, Keyword::Newtype)?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
     let lo = s.peek().span.lo;
@@ -434,9 +437,9 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
 fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
-    let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
+    let kind = if keyword(s, Keyword::Function).is_ok() {
         CallableKind::Function
-    } else if token(s, TokenKind::Keyword(Keyword::Operation)).is_ok() {
+    } else if keyword(s, Keyword::Operation).is_ok() {
         CallableKind::Operation
     } else {
         let token = s.peek();
@@ -462,7 +465,7 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     token(s, TokenKind::Colon)?;
     throw_away_doc(s);
     let output = ty(s)?;
-    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
+    let functors = if keyword(s, Keyword::Is).is_ok() {
         Some(Box::new(ty::functor_expr(s)?))
     } else {
         None
@@ -506,12 +509,12 @@ fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
 
 fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
     let lo = s.peek().span.lo;
-    let spec = if token(s, TokenKind::Keyword(Keyword::Body)).is_ok() {
+    let spec = if keyword(s, Keyword::Body).is_ok() {
         Spec::Body
-    } else if token(s, TokenKind::Keyword(Keyword::Adjoint)).is_ok() {
+    } else if keyword(s, Keyword::Adjoint).is_ok() {
         Spec::Adj
-    } else if token(s, TokenKind::Keyword(Keyword::Controlled)).is_ok() {
-        if token(s, TokenKind::Keyword(Keyword::Adjoint)).is_ok() {
+    } else if keyword(s, Keyword::Controlled).is_ok() {
+        if keyword(s, Keyword::Adjoint).is_ok() {
             Spec::CtlAdj
         } else {
             Spec::Ctl
@@ -540,15 +543,15 @@ fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
 }
 
 fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
-    if token(s, TokenKind::Keyword(Keyword::Auto)).is_ok() {
+    if keyword(s, Keyword::Auto).is_ok() {
         Ok(SpecGen::Auto)
-    } else if token(s, TokenKind::Keyword(Keyword::Distribute)).is_ok() {
+    } else if keyword(s, Keyword::Distribute).is_ok() {
         Ok(SpecGen::Distribute)
-    } else if token(s, TokenKind::Keyword(Keyword::Intrinsic)).is_ok() {
+    } else if keyword(s, Keyword::Intrinsic).is_ok() {
         Ok(SpecGen::Intrinsic)
-    } else if token(s, TokenKind::Keyword(Keyword::Invert)).is_ok() {
+    } else if keyword(s, Keyword::Invert).is_ok() {
         Ok(SpecGen::Invert)
-    } else if token(s, TokenKind::Keyword(Keyword::Slf)).is_ok() {
+    } else if keyword(s, Keyword::Slf).is_ok() {
         Ok(SpecGen::Slf)
     } else {
         Err(Error(ErrorKind::Rule(
