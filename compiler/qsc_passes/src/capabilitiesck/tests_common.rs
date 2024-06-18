@@ -50,7 +50,7 @@ struct CompilationContext {
 impl CompilationContext {
     fn new(source: &str) -> Self {
         let mut store = qsc::PackageStore::new(qsc::compile::core());
-        // TODO(alex) ask cesarzc if stdlin is wanted here
+        // TODO(alex) ask cesarzc if std is wanted here
         let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut compiler = Compiler::new(
             SourceMap::default(),

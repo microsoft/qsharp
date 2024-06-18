@@ -22,9 +22,8 @@ impl BuildableProgram {
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 #[must_use]
 pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildableProgram {
-    // TODO profile is no longer in program config -- why?
     let capabilities =
-        qsc::target::Profile::from_str(&program.target_profile) // TODO
+        qsc::target::Profile::from_str(&program.target_profile)
             .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
             .into();
 
@@ -55,8 +54,6 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
                 )
             })
             .collect::<FxHashMap<_, _>>();
-        // TODO use aliases to resolve dependencies
-        // for now just use the package key
         let dependencies = dependencies
             .iter()
             .map(|(alias, b)| (*b, Some(alias.clone())))
