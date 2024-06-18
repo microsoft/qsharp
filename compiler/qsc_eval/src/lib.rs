@@ -1014,10 +1014,10 @@ impl State {
                     callee.input,
                     spec_decl.input,
                     arg,
+                    arg_span,
                     functor.controlled,
                     fixed_args,
-                )
-                .map_err(|()| Error::QubitUniqueness(arg_span))?;
+                )?;
                 Ok(())
             }
         }
@@ -1388,9 +1388,10 @@ impl State {
         decl_pat: PatId,
         spec_pat: Option<PatId>,
         args_val: Value,
+        args_span: PackageSpan,
         ctl_count: u8,
         fixed_args: Option<Rc<[Value]>>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), Error> {
         match spec_pat {
             Some(spec_pat) => {
                 assert!(
@@ -1409,7 +1410,7 @@ impl State {
                 }
 
                 if !are_ctls_unique(&ctls, &tup) {
-                    return Err(());
+                    return Err(Error::QubitUniqueness(args_span));
                 }
 
                 self.bind_value(env, globals, spec_pat, Value::Array(ctls.into()));

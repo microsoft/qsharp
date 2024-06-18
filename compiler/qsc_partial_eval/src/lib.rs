@@ -1182,16 +1182,13 @@ impl<'a> PartialEvaluator<'a> {
             );
             None
         };
-        let (args, ctls_arg) = self
-            .resolve_args(
-                (store_item_id.package, callable_decl.input).into(),
-                args_value.clone(),
-                ctls,
-                fixed_args,
-            )
-            .map_err(|()| {
-                Error::EvaluationFailed("qubis in invocation are not unique".to_string(), args_span)
-            })?;
+        let (args, ctls_arg) = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value.clone(),
+            Some(args_span),
+            ctls,
+            fixed_args,
+        )?;
         let call_scope = Scope::new(
             store_item_id.package,
             Some((store_item_id.item, functor_app)),
@@ -1349,6 +1346,7 @@ impl<'a> PartialEvaluator<'a> {
             .resolve_args(
                 (store_item_id.package, callable_decl.input).into(),
                 args_value,
+                None,
                 None,
                 None,
             )
@@ -2266,9 +2264,10 @@ impl<'a> PartialEvaluator<'a> {
         &self,
         store_pat_id: StorePatId,
         value: Value,
+        args_span: Option<PackageSpan>,
         ctls: Option<(StorePatId, u8)>,
         fixed_args: Option<Rc<[Value]>>,
-    ) -> Result<(Vec<Arg>, Option<Arg>), ()> {
+    ) -> Result<(Vec<Arg>, Option<Arg>), Error> {
         let mut value = value;
         let ctls_arg = if let Some((ctls_pat_id, ctls_count)) = ctls {
             let mut ctls = vec![];
@@ -2280,7 +2279,8 @@ impl<'a> PartialEvaluator<'a> {
                 value = rest.clone();
             }
             if !are_ctls_unique(&ctls, &value) {
-                return Err(());
+                let span = args_span.expect("span should be present");
+                return Err(EvalError::QubitUniqueness(span).into());
             }
             let ctls_pat = self.package_store.get_pat(ctls_pat_id);
             let ctls_value = Value::Array(ctls.into());
@@ -2332,7 +2332,13 @@ impl<'a> PartialEvaluator<'a> {
                 for (pat_id, value) in pat_value_tuples {
                     // At this point we should no longer have control qubits so pass None.
                     let (mut element_args, None) = self
-                        .resolve_args((store_pat_id.package, *pat_id).into(), value, None, None)
+                        .resolve_args(
+                            (store_pat_id.package, *pat_id).into(),
+                            value,
+                            None,
+                            None,
+                            None,
+                        )
                         .expect("no controls to verify")
                     else {
                         panic!("no control qubits are expected");
