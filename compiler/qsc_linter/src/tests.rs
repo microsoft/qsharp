@@ -6,14 +6,16 @@ use crate::{
     Lint, LintConfig, LintLevel,
 };
 use expect_test::{expect, Expect};
+use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
+use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
 #[test]
 fn multiple_lints() {
     check(
-        "let x = ((1 + 2)) / 0;;;;",
+        &wrap_in_callable("let x = ((1 + 2)) / 0;;;;", CallableKind::Operation),
         &expect![[r#"
             [
                 SrcLint {
@@ -34,6 +36,12 @@ fn multiple_lints() {
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
+                SrcLint {
+                    source: "RunProgram",
+                    level: Allow,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                },
             ]
         "#]],
     );
@@ -42,7 +50,7 @@ fn multiple_lints() {
 #[test]
 fn double_parens() {
     check(
-        "let x = ((1 + 2));",
+        &wrap_in_callable("let x = ((1 + 2));", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
@@ -59,7 +67,7 @@ fn double_parens() {
 #[test]
 fn division_by_zero() {
     check(
-        "let x = 2 / 0;",
+        &wrap_in_callable("let x = 2 / 0;", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
@@ -76,7 +84,7 @@ fn division_by_zero() {
 #[test]
 fn needless_parens_in_assignment() {
     check(
-        "let x = (42);",
+        &wrap_in_callable("let x = (42);", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
@@ -84,12 +92,6 @@ fn needless_parens_in_assignment() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                },
-                SrcLint {
-                    source: "42",
-                    level: Allow,
-                    message: "this a placeholder",
-                    help: "remove after addding the first HIR lint",
                 },
             ]
         "#]],
@@ -99,7 +101,7 @@ fn needless_parens_in_assignment() {
 #[test]
 fn needless_parens() {
     check(
-        "let x = (2) + (5 * 4 * (2 ^ 10));",
+        &wrap_in_callable("let x = (2) + (5 * 4 * (2 ^ 10));", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
@@ -128,7 +130,7 @@ fn needless_parens() {
 #[test]
 fn redundant_semicolons() {
     check(
-        "let x = 2;;;;;",
+        &wrap_in_callable("let x = 2;;;;;", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
@@ -143,16 +145,121 @@ fn redundant_semicolons() {
 }
 
 #[test]
-fn hir_placeholder() {
+fn needless_operation_lambda_operations() {
     check(
-        "let placeholder = 42;",
+        &wrap_in_callable("let a = (a) => a + 1;", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
-                    source: "42",
+                    source: "",
                     level: Allow,
-                    message: "this a placeholder",
-                    help: "remove after addding the first HIR lint",
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn needless_operation_no_lint_for_valid_lambda_operations() {
+    check(
+        &wrap_in_callable("let op = (q) => H(q);", CallableKind::Function),
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
+#[test]
+fn needless_operation_non_empty_op_and_no_specialization() {
+    check(
+        &wrap_in_callable("let x = 2;", CallableKind::Operation),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "RunProgram",
+                    level: Allow,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn needless_operation_non_empty_op_and_specialization() {
+    check(
+        indoc! {"
+        operation Run(target : Qubit) : Unit is Adj {
+            body ... {
+                Message(\"hi\");
+            }
+            adjoint self;
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "Run",
+                    level: Allow,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn needless_operation_no_lint_for_empty_op_explicit_specialization() {
+    check(
+        indoc! {"
+        operation I(target : Qubit) : Unit {
+            body ... {}
+            adjoint self;
+        }
+
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
+#[test]
+fn needless_operation_no_lint_for_empty_op_implicit_specialization() {
+    check(
+        indoc! {"
+        operation DoNothing() : Unit is Adj + Ctl {}
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
+#[test]
+fn needless_operation_partial_application() {
+    check(
+        indoc! {"
+        operation PrepareBellState(q1 : Qubit, q2 : Qubit) : Unit {
+            H(q1);
+            CNOT(q1, q2);
+        }
+
+        operation PartialApplication(q1 : Qubit) : Qubit => Unit {
+            return PrepareBellState(q1, _);
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "PartialApplication",
+                    level: Allow,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
                 },
             ]
         "#]],
@@ -184,11 +291,17 @@ fn check(source: &str, expected: &Expect) {
 /// Wraps some source code into a namespace, to make testing easier.
 fn wrap_in_namespace(source: &str) -> String {
     format!(
-        "namespace foo {{
-        operation RunProgram(vector : Double[]) : Unit {{
+        "namespace Foo {{
             {source}
-        }}
-    }}"
+        }}"
+    )
+}
+
+fn wrap_in_callable(source: &str, callable_type: CallableKind) -> String {
+    format!(
+        "{callable_type} RunProgram() : Unit {{
+            {source}
+        }}"
     )
 }
 

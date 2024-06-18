@@ -332,5 +332,5 @@ namespace Microsoft.Quantum.Katas {
             }
         }
         return true;
-    }
+    } 
 }

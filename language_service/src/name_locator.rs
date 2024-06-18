@@ -18,13 +18,10 @@ pub(crate) trait Handler<'package> {
         name: &'package ast::Ident,
         decl: &'package ast::CallableDecl,
     );
-
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
         item_id: &'_ hir::ItemId,
-        item: &'package hir::Item,
-        package: &'package hir::Package,
         decl: &'package hir::CallableDecl,
     );
 
@@ -43,13 +40,24 @@ pub(crate) trait Handler<'package> {
         definition: &'package ast::Ident,
     );
 
-    fn at_new_type_def(&mut self, type_name: &'package ast::Ident, def: &'package ast::TyDef);
+    fn at_new_type_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        type_name: &'package ast::Ident,
+        def: &'package ast::TyDef,
+    );
+
+    fn at_struct_def(
+        &mut self,
+        context: &LocatorContext<'package>,
+        type_name: &'package ast::Ident,
+        def: &'package ast::StructDecl,
+    );
 
     fn at_new_type_ref(
         &mut self,
         path: &'package ast::Path,
         item_id: &'_ hir::ItemId,
-        package: &'package hir::Package,
         type_name: &'package hir::Ident,
         udt: &'package hir::ty::Udt,
     );
@@ -64,7 +72,6 @@ pub(crate) trait Handler<'package> {
     fn at_field_ref(
         &mut self,
         field_ref: &'package ast::Ident,
-        expr_id: &'package ast::NodeId,
         item_id: &'_ hir::ItemId,
         field_def: &'package hir::ty::UdtField,
     );
@@ -89,6 +96,7 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_callable: Option<&'package ast::CallableDecl>,
     pub(crate) lambda_params: Vec<&'package ast::Pat>,
     pub(crate) current_item_doc: Rc<str>,
+    pub(crate) current_item_name: Rc<str>,
     pub(crate) current_namespace: Rc<str>,
     pub(crate) in_params: bool,
     pub(crate) in_lambda_params: bool,
@@ -102,7 +110,7 @@ pub(crate) struct Locator<'inner, 'package, T> {
     context: LocatorContext<'package>,
 }
 
-impl<'inner, 'package, T> Locator<'inner, 'package, T> {
+impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
     pub(crate) fn new(
         inner: &'inner mut T,
         offset: u32,
@@ -119,9 +127,26 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
                 lambda_params: vec![],
                 in_lambda_params: false,
                 current_item_doc: Rc::from(""),
+                current_item_name: Rc::from(""),
                 current_udt_id: None,
             },
         }
+    }
+
+    fn get_field_def(
+        &mut self,
+        udt_res: &'package hir::Res,
+        field_ref: &'package ast::Ident,
+    ) -> Option<(hir::ItemId, &'package hir::ty::UdtField)> {
+        let (item, resolved_item_id) = self
+            .compilation
+            .resolve_item_res(self.compilation.user_package_id, udt_res);
+        if let hir::ItemKind::Ty(_, udt) = &item.kind {
+            if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
+                return Some((resolved_item_id, field_def));
+            }
+        }
+        None
     }
 }
 
@@ -133,7 +158,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
         }
     }
 
-    // Handles callable, UDT, and type param definitions
+    // Handles callable, UDT, struct, and type param definitions
     fn visit_item(&mut self, item: &'package ast::Item) {
         if item.span.contains(self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
@@ -142,7 +167,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                     if decl.name.span.touches(self.offset) {
                         self.inner.at_callable_def(&self.context, &decl.name, decl);
                     } else if decl.span.contains(self.offset) {
-                        let context = self.context.current_callable;
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, decl.name.name.clone());
+                        let context_curr_callable = self.context.current_callable;
                         self.context.current_callable = Some(decl);
 
                         // walk callable decl
@@ -165,8 +192,8 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                 specs.iter().for_each(|s| self.visit_spec_decl(s));
                             }
                         }
-
-                        self.context.current_callable = context;
+                        self.context.current_callable = context_curr_callable;
+                        self.context.current_item_name = context_curr_item_name;
                     }
                     // Note: the `item.span` can cover things like doc
                     // comment, attributes, and visibility keywords, which aren't
@@ -179,16 +206,38 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 ast::ItemKind::Ty(ident, def) => {
                     if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(ident.id)
                     {
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, ident.name.clone());
                         let context = self.context.current_udt_id;
                         self.context.current_udt_id = Some(item_id);
 
                         if ident.span.touches(self.offset) {
-                            self.inner.at_new_type_def(ident, def);
+                            self.inner.at_new_type_def(&self.context, ident, def);
                         } else {
                             self.visit_ty_def(def);
                         }
 
                         self.context.current_udt_id = context;
+                        self.context.current_item_name = context_curr_item_name;
+                    }
+                }
+                ast::ItemKind::Struct(def) => {
+                    if let Some(resolve::Res::Item(item_id, _)) =
+                        self.compilation.get_res(def.name.id)
+                    {
+                        let context_curr_item_name =
+                            replace(&mut self.context.current_item_name, def.name.name.clone());
+                        let context = self.context.current_udt_id;
+                        self.context.current_udt_id = Some(item_id);
+
+                        if def.name.span.touches(self.offset) {
+                            self.inner.at_struct_def(&self.context, &def.name, def);
+                        } else {
+                            self.visit_struct_decl(def);
+                        }
+
+                        self.context.current_udt_id = context;
+                        self.context.current_item_name = context_curr_item_name;
                     }
                 }
                 _ => {}
@@ -225,6 +274,17 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                 }
             } else {
                 walk_ty_def(self, def);
+            }
+        }
+    }
+
+    // Handles struct field definitions
+    fn visit_field_def(&mut self, def: &'package ast::FieldDef) {
+        if def.span.contains(self.offset) {
+            if def.name.span.touches(self.offset) {
+                self.inner.at_field_def(&self.context, &def.name, &def.ty);
+            } else {
+                self.visit_ty(&def.ty);
             }
         }
     }
@@ -269,21 +329,40 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
             match &*expr.kind {
                 ast::ExprKind::Field(udt, field_ref) if field_ref.span.touches(self.offset) => {
                     if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
-                        let (item, resolved_item_id) = self
-                            .compilation
-                            .resolve_item_res(self.compilation.user_package_id, res);
-                        match &item.kind {
-                            hir::ItemKind::Ty(_, udt) => {
-                                if let Some(field_def) = udt.find_field_by_name(&field_ref.name) {
-                                    self.inner.at_field_ref(
-                                        field_ref,
-                                        &expr.id,
-                                        &resolved_item_id,
-                                        field_def,
-                                    );
+                        if let Some((item_id, field_def)) = self.get_field_def(res, field_ref) {
+                            self.inner.at_field_ref(field_ref, &item_id, field_def);
+                        }
+                    }
+                }
+                ast::ExprKind::Struct(ty_name, copy, fields) => {
+                    if ty_name.span.touches(self.offset) {
+                        self.visit_path(ty_name);
+                        return;
+                    }
+
+                    if let Some(copy) = &copy {
+                        if copy.span.touches(self.offset) {
+                            self.visit_expr(copy);
+                            return;
+                        }
+                    }
+
+                    for field in fields.iter() {
+                        if field.span.touches(self.offset) {
+                            if field.field.span.touches(self.offset) {
+                                if let Some(hir::ty::Ty::Udt(_, res)) =
+                                    &self.compilation.get_ty(expr.id)
+                                {
+                                    if let Some((item_id, field_def)) =
+                                        self.get_field_def(res, &field.field)
+                                    {
+                                        self.inner.at_field_ref(&field.field, &item_id, field_def);
+                                    }
                                 }
+                            } else if field.value.span.touches(self.offset) {
+                                self.visit_expr(&field.value);
                             }
-                            _ => panic!("UDT has invalid resolution."),
+                            return;
                         }
                     }
                 }
@@ -307,27 +386,16 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
             if let Some(res) = res {
                 match &res {
                     resolve::Res::Item(item_id, _) => {
-                        let (item, package, resolved_item_id) = self
+                        let (item, _, resolved_item_id) = self
                             .compilation
                             .resolve_item_relative_to_user_package(item_id);
                         match &item.kind {
                             hir::ItemKind::Callable(decl) => {
-                                self.inner.at_callable_ref(
-                                    path,
-                                    &resolved_item_id,
-                                    item,
-                                    package,
-                                    decl,
-                                );
+                                self.inner.at_callable_ref(path, &resolved_item_id, decl);
                             }
                             hir::ItemKind::Ty(type_name, udt) => {
-                                self.inner.at_new_type_ref(
-                                    path,
-                                    &resolved_item_id,
-                                    package,
-                                    type_name,
-                                    udt,
-                                );
+                                self.inner
+                                    .at_new_type_ref(path, &resolved_item_id, type_name, udt);
                             }
                             hir::ItemKind::Namespace(_, _) => {
                                 panic!(

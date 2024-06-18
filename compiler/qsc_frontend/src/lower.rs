@@ -200,6 +200,19 @@ impl With<'_> {
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
+            ast::ItemKind::Struct(decl) => {
+                let id = resolve_id(decl.name.id);
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
+
+                (
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                )
+            }
         };
 
         let visibility = if exported_ids.contains(&id.item) {
@@ -549,6 +562,14 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
+            ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
+                self.lower_path(name),
+                copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
+                fields
+                    .iter()
+                    .map(|f| Box::new(self.lower_field_assign(&ty, f)))
+                    .collect(),
+            ),
             ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
                 components
                     .iter()
@@ -590,6 +611,15 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_field_assign(&mut self, ty: &Ty, field_assign: &ast::FieldAssign) -> hir::FieldAssign {
+        hir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: self.lower_field(ty, &field_assign.field.name),
+            value: Box::new(self.lower_expr(&field_assign.value)),
         }
     }
 

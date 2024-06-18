@@ -12,7 +12,7 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
         let array = [10, 11, 12, 13];
-        let struct = Pair(20, 21);
+        let pair = Pair(20, 21);
 
         // `w/` followed by the `<-` copies and updates a single element.
 
@@ -28,9 +28,9 @@ namespace MyQuantumApp {
             w/ 3 <- 200;
         Message($"Updated array: {new_array}");
 
-        // `new_struct` is a Pair with value `Pair(20, 100)`.
-        // `struct` is unchanged.
-        let new_struct = struct w/ second <- 100;
-        Message($"Updated struct: (first:{new_struct::first}, second:{new_struct::second})");
+        // `new_pair` is a Pair with value `Pair(20, 100)`.
+        // `pair` is unchanged.
+        let new_pair = pair w/ second <- 100;
+        Message($"Updated struct: (first:{new_pair::first}, second:{new_pair::second})");
     }
 }

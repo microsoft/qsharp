@@ -2124,6 +2124,39 @@ fn update_array_index_expr() {
 }
 
 #[test]
+fn struct_cons() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+            }
+        "},
+        indoc! {"{
+            open A;
+            new Pair { First = 1, Second = 2}
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = new Pair { First = 1, Second = 2};
+            new Pair { ...p, First = 3 }
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
 fn update_udt_known_field_name() {
     check_expr(
         indoc! {"

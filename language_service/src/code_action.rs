@@ -87,7 +87,8 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
-                LintKind::Ast(AstLint::DivisionByZero) | LintKind::Hir(HirLint::Placeholder) => (),
+                LintKind::Ast(AstLint::DivisionByZero)
+                | LintKind::Hir(HirLint::NeedlessOperation) => (),
             }
         }
     }

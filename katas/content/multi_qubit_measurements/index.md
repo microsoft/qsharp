@@ -72,14 +72,14 @@ This can be summarized in the following table:
 ### Multi-Qubit Measurement Outcome Probabilities I
 
 You are given a two-qubit system in the following state:
-$$\ket \psi =  \frac{1}{3}\ket {00} + \frac{2}{3} \ket {01} + \frac{2}{3}\ket {11}$$
+$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
 If all the qubits are measured simultaneously in the computational basis, what are the outcome probabilities?
 
 <details>
 <summary><b>Solution</b></summary>
 
-The wave function $\ket{\psi}$ is normalized, since $\left(\frac{1}{3}\right)^2 + \left(\frac{2}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = 1$. Hence, the probabilities of measuring each of the computational basis states is simply the square of the absolute value of the corresponding coefficients. That is, the probabilities of measuring $00$, $01$ and $11$ are $\frac{1}{9}$, $\frac{4}{9}$ and $\frac{4}{9}$, respectively, and the probability of measuring the basis state $10$ that is not part of the superposition is $0$:
+The wave function $\ket{\psi}$ is normalized, since $\left(\frac{2}{3}\right)^2 + \left(\frac{1}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = 1$. Hence, the probabilities of measuring each of the computational basis states is simply the square of the absolute value of the corresponding coefficients. That is, the probabilities of measuring $00$, $01$ and $11$ are $\frac{4}{9}$, $\frac{1}{9}$ and $\frac{4}{9}$, respectively, and the probability of measuring the basis state $10$ that is not part of the superposition is $0$:
 
 <table>
     <tr>
@@ -88,11 +88,11 @@ The wave function $\ket{\psi}$ is normalized, since $\left(\frac{1}{3}\right)^2 
     </tr>
     <tr>
         <td>$00$</td>
-        <td>$\left( \frac{1}{3}\right)^2 = \frac{1}{9}$</td>
+        <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
     </tr>
     <tr>
         <td>$01$</td>
-        <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
+        <td>$\left( \frac{1}{3}\right)^2 = \frac{1}{9}$</td>
     </tr>
     <tr>
         <td>$10$</td>
@@ -107,13 +107,13 @@ The wave function $\ket{\psi}$ is normalized, since $\left(\frac{1}{3}\right)^2 
 
 ### Multi-Qubit Measurement Outcome Probabilities II
 
-You are given a two-qubit system in the following state:
+You are given a two-qubit system in the same state as in the previous exercise:
 $$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
 If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
 
 <details>
-<summary><b>Analytical Solution</b></summary>
+<summary><b>Solution</b></summary>
 
 Using the expressions $\ket{0} = \frac{1}{\sqrt{2}} \big( \ket{+} + \ket{-} \big)$ and $\ket{1} = \frac{1}{\sqrt{2}} \big( \ket{+} - \ket{-} \big)$, we first express $\ket{\psi}$ in the Pauli X basis. This gives us
 $$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} =$$
@@ -154,14 +154,16 @@ After this, the probabilities of measuring each of the four basis vectors is giv
 
 </details>
 
-<details>
-<summary><b>Code-Based Solution</b></summary>
 
-We can also use Q# to solve this problem. It can be achieved in three steps:
+Now, let's see how we can use Q# to solve these two problems.
 
-1. Prepare the state $\ket \psi$.
-2. Apply a transformation that maps the 2-qubit Pauli X basis into the 2-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
-3. View probabilities of each basis state with the `DumpMachine` function. Thanks to the previous step, the following state equivalence holds:
+1. We start by preparing the state $\ket \psi$.
+   To do this, we can represent $\ket \psi$ as follows:
+   $$\frac 2 3 \ket{00} + \big( \frac 1 {\sqrt 5} \ket{0} + \frac 2 {\sqrt 5} \ket{1} \big) \frac {\sqrt 5} 3 \ket{1}$$
+   This representation tells us how we should rotate individual qubits.
+2. To figure out the measurement outcome probabilities in the computational basis, we can just use the `DumpMachine` function that lists probabilities associated with each basis state present in the superposition.
+3. To figure out the measurement outcome probabilities in the Pauli X basis, we can apply a transformation that maps the two-qubit Pauli X basis into the two-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
+4. View probabilities of each basis state with the `DumpMachine` function. Thanks to the previous step, the following state equivalence holds:
 
 <table>
     <tr>
@@ -188,18 +190,11 @@ We can also use Q# to solve this problem. It can be achieved in three steps:
 
 The amplitudes of the computational basis states after the transformation are the same as the amplitudes of the basis states of the Pauli X basis before the transformation!
 
->To implement the first step, we can represent $\ket \psi$ as  
->$$\frac 2 3 \ket {00} + {\big (} \frac 1 {\sqrt 5} \ket {0} + \frac 2 {\sqrt 5} \ket {1} {\big )} \frac {\sqrt 5} 3 \ket {1}$$
->This representation tells us how we should rotate individual qubits.
->
->Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a $CNOT$ gate and a controlled $R_y$ gate to achieve the same result.
-
 @[example]({
-    "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
+    "id": "multi_qubit_measurements__multi_qubit_probabilities_example",
     "codePath": "./examples/MultiQubitProbabilities.qs"
 })
 
-</details>
 
 
 ## Measuring Each Qubit in a System Sequentially
