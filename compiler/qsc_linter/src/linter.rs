@@ -7,7 +7,7 @@ pub(crate) mod hir;
 use self::{ast::run_ast_lints, hir::run_hir_lints};
 use crate::lints::{ast::AstLint, hir::HirLint};
 use miette::{Diagnostic, LabeledSpan};
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{line_column::Range, span::Span};
 use qsc_frontend::compile::{CompileUnit, PackageStore};
 use qsc_hir::hir::PackageId;
 use serde::{Deserialize, Serialize};
@@ -44,6 +44,8 @@ pub struct Lint {
     pub help: &'static str,
     /// An enum identifying this lint.
     pub kind: LintKind,
+    /// The suggested edits to fix the lint.
+    pub code_action_edits: Vec<(String, Range)>,
 }
 
 impl std::fmt::Display for Lint {

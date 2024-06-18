@@ -124,8 +124,11 @@ macro_rules! declare_ast_lints {
             message: &'static str,
             help: &'static str,
             kind: LintKind,
+            #[allow(dead_code)]
             package_store: &'compilation PackageStore,
+            #[allow(dead_code)]
             user_package_id: PackageId,
+            #[allow(dead_code)]
             compile_unit: &'compilation CompileUnit,
         }
 

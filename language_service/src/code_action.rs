@@ -43,7 +43,7 @@ fn quick_fixes(
     // An example of what quickfixes could look like if they were generated here.
     // The other option I considered was generating the quickfixes when the errors
     // are initially issued. But that has two problems:
-    //  1. It does unnecesary computations at compile time, that would go to waste if using the CLI compiler.
+    //  1. It does unnecessary computations at compile time, that would go to waste if using the CLI compiler.
     //  2. The quickfix logic would be spread across many crates in the compiler.
     for diagnostic in diagnostics {
         if let ErrorKind::Lint(lint) = diagnostic.error() {
