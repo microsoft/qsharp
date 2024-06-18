@@ -1030,9 +1030,10 @@ impl State {
                     callee.input,
                     spec_decl.input,
                     arg,
+                    arg_span,
                     functor.controlled,
                     fixed_args,
-                );
+                )?;
                 Ok(())
             }
         }
