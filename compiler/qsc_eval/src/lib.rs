@@ -1020,6 +1020,21 @@ impl State {
                 )?;
                 Ok(())
             }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
+                self.push_scope(env);
+
+                self.bind_args_for_spec(
+                    env,
+                    globals,
+                    callee.input,
+                    spec_decl.input,
+                    arg,
+                    functor.controlled,
+                    fixed_args,
+                );
+                Ok(())
+            }
         }
     }
 

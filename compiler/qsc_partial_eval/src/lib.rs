@@ -10,8 +10,7 @@ mod management;
 
 use core::panic;
 use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, MutableVar,
-    Scope,
+    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, Scope,
 };
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -223,11 +222,11 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
-        if let Some((var_id, mutable_var)) = self.try_create_mutable_variable(ident.id, &value) {
+        if let Some((var_id, mutable_kind)) = self.try_create_mutable_variable(ident.id, &value) {
             // Keep track of whether the mutable variable is static or dynamic.
             self.eval_context
                 .get_current_scope_mut()
-                .insert_mutable_var(var_id, mutable_var);
+                .insert_mutable_var(var_id, mutable_kind);
         } else {
             self.bind_value_in_hybrid_map(ident, value);
         }
@@ -1748,10 +1747,8 @@ impl<'a> PartialEvaluator<'a> {
                 // the variable if it is static at this moment.
                 if let Value::Var(var) = bound_value {
                     let current_scope = self.eval_context.get_current_scope();
-                    if let Some(MutableVar {
-                        kind: MutableKind::Static(literal),
-                        ..
-                    }) = current_scope.find_mutable_var(var.id.into())
+                    if let Some(MutableKind::Static(literal)) =
+                        current_scope.find_mutable_kind(var.id.into())
                     {
                         map_rir_literal_to_eval_value(*literal)
                     } else {
@@ -2169,7 +2166,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         local_var_id: LocalVarId,
         value: &Value,
-    ) -> Option<(rir::VariableId, MutableVar)> {
+    ) -> Option<(rir::VariableId, MutableKind)> {
         // Check if we can create a mutable variable for this value.
         let var_ty = try_get_eval_var_type(value)?;
 
@@ -2194,11 +2191,8 @@ impl<'a> PartialEvaluator<'a> {
             Operand::Literal(literal) => MutableKind::Static(literal),
             Operand::Variable(_) => MutableKind::Dynamic,
         };
-        let mutable_var = MutableVar {
-            id: local_var_id,
-            kind: mutable_kind,
-        };
-        Some((var_id, mutable_var))
+
+        Some((var_id, mutable_kind))
     }
 
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
@@ -2499,8 +2493,9 @@ impl<'a> PartialEvaluator<'a> {
             if matches!(rhs_operand, Operand::Variable(_))
                 || current_scope.is_currently_evaluating_branch()
             {
-                if let Some(mutable_var) = current_scope.find_mutable_var_mut(rir_var.variable_id) {
-                    mutable_var.kind = MutableKind::Dynamic;
+                if let Some(mutable_kind) = current_scope.find_mutable_var_mut(rir_var.variable_id)
+                {
+                    *mutable_kind = MutableKind::Dynamic;
                 }
             }
         } else {
