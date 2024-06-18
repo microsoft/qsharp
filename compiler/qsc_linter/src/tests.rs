@@ -1,14 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints},
-    run_lints, Lint, LintConfig, LintLevel,
-};
+use crate::{run_lints, Lint, LintLevel};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap};
 use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
@@ -285,6 +282,26 @@ fn deprecated_newtype_usage() {
     );
 }
 
+#[test]
+fn deprecated_function_cons() {
+    check(
+        indoc! {"
+        struct Foo {}
+        function Bar() : Foo { Foo() }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "Foo",
+                    level: Warn,
+                    message: "deprecated function constructors",
+                    help: "function constructors for struct types are deprecated, use `new` instead",
+                },
+            ]
+        "#]],
+    );
+}
+
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
@@ -364,12 +381,3 @@ impl std::fmt::Display for SrcLint {
         )
     }
 }
-
-// fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
-//     let mut ast_lints = run_ast_lints(&compile_unit, config);
-//     let mut hir_lints = run_hir_lints(&compile_unit.package, config);
-//     let mut lints = Vec::new();
-//     lints.append(&mut ast_lints);
-//     lints.append(&mut hir_lints);
-//     lints
-// }
