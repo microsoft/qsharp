@@ -51,6 +51,7 @@ pub trait DirEntry {
 /// for the Q# project system to function correctly.
 use async_trait::async_trait;
 use futures::FutureExt;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
 #[async_trait(?Send)]
@@ -211,7 +212,7 @@ pub trait FileSystemAsync {
             dependencies.insert(alias.clone().into(), key_for_dependency_definition(dep));
         }
 
-        let language_features = project.manifest.language_features.clone();
+        let language_features = LanguageFeatures::from_iter(&project.manifest.language_features);
 
         Ok((
             project.manifest,
@@ -423,10 +424,11 @@ pub type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), St
 #[derive(Clone, Debug)]
 pub struct PackageInfo {
     pub sources: Vec<(Arc<str>, Arc<str>)>,
-    pub language_features: Vec<String>,
+    pub language_features: LanguageFeatures,
     pub dependencies: FxHashMap<PackageAlias, PackageKey>,
 }
 
+#[derive(Clone, Debug)]
 pub struct PackageGraphSources {
     pub root: PackageInfo,
     pub packages: FxHashMap<PackageKey, PackageInfo>,
@@ -450,7 +452,7 @@ impl ProgramConfig {
     ) -> Self {
         let root = PackageInfo {
             sources,
-            language_features: vec![],
+            language_features: Default::default(),
             dependencies: FxHashMap::default(),
         };
         Self {
