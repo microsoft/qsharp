@@ -1,0 +1,2 @@
+qirrunner==0.7.1
+pyqir==0.10.2
