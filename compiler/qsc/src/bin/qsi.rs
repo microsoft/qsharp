@@ -95,11 +95,11 @@ fn main() -> miette::Result<ExitCode> {
     let mut features = LanguageFeatures::from_iter(cli.features);
     // when we load the project, need to set these
     let mut store = PackageStore::new(qsc::compile::core());
-    let dependencies = if !cli.nostdlib {
+    let dependencies = if cli.nostdlib {
+        vec![]
+    } else {
         let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         vec![(std_id, None)]
-    } else {
-        vec![]
     };
 
     let dependencies = &dependencies[..];

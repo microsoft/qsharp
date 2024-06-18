@@ -347,7 +347,7 @@ fn continue_after_parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        &vec![],
+        &Vec::new(),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );

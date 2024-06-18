@@ -145,11 +145,11 @@ fn main() -> miette::Result<ExitCode> {
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
     let mut store = PackageStore::new(qsc::compile::core());
-    let dependencies = if !cli.nostdlib {
+    let dependencies = if cli.nostdlib {
+        vec![]
+    } else {
         let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         vec![(std_id, None)]
-    } else {
-        vec![]
     };
     let dependencies = &dependencies[..];
     let (unit, errors) = compile(

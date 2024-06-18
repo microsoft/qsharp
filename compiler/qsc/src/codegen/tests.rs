@@ -64,7 +64,6 @@ mod base_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::{PackageStore, SourceMap};
-    use qsc_project::ProgramConfig;
 
     use crate::codegen::get_qir;
 

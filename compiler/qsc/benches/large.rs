@@ -22,7 +22,7 @@ pub fn large_file(c: &mut Criterion) {
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
             let (_, reports) = compile(
                 &store,
-                &[std],
+                &[(std, None)],
                 sources,
                 PackageType::Exe,
                 TargetCapabilityFlags::all(),
@@ -37,12 +37,15 @@ pub fn large_file_interpreter(c: &mut Criterion) {
     c.bench_function("Large input file compilation (interpreter)", |b| {
         b.iter(|| {
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
+            let mut store = PackageStore::new(compile::core());
+            let std_id = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
             let _evaluator = qsc::interpret::Interpreter::new(
-                true,
                 sources,
                 PackageType::Exe,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("code should compile");
         });

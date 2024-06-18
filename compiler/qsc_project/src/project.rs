@@ -443,14 +443,11 @@ impl ProgramConfig {
     /// Given a source map and profile, create a default program config which
     /// has no dependencies.
     /// Useful for testing and single-file scenarios.
+    #[must_use]
     pub fn with_no_dependencies(
         sources: Vec<(Arc<str>, Arc<str>)>,
         target_profile: String,
     ) -> Self {
-        let sources = sources
-            .into_iter()
-            .map(|(name, contents)| (name.into(), contents.into()))
-            .collect();
         let root = PackageInfo {
             sources,
             language_features: vec![],
@@ -468,8 +465,8 @@ impl ProgramConfig {
                 .into_iter()
                 .collect(),
             },
-            lints: Default::default(),
-            errors: Default::default(),
+            lints: Vec::default(),
+            errors: Vec::default(),
             target_profile,
         }
     }
@@ -478,11 +475,11 @@ impl ProgramConfig {
 #[derive(Debug)]
 pub struct DependencyCycle;
 
+pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
+
 impl PackageGraphSources {
-    /// Produces an iterator over the packages in the order they should be compiled
-    pub fn compilation_order(
-        self,
-    ) -> Result<(Vec<(Arc<str>, PackageInfo)>, PackageInfo), DependencyCycle> {
+    /// Produces an ordered vector over the packages in the order they should be compiled
+    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
         // The order is defined by which packages depend on which other packages
         // For example, if A depends on B which depends on C, then we compile C, then B, then A
         // If there are cycles, this is an error, and we will report it as such
@@ -491,10 +488,10 @@ impl PackageGraphSources {
 
         // Initialize the graph and in-degrees
         for (key, package_info) in &self.packages {
-            in_degree.entry(&key).or_insert(0);
+            in_degree.entry(key).or_insert(0);
             for dep in package_info.dependencies.values() {
-                graph.entry(dep).or_default().push(&key);
-                *in_degree.entry(&key).or_insert(0) += 1;
+                graph.entry(dep).or_default().push(key);
+                *in_degree.entry(key).or_insert(0) += 1;
             }
         }
 
@@ -509,7 +506,9 @@ impl PackageGraphSources {
             sorted_keys.push(node.to_string());
             if let Some(neighbors) = graph.get(node) {
                 for &neighbor in neighbors {
-                    let count = in_degree.get_mut(neighbor).unwrap();
+                    let count = in_degree
+                        .get_mut(neighbor)
+                        .expect("graph pre-calculated this");
                     *count -= 1;
                     if *count == 0 {
                         queue.push(neighbor);
@@ -527,7 +526,7 @@ impl PackageGraphSources {
             sorted_keys
                 .iter()
                 .position(|key| key.as_str() == &**a_key)
-                .unwrap()
+                .expect("package should be in sorted keys list")
         });
 
         log::info!("build plan: {:#?}", sorted_keys);

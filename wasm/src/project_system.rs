@@ -591,10 +591,10 @@ impl From<ProgramConfig> for qsc_project::ProgramConfig {
         Self {
             package_graph_sources: value.package_graph_sources.into(),
             target_profile: value.target_profile,
-            // TODO inherit lints
-            lints: Default::default(),
-            // not sure what to do with this yet, assuming it's the accumulated errors from the packages
-            errors: Default::default(),
+            // TODO(alex) inherit lints
+            lints: Vec::default(),
+            // TODO(alex) accumulate errors from dependencies here
+            errors: Vec::default(),
         }
     }
 }
@@ -631,6 +631,7 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
 }
 
 /// This returns the common parameters that the compiler/interpreter uses
+#[allow(clippy::type_complexity)]
 pub(crate) fn into_qsc_args(
     program: IProgramConfig,
     entry: Option<String>,

@@ -192,8 +192,7 @@ impl NamespaceTreeRoot {
             .borrow_mut()
             .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
 
-        let id = id.expect("empty name should not be passed into namespace insertion");
-        id
+        id.expect("empty name should not be passed into namespace insertion")
     }
 }
 

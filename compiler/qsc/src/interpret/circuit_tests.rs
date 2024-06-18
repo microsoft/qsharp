@@ -7,7 +7,7 @@ use super::{CircuitEntryPoint, Debugger, Interpreter};
 use crate::target::Profile;
 use expect_test::expect;
 use miette::Diagnostic;
-use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::SourceMap;
 use qsc_passes::PackageType;
@@ -852,8 +852,8 @@ mod debugger_stepping {
     use super::Debugger;
     use crate::target::Profile;
     use expect_test::expect;
+    use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_data_structures::line_column::Encoding;
-    use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_eval::{output::GenericReceiver, StepAction, StepResult};
     use qsc_frontend::compile::SourceMap;
     use std::fmt::Write;

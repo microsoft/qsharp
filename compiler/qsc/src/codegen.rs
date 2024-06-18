@@ -30,7 +30,7 @@ pub fn get_qir(
 
     let (unit, errors) = crate::compile::compile(
         &package_store,
-        &dependencies[..],
+        dependencies,
         sources,
         PackageType::Exe,
         capabilities,
