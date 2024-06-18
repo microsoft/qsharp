@@ -51,14 +51,15 @@ fn test_compile() {
     M(q)
     }}";
 
-    let store = qsc::PackageStore::new(qsc::compile::core());
+    let mut store = qsc::PackageStore::new(qsc::compile::core());
+    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::empty()));
 
     let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
         TargetCapabilityFlags::empty(),
         store,
-        &[],
+        &[(std_id, None)],
     );
     assert!(result.is_ok());
 }
