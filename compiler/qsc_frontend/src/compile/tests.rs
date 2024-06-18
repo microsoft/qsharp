@@ -1348,9 +1348,10 @@ fn implicit_namespace_basic() {
 }
 
 #[test]
-fn reject_bad_filename_implicit_namespace() {
+fn bad_filename_implicit_namespace_best_effort_fixup() {
     let sources = SourceMap::new(
         [
+            // Rejected for starting with number
             (
                 "123Test.qs".into(),
                 indoc! {"
@@ -1358,6 +1359,7 @@ fn reject_bad_filename_implicit_namespace() {
             "}
                 .into(),
             ),
+            // Cleaned up by replacing '-' with '_'
             (
                 "Test-File.qs".into(),
                 indoc! {"
@@ -1366,6 +1368,7 @@ fn reject_bad_filename_implicit_namespace() {
             "}
                 .into(),
             ),
+            // Rejected for containing '.'
             (
                 "Namespace.Foo.qs".into(),
                 indoc! {"
@@ -1388,19 +1391,6 @@ fn reject_bad_filename_implicit_namespace() {
                                 hi: 25,
                             },
                             "123Test",
-                        ),
-                    ),
-                ),
-            ),
-            Error(
-                Parse(
-                    Error(
-                        InvalidFileName(
-                            Span {
-                                lo: 27,
-                                hi: 53,
-                            },
-                            "Test-File",
                         ),
                     ),
                 ),
