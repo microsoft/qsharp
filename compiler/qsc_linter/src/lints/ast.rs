@@ -16,7 +16,7 @@ declare_ast_lints! {
     (DeprecatedFunctionConstructor, LintLevel::Warn, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
 }
 
-impl AstLintPass for DivisionByZero {
+impl<'compilation> AstLintPass<'compilation> for DivisionByZero<'compilation> {
     fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
@@ -28,7 +28,7 @@ impl AstLintPass for DivisionByZero {
     }
 }
 
-impl NeedlessParens {
+impl<'compilation> NeedlessParens<'compilation> {
     /// The idea is that if we find a expr of the form:
     /// a + (expr)
     /// and `expr` has higher precedence than `+`, then the
@@ -43,7 +43,7 @@ impl NeedlessParens {
     }
 }
 
-impl AstLintPass for NeedlessParens {
+impl<'compilation> AstLintPass<'compilation> for NeedlessParens<'compilation> {
     fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         match &*expr.kind {
             ExprKind::BinOp(_, left, right) => {
@@ -67,7 +67,7 @@ impl AstLintPass for NeedlessParens {
     }
 }
 
-impl RedundantSemicolons {
+impl<'compilation> RedundantSemicolons<'compilation> {
     /// Helper function that pushes a lint to the buffer if we have
     /// found two or more semicolons.
     fn maybe_push(&self, seq: &mut Option<Span>, buffer: &mut Vec<Lint>) {
@@ -77,7 +77,7 @@ impl RedundantSemicolons {
     }
 }
 
-impl AstLintPass for RedundantSemicolons {
+impl<'compilation> AstLintPass<'compilation> for RedundantSemicolons<'compilation> {
     /// Checks if there are redundant semicolons. The idea is that a redundant
     /// semicolon is parsed as an Empty statement. If we have multiple empty
     /// statements in a row, we group them as single lint, that spans from
@@ -123,7 +123,7 @@ fn precedence(expr: &Expr) -> u8 {
 }
 
 /// Crates a lint for deprecated user-defined types declarations using `newtype`.
-impl AstLintPass for DeprecatedNewtype {
+impl<'compilation> AstLintPass<'compilation> for DeprecatedNewtype<'compilation> {
     fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
         if let ItemKind::Ty(_, _) = item.kind.as_ref() {
             buffer.push(lint!(self, item.span));
@@ -131,21 +131,55 @@ impl AstLintPass for DeprecatedNewtype {
     }
 }
 
+impl DeprecatedFunctionConstructor<'_> {
+    fn resolve_item_relative_to_user_package(
+        &self,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        self.resolve_item(self.user_package_id, item_id)
+    }
+
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        // If the `ItemId` contains a package id, use that.
+        // Lack of a package id means the item is in the
+        // same package as the one this `ItemId` reference
+        // came from. So use the local package id passed in.
+        let package_id = item_id.package.unwrap_or(local_package_id);
+        let package = &self
+            .package_store
+            .get(package_id)
+            .expect("package should exist in store")
+            .package;
+        (
+            package
+                .items
+                .get(item_id.item)
+                .expect("item id should exist"),
+            package,
+            hir::ItemId {
+                package: Some(package_id),
+                item: item_id.item,
+            },
+        )
+    }
+}
+
 /// Crates a lint for deprecated function constructors of structs.
-impl AstLintPass for DeprecatedFunctionConstructor {
+impl AstLintPass<'_> for DeprecatedFunctionConstructor<'_> {
     fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::Path(path) = expr.kind.as_ref() {
-            // ToDo: check if the path id maps to an item that is a struct:
-            // if let Some(&Res::Item(item_id, _)) = self.compilation.names.get(path.id) {
-            //     let (item, _, _) = self
-            //         .compilation
-            //         .resolve_item_relative_to_user_package(item_id);
-            //     if let hir::ItemKind::Ty(_, udt) = item.kind {
-            //         if udt.is_struct() {
-            //             buffer.push(lint!(self, expr.span));
-            //         }
-            //     }
-            // }
+            if let Some(&Res::Item(item_id, _)) = self.compile_unit.ast.names.get(path.id) {
+                let (item, _, _) = self.resolve_item_relative_to_user_package(&item_id);
+                if let hir::ItemKind::Ty(_, udt) = &item.kind {
+                    if udt.is_struct() {
+                        buffer.push(lint!(self, expr.span));
+                    }
+                }
+            }
         }
     }
 }

@@ -8,24 +8,27 @@ use self::{ast::run_ast_lints, hir::run_hir_lints};
 use crate::lints::{ast::AstLint, hir::HirLint};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
+use qsc_frontend::compile::{CompileUnit, PackageStore};
+use qsc_hir::hir::PackageId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// The entry point to the linter. It takes a [`qsc_frontend::compile::CompileUnit`]
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
-pub fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
+pub fn run_lints(
+    package_store: &PackageStore,
+    user_package_id: PackageId,
+    compile_unit: &CompileUnit,
+    config: Option<&[LintConfig]>,
+) -> Vec<Lint> {
+    let mut ast_lints = run_ast_lints(package_store, user_package_id, compile_unit, config);
     let mut hir_lints = run_hir_lints(&compile_unit.package, config);
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
     lints
-        .into_iter()
-        .filter(|lint| !matches!(lint.level, LintLevel::Allow))
-        .collect()
 }
 
 /// A lint emited by the linter.

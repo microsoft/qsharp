@@ -14,7 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::LintConfig;
+use qsc_linter::{LintConfig, LintLevel};
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -85,7 +85,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(&mut errors, lints_config, &package_store, package_id, unit);
 
         Self {
             package_store,
@@ -128,24 +128,30 @@ impl Compilation {
             compiler.update(increment);
         }
 
-        let (package_store, package_id) = compiler.into_package_store();
+        let (package_store, user_package_id) = compiler.into_package_store();
         let unit = package_store
-            .get(package_id)
+            .get(user_package_id)
             .expect("expected to find user package");
 
         run_fir_passes(
             &mut errors,
             target_profile,
             &package_store,
-            package_id,
+            user_package_id,
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(
+            &mut errors,
+            lints_config,
+            &package_store,
+            user_package_id,
+            unit,
+        );
 
         Self {
             package_store,
-            user_package_id: package_id,
+            user_package_id,
             errors,
             kind: CompilationKind::Notebook,
         }
@@ -297,14 +303,16 @@ fn run_fir_passes(
 /// reasons we don't want to waste time running lints every few keystrokes,
 /// if the user is in the middle of typing a statement, for example.
 fn run_linter_passes(
-    config: &[LintConfig],
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
+    config: &[LintConfig],
+    package_store: &PackageStore,
+    user_package_id: PackageId,
     unit: &CompileUnit,
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(unit, Some(config));
-        let lints = lints
+        let lints = qsc::linter::run_lints(package_store, user_package_id, unit, Some(config))
             .into_iter()
+            .filter(|lint| !matches!(lint.level, LintLevel::Allow))
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
         errors.extend(lints);
     }

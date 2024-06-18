@@ -3,7 +3,7 @@
 
 use crate::{
     linter::{ast::run_ast_lints, hir::run_hir_lints},
-    Lint, LintConfig, LintLevel,
+    run_lints, Lint, LintConfig, LintLevel,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -290,7 +290,7 @@ fn check(source: &str, expected: &Expect) {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
-    let (package, _) = qsc::compile::compile(
+    let (unit, _) = qsc::compile::compile(
         &store,
         &[std],
         sources,
@@ -299,7 +299,12 @@ fn check(source: &str, expected: &Expect) {
         LanguageFeatures::default(),
     );
 
-    let actual: Vec<SrcLint> = run_lints(&package, None)
+    let package_id = store.insert(unit);
+    let compile_unit = store
+        .get(package_id)
+        .expect("expected to find user package");
+
+    let actual: Vec<SrcLint> = run_lints(&store, package_id, compile_unit, None)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
@@ -360,11 +365,11 @@ impl std::fmt::Display for SrcLint {
     }
 }
 
-fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config);
-    let mut lints = Vec::new();
-    lints.append(&mut ast_lints);
-    lints.append(&mut hir_lints);
-    lints
-}
+// fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
+//     let mut ast_lints = run_ast_lints(&compile_unit, config);
+//     let mut hir_lints = run_hir_lints(&compile_unit.package, config);
+//     let mut lints = Vec::new();
+//     lints.append(&mut ast_lints);
+//     lints.append(&mut hir_lints);
+//     lints
+// }
