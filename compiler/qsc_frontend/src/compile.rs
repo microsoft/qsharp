@@ -64,7 +64,7 @@ pub struct AstPackage {
     pub locals: Locals,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
     /// The common prefix of the sources

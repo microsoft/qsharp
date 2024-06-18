@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 use std::{str::FromStr, sync::Arc};
 
+use qsc::{target::Profile, TargetCapabilityFlags};
+use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
 
 /// A program that is ready to be built -- dependencies have all been built, and the user code is ready.
@@ -14,27 +16,25 @@ pub struct BuildableProgram {
 
 impl BuildableProgram {
     #[must_use]
-    pub fn new(program: qsc_project::ProgramConfig) -> Self {
-        prepare_package_store(program)
+    pub fn new(profile: &str, package_graph_sources: PackageGraphSources) -> Self {
+        let profile = Profile::from_str(profile).expect("TODO(alex)");
+        prepare_package_store(profile, package_graph_sources)
     }
 }
 
 /// Given a program config, prepare the package store by compiling all dependencies in the correct order and inserting them.
 #[must_use]
-pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildableProgram {
-    let capabilities =
-        qsc::target::Profile::from_str(&program.target_profile)
-            .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
-            .into();
-
+pub fn prepare_package_store(
+    capabilities: Profile,
+    package_graph_sources: PackageGraphSources,
+) -> BuildableProgram {
     let mut package_store = qsc::PackageStore::new(qsc::compile::core());
-    let std = qsc::compile::std(&package_store, capabilities);
+    let std = qsc::compile::std(&package_store, capabilities.into());
     let std_id = package_store.insert(std);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
-    let (ordered_packages, user_code) = program
-        .package_graph_sources
+    let (ordered_packages, user_code) = package_graph_sources
         .compilation_order()
         .expect("TODO error handling");
     for (package_name, package_to_compile) in ordered_packages {
@@ -64,7 +64,7 @@ pub fn prepare_package_store(program: qsc_project::ProgramConfig) -> BuildablePr
             &dependencies[..],
             source_map,
             qsc::PackageType::Lib,
-            capabilities,
+            capabilities.into(),
             qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
         );
         if !dependency_errors.is_empty() {

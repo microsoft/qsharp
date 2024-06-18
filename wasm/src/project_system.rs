@@ -4,7 +4,7 @@
 use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::linter::LintConfig;
+use qsc::{linter::LintConfig, LanguageFeatures, PackageStore};
 use qsc_packages::BuildableProgram;
 use qsc_project::{
     EntryType, JSFileEntry, Manifest, ManifestDescriptor, PackageCache, ProjectSystemCallbacks,
@@ -384,12 +384,8 @@ impl ProjectLoader {
                                 .into_iter()
                                 .map(|(path, contents)| (path.to_string(), contents.to_string()))
                                 .collect(),
-                            language_features: proj
-                                .package_graph_sources
-                                .root
-                                .language_features
-                                .into_iter()
-                                .collect(),
+                            // TODO(minestarks)
+                            language_features: Default::default(),
                             dependencies: proj
                                 .package_graph_sources
                                 .root
@@ -413,10 +409,7 @@ impl ProjectLoader {
                                                 (path.to_string(), contents.to_string())
                                             })
                                             .collect(),
-                                        language_features: v
-                                            .language_features
-                                            .into_iter()
-                                            .collect(),
+                                        language_features: Default::default(),
                                         dependencies: v
                                             .dependencies
                                             .into_iter()
@@ -620,7 +613,7 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
                 .into_iter()
                 .map(|(k, v)| (Arc::from(k), Arc::from(v)))
                 .collect(),
-            language_features: value.language_features,
+            language_features: LanguageFeatures::from_iter(value.language_features),
             dependencies: value
                 .dependencies
                 .into_iter()
@@ -650,7 +643,10 @@ pub(crate) fn into_qsc_args(
         store,
         user_code,
         user_code_dependencies,
-    } = qsc_packages::BuildableProgram::new(program.into());
+    } = qsc_packages::BuildableProgram::new(
+        &program.target_profile,
+        program.package_graph_sources.into(),
+    );
     // let package_graph = program.package_graph_sources;
     // let (sources, language_features) = into_package_graph_args(package_graph);
     let sources = user_code.sources;
@@ -669,35 +665,28 @@ pub(crate) fn into_qsc_args(
 
 /// This returns the common parameters that the language service needs from the manifest
 pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
-    let (sources, language_features) = into_package_graph_args(project.package_graph_sources);
+    // /// This is the bit that's common to both the compiler and the language service
+    // #[allow(clippy::type_complexity)]
+    // fn into_package_graph_args(
+    //     package_graph: PackageGraphSources,
+    // ) -> (Vec<(Arc<str>, Arc<str>)>, qsc::LanguageFeatures) {
+    //     let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
+    //     let mut sources = package_graph.root.sources;
 
+    //     (
+    //         sources
+    //             .into_iter()
+    //             .map(|(name, contents)| (name.into(), contents.into()))
+    //             .collect(),
+    //         language_features,
+    //     )
+    // }
+    let language_features =
+        LanguageFeatures::from_iter(project.package_graph_sources.root.language_features.clone());
     (
         project.project_name.into(),
-        sources,
+        project.package_graph_sources.into(),
         language_features,
         project.lints,
-    )
-}
-
-/// This is the bit that's common to both the compiler and the language service
-#[allow(clippy::type_complexity)]
-fn into_package_graph_args(
-    package_graph: PackageGraphSources,
-) -> (Vec<(Arc<str>, Arc<str>)>, qsc::LanguageFeatures) {
-    let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
-    let mut sources = package_graph.root.sources;
-
-    // Concatenate all the dependencies into the sources
-    // TODO: Properly convert these into something that the compiler & language service can use
-    for (_, other_package) in package_graph.packages {
-        sources.extend(other_package.sources);
-    }
-
-    (
-        sources
-            .into_iter()
-            .map(|(name, contents)| (name.into(), contents.into()))
-            .collect(),
-        language_features,
     )
 }

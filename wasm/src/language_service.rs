@@ -40,7 +40,9 @@ impl LanguageService {
             if s.is_null() {
                 None
             } else {
-                Some(into_project_args(From::<IProjectConfig>::from(s.into())))
+                let s: IProjectConfig = s.into();
+                let s: crate::project_system::ProjectConfig = s.into();
+                Some(crate::project_system::into_project_args(s))
             }
         });
 
