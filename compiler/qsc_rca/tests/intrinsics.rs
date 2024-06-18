@@ -1164,7 +1164,7 @@ fn check_rca_for_draw_random_bool() {
                         value_kind: Element(Dynamic)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
