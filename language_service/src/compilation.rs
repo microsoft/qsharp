@@ -59,7 +59,7 @@ impl Compilation {
             store: mut package_store,
             user_code,
             user_code_dependencies,
-        } = prepare_package_store(target_profile, package_graph_sources.clone());
+        } = prepare_package_store(target_profile.into(), package_graph_sources.clone());
         let user_code = SourceMap::new(user_code.sources, None);
 
         let (unit, mut errors) = compile::compile(

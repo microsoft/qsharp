@@ -181,6 +181,17 @@ export async function loadProjectNoSingleFile(
   return loadProjectInner(manifestDocument);
 }
 
+export async function setFetchHook(
+  fetchHook: (url: string) => Promise<string>,
+) {
+  projectLoader = await getProjectLoader(
+    readFile,
+    listDir,
+    async (a, b) => resolvePath(a, b) || "",
+    fetchHook,
+  );
+}
+
 export async function loadProjectInner(manifestDocument: {
   directory: vscode.Uri;
   uri: vscode.Uri;

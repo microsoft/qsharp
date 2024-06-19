@@ -174,8 +174,14 @@ pub trait FileSystemAsync {
             let contents = self
                 .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
                 .await?;
-            // TODO: make up a canonical name here with magic URL scheme
-            sources.push((format!("GitHub/{path}").into(), contents));
+            sources.push((
+                format!(
+                    "qsharp-github-source:{}/{}/{}{path}",
+                    dep.owner, dep.repo, dep.r#ref
+                )
+                .into(),
+                contents,
+            ));
         }
 
         Ok(Project { sources, manifest })
@@ -434,6 +440,23 @@ pub struct PackageGraphSources {
     pub packages: FxHashMap<PackageKey, PackageInfo>,
 }
 
+impl PackageGraphSources {
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        language_features: LanguageFeatures,
+    ) -> Self {
+        Self {
+            root: PackageInfo {
+                sources,
+                language_features,
+                dependencies: FxHashMap::default(),
+            },
+            packages: FxHashMap::default(),
+        }
+    }
+}
+
 pub struct ProgramConfig {
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
@@ -450,23 +473,11 @@ impl ProgramConfig {
         sources: Vec<(Arc<str>, Arc<str>)>,
         target_profile: String,
     ) -> Self {
-        let root = PackageInfo {
-            sources,
-            language_features: Default::default(),
-            dependencies: FxHashMap::default(),
-        };
         Self {
-            package_graph_sources: PackageGraphSources {
-                root: root.clone(),
-                packages: vec![(
-                    key_for_dependency_definition(&Dependency::Path {
-                        path: "root".into(),
-                    }),
-                    root,
-                )]
-                .into_iter()
-                .collect(),
-            },
+            package_graph_sources: PackageGraphSources::with_no_dependencies(
+                sources,
+                LanguageFeatures::default(),
+            ),
             lints: Vec::default(),
             errors: Vec::default(),
             target_profile,
@@ -528,7 +539,7 @@ impl PackageGraphSources {
             sorted_keys
                 .iter()
                 .position(|key| key.as_str() == &**a_key)
-                .expect("package should be in sorted keys list")
+                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
         });
 
         log::info!("build plan: {:#?}", sorted_keys);

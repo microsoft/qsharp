@@ -16,6 +16,9 @@ export async function activateExtension() {
 
   const start = performance.now();
   const extensionApi: ExtensionApi = await ext.activate();
+  // extensionApi.setFetchHook(async (/* url: string*/) => {
+  //   return "hi i am source";
+  // });
   const logForwarder = extensionApi.logging;
   if (!logForwarder) {
     throw new Error(`qsharp-tests: extension did not return a log forwarder`);

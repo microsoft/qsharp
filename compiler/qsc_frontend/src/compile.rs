@@ -13,6 +13,7 @@ use crate::{
     typeck::{self, Checker, Table},
 };
 
+use library::QSHARP_LIBRARY_URI_SCHEME;
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -434,7 +435,12 @@ pub fn core() -> CompileUnit {
 
     let core: Vec<(SourceName, SourceContents)> = library::CORE_LIB
         .iter()
-        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .map(|(name, contents)| {
+            (
+                format!("{QSHARP_LIBRARY_URI_SCHEME}:{name}").into(),
+                (*contents).into(),
+            )
+        })
         .collect();
     let sources = SourceMap::new(core, None);
 
@@ -458,7 +464,12 @@ pub fn core() -> CompileUnit {
 pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
         .iter()
-        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .map(|(name, contents)| {
+            (
+                format!("{QSHARP_LIBRARY_URI_SCHEME}:{name}").into(),
+                (*contents).into(),
+            )
+        })
         .collect();
     let sources = SourceMap::new(std, None);
 

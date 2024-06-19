@@ -117,7 +117,6 @@ fn fixup_bad_namespace_name_with_dash() {
                             },
                             doc: "",
                             attrs: [],
-                            visibility: None,
                             kind: Callable(
                                 CallableDecl {
                                     id: NodeId(

@@ -4,7 +4,8 @@
 use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::{linter::LintConfig, LanguageFeatures, PackageStore};
+use log::debug;
+use qsc::{linter::LintConfig, LanguageFeatures};
 use qsc_packages::BuildableProgram;
 use qsc_project::{
     EntryType, JSFileEntry, Manifest, ManifestDescriptor, PackageCache, ProjectSystemCallbacks,
@@ -311,6 +312,35 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     })
 }
 
+#[wasm_bindgen]
+#[must_use]
+pub fn get_github_source_content(name: &str) -> Option<String> {
+    debug!("get_github_source_content({name})");
+    PACKAGE_CACHE.with(|cache| {
+        if let Ok(cache) = cache.try_borrow() {
+            cache
+                .values()
+                .flat_map(|p| {
+                    if let Ok(p) = p {
+                        p.1.sources.iter()
+                    } else {
+                        [].iter()
+                    }
+                })
+                .find_map(|(source_name, source_contents)| {
+                    debug!("comparing {source_name} to {name}");
+                    if source_name.as_ref() == name {
+                        Some(source_contents.to_string())
+                    } else {
+                        None
+                    }
+                })
+        } else {
+            None
+        }
+    })
+}
+
 /// a minimal implementation for interacting with async JS filesystem callbacks to
 /// load project files
 #[wasm_bindgen]
@@ -385,7 +415,7 @@ impl ProjectLoader {
                                 .map(|(path, contents)| (path.to_string(), contents.to_string()))
                                 .collect(),
                             // TODO(minestarks)
-                            language_features: Default::default(),
+                            language_features: Vec::default(),
                             dependencies: proj
                                 .package_graph_sources
                                 .root
@@ -409,7 +439,8 @@ impl ProjectLoader {
                                                 (path.to_string(), contents.to_string())
                                             })
                                             .collect(),
-                                        language_features: Default::default(),
+                                        // TODO(minestarks)
+                                        language_features: Vec::default(),
                                         dependencies: v
                                             .dependencies
                                             .into_iter()
@@ -660,33 +691,5 @@ pub(crate) fn into_qsc_args(
         language_features,
         store,
         user_code_dependencies,
-    )
-}
-
-/// This returns the common parameters that the language service needs from the manifest
-pub(crate) fn into_project_args(project: ProjectConfig) -> qsls::LoadProjectResultInner {
-    // /// This is the bit that's common to both the compiler and the language service
-    // #[allow(clippy::type_complexity)]
-    // fn into_package_graph_args(
-    //     package_graph: PackageGraphSources,
-    // ) -> (Vec<(Arc<str>, Arc<str>)>, qsc::LanguageFeatures) {
-    //     let language_features = qsc::LanguageFeatures::from_iter(package_graph.root.language_features);
-    //     let mut sources = package_graph.root.sources;
-
-    //     (
-    //         sources
-    //             .into_iter()
-    //             .map(|(name, contents)| (name.into(), contents.into()))
-    //             .collect(),
-    //         language_features,
-    //     )
-    // }
-    let language_features =
-        LanguageFeatures::from_iter(project.package_graph_sources.root.language_features.clone());
-    (
-        project.project_name.into(),
-        project.package_graph_sources.into(),
-        language_features,
-        project.lints,
     )
 }

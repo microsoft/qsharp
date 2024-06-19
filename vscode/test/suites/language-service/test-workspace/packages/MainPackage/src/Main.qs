@@ -1,3 +1,3 @@
 function Main() : Unit {
-    MyDep.MyFunction();
+    MyDep.MyDep.MyFunction();
 }

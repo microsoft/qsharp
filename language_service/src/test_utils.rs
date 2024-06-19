@@ -13,6 +13,8 @@ use qsc::{
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
+use qsc_project::{PackageGraphSources, PackageInfo};
+use rustc_hash::FxHashMap;
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
@@ -67,7 +69,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
 
-    let source_map = SourceMap::new(sources, None);
+    let source_map = SourceMap::new(sources.clone(), None);
     let (mut package_store, std_package_id) = compile_fake_stdlib();
     let (unit, errors) = compile::compile(
         &package_store,
@@ -84,7 +86,16 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
         Compilation {
             package_store,
             user_package_id: package_id,
-            kind: CompilationKind::OpenProject,
+            kind: CompilationKind::OpenProject {
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources,
+                        language_features: LanguageFeatures::default(),
+                        dependencies: FxHashMap::default(),
+                    },
+                    packages: FxHashMap::default(),
+                },
+            },
             errors,
         },
         cursor_location,
@@ -109,7 +120,7 @@ where
 {
     let std_source_map = SourceMap::new(
         [(
-            "<std>".into(),
+            "qsharp-library-source:<std>".into(),
             "namespace FakeStdLib {
                 operation Fake() : Unit {}
                 operation FakeWithParam(x: Int) : Unit {}
@@ -160,7 +171,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
     let mut package_store = PackageStore::new(compile::core());
     let std_source_map = SourceMap::new(
         [(
-            "<std>".into(),
+            "qsharp-library-source:<std>".into(),
             r#"namespace FakeStdLib {
                 operation Fake() : Unit {}
                 operation FakeWithParam(x : Int) : Unit {}

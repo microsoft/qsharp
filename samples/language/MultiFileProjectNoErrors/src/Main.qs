@@ -10,17 +10,13 @@
 namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
 
-        // TODO: This is a hacky way of referencing the dependencies for now -
-        // I'm just pulling in all the sources into the same compilation
-
-        // these are coming from local deps
-        Foo.DependencyA.MagicFunction();
+        // this is coming from local deps
+        // Foo.DependencyA.MagicFunction(); <--- COMMENT THIS BACK IN, WORKS IN VS CODE
 
         // this is coming from github - minestarks/qsharp-project-template
-        // obviously namespace is all sorts of wonky but it's ok for now
-        // GitHub.src.Diagnostics.DumpMachine_(); // This does work in VS Code. Just commented out to get CI passing.
+        // GitHub.Diagnostics.DumpMachine_();  <--- COMMENT THIS BACK IN, WORKS IN VS CODE
 
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);

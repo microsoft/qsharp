@@ -9,8 +9,6 @@ use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
 use log::trace;
 use miette::Diagnostic;
-use qsc::hir::PackageId;
-use qsc::PackageStore;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
 use qsc_project::PackageGraphSources;
@@ -118,7 +116,6 @@ pub type LoadProjectResult = Option<LoadProjectResultInner>;
 pub type LoadProjectResultInner = (
     Arc<str>, // compilation uri
     PackageGraphSources,
-    LanguageFeatures,
     Vec<LintConfig>,
 );
 
@@ -126,7 +123,6 @@ pub type LoadProjectResultInner = (
 struct LoadManifestResult {
     compilation_uri: Arc<str>,
     package_graph_sources: PackageGraphSources,
-    language_features: Option<LanguageFeatures>,
     lints: Vec<LintConfig>,
 }
 
@@ -166,23 +162,16 @@ impl<'a> CompilationStateUpdater<'a> {
         let LoadManifestResult {
             compilation_uri,
             package_graph_sources: sources,
-            language_features,
+
             lints: lints_config,
         } = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
             LoadManifestResult {
                 compilation_uri: doc_uri.clone(),
-                package_graph_sources: {
-                    PackageGraphSources {
-                        root: qsc_project::PackageInfo {
-                            sources: vec![(doc_uri.clone(), text.clone())],
-                            language_features: self.configuration.language_features,
-                            dependencies: Default::default(),
-                        },
-                        packages: Default::default(),
-                    }
-                },
-                language_features: None,
+                package_graph_sources: PackageGraphSources::with_no_dependencies(
+                    vec![(doc_uri.clone(), text.clone())],
+                    self.configuration.language_features,
+                ),
                 lints: Vec::default(),
             }
         });
@@ -209,12 +198,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(
-            &compilation_uri,
-            language_features,
-            lints_config,
-            sources,
-        );
+        self.insert_buffer_aware_compilation(&compilation_uri, lints_config, sources);
 
         self.publish_diagnostics();
     }
@@ -223,14 +207,13 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        if let Some((compilation_uri, source_map, language_features, lints)) =
+        if let Some((compilation_uri, source_map, lints)) =
             (self.load_project_callback)(doc_uri.to_string()).await
         {
             trace!("Found project at {compilation_uri}");
             Some(LoadManifestResult {
                 compilation_uri,
                 package_graph_sources: source_map,
-                language_features: Some(language_features),
                 lints,
             })
         } else {
@@ -246,7 +229,6 @@ impl<'a> CompilationStateUpdater<'a> {
     fn insert_buffer_aware_compilation(
         &mut self,
         compilation_uri: &Arc<str>,
-        language_features: Option<LanguageFeatures>,
         lints_config: Vec<LintConfig>,
         mut package_graph_sources: PackageGraphSources,
     ) {
@@ -262,7 +244,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
 
             let compilation_overrides = PartialConfiguration {
-                language_features,
+                language_features: Some(package_graph_sources.root.language_features),
                 lints_config,
                 ..PartialConfiguration::default()
             };
@@ -296,14 +278,12 @@ impl<'a> CompilationStateUpdater<'a> {
             if let Some(LoadManifestResult {
                 package_graph_sources,
                 compilation_uri,
-                language_features,
                 lints: lints_config,
             }) = project
             {
                 // TODO(alex) maybe preserve store and dependencies
                 self.insert_buffer_aware_compilation(
                     &compilation_uri,
-                    language_features,
                     lints_config,
                     package_graph_sources,
                 );

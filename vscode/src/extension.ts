@@ -3,10 +3,12 @@
 
 import {
   ILanguageService,
+  getGithubSourceContent,
   getLanguageService,
   getLibrarySourceContent,
   loadWasmModule,
   log,
+  qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
@@ -35,7 +37,7 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { loadProjectNoSingleFile } from "./projectSystem.js";
+import { loadProjectNoSingleFile, setFetchHook } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
@@ -54,7 +56,10 @@ import { initProjectCreator } from "./createProject.js";
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<ExtensionApi> {
-  const api: ExtensionApi = {};
+  const api: ExtensionApi = { setFetchHook };
+  // setFetchHook(async () => {
+  //   return "namespace Foo { HELLO }";
+  // });
 
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     // Don't log to the output window in tests, forward to a listener instead
@@ -73,6 +78,17 @@ export async function activate(
     vscode.workspace.registerTextDocumentContentProvider(
       qsharpLibraryUriScheme,
       new QsTextDocumentContentProvider(),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      qsharpGithubUriScheme,
+      {
+        provideTextDocumentContent(uri) {
+          return getGithubSourceContent(uri.toString());
+        },
+      },
     ),
   );
 
@@ -100,6 +116,8 @@ export async function activate(
 export interface ExtensionApi {
   // Only available in test mode. Allows listening to extension log events.
   logging?: Logging;
+  // Only available in test mode.
+  setFetchHook: (hook: (url: string) => Promise<string>) => Promise<void>;
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
@@ -364,12 +382,8 @@ export class QsTextDocumentContentProvider
   implements vscode.TextDocumentContentProvider
 {
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
-  provideTextDocumentContent(
-    uri: vscode.Uri,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken,
-  ): vscode.ProviderResult<string> {
-    return getLibrarySourceContent(uri.path);
+  provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
+    return getLibrarySourceContent(uri.toString());
   }
 }
 

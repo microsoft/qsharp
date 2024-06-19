@@ -10,8 +10,6 @@ use qsc_data_structures::{
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir::PackageId;
 
-pub const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
-
 /// Describes a location in source code in terms of a source name and [`Range`].
 #[derive(Debug, PartialEq, Clone)]
 pub struct Location {
@@ -31,7 +29,7 @@ impl Location {
         span: Span,
         package_id: PackageId,
         package_store: &PackageStore,
-        user_package_id: PackageId,
+        _user_package_id: PackageId,
         position_encoding: Encoding,
     ) -> Self {
         let source = package_store
@@ -41,16 +39,8 @@ impl Location {
             .find_by_offset(span.lo)
             .expect("source should exist for offset");
 
-        let source_name = if package_id == user_package_id {
-            source.name.clone()
-        } else {
-            // Currently the only supported external packages are our library packages,
-            // URI's to which need to include our custom library scheme.
-            format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name).into()
-        };
-
         Location {
-            source: source_name,
+            source: source.name.clone(),
             range: Range::from_span(position_encoding, &source.contents, &(span - source.offset)),
         }
     }
