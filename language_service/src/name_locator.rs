@@ -382,7 +382,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if path.span.touches(self.offset) {
-            let parts = path.flatten_path();
+            let parts: Vec<Ident> = path.into();
 
             // If the path has a leading expression, it is a field accessor
             if let Some(leading) = &path.leading_expr {

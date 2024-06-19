@@ -1430,23 +1430,21 @@ pub struct Path {
     pub name: Box<Ident>,
 }
 
-impl Path {
-    /// Utility function for flattening a path's namespace and name into a vector of idents.
-    #[must_use]
-    pub fn flatten_path(&self) -> Vec<Ident> {
-        let mut parts = Vec::new();
-        if let Some(namespace) = &self.namespace {
-            parts.extend(namespace.0.to_vec()); // ToDo: having trouble getting the Vec out of Idents
-        }
-        parts.push(self.name.as_ref().clone());
-        parts
-    }
-}
-
 impl From<Path> for Vec<Ident> {
     fn from(val: Path) -> Self {
         let mut buf = val.namespace.unwrap_or_default().0.to_vec();
         buf.push(*val.name);
+        buf
+    }
+}
+
+impl From<&Path> for Vec<Ident> {
+    fn from(val: &Path) -> Self {
+        let mut buf = match &val.namespace {
+            Some(inner) => inner.0.to_vec(),
+            None => Vec::new(),
+        };
+        buf.push(val.name.as_ref().clone());
         buf
     }
 }

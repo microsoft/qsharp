@@ -773,7 +773,7 @@ impl With<'_> {
         if let Some(leading) = &path.leading_expr {
             let leading = self.lower_expr(leading);
 
-            let parts = path.flatten_path();
+            let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("path should have at least one part");
             let field = self.lower_field(&leading.ty, &first.name);
             return self.path_parts_to_fields(
@@ -784,7 +784,7 @@ impl With<'_> {
         }
 
         if path.namespace.is_some() {
-            let parts = path.flatten_path();
+            let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("path should have at least one part");
             // This is the indication that the path is a field accessor
             if self.names.contains_key(first.id) {

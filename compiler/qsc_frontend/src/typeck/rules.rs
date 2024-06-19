@@ -550,11 +550,12 @@ impl<'a> Context<'a> {
         // If the path has a leading expr, it must be a field accessor
         if let Some(leading) = &path.leading_expr {
             let record = self.infer_expr(leading);
-            return self.infer_path_parts(record, &path.flatten_path(), expr.span.lo);
+            let path: Vec<Ident> = path.into();
+            return self.infer_path_parts(record, &path, expr.span.lo);
         }
 
         if path.namespace.is_some() {
-            let parts = path.flatten_path();
+            let parts: Vec<Ident> = path.into();
             let (first, rest) = parts
                 .split_first()
                 .expect("path should have at least one part");

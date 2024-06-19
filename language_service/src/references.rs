@@ -372,7 +372,7 @@ struct FindFieldRefs<'a> {
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_path(&mut self, path: &ast::Path) {
-        let parts = path.flatten_path();
+        let parts: Vec<Indent> = path.into();
         let field_accessor_parts = {
             if let Some(leading) = &path.leading_expr {
                 self.visit_expr(leading);
@@ -474,7 +474,7 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
         }
 
         if path.namespace.is_some() {
-            let parts = path.flatten_path();
+            let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("paths should have at least one part");
             if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {
                 if *node_id == self.node_id {

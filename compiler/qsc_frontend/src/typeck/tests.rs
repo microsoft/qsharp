@@ -12,7 +12,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
+    ast::{Block, Expr, Ident, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -40,7 +40,7 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 
     fn visit_path(&mut self, path: &'a Path) {
         visit::walk_path(self, path);
-        let parts = path.flatten_path();
+        let parts: Vec<Ident> = path.into();
         if path.leading_expr.is_some()
             || self
                 .tys
