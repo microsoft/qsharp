@@ -589,14 +589,22 @@ impl Resolver {
 
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
         let name = &path.name;
+        if &*name.name == "ArcSin" {
+            println!("trying to resolve arcsin as a {kind:?}");
+        }
         let namespace = &path.namespace;
-        match resolve(
+        let res = resolve(
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
             name,
             namespace,
-        ) {
+        );
+        if &*name.name == "ArcSin" {
+            dbg!(&res);
+        }
+
+        match res {
             Ok(res) => {
                 self.check_item_status(res, path.name.name.to_string(), path.span);
                 self.names.insert(path.id, res);
@@ -820,6 +828,10 @@ impl Resolver {
                 self.handle_namespace_import_or_export(is_export, item, current_namespace, err);
                 continue;
             };
+            if &*item.path.name.name == "ArcSin" {
+                println!("item: {:?}", item.path.name.name);
+                println!("term_result: {:?}, ty_result: {:?}", term_result, ty_result);
+            }
 
             let local_name = item.name().name.clone();
 
@@ -855,15 +867,20 @@ impl Resolver {
                 ItemSource::Imported
             };
 
-            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
-
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
+                    if &*item.path.name.name == "ArcSin" {
+                        println!("is an export, inserting {id:?} into namespace");
+                    }
                     if let Some(namespace) = current_namespace {
                         self.globals
                             .terms
                             .get_mut_or_default(namespace)
                             .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
+                    } else {
+                        if &*item.path.name.name == "ArcSin" {
+                            println!("namespace not found");
+                        }
                     }
                 }
                 let scope = self.current_scope_mut();
@@ -904,6 +921,13 @@ impl Resolver {
                     continue;
                 }
             };
+            if &*item.path.name.name == "ArcSin" {
+                println!(
+                    "inserting name {} {}  {res:?} into names we know about",
+                    item.name(),
+                    item.name().id
+                );
+            }
             // insert the item into the names we know about
             self.names.insert(item.name().id, res);
         }
@@ -1705,7 +1729,27 @@ fn check_scoped_resolutions(
     vars: &mut bool,
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
-    if provided_namespace_name.is_none() {
+    if let Some(ns) = provided_namespace_name {
+        let Some(namespace) = globals.namespaces.get_namespace_id(ns.str_iter()) else {
+            return None;
+        };
+        let mut candidates = Default::default();
+        let result = find_symbol_in_namespace(
+            kind,
+            globals,
+            &None,
+            provided_symbol_name,
+            &mut candidates,
+            namespace,
+            (),
+        );
+        if &*provided_symbol_name.name == "ArcSin" {
+            println!("candidates: {:?}", candidates);
+        }
+        if !candidates.is_empty() {
+            return Some(Ok(candidates.into_iter().next().unwrap().0));
+        }
+    } else {
         if let Some(res) =
             resolve_scope_locals(kind, globals, scope, *vars, &provided_symbol_name.name)
         {
@@ -1713,6 +1757,7 @@ fn check_scoped_resolutions(
             return Some(Ok(res));
         }
     }
+
     let aliases = scope
         .opens
         .iter()
@@ -1874,6 +1919,13 @@ fn find_symbol_in_namespace<O>(
 where
     O: Clone + std::fmt::Debug,
 {
+    if &*provided_symbol_name.name == "ArcSin" {
+        println!(
+            "looking for arcsin (id {}) in namespace {:?}",
+            provided_symbol_name.id, candidate_namespace_id
+        );
+    }
+
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
     let (_, candidate_namespace) = globals
         .namespaces
@@ -1936,9 +1988,15 @@ fn resolve_scope_locals(
     vars: bool,
     name: &str,
 ) -> Option<Res> {
+    if name == "ArcSin" {
+        println!("in scope locals, kind is {kind:?}")
+    };
     if vars {
         match kind {
             NameKind::Term => {
+                if name == "ArcSin" {
+                    println!("Trying to get ArcSin as a var");
+                }
                 if let Some(&(_, id)) = scope.vars.get(name) {
                     return Some(Res::Local(id));
                 }

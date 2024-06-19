@@ -1279,6 +1279,8 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
+ "qsc_packages",
+ "qsc_project",
  "resource_estimator",
  "rustc-hash",
  "serde_json",

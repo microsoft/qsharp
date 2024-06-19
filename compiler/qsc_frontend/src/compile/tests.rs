@@ -1653,3 +1653,111 @@ fn multiple_packages_disallow_unexported_imports() {
         ]"#]]
     .assert_eq(&format!("{:#?}", user_code.errors));
 }
+
+#[test]
+fn reexports() {
+    let mut store = PackageStore::new(super::core());
+    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                function FunctionA() : Int {
+                    1
+                }
+                export FunctionA, Microsoft.Quantum.Math.ArcSin;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile(
+        &store,
+        &[(std_id, None)],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB".into(),
+            indoc! {"
+                @EntryPoint()
+                function Main() : Int {
+                    A.PackageA.ArcSin(2.0);
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let a_id = store.insert(package_a);
+
+    let package_b = compile(
+        &store,
+        &[(std_id, None), (a_id, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+}
+
+#[test]
+fn aliased_reexports() {
+    let mut store = PackageStore::new(super::core());
+    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                function FunctionA() : Int {
+                    1
+                }
+                export FunctionA, Microsoft.Quantum.Math.ArcSin as Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile(
+        &store,
+        &[(std_id, None)],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB".into(),
+            indoc! {"
+                @EntryPoint()
+                function Main() : Int {
+                    A.PackageA.Foo(2.0);
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let a_id = store.insert(package_a);
+
+    let package_b = compile(
+        &store,
+        &[(std_id, None), (a_id, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+}
