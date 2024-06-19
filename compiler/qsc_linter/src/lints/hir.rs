@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use qsc_hir::{
-    hir::{CallableDecl, CallableKind, Expr, ExprKind, SpecBody, SpecDecl, Stmt, StmtKind},
+    hir::{
+        CallableDecl, CallableKind, Expr, ExprKind, Item, ItemId, ItemKind, Package, Res, SpecBody,
+        SpecDecl, Stmt, StmtKind,
+    },
     ty::Ty,
     visit::{self, Visitor},
 };
@@ -13,7 +16,7 @@ use super::lint;
 
 declare_hir_lints! {
     (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead"),
-    (DeprecatedWithOperator, LintLevel::Warn, "deprecated `w/` operator for structs", "`w/` operator for structs is deprecated, use `new` instead"),
+    (DeprecatedWithOperator, LintLevel::Warn, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
 }
 
 /// Helper to check if an operation has desired operation characteristics
@@ -106,10 +109,55 @@ impl HirLintPass<'_> for NeedlessOperation<'_> {
     }
 }
 
+impl DeprecatedWithOperator<'_> {
+    fn resolve_item_relative_to_user_package(&self, item_id: &ItemId) -> (&Item, &Package, ItemId) {
+        self.resolve_item(self.user_package_id, item_id)
+    }
+
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &ItemId,
+    ) -> (&Item, &Package, ItemId) {
+        // If the `ItemId` contains a package id, use that.
+        // Lack of a package id means the item is in the
+        // same package as the one this `ItemId` reference
+        // came from. So use the local package id passed in.
+        let package_id = item_id.package.unwrap_or(local_package_id);
+        let package = &self
+            .package_store
+            .get(package_id)
+            .expect("package should exist in store")
+            .package;
+        (
+            package
+                .items
+                .get(item_id.item)
+                .expect("item id should exist"),
+            package,
+            ItemId {
+                package: Some(package_id),
+                item: item_id.item,
+            },
+        )
+    }
+}
+
 impl HirLintPass<'_> for DeprecatedWithOperator<'_> {
     fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
-        if let ExprKind::UpdateField(container, field, value) = &expr.kind {
-            //buffer.push(lint!(self, expr.span));
+        match &expr.kind {
+            ExprKind::UpdateField(container, _field, _value)
+            | ExprKind::AssignField(container, _field, _value) => {
+                if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
+                    let (item, _, _) = self.resolve_item_relative_to_user_package(item_id);
+                    if let ItemKind::Ty(_, udt) = &item.kind {
+                        if udt.is_struct() {
+                            buffer.push(lint!(self, expr.span));
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
