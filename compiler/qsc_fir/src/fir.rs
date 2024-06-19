@@ -326,10 +326,11 @@ pub enum Global<'a> {
 /// A unique identifier for an item within a package store.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StoreItemId {
+    // TODO(alex) this seems to be a reproduction of ItemId
     /// The package ID.
     pub package: PackageId,
     /// The item ID.
-    pub item: LocalItemId,
+    pub item: ItemId,
 }
 
 impl Display for StoreItemId {
@@ -338,8 +339,8 @@ impl Display for StoreItemId {
     }
 }
 
-impl From<(PackageId, LocalItemId)> for StoreItemId {
-    fn from(tuple: (PackageId, LocalItemId)) -> Self {
+impl From<(PackageId, ItemId)> for StoreItemId {
+    fn from(tuple: (PackageId, ItemId)) -> Self {
         Self {
             package: tuple.0,
             item: tuple.1,
@@ -530,9 +531,9 @@ pub trait PackageLookup {
     /// Gets an expression.
     fn get_expr(&self, id: ExprId) -> &Expr;
     /// Gets a global.
-    fn get_global(&self, id: LocalItemId) -> Option<Global>;
+    fn get_global(&self, id: ItemId) -> Option<Global>;
     /// Gets an item.
-    fn get_item(&self, id: LocalItemId) -> &Item;
+    fn get_item(&self, id: ItemId) -> &Item;
     /// Gets a pat.
     fn get_pat(&self, id: PatId) -> &Pat;
     /// Gets a statement.
@@ -552,7 +553,7 @@ pub trait PackageLookup {
 #[derive(Debug)]
 pub struct Package {
     /// The items in the package.
-    pub items: IndexMap<LocalItemId, Item>,
+    pub items: std::collections::BTreeMap<ItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<ExprId>,
     /// The control flow graph for the entry expression in the package.
@@ -622,16 +623,16 @@ impl PackageLookup for Package {
         self.exprs.get(id).expect("Expression not found")
     }
 
-    fn get_global(&self, id: LocalItemId) -> Option<Global> {
-        match &self.items.get(id)?.kind {
+    fn get_global(&self, id: ItemId) -> Option<Global> {
+        match &self.items.get(&id)?.kind {
             ItemKind::Callable(callable) => Some(Global::Callable(callable)),
             ItemKind::Namespace(..) => None,
             ItemKind::Ty(..) => Some(Global::Udt),
         }
     }
 
-    fn get_item(&self, id: LocalItemId) -> &Item {
-        self.items.get(id).expect("Item not found")
+    fn get_item(&self, id: ItemId) -> &Item {
+        self.items.get(&id).expect("Item not found")
     }
 
     fn get_pat(&self, id: PatId) -> &Pat {
@@ -647,11 +648,11 @@ impl PackageLookup for Package {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
-    pub id: LocalItemId,
+    pub id: ItemId,
     /// The span.
     pub span: Span,
     /// The parent item.
-    pub parent: Option<LocalItemId>,
+    pub parent: Option<ItemId>,
     /// The documentation.
     pub doc: Rc<str>,
     /// The attributes.

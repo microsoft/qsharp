@@ -77,7 +77,7 @@ impl FromIterator<Global> for Table {
 pub struct PackageIter<'a> {
     id: Option<PackageId>,
     package: &'a Package,
-    items: index_map::Values<'a, Item>,
+    items: std::collections::btree_map::Iter<'a, ItemId, Item>,
     next: Option<Global>,
 }
 
@@ -87,13 +87,13 @@ impl PackageIter<'_> {
             &self
                 .package
                 .items
-                .get(parent)
+                .get(&parent)
                 .expect("parent should exist")
                 .kind
         });
         let id = ItemId {
-            package: self.id,
-            item: item.id,
+            package: item.id.package.or(self.id),
+            item: item.id.item,
         };
 
         match (&item.kind, &parent) {
@@ -145,7 +145,7 @@ impl<'a> Iterator for PackageIter<'a> {
         } else {
             loop {
                 let item = self.items.next()?;
-                if let Some(global) = self.global_item(item) {
+                if let Some(global) = self.global_item(item.1) {
                     break Some(global);
                 }
             }
@@ -158,7 +158,7 @@ pub fn iter_package(id: Option<PackageId>, package: &Package) -> PackageIter {
     PackageIter {
         id,
         package,
-        items: package.items.values(),
+        items: package.items.iter(),
         next: None,
     }
 }

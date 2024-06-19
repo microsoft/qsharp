@@ -47,7 +47,7 @@ pub(super) enum Error {
 pub(super) struct Lowerer {
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
     locals: IndexMap<hir::NodeId, (hir::Ident, Ty)>,
-    parent: Option<LocalItemId>,
+    parent: Option<ItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
 }
@@ -117,9 +117,7 @@ impl With<'_> {
     }
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
-            self.names.get(namespace.id)
-        else {
+        let Some(&resolve::Res::Item(id, _)) = self.names.get(namespace.id) else {
             panic!("namespace should have item ID");
         };
 
@@ -149,6 +147,11 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
 
+        println!("exported items len: {}", items.len());
+        for item in &items {
+            println!("exported: {item:?}");
+        }
+
         let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
@@ -175,17 +178,38 @@ impl With<'_> {
             _ => panic!("item should have item ID"),
         };
 
-        let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) |
-            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+        dbg!(&item.kind);
 
-            ast::ItemKind::ImportOrExport(_) => {
+        let (id, kind) = match &*item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+            ast::ItemKind::ImportOrExport(decl) => {
+                if decl.is_import() {
+                    return None;
+                }
+                // let mut buf = Vec::with_capacity(decl.items.len());
+                for item in decl.items.iter() {
+                    // lower the item and return it
+                    let Some(resolve::Res::Item(id, _)) = self.names.get(item.name().id) else {
+                        continue;
+                    };
+
+                    self.lowerer.items.push(hir::Item {
+                        id: *id,
+                        span: todo!(),
+                        parent: self.lowerer.parent,
+                        doc: Rc::from(""), // attrs and docs not supported on exports yet
+                        attrs: Vec::new(),
+                        visibility: Visibility::Public,
+                        kind: todo!(),
+                    });
+                }
                 return None;
-            },
+            }
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
-                self.lowerer.parent = Some(id.item);
+                self.lowerer.parent = Some(id);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
                 (id, hir::ItemKind::Callable(callable))
@@ -222,7 +246,7 @@ impl With<'_> {
         };
 
         self.lowerer.items.push(hir::Item {
-            id: id.item,
+            id,
             span: item.span,
             parent: self.lowerer.parent,
             doc: Rc::clone(&item.doc),
@@ -668,7 +692,11 @@ impl With<'_> {
 
         let id = self.assigner.next_item();
         self.lowerer.items.push(hir::Item {
-            id,
+            // TODO(alex)
+            id: ItemId {
+                package: None,
+                item: id,
+            },
             span,
             parent: self.lowerer.parent,
             doc: "".into(),

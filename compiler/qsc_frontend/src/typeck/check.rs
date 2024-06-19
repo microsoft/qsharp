@@ -41,7 +41,7 @@ impl GlobalTable {
         for item in package.items.values() {
             let item_id = ItemId {
                 package: Some(id),
-                item: item.id,
+                item: item.id.item,
             };
 
             match &item.kind {

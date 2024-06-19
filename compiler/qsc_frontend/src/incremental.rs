@@ -381,8 +381,8 @@ impl Compiler {
 /// `other` should not contain any `LocalItemId`s
 /// that conflict with the current `Package`.
 /// The entry expression from `other` will be ignored.
-fn extend_hir(this: &mut hir::Package, mut other: hir::Package) {
-    for (k, v) in other.items.drain() {
+fn extend_hir(this: &mut hir::Package, other: hir::Package) {
+    for (k, v) in other.items.into_iter() {
         this.items.insert(k, v);
     }
 

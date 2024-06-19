@@ -1668,7 +1668,7 @@ fn reexports() {
         )],
         None,
     );
-
+    println!("__COMPILING PACKAGE A");
     let package_a = compile(
         &store,
         &[],

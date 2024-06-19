@@ -10,7 +10,7 @@ use qsc_data_structures::{
     namespaces::{NamespaceId, NamespaceTreeRoot},
 };
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::{collections::BTreeMap, rc::Rc};
 
 #[derive(Debug)]
 pub struct Global {
@@ -107,7 +107,7 @@ impl FromIterator<Global> for Table {
 pub struct PackageIter<'a> {
     id: Option<PackageId>,
     package: &'a Package,
-    items: index_map::Values<'a, Item>,
+    items: std::collections::btree_map::Iter<'a, ItemId, Item>,
     next: Option<Global>,
 }
 
@@ -117,13 +117,13 @@ impl PackageIter<'_> {
             &self
                 .package
                 .items
-                .get(parent)
+                .get(&parent)
                 .expect("parent should exist")
                 .kind
         });
         let id = ItemId {
-            package: self.id,
-            item: item.id,
+            package: item.id.package.or(self.id),
+            item: item.id.item,
         };
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
@@ -180,7 +180,7 @@ impl<'a> Iterator for PackageIter<'a> {
             Some(global)
         } else {
             loop {
-                let item = self.items.next()?;
+                let (_id, item) = self.items.next()?;
                 if let Some(global) = self.global_item(item) {
                     break Some(global);
                 }
@@ -194,7 +194,7 @@ pub fn iter_package(id: Option<PackageId>, package: &Package) -> PackageIter {
     PackageIter {
         id,
         package,
-        items: package.items.values(),
+        items: package.items.iter(),
         next: None,
     }
 }

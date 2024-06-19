@@ -10,6 +10,7 @@ use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
     cmp::Ordering,
+    collections::BTreeMap,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
     rc::Rc,
@@ -252,7 +253,7 @@ impl Display for Res {
 #[derive(Clone, Debug, Default)]
 pub struct Package {
     /// The items in the package.
-    pub items: IndexMap<LocalItemId, Item>,
+    pub items: BTreeMap<ItemId, Item>,
     /// The top-level statements in the package.
     pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
@@ -281,11 +282,11 @@ impl Display for Package {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
-    pub id: LocalItemId,
+    pub id: ItemId,
     /// The span.
     pub span: Span,
     /// The parent item.
-    pub parent: Option<LocalItemId>,
+    pub parent: Option<ItemId>,
     /// The documentation.
     pub doc: Rc<str>,
     /// The attributes.

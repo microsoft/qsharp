@@ -28,7 +28,7 @@ struct FirIncrement {
     exprs: Vec<ExprId>,
     pats: Vec<PatId>,
     stmts: Vec<StmtId>,
-    items: Vec<LocalItemId>,
+    items: Vec<fir::ItemId>,
 }
 
 pub struct Lowerer {
@@ -90,7 +90,7 @@ impl Lowerer {
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let entry_exec_graph = self.exec_graph.drain(..).collect();
-        let items: IndexMap<LocalItemId, fir::Item> = package
+        let items: std::collections::BTreeMap<fir::ItemId, fir::Item> = package
             .items
             .values()
             .map(|i| self.lower_item(i))
@@ -132,7 +132,7 @@ impl Lowerer {
         // Clear the previous increment since we are about to take a new one.
         self.fir_increment = FirIncrement::default();
 
-        let items: IndexMap<LocalItemId, fir::Item> = hir_package
+        let items: std::collections::BTreeMap<fir::ItemId, fir::Item> = hir_package
             .items
             .values()
             .map(|i| self.lower_item(i))
@@ -171,7 +171,7 @@ impl Lowerer {
             package.stmts.remove(id);
         }
         for id in self.fir_increment.items.drain(..) {
-            package.items.remove(id);
+            package.items.remove(&id);
         }
     }
 
@@ -227,9 +227,9 @@ impl Lowerer {
         };
         let attrs = lower_attrs(&item.attrs);
         fir::Item {
-            id: lower_local_item_id(item.id),
+            id: lower_item_id(&item.id),
             span: item.span,
-            parent: item.parent.map(lower_local_item_id),
+            parent: item.parent.map(|x| lower_item_id(&x)),
             doc: Rc::clone(&item.doc),
             attrs,
             visibility: lower_visibility(item.visibility),

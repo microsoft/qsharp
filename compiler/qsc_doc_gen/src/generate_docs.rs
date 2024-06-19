@@ -115,10 +115,7 @@ impl Lookup for Compilation {
             .expect("package should exist in store")
             .package;
         (
-            package
-                .items
-                .get(item_id.item)
-                .expect("item id should exist"),
+            package.items.get(&item_id).expect("item id should exist"),
             package,
             hir::ItemId {
                 package: Some(package_id),
