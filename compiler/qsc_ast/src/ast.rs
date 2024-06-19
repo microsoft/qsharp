@@ -874,7 +874,7 @@ pub enum ExprKind {
     Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F`.
+    /// A field accessor: `a::F` or `a.F`.
     Field(Box<Expr>, Box<Ident>),
     /// A for loop: `for a in b { ... }`.
     For(Box<Pat>, Box<Expr>, Box<Block>),
@@ -1422,8 +1422,6 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// Optional leading expression.
-    pub leading_expr: Option<Box<Expr>>,
     /// The namespace.
     pub namespace: Option<Idents>, // ToDo: rename 'segments'
     /// The declaration name.
@@ -1462,7 +1460,6 @@ impl From<Vec<Ident>> for Path {
         Self {
             id: NodeId::default(),
             span,
-            leading_expr: None,
             namespace,
             name: name.into(),
         }
@@ -1471,26 +1468,17 @@ impl From<Vec<Ident>> for Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if self.leading_expr.is_none() && self.namespace.is_none() {
+        if self.namespace.is_none() {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         } else {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Path {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-
-            write!(indent, "\nexpr: ")?;
-            if let Some(expr) = &self.leading_expr {
-                write!(indent, "{expr}")?;
-            } else {
-                write!(indent, "<none>")?;
-            }
-
             if let Some(parts) = &self.namespace {
                 for part in parts {
                     write!(indent, "\n{part}")?;
                 }
             }
-
             write!(indent, "\n{}", self.name)?;
         }
         Ok(())

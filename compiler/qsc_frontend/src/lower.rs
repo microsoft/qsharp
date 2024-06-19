@@ -767,29 +767,17 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
-        let lo = path.span.lo;
-
-        // If the path has a leading expr, it must be a field accessor
-        if let Some(leading) = &path.leading_expr {
-            let leading = self.lower_expr(leading);
-
-            let parts: Vec<Ident> = path.into();
-            let first = parts.first().expect("path should have at least one part");
-            let field = self.lower_field(&leading.ty, &first.name);
-            return self.path_parts_to_fields(
-                hir::ExprKind::Field(Box::new(leading), field),
-                &parts,
-                lo,
-            );
-        }
-
         if path.namespace.is_some() {
             let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("path should have at least one part");
             // This is the indication that the path is a field accessor
             if self.names.contains_key(first.id) {
                 let res = self.node_id_to_res(first.id);
-                return self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, lo);
+                return self.path_parts_to_fields(
+                    hir::ExprKind::Var(res, Vec::new()),
+                    &parts,
+                    path.span.lo,
+                );
             }
         }
 

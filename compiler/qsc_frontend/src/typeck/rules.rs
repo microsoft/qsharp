@@ -547,13 +547,6 @@ impl<'a> Context<'a> {
     }
 
     fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        // If the path has a leading expr, it must be a field accessor
-        if let Some(leading) = &path.leading_expr {
-            let record = self.infer_expr(leading);
-            let path: Vec<Ident> = path.into();
-            return self.infer_path_parts(record, &path, expr.span.lo);
-        }
-
         if path.namespace.is_some() {
             let parts: Vec<Ident> = path.into();
             let (first, rest) = parts

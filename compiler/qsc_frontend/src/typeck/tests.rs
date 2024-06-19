@@ -41,11 +41,10 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
     fn visit_path(&mut self, path: &'a Path) {
         visit::walk_path(self, path);
         let parts: Vec<Ident> = path.into();
-        if path.leading_expr.is_some()
-            || self
-                .tys
-                .get(parts.first().expect("should contain at least one part").id)
-                .is_some()
+        if self
+            .tys
+            .get(parts.first().expect("should contain at least one part").id)
+            .is_some()
         {
             for part in parts {
                 let ty = self.tys.get(part.id);
@@ -2727,13 +2726,12 @@ fn struct_field_path_with_expr() {
             #39 118-154 "{\n        let y = { x.b }.c.i;\n    }" : Unit
             #41 132-133 "y" : Int
             #43 136-147 "{ x.b }.c.i" : Int
+            #44 136-145 "{ x.b }.c" : UDT<"C": Item 3>
             #45 136-143 "{ x.b }" : UDT<"B": Item 2>
             #46 136-143 "{ x.b }" : UDT<"B": Item 2>
             #48 138-141 "x.b" : UDT<"B": Item 2>
             #50 138-139 "x" : UDT<"A": Item 1>
             #51 140-141 "b" : UDT<"B": Item 2>
-            #52 144-145 "c" : UDT<"C": Item 3>
-            #53 146-147 "i" : Int
         "#]],
     );
 }
@@ -2758,12 +2756,11 @@ fn struct_field_path_with_expr_invalid() {
             #39 117-156 "{\n        let y = { x }.b.Nope.i;\n    }" : Unit
             #41 131-132 "y" : ?3
             #43 135-149 "{ x }.b.Nope.i" : ?3
-            #45 135-140 "{ x }" : UDT<"A": Item 1>
+            #44 135-147 "{ x }.b.Nope" : ?2
+            #45 135-142 "{ x }.b" : UDT<"B": Item 2>
             #46 135-140 "{ x }" : UDT<"A": Item 1>
-            #48 137-138 "x" : UDT<"A": Item 1>
-            #51 141-142 "b" : UDT<"B": Item 2>
-            #52 143-147 "Nope" : ?2
-            #53 148-149 "i" : ?3
+            #47 135-140 "{ x }" : UDT<"A": Item 1>
+            #49 137-138 "x" : UDT<"A": Item 1>
             Error(Type(Error(MissingClassHasField("B", "Nope", Span { lo: 135, hi: 147 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 147 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 149 }))))

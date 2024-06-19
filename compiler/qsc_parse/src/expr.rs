@@ -675,38 +675,30 @@ fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
 }
 
 fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-    let rest = path(s)?;
-    let id = NodeId::default();
-    let span = Span {
-        lo: lhs.span.lo,
-        hi: rest.span.hi,
-    };
-    let name = rest.name;
-    let result = if let ExprKind::Path(path) = *lhs.kind {
+    if let ExprKind::Path(leading_path) = *lhs.kind {
+        let rest = path(s)?;
+        let name = rest.name;
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rest.span.hi,
+        };
         let parts = {
-            let mut v = vec![*path.name];
+            let mut v = vec![*leading_path.name];
             if let Some(parts) = rest.namespace {
                 v.append(&mut parts.into());
             }
             v.into()
         };
-        Path {
-            id,
+        let path = Path {
+            id: NodeId::default(),
             span,
-            leading_expr: None,
             namespace: Some(parts),
             name,
-        }
+        };
+        Ok(Box::new(ExprKind::Path(Box::new(path))))
     } else {
-        Path {
-            id,
-            span,
-            leading_expr: Some(lhs),
-            namespace: rest.namespace,
-            name,
-        }
-    };
-    Ok(Box::new(ExprKind::Path(Box::new(result))))
+        Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+    }
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
