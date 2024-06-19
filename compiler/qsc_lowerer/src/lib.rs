@@ -210,7 +210,7 @@ impl Lowerer {
                     span: name.span(),
                     name: name.name(),
                 };
-                let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
+                let items = items.iter().map(|i| lower_item_id(i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }
             hir::ItemKind::Callable(callable) => {
@@ -368,7 +368,7 @@ impl Lowerer {
         }
         let kind = match &stmt.kind {
             hir::StmtKind::Expr(expr) => fir::StmtKind::Expr(self.lower_expr(expr)),
-            hir::StmtKind::Item(item) => fir::StmtKind::Item(lower_local_item_id(*item)),
+            hir::StmtKind::Item(item) => fir::StmtKind::Item(lower_item_id(item)),
             hir::StmtKind::Local(mutability, pat, expr) => {
                 let pat = self.lower_pat(pat);
                 let expr = self.lower_expr(expr);

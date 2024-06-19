@@ -332,7 +332,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Idents, Vec<LocalItemId>),
+    Namespace(Idents, Vec<ItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -542,7 +542,7 @@ pub enum StmtKind {
     /// An expression without a trailing semicolon.
     Expr(Expr),
     /// An item.
-    Item(LocalItemId),
+    Item(ItemId),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
     Local(Mutability, Pat, Expr),
     /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.

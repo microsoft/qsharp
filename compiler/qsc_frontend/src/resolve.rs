@@ -589,8 +589,8 @@ impl Resolver {
 
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
         let name = &path.name;
-        if &*name.name == "ArcSin" {
-            println!("trying to resolve arcsin as a {kind:?}");
+        if &*name.name == "Foo" {
+            println!("trying to resolve Foo as a {kind:?}");
         }
         let namespace = &path.namespace;
         let res = resolve(
@@ -600,7 +600,7 @@ impl Resolver {
             name,
             namespace,
         );
-        if &*name.name == "ArcSin" {
+        if &*name.name == "Foo" {
             dbg!(&res);
         }
 
@@ -814,6 +814,16 @@ impl Resolver {
             })
             .collect::<Vec<_>>()
         {
+            let is_reexport = item
+                .path
+                .namespace
+                .as_ref()
+                .map(|x| x.name())
+                .unwrap_or_else(|| Rc::from(""))
+                .contains("Microsoft");
+            if is_reexport {
+                println!("binding specific export item {:?}", item);
+            }
             if item.is_glob {
                 self.bind_glob_import_or_export(item, decl.is_export());
                 continue;
@@ -822,16 +832,19 @@ impl Resolver {
                 self.resolve_path(NameKind::Term, &item.path),
                 self.resolve_path(NameKind::Ty, &item.path),
             );
+            if is_reexport {
+                println!("term_result: {:?}, ty_result: {:?}", term_result, ty_result);
+            }
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
                 self.handle_namespace_import_or_export(is_export, item, current_namespace, err);
                 continue;
+            } else {
+                if is_reexport {
+                    println!("was not an error -- we found something");
+                }
             };
-            if &*item.path.name.name == "ArcSin" {
-                println!("item: {:?}", item.path.name.name);
-                println!("term_result: {:?}, ty_result: {:?}", term_result, ty_result);
-            }
 
             let local_name = item.name().name.clone();
 
@@ -861,6 +874,10 @@ impl Resolver {
                 }
             }
 
+            if is_reexport {
+                println!("did not hit an error");
+            }
+
             let item_source = if is_export {
                 ItemSource::Exported
             } else {
@@ -869,8 +886,10 @@ impl Resolver {
 
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
-                    if &*item.path.name.name == "ArcSin" {
-                        println!("is an export, inserting {id:?} into namespace");
+                    if is_reexport {
+                        println!(
+                            "is an export, inserting {id:?} into namespace under name {local_name}"
+                        );
                     }
                     if let Some(namespace) = current_namespace {
                         self.globals
@@ -878,7 +897,7 @@ impl Resolver {
                             .get_mut_or_default(namespace)
                             .insert(local_name.clone(), Res::Item(id, ItemStatus::Available));
                     } else {
-                        if &*item.path.name.name == "ArcSin" {
+                        if is_reexport {
                             println!("namespace not found");
                         }
                     }
@@ -887,6 +906,9 @@ impl Resolver {
                 scope
                     .terms
                     .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
+                if is_reexport {
+                    println!("after inserting, scope is {:?}", scope.terms);
+                }
             }
 
             if let Ok(Res::Item(id, _)) = ty_result {
@@ -921,7 +943,7 @@ impl Resolver {
                     continue;
                 }
             };
-            if &*item.path.name.name == "ArcSin" {
+            if is_reexport {
                 println!(
                     "inserting name {} {}  {res:?} into names we know about",
                     item.name(),
@@ -1349,12 +1371,19 @@ impl GlobalTable {
         };
 
         for global in global::iter_package(Some(id), package).filter(|global| {
-            global.visibility == hir::Visibility::Public
-                || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
+            println!("checking global {:?}", global.name);
+            let filter_result = global.visibility == hir::Visibility::Public
+                || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic);
+            println!("filter result: {}", filter_result);
+            filter_result
         }) {
+            println!("adding global {:?}", global.name);
             let namespace = self
                 .scope
                 .insert_or_find_namespace_from_root(global.namespace.clone(), root);
+            if &*global.name == "Foo" {
+                println!("adding global Foo");
+            }
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
@@ -1743,10 +1772,13 @@ fn check_scoped_resolutions(
             namespace,
             (),
         );
-        if &*provided_symbol_name.name == "ArcSin" {
+        if &*provided_symbol_name.name == "Foo" {
             println!("candidates: {:?}", candidates);
         }
         if !candidates.is_empty() {
+            if &*provided_symbol_name.name == "Foo" {
+                println!("returning candidates");
+            }
             return Some(Ok(candidates.into_iter().next().unwrap().0));
         }
     } else {
@@ -1919,9 +1951,9 @@ fn find_symbol_in_namespace<O>(
 where
     O: Clone + std::fmt::Debug,
 {
-    if &*provided_symbol_name.name == "ArcSin" {
+    if &*provided_symbol_name.name == "Foo" {
         println!(
-            "looking for arcsin (id {}) in namespace {:?}",
+            "looking for Foo (id {}) in namespace {:?}",
             provided_symbol_name.id, candidate_namespace_id
         );
     }
@@ -1947,8 +1979,16 @@ where
 
     // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
     let res = namespace
-        //  .or(Some(candidate_namespace_id))
+        .or(Some(candidate_namespace_id))
         .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+    if &*provided_symbol_name.name == "Foo" {
+        println!(
+            "All symbols in namespace were: {:?}",
+            globals
+                .terms
+                .get(namespace.unwrap_or(candidate_namespace_id))
+        );
+    }
 
     // If a symbol was found, insert it into the candidates map
     if let Some(res) = res {
@@ -1988,14 +2028,14 @@ fn resolve_scope_locals(
     vars: bool,
     name: &str,
 ) -> Option<Res> {
-    if name == "ArcSin" {
+    if name == "Foo" {
         println!("in scope locals, kind is {kind:?}")
     };
     if vars {
         match kind {
             NameKind::Term => {
-                if name == "ArcSin" {
-                    println!("Trying to get ArcSin as a var");
+                if name == "Foo" {
+                    println!("Trying to get Foo as a var");
                 }
                 if let Some(&(_, id)) = scope.vars.get(name) {
                     return Some(Res::Local(id));

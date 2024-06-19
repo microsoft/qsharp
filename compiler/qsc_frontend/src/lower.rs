@@ -14,7 +14,7 @@ use qsc_ast::ast::{self};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId, Visibility},
+    hir::{self, ItemId, LocalItemId, PackageId, Visibility},
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
@@ -134,10 +134,14 @@ impl With<'_> {
         let exported_hir_ids = exports
             .iter()
             .filter_map(|res| match res {
-                resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
+                resolve::Res::Item(id, _) => Some(*id),
                 _ => None,
             })
             .collect::<Vec<_>>();
+
+        for res in &exported_hir_ids {
+            println!("package exports {res:?}");
+        }
 
         let items = namespace
             .items
@@ -159,11 +163,7 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    fn lower_item(
-        &mut self,
-        item: &ast::Item,
-        exported_ids: &[hir::LocalItemId],
-    ) -> Option<LocalItemId> {
+    fn lower_item(&mut self, item: &ast::Item, exported_ids: &[ItemId]) -> Option<ItemId> {
         let attrs = item
             .attrs
             .iter()
@@ -215,7 +215,7 @@ impl With<'_> {
             }
         };
 
-        let visibility = if exported_ids.contains(&id.item) {
+        let visibility = if exported_ids.contains(&id) {
             Visibility::Public
         } else {
             Visibility::Internal
@@ -231,7 +231,7 @@ impl With<'_> {
             kind,
         });
 
-        Some(id.item)
+        Some(id)
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {

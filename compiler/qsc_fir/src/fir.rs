@@ -698,7 +698,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Ident, Vec<LocalItemId>),
+    Namespace(Ident, Vec<ItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -967,7 +967,7 @@ pub enum StmtKind {
     /// An expression without a trailing semicolon.
     Expr(ExprId),
     /// An item.
-    Item(LocalItemId),
+    Item(ItemId),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
     Local(Mutability, PatId, ExprId),
     /// An expression with a trailing semicolon.
