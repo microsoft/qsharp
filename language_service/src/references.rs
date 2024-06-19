@@ -10,6 +10,7 @@ use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
+use qsc::ast::Ident;
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -372,7 +373,7 @@ struct FindFieldRefs<'a> {
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_path(&mut self, path: &ast::Path) {
-        let parts: Vec<Indent> = path.into();
+        let parts: Vec<Ident> = path.into();
         let field_accessor_parts = {
             if let Some(leading) = &path.leading_expr {
                 self.visit_expr(leading);
