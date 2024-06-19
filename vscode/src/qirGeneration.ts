@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getCompilerWorker, log, ProgramConfig } from "qsharp-lang";
+import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
