@@ -36,9 +36,9 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, Global, Lit,
-    LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
-    StoreItemId, StringComponent, UnOp,
+    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, FieldAssign, Global,
+    Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
+    StmtId, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
@@ -788,6 +788,7 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
+            ExprKind::Struct(_, copy, fields) => self.eval_struct(*copy, fields),
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;
@@ -1017,6 +1018,21 @@ impl State {
                 );
                 Ok(())
             }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
+                self.push_scope(env);
+
+                self.bind_args_for_spec(
+                    env,
+                    globals,
+                    callee.input,
+                    spec_decl.input,
+                    arg,
+                    functor.controlled,
+                    fixed_args,
+                );
+                Ok(())
+            }
         }
     }
 
@@ -1080,6 +1096,45 @@ impl State {
             None
         };
         self.set_val_register(Value::Range(val::Range { start, step, end }.into()));
+    }
+
+    fn eval_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) {
+        // Extract a flat list of field indexes.
+        let field_indexes = fields
+            .iter()
+            .map(|f| match &f.field {
+                Field::Path(path) => match path.indices.as_slice() {
+                    &[i] => i,
+                    _ => panic!("field path for struct should have a single index"),
+                },
+                _ => panic!("invalid field for struct"),
+            })
+            .collect::<Vec<_>>();
+
+        let len = fields.len();
+
+        let (field_vals, mut strct) = if copy.is_some() {
+            // Get the field values and the copy struct value.
+            let field_vals = self.pop_vals(len + 1);
+            let (copy, field_vals) = field_vals.split_first().expect("copy value is expected");
+
+            // Make a clone of the copy struct value.
+            (field_vals.to_vec(), copy.clone().unwrap_tuple().to_vec())
+        } else {
+            // Make an empty struct of the appropriate size.
+            (self.pop_vals(len), vec![Value::Int(0); len])
+        };
+
+        // Insert the field values into the new struct.
+        assert!(
+            field_vals.len() == field_indexes.len(),
+            "number of given field values should match the number of given struct fields"
+        );
+        for (i, val) in field_indexes.iter().zip(field_vals.into_iter()) {
+            strct[*i] = val;
+        }
+
+        self.set_val_register(Value::Tuple(strct.into()));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {

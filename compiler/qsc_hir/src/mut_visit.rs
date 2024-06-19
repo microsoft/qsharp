@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, FieldAssign, Ident, Item, ItemKind, Package, Pat, PatKind,
+    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 use qsc_data_structures::span::Span;
 
@@ -34,6 +34,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_expr(&mut self, expr: &mut Expr) {
         walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &mut FieldAssign) {
+        walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &mut Pat) {
@@ -184,6 +188,10 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(until);
             fixup.iter_mut().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter_mut().for_each(|c| vis.visit_expr(c));
+            fields.iter_mut().for_each(|f| vis.visit_field_assign(f));
+        }
         ExprKind::String(components) => {
             for component in components {
                 match component {
@@ -208,6 +216,11 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         | ExprKind::Lit(_)
         | ExprKind::Var(_, _) => {}
     }
+}
+
+pub fn walk_field_assign(vis: &mut impl MutVisitor, assign: &mut FieldAssign) {
+    vis.visit_span(&mut assign.span);
+    vis.visit_expr(&mut assign.value);
 }
 
 pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {

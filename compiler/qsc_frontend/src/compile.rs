@@ -514,8 +514,14 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
+    // bind all symbols in `add_local_package`
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
+
+    // bind all exported symbols in a follow-on step
+    resolver.bind_and_resolve_imports_and_exports(package);
+
+    // resolve all symbols
     resolver.with(assigner).visit_package(package);
     let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
@@ -596,7 +602,10 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
 }
 
 fn truncate_to_path_separator(prefix: &str) -> &str {
-    let last_separator_index = prefix.rfind('/').or_else(|| prefix.rfind('\\'));
+    let last_separator_index = prefix
+        .rfind('/')
+        .or_else(|| prefix.rfind('\\'))
+        .or_else(|| prefix.rfind(':'));
     if let Some(last_separator_index) = last_separator_index {
         // Return the prefix up to and including the last path separator
         return &prefix[0..=last_separator_index];

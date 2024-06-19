@@ -68,8 +68,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
         self.references = self.reference_finder.for_item(item_id);
@@ -98,7 +96,25 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         }
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.reference_finder.compilation.get_res(type_name.id)
+        {
+            self.references = self.reference_finder.for_item(item_id);
+        }
+    }
+
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
@@ -110,7 +126,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         &mut self,
         _: &'a ast::Path,
         item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
@@ -133,7 +148,6 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_field_ref(
         &mut self,
         field_ref: &'a ast::Ident,
-        _: &'a ast::NodeId,
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
@@ -354,17 +368,34 @@ struct FindFieldRefs<'a> {
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_expr(&mut self, expr: &'_ ast::Expr) {
-        if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
-            self.visit_expr(qualifier);
-            if field_name.name == self.field_name {
-                if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
-                    if self.eq(id) {
-                        self.locations.push(field_name.span);
+        match &*expr.kind {
+            ast::ExprKind::Field(qualifier, field_name) => {
+                self.visit_expr(qualifier);
+                if field_name.name == self.field_name {
+                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                        if self.eq(id) {
+                            self.locations.push(field_name.span);
+                        }
                     }
                 }
             }
-        } else {
-            walk_expr(self, expr);
+            ast::ExprKind::Struct(struct_name, copy, fields) => {
+                self.visit_path(struct_name);
+                if let Some(copy) = copy {
+                    self.visit_expr(copy);
+                }
+                for field in fields.iter() {
+                    if field.field.name == self.field_name {
+                        if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(expr.id) {
+                            if self.eq(id) {
+                                self.locations.push(field.field.span);
+                            }
+                        }
+                    }
+                    self.visit_expr(&field.value);
+                }
+            }
+            _ => walk_expr(self, expr),
         }
     }
 }

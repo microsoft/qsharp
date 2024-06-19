@@ -114,7 +114,7 @@ impl SparseSim {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            sim: QuantumSim::new(),
+            sim: QuantumSim::new(None),
         }
     }
 }

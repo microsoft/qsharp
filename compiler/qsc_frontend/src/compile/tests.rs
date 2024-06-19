@@ -273,7 +273,7 @@ fn entry_error() {
 
     let unit = default_compile(sources);
     assert_eq!(
-        ("<entry>", Span { lo: 4, hi: 5 }),
+        ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
     );
 }
@@ -550,7 +550,7 @@ fn package_dependency_internal_error() {
         .iter()
         .map(|error| source_span(&unit2.sources, error))
         .collect();
-    assert_eq!(vec![("test", Span { lo: 65, hi: 68 }),], errors);
+    assert_eq!(vec![("test", Span { lo: 56, hi: 68 }),], errors);
 
     expect![[r#"
         Package:
@@ -1330,9 +1330,10 @@ fn implicit_namespace_basic() {
 }
 
 #[test]
-fn reject_bad_filename_implicit_namespace() {
+fn bad_filename_implicit_namespace_best_effort_fixup() {
     let sources = SourceMap::new(
         [
+            // Rejected for starting with number
             (
                 "123Test.qs".into(),
                 indoc! {"
@@ -1340,6 +1341,7 @@ fn reject_bad_filename_implicit_namespace() {
             "}
                 .into(),
             ),
+            // Cleaned up by replacing '-' with '_'
             (
                 "Test-File.qs".into(),
                 indoc! {"
@@ -1348,6 +1350,7 @@ fn reject_bad_filename_implicit_namespace() {
             "}
                 .into(),
             ),
+            // Rejected for containing '.'
             (
                 "Namespace.Foo.qs".into(),
                 indoc! {"
@@ -1370,19 +1373,6 @@ fn reject_bad_filename_implicit_namespace() {
                                 hi: 25,
                             },
                             "123Test",
-                        ),
-                    ),
-                ),
-            ),
-            Error(
-                Parse(
-                    Error(
-                        InvalidFileName(
-                            Span {
-                                lo: 27,
-                                hi: 53,
-                            },
-                            "Test-File",
                         ),
                     ),
                 ),

@@ -145,6 +145,10 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     }))
 }
 
+/// Optionally parse with the given parser.
+/// Returns Ok(Some(value)) if the parser succeeded,
+/// Ok(None) if the parser failed on the first token,
+/// Err(error) if the parser failed after consuming some tokens.
 pub(super) fn opt<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Option<T>> {
     let offset = s.peek().span.lo;
     match p(s) {
@@ -161,7 +165,8 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
-
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,

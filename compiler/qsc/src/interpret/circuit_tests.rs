@@ -720,9 +720,9 @@ fn internal_operation() {
                         Error(
                             Resolve(
                                 NotFound(
-                                    "Test",
+                                    "Test.Test",
                                     Span {
-                                        lo: 5,
+                                        lo: 0,
                                         hi: 9,
                                     },
                                 ),

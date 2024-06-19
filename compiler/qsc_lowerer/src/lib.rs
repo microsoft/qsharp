@@ -214,7 +214,7 @@ impl Lowerer {
                 fir::ItemKind::Namespace(name, items)
             }
             hir::ItemKind::Callable(callable) => {
-                let callable = self.lower_callable_decl(callable);
+                let callable = self.lower_callable_decl(callable, &item.attrs);
 
                 fir::ItemKind::Callable(callable)
             }
@@ -237,7 +237,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+    fn lower_callable_decl(
+        &mut self,
+        decl: &hir::CallableDecl,
+        attrs: &[hir::Attr],
+    ) -> fir::CallableDecl {
         self.assigner.stash_local();
         let locals = self.locals.drain().collect::<Vec<_>>();
 
@@ -254,6 +258,9 @@ impl Lowerer {
                 "intrinsic callables should not have specializations"
             );
             CallableImpl::Intrinsic
+        } else if attrs.contains(&hir::Attr::SimulatableIntrinsic) {
+            let body = self.lower_spec_decl(&decl.body);
+            CallableImpl::SimulatableIntrinsic(body)
         } else {
             let body = self.lower_spec_decl(&decl.body);
             let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
@@ -602,6 +609,23 @@ impl Lowerer {
                 self.exec_graph.push(self.ret_node);
                 fir::ExprKind::Return(expr)
             }
+            hir::ExprKind::Struct(name, copy, fields) => {
+                let res = self.lower_res(name);
+                let copy = copy.as_ref().map(|c| {
+                    let id = self.lower_expr(c);
+                    self.exec_graph.push(ExecGraphNode::Store);
+                    id
+                });
+                let fields = fields
+                    .iter()
+                    .map(|f| {
+                        let f = self.lower_field_assign(f);
+                        self.exec_graph.push(ExecGraphNode::Store);
+                        f
+                    })
+                    .collect();
+                fir::ExprKind::Struct(res, copy, fields)
+            }
             hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(
                 items
                     .iter()
@@ -695,6 +719,15 @@ impl Lowerer {
         };
         self.exprs.insert(id, expr);
         id
+    }
+
+    fn lower_field_assign(&mut self, field_assign: &hir::FieldAssign) -> fir::FieldAssign {
+        fir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: lower_field(&field_assign.field),
+            value: self.lower_expr(&field_assign.value),
+        }
     }
 
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {
@@ -842,7 +875,13 @@ fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::Ge
 }
 
 fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
-    attrs.iter().map(|_| fir::Attr::EntryPoint).collect()
+    attrs
+        .iter()
+        .filter_map(|attr| match attr {
+            hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
+        })
+        .collect()
 }
 
 fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::FunctorSetValue {

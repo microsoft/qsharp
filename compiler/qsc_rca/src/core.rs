@@ -16,12 +16,12 @@ use qsc_fir::{
     extensions::InputParam,
     fir::{
         BinOp, Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind,
-        Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId, PackageLookup,
-        PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt,
-        StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
+        FieldAssign, Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId,
+        PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl,
+        SpecImpl, Stmt, StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
-    visit::Visitor,
+    visit::{walk_stmt, Visitor},
 };
 
 pub struct Analyzer<'a> {
@@ -862,6 +862,52 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
+    fn analyze_expr_struct(
+        &mut self,
+        copy: Option<ExprId>,
+        fields: &[FieldAssign],
+        expr_type: &Ty,
+    ) -> ComputeKind {
+        let default_value_kind = ValueKind::Element(RuntimeKind::Static);
+        let mut compute_kind = ComputeKind::Classical;
+        let mut has_dynamic_sub_exprs = false;
+        if let Some(copy_expr_id) = copy {
+            // Visit the copy expression to determine its compute kind.
+            self.visit_expr(copy_expr_id);
+            let application_instance = self.get_current_application_instance();
+            let expr_compute_kind = *application_instance.get_expr_compute_kind(copy_expr_id);
+            compute_kind =
+                compute_kind.aggregate_runtime_features(expr_compute_kind, default_value_kind);
+            has_dynamic_sub_exprs |= expr_compute_kind.is_dynamic();
+        }
+
+        // Visit the fields to determine their compute kind.
+        for expr_id in fields.iter().map(|field| field.value) {
+            self.visit_expr(expr_id);
+            let application_instance = self.get_current_application_instance();
+            let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+            compute_kind =
+                compute_kind.aggregate_runtime_features(expr_compute_kind, default_value_kind);
+            has_dynamic_sub_exprs |= expr_compute_kind.is_dynamic();
+        }
+
+        // If any of the sub-expressions are dynamic, then the struct expression is dynamic as well.
+        if has_dynamic_sub_exprs {
+            compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
+        }
+
+        // If the constructor is dynamic, aggregate the corresponding runtime features depending on its type.
+        if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(
+                    quantum_properties.value_kind,
+                    expr_type,
+                );
+        }
+
+        compute_kind
+    }
+
     fn analyze_expr_string(&mut self, components: &Vec<StringComponent>) -> ComputeKind {
         // Visit the string components to determine their compute kind, aggregate its runtime features and track whether
         // any of them is dynamic to construct the compute kind of the string expression itself.
@@ -1197,7 +1243,9 @@ impl<'a> Analyzer<'a> {
 
         // Continue with the analysis differently depending on whether the callable is an intrinsic or not.
         match &callable_decl.implementation {
-            CallableImpl::Intrinsic => self.analyze_intrinsic_callable(),
+            CallableImpl::Intrinsic | CallableImpl::SimulatableIntrinsic(_) => {
+                self.analyze_intrinsic_callable();
+            }
             CallableImpl::Spec(spec_impl) => {
                 // Only analyze the specialization that corresponds to the provided ID. Otherwise, we can get into an
                 // infinite analysis loop.
@@ -1265,7 +1313,6 @@ impl<'a> Analyzer<'a> {
         let application_instance = self.get_current_application_instance_mut();
         let local = Local {
             var: ident.id,
-            pat: pat.id,
             ty: pat.ty.clone(),
             kind: local_kind,
         };
@@ -1597,6 +1644,52 @@ impl<'a> Analyzer<'a> {
             _ => panic!("expected a local variable or a tuple"),
         }
     }
+
+    /// Sets the application generator set for all statements in a block (including nested statements)
+    /// to the default without analyzing them. This is done to prevent the statements from being
+    /// treated as top-level statements by later analysis assumptions.
+    fn set_all_stmts_in_block_to_default(&mut self, block_id: BlockId) {
+        struct StmtCollector<'a> {
+            package: &'a Package,
+            stmts: Vec<StmtId>,
+        }
+        impl<'a> StmtCollector<'a> {
+            fn new(package: &'a Package) -> Self {
+                Self {
+                    package,
+                    stmts: Vec::new(),
+                }
+            }
+        }
+        impl<'a> Visitor<'a> for StmtCollector<'a> {
+            fn get_block(&self, id: BlockId) -> &'a Block {
+                self.package.get_block(id)
+            }
+            fn get_expr(&self, id: ExprId) -> &'a Expr {
+                self.package.get_expr(id)
+            }
+            fn get_pat(&self, id: PatId) -> &'a Pat {
+                self.package.get_pat(id)
+            }
+            fn get_stmt(&self, id: StmtId) -> &'a Stmt {
+                self.package.get_stmt(id)
+            }
+            fn visit_stmt(&mut self, stmt_id: StmtId) {
+                self.stmts.push(stmt_id);
+                walk_stmt(self, stmt_id);
+            }
+        }
+
+        let current_package = self.package_store.get(self.get_current_package_id());
+        let mut stmt_collector = StmtCollector::new(current_package);
+        stmt_collector.visit_block(block_id);
+        for stmt_id in stmt_collector.stmts {
+            self.package_store_compute_properties.insert_stmt(
+                (self.get_current_package_id(), stmt_id).into(),
+                ApplicationGeneratorSet::default(),
+            );
+        }
+    }
 }
 
 fn update_features_for_type(
@@ -1704,7 +1797,15 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
 
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
         match callable_impl {
-            CallableImpl::Intrinsic => self.analyze_intrinsic_callable(),
+            CallableImpl::Intrinsic => {
+                self.analyze_intrinsic_callable();
+            }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                // Treat this as an intrinsic callable.
+                self.analyze_intrinsic_callable();
+                // Additionally, mark all the statements so that they appear visited.
+                self.set_all_stmts_in_block_to_default(spec_decl.block);
+            }
             CallableImpl::Spec(spec_impl) => {
                 self.visit_spec_impl(spec_impl);
             }
@@ -1776,6 +1877,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     .push((expr_id, *value_expr_id));
                 compute_kind
             }
+            ExprKind::Struct(_, copy, fields) => self.analyze_expr_struct(*copy, fields, &expr.ty),
             ExprKind::String(components) => self.analyze_expr_string(components),
             ExprKind::Tuple(exprs) => self.analyze_expr_tuple(exprs),
             ExprKind::UnOp(_, operand_expr_id) => self.analyze_expr_un_op(*operand_expr_id),
@@ -1798,7 +1900,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         // the final compute kind for the expression.
         if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
             // Since the value kind does not handle all type structures (e.g. it does not handle the structure of a
-            // tuple type), there could be a mistmatch between the expected value kind variant for the expression's type
+            // tuple type), there could be a mismatch between the expected value kind variant for the expression's type
             // and the value kind that we got.
             // We fix this mismatch here.
             let mut value_kind = ValueKind::new_static_from_type(&expr.ty);
@@ -1808,7 +1910,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             quantum_properties.value_kind = value_kind;
         }
 
-        // Finally, insert the expresion's compute kind in the application instance.
+        // Finally, insert the expression's compute kind in the application instance.
         let application_instance = self.get_current_application_instance_mut();
         application_instance.insert_expr_compute_kind(expr_id, compute_kind);
     }
@@ -2376,7 +2478,6 @@ fn derive_specialization_controls(
         match &pat.kind {
             PatKind::Bind(ident) => Some(Local {
                 var: ident.id,
-                pat: pat_id,
                 ty: pat.ty.clone(),
                 kind: LocalKind::SpecInput,
             }),
