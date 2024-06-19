@@ -3,7 +3,6 @@
 
 import { getProjectLoader, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { Uri } from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
 
@@ -252,7 +251,7 @@ export async function loadProject(
     await projectLoader.load_project(manifest);
   return {
     projectName:
-      Utils.basename(Uri.parse(manifest.manifestDirectory)) || "Q# Project",
+      Utils.basename(URI.parse(manifest.manifestDirectory)) || "Q# Project",
     sources: project,
     languageFeatures: manifest.languageFeatures || [],
     lints: manifest.lints,
