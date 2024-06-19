@@ -29,12 +29,8 @@ export async function getQirForActiveWindow(
     throw new QirGenerationError(program.errorMsg);
   }
 
-  const {
-    languageFeatures,
-    sources,
-    profile: targetProfile,
-  } = program.programConfig;
-
+  const config = program.programConfig;
+  const targetProfile = config.profile;
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";
 
@@ -88,11 +84,8 @@ export async function getQirForActiveWindow(
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
 
-    const config = {
-      sources,
-      languageFeatures,
-      profile: getTarget(),
-    } as ProgramConfig;
+    // Override the program config with the new target profile (if updated above)
+    config.profile = getTarget();
 
     result = await vscode.window.withProgress(
       {
