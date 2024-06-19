@@ -5,15 +5,12 @@ use super::lint;
 use crate::linter::ast::declare_ast_lints;
 use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, Stmt, StmtKind};
 use qsc_data_structures::span::Span;
-use qsc_frontend::resolve::Res;
-use qsc_hir::hir;
 
 declare_ast_lints! {
     (DivisionByZero, LintLevel::Error, "attempt to divide by zero", "division by zero will fail at runtime"),
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
-    (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
-    (DeprecatedFunctionConstructor, LintLevel::Warn, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
+    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
 }
 
 impl<'compilation> AstLintPass<'compilation> for DivisionByZero<'compilation> {
@@ -127,59 +124,6 @@ impl<'compilation> AstLintPass<'compilation> for DeprecatedNewtype<'compilation>
     fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
         if let ItemKind::Ty(_, _) = item.kind.as_ref() {
             buffer.push(lint!(self, item.span));
-        }
-    }
-}
-
-impl DeprecatedFunctionConstructor<'_> {
-    fn resolve_item_relative_to_user_package(
-        &self,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
-        self.resolve_item(self.user_package_id, item_id)
-    }
-
-    fn resolve_item(
-        &self,
-        local_package_id: PackageId,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
-        // If the `ItemId` contains a package id, use that.
-        // Lack of a package id means the item is in the
-        // same package as the one this `ItemId` reference
-        // came from. So use the local package id passed in.
-        let package_id = item_id.package.unwrap_or(local_package_id);
-        let package = &self
-            .package_store
-            .get(package_id)
-            .expect("package should exist in store")
-            .package;
-        (
-            package
-                .items
-                .get(item_id.item)
-                .expect("item id should exist"),
-            package,
-            hir::ItemId {
-                package: Some(package_id),
-                item: item_id.item,
-            },
-        )
-    }
-}
-
-/// Crates a lint for deprecated function constructors of structs.
-impl AstLintPass<'_> for DeprecatedFunctionConstructor<'_> {
-    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
-        if let ExprKind::Path(path) = expr.kind.as_ref() {
-            if let Some(&Res::Item(item_id, _)) = self.compile_unit.ast.names.get(path.id) {
-                let (item, _, _) = self.resolve_item_relative_to_user_package(&item_id);
-                if let hir::ItemKind::Ty(_, udt) = &item.kind {
-                    if udt.is_struct() {
-                        buffer.push(lint!(self, expr.span));
-                    }
-                }
-            }
         }
     }
 }

@@ -16,6 +16,7 @@ use super::lint;
 
 declare_hir_lints! {
     (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead"),
+    (DeprecatedFunctionConstructor, LintLevel::Warn, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
     (DeprecatedWithOperator, LintLevel::Warn, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
 }
 
@@ -109,47 +110,36 @@ impl HirLintPass<'_> for NeedlessOperation<'_> {
     }
 }
 
-impl DeprecatedWithOperator<'_> {
-    fn resolve_item_relative_to_user_package(&self, item_id: &ItemId) -> (&Item, &Package, ItemId) {
-        self.resolve_item(self.user_package_id, item_id)
-    }
-
-    fn resolve_item(
-        &self,
-        local_package_id: PackageId,
-        item_id: &ItemId,
-    ) -> (&Item, &Package, ItemId) {
-        // If the `ItemId` contains a package id, use that.
-        // Lack of a package id means the item is in the
-        // same package as the one this `ItemId` reference
-        // came from. So use the local package id passed in.
-        let package_id = item_id.package.unwrap_or(local_package_id);
-        let package = &self
-            .package_store
-            .get(package_id)
-            .expect("package should exist in store")
-            .package;
-        (
-            package
-                .items
-                .get(item_id.item)
-                .expect("item id should exist"),
-            package,
-            ItemId {
-                package: Some(package_id),
-                item: item_id.item,
-            },
-        )
+/// Crates a lint for deprecated function constructors of structs.
+impl HirLintPass<'_> for DeprecatedFunctionConstructor<'_> {
+    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+        if let ExprKind::Var(Res::Item(item_id), _) = &expr.kind {
+            let (item, _, _) = resolve_item_relative_to_user_package(
+                *item_id,
+                self.user_package_id,
+                self.package_store,
+            );
+            if let ItemKind::Ty(_, udt) = &item.kind {
+                if udt.is_struct() {
+                    buffer.push(lint!(self, expr.span));
+                }
+            }
+        }
     }
 }
 
+/// Creates a lint for deprecated `w/` and `w/=` operators for structs.
 impl HirLintPass<'_> for DeprecatedWithOperator<'_> {
     fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
         match &expr.kind {
             ExprKind::UpdateField(container, _field, _value)
             | ExprKind::AssignField(container, _field, _value) => {
                 if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
-                    let (item, _, _) = self.resolve_item_relative_to_user_package(item_id);
+                    let (item, _, _) = resolve_item_relative_to_user_package(
+                        *item_id,
+                        self.user_package_id,
+                        self.package_store,
+                    );
                     if let ItemKind::Ty(_, udt) = &item.kind {
                         if udt.is_struct() {
                             buffer.push(lint!(self, expr.span));
@@ -160,4 +150,39 @@ impl HirLintPass<'_> for DeprecatedWithOperator<'_> {
             _ => {}
         }
     }
+}
+
+fn resolve_item_relative_to_user_package(
+    item_id: ItemId,
+    user_package_id: PackageId,
+    package_store: &PackageStore,
+) -> (&Item, &Package, ItemId) {
+    resolve_item(package_store, user_package_id, item_id)
+}
+
+fn resolve_item(
+    package_store: &PackageStore,
+    local_package_id: PackageId,
+    item_id: ItemId,
+) -> (&Item, &Package, ItemId) {
+    // If the `ItemId` contains a package id, use that.
+    // Lack of a package id means the item is in the
+    // same package as the one this `ItemId` reference
+    // came from. So use the local package id passed in.
+    let package_id = item_id.package.unwrap_or(local_package_id);
+    let package = &package_store
+        .get(package_id)
+        .expect("package should exist in store")
+        .package;
+    (
+        package
+            .items
+            .get(item_id.item)
+            .expect("item id should exist"),
+        package,
+        ItemId {
+            package: Some(package_id),
+            item: item_id.item,
+        },
+    )
 }
