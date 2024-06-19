@@ -189,8 +189,6 @@ pub trait FileSystemAsync {
 
     async fn read_manifest_and_sources(
         &self,
-        // global_cache: &mut FxHashMap<PackageKey, miette::Result<(Manifest, PackageInfo)>>,
-        // key: PackageKey,
         this_pkg: &Dependency,
     ) -> miette::Result<(Manifest, PackageInfo)> {
         let mut project = match this_pkg {
@@ -236,10 +234,8 @@ pub trait FileSystemAsync {
         key: PackageKey,
         this_pkg: &Dependency,
     ) -> miette::Result<(Manifest, PackageInfo)> {
-        // It should be exceedingly rare (if not impossible) for the cache
-        // to be inaccessible, but that's ok. We'll get it next time.
-
-        if let Ok(cache) = global_cache.try_borrow() {
+        {
+            let cache = global_cache.borrow();
             if let Some(cached) = cache.get(&key) {
                 return cached.clone().map_err(miette::ErrReport::msg);
             }
@@ -247,7 +243,8 @@ pub trait FileSystemAsync {
 
         let result = self.read_manifest_and_sources(this_pkg).await;
 
-        if let Ok(mut cache) = global_cache.try_borrow_mut() {
+        {
+            let mut cache = global_cache.borrow_mut();
             cache.insert(
                 key,
                 match &result {
@@ -259,26 +256,17 @@ pub trait FileSystemAsync {
         result
     }
 
-    async fn collect_package(
+    #[allow(clippy::too_many_arguments)]
+    async fn collect_deps(
         &self,
+        key: Arc<str>,
+        pkg: &PackageInfo,
         global_cache: &RefCell<FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>>,
         stack: &mut Vec<PackageKey>,
         packages: &mut FxHashMap<PackageKey, PackageInfo>,
         errors: &mut Vec<miette::Report>,
         this_pkg: &Dependency,
-    ) -> Option<PackageInfo> {
-        let key = key_for_dependency_definition(this_pkg);
-        let result = self
-            .read_manifest_and_sources_cached(global_cache, key.clone(), this_pkg)
-            .await;
-        let pkg = match result {
-            Ok(pkg) => pkg.1,
-            Err(e) => {
-                errors.push(e);
-                return None;
-            }
-        };
-
+    ) {
         stack.push(key.clone());
 
         for (alias, dep_key) in &pkg.dependencies {
@@ -301,20 +289,35 @@ pub trait FileSystemAsync {
                 continue;
             }
 
-            if let Some(dep_pkg) = self
-                .collect_package(global_cache, stack, packages, errors, &dependency)
-                .await
-            {
-                // TODO: do we ever end up processing the same package twice, and is that a big deal?
-                packages.insert(dep_key.clone(), dep_pkg);
-            }
+            let dep_result = self
+                .read_manifest_and_sources_cached(global_cache, dep_key.clone(), &dependency)
+                .await;
+
+            match dep_result {
+                Ok((_, pkg)) => {
+                    self.collect_deps(
+                        dep_key.clone(),
+                        &pkg,
+                        global_cache,
+                        stack,
+                        packages,
+                        errors,
+                        &dependency,
+                    )
+                    .await;
+                    // TODO: do we ever end up processing the same package twice, and is that a big deal?
+                    packages.insert(dep_key.clone(), pkg);
+                }
+                Err(e) => {
+                    errors.push(e);
+                }
+            };
 
             // TODO: absolute paths in manifests
             // TODO: os-specific slashes in manifests
         }
 
         stack.pop();
-        Some(pkg)
     }
 
     async fn load_project_with_deps(
@@ -328,17 +331,18 @@ pub trait FileSystemAsync {
         let mut packages = FxHashMap::default();
         let mut stack = vec![];
 
-        let root = self
-            .collect_package(
-                global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
-                &mut stack,
-                &mut packages,
-                &mut errors,
-                &Dependency::Path {
-                    path: directory.to_string_lossy().into(),
-                },
-            )
-            .await;
+        let root_dep = Dependency::Path {
+            path: directory.to_string_lossy().into(),
+        };
+
+        let result = self.read_manifest_and_sources(&root_dep).await;
+        let root = match result {
+            Ok(pkg) => Some(pkg.1),
+            Err(e) => {
+                errors.push(e);
+                None
+            }
+        };
 
         match root {
             None => Err(miette::ErrReport::msg(format!(
@@ -349,15 +353,24 @@ pub trait FileSystemAsync {
                     .collect::<Vec<_>>()
                     .join("; ")
             ))),
-            Some(this_pkg) => Ok(ProgramConfig {
-                package_graph_sources: PackageGraphSources {
-                    root: this_pkg,
-                    packages,
-                },
-                lints: manifest.lints,
-                errors,
-                target_profile: "unrestricted".into(), // TODO(alex)
-            }),
+            Some(root) => {
+                self.collect_deps(
+                    key_for_dependency_definition(&root_dep),
+                    &root,
+                    global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
+                    &mut stack,
+                    &mut packages,
+                    &mut errors,
+                    &root_dep,
+                )
+                .await;
+                Ok(ProgramConfig {
+                    package_graph_sources: PackageGraphSources { root, packages },
+                    lints: manifest.lints,
+                    errors,
+                    target_profile: "unrestricted".into(), // TODO(alex)
+                })
+            }
         }
     }
 }
