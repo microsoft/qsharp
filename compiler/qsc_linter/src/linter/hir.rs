@@ -1,16 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::Rc;
+
 use super::LintKind;
 use crate::{
     lints::hir::{CombinedHirLints, HirLint},
     Lint, LintConfig, LintLevel,
 };
+use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, PackageStore};
 use qsc_hir::{
     hir::{
-        Block, CallableDecl, Expr, Ident, Item, Package, PackageId, Pat, QubitInit, SpecDecl, Stmt,
+        Block, CallableDecl, Expr, ExprKind, Field, Ident, Item, ItemId, ItemKind, Package,
+        PackageId, Pat, QubitInit, Res, SpecDecl, Stmt,
     },
+    ty::Ty,
+    visit::walk_expr,
     visit::Visitor,
 };
 
@@ -46,6 +52,10 @@ pub fn run_hir_lints(
         lints.visit_stmt(stmt);
     }
 
+    let mut lint = DeprecatedWithOperator2::new(user_package_id, package_store);
+    lint.visit_package(&compile_unit.package);
+
+    lints.buffer.extend(lint.buffer);
     lints.buffer
 }
 
@@ -252,6 +262,125 @@ macro_rules! declare_hir_lints {
             }
         }
     };
+}
+
+struct WithOperatorLint {
+    span: Span,
+    field_assigns: Vec<(Rc<str>, Rc<str>)>,
+}
+
+struct DeprecatedWithOperator2<'a> {
+    user_package_id: PackageId,
+    package_store: &'a PackageStore,
+    buffer: Vec<Lint>,
+    lint_info: Option<WithOperatorLint>,
+}
+
+impl<'a> DeprecatedWithOperator2<'a> {
+    fn new(user_package_id: PackageId, package_store: &'a PackageStore) -> Self {
+        Self {
+            user_package_id,
+            package_store,
+            buffer: Vec::new(),
+            lint_info: None,
+        }
+    }
+}
+
+impl Visitor<'_> for DeprecatedWithOperator2<'_> {
+    fn visit_expr(&mut self, expr: &Expr) {
+        match &expr.kind {
+            ExprKind::UpdateField(container, field, _value)
+            | ExprKind::AssignField(container, field, _value) => {
+                if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
+                    let (item, _, _) = resolve_item_relative_to_user_package(
+                        *item_id,
+                        self.user_package_id,
+                        self.package_store,
+                    );
+                    if let ItemKind::Ty(_, udt) = &item.kind {
+                        if udt.is_struct() {
+                            let field_name = if let Field::Path(path) = field {
+                                udt.find_field(path)
+                                    .expect("field should exist in struct")
+                                    .name
+                                    .as_ref()
+                                    .expect("struct fields always have names")
+                                    .clone()
+                            } else {
+                                panic!("field should be a path");
+                            };
+                            let field_info = (field_name, Rc::from("todo"));
+
+                            match &mut self.lint_info {
+                                Some(existing_info) => {
+                                    existing_info.field_assigns.push(field_info);
+                                }
+                                None => {
+                                    self.lint_info = Some(WithOperatorLint {
+                                        span: expr.span,
+                                        field_assigns: vec![field_info],
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {
+                if let Some(info) = &self.lint_info {
+                    // ToDo: insert the lint info into the lint somehow for the code action
+                    let lint = Lint {
+                        span: info.span,
+                        level: LintLevel::Warn,
+                        message: "deprecated `w/` and `w/=` operators for structs",
+                        help:
+                            "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
+                        kind: LintKind::Hir(HirLint::DeprecatedWithOperator),
+                        code_action_edits: vec![],
+                    };
+                    self.buffer.push(lint);
+                    self.lint_info = None;
+                }
+            }
+        }
+        walk_expr(self, expr);
+    }
+}
+
+fn resolve_item_relative_to_user_package(
+    item_id: ItemId,
+    user_package_id: PackageId,
+    package_store: &PackageStore,
+) -> (&Item, &Package, ItemId) {
+    resolve_item(package_store, user_package_id, item_id)
+}
+
+fn resolve_item(
+    package_store: &PackageStore,
+    local_package_id: PackageId,
+    item_id: ItemId,
+) -> (&Item, &Package, ItemId) {
+    // If the `ItemId` contains a package id, use that.
+    // Lack of a package id means the item is in the
+    // same package as the one this `ItemId` reference
+    // came from. So use the local package id passed in.
+    let package_id = item_id.package.unwrap_or(local_package_id);
+    let package = &package_store
+        .get(package_id)
+        .expect("package should exist in store")
+        .package;
+    (
+        package
+            .items
+            .get(item_id.item)
+            .expect("item id should exist"),
+        package,
+        ItemId {
+            package: Some(package_id),
+            item: item_id.item,
+        },
+    )
 }
 
 pub(crate) use declare_hir_lints;

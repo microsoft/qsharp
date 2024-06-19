@@ -130,26 +130,26 @@ impl HirLintPass<'_> for DeprecatedFunctionConstructor<'_> {
 
 /// Creates a lint for deprecated `w/` and `w/=` operators for structs.
 impl HirLintPass<'_> for DeprecatedWithOperator<'_> {
-    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
-        match &expr.kind {
-            ExprKind::UpdateField(container, _field, _value)
-            | ExprKind::AssignField(container, _field, _value) => {
-                if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
-                    let (item, _, _) = resolve_item_relative_to_user_package(
-                        *item_id,
-                        self.user_package_id,
-                        self.package_store,
-                    );
-                    if let ItemKind::Ty(_, udt) = &item.kind {
-                        if udt.is_struct() {
-                            buffer.push(lint!(self, expr.span));
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
+    // fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+    //     match &expr.kind {
+    //         ExprKind::UpdateField(container, _field, _value)
+    //         | ExprKind::AssignField(container, _field, _value) => {
+    //             if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
+    //                 let (item, _, _) = resolve_item_relative_to_user_package(
+    //                     *item_id,
+    //                     self.user_package_id,
+    //                     self.package_store,
+    //                 );
+    //                 if let ItemKind::Ty(_, udt) = &item.kind {
+    //                     if udt.is_struct() {
+    //                         buffer.push(lint!(self, expr.span));
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         _ => {}
+    //     }
+    // }
 }
 
 fn resolve_item_relative_to_user_package(
