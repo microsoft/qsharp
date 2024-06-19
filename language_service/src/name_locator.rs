@@ -384,32 +384,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_path(&mut self, path: &'package ast::Path) {
         if path.span.touches(self.offset) {
             let parts: Vec<Ident> = path.into();
-
-            // If the path has a leading expression, it is a field accessor
-            if let Some(leading) = &path.leading_expr {
-                if leading.span.touches(self.offset) {
-                    self.visit_expr(leading);
-                } else {
-                    // Loop through the parts of the path to find the first part that touches the offset
-                    let mut last_id = leading.id;
-                    for part in &parts {
-                        if part.span.touches(self.offset) {
-                            if let Some(hir::ty::Ty::Udt(_, res)) =
-                                &self.compilation.get_ty(last_id)
-                            {
-                                if let Some((item_id, field_def)) = self.get_field_def(res, part) {
-                                    self.inner.at_field_ref(part, &item_id, field_def);
-                                }
-                            }
-                            break;
-                        }
-                        last_id = part.id;
-                    }
-                    return;
-                }
-            }
-
-            if path.namespace.is_some() {
+            if path.segments.is_some() {
                 let (first, rest) = parts
                     .split_first()
                     .expect("paths should have at least one part");

@@ -583,9 +583,9 @@ impl Resolver {
 
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) -> Result<Res, Error> {
         let name = &path.name;
-        let namespace = &path.namespace;
+        let segments = &path.segments;
 
-        if let (NameKind::Term, Some(parts)) = (kind, namespace) {
+        if let (NameKind::Term, Some(parts)) = (kind, segments) {
             let parts: Vec<ast::Ident> = parts.into();
             let first = parts
                 .first()
@@ -612,7 +612,7 @@ impl Resolver {
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
             name,
-            namespace,
+            segments,
         ) {
             Ok(res) => {
                 self.check_item_status(res, path.name.name.to_string(), path.span);
@@ -1398,7 +1398,7 @@ pub(super) fn extract_field_name<'a>(names: &Names, expr: &'a ast::Expr) -> Opti
     // Follow the same reasoning as `is_field_update`.
     match &*expr.kind {
         ast::ExprKind::Path(path)
-            if path.namespace.is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
+            if path.segments.is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
         {
             Some(&path.name.name)
         }
@@ -1414,10 +1414,10 @@ fn is_field_update<'a>(
     // Disambiguate the update operator by looking at the index expression. If it's an
     // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
     match &*index.kind {
-        ast::ExprKind::Path(path) if path.namespace.is_none() => !matches!(
+        ast::ExprKind::Path(path) if path.segments.is_none() => !matches!(
             {
                 let name = &path.name;
-                let namespace = &path.namespace;
+                let namespace = &path.segments;
                 resolve(NameKind::Term, globals, scopes, name, namespace)
             },
             Ok(Res::Local(_))

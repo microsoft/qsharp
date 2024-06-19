@@ -547,7 +547,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        if path.namespace.is_some() {
+        if path.segments.is_some() {
             let parts: Vec<Ident> = path.into();
             let (first, rest) = parts
                 .split_first()

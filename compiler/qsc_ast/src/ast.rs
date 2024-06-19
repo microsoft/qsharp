@@ -1422,15 +1422,15 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Idents>, // ToDo: rename 'segments'
+    /// The segments that make up the front of the path before the final `.`.
+    pub segments: Option<Idents>,
     /// The declaration name.
     pub name: Box<Ident>,
 }
 
 impl From<Path> for Vec<Ident> {
     fn from(val: Path) -> Self {
-        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
+        let mut buf = val.segments.unwrap_or_default().0.to_vec();
         buf.push(*val.name);
         buf
     }
@@ -1438,7 +1438,7 @@ impl From<Path> for Vec<Ident> {
 
 impl From<&Path> for Vec<Ident> {
     fn from(val: &Path) -> Self {
-        let mut buf = match &val.namespace {
+        let mut buf = match &val.segments {
             Some(inner) => inner.0.to_vec(),
             None => Vec::new(),
         };
@@ -1452,15 +1452,15 @@ impl From<Vec<Ident>> for Path {
         let name = v
             .pop()
             .expect("parser should never produce empty vector of idents");
-        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
+        let segments: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
         let span = Span {
-            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
+            lo: segments.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
             hi: name.span.hi,
         };
         Self {
             id: NodeId::default(),
             span,
-            namespace,
+            segments,
             name: name.into(),
         }
     }
@@ -1468,13 +1468,13 @@ impl From<Vec<Ident>> for Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if self.namespace.is_none() {
+        if self.segments.is_none() {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         } else {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Path {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-            if let Some(parts) = &self.namespace {
+            if let Some(parts) = &self.segments {
                 for part in parts {
                     write!(indent, "\n{part}")?;
                 }
@@ -1588,7 +1588,7 @@ impl FromIterator<Ident> for Idents {
 
 impl From<Path> for Idents {
     fn from(p: Path) -> Self {
-        let mut buf = p.namespace.unwrap_or_default().0.to_vec();
+        let mut buf = p.segments.unwrap_or_default().0.to_vec();
         buf.push(*p.name);
         Self(buf.into_boxed_slice())
     }

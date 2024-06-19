@@ -785,8 +785,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     }
 
     fn visit_path(&mut self, path: &'_ Path) {
-        if let Some(ns) = &path.namespace {
-            self.visit_idents(ns);
+        if let Some(parts) = &path.segments {
+            self.visit_idents(parts);
             self.write(".");
         }
         self.visit_ident(&path.name);

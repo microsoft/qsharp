@@ -330,14 +330,10 @@ struct FindItemRefs<'a> {
 
 impl<'a> Visitor<'_> for FindItemRefs<'a> {
     fn visit_path(&mut self, path: &ast::Path) {
-        if let Some(leading) = &path.leading_expr {
-            self.visit_expr(leading);
-        } else {
-            let res = self.compilation.get_res(path.id);
-            if let Some(resolve::Res::Item(item_id, _)) = res {
-                if self.eq(item_id) {
-                    self.locations.push(path.name.span);
-                }
+        let res = self.compilation.get_res(path.id);
+        if let Some(resolve::Res::Item(item_id, _)) = res {
+            if self.eq(item_id) {
+                self.locations.push(path.name.span);
             }
         }
     }
@@ -374,31 +370,23 @@ struct FindFieldRefs<'a> {
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_path(&mut self, path: &ast::Path) {
         let parts: Vec<Ident> = path.into();
-        let field_accessor_parts = {
-            if let Some(leading) = &path.leading_expr {
-                self.visit_expr(leading);
-                Some((leading.id, parts.as_slice()))
-            } else if path.namespace.is_some() {
-                let (first, rest) = parts
-                    .split_first()
-                    .expect("paths should have at least one part");
-                self.compilation.get_res(first.id).map(|_| (first.id, rest))
-            } else {
-                None
-            }
-        };
-
-        // Loop through the parts of the path to find references
-        if let Some((mut prev_id, rest)) = field_accessor_parts {
-            for part in rest {
-                if part.name == self.field_name {
-                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(prev_id) {
-                        if self.eq(id) {
-                            self.locations.push(part.span);
+        if path.segments.is_some() {
+            let (first, rest) = parts
+                .split_first()
+                .expect("paths should have at least one part");
+            if self.compilation.get_res(first.id).is_some() {
+                let mut prev_id = first.id;
+                // Loop through the parts of the path to find references
+                for part in rest {
+                    if part.name == self.field_name {
+                        if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(prev_id) {
+                            if self.eq(id) {
+                                self.locations.push(part.span);
+                            }
                         }
                     }
+                    prev_id = part.id;
                 }
-                prev_id = part.id;
             }
         }
     }
@@ -469,12 +457,7 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
     }
 
     fn visit_path(&mut self, path: &ast::Path) {
-        if let Some(leading) = &path.leading_expr {
-            self.visit_expr(leading);
-            return;
-        }
-
-        if path.namespace.is_some() {
+        if path.segments.is_some() {
             let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("paths should have at least one part");
             if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {

@@ -767,7 +767,7 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
-        if path.namespace.is_some() {
+        if path.segments.is_some() {
             let parts: Vec<Ident> = path.into();
             let first = parts.first().expect("path should have at least one part");
             // This is the indication that the path is a field accessor

@@ -332,7 +332,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
+    matches!(kind, ExprKind::Path(path) if path.segments.is_none() && path.name.name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -684,7 +684,7 @@ fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>>
         };
         let parts = {
             let mut v = vec![*leading_path.name];
-            if let Some(parts) = rest.namespace {
+            if let Some(parts) = rest.segments {
                 v.append(&mut parts.into());
             }
             v.into()
@@ -692,7 +692,7 @@ fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>>
         let path = Path {
             id: NodeId::default(),
             span,
-            namespace: Some(parts),
+            segments: Some(parts),
             name,
         };
         Ok(Box::new(ExprKind::Path(Box::new(path))))
@@ -747,7 +747,7 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Path(path) if path.segments.is_none() => Ok(PatKind::Bind(path.name, None)),
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),
