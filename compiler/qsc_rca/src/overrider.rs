@@ -8,8 +8,8 @@ use crate::{
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableImpl, Expr, ExprId, Global, Item, ItemKind, LocalItemId, Package,
-        PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId, StmtKind,
+        Block, BlockId, CallableImpl, Expr, ExprId, Global, Item, ItemId, ItemKind, LocalItemId,
+        Package, PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId, StmtKind,
     },
     ty::{FunctorSetValue, Ty},
     visit::{walk_block, walk_expr, walk_stmt, Visitor},
@@ -95,12 +95,15 @@ impl<'a> Overrider<'a> {
             .expect("current package should be valid")
     }
 
-    fn get_item(&self, id: LocalItemId) -> &'a Item {
-        let package_id = self.get_current_package();
+    fn get_item(&self, id: ItemId) -> &'a Item {
+        let package_id = match id.package {
+            Some(package) => package,
+            None => self.get_current_package(),
+        };
         self.package_store
             .get(package_id)
             .items
-            .get(id)
+            .get(id.item)
             .expect("item not found")
     }
 
