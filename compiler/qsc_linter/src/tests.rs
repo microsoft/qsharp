@@ -273,7 +273,7 @@ fn check(source: &str, expected: &Expect) {
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
     let (package, _) = qsc::compile::compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         PackageType::Exe,
         TargetCapabilityFlags::all(),

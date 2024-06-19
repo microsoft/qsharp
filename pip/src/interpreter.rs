@@ -162,6 +162,7 @@ impl Interpreter {
             }
 
             // TODO: properly consume dependencies
+            // TODO(alex) import into_qsc_args or put similar function here
             let mut sources = project.package_graph_sources.root.sources;
             for dep in project.package_graph_sources.packages.values_mut() {
                 sources.append(&mut dep.sources);
@@ -172,13 +173,16 @@ impl Interpreter {
         };
 
         let language_features = LanguageFeatures::from_iter(language_features);
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, target.into()));
 
         match interpret::Interpreter::new(
-            true,
             sources,
             PackageType::Lib,
             target.into(),
             language_features,
+            store,
+            &[(std_id, None)],
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

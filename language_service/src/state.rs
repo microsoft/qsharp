@@ -11,6 +11,7 @@ use log::trace;
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
+use qsc_project::PackageGraphSources;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
 
@@ -113,17 +114,15 @@ pub(super) struct CompilationStateUpdater<'a> {
 // TODO: consolidate these two types
 pub type LoadProjectResult = Option<LoadProjectResultInner>;
 pub type LoadProjectResultInner = (
-    Arc<str>,                  // compilation uri
-    Vec<(Arc<str>, Arc<str>)>, // sources
-    LanguageFeatures,
+    Arc<str>, // compilation uri
+    PackageGraphSources,
     Vec<LintConfig>,
 );
 
 #[derive(Debug)]
 struct LoadManifestResult {
     compilation_uri: Arc<str>,
-    sources: Vec<(Arc<str>, Arc<str>)>,
-    language_features: Option<LanguageFeatures>,
+    package_graph_sources: PackageGraphSources,
     lints: Vec<LintConfig>,
 }
 
@@ -162,15 +161,17 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let LoadManifestResult {
             compilation_uri,
-            sources,
-            language_features,
+            package_graph_sources: sources,
+
             lints: lints_config,
         } = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
             LoadManifestResult {
                 compilation_uri: doc_uri.clone(),
-                sources: vec![(doc_uri.clone(), text.clone())],
-                language_features: None,
+                package_graph_sources: PackageGraphSources::with_no_dependencies(
+                    vec![(doc_uri.clone(), text.clone())],
+                    self.configuration.language_features,
+                ),
                 lints: Vec::default(),
             }
         });
@@ -197,12 +198,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(
-            sources,
-            &compilation_uri,
-            language_features,
-            lints_config,
-        );
+        self.insert_buffer_aware_compilation(&compilation_uri, lints_config, sources);
 
         self.publish_diagnostics();
     }
@@ -211,14 +207,13 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        if let Some((compilation_uri, source_map, language_features, lints)) =
+        if let Some((compilation_uri, source_map, lints)) =
             (self.load_project_callback)(doc_uri.to_string()).await
         {
             trace!("Found project at {compilation_uri}");
             Some(LoadManifestResult {
                 compilation_uri,
-                sources: source_map,
-                language_features: Some(language_features),
+                package_graph_sources: source_map,
                 lints,
             })
         } else {
@@ -233,16 +228,15 @@ impl<'a> CompilationStateUpdater<'a> {
     /// over fs contents.
     fn insert_buffer_aware_compilation(
         &mut self,
-        mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
-        language_features: Option<LanguageFeatures>,
         lints_config: Vec<LintConfig>,
+        mut package_graph_sources: PackageGraphSources,
     ) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
-            for (ref l_uri, ref mut source) in &mut sources {
+            for (ref l_uri, ref mut source) in &mut package_graph_sources.root.sources {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();
@@ -250,7 +244,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
 
             let compilation_overrides = PartialConfiguration {
-                language_features,
+                language_features: Some(package_graph_sources.root.language_features),
                 lints_config,
                 ..PartialConfiguration::default()
             };
@@ -258,11 +252,11 @@ impl<'a> CompilationStateUpdater<'a> {
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
             let compilation = Compilation::new(
-                &sources,
                 configuration.package_type,
                 configuration.target_profile,
                 configuration.language_features,
                 &configuration.lints_config,
+                package_graph_sources,
             );
 
             state.compilations.insert(
@@ -282,17 +276,16 @@ impl<'a> CompilationStateUpdater<'a> {
             // uses the disk contents instead of the open buffer contents
             // for this document
             if let Some(LoadManifestResult {
-                sources,
+                package_graph_sources,
                 compilation_uri,
-                language_features,
                 lints: lints_config,
             }) = project
             {
+                // TODO(alex) maybe preserve store and dependencies
                 self.insert_buffer_aware_compilation(
-                    sources,
                     &compilation_uri,
-                    language_features,
                     lints_config,
+                    package_graph_sources,
                 );
             }
         }

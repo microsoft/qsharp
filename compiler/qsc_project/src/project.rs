@@ -51,6 +51,7 @@ pub trait DirEntry {
 /// for the Q# project system to function correctly.
 use async_trait::async_trait;
 use futures::FutureExt;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
 #[async_trait(?Send)]
@@ -173,8 +174,14 @@ pub trait FileSystemAsync {
             let contents = self
                 .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
                 .await?;
-            // TODO: make up a canonical name here with magic URL scheme
-            sources.push((format!("GitHub/{path}").into(), contents));
+            sources.push((
+                format!(
+                    "qsharp-github-source:{}/{}/{}{path}",
+                    dep.owner, dep.repo, dep.r#ref
+                )
+                .into(),
+                contents,
+            ));
         }
 
         Ok(Project { sources, manifest })
@@ -211,7 +218,7 @@ pub trait FileSystemAsync {
             dependencies.insert(alias.clone().into(), key_for_dependency_definition(dep));
         }
 
-        let language_features = project.manifest.language_features.clone();
+        let language_features = LanguageFeatures::from_iter(&project.manifest.language_features);
 
         Ok((
             project.manifest,
@@ -349,6 +356,7 @@ pub trait FileSystemAsync {
                 },
                 lints: manifest.lints,
                 errors,
+                target_profile: "unrestricted".into(), // TODO(alex)
             }),
         }
     }
@@ -419,22 +427,125 @@ type PackageKey = Arc<str>;
 type PackageAlias = Arc<str>;
 pub type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PackageInfo {
     pub sources: Vec<(Arc<str>, Arc<str>)>,
-    pub language_features: Vec<String>,
+    pub language_features: LanguageFeatures,
     pub dependencies: FxHashMap<PackageAlias, PackageKey>,
 }
 
+#[derive(Clone, Debug)]
 pub struct PackageGraphSources {
     pub root: PackageInfo,
     pub packages: FxHashMap<PackageKey, PackageInfo>,
+}
+
+impl PackageGraphSources {
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        language_features: LanguageFeatures,
+    ) -> Self {
+        Self {
+            root: PackageInfo {
+                sources,
+                language_features,
+                dependencies: FxHashMap::default(),
+            },
+            packages: FxHashMap::default(),
+        }
+    }
 }
 
 pub struct ProgramConfig {
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
+    pub target_profile: String,
+}
+
+impl ProgramConfig {
+    /// Given a source map and profile, create a default program config which
+    /// has no dependencies.
+    /// Useful for testing and single-file scenarios.
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        target_profile: String,
+    ) -> Self {
+        Self {
+            package_graph_sources: PackageGraphSources::with_no_dependencies(
+                sources,
+                LanguageFeatures::default(),
+            ),
+            lints: Vec::default(),
+            errors: Vec::default(),
+            target_profile,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
+
+impl PackageGraphSources {
+    /// Produces an ordered vector over the packages in the order they should be compiled
+    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        for (key, package_info) in &self.packages {
+            in_degree.entry(key).or_insert(0);
+            for dep in package_info.dependencies.values() {
+                graph.entry(dep).or_default().push(key);
+                *in_degree.entry(key).or_insert(0) += 1;
+            }
+        }
+
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree
+                        .get_mut(neighbor)
+                        .expect("graph pre-calculated this");
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        // if sorted_keys.len() != self.packages.len() {
+        //     return Err(DependencyCycle);
+        // }
+
+        let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        sorted_packages.sort_by_key(|(a_key, _pkg)| {
+            sorted_keys
+                .iter()
+                .position(|key| key.as_str() == &**a_key)
+                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
+        });
+
+        log::info!("build plan: {:#?}", sorted_keys);
+
+        Ok((sorted_packages, self.root))
+    }
 }
 
 /// Turns a `FileSystem` into a `FileSystemAsync`

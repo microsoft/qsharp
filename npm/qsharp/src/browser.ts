@@ -26,12 +26,13 @@ import {
   ILanguageServiceWorker,
   QSharpLanguageService,
   languageServiceProtocol,
+  qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { LogLevel, log } from "./log.js";
 import { createProxy } from "./workers/browser.js";
 
-export { qsharpLibraryUriScheme };
+export { qsharpGithubUriScheme, qsharpLibraryUriScheme };
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -99,6 +100,13 @@ export async function getLibrarySourceContent(
 ): Promise<string | undefined> {
   await instantiateWasm();
   return wasm.get_library_source_content(path);
+}
+
+export async function getGithubSourceContent(
+  path: string,
+): Promise<string | undefined> {
+  await instantiateWasm();
+  return wasm.get_github_source_content(path);
 }
 
 export async function getDebugService(): Promise<IDebugService> {

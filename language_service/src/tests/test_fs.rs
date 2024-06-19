@@ -6,7 +6,6 @@
 //! language service expects the fs to behave; if we want to reuse this in other
 //! tests, it could use some work to make methods a little more general.
 
-use qsc::LanguageFeatures;
 use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest, ManifestDescriptor};
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
@@ -169,11 +168,9 @@ impl FsNode {
             // TODO: I guess this should actually consume the deps?
             let project = FileSystem::load_project_with_deps(self, &manifest.manifest_dir, None);
             if let Ok(project) = project {
-                let project = project.package_graph_sources.root;
                 Some((
                     manifest.compilation_uri(),
-                    project.sources,
-                    LanguageFeatures::from_iter(project.language_features),
+                    project.package_graph_sources,
                     manifest.manifest.lints,
                 ))
             } else {

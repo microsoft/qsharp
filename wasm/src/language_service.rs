@@ -5,7 +5,7 @@ use crate::{
     diagnostic::VSDiagnostic,
     into_async_rust_fn_with,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::{into_project_args, IProjectConfig, LoadProjectCallback},
+    project_system::{IProjectConfig, LoadProjectCallback},
     serializable_type,
 };
 use qsc::{
@@ -40,7 +40,13 @@ impl LanguageService {
             if s.is_null() {
                 None
             } else {
-                Some(into_project_args(From::<IProjectConfig>::from(s.into())))
+                let s: IProjectConfig = s.into();
+                let s: crate::project_system::ProjectConfig = s.into();
+                Some((
+                    s.project_name.into(),
+                    s.package_graph_sources.into(),
+                    s.lints,
+                ))
             }
         });
 

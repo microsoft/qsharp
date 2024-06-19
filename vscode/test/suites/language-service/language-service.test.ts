@@ -213,7 +213,7 @@ suite("Q# Language Service Tests", function suite() {
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(1, 10), new vscode.Position(1, 20)),
+      new vscode.Range(new vscode.Position(1, 16), new vscode.Position(1, 26)),
     );
     assert.equal(text, "MyFunction");
 
@@ -221,10 +221,10 @@ suite("Q# Language Service Tests", function suite() {
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       projectMainDocUri,
-      new vscode.Position(1, 15), // cursor on the usage of "MyFunction"
+      new vscode.Position(1, 21), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
-    // Returned location should be in DepPackage on teh definition of "MyFunction"
+    // Returned location should be in DepPackage on the definition of "MyFunction"
     assert.lengthOf(actualDefinition, 1);
     const location = actualDefinition[0];
     assert.equal(location.uri.toString(), projectDepDocUri.toString());

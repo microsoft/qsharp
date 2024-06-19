@@ -11,7 +11,8 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::{into_async_rust_fn_with, into_qsc_args, IProgramConfig};
 use qsc::{
-    compile, format_state_id, get_latex,
+    compile::{self, Dependencies},
+    format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -56,34 +57,44 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(program: IProgramConfig) -> Result<String, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     if capabilities == Profile::Unrestricted.into() {
         return Err("Invalid target profile for QIR generation".to_string());
     }
 
-    _get_qir(source_map, language_features, capabilities)
+    _get_qir(
+        source_map,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    )
 }
 
 pub(crate) fn _get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    store: PackageStore,
+    deps: &qsc::compile::Dependencies,
 ) -> Result<String, String> {
-    qsc::codegen::get_qir(sources, language_features, capabilities)
+    log::info!("deps are {:?}", deps);
+    qsc::codegen::get_qir(sources, language_features, capabilities, store, deps)
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 #[wasm_bindgen]
 pub fn get_estimates(program: IProgramConfig, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let mut interpreter = interpret::Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         capabilities,
         language_features,
+        store,
+        &deps[..],
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -100,7 +111,7 @@ pub fn get_circuit(
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let (package_type, entry_point) = match operation {
         Some(p) => {
@@ -115,11 +126,12 @@ pub fn get_circuit(
     };
 
     let mut interpreter = interpret::Interpreter::new(
-        true,
         source_map,
         package_type,
         capabilities,
         LanguageFeatures::from_iter(language_features),
+        store,
+        &deps[..],
     )
     .map_err(interpret_errors_into_qsharp_errors_json)?;
 
@@ -168,7 +180,7 @@ pub fn get_ast(
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
-            &[*std],
+            &[(*std, None)],
             sources,
             PackageType::Exe,
             profile.into(),
@@ -192,7 +204,7 @@ pub fn get_hir(
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
-            &[*std],
+            &[(*std, None)],
             sources,
             PackageType::Exe,
             profile.into(),
@@ -264,6 +276,8 @@ fn run_internal_with_features<F>(
     shots: u32,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    store: PackageStore,
+    dependencies: &Dependencies,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -276,11 +290,12 @@ where
         .to_string();
     let mut out = CallbackReceiver { event_cb };
     let mut interpreter = match interpret::Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         capabilities,
         language_features,
+        store,
+        dependencies,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -321,7 +336,8 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
 ) -> Result<bool, JsValue> {
-    let (source_map, capabilities, language_features) = into_qsc_args(program, Some(expr.into()));
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, Some(expr.into()));
 
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -331,7 +347,15 @@ pub fn run(
         // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
     };
-    match run_internal_with_features(source_map, event_cb, shots, language_features, capabilities) {
+    match run_internal_with_features(
+        source_map,
+        event_cb,
+        shots,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
@@ -404,7 +428,7 @@ serializable_type! {
 #[wasm_bindgen]
 #[must_use]
 pub fn generate_docs(additional_program: Option<IProgramConfig>) -> Vec<IDocFile> {
-    let docs = if let Some((source_map, capabilities, language_features)) =
+    let docs = if let Some((source_map, capabilities, language_features, _store, _deps)) =
         additional_program.map(|p| into_qsc_args(p, None))
     {
         qsc_doc_gen::generate_docs::generate_docs(

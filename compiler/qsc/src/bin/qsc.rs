@@ -121,6 +121,7 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     if sources.is_empty() {
+        // TODO(alex) resolve transitive dependencies from the manifest here
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
@@ -143,9 +144,17 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
+    let mut store = PackageStore::new(qsc::compile::core());
+    let dependencies = if cli.nostdlib {
+        vec![]
+    } else {
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+        vec![(std_id, None)]
+    };
+    let dependencies = &dependencies[..];
     let (unit, errors) = compile(
         &store,
-        &dependencies,
+        dependencies,
         sources,
         package_type,
         capabilities,

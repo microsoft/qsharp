@@ -14,12 +14,15 @@ use qsc_passes::PackageType;
 
 fn interpreter(code: &str, profile: Profile) -> Interpreter {
     let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+    let mut store = crate::PackageStore::new(crate::compile::core());
+    let std_id = store.insert(crate::compile::std(&store, profile.into()));
     Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("interpreter creation should succeed")
 }
@@ -859,11 +862,15 @@ mod debugger_stepping {
     /// circuit representation at each step.
     fn generate_circuit_steps(code: &str, profile: Profile) -> String {
         let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+        let mut store = crate::PackageStore::new(crate::compile::core());
+        let std_id = store.insert(crate::compile::std(&store, profile.into()));
         let mut debugger = Debugger::new(
             sources,
             profile.into(),
             Encoding::Utf8,
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("debugger creation should succeed");
 

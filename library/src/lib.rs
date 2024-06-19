@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+pub const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
+
 // The core prefix on the name is needed to disambiguate from the std
 // files of the same name. This comes in during debugging when we need
 // to load a core/std file from the library.

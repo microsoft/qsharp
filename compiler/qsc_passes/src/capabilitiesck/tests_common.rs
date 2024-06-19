@@ -49,12 +49,16 @@ struct CompilationContext {
 
 impl CompilationContext {
     fn new(source: &str) -> Self {
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        // TODO(alex) ask cesarzc if std is wanted here
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.package_id());
@@ -74,12 +78,15 @@ impl CompilationContext {
     }
 
     fn new_for_exe(source: &str) -> Self {
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let compiler = Compiler::new(
-            true,
             SourceMap::new([("test".into(), source.into())], Some("".into())),
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.source_package_id());

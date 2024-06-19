@@ -55,6 +55,13 @@ export async function getLibrarySourceContent(
   return wasm!.get_library_source_content(path);
 }
 
+export async function getGithubSourceContent(
+  path: string,
+): Promise<string | undefined> {
+  ensureWasm();
+  return wasm!.get_github_source_content(path);
+}
+
 export function getCompiler(): ICompiler {
   ensureWasm();
   return new Compiler(wasm!);

@@ -101,6 +101,7 @@ export interface ILanguageService {
 }
 
 export const qsharpLibraryUriScheme = "qsharp-library-source";
+export const qsharpGithubUriScheme = "qsharp-github-source";
 
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 

@@ -7,7 +7,10 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::{self, InterpretResult, Interpreter};
+use qsc::{
+    interpret::{self, InterpretResult, Interpreter},
+    PackageStore,
+};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_eval::{
     output::{self, Receiver},
@@ -90,8 +93,19 @@ fn main() -> miette::Result<ExitCode> {
         .collect::<miette::Result<Vec<_>>>()?;
 
     let mut features = LanguageFeatures::from_iter(cli.features);
+    // when we load the project, need to set these
+    let mut store = PackageStore::new(qsc::compile::core());
+    let dependencies = if cli.nostdlib {
+        vec![]
+    } else {
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+        vec![(std_id, None)]
+    };
+
+    let dependencies = &dependencies[..];
 
     if sources.is_empty() {
+        // TODO(alex) resolve transitive dependencies from the manifest here
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
@@ -117,11 +131,12 @@ fn main() -> miette::Result<ExitCode> {
         } else {
             Interpreter::new
         })(
-            !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             features,
+            store,
+            dependencies,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -141,11 +156,12 @@ fn main() -> miette::Result<ExitCode> {
     } else {
         Interpreter::new
     })(
-        !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
         TargetCapabilityFlags::all(),
         features,
+        store,
+        dependencies,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

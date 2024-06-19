@@ -25,7 +25,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::Arc};
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
@@ -335,6 +335,15 @@ impl GlobalScope {
     /// item contents. This returns a [`NamespaceId`] which you can use to add more tys and terms to the scope.
     fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_or_find_namespace(name.into())
+    }
+
+    /// Given a starting namespace, search from that namespace.
+    fn insert_or_find_namespace_from_root(
+        &mut self,
+        ns: Vec<Rc<str>>,
+        root: NamespaceId,
+    ) -> NamespaceId {
+        self.namespaces.insert_or_find_namespace_from_root(ns, root)
     }
 }
 
@@ -1302,14 +1311,26 @@ impl GlobalTable {
         errors
     }
 
-    pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
+    pub(super) fn add_external_package(
+        &mut self,
+        id: PackageId,
+        package: &hir::Package,
+        alias: &Option<Arc<str>>,
+    ) {
+        let root = match alias {
+            Some(alias) => self
+                .scope
+                .insert_or_find_namespace(vec![Rc::from(&**alias)]),
+            None => self.scope.namespaces.root_id(),
+        };
+
         for global in global::iter_package(Some(id), package).filter(|global| {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
             let namespace = self
                 .scope
-                .insert_or_find_namespace(global.namespace.clone());
+                .insert_or_find_namespace_from_root(global.namespace.clone(), root);
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {

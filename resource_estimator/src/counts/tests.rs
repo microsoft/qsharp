@@ -10,19 +10,22 @@ use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter},
     target::Profile,
-    LanguageFeatures, PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 
 use super::LogicalCounter;
 
 fn verify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
     let source_map = SourceMap::new([("test".into(), source.into())], entry.map(Into::into));
+    let mut store = qsc::PackageStore::new(qsc::compile::core());
+    let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
     let mut interpreter = Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("compilation should succeed");
     let mut counter = LogicalCounter::default();

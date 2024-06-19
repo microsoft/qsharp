@@ -13,6 +13,7 @@ use crate::{
     typeck::{self, Checker, Table},
 };
 
+use library::QSHARP_LIBRARY_URI_SCHEME;
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -47,6 +48,7 @@ pub struct CompileUnit {
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
 }
+
 impl CompileUnit {
     pub fn expose(&mut self) {
         for (_item_id, item) in self.package.items.iter_mut() {
@@ -63,7 +65,7 @@ pub struct AstPackage {
     pub locals: Locals,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
     /// The common prefix of the sources
@@ -182,6 +184,9 @@ pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
 
+// this is only `None` for the legacy stdlib and core
+pub type Dependencies = [(PackageId, Option<Arc<str>>)];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
@@ -261,7 +266,13 @@ impl PackageStore {
             open: id,
         }
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+    }
 }
+
 impl<'a> IntoIterator for &'a PackageStore {
     type IntoIter = Iter<'a>;
     type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
@@ -336,7 +347,7 @@ impl MutVisitor for Offsetter {
 #[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
@@ -356,7 +367,7 @@ pub fn compile(
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     mut ast_package: ast::Package,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
@@ -424,7 +435,12 @@ pub fn core() -> CompileUnit {
 
     let core: Vec<(SourceName, SourceContents)> = library::CORE_LIB
         .iter()
-        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .map(|(name, contents)| {
+            (
+                format!("{QSHARP_LIBRARY_URI_SCHEME}:{name}").into(),
+                (*contents).into(),
+            )
+        })
         .collect();
     let sources = SourceMap::new(core, None);
 
@@ -448,13 +464,18 @@ pub fn core() -> CompileUnit {
 pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
         .iter()
-        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .map(|(name, contents)| {
+            (
+                format!("{QSHARP_LIBRARY_URI_SCHEME}:{name}").into(),
+                (*contents).into(),
+            )
+        })
         .collect();
     let sources = SourceMap::new(std, None);
 
     let mut unit = compile(
         store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         sources,
         capabilities,
         LanguageFeatures::default(),
@@ -502,22 +523,22 @@ fn parse_all(
 
 fn resolve_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
 ) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, &None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for &id in dependencies {
+    for (ref id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package, alias);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -537,7 +558,7 @@ fn resolve_all(
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     package: &ast::Package,
     names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
@@ -546,11 +567,15 @@ fn typeck_all(
         globals.add_external_package(PackageId::CORE, &unit.package);
     }
 
-    for &id in dependencies {
+    for (id, _alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be added to package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        // we can ignore the dependency alias here, because the
+        // typechecker doesn't do any name resolution -- it only operates on item ids.
+        // because of this, the typechecker doesn't actually need to care about visibility
+        // or the names of items at all.
+        globals.add_external_package(*id, &unit.package);
     }
 
     let mut checker = Checker::new(globals);
@@ -609,7 +634,10 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
 }
 
 fn truncate_to_path_separator(prefix: &str) -> &str {
-    let last_separator_index = prefix.rfind('/').or_else(|| prefix.rfind('\\'));
+    let last_separator_index = prefix
+        .rfind('/')
+        .or_else(|| prefix.rfind('\\'))
+        .or_else(|| prefix.rfind(':'));
     if let Some(last_separator_index) = last_separator_index {
         // Return the prefix up to and including the last path separator
         return &prefix[0..=last_separator_index];
