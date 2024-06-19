@@ -23,7 +23,7 @@ pub fn run_lints(
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
     let mut ast_lints = run_ast_lints(package_store, user_package_id, compile_unit, config);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config);
+    let mut hir_lints = run_hir_lints(package_store, user_package_id, compile_unit, config);
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);

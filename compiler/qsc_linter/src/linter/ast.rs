@@ -87,7 +87,7 @@ macro_rules! declare_ast_lints {
         // Declare the structs representing each lint.
         use crate::{Lint, LintKind, LintLevel, linter::ast::AstLintPass};
         use qsc_frontend::compile::{CompileUnit, PackageStore};
-            use qsc_hir::hir::PackageId;
+        use qsc_hir::hir::PackageId;
         $(declare_ast_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help})*
 
         // This is a silly wrapper module to avoid contaminating the environment
@@ -119,16 +119,14 @@ macro_rules! declare_ast_lints {
 
     // Declare & implement a struct representing a lint.
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
+        #[allow(dead_code)]
         pub(crate) struct $lint_name<'compilation> {
             level: LintLevel,
             message: &'static str,
             help: &'static str,
             kind: LintKind,
-            #[allow(dead_code)]
             package_store: &'compilation PackageStore,
-            #[allow(dead_code)]
             user_package_id: PackageId,
-            #[allow(dead_code)]
             compile_unit: &'compilation CompileUnit,
         }
 

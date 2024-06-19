@@ -12,7 +12,8 @@ use crate::linter::hir::declare_hir_lints;
 use super::lint;
 
 declare_hir_lints! {
-    (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead")
+    (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead"),
+    (DeprecatedWithOperator, LintLevel::Warn, "deprecated `w/` operator for structs", "`w/` operator for structs is deprecated, use `new` instead"),
 }
 
 /// Helper to check if an operation has desired operation characteristics
@@ -91,7 +92,7 @@ impl Visitor<'_> for IsQuantumOperation {
 
 /// HIR Lint for [`NeedlessOperation`], suggesting to use function
 /// We use [`IsQuantumOperation`] helper to check if a operation has desired operation characteristics
-impl HirLintPass for NeedlessOperation {
+impl HirLintPass<'_> for NeedlessOperation<'_> {
     fn check_callable_decl(&self, decl: &CallableDecl, buffer: &mut Vec<Lint>) {
         if decl.kind == CallableKind::Operation {
             let mut op_limits = IsQuantumOperation::default();
@@ -101,6 +102,14 @@ impl HirLintPass for NeedlessOperation {
             if !op_limits.is_op {
                 buffer.push(lint!(self, decl.name.span));
             }
+        }
+    }
+}
+
+impl HirLintPass<'_> for DeprecatedWithOperator<'_> {
+    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+        if let ExprKind::UpdateField(container, field, value) = &expr.kind {
+            //buffer.push(lint!(self, expr.span));
         }
     }
 }
