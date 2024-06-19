@@ -25,6 +25,7 @@ members = [
     "library",
     "pip",
     "resource_estimator",
+    "samples_test",
     "wasm",
 ]
 resolver = "2"
