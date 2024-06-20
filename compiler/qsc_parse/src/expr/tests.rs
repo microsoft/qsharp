@@ -342,10 +342,22 @@ fn lit_double_trailing_exp_dot() {
     );
 }
 
-#[ignore = "This test doesn't make sense."] // ToDo: Fix this test.
 #[test]
 fn lit_int_hexadecimal_dot() {
-    check(expr, "0x123.45", &expect!["Expr _id_ [0-5]: Lit: Int(291)"]);
+    check(expr, "0x123.45", &expect![[r#"
+        Error(
+            Rule(
+                "identifier",
+                Int(
+                    Decimal,
+                ),
+                Span {
+                    lo: 6,
+                    hi: 8,
+                },
+            ),
+        )
+    "#]]);
 }
 
 #[test]
