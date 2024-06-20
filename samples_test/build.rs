@@ -26,7 +26,7 @@ fn main() {
             .expect("file name should be valid");
         let file_stem = path
             .file_stem()
-            .expect("file name shoiuld be separable")
+            .expect("file name should be separable")
             .to_str()
             .expect("file name should be valid");
         let file_stem_upper = file_stem.to_uppercase();
