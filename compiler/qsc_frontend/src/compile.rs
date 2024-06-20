@@ -602,7 +602,10 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
 }
 
 fn truncate_to_path_separator(prefix: &str) -> &str {
-    let last_separator_index = prefix.rfind('/').or_else(|| prefix.rfind('\\'));
+    let last_separator_index = prefix
+        .rfind('/')
+        .or_else(|| prefix.rfind('\\'))
+        .or_else(|| prefix.rfind(':'));
     if let Some(last_separator_index) = last_separator_index {
         // Return the prefix up to and including the last path separator
         return &prefix[0..=last_separator_index];
