@@ -3,7 +3,6 @@
 
 import { IProjectConfig, getProjectLoader, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { Uri } from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
 import { ProjectLoader } from "../../npm/qsharp/lib/web/qsc_wasm";
@@ -259,7 +258,7 @@ async function singleFileProject(
 
 function resolvePath(base: string, relative: string): string | null {
   try {
-    return Utils.resolvePath(Uri.parse(base, true), relative).toString();
+    return Utils.resolvePath(URI.parse(base, true), relative).toString();
   } catch (e) {
     log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
     return null;
