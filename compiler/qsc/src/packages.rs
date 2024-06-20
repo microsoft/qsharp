@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-use std::{str::FromStr, sync::Arc};
 
-use qsc::{target::Profile, TargetCapabilityFlags};
+use crate::{compile, hir::PackageId, target::Profile, PackageStore, TargetCapabilityFlags};
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_frontend::compile::SourceMap;
+use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
+use std::{str::FromStr, sync::Arc};
 
 /// A program that is ready to be built -- dependencies have all been built, and the user code is ready.
 #[derive(Debug)]
 pub struct BuildableProgram {
-    pub store: qsc::PackageStore,
+    pub store: PackageStore,
     pub user_code: qsc_project::PackageInfo,
-    pub user_code_dependencies: Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
+    pub user_code_dependencies: Vec<(PackageId, Option<Arc<str>>)>,
 }
 
 impl BuildableProgram {
@@ -28,9 +31,9 @@ pub fn prepare_package_store(
     capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
 ) -> BuildableProgram {
-    let core = qsc::compile::core();
-    let mut package_store = qsc::PackageStore::new(core);
-    let std = qsc::compile::std(&package_store, capabilities);
+    let core = compile::core();
+    let mut package_store = PackageStore::new(core);
+    let std = compile::std(&package_store, capabilities);
     let std_id = package_store.insert(std);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
@@ -41,7 +44,7 @@ pub fn prepare_package_store(
     for (package_name, package_to_compile) in ordered_packages {
         let sources: Vec<(Arc<str>, Arc<str>)> =
             package_to_compile.sources.into_iter().collect::<Vec<_>>();
-        let source_map = qsc::SourceMap::new(sources, None);
+        let source_map = SourceMap::new(sources, None);
         let dependencies = package_to_compile
             .dependencies
             .iter()
@@ -60,13 +63,13 @@ pub fn prepare_package_store(
             .map(|(alias, b)| (*b, Some(alias.clone())))
             .chain(std::iter::once((std_id, None)))
             .collect::<Vec<_>>();
-        let (compile_unit, dependency_errors) = qsc::compile::compile(
+        let (compile_unit, dependency_errors) = compile::compile(
             &package_store,
             &dependencies[..],
             source_map,
-            qsc::PackageType::Lib,
+            PackageType::Lib,
             capabilities,
-            qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
+            LanguageFeatures::from_iter(package_to_compile.language_features),
         );
         if !dependency_errors.is_empty() {
             todo!("handle errors in dependencies: {dependency_errors:?}");
@@ -102,12 +105,13 @@ pub fn prepare_package_store(
 mod tests {
     // Copyright (c) Microsoft Corporation.
     // Licensed under the MIT License.
-    use std::sync::Arc;
-
+    use crate::{compile, LanguageFeatures, TargetCapabilityFlags};
     use expect_test::expect;
-    use qsc::{LanguageFeatures, TargetCapabilityFlags};
+    use qsc_frontend::compile::SourceMap;
+    use qsc_passes::PackageType;
     use qsc_project::PackageInfo;
     use rustc_hash::FxHashMap;
+    use std::sync::Arc;
 
     fn mock_program() -> qsc_project::ProgramConfig {
         qsc_project::ProgramConfig {
@@ -152,14 +156,14 @@ mod tests {
         );
 
         // compile the user code
-        let compiled = qsc::compile::compile(
+        let compiled = compile::compile(
             &buildable_program.store,
             &buildable_program.user_code_dependencies[..],
-            qsc::SourceMap::new(
+            SourceMap::new(
                 buildable_program.user_code.sources,
                 None, /* TODO entry */
             ),
-            qsc::PackageType::Exe,
+            PackageType::Exe,
             TargetCapabilityFlags::default(),
             LanguageFeatures::default(),
         );

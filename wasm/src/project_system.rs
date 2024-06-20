@@ -5,8 +5,7 @@ use crate::serializable_type;
 use async_trait::async_trait;
 use js_sys::JsString;
 use log::debug;
-use qsc::{linter::LintConfig, LanguageFeatures};
-use qsc_packages::BuildableProgram;
+use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
 use qsc_project::{
     EntryType, JSFileEntry, Manifest, ManifestDescriptor, PackageCache, ProjectSystemCallbacks,
 };
@@ -674,7 +673,7 @@ pub(crate) fn into_qsc_args(
         store,
         user_code,
         user_code_dependencies,
-    } = qsc_packages::BuildableProgram::new(
+    } = BuildableProgram::new(
         &program.target_profile,
         program.package_graph_sources.into(),
     );

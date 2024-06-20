@@ -10,12 +10,12 @@ use qsc::{
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
+    packages::{prepare_package_store, BuildableProgram},
     resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::LintConfig;
-use qsc_packages::{prepare_package_store, BuildableProgram};
 use qsc_project::PackageGraphSources;
 use std::sync::Arc;
 
