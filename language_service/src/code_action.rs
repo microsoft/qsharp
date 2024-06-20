@@ -87,6 +87,22 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
+                LintKind::Hir(HirLint::DeprecatedWithOperator) => code_actions.push(CodeAction {
+                    title: diagnostic.to_string(),
+                    edit: Some(WorkspaceEdit {
+                        changes: vec![(
+                            source_name.to_string(),
+                            vec![TextEdit {
+                                // Same source code without the unused variable.
+                                new_text: lint.code_action_edits[0].0.clone(),
+                                range: resolve_range(diagnostic, encoding)
+                                    .expect("range should exist"),
+                            }],
+                        )],
+                    }),
+                    kind: Some(CodeActionKind::QuickFix),
+                    is_preferred: None,
+                }),
                 LintKind::Ast(_) | LintKind::Hir(_) => (),
             }
         }

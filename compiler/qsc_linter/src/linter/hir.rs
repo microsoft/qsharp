@@ -266,6 +266,8 @@ macro_rules! declare_hir_lints {
 
 struct WithOperatorLint {
     span: Span,
+    ty_name: Rc<str>,
+    is_w_eq: bool,
     field_assigns: Vec<(Rc<str>, Rc<str>)>,
 }
 
@@ -285,14 +287,60 @@ impl<'a> DeprecatedWithOperator2<'a> {
             lint_info: None,
         }
     }
+
+    /// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
+    fn get_source_code(&self, span: Span) -> String {
+        let unit = self
+            .package_store
+            .get(self.user_package_id)
+            .expect("user package should exist");
+
+        let source = unit
+            .sources
+            .find_by_offset(span.lo)
+            .expect("source should exist");
+
+        let lo = (span.lo - source.offset) as usize;
+        let hi = (span.hi - source.offset) as usize;
+        source.contents[lo..hi].to_string()
+    }
+
+    fn indentation_at_offset(&self, offset: u32) -> u32 {
+        let unit = self
+            .package_store
+            .get(self.user_package_id)
+            .expect("user package should exist");
+
+        let source = unit
+            .sources
+            .find_by_offset(offset)
+            .expect("source should exist");
+
+        let mut indentation = 0;
+        for c in source.contents[..(offset - source.offset) as usize]
+            .chars()
+            .rev()
+        {
+            if c == '\n' {
+                break;
+            } else if c == ' ' {
+                indentation += 1;
+            } else if c == '\t' {
+                indentation += 4;
+            } else {
+                indentation = 0;
+            }
+        }
+        indentation
+    }
 }
 
 impl Visitor<'_> for DeprecatedWithOperator2<'_> {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
-            ExprKind::UpdateField(container, field, _value)
-            | ExprKind::AssignField(container, field, _value) => {
-                if let Ty::Udt(_name, Res::Item(item_id)) = &container.ty {
+            ExprKind::UpdateField(container, field, value)
+            | ExprKind::AssignField(container, field, value) => {
+                if let Ty::Udt(ty_name, Res::Item(item_id)) = &container.ty {
                     let (item, _, _) = resolve_item_relative_to_user_package(
                         *item_id,
                         self.user_package_id,
@@ -310,7 +358,8 @@ impl Visitor<'_> for DeprecatedWithOperator2<'_> {
                             } else {
                                 panic!("field should be a path");
                             };
-                            let field_info = (field_name, Rc::from("todo"));
+                            let field_value = Rc::from(self.get_source_code(value.span));
+                            let field_info = (field_name, field_value);
 
                             match &mut self.lint_info {
                                 Some(existing_info) => {
@@ -319,6 +368,8 @@ impl Visitor<'_> for DeprecatedWithOperator2<'_> {
                                 None => {
                                     self.lint_info = Some(WithOperatorLint {
                                         span: expr.span,
+                                        ty_name: ty_name.clone(),
+                                        is_w_eq: matches!(expr.kind, ExprKind::AssignField(..)),
                                         field_assigns: vec![field_info],
                                     });
                                 }
@@ -329,7 +380,31 @@ impl Visitor<'_> for DeprecatedWithOperator2<'_> {
             }
             _ => {
                 if let Some(info) = &self.lint_info {
-                    // ToDo: insert the lint info into the lint somehow for the code action
+                    // Construct a Struct constructor expr and print it back into Q# code
+                    let indentation = (self.indentation_at_offset(info.span.lo) + 4) as usize;
+                    let innermost_expr = self.get_source_code(expr.span);
+                    let mut new_expr = if info.is_w_eq {
+                        format!("set {} = new {} {{\n", innermost_expr, info.ty_name)
+                    } else {
+                        format!("new {} {{\n", info.ty_name)
+                    };
+                    new_expr.push_str(&format!(
+                        "{:indent$}...{},\n",
+                        "",
+                        innermost_expr,
+                        indent = indentation
+                    ));
+                    for (field, value) in info.field_assigns.iter().rev() {
+                        new_expr.push_str(&format!(
+                            "{:indent$}{} = {},\n",
+                            "",
+                            field,
+                            value,
+                            indent = indentation
+                        ));
+                    }
+                    new_expr.push_str(&format!("{:indent$}}}", "", indent = indentation - 4));
+
                     let lint = Lint {
                         span: info.span,
                         level: LintLevel::Warn,
@@ -337,7 +412,7 @@ impl Visitor<'_> for DeprecatedWithOperator2<'_> {
                         help:
                             "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
                         kind: LintKind::Hir(HirLint::DeprecatedWithOperator),
-                        code_action_edits: vec![],
+                        code_action_edits: vec![(new_expr, info.span)],
                     };
                     self.buffer.push(lint);
                     self.lint_info = None;
