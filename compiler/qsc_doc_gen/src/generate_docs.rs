@@ -292,7 +292,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Udt,
         )),
         ItemKind::Namespace(_, _) => None,
-        ItemKind::Reexport(_) => todo!(),
+        ItemKind::Export(_, _) => todo!(),
     }?;
 
     let summary = parse_doc_for_summary(&item.doc)

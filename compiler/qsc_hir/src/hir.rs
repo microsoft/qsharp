@@ -336,7 +336,8 @@ pub enum ItemKind {
     /// A `newtype` declaration.
     Ty(Ident, Udt),
     /// A reference to an item from another package.
-    Reexport(ItemId),
+    // TODO(alex) do exports of locals work?
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -357,7 +358,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
-            ItemKind::Reexport(_) => todo!(),
+            ItemKind::Export(name, item) => write!(f, "Export ({name}):  {item}"),
         }
     }
 }

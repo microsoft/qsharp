@@ -54,7 +54,8 @@ impl GlobalTable {
                     self.terms
                         .insert(item_id, udt.cons_scheme(item_id).with_package(id))
                 }
-                hir::ItemKind::Reexport(_) => todo!(),
+                // TODO(alex)
+                hir::ItemKind::Export(_, item_id) => todo!("not sure what to do here -- it seems like we would need to figure out if this is a udt or a term and insert it into the correct map. "),
             };
         }
     }

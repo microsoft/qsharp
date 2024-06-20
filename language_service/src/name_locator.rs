@@ -403,7 +403,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                     path.id
                                 )
                             }
-                            hir::ItemKind::Reexport(_) => todo!(),
+                            hir::ItemKind::Export(_, _) => todo!(),
                         }
                     }
                     resolve::Res::Local(node_id) => {

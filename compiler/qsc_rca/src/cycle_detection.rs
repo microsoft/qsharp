@@ -126,6 +126,7 @@ impl<'a> CycleDetector<'a> {
                 ItemKind::Ty(_, _) => {
                     // Ignore "calls" to types.
                 }
+                ItemKind::Export(_, _) => todo!(),
             }
         }
     }

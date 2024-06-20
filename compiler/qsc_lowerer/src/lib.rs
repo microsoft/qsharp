@@ -224,7 +224,16 @@ impl Lowerer {
 
                 fir::ItemKind::Ty(name, udt)
             }
-            hir::ItemKind::Reexport(_) => todo!(),
+            hir::ItemKind::Export(ident, item_id) => {
+                fir::ItemKind::Export(
+                    self.lower_ident(ident),
+                    // TODO(alex) is this right?
+                    fir::ItemId {
+                        package: todo!(),
+                        item: lower_local_item_id(item_id.item),
+                    },
+                )
+            }
         };
         let attrs = lower_attrs(&item.attrs);
         fir::Item {

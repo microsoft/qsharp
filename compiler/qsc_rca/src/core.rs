@@ -1872,6 +1872,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             ItemKind::Callable(decl) => {
                 self.visit_callable_decl(decl);
             }
+            ItemKind::Export(_, _) => todo!(),
         };
     }
 

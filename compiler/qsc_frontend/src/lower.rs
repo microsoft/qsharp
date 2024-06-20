@@ -125,16 +125,18 @@ impl With<'_> {
 
         self.lowerer.parent = Some(id);
 
-        // Exports are `Res` items, which contain `hir::ItemId`s.
-        let exports = namespace.exports().filter_map(|item| {
-            match self.names.get(item.name().id) {
-                Some(resolve::Res::Item(item, _)) => Some(item),
-                _ => None,
-            }
-            .map(|x| (item.span(), x))
-        });
+        let exports = namespace
+            .exports()
+            .filter_map(|item| {
+                match self.names.get(item.name().id) {
+                    Some(resolve::Res::Item(item, _)) => Some(item),
+                    _ => None,
+                }
+                .map(|x| (item.span(), self.lower_ident(item.name()), x))
+            })
+            .collect::<Vec<_>>();
 
-        for (span, export) in exports {
+        for (span, name, export) in exports {
             self.lowerer.items.push(hir::Item {
                 id: self.assigner.next_item(),
                 span,
@@ -143,17 +145,9 @@ impl With<'_> {
                 doc: Rc::from(""),
                 attrs: Vec::default(),
                 visibility: Visibility::Public,
-                kind: ItemKind::Reexport(export.clone()),
+                kind: ItemKind::Export(name, export.clone()),
             });
         }
-
-        // let exported_hir_ids = exports
-        //     .iter()
-        //     .filter_map(|res| match res {
-        //         resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
-        //         _ => None,
-        //     })
-        //     .collect::<Vec<_>>();
 
         let items = namespace
             .items

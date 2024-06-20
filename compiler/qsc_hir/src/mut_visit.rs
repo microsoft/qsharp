@@ -72,7 +72,8 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) => vis.visit_idents(name),
         ItemKind::Ty(name, _) => vis.visit_ident(name),
-        ItemKind::Reexport(_) => todo!(),
+        // there's nothing but an item id here, and that'll already have been visited.
+        ItemKind::Export(name, _) => vis.visit_ident(name),
     }
 }
 
