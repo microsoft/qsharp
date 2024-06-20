@@ -14,7 +14,7 @@ use qsc_ast::ast::{self};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId, Visibility},
+    hir::{self, ItemKind, LocalItemId, Visibility},
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, Ty},
 };
@@ -126,23 +126,42 @@ impl With<'_> {
         self.lowerer.parent = Some(id);
 
         // Exports are `Res` items, which contain `hir::ItemId`s.
-        let exports = namespace
-            .exports()
-            .filter_map(|item| self.names.get(item.name().id))
-            .collect::<Vec<_>>();
-
-        let exported_hir_ids = exports
-            .iter()
-            .filter_map(|res| match res {
-                resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
+        let exports = namespace.exports().filter_map(|item| {
+            match self.names.get(item.name().id) {
+                Some(resolve::Res::Item(item, _)) => Some(item),
                 _ => None,
-            })
-            .collect::<Vec<_>>();
+            }
+            .map(|x| (item.span(), x))
+        });
+
+        for (span, export) in exports {
+            self.lowerer.items.push(hir::Item {
+                id: self.assigner.next_item(),
+                span,
+                // TODO(alex) parent should probably be the ns
+                parent: Some(id),
+                doc: Rc::from(""),
+                attrs: Vec::default(),
+                visibility: Visibility::Public,
+                kind: ItemKind::Reexport(export.clone()),
+            });
+        }
+
+        // let exported_hir_ids = exports
+        //     .iter()
+        //     .filter_map(|res| match res {
+        //         resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
+        //         _ => None,
+        //     })
+        //     .collect::<Vec<_>>();
 
         let items = namespace
             .items
             .iter()
-            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
+            .filter_map(|i| {
+                // TODO(alex)
+                self.lower_item(i, &[])
+            })
             .collect::<Vec<_>>();
 
         let name = self.lower_idents(&namespace.name);

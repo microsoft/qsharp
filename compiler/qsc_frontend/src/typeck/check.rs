@@ -54,6 +54,7 @@ impl GlobalTable {
                     self.terms
                         .insert(item_id, udt.cons_scheme(item_id).with_package(id))
                 }
+                hir::ItemKind::Reexport(_) => todo!(),
             };
         }
     }

@@ -204,6 +204,7 @@ impl<'a> ReferenceFinder<'a> {
                 hir::ItemKind::Callable(decl) => decl.name.span,
                 hir::ItemKind::Namespace(name, _) => name.span(),
                 hir::ItemKind::Ty(name, _) => name.span,
+                hir::ItemKind::Reexport(_) => todo!(),
             };
             locations.push(
                 self.location(

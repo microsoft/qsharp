@@ -224,6 +224,7 @@ impl Lowerer {
 
                 fir::ItemKind::Ty(name, udt)
             }
+            hir::ItemKind::Reexport(_) => todo!(),
         };
         let attrs = lower_attrs(&item.attrs);
         fir::Item {
