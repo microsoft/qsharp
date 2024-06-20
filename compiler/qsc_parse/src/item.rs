@@ -170,6 +170,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
 
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
+/// Invalid or disallowed characters are cleaned up in a best effort manner.
 fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
@@ -199,9 +200,19 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
     Ok(namespace.into())
 }
 
+fn clean_namespace_name(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            '-' => '_',
+            _ => c,
+        })
+        .collect()
+}
+
 /// Validates that a string could be a valid namespace name component
 fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
-    let mut s = ParserContext::new(name, LanguageFeatures::default());
+    let name = clean_namespace_name(name);
+    let mut s = ParserContext::new(&name, LanguageFeatures::default());
     // if it could be a valid identifier, then it is a valid namespace name
     // we just directly use the ident parser here instead of trying to recreate
     // validation rules

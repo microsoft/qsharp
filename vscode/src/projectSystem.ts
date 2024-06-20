@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { Utils, URI } from "vscode-uri";
-import * as vscode from "vscode";
-
 import { getProjectLoader, log } from "qsharp-lang";
+import * as vscode from "vscode";
+import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
 
 /**
@@ -201,11 +200,34 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
 
 let projectLoader: any | undefined = undefined;
 
-export async function loadProject(documentUri: vscode.Uri): Promise<{
+export type ProjectConfig = {
+  /**
+   * Friendly name for the project, based on the name of the Q# document or project directory
+   */
+  projectName: string;
   sources: [string, string][];
   languageFeatures: string[];
-  lints: { lint: string; level: string }[];
-}> {
+  lints: {
+    lint: string;
+    level: string;
+  }[];
+};
+
+/**
+ * Given a Q# Document URI, returns the configuration and list of complete source files
+ * associated with that document.
+ *
+ * If there is a qsharp.json manifest for this document, the settings from that are used.
+ *
+ * If a manifest is not found, the returned project contains the single input file and the default settings.
+ *
+ * @param documentUri A Q# document.
+ * @returns The project configuration for that document.
+ * @throws Error if the qsharp.json cannot be parsed.
+ */
+export async function loadProject(
+  documentUri: vscode.Uri,
+): Promise<ProjectConfig> {
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
     documentUri.toString(),
@@ -215,6 +237,7 @@ export async function loadProject(documentUri: vscode.Uri): Promise<{
     const file = await vscode.workspace.openTextDocument(documentUri);
 
     return {
+      projectName: Utils.basename(documentUri),
       sources: [[documentUri.toString(), file.getText()]],
       languageFeatures: [],
       lints: [],
@@ -227,6 +250,8 @@ export async function loadProject(documentUri: vscode.Uri): Promise<{
   const project: [string, string][] =
     await projectLoader.load_project(manifest);
   return {
+    projectName:
+      Utils.basename(URI.parse(manifest.manifestDirectory)) || "Q# Project",
     sources: project,
     languageFeatures: manifest.languageFeatures || [],
     lints: manifest.lints,

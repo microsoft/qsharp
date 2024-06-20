@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { getCompilerWorker, log, ProgramConfig } from "qsharp-lang";
-import { isQsharpDocument } from "./common";
+import { getTarget, setTarget } from "./config";
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
+import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { getTarget, setTarget } from "./config";
-import { loadProject } from "./projectSystem";
-import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
 const generateQirTimeoutMs = 120000;
 
@@ -25,15 +24,13 @@ export async function getQirForActiveWindow(
   supports_adaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
   let result = "";
-  const editor = vscode.window.activeTextEditor;
-
-  if (!editor || !isQsharpDocument(editor.document)) {
-    throw new QirGenerationError(
-      "The currently active window is not a Q# file",
-    );
+  const program = await getActiveProgram();
+  if (!program.success) {
+    throw new QirGenerationError(program.errorMsg);
   }
 
-  const targetProfile = getTarget();
+  const config = program.programConfig;
+  const targetProfile = config.profile;
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";
 
@@ -75,15 +72,6 @@ export async function getQirForActiveWindow(
       await setTarget(supports_adaptive ? "adaptive_ri" : "base");
     }
   }
-  let sources: [string, string][] = [];
-  let languageFeatures: string[] = [];
-  try {
-    const result = await loadProject(editor.document.uri);
-    sources = result.sources;
-    languageFeatures = result.languageFeatures || [];
-  } catch (e: any) {
-    throw new QirGenerationError(e.message);
-  }
 
   // Create a temporary worker just to get the QIR, as it may loop/panic during codegen.
   // Let it run for max 10 seconds, then terminate it if not complete.
@@ -96,11 +84,8 @@ export async function getQirForActiveWindow(
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
 
-    const config = {
-      sources,
-      languageFeatures,
-      profile: getTarget(),
-    } as ProgramConfig;
+    // Override the program config with the new target profile (if updated above)
+    config.profile = getTarget();
 
     result = await vscode.window.withProgress(
       {
