@@ -229,34 +229,6 @@ if build_cli:
     step_end()
 
 
-def install_python_test_requirements(cwd, interpreter, check: bool = True):
-    # installing pytest with the test_requirements.txt file sometimes fails
-    # so we install pytest first
-    print("Installing pytest")
-    command_args = [
-        interpreter,
-        "-m",
-        "pip",
-        "install",
-        "pytest==8.2.2",
-    ]
-    subprocess.run(command_args, check=True, text=True, cwd=cwd)
-    print(f"Installing test requirements {command_args} in {cwd}")
-    command_args = [
-        interpreter,
-        "-m",
-        "pip",
-        "install",
-        "-r",
-        "test_requirements.txt",
-        "--only-binary",
-        "qirrunner",
-        "--only-binary",
-        "pyqir",
-    ]
-    subprocess.run(command_args, check=check, text=True, cwd=cwd)
-
-
 def install_qsharp_python_package(cwd, wheelhouse, interpreter):
     command_args = [
         interpreter,
@@ -269,6 +241,34 @@ def install_qsharp_python_package(cwd, wheelhouse, interpreter):
         "qsharp",
     ]
     subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+# If any package fails to install when using a requirements file, the entire
+# process will fail with unpredicatable state of installed packages. To avoid
+# this, we install each package individually from the requirements file.
+#
+# The reason we allow failures is that tooling for integration tests may not
+# be available on all platforms, so we don't want to fail the build if we can't
+# run the tests. The CI will run the tests on the platforms where the tooling
+# is available giving us the confidence that the tests pass on those platforms.
+def install_python_test_requirements(cwd, interpreter, check: bool = True):
+    requirements_file_path = os.path.join(cwd, "test_requirements.txt")
+    with open(requirements_file_path, "r", encoding="utf-8") as f:
+        # Skip empty lines
+        requirements = [line for line in f if line.strip()]
+    for requirement in requirements:
+        command_args = [
+            interpreter,
+            "-m",
+            "pip",
+            "install",
+            requirement,
+            "--only-binary",
+            "qirrunner",
+            "--only-binary",
+            "pyqir",
+        ]
+        subprocess.run(command_args, check=check, text=True, cwd=cwd)
 
 
 def build_qsharp_wheel(cwd, out_dir, interpreter, pip_env_dir):
