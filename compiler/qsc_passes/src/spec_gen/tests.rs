@@ -2141,7 +2141,7 @@ fn codegen_intrinsic_succeeds_with_no_specializations() {
             Package:
                 Item 0 [0-143] (Public):
                     Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
-                Item 1 [18-101] (Public):
+                Item 1 [18-101] (Internal):
                     Parent: 0
                     SimulatableIntrinsic
                     Callable 0 [46-101] (operation):
@@ -2157,7 +2157,7 @@ fn codegen_intrinsic_succeeds_with_no_specializations() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [106-141] (Public):
+                Item 2 [106-141] (Internal):
                     Parent: 0
                     Callable 10 [106-141] (operation):
                         name: Ident 11 [116-119] "Bar"
