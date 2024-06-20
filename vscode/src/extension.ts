@@ -37,7 +37,7 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { loadProjectNoSingleFile, setFetchHook } from "./projectSystem.js";
+import { loadProjectNoSingleFile, setGithubEndpoint } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
@@ -56,10 +56,7 @@ import { initProjectCreator } from "./createProject.js";
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<ExtensionApi> {
-  const api: ExtensionApi = { setFetchHook };
-  // setFetchHook(async () => {
-  //   return "namespace Foo { HELLO }";
-  // });
+  const api: ExtensionApi = { setGithubEndpoint };
 
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     // Don't log to the output window in tests, forward to a listener instead
@@ -116,8 +113,7 @@ export async function activate(
 export interface ExtensionApi {
   // Only available in test mode. Allows listening to extension log events.
   logging?: Logging;
-  // Only available in test mode.
-  setFetchHook: (hook: (url: string) => Promise<string>) => Promise<void>;
+  setGithubEndpoint: (endpoint: string) => void;
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {

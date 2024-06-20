@@ -180,17 +180,6 @@ export async function loadProjectNoSingleFile(
   return loadProjectInner(manifestDocument);
 }
 
-export async function setFetchHook(
-  fetchHook: (url: string) => Promise<string>,
-) {
-  projectLoader = await getProjectLoader(
-    readFile,
-    listDir,
-    async (a, b) => resolvePath(a, b) || "",
-    fetchHook,
-  );
-}
-
 export async function loadProjectInner(manifestDocument: {
   directory: vscode.Uri;
   uri: vscode.Uri;
@@ -265,6 +254,11 @@ function resolvePath(base: string, relative: string): string | null {
   }
 }
 
+let githubEndpoint = "https://raw.githubusercontent.com";
+export function setGithubEndpoint(endpoint: string) {
+  githubEndpoint = endpoint;
+}
+
 async function fetchGithubRaw(
   owner: string,
   repo: string,
@@ -272,8 +266,9 @@ async function fetchGithubRaw(
   path: string,
 ): Promise<string | null> {
   const pathNoLeadingSlash = path.startsWith("/") ? path.slice(1) : path;
-  const uri = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
-  log.debug(`making request to ${uri}`);
+
+  const uri = `${githubEndpoint}/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
+  log.info(`making request to ${uri}`);
   const response = await fetch(uri);
   if (!response.ok) {
     log.warn(
@@ -282,6 +277,19 @@ async function fetchGithubRaw(
     return null;
   }
 
-  // TODO: catch exceptions
-  return response.text();
+  let text;
+  try {
+    text = response.text();
+  } catch (e) {
+    if (e instanceof Error) {
+      log.warn(
+        `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${e.message}`,
+      );
+    }
+    return null;
+  }
+
+  // TODO: report errors up
+
+  return text;
 }

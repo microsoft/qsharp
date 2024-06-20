@@ -2,6 +2,13 @@
   "dependencies": {
     "MyDep": {
       "path": "../DepPackage"
+    },
+    "GitHubDep": {
+      "github": {
+        "owner": "test-owner",
+        "repo": "test-repo",
+        "ref": "test-ref"
+      }
     }
   }
 }

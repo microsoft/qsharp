@@ -15,10 +15,6 @@ suite("Q# Language Service Tests", function suite() {
   const projectMainDocUri = vscode.Uri.joinPath(
     workspaceFolderUri,
     "packages",
-    // TODO: I wanted to call this main-package but my current hacky way of
-    // concatenating source lists makes that an invalid namespace way.
-    // Change it back when we have things properly implemented so we can validate
-    // that we support dashes in project folder names.
     "MainPackage",
     "src",
     "Main.qs",
@@ -26,10 +22,6 @@ suite("Q# Language Service Tests", function suite() {
   const projectDepDocUri = vscode.Uri.joinPath(
     workspaceFolderUri,
     "packages",
-    // TODO: I wanted to call this main-package but my current hacky way of
-    // concatenating source lists makes that an invalid namespace way.
-    // Change it back when we have things properly implemented so we can validate
-    // that we support dashes in project folder names.
     "DepPackage",
     "src",
     "Main.qs",
@@ -228,6 +220,39 @@ suite("Q# Language Service Tests", function suite() {
     assert.lengthOf(actualDefinition, 1);
     const location = actualDefinition[0];
     assert.equal(location.uri.toString(), projectDepDocUri.toString());
+    assert.equal(location.range.start.line, 1);
+    assert.equal(location.range.start.character, 13);
+
+    // No errors if package dependencies are properly resolved
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(projectMainDocUri);
+    assert.isEmpty(actualDiagnostics);
+  });
+
+  test("Web package dependencies", async () => {
+    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    vscode.commands.executeCommand("workbench.action.problems.focus");
+
+    // Sanity check the test setup - is this the correct position?
+    const text = doc.getText(
+      new vscode.Range(new vscode.Position(2, 4), new vscode.Position(2, 32)),
+    );
+    assert.equal(text, "GitHubDep.Library.MyFunction");
+
+    // Verify go-to-definition works across packages
+    const actualDefinition = (await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      projectMainDocUri,
+      new vscode.Position(2, 30), // cursor on the usage of "MyFunction"
+    )) as vscode.Location[];
+
+    // Returned location should be in the web dependency on the definition of "MyFunction"
+    assert.lengthOf(actualDefinition, 1);
+    const location = actualDefinition[0];
+    assert.equal(
+      location.uri.toString(),
+      "qsharp-github-source:test-owner/test-repo/test-ref/src/Main.qs",
+    );
     assert.equal(location.range.start.line, 1);
     assert.equal(location.range.start.character, 13);
 
