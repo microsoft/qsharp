@@ -51,11 +51,17 @@ def test_project_unreadable_source(qsharp) -> None:
     assert str(excinfo.value).find("OSError: could not read test.qs") != -1
 
 
+def test_project_dependencies(qsharp) -> None:
+    qsharp.init(project_root="/with_deps")
+    result = qsharp.eval("Test.CallsDependency()")
+    assert result == 4
+
+
 memfs = {
     "": {
         "good": {
             "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } }",
+                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
             },
             "qsharp.json": "{}",
         },
@@ -74,6 +80,19 @@ memfs = {
                 "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
             },
             "qsharp.json": "{}",
+        },
+        "with_deps": {
+            "src": {
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
+            },
+            "qsharp.json": """
+                {
+                    "dependencies": {
+                        "Foo": {
+                            "path": "../good"
+                        }
+                    }
+                }""",
         },
     }
 }

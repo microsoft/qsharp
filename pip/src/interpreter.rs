@@ -22,7 +22,8 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor, PackageCache},
+    packages::BuildableProgram,
+    project::{FileSystem, Manifest, ManifestDescriptor, PackageCache, PackageGraphSources},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -136,7 +137,7 @@ impl Interpreter {
 
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
-        let sources = if let Some(manifest_descriptor) = manifest_descriptor {
+        let buildable_program = if let Some(manifest_descriptor) = manifest_descriptor {
             let mut project = file_system(
                 py,
                 read_file.expect(
@@ -161,28 +162,22 @@ impl Interpreter {
                 return Err(first_err.into_py_err());
             }
 
-            // TODO: properly consume dependencies
-            // TODO(alex) import into_qsc_args or put similar function here
-            let mut sources = project.package_graph_sources.root.sources;
-            for dep in project.package_graph_sources.packages.values_mut() {
-                sources.append(&mut dep.sources);
-            }
-            SourceMap::new(sources, None)
+            BuildableProgram::new(target.to_str(), project.package_graph_sources)
         } else {
-            SourceMap::default()
+            let graph = PackageGraphSources::with_no_dependencies(
+                Vec::default(),
+                LanguageFeatures::from_iter(language_features),
+            );
+            BuildableProgram::new(target.to_str(), graph)
         };
 
-        let language_features = LanguageFeatures::from_iter(language_features);
-        let mut store = qsc::PackageStore::new(qsc::compile::core());
-        let std_id = store.insert(qsc::compile::std(&store, target.into()));
-
         match interpret::Interpreter::new(
-            sources,
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
             target.into(),
-            language_features,
-            store,
-            &[(std_id, None)],
+            buildable_program.user_code.language_features,
+            buildable_program.store,
+            &buildable_program.user_code_dependencies,
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
