@@ -12,8 +12,6 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     throw new Error(program.errorMsg);
   }
 
-  const { packageGraphSources, profile } = program.programConfig;
-
   // Reveal panel and show 'Loading...' for immediate feedback.
   sendMessageToPanel(
     "documentation", // This is needed to route the message to the proper panel
@@ -27,10 +25,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     "./out/compilerWorker.js",
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
-  const docFiles = await worker.getDocumentation({
-    packageGraphSources,
-    profile,
-  });
+  const docFiles = await worker.getDocumentation(program.programConfig);
 
   const documentation: string[] = [];
   for (const file of docFiles) {
