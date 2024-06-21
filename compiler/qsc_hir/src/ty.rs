@@ -588,7 +588,8 @@ impl Udt {
         }
     }
 
-    fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
+    #[must_use]
+    pub fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
             let UdtDefKind::Tuple(items) = &udt_def.kind else {

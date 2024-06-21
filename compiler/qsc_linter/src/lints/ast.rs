@@ -3,7 +3,7 @@
 
 use super::lint;
 use crate::linter::ast::declare_ast_lints;
-use qsc_ast::ast::{BinOp, ExprKind, Lit, StmtKind};
+use qsc_ast::ast::{BinOp, ExprKind, Item, ItemKind, Lit, StmtKind};
 use qsc_data_structures::span::Span;
 
 // Read Me:
@@ -27,6 +27,7 @@ declare_ast_lints! {
     (DivisionByZero, LintLevel::Error, "attempt to divide by zero", "division by zero will fail at runtime"),
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
+    (DeprecatedNewtype, LintLevel::Warn, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
 }
 
 impl AstLintPass for DivisionByZero {
@@ -137,5 +138,14 @@ fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
         },
         ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) => 1,
         _ => 0,
+    }
+}
+
+/// Crates a lint for deprecated user-defined types declarations using `newtype`.
+impl AstLintPass for DeprecatedNewtype {
+    fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
+        if let ItemKind::Ty(_, _) = item.kind.as_ref() {
+            buffer.push(lint!(self, item.span));
+        }
     }
 }

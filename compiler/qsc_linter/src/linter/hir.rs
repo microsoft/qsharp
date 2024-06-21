@@ -48,28 +48,34 @@ pub fn run_hir_lints(
 /// The trait provides default empty implementations for the rest of the methods,
 /// which will be optimized to a no-op by the rust compiler.
 pub(crate) trait HirLintPass {
-    fn check_block(&self, _block: &Block, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_block(&mut self, _block: &Block, _buffer: &mut Vec<Lint>, _context: Context) {}
     fn check_callable_decl(
-        &self,
+        &mut self,
         _callable_decl: &CallableDecl,
         _buffer: &mut Vec<Lint>,
         _context: Context,
     ) {
     }
-    fn check_expr(&self, _expr: &Expr, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_ident(&self, _ident: &Ident, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_item(&self, _item: &Item, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_package(&self, _package: &Package, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_pat(&self, _pat: &Pat, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_expr(&mut self, _expr: &Expr, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_ident(&mut self, _ident: &Ident, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_item(&mut self, _item: &Item, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_package(&mut self, _package: &Package, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_pat(&mut self, _pat: &Pat, _buffer: &mut Vec<Lint>, _context: Context) {}
     fn check_qubit_init(
-        &self,
+        &mut self,
         _qubit_init: &QubitInit,
         _buffer: &mut Vec<Lint>,
         _context: Context,
     ) {
     }
-    fn check_spec_decl(&self, _spec_decl: &SpecDecl, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_stmt(&self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_spec_decl(
+        &mut self,
+        _spec_decl: &SpecDecl,
+        _buffer: &mut Vec<Lint>,
+        _context: Context,
+    ) {
+    }
+    fn check_stmt(&mut self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _context: Context) {}
 }
 
 /// This macro allow us to declare lints while avoiding boilerplate. It does three things:

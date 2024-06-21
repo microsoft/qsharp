@@ -41,6 +41,7 @@ pub fn run_lints(
 }
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub(crate) struct Context<'a> {
     pub package_store: &'a PackageStore,
     pub user_package_id: PackageId,
