@@ -167,13 +167,15 @@ impl PackageIter<'_> {
                 status,
                 kind: Kind::Namespace,
             }),
-            (ItemKind::Export(name, export), Some(ItemKind::Namespace(ns, _))) => Some(Global {
-                namespace: ns.into(),
-                name: todo!(),
-                visibility: Visibility::Public,
-                status,
-                kind: todo!(), //Kind::Item(item_id),
-            }),
+            (ItemKind::Export(name, _export, _udt_or_kind), Some(ItemKind::Namespace(ns, _))) => {
+                Some(Global {
+                    namespace: ns.into(),
+                    name: name.name.clone(),
+                    visibility: Visibility::Public,
+                    status,
+                    kind: todo!("Kind::Export(export),"),
+                })
+            }
             _ => None,
         }
     }

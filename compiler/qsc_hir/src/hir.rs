@@ -326,6 +326,14 @@ impl Display for Item {
     }
 }
 
+/// an exported item needs to track if it is a UDT or a callable
+/// so we know what to insert it as in the type checking stage
+#[derive(Clone, Debug, PartialEq)]
+pub enum UdtOrCallable {
+    Udt,
+    Callable,
+}
+
 /// An item kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
@@ -337,7 +345,7 @@ pub enum ItemKind {
     Ty(Ident, Udt),
     /// A reference to an item from another package.
     // TODO(alex) do exports of locals work?
-    Export(Ident, ItemId),
+    Export(UdtOrCallable, Ident, ItemId),
 }
 
 impl Display for ItemKind {
