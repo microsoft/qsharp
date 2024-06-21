@@ -344,7 +344,10 @@ fn lit_double_trailing_exp_dot() {
 
 #[test]
 fn lit_int_hexadecimal_dot() {
-    check(expr, "0x123.45", &expect![[r#"
+    check(
+        expr,
+        "0x123.45",
+        &expect![[r#"
         Error(
             Rule(
                 "identifier",
@@ -357,7 +360,8 @@ fn lit_int_hexadecimal_dot() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
