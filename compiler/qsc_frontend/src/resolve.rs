@@ -49,6 +49,8 @@ pub enum Res {
     PrimTy(Prim),
     /// The unit type.
     UnitTy,
+    /// An export, which could be from another package.
+    ExportedItem(ItemId),
 }
 
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
@@ -855,8 +857,6 @@ impl Resolver {
                 ItemSource::Imported
             };
 
-            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
-
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
@@ -905,7 +905,20 @@ impl Resolver {
                 }
             };
             // insert the item into the names we know about
-            self.names.insert(item.name().id, res);
+            if is_export {
+                // this makes the microsoft.quantum.core thing fail
+                // if false { -- this works
+                match res {
+                    Res::Item(item_id, _) => {
+                        self.names
+                            .insert(item.name().id, Res::ExportedItem(item_id));
+                    }
+                    // TODO(alex)
+                    _ => todo!("res should be an item"),
+                }
+            } else {
+                self.names.insert(item.name().id, res);
+            }
         }
     }
 
@@ -1352,6 +1365,9 @@ impl GlobalTable {
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
                     self.scope.insert_or_find_namespace(global.namespace);
+                }
+                (global::Kind::Export, _) => {
+                    todo!()
                 }
                 (_, hir::Visibility::Internal) => {}
             }

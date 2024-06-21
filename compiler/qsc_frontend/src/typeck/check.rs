@@ -37,25 +37,55 @@ impl GlobalTable {
         }
     }
 
-    pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
+    pub(crate) fn add_external_package(
+        &mut self,
+        package_id: PackageId,
+        package: &hir::Package,
+        store: &crate::compile::PackageStore,
+    ) {
         for item in package.items.values() {
-            let item_id = ItemId {
-                package: Some(id),
-                item: item.id,
-            };
-
-            match &item.kind {
-                hir::ItemKind::Callable(decl) => {
-                    self.terms.insert(item_id, decl.scheme().with_package(id))
-                }
-                hir::ItemKind::Namespace(..) => None,
-                hir::ItemKind::Ty(_, udt) => {
-                    self.udts.insert(item_id, udt.clone());
-                    self.terms
-                        .insert(item_id, udt.cons_scheme(item_id).with_package(id))
-                }
-            };
+            self.handle_item(item, package_id, store);
         }
+    }
+
+    fn handle_item(
+        &mut self,
+        item: &hir::Item,
+        package_id: PackageId,
+        store: &crate::compile::PackageStore,
+    ) {
+        let item_id = ItemId {
+            package: Some(package_id),
+            item: item.id,
+        };
+        match &item.kind {
+            hir::ItemKind::Callable(decl) => {
+                self.terms
+                    .insert(item_id, decl.scheme().with_package(package_id));
+            }
+            hir::ItemKind::Namespace(..) => (),
+            hir::ItemKind::Ty(_, udt) => {
+                self.udts.insert(item_id, udt.clone());
+                self.terms
+                    .insert(item_id, udt.cons_scheme(item_id).with_package(package_id));
+            }
+            hir::ItemKind::Export(
+                name,
+                ItemId {
+                    package: other_package,
+                    item,
+                },
+            ) => {
+                let package_id = other_package.unwrap_or(package_id);
+                let package = store.get(package_id).expect("package should exist");
+                let item = package
+                    .package
+                    .items
+                    .get(*item)
+                    .expect("exported item should exist");
+                self.handle_item(item, package_id, store);
+            }
+        };
     }
 }
 

@@ -84,6 +84,7 @@ impl<'a> Renamer<'a> {
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
             Res::Param(id) => format!("param{id}"),
+            Res::ExportedItem(_) => todo!(),
         }
     }
 }

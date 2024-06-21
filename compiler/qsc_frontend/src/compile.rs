@@ -564,7 +564,7 @@ fn typeck_all(
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, store);
     }
 
     for (id, _alias) in dependencies {
@@ -575,7 +575,7 @@ fn typeck_all(
         // typechecker doesn't do any name resolution -- it only operates on item ids.
         // because of this, the typechecker doesn't actually need to care about visibility
         // or the names of items at all.
-        globals.add_external_package(*id, &unit.package);
+        globals.add_external_package(*id, &unit.package, store);
     }
 
     let mut checker = Checker::new(globals);

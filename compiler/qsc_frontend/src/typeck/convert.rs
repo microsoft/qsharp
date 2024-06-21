@@ -68,6 +68,9 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
 pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
     match names.get(path.id) {
         Some(&resolve::Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
+        Some(&resolve::Res::ExportedItem(item)) => {
+            Ty::Udt(path.name.name.clone(), hir::Res::Item(item))
+        }
         Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
         Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
         // a path should never resolve to a parameter,

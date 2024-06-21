@@ -139,9 +139,24 @@ impl With<'_> {
             })
             .collect::<Vec<_>>();
 
+        /*
+        for exported_item in exported_hir_ids {
+            self.lowerer.items.push(hir::Item {
+                id: exported_item,
+                span: namespace.span,
+                parent: self.lowerer.parent,
+                doc: Rc::clone(&namespace.doc),
+                attrs: Vec::new(),
+                visibility: hir::Visibility::Public,
+                kind: hir::ItemKind::Export(todo!("name"), exported_item),
+            });
+        }
+        */
+
         let items = namespace
             .items
             .iter()
+            // TODO(alex) might not need exported_ids anymore
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
 
@@ -772,6 +787,8 @@ impl With<'_> {
         match self.names.get(path.id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
+            // TODO(alex)
+            Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }

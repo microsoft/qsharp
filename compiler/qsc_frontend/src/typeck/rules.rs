@@ -109,6 +109,11 @@ impl<'a> Context<'a> {
                 Some(&Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
+                Some(Res::ExportedItem(_item_id)) => {
+                    // TODO(alex) query the types, which should have already
+                    // gotten what they need from the package store
+                    todo!()
+                }
                 None => Ty::Err,
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
@@ -399,6 +404,10 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
+                Some(Res::ExportedItem(item_id)) => {
+                    // TODO(alex)
+                    todo!()
+                }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression resolves to type")
                 }

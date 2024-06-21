@@ -335,6 +335,8 @@ pub enum ItemKind {
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export of an item.
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -355,6 +357,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(_, export) => write!(f, "Export: {export}"),
         }
     }
 }

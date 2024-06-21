@@ -25,6 +25,7 @@ pub enum Kind {
     Namespace,
     Ty(Ty),
     Term(Term),
+    Export,
 }
 
 impl std::fmt::Debug for Kind {
@@ -33,6 +34,7 @@ impl std::fmt::Debug for Kind {
             Kind::Namespace => write!(f, "Namespace"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
             Kind::Term(term) => write!(f, "Term({})", term.id),
+            Kind::Export => todo!(),
         }
     }
 }
@@ -93,6 +95,7 @@ impl FromIterator<Global> for Table {
                         .insert(global.name, term);
                 }
                 Kind::Namespace => {}
+                Kind::Export => todo!(),
             }
         }
 
@@ -166,6 +169,16 @@ impl PackageIter<'_> {
                 visibility: Visibility::Public,
                 status,
                 kind: Kind::Namespace,
+            }),
+            (
+                ItemKind::Export(name, ItemId { package, item }),
+                Some(ItemKind::Namespace(namespace, _)),
+            ) => Some(Global {
+                namespace: namespace.into(),
+                name: name.name.clone(),
+                visibility: Visibility::Public,
+                status,
+                kind: Kind::Export,
             }),
             _ => None,
         }

@@ -591,6 +591,7 @@ fn local_completion(
                         CompletionItemKind::Interface,
                     )
                 }
+                ItemKind::Export(_, _) => todo!(),
             };
             (kind, detail)
         }

@@ -1653,3 +1653,56 @@ fn multiple_packages_disallow_unexported_imports() {
         ]"#]]
     .assert_eq(&format!("{:#?}", user_code.errors));
 }
+
+#[test]
+fn reexport() {
+    let mut store = PackageStore::new(super::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                export Microsoft.Quantum.Core.Length as Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let user_code = SourceMap::new(
+        [(
+            "UserCode".into(),
+            indoc! {"
+                    import A.PackageA.Foo;
+                    @EntryPoint()
+                    function Main() : Unit {
+                        let z = Foo;
+                        let len = Foo([]);
+                    }
+                "}
+            .into(),
+        )],
+        None,
+    );
+
+    let user_code = compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        user_code,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+
+    expect![[r#""#]].assert_eq(&format!("{:#?}", user_code.errors));
+}
