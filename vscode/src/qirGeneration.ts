@@ -82,7 +82,11 @@ export async function getQirForActiveWindow(
   try {
     const associationId = getRandomGuid();
     const start = performance.now();
-    sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.GenerateQirStart,
+      { associationId, targetProfile },
+      {},
+    );
 
     // Override the program config with the new target profile (if updated above)
     config.profile = getTarget();
