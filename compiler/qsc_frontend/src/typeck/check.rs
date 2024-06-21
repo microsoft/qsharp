@@ -57,7 +57,7 @@ impl GlobalTable {
                         .insert(item_id, udt.cons_scheme(item_id).with_package(id));
                 }
                 // TODO(alex)
-                hir::ItemKind::Export(name, item_id) => {
+                hir::ItemKind::Export(name, item_id, udt_or_term, scheme) => {
                     self.exports.insert(name.clone(), *item_id);
                 }
             };

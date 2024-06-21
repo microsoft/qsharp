@@ -33,6 +33,8 @@ use crate::compile::preprocess::TrackedName;
 
 // All AST Path nodes get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
+/// Maps every AST node where a name is defined to its res
+/// This includes both usages and definitions of names
 pub(super) type Names = IndexMap<NodeId, Res>;
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
@@ -854,8 +856,6 @@ impl Resolver {
             } else {
                 ItemSource::Imported
             };
-
-            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
 
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {

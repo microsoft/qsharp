@@ -169,10 +169,13 @@ impl PackageIter<'_> {
             }),
             (ItemKind::Export(name, export), Some(ItemKind::Namespace(ns, _))) => Some(Global {
                 namespace: ns.into(),
-                name: todo!(),
+                name: name.name.clone(),
                 visibility: Visibility::Public,
                 status,
-                kind: todo!(), //Kind::Item(item_id),
+                kind: Kind::Ty(Ty {
+                    // TODO(Alex) this is incorrect
+                    id: *export,
+                }),
             }),
             _ => None,
         }
