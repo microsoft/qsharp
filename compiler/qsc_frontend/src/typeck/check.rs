@@ -16,7 +16,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
-    hir::{self, ItemId, PackageId},
+    hir::{self, Ident, ItemId, PackageId},
     ty::{FunctorSetValue, Scheme, Ty, Udt},
 };
 use rustc_hash::FxHashMap;
@@ -25,6 +25,7 @@ use std::vec;
 pub(crate) struct GlobalTable {
     udts: FxHashMap<ItemId, Udt>,
     terms: FxHashMap<ItemId, Scheme>,
+    exports: FxHashMap<Ident, ItemId>,
     errors: Vec<Error>,
 }
 
@@ -33,6 +34,7 @@ impl GlobalTable {
         Self {
             udts: FxHashMap::default(),
             terms: FxHashMap::default(),
+            exports: FxHashMap::default(),
             errors: Vec::new(),
         }
     }
@@ -46,16 +48,18 @@ impl GlobalTable {
 
             match &item.kind {
                 hir::ItemKind::Callable(decl) => {
-                    self.terms.insert(item_id, decl.scheme().with_package(id))
+                    self.terms.insert(item_id, decl.scheme().with_package(id));
                 }
-                hir::ItemKind::Namespace(..) => None,
+                hir::ItemKind::Namespace(..) => (),
                 hir::ItemKind::Ty(_, udt) => {
                     self.udts.insert(item_id, udt.clone());
                     self.terms
-                        .insert(item_id, udt.cons_scheme(item_id).with_package(id))
+                        .insert(item_id, udt.cons_scheme(item_id).with_package(id));
                 }
                 // TODO(alex)
-                hir::ItemKind::Export(_, item_id) => todo!("not sure what to do here -- it seems like we would need to figure out if this is a udt or a term and insert it into the correct map. "),
+                hir::ItemKind::Export(name, item_id) => {
+                    self.exports.insert(name.clone(), *item_id);
+                }
             };
         }
     }

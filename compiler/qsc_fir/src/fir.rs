@@ -702,7 +702,9 @@ pub enum ItemKind {
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
-
+    /// An exported item which may reference an item from another packqge.
+    /// TODO(alex) figure out what to do if the thing is local -- do we need to reassign its
+    /// package id?
     Export(Ident, ItemId),
 }
 

@@ -145,7 +145,7 @@ impl With<'_> {
                 doc: Rc::from(""),
                 attrs: Vec::default(),
                 visibility: Visibility::Public,
-                kind: ItemKind::Export(name, export.clone()),
+                kind: ItemKind::Export(name, *export),
             });
         }
 
