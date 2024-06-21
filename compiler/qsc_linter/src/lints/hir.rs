@@ -109,13 +109,17 @@ impl Visitor<'_> for IsQuantumOperation {
 #[derive(Default)]
 pub(crate) struct NeedlessOperation {
     level: LintLevel,
-    // custom_field: String,
 }
 
 /// HIR Lint for [`NeedlessOperation`], suggesting to use function
 /// We use [`IsQuantumOperation`] helper to check if a operation has desired operation characteristics
 impl HirLintPass for NeedlessOperation {
-    fn check_callable_decl(&self, decl: &CallableDecl, buffer: &mut Vec<Lint>, _context: Context) {
+    fn check_callable_decl(
+        &mut self,
+        decl: &CallableDecl,
+        buffer: &mut Vec<Lint>,
+        _context: Context,
+    ) {
         if decl.kind == CallableKind::Operation {
             let mut op_limits = IsQuantumOperation::default();
 
