@@ -10,8 +10,6 @@ use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest, ManifestDescript
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
 
-use crate::state::LoadProjectResult;
-
 pub(crate) enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
     File(Arc<str>),
@@ -159,26 +157,6 @@ impl FsNode {
             Some(FsNode::Dir(dir)) => dir.remove(name),
             Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
         };
-    }
-
-    pub fn load_project_with_deps(&self, file: &str) -> LoadProjectResult {
-        let manifest = self.get_manifest(file);
-
-        if let Some(manifest) = manifest {
-            // TODO: I guess this should actually consume the deps?
-            let project = FileSystem::load_project_with_deps(self, &manifest.manifest_dir, None);
-            if let Ok(project) = project {
-                Some((
-                    manifest.compilation_uri(),
-                    project.package_graph_sources,
-                    manifest.manifest.lints,
-                ))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
     }
 }
 

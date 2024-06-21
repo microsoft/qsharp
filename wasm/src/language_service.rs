@@ -3,15 +3,19 @@
 
 use crate::{
     diagnostic::VSDiagnostic,
-    into_async_rust_fn_with,
+    into_async_rust_fn_with, into_async_rust_fn_with_2, into_async_rust_fn_with_4,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::{IProjectConfig, LoadProjectCallback},
+    project_system::{
+        get_manifest_transformer, list_directory_transformer, read_file_transformer,
+        resolve_path_transformer, FetchGithubCallback, GetManifestCallback, ListDirectoryCallback,
+        ReadFileCallback, ResolvePathCallback,
+    },
     serializable_type,
 };
 use qsc::{
     self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
 };
-use qsc_project::Manifest;
+use qsc_project::{Manifest, ProjectSystemCallbacks};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -33,22 +37,26 @@ impl LanguageService {
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        load_project: LoadProjectCallback,
+        get_manifest: GetManifestCallback,
+        read_file: ReadFileCallback,
+        list_directory: ListDirectoryCallback,
+        resolve_path: ResolvePathCallback,
+        fetch_github: FetchGithubCallback,
     ) -> js_sys::Promise {
-        let load_project = load_project.into();
-        let load_project = into_async_rust_fn_with!(load_project, |s: JsValue, _| {
-            if s.is_null() {
-                None
-            } else {
-                let s: IProjectConfig = s.into();
-                let s: crate::project_system::ProjectConfig = s.into();
-                Some((
-                    s.project_name.into(),
-                    s.package_graph_sources.into(),
-                    s.lints,
-                ))
-            }
-        });
+        let get_manifest: JsValue = get_manifest.into();
+        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
+
+        let read_file = read_file.into();
+        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
+
+        let list_directory = list_directory.into();
+        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
+
+        let resolve_path = resolve_path.into();
+        let resolve_path = into_async_rust_fn_with_2!(resolve_path, resolve_path_transformer);
+
+        let fetch_github = fetch_github.into();
+        let fetch_github = into_async_rust_fn_with_4!(fetch_github, resolve_path_transformer);
 
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
@@ -74,9 +82,16 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self
-            .0
-            .create_update_worker(diagnostics_callback, load_project);
+        let mut worker = self.0.create_update_worker(
+            diagnostics_callback,
+            get_manifest,
+            ProjectSystemCallbacks {
+                read_file: Box::new(read_file),
+                list_directory: Box::new(list_directory),
+                resolve_path: Box::new(resolve_path),
+                fetch_github: Box::new(fetch_github),
+            },
+        );
 
         future_to_promise(async move {
             worker.run().await;

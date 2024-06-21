@@ -10,7 +10,7 @@ import { ProjectLoader } from "../../npm/qsharp/lib/web/qsc_wasm";
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
-async function findManifestDocument(
+export async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ directory: vscode.Uri; uri: vscode.Uri; content: string } | null> {
   // file://home/foo/bar/src/document.qs
@@ -82,7 +82,7 @@ async function tryReadManifestInDir(
 
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
-export async function listDir(
+export async function listDirectory(
   directoryQuery: string,
 ): Promise<[string, number][]> {
   const uriToQuery = vscode.Uri.parse(directoryQuery);
@@ -165,33 +165,18 @@ export async function loadProject(
   return (await loadProjectInner(manifestDocument))!;
 }
 
-export async function loadProjectNoSingleFile(
-  documentUri: vscode.Uri,
-): Promise<IProjectConfig | null> {
-  // TODO: this is a perf fix.... sad
-  await new Promise((r) => setTimeout(r, 0));
-
-  const manifestDocument = await findManifestDocument(documentUri.toString());
-
-  if (!manifestDocument) {
-    return null;
-  }
-
-  return loadProjectInner(manifestDocument);
-}
-
 export async function loadProjectInner(manifestDocument: {
   directory: vscode.Uri;
   uri: vscode.Uri;
   content?: string;
 }): Promise<IProjectConfig | null> {
   if (!projectLoader) {
-    projectLoader = await getProjectLoader(
+    projectLoader = await getProjectLoader({
       readFile,
-      listDir,
-      async (a, b) => resolvePath(a, b) || "",
-      fetchGithubRaw,
-    );
+      listDirectory,
+      resolvePath: async (a, b) => resolvePath(a, b) || "",
+      fetchGithub: fetchGithubRaw,
+    });
   }
 
   const project = await projectLoader.load_project_with_deps(
@@ -233,19 +218,7 @@ async function singleFileProject(
   };
 }
 
-// TODO: need to actually use this global cache :(
-// const globalCache: Record<
-//   PackageKey,
-//   | {
-//       manifest: QSharpJsonManifest;
-//       packageInfo: IPackageInfo;
-//     }
-//   | {
-//       error: string;
-//     }
-// > = {};
-
-function resolvePath(base: string, relative: string): string | null {
+export function resolvePath(base: string, relative: string): string | null {
   try {
     return Utils.resolvePath(URI.parse(base, true), relative).toString();
   } catch (e) {
@@ -259,7 +232,7 @@ export function setGithubEndpoint(endpoint: string) {
   githubEndpoint = endpoint;
 }
 
-async function fetchGithubRaw(
+export async function fetchGithubRaw(
   owner: string,
   repo: string,
   ref: string,

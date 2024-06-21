@@ -9,7 +9,8 @@ use qsc::{
     compile::{self, ErrorKind},
     line_column::Position,
 };
-use std::{cell::RefCell, future::ready};
+use qsc_project::{FileSystem, ProjectSystemCallbacks};
+use std::{cell::RefCell, future::ready, path::PathBuf};
 use test_fs::{dir, file, FsNode};
 
 pub(crate) mod test_fs;
@@ -326,10 +327,26 @@ fn create_update_worker<'a>(
                     .collect::<Vec<_>>(),
             ));
         },
-        |file| {
-            Box::pin(ready(
-                TEST_FS.with(|fs| fs.borrow().load_project_with_deps(&file)),
-            ))
+        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(&file)))),
+        ProjectSystemCallbacks {
+            read_file: Box::new(|file: String| {
+                Box::pin(ready(TEST_FS.with(|fs| fs.borrow().read_file(file))))
+            }),
+            list_directory: Box::new(|dir_name: String| {
+                Box::pin(ready(
+                    TEST_FS.with(|fs| fs.borrow().list_directory(dir_name)),
+                ))
+            }),
+            resolve_path: Box::new(move |(base, path)| {
+                Box::pin(ready(TEST_FS.with(|fs| {
+                    fs.borrow()
+                        .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into()
+                })))
+            }),
+            fetch_github: Box::new(move |_| Box::pin(ready("".into()))),
         },
     );
     worker

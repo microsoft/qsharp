@@ -109,7 +109,11 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
-      () => Promise.resolve(null),
+      async () => null,
+      async () => null,
+      async () => [],
+      async () => "",
+      async () => null,
     );
     languageService.update_document("code", 1, code);
     // Yield to let the language service background worker handle the update

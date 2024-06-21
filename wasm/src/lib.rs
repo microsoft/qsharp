@@ -9,7 +9,10 @@ use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{into_async_rust_fn_with, into_qsc_args, IProgramConfig};
+use project_system::{
+    into_async_rust_fn_with, into_async_rust_fn_with_2, into_async_rust_fn_with_4, into_qsc_args,
+    IProgramConfig,
+};
 use qsc::{
     compile::{self, Dependencies},
     format_state_id, get_latex,

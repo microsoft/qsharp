@@ -183,6 +183,8 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     Into::<js_sys::Function>::into(val)
 }
 pub(crate) use into_async_rust_fn_with;
+pub(crate) use into_async_rust_fn_with_2;
+pub(crate) use into_async_rust_fn_with_4;
 
 /// Given a [`JsValue`] representing the result of a call to a `list_directory` function,
 /// and an unused `String` parameter for API compatibility, assert that `js_val`

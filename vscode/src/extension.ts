@@ -37,7 +37,14 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { loadProjectNoSingleFile, setGithubEndpoint } from "./projectSystem.js";
+import {
+  findManifestDocument,
+  listDirectory,
+  readFile,
+  resolvePath,
+  fetchGithubRaw,
+  setGithubEndpoint,
+} from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
@@ -351,8 +358,21 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService((s) =>
-    loadProjectNoSingleFile(vscode.Uri.parse(s, true)),
+  const languageService = await getLanguageService(
+    async (uri: string) => {
+      const result = await findManifestDocument(uri);
+      if (result) {
+        const { directory } = result;
+        return { manifestDirectory: directory.toString() };
+      }
+      return null;
+    },
+    {
+      readFile,
+      listDirectory: listDirectory,
+      resolvePath: async (a, b) => resolvePath(a, b) || "",
+      fetchGithub: fetchGithubRaw,
+    },
   );
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();

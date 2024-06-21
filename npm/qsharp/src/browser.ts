@@ -5,10 +5,7 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, {
-  IProjectConfig,
-  TargetProfile,
-} from "../lib/web/qsc_wasm.js";
+import initWasm, { TargetProfile } from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -114,20 +111,28 @@ export async function getDebugService(): Promise<IDebugService> {
   return new QSharpDebugService(wasm);
 }
 
-export async function getProjectLoader(
-  readFile: (path: string) => Promise<string | null>,
-  loadDirectory: (path: string) => Promise<[string, number][]>,
-  resolvePath: (base: string, relative: string) => Promise<string>,
+// TODO: declare in wasm
+export type Host = {
+  readFile: (path: string) => Promise<string | null>;
+  listDirectory: (path: string) => Promise<[string, number][]>;
+  resolvePath: (base: string, relative: string) => Promise<string>;
   fetchGithub: (
     owner: string,
     repo: string,
     ref: string,
     path: string,
-  ) => Promise<string | null>,
+  ) => Promise<string | null>;
+};
+
+export async function getProjectLoader(
+  host: Host,
 ): Promise<wasm.ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(readFile, loadDirectory, resolvePath, (args) =>
-    fetchGithub(args[0], args[1], args[2], args[3]),
+  return new wasm.ProjectLoader(
+    host.readFile,
+    host.listDirectory,
+    host.resolvePath,
+    (args) => host.fetchGithub(args[0], args[1], args[2], args[3]),
   );
 }
 
@@ -155,10 +160,13 @@ export function getCompilerWorker(worker: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(
-  loadProject: (uri: string) => Promise<IProjectConfig | null>,
+  getManifest?: (uri: string) => Promise<{
+    manifestDirectory: string;
+  } | null>,
+  host?: Host,
 ): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm, loadProject);
+  return new QSharpLanguageService(wasm, getManifest, host);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.

@@ -7,11 +7,13 @@ mod tests;
 use super::compilation::Compilation;
 use super::protocol::{DiagnosticUpdate, NotebookMetadata};
 use crate::protocol::WorkspaceConfigurationUpdate;
-use log::trace;
+use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::PackageGraphSources;
+use qsc_project::{
+    DirEntry, FileSystemAsync, PackageCache, PackageGraphSources, ProjectSystemCallbacks,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
 
@@ -108,16 +110,20 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
-    load_project_callback: AsyncFunction<'a, String, LoadProjectResult>,
+    cache: RefCell<PackageCache>,
+    /// Callback which lets the service read a file from the target filesystem
+    pub(crate) fs_callbacks: ProjectSystemCallbacks<'a>,
+    /// Fetch the manifest file for a specific path
+    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
 }
 
 // TODO: consolidate these two types
-pub type LoadProjectResult = Option<LoadProjectResultInner>;
-pub type LoadProjectResultInner = (
-    Arc<str>, // compilation uri
-    PackageGraphSources,
-    Vec<LintConfig>,
-);
+// pub type LoadProjectResult = Option<LoadProjectResultInner>;
+// pub type LoadProjectResultInner = (
+//     Arc<str>, // compilation uri
+//     PackageGraphSources,
+//     Vec<LintConfig>,
+// );
 
 #[derive(Debug)]
 struct LoadManifestResult {
@@ -130,14 +136,18 @@ impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        load_project: impl Fn(String) -> Pin<Box<dyn Future<Output = LoadProjectResult>>> + 'a,
+        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
+            + 'a,
+        fs_callbacks: ProjectSystemCallbacks<'a>,
     ) -> Self {
         Self {
             state,
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
-            load_project_callback: Box::new(load_project),
+            cache: RefCell::default(),
+            get_manifest: Box::new(get_manifest),
+            fs_callbacks,
         }
     }
 
@@ -162,7 +172,6 @@ impl<'a> CompilationStateUpdater<'a> {
         let LoadManifestResult {
             compilation_uri,
             package_graph_sources: sources,
-
             lints: lints_config,
         } = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
@@ -207,15 +216,22 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        if let Some((compilation_uri, source_map, lints)) =
-            (self.load_project_callback)(doc_uri.to_string()).await
-        {
-            trace!("Found project at {compilation_uri}");
-            Some(LoadManifestResult {
-                compilation_uri,
-                package_graph_sources: source_map,
-                lints,
-            })
+        let manifest = (self.get_manifest)(doc_uri.to_string()).await;
+        if let Some(ref manifest) = manifest {
+            let res = self
+                .load_project_with_deps(&manifest.manifest_dir.path(), Some(&self.cache))
+                .await;
+            match res {
+                Ok(program_config) => Some(LoadManifestResult {
+                    compilation_uri: manifest.compilation_uri(),
+                    package_graph_sources: program_config.package_graph_sources,
+                    lints: program_config.lints,
+                }),
+                Err(e) => {
+                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
+                    None
+                }
+            }
         } else {
             trace!("Running in single file mode");
             None
