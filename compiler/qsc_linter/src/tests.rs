@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints},
+    linter::{ast::run_ast_lints, hir::run_hir_lints, Context},
     Lint, LintConfig, LintLevel,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
-use qsc_hir::hir::CallableKind;
+use qsc_hir::hir::{CallableKind, PackageId};
 use qsc_passes::PackageType;
 
 #[test]
@@ -271,7 +271,7 @@ fn check(source: &str, expected: &Expect) {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
-    let (package, _) = qsc::compile::compile(
+    let (unit, _) = qsc::compile::compile(
         &store,
         &[std],
         sources,
@@ -280,7 +280,10 @@ fn check(source: &str, expected: &Expect) {
         LanguageFeatures::default(),
     );
 
-    let actual: Vec<SrcLint> = run_lints(&package, None)
+    let id = store.insert(unit);
+    let unit = store.get(id).expect("user package should exist");
+
+    let actual: Vec<SrcLint> = run_lints(&store, id, unit, None)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
@@ -341,9 +344,20 @@ impl std::fmt::Display for SrcLint {
     }
 }
 
-fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
+fn run_lints(
+    package_store: &PackageStore,
+    user_package_id: PackageId,
+    compile_unit: &CompileUnit,
+    config: Option<&[LintConfig]>,
+) -> Vec<Lint> {
+    let context = Context {
+        package_store,
+        user_package_id,
+        compile_unit,
+    };
+
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config);
+    let mut hir_lints = run_hir_lints(&compile_unit.package, config, context);
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);

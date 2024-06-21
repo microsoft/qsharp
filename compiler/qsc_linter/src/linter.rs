@@ -9,6 +9,7 @@ use crate::lints::{ast::AstLint, hir::HirLint};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, PackageStore};
+use qsc_hir::hir::PackageId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -16,12 +17,19 @@ use std::fmt::Display;
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
 pub fn run_lints(
-    _package_store: &PackageStore,
+    package_store: &PackageStore,
+    user_package_id: PackageId,
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
+    let context = Context {
+        package_store,
+        user_package_id,
+        compile_unit,
+    };
+
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config);
+    let mut hir_lints = run_hir_lints(&compile_unit.package, config, context);
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
@@ -30,6 +38,13 @@ pub fn run_lints(
         .into_iter()
         .filter(|lint| !matches!(lint.level, LintLevel::Allow))
         .collect()
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct Context<'a> {
+    pub package_store: &'a PackageStore,
+    pub user_package_id: PackageId,
+    pub compile_unit: &'a CompileUnit,
 }
 
 /// A lint emited by the linter.
@@ -79,10 +94,11 @@ impl Diagnostic for Lint {
 
 /// A lint level. This defines if a lint will be treated as a warning or an error,
 /// and if the lint level can be overriden by the user.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum LintLevel {
     /// The lint is effectively disabled.
+    #[default]
     Allow,
     /// The lint will be treated as a warning.
     Warn,

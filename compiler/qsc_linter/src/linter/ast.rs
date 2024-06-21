@@ -108,25 +108,34 @@ macro_rules! declare_ast_lints {
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
         pub(crate) struct $lint_name {
             level: LintLevel,
-            message: &'static str,
-            help: &'static str,
-            kind: LintKind,
         }
 
         impl Default for $lint_name {
             fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help, kind: LintKind::Ast(AstLint::$lint_name) }
+                Self { level: Self::DEFAULT_LEVEL }
             }
         }
 
         impl From<LintLevel> for $lint_name {
             fn from(value: LintLevel) -> Self {
-                Self { level: value, message: $msg, help: $help, kind: LintKind::Ast(AstLint::$lint_name) }
+                Self { level: value }
             }
         }
 
         impl $lint_name {
             const DEFAULT_LEVEL: LintLevel = $default_level;
+
+            const fn lint_kind(&self) -> LintKind {
+                LintKind::Ast(AstLint::$lint_name)
+            }
+
+            const fn message(&self) -> &'static str {
+                $msg
+            }
+
+            const fn help(&self) -> &'static str {
+                $help
+            }
         }
     };
 

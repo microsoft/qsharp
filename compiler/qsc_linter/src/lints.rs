@@ -9,9 +9,9 @@ macro_rules! lint {
         Lint {
             span: $span,
             level: $lint.level,
-            message: $lint.message,
-            help: $lint.help,
-            kind: $lint.kind,
+            message: $lint.message(),
+            help: $lint.help(),
+            kind: $lint.lint_kind(),
         }
     };
 }
