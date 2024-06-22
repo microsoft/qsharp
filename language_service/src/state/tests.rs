@@ -9,11 +9,12 @@ use crate::{
     protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
     tests::test_fs::{dir, file, FsNode},
 };
+use async_trait::async_trait;
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use qsc_project::{FileSystem, ProjectSystemCallbacks};
-use std::{cell::RefCell, fmt::Write, future::ready, path::PathBuf, rc::Rc};
+use qsc_project::{FileSystem, JSFileEntry, ProjectHostTrait, ProjectSystemCallbacks};
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, sync::Arc};
 
 #[tokio::test]
 async fn no_error() {
@@ -1703,26 +1704,8 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(&file)))),
         ProjectSystemCallbacks {
-            read_file: Box::new(|file: String| {
-                Box::pin(ready(TEST_FS.with(|fs| fs.borrow().read_file(file))))
-            }),
-            list_directory: Box::new(|dir_name: String| {
-                Box::pin(ready(
-                    TEST_FS.with(|fs| fs.borrow().list_directory(dir_name)),
-                ))
-            }),
-            resolve_path: Box::new(move |(base, path)| {
-                Box::pin(ready(TEST_FS.with(|fs| {
-                    fs.borrow()
-                        .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .into()
-                })))
-            }),
-            fetch_github: Box::new(move |_| Box::pin(ready("".into()))),
+            project_host: Box::new(TestProjectHost {}),
         },
     )
 }
@@ -1745,32 +1728,53 @@ fn new_updater_with_file_system<'a>(
         ));
     };
 
-    let fs1 = fs.clone();
-    let fs2 = fs.clone();
-    let fs3 = fs.clone();
-    let fs4 = fs.clone();
-
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        move |file| Box::pin(ready(fs1.borrow().get_manifest(&file))),
         ProjectSystemCallbacks {
-            read_file: Box::new(move |file: String| Box::pin(ready(fs2.borrow().read_file(file)))),
-            list_directory: Box::new(move |dir_name: String| {
-                Box::pin(ready(fs3.borrow().list_directory(dir_name)))
-            }),
-            resolve_path: Box::new(move |(base, path)| {
-                Box::pin(ready(
-                    fs4.borrow()
-                        .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .into(),
-                ))
-            }),
-            fetch_github: Box::new(|_| Box::pin(ready("".into()))),
+            project_host: Box::new(FsProjectHost { fs: fs.clone() }),
         },
     )
+}
+
+struct FsProjectHost {
+    fs: Rc<RefCell<FsNode>>,
+}
+
+#[async_trait(?Send)]
+impl ProjectHostTrait for FsProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+        self.fs.borrow().read_file(uri.to_string())
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        self.fs.borrow().list_directory(uri.to_string())
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+            .map(|p| p.to_string_lossy().into())
+            .ok()
+    }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> Option<Arc<str>> {
+        None
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .find_manifest_directory(doc_uri)
+            .map(|p| p.to_string_lossy().into())
+    }
 }
 
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
@@ -1833,6 +1837,46 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
 
 fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
     expected_lints.assert_eq(&format!("{lints:#?}"));
+}
+
+struct TestProjectHost {}
+
+#[async_trait(?Send)]
+impl ProjectHostTrait for TestProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+        TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        TEST_FS.with(|fs| {
+            fs.borrow()
+                .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+                .map(|p| p.to_string_lossy().into())
+                .ok()
+        })
+    }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> Option<Arc<str>> {
+        None
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        TEST_FS.with(|fs| {
+            fs.borrow()
+                .find_manifest_directory(doc_uri)
+                .map(|p| p.to_string_lossy().into())
+        })
+    }
 }
 
 thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }

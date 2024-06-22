@@ -3,7 +3,6 @@
 
 import {
   ILanguageService,
-  getGithubSourceContent,
   getLanguageService,
   getLibrarySourceContent,
   loadWasmModule,
@@ -44,6 +43,7 @@ import {
   resolvePath,
   fetchGithubRaw,
   setGithubEndpoint,
+  getGithubSourceContent,
 } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
@@ -90,7 +90,7 @@ export async function activate(
       qsharpGithubUriScheme,
       {
         provideTextDocumentContent(uri) {
-          return getGithubSourceContent(uri.toString());
+          return getGithubSourceContent(uri);
         },
       },
     ),
@@ -358,22 +358,19 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService(
-    async (uri: string) => {
+  const languageService = await getLanguageService({
+    findManifestDirectory: async (uri: string) => {
       const result = await findManifestDocument(uri);
       if (result) {
-        const { directory } = result;
-        return { manifestDirectory: directory.toString() };
+        return result.directory.toString();
       }
       return null;
     },
-    {
-      readFile,
-      listDirectory: listDirectory,
-      resolvePath: async (a, b) => resolvePath(a, b) || "",
-      fetchGithub: fetchGithubRaw,
-    },
-  );
+    readFile,
+    listDirectory: listDirectory,
+    resolvePath: async (a, b) => resolvePath(a, b) || "",
+    fetchGithub: fetchGithubRaw,
+  });
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(

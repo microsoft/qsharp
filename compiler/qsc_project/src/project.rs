@@ -324,7 +324,7 @@ pub trait FileSystemAsync {
         &self,
         directory: &Path,
         global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<ProgramConfig> {
+    ) -> miette::Result<ProjectConfig> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
         let mut errors = vec![];
@@ -364,11 +364,16 @@ pub trait FileSystemAsync {
                     &root_dep,
                 )
                 .await;
-                Ok(ProgramConfig {
+
+                let manifest_descriptor = ManifestDescriptor {
+                    manifest,
+                    manifest_dir: directory.into(),
+                };
+                Ok(ProjectConfig {
+                    compilation_uri: manifest_descriptor.compilation_uri(),
                     package_graph_sources: PackageGraphSources { root, packages },
-                    lints: manifest.lints,
+                    lints: manifest_descriptor.manifest.lints,
                     errors,
-                    target_profile: "unrestricted".into(), // TODO(alex)
                 })
             }
         }
@@ -409,7 +414,7 @@ pub trait FileSystem {
         &self,
         directory: &Path,
         global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<ProgramConfig> {
+    ) -> miette::Result<ProjectConfig> {
         // rather than rewriting all the async code in the project loader,
         // we're calling the async implementation here, doing some tricks to make it run
         // synchronously
@@ -470,32 +475,29 @@ impl PackageGraphSources {
     }
 }
 
-pub struct ProgramConfig {
+pub struct ProjectConfig {
+    pub compilation_uri: Arc<str>,
     pub package_graph_sources: PackageGraphSources,
     pub lints: Vec<LintConfig>,
     pub errors: Vec<miette::Report>,
-    pub target_profile: String,
 }
 
-impl ProgramConfig {
-    /// Given a source map and profile, create a default program config which
-    /// has no dependencies.
-    /// Useful for testing and single-file scenarios.
-    #[must_use]
-    pub fn with_no_dependencies(
-        sources: Vec<(Arc<str>, Arc<str>)>,
-        target_profile: String,
-    ) -> Self {
-        Self {
-            package_graph_sources: PackageGraphSources::with_no_dependencies(
-                sources,
-                LanguageFeatures::default(),
-            ),
-            lints: Vec::default(),
-            errors: Vec::default(),
-            target_profile,
-        }
-    }
+impl ProjectConfig {
+    // Given a source map and profile, create a default program config which
+    // has no dependencies.
+    // Useful for testing and single-file scenarios.
+    // #[must_use]
+    // pub fn with_no_dependencies(sources: Vec<(Arc<str>, Arc<str>)>) -> Self {
+    //     Self {
+    //         compilation_uri: "qsharp-project".into(),
+    //         package_graph_sources: PackageGraphSources::with_no_dependencies(
+    //             sources,
+    //             LanguageFeatures::default(),
+    //         ),
+    //         lints: Vec::default(),
+    //         errors: Vec::default(),
+    //     }
+    // }
 }
 
 #[derive(Debug)]

@@ -109,11 +109,13 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
-      async () => null,
-      async () => null,
-      async () => [],
-      async () => "",
-      async () => null,
+      {
+        readFile: async () => null,
+        listDirectory: async () => [],
+        resolvePath: async () => null,
+        fetchGithub: async () => null,
+        findManifestDirectory: async () => null,
+      },
     );
     languageService.update_document("code", 1, code);
     // Yield to let the language service background worker handle the update

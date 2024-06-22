@@ -3,7 +3,7 @@
 
 use crate::state::CompilationStateUpdater;
 use async_trait::async_trait;
-use qsc_project::JSFileEntry;
+use qsc_project::{FileSystemAsync, JSFileEntry};
 
 #[async_trait(?Send)]
 impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
@@ -12,11 +12,11 @@ impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
         &self,
         path: &std::path::Path,
     ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        Ok((self.fs_callbacks.read_file)(path.to_string_lossy().to_string()).await)
+        FileSystemAsync::read_file(&self.fs_callbacks, path).await
     }
 
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        Ok((self.fs_callbacks.list_directory)(path.to_string_lossy().to_string()).await)
+        FileSystemAsync::list_directory(&self.fs_callbacks, path).await
     }
 
     async fn resolve_path(
@@ -24,13 +24,7 @@ impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
         base: &std::path::Path,
         path: &std::path::Path,
     ) -> miette::Result<std::path::PathBuf> {
-        Ok((self.fs_callbacks.resolve_path)((
-            base.to_string_lossy().to_string(),
-            path.to_string_lossy().to_string(),
-        ))
-        .await
-        .to_string()
-        .into())
+        FileSystemAsync::resolve_path(&self.fs_callbacks, base, path).await
     }
 
     async fn fetch_github(
@@ -40,12 +34,6 @@ impl qsc_project::FileSystemAsync for CompilationStateUpdater<'_> {
         r#ref: &str,
         path: &str,
     ) -> miette::Result<std::sync::Arc<str>> {
-        Ok((self.fs_callbacks.fetch_github)((
-            owner.to_string(),
-            repo.to_string(),
-            r#ref.to_string(),
-            path.to_string(),
-        ))
-        .await)
+        FileSystemAsync::fetch_github(&self.fs_callbacks, owner, repo, r#ref, path).await
     }
 }

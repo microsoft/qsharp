@@ -113,8 +113,8 @@ mod tests {
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    fn mock_program() -> qsc_project::ProgramConfig {
-        qsc_project::ProgramConfig {
+    fn mock_program() -> qsc_project::ProjectConfig {
+        qsc_project::ProjectConfig {
             // Mock data for the ProgramConfig
             package_graph_sources: qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
@@ -142,7 +142,7 @@ mod tests {
             },
             lints: vec![],
             errors: vec![],
-            target_profile: "unrestricted".into(),
+            compilation_uri: "project/qsharp.json".into(),
         }
     }
 

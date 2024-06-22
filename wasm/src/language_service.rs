@@ -3,13 +3,8 @@
 
 use crate::{
     diagnostic::VSDiagnostic,
-    into_async_rust_fn_with, into_async_rust_fn_with_2, into_async_rust_fn_with_4,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::{
-        get_manifest_transformer, list_directory_transformer, read_file_transformer,
-        resolve_path_transformer, FetchGithubCallback, GetManifestCallback, ListDirectoryCallback,
-        ReadFileCallback, ResolvePathCallback,
-    },
+    project_system::{AnotherThing, ProjectHost},
     serializable_type,
 };
 use qsc::{
@@ -34,30 +29,12 @@ impl LanguageService {
         LanguageService(qsls::LanguageService::new(Encoding::Utf16))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        get_manifest: GetManifestCallback,
-        read_file: ReadFileCallback,
-        list_directory: ListDirectoryCallback,
-        resolve_path: ResolvePathCallback,
-        fetch_github: FetchGithubCallback,
+        host: ProjectHost,
     ) -> js_sys::Promise {
-        let get_manifest: JsValue = get_manifest.into();
-        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
-
-        let read_file = read_file.into();
-        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
-
-        let list_directory = list_directory.into();
-        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
-
-        let resolve_path = resolve_path.into();
-        let resolve_path = into_async_rust_fn_with_2!(resolve_path, resolve_path_transformer);
-
-        let fetch_github = fetch_github.into();
-        let fetch_github = into_async_rust_fn_with_4!(fetch_github, resolve_path_transformer);
-
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
@@ -84,12 +61,8 @@ impl LanguageService {
         };
         let mut worker = self.0.create_update_worker(
             diagnostics_callback,
-            get_manifest,
             ProjectSystemCallbacks {
-                read_file: Box::new(read_file),
-                list_directory: Box::new(list_directory),
-                resolve_path: Box::new(resolve_path),
-                fetch_github: Box::new(fetch_github),
+                project_host: Box::new(AnotherThing { host }),
             },
         );
 

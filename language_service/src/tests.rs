@@ -4,13 +4,14 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::{protocol::DiagnosticUpdate, Encoding, LanguageService, UpdateWorker};
+use async_trait::async_trait;
 use expect_test::{expect, Expect};
 use qsc::{
     compile::{self, ErrorKind},
     line_column::Position,
 };
-use qsc_project::{FileSystem, ProjectSystemCallbacks};
-use std::{cell::RefCell, future::ready, path::PathBuf};
+use qsc_project::{FileSystem, JSFileEntry, ProjectHostTrait, ProjectSystemCallbacks};
+use std::{cell::RefCell, path::PathBuf, sync::Arc};
 use test_fs::{dir, file, FsNode};
 
 pub(crate) mod test_fs;
@@ -327,29 +328,51 @@ fn create_update_worker<'a>(
                     .collect::<Vec<_>>(),
             ));
         },
-        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(&file)))),
         ProjectSystemCallbacks {
-            read_file: Box::new(|file: String| {
-                Box::pin(ready(TEST_FS.with(|fs| fs.borrow().read_file(file))))
-            }),
-            list_directory: Box::new(|dir_name: String| {
-                Box::pin(ready(
-                    TEST_FS.with(|fs| fs.borrow().list_directory(dir_name)),
-                ))
-            }),
-            resolve_path: Box::new(move |(base, path)| {
-                Box::pin(ready(TEST_FS.with(|fs| {
-                    fs.borrow()
-                        .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .into()
-                })))
-            }),
-            fetch_github: Box::new(move |_| Box::pin(ready("".into()))),
+            project_host: Box::new(TestProjectHost {}),
         },
     );
     worker
+}
+
+struct TestProjectHost {}
+
+#[async_trait(?Send)]
+impl ProjectHostTrait for TestProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+        TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        TEST_FS.with(|fs| {
+            fs.borrow()
+                .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+                .map(|p| p.to_string_lossy().into())
+                .ok()
+        })
+    }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> Option<Arc<str>> {
+        None
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        TEST_FS.with(|fs| {
+            fs.borrow()
+                .find_manifest_directory(doc_uri)
+                .map(|p| p.to_string_lossy().into())
+        })
+    }
 }
 
 thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }

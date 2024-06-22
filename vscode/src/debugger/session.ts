@@ -962,6 +962,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 }
+
 function getAllSources(program: FullProgramConfig) {
   return program.packageGraphSources.root.sources.concat(
     Object.values(program.packageGraphSources.packages).flatMap(

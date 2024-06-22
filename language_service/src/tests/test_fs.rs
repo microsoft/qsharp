@@ -6,9 +6,9 @@
 //! language service expects the fs to behave; if we want to reuse this in other
 //! tests, it could use some work to make methods a little more general.
 
-use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest, ManifestDescriptor};
+use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest};
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 pub(crate) enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
@@ -104,7 +104,7 @@ impl FsNode {
         // thanks copilot!
     }
 
-    pub fn get_manifest(&self, file: &str) -> Option<ManifestDescriptor> {
+    pub fn find_manifest_directory(&self, file: &str) -> Option<PathBuf> {
         let mut curr = Some(self);
         let mut curr_path = String::new();
         let mut last_manifest_dir = None;
@@ -114,6 +114,7 @@ impl FsNode {
             curr = curr.and_then(|node| match node {
                 FsNode::Dir(dir) => {
                     if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
+                        // TODO: is this true?
                         // The semantics of get_manifest is that we only return the manifest
                         // if we've succeeded in parsing it
                         if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
@@ -130,10 +131,7 @@ impl FsNode {
 
         match curr {
             Some(FsNode::Dir(_)) | None => None,
-            Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
-                manifest: last_manifest.unwrap_or_default(),
-                manifest_dir: dir.into(),
-            }),
+            Some(FsNode::File(_)) => last_manifest_dir.map(Into::into),
         }
     }
 

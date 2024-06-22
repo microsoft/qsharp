@@ -35,7 +35,7 @@ use qsc::{
 };
 use qsc_project::ProjectSystemCallbacks;
 use state::{CompilationState, CompilationStateUpdater};
-use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 pub struct LanguageService {
     /// All [`Position`]s and [`Range`]s will be mapped using this encoding.
@@ -68,9 +68,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
-        fs_callbacks: ProjectSystemCallbacks<'a>,
+        fs_callbacks: ProjectSystemCallbacks,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();
@@ -78,7 +76,6 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
-                get_manifest,
                 fs_callbacks,
             ),
             recv,

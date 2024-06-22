@@ -11,19 +11,10 @@ use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{
-    DirEntry, FileSystemAsync, PackageCache, PackageGraphSources, ProjectSystemCallbacks,
-};
+use qsc_project::{FileSystemAsync, PackageCache, PackageGraphSources, ProjectSystemCallbacks};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
-
-/// the desugared return type of an "async fn"
-type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
-
-/// represents a unary async fn where `Arg` is the input
-/// parameter and `Return` is the return type. The lifetime
-/// `'a` represents the lifetime of the contained `dyn Fn`.
-type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
+use std::path::PathBuf;
+use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
 
 #[derive(Default, Debug)]
 pub(super) struct CompilationState {
@@ -112,9 +103,7 @@ pub(super) struct CompilationStateUpdater<'a> {
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     cache: RefCell<PackageCache>,
     /// Callback which lets the service read a file from the target filesystem
-    pub(crate) fs_callbacks: ProjectSystemCallbacks<'a>,
-    /// Fetch the manifest file for a specific path
-    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
+    pub(crate) fs_callbacks: ProjectSystemCallbacks,
 }
 
 // TODO: consolidate these two types
@@ -136,9 +125,7 @@ impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
-        fs_callbacks: ProjectSystemCallbacks<'a>,
+        fs_callbacks: ProjectSystemCallbacks,
     ) -> Self {
         Self {
             state,
@@ -146,7 +133,6 @@ impl<'a> CompilationStateUpdater<'a> {
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
             cache: RefCell::default(),
-            get_manifest: Box::new(get_manifest),
             fs_callbacks,
         }
     }
@@ -216,14 +202,19 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        let manifest = (self.get_manifest)(doc_uri.to_string()).await;
-        if let Some(ref manifest) = manifest {
+        let dir = self
+            .fs_callbacks
+            .project_host
+            .find_manifest_directory(doc_uri)
+            .await;
+
+        if let Some(dir) = dir {
             let res = self
-                .load_project_with_deps(&manifest.manifest_dir.path(), Some(&self.cache))
+                .load_project_with_deps(&PathBuf::from(dir.to_string()), Some(&self.cache))
                 .await;
             match res {
                 Ok(program_config) => Some(LoadManifestResult {
-                    compilation_uri: manifest.compilation_uri(),
+                    compilation_uri: program_config.compilation_uri,
                     package_graph_sources: program_config.package_graph_sources,
                     lints: program_config.lints,
                 }),

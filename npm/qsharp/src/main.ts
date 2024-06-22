@@ -27,7 +27,7 @@ import {
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
 import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
-import { Host } from "./browser.js";
+import { IProjectHost } from "./browser.js";
 
 export { qsharpLibraryUriScheme };
 
@@ -56,33 +56,14 @@ export async function getLibrarySourceContent(
   return wasm!.get_library_source_content(path);
 }
 
-export async function getGithubSourceContent(
-  path: string,
-): Promise<string | undefined> {
-  ensureWasm();
-  return wasm!.get_github_source_content(path);
-}
-
 export function getCompiler(): ICompiler {
   ensureWasm();
   return new Compiler(wasm!);
 }
 
-export function getProjectLoader(
-  readFile: (path: string) => Promise<string | null>,
-  loadDirectory: (path: string) => Promise<[string, number][]>,
-  resolvePath: (base: string, relative: string) => Promise<string>,
-  fetchGithub: (
-    owner: string,
-    repo: string,
-    ref: string,
-    path: string,
-  ) => Promise<string | null>,
-): ProjectLoader {
+export function getProjectLoader(host: IProjectHost): ProjectLoader {
   ensureWasm();
-  return new wasm!.ProjectLoader(readFile, loadDirectory, resolvePath, (args) =>
-    fetchGithub(args[0], args[1], args[2], args[3]),
-  );
+  return new wasm!.ProjectLoader(host);
 }
 
 export function getCompilerWorker(): ICompilerWorker {
@@ -98,14 +79,9 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
   return createProxy("../debug-service/worker-node.js", debugServiceProtocol);
 }
 
-export function getLanguageService(
-  getManifest?: (uri: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
-  host?: Host,
-): ILanguageService {
+export function getLanguageService(host?: IProjectHost): ILanguageService {
   ensureWasm();
-  return new QSharpLanguageService(wasm!, getManifest, host);
+  return new QSharpLanguageService(wasm!, host);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {

@@ -49,16 +49,17 @@ serializable_type! {
 serializable_type! {
     QSharpError,
     {
-        document: String,
-        diagnostic: VSDiagnostic,
-        stack: Option<String>,
+        pub document: String,
+        pub diagnostic: VSDiagnostic,
+        pub stack: Option<String>,
     },
     r#"export interface IQSharpError {
         /** Source URI or name */
         document: string;
         diagnostic: VSDiagnostic;
         stack?: string;
-    }"#
+    }"#,
+    IQSharpError
 }
 
 impl VSDiagnostic {

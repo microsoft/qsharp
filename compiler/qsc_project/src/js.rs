@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{DirEntry, EntryType};
+use crate::{DirEntry, EntryType, FileSystemAsync, ProjectConfig};
+use async_trait::async_trait;
+use miette::Error;
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
@@ -21,21 +23,75 @@ impl DirEntry for JSFileEntry {
         PathBuf::from(&self.name)
     }
 }
-/// the desugared return type of an "async fn"
-type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
-/// represents a unary async fn where `Arg` is the input
-/// parameter and `Return` is the return type. The lifetime
-/// `'a` represents the lifetime of the contained `dyn Fn`.
-type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
-use std::{future::Future, pin::Pin};
+#[async_trait(?Send)]
+pub trait ProjectHostTrait {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>);
+    async fn list_directory(&self, dir_uri: &str) -> Vec<JSFileEntry>;
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>>;
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> Option<Arc<str>>;
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>>;
+}
 
-pub struct ProjectSystemCallbacks<'a> {
-    /// Callback which lets the service read a file from the target filesystem
-    pub read_file: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
-    /// Callback which lets the service list directory contents
-    /// on the target file system
-    pub list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
-    pub resolve_path: AsyncFunction<'a, (String, String), Arc<str>>,
-    pub fetch_github: AsyncFunction<'a, (String, String, String, String), Arc<str>>,
+pub struct ProjectSystemCallbacks {
+    pub project_host: Box<dyn ProjectHostTrait>,
+}
+
+pub struct JSProjectConfig {
+    pub name: Arc<str>,
+    pub uri: Arc<str>,
+    pub config: ProjectConfig,
+}
+
+#[async_trait(?Send)]
+impl FileSystemAsync for ProjectSystemCallbacks {
+    type Entry = JSFileEntry;
+
+    async fn read_file(
+        &self,
+        path: &std::path::Path,
+    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
+        return Ok(self.project_host.read_file(&path.to_string_lossy()).await);
+    }
+
+    async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
+        return Ok(self
+            .project_host
+            .list_directory(&path.to_string_lossy())
+            .await);
+    }
+
+    async fn resolve_path(
+        &self,
+        base: &std::path::Path,
+        path: &std::path::Path,
+    ) -> miette::Result<std::path::PathBuf> {
+        let res = self
+            .project_host
+            .resolve_path(&base.to_string_lossy(), &path.to_string_lossy())
+            .await
+            .ok_or(Error::msg("Path could not be resolved"))?;
+        return Ok(PathBuf::from(res.to_string()));
+    }
+
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<std::sync::Arc<str>> {
+        let content = self
+            .project_host
+            .fetch_github(owner, repo, r#ref, path)
+            .await
+            .ok_or(Error::msg("Github content could not be retrieved"))?;
+        return Ok(content);
+    }
 }

@@ -17,7 +17,7 @@ import type {
   LanguageService,
   VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
-import { Host } from "../browser.js";
+import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
 import {
   IServiceEventTarget,
@@ -105,15 +105,6 @@ export const qsharpGithubUriScheme = "qsharp-github-source";
 
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
-function nullHost(): Host {
-  return {
-    readFile: async () => null,
-    listDirectory: async () => [],
-    resolvePath: async () => "",
-    fetchGithub: async () => null,
-  };
-}
-
 export class QSharpLanguageService implements ILanguageService {
   private languageService: LanguageService;
   private eventHandler =
@@ -122,22 +113,21 @@ export class QSharpLanguageService implements ILanguageService {
   private backgroundWork: Promise<void>;
 
   constructor(
-    wasm: QscWasm,
-    getManifest: (uri: string) => Promise<{
-      manifestDirectory: string;
-    } | null> = () => Promise.resolve(null),
-    host: Host = nullHost(),
+    private wasm: QscWasm,
+    host: IProjectHost = {
+      findManifestDirectory: async () => null,
+      readFile: async () => null,
+      listDirectory: async () => [],
+      resolvePath: async () => "",
+      fetchGithub: async () => null,
+    },
   ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService();
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
-      getManifest,
-      host.readFile,
-      host.listDirectory,
-      host.resolvePath,
-      (args) => host.fetchGithub(args[0], args[1], args[2], args[3]),
+      host,
     );
   }
 

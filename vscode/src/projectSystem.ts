@@ -1,11 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IProjectConfig, getProjectLoader, log } from "qsharp-lang";
+import {
+  IProjectConfig,
+  getProjectLoader,
+  log,
+  qsharpGithubUriScheme,
+  ProjectLoader,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { updateQSharpJsonDiagnostics } from "./diagnostics";
-import { ProjectLoader } from "../../npm/qsharp/lib/web/qsc_wasm";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
@@ -161,17 +166,15 @@ export async function loadProject(
     return await singleFileProject(documentUri);
   }
 
-  // Shouldn't return null because we already passed in content
-  return (await loadProjectInner(manifestDocument))!;
-}
-
-export async function loadProjectInner(manifestDocument: {
-  directory: vscode.Uri;
-  uri: vscode.Uri;
-  content?: string;
-}): Promise<IProjectConfig | null> {
   if (!projectLoader) {
     projectLoader = await getProjectLoader({
+      findManifestDirectory: async (uri: string) => {
+        const result = await findManifestDocument(uri);
+        if (result) {
+          return result.directory.toString();
+        }
+        return null;
+      },
       readFile,
       listDirectory,
       resolvePath: async (a, b) => resolvePath(a, b) || "",
@@ -188,6 +191,7 @@ export async function loadProjectInner(manifestDocument: {
       updateQSharpJsonDiagnostics(manifestDocument.uri, error);
     }
   }
+  // TODO: is this also coming from the native layer?
   project.projectUri = manifestDocument.uri.toString();
   project.projectName =
     Utils.basename(manifestDocument.directory) || "Q# Project";
@@ -232,6 +236,13 @@ export function setGithubEndpoint(endpoint: string) {
   githubEndpoint = endpoint;
 }
 
+export function getGithubSourceContent(uri: URI): string | undefined {
+  const key = uri.toString();
+  return githubSourceCache.get(key);
+}
+
+const githubSourceCache = new Map<string, string>();
+
 export async function fetchGithubRaw(
   owner: string,
   repo: string,
@@ -252,7 +263,15 @@ export async function fetchGithubRaw(
 
   let text;
   try {
-    text = response.text();
+    text = await response.text();
+
+    githubSourceCache.set(
+      URI.from({
+        scheme: qsharpGithubUriScheme,
+        path: `${owner}/${repo}/${ref}/${pathNoLeadingSlash}`,
+      }).toString(),
+      text,
+    );
   } catch (e) {
     if (e instanceof Error) {
       log.warn(
