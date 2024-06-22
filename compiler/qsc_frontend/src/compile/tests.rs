@@ -1656,6 +1656,7 @@ fn multiple_packages_disallow_unexported_imports() {
 
 #[test]
 fn reexport() {
+    println!("=====COMPILING CORE");
     let mut store = PackageStore::new(super::core());
 
     let package_a = SourceMap::new(
@@ -1669,6 +1670,7 @@ fn reexport() {
         None,
     );
 
+    println!("=====COMPILING A");
     let package_a = compile(
         &store,
         &[],
@@ -1696,6 +1698,7 @@ fn reexport() {
         None,
     );
 
+    println!("=====COMPILING USER_CODE");
     let user_code = compile(
         &store,
         &[(package_a, Some(Arc::from("A")))],

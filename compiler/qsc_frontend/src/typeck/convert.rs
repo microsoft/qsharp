@@ -69,6 +69,7 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
     match names.get(path.id) {
         Some(&resolve::Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
         Some(&resolve::Res::ExportedItem(item)) => {
+            // TODO(alex) just dong both, although should know if it is a ty or callable
             Ty::Udt(path.name.name.clone(), hir::Res::Item(item))
         }
         Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),

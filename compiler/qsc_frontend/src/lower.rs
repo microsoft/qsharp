@@ -134,7 +134,7 @@ impl With<'_> {
         let exported_hir_ids = exports
             .iter()
             .filter_map(|res| match res {
-                resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
+                resolve::Res::ExportedItem(id) => Some(*id),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -177,7 +177,7 @@ impl With<'_> {
     fn lower_item(
         &mut self,
         item: &ast::Item,
-        exported_ids: &[hir::LocalItemId],
+        exported_ids: &[hir::ItemId],
     ) -> Option<LocalItemId> {
         let attrs = item
             .attrs
@@ -230,11 +230,13 @@ impl With<'_> {
             }
         };
 
-        let visibility = if exported_ids.contains(&id.item) {
+        let visibility = if exported_ids.contains(&id) {
             Visibility::Public
         } else {
             Visibility::Internal
         };
+        println!("For item {:?}, visibility is {:?}", id, visibility);
+        dbg!(&exported_ids);
 
         self.lowerer.items.push(hir::Item {
             id: id.item,

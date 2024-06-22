@@ -816,6 +816,7 @@ impl Resolver {
                 self.resolve_path(NameKind::Term, &item.path),
                 self.resolve_path(NameKind::Ty, &item.path),
             );
+            println!("item is {:?}", item.path);
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
@@ -910,6 +911,7 @@ impl Resolver {
                 // if false { -- this works
                 match res {
                     Res::Item(item_id, _) => {
+                        println!("inserting export {:?}", Res::ExportedItem(item_id));
                         self.names
                             .insert(item.name().id, Res::ExportedItem(item_id));
                     }
@@ -917,6 +919,7 @@ impl Resolver {
                     _ => todo!("res should be an item"),
                 }
             } else {
+                println!("inserting import {:?}", res);
                 self.names.insert(item.name().id, res);
             }
         }
@@ -1341,6 +1344,7 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
+            println!("inserting global {:?}", global);
             let namespace = self
                 .scope
                 .insert_or_find_namespace_from_root(global.namespace.clone(), root);
@@ -1911,7 +1915,7 @@ where
 
     // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
     let res = namespace
-        //  .or(Some(candidate_namespace_id))
+        .or(Some(candidate_namespace_id))
         .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
     // If a symbol was found, insert it into the candidates map

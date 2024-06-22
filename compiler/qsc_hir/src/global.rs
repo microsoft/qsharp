@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility},
+    hir::{
+        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility,
+    },
     ty::Scheme,
 };
 use qsc_data_structures::{
@@ -124,17 +126,34 @@ impl PackageIter<'_> {
                 .expect("parent should exist")
                 .kind
         });
-        let id = ItemId {
-            package: self.id,
-            item: item.id,
+        println!("global item being called on {item:?}");
+        let (id, visibility) = match &item.kind {
+            ItemKind::Export(name, item_id) => {
+                println!("exporting {name:?} {:?}", item_id);
+                (
+                    ItemId {
+                        package: item_id.package.or(self.id),
+                        item: item_id.item,
+                    },
+                    hir::Visibility::Public,
+                )
+            }
+            _ => (
+                ItemId {
+                    package: self.id,
+                    item: item.id,
+                },
+                item.visibility,
+            ),
         };
+        //        todo!("The problem is that Length is coming out of this as a Term with visibility internal, when it should be either a public term or an export");
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: namespace.into(),
                 name: Rc::clone(&decl.name.name),
-                visibility: item.visibility,
+                visibility,
                 status,
                 kind: Kind::Term(Term {
                     id,
@@ -146,7 +165,7 @@ impl PackageIter<'_> {
                 self.next = Some(Global {
                     namespace: namespace.into(),
                     name: Rc::clone(&name.name),
-                    visibility: item.visibility,
+                    visibility,
                     status,
                     kind: Kind::Term(Term {
                         id,
@@ -158,7 +177,7 @@ impl PackageIter<'_> {
                 Some(Global {
                     namespace: namespace.into(),
                     name: Rc::clone(&name.name),
-                    visibility: item.visibility,
+                    visibility,
                     status,
                     kind: Kind::Ty(Ty { id }),
                 })
@@ -173,13 +192,16 @@ impl PackageIter<'_> {
             (
                 ItemKind::Export(name, ItemId { package, item }),
                 Some(ItemKind::Namespace(namespace, _)),
-            ) => Some(Global {
-                namespace: namespace.into(),
-                name: name.name.clone(),
-                visibility: Visibility::Public,
-                status,
-                kind: Kind::Export,
-            }),
+            ) => {
+                panic!("do we hit this? {name:?} {package:?} {item:?} {namespace:?}");
+                Some(Global {
+                    namespace: namespace.into(),
+                    name: name.name.clone(),
+                    visibility: Visibility::Public,
+                    status,
+                    kind: Kind::Export,
+                })
+            }
             _ => None,
         }
     }
