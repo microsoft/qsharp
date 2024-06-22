@@ -4,13 +4,13 @@
 use crate::{
     diagnostic::VSDiagnostic,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::{AnotherThing, ProjectHost},
+    project_system::JSProjectHost,
     serializable_type,
 };
 use qsc::{
     self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
 };
-use qsc_project::{Manifest, ProjectSystemCallbacks};
+use qsc_project::Manifest;
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,7 @@ impl LanguageService {
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        host: ProjectHost,
+        host: JSProjectHost,
     ) -> js_sys::Promise {
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
@@ -59,12 +59,7 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self.0.create_update_worker(
-            diagnostics_callback,
-            ProjectSystemCallbacks {
-                project_host: Box::new(AnotherThing { host }),
-            },
-        );
+        let mut worker = self.0.create_update_worker(diagnostics_callback, host);
 
         future_to_promise(async move {
             worker.run().await;

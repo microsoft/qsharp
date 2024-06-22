@@ -15,7 +15,7 @@ mod project;
 pub use error::Error;
 #[cfg(feature = "fs")]
 pub use fs::StdFs;
-pub use js::{JSFileEntry, JSProjectConfig, ProjectHostTrait, ProjectSystemCallbacks};
+pub use js::{JSFileEntry, ProjectHost};
 pub use manifest::{Dependency, Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
 pub use project::FileSystemAsync;
 pub use project::{

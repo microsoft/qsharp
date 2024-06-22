@@ -8,9 +8,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
-use qsc_project::{
-    EntryType, FileSystemAsync, JSFileEntry, PackageCache, ProjectHostTrait, ProjectSystemCallbacks,
-};
+use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, PackageCache, ProjectHost};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
@@ -30,20 +28,20 @@ interface IProjectHost {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "IProjectHost")]
-    pub type ProjectHost;
+    pub type JSProjectHost;
 
     #[wasm_bindgen(method, structural)]
-    async fn readFile(this: &ProjectHost, uri: &str) -> JsValue;
+    async fn readFile(this: &JSProjectHost, uri: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
+    async fn listDirectory(this: &JSProjectHost, uri: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
+    async fn resolvePath(this: &JSProjectHost, base: &str, path: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
     async fn fetchGithub(
-        this: &ProjectHost,
+        this: &JSProjectHost,
         owner: &str,
         repo: &str,
         r#ref: &str,
@@ -51,7 +49,7 @@ extern "C" {
     ) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn findManifestDirectory(this: &ProjectHost, docUri: &str) -> JsValue;
+    async fn findManifestDirectory(this: &JSProjectHost, docUri: &str) -> JsValue;
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
@@ -66,55 +64,21 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
 /// a minimal implementation for interacting with async JS filesystem callbacks to
 /// load project files
 #[wasm_bindgen]
-pub struct ProjectLoader(ProjectSystemCallbacks);
+pub struct ProjectLoader(JSProjectHost);
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
 
-pub struct AnotherThing {
-    pub host: ProjectHost,
-}
-
-// TODO: do this??
 #[async_trait(?Send)]
-impl ProjectHostTrait for ProjectHost {
-    async fn read_file(&self, _uri: &str) -> (Arc<str>, Arc<str>) {
-        todo!()
-    }
-
-    async fn list_directory(&self, _uri: &str) -> Vec<JSFileEntry> {
-        todo!()
-    }
-
-    async fn resolve_path(&self, _base: &str, _path: &str) -> Option<Arc<str>> {
-        todo!()
-    }
-
-    async fn fetch_github(
-        &self,
-        _owner: &str,
-        _repo: &str,
-        _ref: &str,
-        _path: &str,
-    ) -> Option<Arc<str>> {
-        todo!()
-    }
-
-    async fn find_manifest_directory(&self, _doc_uri: &str) -> Option<Arc<str>> {
-        todo!()
-    }
-}
-
-#[async_trait(?Send)]
-impl ProjectHostTrait for AnotherThing {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+impl ProjectHost for JSProjectHost {
+    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
         let name = Arc::from(uri);
 
-        let val = self.host.readFile(uri).await;
+        let val = self.readFile(uri).await;
         (name, val.as_string().unwrap_or_default().into())
     }
 
-    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
-        let js_val = self.host.listDirectory(uri).await;
+    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
+        let js_val = self.listDirectory(uri).await;
         match js_val.dyn_into::<js_sys::Array>() {
             Ok(arr) => arr
                 .into_iter()
@@ -148,24 +112,24 @@ impl ProjectHostTrait for AnotherThing {
         }
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        let js_val = self.host.resolvePath(base, path).await;
+    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        let js_val = self.resolvePath(base, path).await;
         js_val.as_string().map(Into::into)
     }
 
-    async fn fetch_github(
+    async fn fetch_github_(
         &self,
         owner: &str,
         repo: &str,
         r#ref: &str,
         path: &str,
     ) -> Option<Arc<str>> {
-        let js_val = self.host.fetchGithub(owner, repo, r#ref, path).await;
+        let js_val = self.fetchGithub(owner, repo, r#ref, path).await;
         js_val.as_string().map(Into::into)
     }
 
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
-        let js_val = self.host.findManifestDirectory(doc_uri).await;
+        let js_val = self.findManifestDirectory(doc_uri).await;
         js_val.as_string().map(Into::into)
     }
 }
@@ -173,10 +137,8 @@ impl ProjectHostTrait for AnotherThing {
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
-    pub fn new(project_host: ProjectHost) -> Self {
-        ProjectLoader(ProjectSystemCallbacks {
-            project_host: Box::new(AnotherThing { host: project_host }),
-        })
+    pub fn new(project_host: JSProjectHost) -> Self {
+        ProjectLoader(project_host)
     }
 
     pub async fn load_project_with_deps(
@@ -186,48 +148,49 @@ impl ProjectLoader {
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
         let dir_path = std::path::Path::new(&directory);
-        let project_config: ProjectConfig =
-            match FileSystemAsync::load_project_with_deps(self, dir_path, Some(&package_cache))
-                .await
-            {
-                Ok(project_config) => ProjectConfig {
-                    project_name: dir_path
-                        .file_name()
-                        .map_or("Q# project".into(), |f| f.to_string_lossy().into()),
-                    project_uri: project_config.compilation_uri.to_string(),
-                    package_graph_sources: project_config.package_graph_sources.into(),
-                    lints: project_config.lints.into_iter().map(Into::into).collect(),
-                    errors: project_config
-                        .errors
-                        .into_iter()
-                        .map(|r| r.to_string())
-                        .collect(),
-                },
-                Err(e) => {
-                    return Err(QSharpError {
-                        document: directory,
-                        diagnostic: VSDiagnostic {
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    character: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    character: 1,
-                                },
+        let project_config: ProjectConfig = match self
+            .0
+            .load_project_with_deps(dir_path, Some(&package_cache))
+            .await
+        {
+            Ok(project_config) => ProjectConfig {
+                project_name: dir_path
+                    .file_name()
+                    .map_or("Q# project".into(), |f| f.to_string_lossy().into()),
+                project_uri: project_config.compilation_uri.to_string(),
+                package_graph_sources: project_config.package_graph_sources.into(),
+                lints: project_config.lints.into_iter().map(Into::into).collect(),
+                errors: project_config
+                    .errors
+                    .into_iter()
+                    .map(|r| r.to_string())
+                    .collect(),
+            },
+            Err(e) => {
+                return Err(QSharpError {
+                    document: directory,
+                    diagnostic: VSDiagnostic {
+                        range: Range {
+                            start: Position {
+                                line: 0,
+                                character: 0,
                             },
-                            message: e.to_string(),
-                            severity: "error".into(),
-                            code: Some("project.error".into()),
-                            uri: None,
-                            related: Vec::default(),
+                            end: Position {
+                                line: 0,
+                                character: 1,
+                            },
                         },
-                        stack: None,
-                    }
-                    .into());
+                        message: e.to_string(),
+                        severity: "error".into(),
+                        code: Some("project.error".into()),
+                        uri: None,
+                        related: Vec::default(),
+                    },
+                    stack: None,
                 }
-            };
+                .into());
+            }
+        };
 
         Ok(project_config.into())
     }
@@ -261,39 +224,6 @@ impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
                 .map(|(k, v)| (k.to_string(), v.into()))
                 .collect(),
         }
-    }
-}
-
-#[async_trait(?Send)]
-impl qsc_project::FileSystemAsync for ProjectLoader {
-    type Entry = JSFileEntry;
-    async fn read_file(
-        &self,
-        path: &std::path::Path,
-    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        FileSystemAsync::read_file(&self.0, path).await
-    }
-
-    async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        FileSystemAsync::list_directory(&self.0, path).await
-    }
-
-    async fn resolve_path(
-        &self,
-        base: &std::path::Path,
-        path: &std::path::Path,
-    ) -> miette::Result<std::path::PathBuf> {
-        FileSystemAsync::resolve_path(&self.0, base, path).await
-    }
-
-    async fn fetch_github(
-        &self,
-        owner: &str,
-        repo: &str,
-        r#ref: &str,
-        path: &str,
-    ) -> miette::Result<std::sync::Arc<str>> {
-        FileSystemAsync::fetch_github(&self.0, owner, repo, r#ref, path).await
     }
 }
 

@@ -9,7 +9,6 @@ pub mod definition;
 pub mod format;
 pub mod hover;
 mod name_locator;
-mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
@@ -33,7 +32,7 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
 };
-use qsc_project::ProjectSystemCallbacks;
+use qsc_project::ProjectHost;
 use state::{CompilationState, CompilationStateUpdater};
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -68,7 +67,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        fs_callbacks: ProjectSystemCallbacks,
+        project_host: impl ProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();
@@ -76,7 +75,7 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
-                fs_callbacks,
+                project_host,
             ),
             recv,
         };

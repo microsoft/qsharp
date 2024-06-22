@@ -10,7 +10,7 @@ use qsc::{
     compile::{self, ErrorKind},
     line_column::Position,
 };
-use qsc_project::{FileSystem, JSFileEntry, ProjectHostTrait, ProjectSystemCallbacks};
+use qsc_project::{FileSystem, JSFileEntry, ProjectHost};
 use std::{cell::RefCell, path::PathBuf, sync::Arc};
 use test_fs::{dir, file, FsNode};
 
@@ -328,9 +328,7 @@ fn create_update_worker<'a>(
                     .collect::<Vec<_>>(),
             ));
         },
-        ProjectSystemCallbacks {
-            project_host: Box::new(TestProjectHost {}),
-        },
+        TestProjectHost {},
     );
     worker
 }
@@ -338,16 +336,16 @@ fn create_update_worker<'a>(
 struct TestProjectHost {}
 
 #[async_trait(?Send)]
-impl ProjectHostTrait for TestProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+impl ProjectHost for TestProjectHost {
+    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
         TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
     }
 
-    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
         TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
         TEST_FS.with(|fs| {
             fs.borrow()
                 .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
@@ -356,7 +354,7 @@ impl ProjectHostTrait for TestProjectHost {
         })
     }
 
-    async fn fetch_github(
+    async fn fetch_github_(
         &self,
         _owner: &str,
         _repo: &str,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{DirEntry, EntryType, FileSystemAsync, ProjectConfig};
+use crate::{DirEntry, EntryType, FileSystemAsync};
 use async_trait::async_trait;
 use miette::Error;
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
@@ -25,11 +25,11 @@ impl DirEntry for JSFileEntry {
 }
 
 #[async_trait(?Send)]
-pub trait ProjectHostTrait {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>);
-    async fn list_directory(&self, dir_uri: &str) -> Vec<JSFileEntry>;
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>>;
-    async fn fetch_github(
+pub trait ProjectHost {
+    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>);
+    async fn list_directory_(&self, dir_uri: &str) -> Vec<JSFileEntry>;
+    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>>;
+    async fn fetch_github_(
         &self,
         owner: &str,
         repo: &str,
@@ -39,32 +39,22 @@ pub trait ProjectHostTrait {
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>>;
 }
 
-pub struct ProjectSystemCallbacks {
-    pub project_host: Box<dyn ProjectHostTrait>,
-}
-
-pub struct JSProjectConfig {
-    pub name: Arc<str>,
-    pub uri: Arc<str>,
-    pub config: ProjectConfig,
-}
-
 #[async_trait(?Send)]
-impl FileSystemAsync for ProjectSystemCallbacks {
+impl<T> FileSystemAsync for T
+where
+    T: ProjectHost + ?Sized,
+{
     type Entry = JSFileEntry;
 
     async fn read_file(
         &self,
         path: &std::path::Path,
     ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        return Ok(self.project_host.read_file(&path.to_string_lossy()).await);
+        return Ok(self.read_file_(&path.to_string_lossy()).await);
     }
 
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        return Ok(self
-            .project_host
-            .list_directory(&path.to_string_lossy())
-            .await);
+        return Ok(self.list_directory_(&path.to_string_lossy()).await);
     }
 
     async fn resolve_path(
@@ -73,8 +63,7 @@ impl FileSystemAsync for ProjectSystemCallbacks {
         path: &std::path::Path,
     ) -> miette::Result<std::path::PathBuf> {
         let res = self
-            .project_host
-            .resolve_path(&base.to_string_lossy(), &path.to_string_lossy())
+            .resolve_path_(&base.to_string_lossy(), &path.to_string_lossy())
             .await
             .ok_or(Error::msg("Path could not be resolved"))?;
         return Ok(PathBuf::from(res.to_string()));
@@ -88,8 +77,7 @@ impl FileSystemAsync for ProjectSystemCallbacks {
         path: &str,
     ) -> miette::Result<std::sync::Arc<str>> {
         let content = self
-            .project_host
-            .fetch_github(owner, repo, r#ref, path)
+            .fetch_github_(owner, repo, r#ref, path)
             .await
             .ok_or(Error::msg("Github content could not be retrieved"))?;
         return Ok(content);

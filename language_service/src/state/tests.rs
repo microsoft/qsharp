@@ -13,7 +13,7 @@ use async_trait::async_trait;
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use qsc_project::{FileSystem, JSFileEntry, ProjectHostTrait, ProjectSystemCallbacks};
+use qsc_project::{FileSystem, JSFileEntry, ProjectHost};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, sync::Arc};
 
 #[tokio::test]
@@ -1704,9 +1704,7 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        ProjectSystemCallbacks {
-            project_host: Box::new(TestProjectHost {}),
-        },
+        TestProjectHost {},
     )
 }
 
@@ -1731,9 +1729,7 @@ fn new_updater_with_file_system<'a>(
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        ProjectSystemCallbacks {
-            project_host: Box::new(FsProjectHost { fs: fs.clone() }),
-        },
+        FsProjectHost { fs: fs.clone() },
     )
 }
 
@@ -1742,16 +1738,16 @@ struct FsProjectHost {
 }
 
 #[async_trait(?Send)]
-impl ProjectHostTrait for FsProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+impl ProjectHost for FsProjectHost {
+    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
         self.fs.borrow().read_file(uri.to_string())
     }
 
-    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
         self.fs.borrow().list_directory(uri.to_string())
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
         self.fs
             .borrow()
             .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
@@ -1759,7 +1755,7 @@ impl ProjectHostTrait for FsProjectHost {
             .ok()
     }
 
-    async fn fetch_github(
+    async fn fetch_github_(
         &self,
         _owner: &str,
         _repo: &str,
@@ -1842,16 +1838,16 @@ fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
 struct TestProjectHost {}
 
 #[async_trait(?Send)]
-impl ProjectHostTrait for TestProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+impl ProjectHost for TestProjectHost {
+    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
         TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
     }
 
-    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
         TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
     }
 
-    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
         TEST_FS.with(|fs| {
             fs.borrow()
                 .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
@@ -1860,7 +1856,7 @@ impl ProjectHostTrait for TestProjectHost {
         })
     }
 
-    async fn fetch_github(
+    async fn fetch_github_(
         &self,
         _owner: &str,
         _repo: &str,

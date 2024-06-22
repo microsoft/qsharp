@@ -11,7 +11,7 @@ use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{FileSystemAsync, PackageCache, PackageGraphSources, ProjectSystemCallbacks};
+use qsc_project::{FileSystemAsync, PackageCache, PackageGraphSources, ProjectHost};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
 use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
@@ -102,17 +102,9 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     cache: RefCell<PackageCache>,
-    /// Callback which lets the service read a file from the target filesystem
-    pub(crate) fs_callbacks: ProjectSystemCallbacks,
+    /// Functions to interact with the host filesystem for project system operations.
+    project_host: Box<dyn ProjectHost>,
 }
-
-// TODO: consolidate these two types
-// pub type LoadProjectResult = Option<LoadProjectResultInner>;
-// pub type LoadProjectResultInner = (
-//     Arc<str>, // compilation uri
-//     PackageGraphSources,
-//     Vec<LintConfig>,
-// );
 
 #[derive(Debug)]
 struct LoadManifestResult {
@@ -125,7 +117,7 @@ impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        fs_callbacks: ProjectSystemCallbacks,
+        project_host: impl ProjectHost + 'static,
     ) -> Self {
         Self {
             state,
@@ -133,7 +125,7 @@ impl<'a> CompilationStateUpdater<'a> {
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
             cache: RefCell::default(),
-            fs_callbacks,
+            project_host: Box::new(project_host),
         }
     }
 
@@ -202,14 +194,11 @@ impl<'a> CompilationStateUpdater<'a> {
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
     async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        let dir = self
-            .fs_callbacks
-            .project_host
-            .find_manifest_directory(doc_uri)
-            .await;
+        let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         if let Some(dir) = dir {
             let res = self
+                .project_host
                 .load_project_with_deps(&PathBuf::from(dir.to_string()), Some(&self.cache))
                 .await;
             match res {
