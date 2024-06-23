@@ -17,7 +17,6 @@ use qsc_hir::{
 use crate::linter::{hir::declare_hir_lints, Context};
 
 use super::lint;
-use super::lint2;
 
 // Read Me:
 //  To add a new lint add a new tuple to this structure. The tuple has four elements:
@@ -300,7 +299,7 @@ impl HirLintPass for DeprecatedWithOperator {
                     new_expr.push_str(&format!("{:indent$}}}", "", indent = indentation - 4));
                     let code_action_edits = vec![(new_expr, info.span)];
 
-                    lint2!(self, info.span, code_action_edits);
+                    lint!(self, info.span, code_action_edits);
 
                     buffer.push(lint!(self, info.span));
                     self.lint_info = None;
