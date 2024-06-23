@@ -293,7 +293,7 @@ fn run_fir_passes(
 }
 
 /// Compute new lints and append them to the errors Vec.
-/// Lints are only computed if the erros vector is empty. For performance
+/// Lints are only computed if the errors vector is empty. For performance
 /// reasons we don't want to waste time running lints every few keystrokes,
 /// if the user is in the middle of typing a statement, for example.
 fn run_linter_passes(

@@ -4,6 +4,7 @@
 use std::rc::Rc;
 
 use qsc_data_structures::span::Span;
+use qsc_doc_gen::display::Lookup;
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::{
     hir::{
@@ -14,7 +15,7 @@ use qsc_hir::{
     visit::{self, Visitor},
 };
 
-use crate::linter::{hir::declare_hir_lints, Context};
+use crate::linter::{hir::declare_hir_lints, Compilation};
 
 use super::lint;
 
@@ -122,7 +123,7 @@ impl HirLintPass for NeedlessOperation {
         &mut self,
         decl: &CallableDecl,
         buffer: &mut Vec<Lint>,
-        _context: Context,
+        _compilation: Compilation,
     ) {
         if decl.kind == CallableKind::Operation {
             let mut op_limits = IsQuantumOperation::default();
@@ -138,13 +139,9 @@ impl HirLintPass for NeedlessOperation {
 
 /// Crates a lint for deprecated function constructors of structs.
 impl HirLintPass for DeprecatedFunctionConstructor {
-    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, context: Context) {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
         if let ExprKind::Var(Res::Item(item_id), _) = &expr.kind {
-            let (item, _, _) = resolve_item_relative_to_user_package(
-                *item_id,
-                context.user_package_id,
-                context.package_store,
-            );
+            let (item, _, _) = compilation.resolve_item_relative_to_user_package(item_id);
             if let ItemKind::Ty(_, udt) = &item.kind {
                 if udt.is_struct() {
                     buffer.push(lint!(self, expr.span));
@@ -163,10 +160,10 @@ struct WithOperatorLint {
 
 impl DeprecatedWithOperator {
     /// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
-    fn get_source_code(span: Span, context: Context) -> String {
-        let unit = context
+    fn get_source_code(span: Span, compilation: Compilation) -> String {
+        let unit = compilation
             .package_store
-            .get(context.user_package_id)
+            .get(compilation.user_package_id)
             .expect("user package should exist");
 
         let source = unit
@@ -180,10 +177,10 @@ impl DeprecatedWithOperator {
     }
 
     /// Returns the indentation at the given offset.
-    fn indentation_at_offset(offset: u32, context: Context) -> u32 {
-        let unit = context
+    fn indentation_at_offset(offset: u32, compilation: Compilation) -> u32 {
+        let unit = compilation
             .package_store
-            .get(context.user_package_id)
+            .get(compilation.user_package_id)
             .expect("user package should exist");
 
         let source = unit
@@ -212,16 +209,12 @@ impl DeprecatedWithOperator {
 
 /// Creates a lint for deprecated `w/` and `w/=` operators for structs.
 impl HirLintPass for DeprecatedWithOperator {
-    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, context: Context) {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
         match &expr.kind {
             ExprKind::UpdateField(container, field, value)
             | ExprKind::AssignField(container, field, value) => {
                 if let Ty::Udt(ty_name, Res::Item(item_id)) = &container.ty {
-                    let (item, _, _) = resolve_item_relative_to_user_package(
-                        *item_id,
-                        context.user_package_id,
-                        context.package_store,
-                    );
+                    let (item, _, _) = compilation.resolve_item_relative_to_user_package(item_id);
                     if let ItemKind::Ty(_, udt) = &item.kind {
                         if udt.is_struct() {
                             let field_name = if let Field::Path(path) = field {
@@ -234,7 +227,8 @@ impl HirLintPass for DeprecatedWithOperator {
                             } else {
                                 panic!("field should be a path");
                             };
-                            let field_value = Rc::from(Self::get_source_code(value.span, context));
+                            let field_value =
+                                Rc::from(Self::get_source_code(value.span, compilation));
                             let field_info = (field_name, field_value);
 
                             match &mut self.lint_info {
@@ -258,8 +252,8 @@ impl HirLintPass for DeprecatedWithOperator {
                 if let Some(info) = &self.lint_info {
                     // Construct a Struct constructor expr and print it back into Q# code
                     let indentation =
-                        (Self::indentation_at_offset(info.span.lo, context) + 4) as usize;
-                    let innermost_expr = Self::get_source_code(expr.span, context);
+                        (Self::indentation_at_offset(info.span.lo, compilation) + 4) as usize;
+                    let innermost_expr = Self::get_source_code(expr.span, compilation);
                     let mut new_expr = if info.is_w_eq {
                         format!("set {} = new {} {{\n", innermost_expr, info.ty_name)
                     } else {
@@ -291,39 +285,4 @@ impl HirLintPass for DeprecatedWithOperator {
             }
         }
     }
-}
-
-fn resolve_item_relative_to_user_package(
-    item_id: ItemId,
-    user_package_id: PackageId,
-    package_store: &PackageStore,
-) -> (&Item, &Package, ItemId) {
-    resolve_item(package_store, user_package_id, item_id)
-}
-
-fn resolve_item(
-    package_store: &PackageStore,
-    local_package_id: PackageId,
-    item_id: ItemId,
-) -> (&Item, &Package, ItemId) {
-    // If the `ItemId` contains a package id, use that.
-    // Lack of a package id means the item is in the
-    // same package as the one this `ItemId` reference
-    // came from. So use the local package id passed in.
-    let package_id = item_id.package.unwrap_or(local_package_id);
-    let package = &package_store
-        .get(package_id)
-        .expect("package should exist in store")
-        .package;
-    (
-        package
-            .items
-            .get(item_id.item)
-            .expect("item id should exist"),
-        package,
-        ItemId {
-            package: Some(package_id),
-            item: item_id.item,
-        },
-    )
 }

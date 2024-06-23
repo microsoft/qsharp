@@ -16,7 +16,7 @@ use qsc_hir::{
 pub fn run_hir_lints(
     package: &Package,
     config: Option<&[LintConfig]>,
-    context: Context,
+    compilation: Compilation,
 ) -> Vec<Lint> {
     let config: Vec<(HirLint, LintLevel)> = config
         .unwrap_or(&[])
@@ -30,7 +30,7 @@ pub fn run_hir_lints(
         })
         .collect();
 
-    let mut lints = CombinedHirLints::from_config(config, context);
+    let mut lints = CombinedHirLints::from_config(config, compilation);
 
     for (_, item) in &package.items {
         lints.visit_item(item);
@@ -48,34 +48,40 @@ pub fn run_hir_lints(
 /// The trait provides default empty implementations for the rest of the methods,
 /// which will be optimized to a no-op by the rust compiler.
 pub(crate) trait HirLintPass {
-    fn check_block(&mut self, _block: &Block, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_block(&mut self, _block: &Block, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_callable_decl(
         &mut self,
         _callable_decl: &CallableDecl,
         _buffer: &mut Vec<Lint>,
-        _context: Context,
+        _compilation: Compilation,
     ) {
     }
-    fn check_expr(&mut self, _expr: &Expr, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_ident(&mut self, _ident: &Ident, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_item(&mut self, _item: &Item, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_package(&mut self, _package: &Package, _buffer: &mut Vec<Lint>, _context: Context) {}
-    fn check_pat(&mut self, _pat: &Pat, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_expr(&mut self, _expr: &Expr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ident(&mut self, _ident: &Ident, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_item(&mut self, _item: &Item, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_package(
+        &mut self,
+        _package: &Package,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_pat(&mut self, _pat: &Pat, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_qubit_init(
         &mut self,
         _qubit_init: &QubitInit,
         _buffer: &mut Vec<Lint>,
-        _context: Context,
+        _compilation: Compilation,
     ) {
     }
     fn check_spec_decl(
         &mut self,
         _spec_decl: &SpecDecl,
         _buffer: &mut Vec<Lint>,
-        _context: Context,
+        _compilation: Compilation,
     ) {
     }
-    fn check_stmt(&mut self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _context: Context) {}
+    fn check_stmt(&mut self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
 }
 
 /// This macro allow us to declare lints while avoiding boilerplate. It does three things:
@@ -96,7 +102,7 @@ macro_rules! declare_hir_lints {
         // This is a silly wrapper module to avoid contaminating the environment
         // calling the macro with unwanted imports.
         mod _hir_macro_expansion {
-            use crate::{linter::Context, linter::hir::{declare_hir_lints, HirLintPass}, Lint, LintLevel};
+            use crate::{linter::Compilation, linter::hir::{declare_hir_lints, HirLintPass}, Lint, LintLevel};
             use qsc_hir::{
                 hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},
                 visit::{self, Visitor},
@@ -196,26 +202,26 @@ macro_rules! declare_hir_lints {
         /// Combined HIR lints for speed. This combined lint allow us to
         /// evaluate all the lints in a single HIR pass, instead of doing
         /// an individual pass for each lint in the linter.
-        pub(crate) struct CombinedHirLints<'context> {
+        pub(crate) struct CombinedHirLints<'compilation> {
             pub buffer: Vec<Lint>,
-            pub context: Context<'context>,
+            pub compilation: Compilation<'compilation>,
             $($lint_name: $lint_name),*
         }
 
-        impl<'context> CombinedHirLints<'context> {
-            fn new(context: Context<'context>) -> Self {
+        impl<'compilation> CombinedHirLints<'compilation> {
+            fn new(compilation: Compilation<'compilation>) -> Self {
                 Self {
                     buffer: Vec::new(),
-                    context,
+                    compilation,
                     $($lint_name: <$lint_name>::new()),*
                 }
             }
         }
 
         // Most of the calls here are empty methods and they get optimized at compile time to a no-op.
-        impl<'context> CombinedHirLints<'context> {
-            pub fn from_config(config: Vec<(HirLint, LintLevel)>, context: Context<'context>) -> Self {
-                let mut combined_hir_lints = Self::new(context);
+        impl<'compilation> CombinedHirLints<'compilation> {
+            pub fn from_config(config: Vec<(HirLint, LintLevel)>, compilation: Compilation<'compilation>) -> Self {
+                let mut combined_hir_lints = Self::new(compilation);
                 for (lint, level) in config {
                     match lint {
                         $(HirLint::$lint_name => combined_hir_lints.$lint_name.level = level),*
@@ -224,16 +230,16 @@ macro_rules! declare_hir_lints {
                 combined_hir_lints
             }
 
-            fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer, self.context));* }
-            fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer, self.context));* }
-            fn check_expr(&mut self, expr: &Expr) { $(self.$lint_name.check_expr(expr, &mut self.buffer, self.context));* }
-            fn check_ident(&mut self, ident: &Ident) { $(self.$lint_name.check_ident(ident, &mut self.buffer, self.context));* }
-            fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer, self.context));* }
-            fn check_package(&mut self, package: &Package) { $(self.$lint_name.check_package(package, &mut self.buffer, self.context));* }
-            fn check_pat(&mut self, pat: &Pat) { $(self.$lint_name.check_pat(pat, &mut self.buffer, self.context));* }
-            fn check_qubit_init(&mut self, init: &QubitInit) { $(self.$lint_name.check_qubit_init(init, &mut self.buffer, self.context));* }
-            fn check_spec_decl(&mut self, decl: &SpecDecl) { $(self.$lint_name.check_spec_decl(decl, &mut self.buffer, self.context));* }
-            fn check_stmt(&mut self, stmt: &Stmt) { $(self.$lint_name.check_stmt(stmt, &mut self.buffer, self.context));* }
+            fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer, self.compilation));* }
+            fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer, self.compilation));* }
+            fn check_expr(&mut self, expr: &Expr) { $(self.$lint_name.check_expr(expr, &mut self.buffer, self.compilation));* }
+            fn check_ident(&mut self, ident: &Ident) { $(self.$lint_name.check_ident(ident, &mut self.buffer, self.compilation));* }
+            fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer, self.compilation));* }
+            fn check_package(&mut self, package: &Package) { $(self.$lint_name.check_package(package, &mut self.buffer, self.compilation));* }
+            fn check_pat(&mut self, pat: &Pat) { $(self.$lint_name.check_pat(pat, &mut self.buffer, self.compilation));* }
+            fn check_qubit_init(&mut self, init: &QubitInit) { $(self.$lint_name.check_qubit_init(init, &mut self.buffer, self.compilation));* }
+            fn check_spec_decl(&mut self, decl: &SpecDecl) { $(self.$lint_name.check_spec_decl(decl, &mut self.buffer, self.compilation));* }
+            fn check_stmt(&mut self, stmt: &Stmt) { $(self.$lint_name.check_stmt(stmt, &mut self.buffer, self.compilation));* }
         }
 
         impl<'a> Visitor<'a> for CombinedHirLints<'_> {
@@ -291,4 +297,4 @@ macro_rules! declare_hir_lints {
 
 pub(crate) use declare_hir_lints;
 
-use super::{Context, LintKind};
+use super::{Compilation, LintKind};

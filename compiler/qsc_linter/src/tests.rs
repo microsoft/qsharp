@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints, Context},
+    linter::{ast::run_ast_lints, hir::run_hir_lints, Compilation},
     Lint, LintConfig, LintLevel,
 };
 use expect_test::{expect, Expect};
@@ -435,7 +435,7 @@ fn run_lints(
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
-    let context = Context {
+    let context = Compilation {
         package_store,
         user_package_id,
         compile_unit,
