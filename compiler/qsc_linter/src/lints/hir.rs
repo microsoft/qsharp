@@ -5,11 +5,10 @@ use std::rc::Rc;
 
 use qsc_data_structures::span::Span;
 use qsc_doc_gen::display::Lookup;
-use qsc_frontend::compile::PackageStore;
 use qsc_hir::{
     hir::{
-        CallableDecl, CallableKind, Expr, ExprKind, Field, Item, ItemId, ItemKind, Package,
-        PackageId, Res, SpecBody, SpecDecl, Stmt, StmtKind,
+        CallableDecl, CallableKind, Expr, ExprKind, Field, ItemKind, Res, SpecBody, SpecDecl, Stmt,
+        StmtKind,
     },
     ty::Ty,
     visit::{self, Visitor},
