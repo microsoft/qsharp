@@ -103,7 +103,7 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
-                LintKind::Ast(_) | LintKind::Hir(_) => (),
+                _ => (),
             }
         }
     }
