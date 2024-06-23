@@ -30,14 +30,14 @@ pub fn run_lints(
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
-    let context = Compilation {
+    let compilation = Compilation {
         package_store,
         user_package_id,
         compile_unit,
     };
 
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, context);
+    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
