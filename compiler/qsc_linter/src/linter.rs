@@ -35,9 +35,6 @@ pub fn run_lints(
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
     lints
-        .into_iter()
-        .filter(|lint| !matches!(lint.level, LintLevel::Allow))
-        .collect()
 }
 
 #[allow(dead_code)]
@@ -61,6 +58,8 @@ pub struct Lint {
     pub help: &'static str,
     /// An enum identifying this lint.
     pub kind: LintKind,
+    /// The suggested edits to fix the lint.
+    pub code_action_edits: Vec<(String, Span)>,
 }
 
 impl std::fmt::Display for Lint {

@@ -14,7 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::LintConfig;
+use qsc_linter::{LintConfig, LintLevel};
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -299,14 +299,15 @@ fn run_fir_passes(
 fn run_linter_passes(
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     package_store: &PackageStore,
-    package_id: PackageId,
+    user_package_id: PackageId,
     unit: &CompileUnit,
     config: &[LintConfig],
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(package_store, package_id, unit, Some(config));
+        let lints = qsc::linter::run_lints(package_store, user_package_id, unit, Some(config));
         let lints = lints
             .into_iter()
+            .filter(|lint| !matches!(lint.level, LintLevel::Allow))
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
         errors.extend(lints);
     }

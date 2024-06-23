@@ -43,7 +43,7 @@ fn quick_fixes(
     // An example of what quickfixes could look like if they were generated here.
     // The other option I considered was generating the quickfixes when the errors
     // are initially issued. But that has two problems:
-    //  1. It does unnecesary computations at compile time, that would go to waste if using the CLI compiler.
+    //  1. It does unnecessary computations at compile time, that would go to waste if using the CLI compiler.
     //  2. The quickfix logic would be spread across many crates in the compiler.
     for diagnostic in diagnostics {
         if let ErrorKind::Lint(lint) = diagnostic.error() {
@@ -87,8 +87,23 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
-                LintKind::Ast(AstLint::DivisionByZero)
-                | LintKind::Hir(HirLint::NeedlessOperation) => (),
+                LintKind::Hir(HirLint::DeprecatedWithOperator) => code_actions.push(CodeAction {
+                    title: diagnostic.to_string(),
+                    edit: Some(WorkspaceEdit {
+                        changes: vec![(
+                            source_name.to_string(),
+                            vec![TextEdit {
+                                // Same source code without the unused variable.
+                                new_text: lint.code_action_edits[0].0.clone(),
+                                range: resolve_range(diagnostic, encoding)
+                                    .expect("range should exist"),
+                            }],
+                        )],
+                    }),
+                    kind: Some(CodeActionKind::QuickFix),
+                    is_preferred: None,
+                }),
+                LintKind::Ast(_) | LintKind::Hir(_) => (),
             }
         }
     }

@@ -265,6 +265,91 @@ fn needless_operation_partial_application() {
         "#]],
     );
 }
+#[test]
+fn deprecated_newtype_usage() {
+    check(
+        indoc! {"
+        newtype Foo = ();
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "newtype Foo = ();",
+                    level: Warn,
+                    message: "deprecated `newtype` declarations",
+                    help: "`newtype` declarations are deprecated, use `struct` instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_function_cons() {
+    check(
+        indoc! {"
+        struct Foo {}
+        function Bar() : Foo { Foo() }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "Foo",
+                    level: Warn,
+                    message: "deprecated function constructors",
+                    help: "function constructors for struct types are deprecated, use `new` instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_with_op_for_structs() {
+    check(
+        indoc! {"
+        struct Foo { x : Int}
+        function Bar() : Foo {
+            let foo = new Foo { x = 2 };
+            foo w/ x <- 3
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "foo w/ x <- 3",
+                    level: Warn,
+                    message: "deprecated `w/` and `w/=` operators for structs",
+                    help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_with_eq_op_for_structs() {
+    check(
+        indoc! {"
+        struct Foo { x : Int}
+        function Bar() : Foo {
+            mutable foo = new Foo { x = 2 };
+            set foo w/= x <- 3;
+            foo
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "set foo w/= x <- 3",
+                    level: Warn,
+                    message: "deprecated `w/` and `w/=` operators for structs",
+                    help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
+                },
+            ]
+        "#]],
+    );
+}
 
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
