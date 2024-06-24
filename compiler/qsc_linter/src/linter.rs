@@ -33,7 +33,6 @@ pub fn run_lints(
     let compilation = Compilation {
         package_store,
         user_package_id,
-        compile_unit,
     };
 
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
@@ -45,21 +44,19 @@ pub fn run_lints(
     lints
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub(crate) struct Compilation<'a> {
     pub package_store: &'a PackageStore,
     pub user_package_id: PackageId,
-    pub compile_unit: &'a CompileUnit,
 }
 
 impl<'a> Lookup for Compilation<'a> {
     fn get_ty(&self, _: NodeId) -> Option<&ty::Ty> {
-        unimplemented!("Not needed for docs generation")
+        unimplemented!("Not needed for linter")
     }
 
     fn get_res(&self, _: NodeId) -> Option<&resolve::Res> {
-        unimplemented!("Not needed for docs generation")
+        unimplemented!("Not needed for linter")
     }
 
     /// Returns the hir `Item` node referred to by `item_id`,

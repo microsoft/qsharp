@@ -438,7 +438,6 @@ fn run_lints(
     let compilation = Compilation {
         package_store,
         user_package_id,
-        compile_unit,
     };
 
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
