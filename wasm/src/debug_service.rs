@@ -26,7 +26,7 @@ impl DebugService {
     }
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
-    pub fn load_program(&mut self, program: IProgramConfig, entry: Option<String>) -> String {
+    pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
         let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
             into_qsc_args(program, entry);
 

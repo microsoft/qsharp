@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::serializable_type;
+use crate::{
+    diagnostic::{IQSharpError, QSharpError, VSDiagnostic},
+    line_column::{Position, Range},
+    serializable_type,
+};
 use async_trait::async_trait;
-use qsc::linter::LintConfig;
-use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost};
+use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
+use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -24,8 +29,7 @@ export interface IProjectHost {
  * but with all the properties required and filled in with defaults where necessary.
  */
 export interface IProgramConfig {
-    sources: [string, string][];
-    languageFeatures: string[];
+    packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
 }
 "#;
@@ -47,7 +51,7 @@ extern "C" {
 
     #[wasm_bindgen(method, structural)]
     async fn fetchGithub(
-        this: &JSProjectHost,
+        this: &ProjectHost,
         owner: &str,
         repo: &str,
         r#ref: &str,
@@ -73,6 +77,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn packageGraphSources(this: &ProgramConfig) -> IPackageGraphSources;
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
@@ -171,24 +178,12 @@ impl ProjectLoader {
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
         let dir_path = std::path::Path::new(&directory);
-        let project_config: ProjectConfig = match self
+        let project_config: IProjectConfig = match self
             .0
             .load_project_with_deps(dir_path, Some(&package_cache))
             .await
         {
-            Ok(project_config) => ProjectConfig {
-                project_name: dir_path
-                    .file_name()
-                    .map_or("Q# project".into(), |f| f.to_string_lossy().into()),
-                project_uri: project_config.compilation_uri.to_string(),
-                package_graph_sources: project_config.package_graph_sources.into(),
-                lints: project_config.lints.into_iter().map(Into::into).collect(),
-                errors: project_config
-                    .errors
-                    .into_iter()
-                    .map(|r| r.to_string())
-                    .collect(),
-            },
+            Ok(loaded_project) => loaded_project.into(),
             Err(e) => {
                 return Err(QSharpError {
                     document: directory,
@@ -215,7 +210,7 @@ impl ProjectLoader {
             }
         };
 
-        Ok(project_config.into())
+        Ok(project_config)
     }
 }
 
@@ -236,13 +231,13 @@ impl From<qsc_project::PackageInfo> for PackageInfo {
         }
     }
 
-    #[allow(clippy::from_iter_instead_of_collect)]
-    pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
-        match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
-            Ok(p) => Ok(p.into()),
-            Err(e) => Err(JsError::new(&format!("{e}")).into()),
-        }
-    }
+    // #[allow(clippy::from_iter_instead_of_collect)]
+    // pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
+    //     match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
+    //         Ok(p) => Ok(p.into()),
+    //         Err(e) => Err(JsError::new(&format!("{e}")).into()),
+    //     }
+    // }
 }
 
 impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
@@ -252,24 +247,24 @@ impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
             packages: value
                 .packages
                 .into_iter()
-                .map(|(k, v)| (k.to_string(), v.into()))
+                .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
                 .collect(),
         }
     }
 }
 
-serializable_type! {
-    ProgramConfig,
-    {
-        pub package_graph_sources: PackageGraphSources,
-        pub target_profile: String,
-    },
-    r#"export interface IProgramConfig {
-        packageGraphSources: IPackageGraphSources;
-        targetProfile: TargetProfile;
-    }"#,
-    IProgramConfig
-}
+// serializable_type! {
+//     ProgramConfig,
+//     {
+//         pub package_graph_sources: PackageGraphSources,
+//         pub target_profile: String,
+//     },
+//     r#"export interface IProgramConfig {
+//         packageGraphSources: IPackageGraphSources;
+//         targetProfile: TargetProfile;
+//     }"#,
+//     IProgramConfig
+// }
 
 serializable_type! {
     PackageGraphSources,
@@ -308,18 +303,14 @@ impl From<ProjectSources> for Vec<(String, String)> {
     }
 }
 
-impl From<qsc_project::Project> for IProjectConfig {
-    fn from(value: qsc_project::Project) -> Self {
+impl From<qsc_project::LoadedProject> for IProjectConfig {
+    fn from(value: qsc_project::LoadedProject) -> Self {
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.manifest_path.to_string(),
-            sources: value
-                .sources
-                .into_iter()
-                .map(|(a, b)| (a.to_string(), b.to_string()))
-                .collect(),
-            language_features: value.manifest.language_features,
-            lints: value.manifest.lints,
+            lints: value.lints,
+            package_graph_sources: value.package_graph_sources.into(),
+            errors: value.errors.into_iter().map(|e| e.to_string()).collect(), // TODO: proper diagnostics
         };
         project_config.into()
     }
@@ -400,18 +391,16 @@ pub(crate) fn into_qsc_args(
     qsc::PackageStore,
     Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
 ) {
-    let program: ProgramConfig = program.into();
-    let capabilities = qsc::target::Profile::from_str(&program.target_profile)
-        .unwrap_or_else(|()| panic!("Invalid target : {}", program.target_profile))
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
         .into();
+    let package_graph_sources: PackageGraphSources = program.packageGraphSources().into();
+
     let BuildableProgram {
         store,
         user_code,
         user_code_dependencies,
-    } = BuildableProgram::new(
-        &program.target_profile,
-        program.package_graph_sources.into(),
-    );
+    } = BuildableProgram::new(&program.profile(), package_graph_sources.into());
     // let package_graph = program.package_graph_sources;
     // let (sources, language_features) = into_package_graph_args(package_graph);
     let sources = user_code.sources;

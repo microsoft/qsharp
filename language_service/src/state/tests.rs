@@ -12,8 +12,7 @@ use crate::{
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use qsc_project::{FileSystem, JSFileEntry, ProjectHost};
-use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 #[tokio::test]
 async fn no_error() {
@@ -1740,46 +1739,6 @@ fn new_updater_with_file_system<'a>(
     )
 }
 
-struct FsProjectHost {
-    fs: Rc<RefCell<FsNode>>,
-}
-
-#[async_trait(?Send)]
-impl ProjectHost for FsProjectHost {
-    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
-        self.fs.borrow().read_file(uri.to_string())
-    }
-
-    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
-        self.fs.borrow().list_directory(uri.to_string())
-    }
-
-    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        self.fs
-            .borrow()
-            .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-            .map(|p| p.to_string_lossy().into())
-            .ok()
-    }
-
-    async fn fetch_github_(
-        &self,
-        _owner: &str,
-        _repo: &str,
-        _ref: &str,
-        _path: &str,
-    ) -> Option<Arc<str>> {
-        None
-    }
-
-    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
-        self.fs
-            .borrow()
-            .find_manifest_directory(doc_uri)
-            .map(|p| p.to_string_lossy().into())
-    }
-}
-
 fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
     expected.assert_debug_eq(&errors.borrow());
     // reset accumulated errors after each check
@@ -1833,7 +1792,7 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
         .await
         .expect("manifest should exist");
 
-    let lints_config = manifest.manifest.lints;
+    let lints_config = manifest.lints;
 
     expected_config.assert_eq(&format!("{lints_config:#?}"));
 }

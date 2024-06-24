@@ -4,7 +4,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use expect_test::Expect;
-use qsc_project::{FileSystem, Manifest, Project, StdFs};
+use qsc_project::{FileSystem, Manifest, StdFs};
 
 pub fn check(project_path: &PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -17,22 +17,15 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     let fs = StdFs;
     let mut project = fs
         .load_project_with_deps(&manifest.manifest_dir, None)
-        .expect("project should load")
-        .package_graph_sources
-        .root;
+        .expect("project should load");
 
-    for (path, _contents) in &mut project.sources {
+    for (path, _contents) in &mut project.package_graph_sources.root.sources {
         remove_absolute_path_prefix(path, &root_path);
     }
 
+    project.package_graph_sources.root.sources.sort();
+
     remove_absolute_path_prefix(&mut project.manifest_path, &root_path);
-
-    project.sources.sort();
-
-    let project = Project {
-        sources: project.sources,
-        manifest: manifest.manifest,
-    };
 
     expect.assert_eq(&format!("{project:#?}"));
 }

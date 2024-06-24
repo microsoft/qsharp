@@ -40,7 +40,7 @@ import {
 } from "./notebook.js";
 import {
   fetchGithubRaw,
-  findManifestDocument,
+  findManifestDirectory,
   getGithubSourceContent,
   listDirectory,
   readFile,

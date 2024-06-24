@@ -230,4 +230,14 @@ impl JSProjectHost for TestProjectHost {
             .find_manifest_directory(doc_uri)
             .map(|p| p.to_string_lossy().into())
     }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> Option<Arc<str>> {
+        unimplemented!()
+    }
 }

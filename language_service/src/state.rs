@@ -12,7 +12,7 @@ use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
 use qsc_project::{
-    FileSystemAsync, JSProjectHost, Manifest, PackageCache, PackageGraphSources, Project,
+    FileSystemAsync, JSProjectHost, LoadedProject, PackageCache, PackageGraphSources,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
@@ -147,7 +147,7 @@ impl<'a> CompilationStateUpdater<'a> {
             (
                 project.manifest_path,
                 project.package_graph_sources,
-                project.manifest.lints,
+                project.lints,
             )
         } else {
             // If we are in single file mode, use the file's path as the compilation identifier.
@@ -183,7 +183,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(&compilation_uri, lints_config, sources);
+        self.insert_buffer_aware_compilation(&compilation_uri, lints_config, package_graph_sources);
 
         self.publish_diagnostics();
     }
@@ -191,7 +191,7 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<Project> {
+    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadedProject> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         if let Some(dir) = dir {
@@ -266,15 +266,10 @@ impl<'a> CompilationStateUpdater<'a> {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents
             // for this document
-            if let Some(Project {
+            if let Some(LoadedProject {
                 package_graph_sources,
                 manifest_path: compilation_uri,
-                manifest:
-                    Manifest {
-                        language_features,
-                        lints: lints_config,
-                        ..
-                    },
+                lints: lints_config,
                 ..
             }) = project
             {

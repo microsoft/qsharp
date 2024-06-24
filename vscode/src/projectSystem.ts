@@ -187,21 +187,19 @@ export async function loadProject(
   // Clear diagnostics for this project
   updateQSharpJsonDiagnostics(manifestDocument.uri);
 
-  const project = await projectLoader.load_project_with_deps(
-    manifestDocument.directory.toString(),
-  );
-
-  if (project.errors.length > 0) {
-    for (const error of project.errors) {
-      updateQSharpJsonDiagnostics(manifestDocument.uri, error);
-    }
-  }
-
   let project;
   try {
-    project = await projectLoader.load_project(
+    project = await projectLoader.load_project_with_deps(
       manifestDocument.directory.toString(),
     );
+
+    // TODO: clean up error reporting
+    if (project.errors.length > 0) {
+      updateQSharpJsonDiagnostics(
+        manifestDocument.uri,
+        project.errors.join(","),
+      );
+    }
   } catch (e: any) {
     updateQSharpJsonDiagnostics(
       manifestDocument.uri,

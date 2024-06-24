@@ -19,6 +19,5 @@ pub use js::{JSFileEntry, JSProjectHost};
 pub use manifest::{Dependency, Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
 pub use project::FileSystemAsync;
 pub use project::{
-    DirEntry, EntryType, FileSystem, PackageCache, PackageGraphSources, PackageInfo, Project,
-    ProjectConfig,
+    DirEntry, EntryType, FileSystem, LoadedProject, PackageCache, PackageGraphSources, PackageInfo,
 };

@@ -109,12 +109,12 @@ mod tests {
     use expect_test::expect;
     use qsc_frontend::compile::SourceMap;
     use qsc_passes::PackageType;
-    use qsc_project::PackageInfo;
+    use qsc_project::{LoadedProject, PackageInfo};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    fn mock_program() -> qsc_project::ProjectConfig {
-        qsc_project::ProjectConfig {
+    fn mock_program() -> LoadedProject {
+        LoadedProject {
             // Mock data for the ProgramConfig
             package_graph_sources: qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
@@ -142,7 +142,8 @@ mod tests {
             },
             lints: vec![],
             errors: vec![],
-            compilation_uri: "project/qsharp.json".into(),
+            manifest_path: "project/qsharp.json".into(),
+            name: "project".into(),
         }
     }
 

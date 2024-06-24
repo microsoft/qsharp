@@ -15,15 +15,25 @@ use std::{
 
 /// Describes a Q# project
 #[derive(Debug)]
+pub struct LoadedProject {
+    /// Friendly name, typically based on project directory name
+    /// Not guaranteed to be unique. Don't use as a key.
+    pub name: Arc<str>,
+    /// Full path to the project's `qsharp.json` file
+    pub manifest_path: Arc<str>,
+    pub package_graph_sources: PackageGraphSources,
+    pub lints: Vec<LintConfig>,
+    pub errors: Vec<miette::Report>,
+}
+
+/// Describes a Q# project
+#[derive(Debug, Clone)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
     pub name: Arc<str>,
     /// Full path to the project's `qsharp.json` file
     pub manifest_path: Arc<str>,
     pub sources: Vec<(Arc<str>, Arc<str>)>,
-    //     pub package_graph_sources: PackageGraphSources,
-    //     pub lints: Vec<LintConfig>,
-    //     pub errors: Vec<miette::Report>,
     pub manifest: crate::Manifest,
 }
 
@@ -150,15 +160,15 @@ pub trait FileSystemAsync {
     }
 
     /// Given a directory path, parse the manifest and load the project sources.
-    async fn load_project_in_dir(&self, directory: &Path) -> miette::Result<Project> {
-        let manifest = self.parse_manifest_in_dir(directory).await?;
+    // async fn load_project_in_dir(&self, directory: &Path) -> miette::Result<LoadedProject> {
+    //     let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        self.load_project(&ManifestDescriptor {
-            manifest_dir: directory.to_path_buf(),
-            manifest,
-        })
-        .await
-    }
+    //     self.load_project_with_deps(&ManifestDescriptor {
+    //         manifest_dir: directory.to_path_buf(),
+    //         manifest,
+    //     })
+    //     .await
+    // }
 
     async fn parse_manifest_in_dir(&self, directory: &Path) -> Result<Manifest, miette::Error> {
         let manifest_path = self
@@ -212,13 +222,18 @@ pub trait FileSystemAsync {
             ));
         }
 
-        Ok(Project { sources, manifest })
+        Ok(Project {
+            sources,
+            manifest,
+            name: format!("{}/{}", dep.owner, dep.repo).into(),
+            manifest_path: manifest_path.into(),
+        })
     }
 
     async fn read_manifest_and_sources(
         &self,
         this_pkg: &Dependency,
-    ) -> miette::Result<(Manifest, PackageInfo)> {
+    ) -> miette::Result<(Project, PackageInfo)> {
         let mut project = match this_pkg {
             Dependency::GitHub { github } => self.read_github_manifest_and_sources(github).await?,
             Dependency::Path { path } => {
@@ -246,10 +261,12 @@ pub trait FileSystemAsync {
 
         let language_features = LanguageFeatures::from_iter(&project.manifest.language_features);
 
+        let sources = project.sources.clone();
+
         Ok((
-            project.manifest,
+            project,
             PackageInfo {
-                sources: project.sources,
+                sources,
                 language_features,
                 dependencies,
             },
@@ -258,10 +275,10 @@ pub trait FileSystemAsync {
 
     async fn read_manifest_and_sources_cached(
         &self,
-        global_cache: &RefCell<FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>>,
+        global_cache: &RefCell<PackageCache>,
         key: PackageKey,
         this_pkg: &Dependency,
-    ) -> miette::Result<(Manifest, PackageInfo)> {
+    ) -> miette::Result<(Project, PackageInfo)> {
         {
             let cache = global_cache.borrow();
             if let Some(cached) = cache.get(&key) {
@@ -289,7 +306,7 @@ pub trait FileSystemAsync {
         &self,
         key: Arc<str>,
         pkg: &PackageInfo,
-        global_cache: &RefCell<FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>>,
+        global_cache: &RefCell<PackageCache>,
         stack: &mut Vec<PackageKey>,
         packages: &mut FxHashMap<PackageKey, PackageInfo>,
         errors: &mut Vec<miette::Report>,
@@ -352,7 +369,7 @@ pub trait FileSystemAsync {
         &self,
         directory: &Path,
         global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<ProjectConfig> {
+    ) -> miette::Result<LoadedProject> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
         let mut errors = vec![];
@@ -365,7 +382,7 @@ pub trait FileSystemAsync {
 
         let result = self.read_manifest_and_sources(&root_dep).await;
         let root = match result {
-            Ok(pkg) => Some(pkg.1),
+            Ok(pkg) => Some(pkg),
             Err(e) => {
                 errors.push(e);
                 None
@@ -382,9 +399,10 @@ pub trait FileSystemAsync {
                     .join("; ")
             ))),
             Some(root) => {
+                let (project, pkg) = root;
                 self.collect_deps(
                     key_for_dependency_definition(&root_dep),
-                    &root,
+                    &pkg,
                     global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
                     &mut stack,
                     &mut packages,
@@ -393,15 +411,15 @@ pub trait FileSystemAsync {
                 )
                 .await;
 
-                let manifest_descriptor = ManifestDescriptor {
-                    manifest,
-                    manifest_dir: directory.into(),
-                };
-                Ok(ProjectConfig {
-                    compilation_uri: manifest_descriptor.compilation_uri(),
-                    package_graph_sources: PackageGraphSources { root, packages },
-                    lints: manifest_descriptor.manifest.lints,
+                Ok(LoadedProject {
+                    package_graph_sources: PackageGraphSources {
+                        root: pkg,
+                        packages,
+                    },
+                    lints: manifest.lints,
                     errors,
+                    name: project.name.clone(),
+                    manifest_path: project.manifest_path.clone(),
                 })
             }
         }
@@ -427,7 +445,7 @@ fn decode_dependency_defintion_from_key(key: &PackageKey) -> Dependency {
 
 type PackageKey = Arc<str>;
 type PackageAlias = Arc<str>;
-pub type PackageCache = FxHashMap<PackageKey, Result<(Manifest, PackageInfo), String>>;
+pub type PackageCache = FxHashMap<PackageKey, Result<(Project, PackageInfo), String>>;
 
 #[derive(Clone, Debug)]
 pub struct PackageInfo {
@@ -549,7 +567,7 @@ pub trait FileSystem {
         &self,
         directory: &Path,
         global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<ProjectConfig> {
+    ) -> miette::Result<LoadedProject> {
         // Rather than rewriting all the async code in the project loader,
         // we call the async implementation here, doing some tricks to make it
         // run synchronously.

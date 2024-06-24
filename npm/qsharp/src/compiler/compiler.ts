@@ -83,6 +83,7 @@ export type ProgramConfig = (
       languageFeatures?: string[];
     }
   | {
+      /** Sources from all resolved dependencies, along with their languageFeatures configuration */
       packageGraphSources: IPackageGraphSources;
     }
 ) & {
@@ -227,11 +228,25 @@ export function toWasmProgramConfig(
   program: ProgramConfig,
   defaultProfile: TargetProfile,
 ): Required<wasmIProgramConfig> {
-  return {
-    sources: program.sources,
-    languageFeatures: program.languageFeatures || [],
-    profile: program.profile || defaultProfile,
-  };
+  let packageGraphSources: IPackageGraphSources;
+
+  if ("sources" in program) {
+    // The simpler type is used, where there are no dependencies and only a list
+    // of sources is passed in.
+    packageGraphSources = {
+      root: {
+        sources: program.sources,
+        languageFeatures: program.languageFeatures || [],
+        dependencies: {},
+      },
+      packages: {},
+    };
+  } else {
+    // A full package graph is passed in.
+    packageGraphSources = program.packageGraphSources;
+  }
+
+  return { packageGraphSources, profile: program.profile || defaultProfile };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
@@ -295,15 +310,4 @@ export function toPackageGraphSources(
         packages: {},
       }
     : program.packageGraphSources;
-}
-
-export function toWasmProgramConfig(
-  program: ProgramConfig,
-  defaultProfile: TargetProfile,
-): IProgramConfig {
-  const packageGraphSources = toPackageGraphSources(program);
-  return {
-    packageGraphSources,
-    targetProfile: program.profile || defaultProfile,
-  };
 }
