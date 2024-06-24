@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+import json
 import math
 import numpy as np
 import numpy.typing as npt
@@ -445,6 +446,12 @@ parser.add_argument(
     default="https://aka.ms/fcidump/n2-10e-8o",
     help="Path to the FCIDUMP file describing the Hamiltonian",
 )
+parser.add_argument(
+    "-p",
+    "--paramsfile",
+    nargs="*",
+    help="Optional parameter files to use for estimation",
+)
 args = parser.parse_args()
 
 # ----- Read the FCIDUMP file and get resource estimates from Q# algorithm -----
@@ -479,14 +486,27 @@ qsharp_string = (
     "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryParameters(0.001,))"
 )
 
-# Get resource estimates
-res = qsharp.estimate(
-    qsharp_string,
-    params={
+# Collect resource estimation parameters
+if args.paramsfile is None:
+    params = {
         "errorBudget": 0.01,
         "qubitParams": {"name": "qubit_maj_ns_e6"},
         "qecScheme": {"name": "floquet_code"},
-    },
+    }
+else:
+    params = []
+    for paramsfile in args.paramsfile:
+        with open(paramsfile) as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                params.append(data)
+            else:
+                params += data
+
+# Get resource estimates
+res = qsharp.estimate(
+    qsharp_string,
+    params=params,
 )
 
 # Store estimates in json file
@@ -494,8 +514,9 @@ with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
 # Print high-level resource estimation results
-print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
-print(
-    f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
-)
+if "physicalCountsFormatted" in res:
+    print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
+    print(
+        f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
+    )
 print("For more detailed resource counts, see file resource_estimate.json")

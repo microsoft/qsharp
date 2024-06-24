@@ -1,10 +1,10 @@
 # Resource Estimation for Double-factorized Chemistry
 
-In this sample we evaluate the physical resource estimates of using the so-called double-factorized qubitization algorithm described in [[Phys. Rev. Research 3, 033055 (2021)](https://doi.org/10.1103/PhysRevResearch.3.033055)] to calculate the energy of a user provided Hamiltonian to chemical accuracy of 1 mHa. 
+In this sample we evaluate the physical resource estimates of using the so-called double-factorized qubitization algorithm described in [[Phys. Rev. Research 3, 033055 (2021)](https://doi.org/10.1103/PhysRevResearch.3.033055)] to calculate the energy of a user provided Hamiltonian to chemical accuracy of 1 mHa.
 
 The Hamiltonian is provided as an FCIDUMP file that is available on your machine or can be downloaded via an HTTPS URL.
 
-```
+```text
 usage: chemistry.py [-h] [-f FCIDUMPFILE]
 
 Double-factorized chemistry sample
@@ -13,19 +13,23 @@ options:
   -h, --help            show this help message and exit
   -f FCIDUMPFILE, --fcidumpfile FCIDUMPFILE
                         Path to the FCIDUMP file describing the Hamiltonian
+  -p [PARAMSFILE ...], --paramsfile [PARAMSFILE ...]
+                        Optional parameter files to use for estimation
 ```
 
 For example, the following command will download the FCIDUMP file `n2-10e-8o` to the working folder and run resource estimation for it:
 
-```
+```shell
 chemistry.py -f https://aka.ms/fcidump/n2-10e-8o
 ```
 
 After that, you can pass the path to the downloaded file to the script instead:
 
-```
+```shell
 chemistry.py -f n2-10e-8o
 ```
+
+By default, physical resources are estimates for a Majorana based qubit with 10⁻⁶ error rates (`qubit_maj_ns_e6`), a Floquet code QEC scheme.  The error budget is set to 0.01 to reach the required chemical accuracy of 1 mHa.  The `-p` program argument can be used to load other resource estimation parameters, specified in JSON files.  The JSON files can either contain a JSON object for one configuration, or an array of JSON objects for multiple configurations.  Make sure to set the error budget to 0.01 to guarantee the correct chemical accuracy.
 
 You can choose some of the following URLs to download example files:
 
