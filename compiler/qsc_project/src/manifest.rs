@@ -12,7 +12,7 @@ use std::{
 pub use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
@@ -52,18 +52,6 @@ pub struct GitHubRef {
 pub struct ManifestDescriptor {
     pub manifest: Manifest,
     pub manifest_dir: PathBuf,
-}
-
-impl ManifestDescriptor {
-    /// Generate a canonical compilation URI for the project associated with this manifest
-    // TODO: use this in the JS layer as well?!
-    #[must_use]
-    pub fn compilation_uri(&self) -> Arc<str> {
-        Arc::from(format!(
-            "{}/qsharp.json",
-            self.manifest_dir.to_string_lossy()
-        ))
-    }
 }
 
 #[cfg(feature = "fs")]

@@ -19,7 +19,6 @@ import {
   window,
 } from "vscode";
 import { showCircuitCommand } from "./circuit";
-import { getTarget } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
@@ -55,7 +54,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       if (!program.success) {
         throw new Error(program.errorMsg);
       }
-      const { packageGraphSources, projectName } = program.programConfig;
 
       const qubitType = await window.showQuickPick(
         [
@@ -158,7 +156,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
       let runName = await window.showInputBox({
         title: "Friendly name for run",
-        value: `${projectName}`,
+        value: `${program.programConfig.projectName}`,
       });
       if (!runName) {
         return;
@@ -210,10 +208,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
           {},
         );
         const estimatesStr = await worker.getEstimates(
-          {
-            packageGraphSources,
-            profile: getTarget(),
-          },
+          program.programConfig,
           JSON.stringify(params),
         );
         sendTelemetryEvent(
@@ -299,8 +294,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
         throw new Error(program.errorMsg);
       }
 
-      const { packageGraphSources } = program.programConfig;
-
       // Start the worker, run the code, and send the results to the webview
       const worker = getCompilerWorker(compilerWorkerScriptPath);
       const compilerTimeout = setTimeout(() => {
@@ -349,11 +342,13 @@ export function registerWebViewCommands(context: ExtensionContext) {
         });
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
-        const config = {
-          packageGraphSources,
-          profile: getTarget(),
-        };
-        await worker.run(config, "", parseInt(numberOfShots), evtTarget);
+
+        await worker.run(
+          program.programConfig,
+          "",
+          parseInt(numberOfShots),
+          evtTarget,
+        );
         sendTelemetryEvent(
           EventType.HistogramEnd,
           { associationId },

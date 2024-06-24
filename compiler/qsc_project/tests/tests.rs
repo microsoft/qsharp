@@ -16,6 +16,8 @@ fn basic_manifest() {
         &"basic_manifest".into(),
         &expect![[r#"
             Project {
+                name: "basic_manifest",
+                manifest_path: "basic_manifest/qsharp.json",
                 sources: [
                     (
                         "basic_manifest/src/Dependency1.qs",
@@ -50,6 +52,8 @@ fn circular_imports() {
         &"circular_imports".into(),
         &expect![[r#"
             Project {
+                name: "circular_imports",
+                manifest_path: "circular_imports/qsharp.json",
                 sources: [
                     (
                         "circular_imports/src/Evens.qs",
@@ -84,6 +88,8 @@ fn different_files_same_manifest() {
         &"different_files_same_manifest".into(),
         &expect![[r#"
             Project {
+                name: "different_files_same_manifest",
+                manifest_path: "different_files_same_manifest/qsharp.json",
                 sources: [
                     (
                         "different_files_same_manifest/src/Dependency1.qs",
@@ -118,6 +124,8 @@ fn empty_manifest() {
         &"empty_manifest".into(),
         &expect![[r#"
             Project {
+                name: "empty_manifest",
+                manifest_path: "empty_manifest/qsharp.json",
                 sources: [
                     (
                         "empty_manifest/src/Main.qs",
@@ -142,6 +150,8 @@ fn folder_structure() {
         &"folder_structure".into(),
         &expect![[r#"
             Project {
+                name: "folder_structure",
+                manifest_path: "folder_structure/qsharp.json",
                 sources: [
                     (
                         "folder_structure/src/Project.qs",
@@ -177,6 +187,8 @@ fn hidden_files() {
         &"hidden_files".into(),
         &expect![[r#"
             Project {
+                name: "hidden_files",
+                manifest_path: "hidden_files/qsharp.json",
                 sources: [
                     (
                         "hidden_files/src/Project.qs",
@@ -208,6 +220,8 @@ fn peer_file() {
         &"peer_file".into(),
         &expect![[r#"
             Project {
+                name: "peer_file",
+                manifest_path: "peer_file/qsharp.json",
                 sources: [
                     (
                         "peer_file/src/Project.qs",
@@ -244,6 +258,8 @@ fn language_feature() {
         &"language_feature".into(),
         &expect![[r#"
             Project {
+                name: "language_feature",
+                manifest_path: "language_feature/qsharp.json",
                 sources: [
                     (
                         "language_feature/src/Project.qs",

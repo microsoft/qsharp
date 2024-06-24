@@ -12,8 +12,8 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
-import { createCodeLensProvider } from "./codeLens.js";
 import { createCodeActionsProvider } from "./codeActions.js";
+import { createCodeLensProvider } from "./codeLens.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
@@ -21,9 +21,11 @@ import {
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
 import { getTarget } from "./config";
+import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
+import { createFormattingProvider } from "./format.js";
 import { createHoverProvider } from "./hover";
 import {
   Logging,
@@ -37,19 +39,18 @@ import {
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
 import {
+  fetchGithubRaw,
   findManifestDocument,
+  getGithubSourceContent,
   listDirectory,
   readFile,
   resolvePath,
-  fetchGithubRaw,
   setGithubEndpoint,
-  getGithubSourceContent,
 } from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
-import { createFormattingProvider } from "./format.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
@@ -58,7 +59,6 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { initProjectCreator } from "./createProject.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -359,16 +359,10 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
   const languageService = await getLanguageService({
-    findManifestDirectory: async (uri: string) => {
-      const result = await findManifestDocument(uri);
-      if (result) {
-        return result.directory.toString();
-      }
-      return null;
-    },
+    findManifestDirectory,
     readFile,
-    listDirectory: listDirectory,
-    resolvePath: async (a, b) => resolvePath(a, b) || "",
+    listDirectory,
+    resolvePath: async (a, b) => resolvePath(a, b),
     fetchGithub: fetchGithubRaw,
   });
   await updateLanguageServiceProfile(languageService);

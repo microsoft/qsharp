@@ -21,16 +21,11 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
         .package_graph_sources
         .root;
 
-    // remove the prefix absolute path
     for (path, _contents) in &mut project.sources {
-        let new_path = PathBuf::from(path.to_string());
-        let new_path = new_path
-            .strip_prefix(&root_path)
-            .expect("prefix should be present")
-            .to_string_lossy();
-        let new_path = new_path.replace(std::path::MAIN_SEPARATOR, "/");
-        *path = Arc::from(new_path);
+        remove_absolute_path_prefix(path, &root_path);
     }
+
+    remove_absolute_path_prefix(&mut project.manifest_path, &root_path);
 
     project.sources.sort();
 
@@ -40,4 +35,14 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     };
 
     expect.assert_eq(&format!("{project:#?}"));
+}
+
+fn remove_absolute_path_prefix(path: &mut Arc<str>, root_path: &PathBuf) {
+    let new_path = PathBuf::from(path.to_string());
+    let new_path = new_path
+        .strip_prefix(root_path)
+        .expect("prefix should be present")
+        .to_string_lossy();
+    let new_path = new_path.replace(std::path::MAIN_SEPARATOR, "/");
+    *path = Arc::from(new_path);
 }

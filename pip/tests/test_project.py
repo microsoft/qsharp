@@ -150,7 +150,7 @@ def exists_memfs(path):
 
 
 # The below functions force the use of `/` separators in the unit tests
-# so that they function on Windows, consistently with other platforms.
+# so that they function on Windows consistently with other platforms.
 def join_memfs(path, *paths):
     return "/".join([path, *paths])
 

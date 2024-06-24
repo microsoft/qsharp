@@ -11,7 +11,9 @@ use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{FileSystemAsync, PackageCache, PackageGraphSources, ProjectHost};
+use qsc_project::{
+    FileSystemAsync, JSProjectHost, Manifest, PackageCache, PackageGraphSources, Project,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
 use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
@@ -103,21 +105,14 @@ pub(super) struct CompilationStateUpdater<'a> {
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
     cache: RefCell<PackageCache>,
     /// Functions to interact with the host filesystem for project system operations.
-    project_host: Box<dyn ProjectHost>,
-}
-
-#[derive(Debug)]
-struct LoadManifestResult {
-    compilation_uri: Arc<str>,
-    package_graph_sources: PackageGraphSources,
-    lints: Vec<LintConfig>,
+    project_host: Box<dyn JSProjectHost>,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        project_host: impl ProjectHost + 'static,
+        project_host: impl JSProjectHost + 'static,
     ) -> Self {
         Self {
             state,
@@ -147,21 +142,24 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let project = self.load_manifest(&doc_uri).await;
 
-        let LoadManifestResult {
-            compilation_uri,
-            package_graph_sources: sources,
-            lints: lints_config,
-        } = project.unwrap_or_else(|| {
+        let (compilation_uri, package_graph_sources, lints_config) = if let Some(project) = project
+        {
+            (
+                project.manifest_path,
+                project.package_graph_sources,
+                project.manifest.lints,
+            )
+        } else {
             // If we are in single file mode, use the file's path as the compilation identifier.
-            LoadManifestResult {
-                compilation_uri: doc_uri.clone(),
-                package_graph_sources: PackageGraphSources::with_no_dependencies(
+            (
+                doc_uri.clone(),
+                PackageGraphSources::with_no_dependencies(
                     vec![(doc_uri.clone(), text.clone())],
                     self.configuration.language_features,
                 ),
-                lints: Vec::default(),
-            }
-        });
+                Vec::default(),
+            )
+        };
 
         let prev_compilation_uri = self.with_state_mut(|state| {
             state
@@ -193,20 +191,17 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
+    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<Project> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         if let Some(dir) = dir {
+            let dir = PathBuf::from(dir.to_string());
             let res = self
                 .project_host
-                .load_project_with_deps(&PathBuf::from(dir.to_string()), Some(&self.cache))
+                .load_project_with_deps(&dir, Some(&self.cache))
                 .await;
             match res {
-                Ok(program_config) => Some(LoadManifestResult {
-                    compilation_uri: program_config.compilation_uri,
-                    package_graph_sources: program_config.package_graph_sources,
-                    lints: program_config.lints,
-                }),
+                Ok(proj) => Some(proj),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
                     None
@@ -271,10 +266,16 @@ impl<'a> CompilationStateUpdater<'a> {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents
             // for this document
-            if let Some(LoadManifestResult {
+            if let Some(Project {
                 package_graph_sources,
-                compilation_uri,
-                lints: lints_config,
+                manifest_path: compilation_uri,
+                manifest:
+                    Manifest {
+                        language_features,
+                        lints: lints_config,
+                        ..
+                    },
+                ..
             }) = project
             {
                 // TODO(alex) maybe preserve store and dependencies

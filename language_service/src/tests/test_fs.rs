@@ -6,9 +6,10 @@
 //! language service expects the fs to behave; if we want to reuse this in other
 //! tests, it could use some work to make methods a little more general.
 
-use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest};
+use async_trait::async_trait;
+use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost, Manifest};
 use rustc_hash::FxHashMap;
-use std::{path::PathBuf, sync::Arc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
 pub(crate) enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
@@ -199,4 +200,34 @@ pub(crate) fn dir<const COUNT: usize>(
 
 pub(crate) fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
     (name.into(), FsNode::File(Arc::from(contents)))
+}
+
+pub(crate) struct TestProjectHost {
+    pub fs: Rc<RefCell<FsNode>>,
+}
+
+#[async_trait(?Send)]
+impl JSProjectHost for TestProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+        self.fs.borrow().read_file(uri.to_string())
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        self.fs.borrow().list_directory(uri.to_string())
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+            .map(|p| p.to_string_lossy().into())
+            .ok()
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .find_manifest_directory(doc_uri)
+            .map(|p| p.to_string_lossy().into())
+    }
 }

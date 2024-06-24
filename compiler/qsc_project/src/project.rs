@@ -2,6 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{manifest::GitHubRef, Dependency, Manifest, ManifestDescriptor};
+use async_trait::async_trait;
+use futures::FutureExt;
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_linter::LintConfig;
+use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
@@ -9,9 +14,16 @@ use std::{
 };
 
 /// Describes a Q# project
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Project {
+    /// Friendly name, typically based on project directory name
+    pub name: Arc<str>,
+    /// Full path to the project's `qsharp.json` file
+    pub manifest_path: Arc<str>,
     pub sources: Vec<(Arc<str>, Arc<str>)>,
+    //     pub package_graph_sources: PackageGraphSources,
+    //     pub lints: Vec<LintConfig>,
+    //     pub errors: Vec<miette::Report>,
     pub manifest: crate::Manifest,
 }
 
@@ -49,11 +61,6 @@ pub trait DirEntry {
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
 /// cached implementation. This interface defines the minimal filesystem requirements
 /// for the Q# project system to function correctly.
-use async_trait::async_trait;
-use futures::FutureExt;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_linter::LintConfig;
-use rustc_hash::FxHashMap;
 #[async_trait(?Send)]
 pub trait FileSystemAsync {
     type Entry: DirEntry;
@@ -126,10 +133,31 @@ pub trait FileSystemAsync {
             sources.push(self.read_file(&path).await?);
         }
 
+        let manifest_path = self
+            .resolve_path(&manifest.manifest_dir, Path::new("qsharp.json"))
+            .await?;
+
         Ok(Project {
+            name: manifest
+                .manifest_dir
+                .file_name()
+                .map(|f| f.to_string_lossy().into())
+                .unwrap_or(format!("Q# project at {}", manifest.manifest_dir.display()).into()),
+            manifest_path: manifest_path.to_string_lossy().into(),
             manifest: manifest.manifest.clone(),
             sources,
         })
+    }
+
+    /// Given a directory path, parse the manifest and load the project sources.
+    async fn load_project_in_dir(&self, directory: &Path) -> miette::Result<Project> {
+        let manifest = self.parse_manifest_in_dir(directory).await?;
+
+        self.load_project(&ManifestDescriptor {
+            manifest_dir: directory.to_path_buf(),
+            manifest,
+        })
+        .await
     }
 
     async fn parse_manifest_in_dir(&self, directory: &Path) -> Result<Manifest, miette::Error> {
@@ -387,50 +415,6 @@ fn filter_hidden_files<Entry: DirEntry>(
     listing.filter(|x| !x.entry_name().starts_with('.'))
 }
 
-/// This trait is used to abstract filesystem logic with regards to Q# projects.
-/// A Q# project requires some multi-file structure, but that may not actually be
-/// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
-/// cached implementation. This interface defines the minimal filesystem requirements
-/// for the Q# project system to function correctly.
-pub trait FileSystem {
-    type Entry: DirEntry;
-    /// Given a path, parse its contents and return a tuple representing (`FileName`, `FileContents`).
-    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
-
-    /// Given a path, list its directory contents (if any).
-    fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
-
-    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
-
-    fn fetch_github(
-        &self,
-        owner: &str,
-        repo: &str,
-        r#ref: &str,
-        path: &str,
-    ) -> miette::Result<Arc<str>>;
-
-    fn load_project_with_deps(
-        &self,
-        directory: &Path,
-        global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<ProjectConfig> {
-        // rather than rewriting all the async code in the project loader,
-        // we're calling the async implementation here, doing some tricks to make it run
-        // synchronously
-
-        let fs = ToFileSystemAsync { fs: self };
-
-        // This is a bit risky. It will fail at runtime if there are *any* await
-        // points in the async code. Right now, we know that will never be the case
-        // because we just passed in our synchronous FS functions to the project loader.
-        // But what if someone unwittingly sneaks anpther await point into the async implementation
-        // in the future?
-        FutureExt::now_or_never(fs.load_project_with_deps(directory, global_cache))
-            .expect("fun should be a function that returns immediately")
-    }
-}
-
 fn key_for_dependency_definition(dep: &Dependency) -> PackageKey {
     serde_json::to_string(dep)
         .expect("dependency should be serializable")
@@ -473,31 +457,6 @@ impl PackageGraphSources {
             packages: FxHashMap::default(),
         }
     }
-}
-
-pub struct ProjectConfig {
-    pub compilation_uri: Arc<str>,
-    pub package_graph_sources: PackageGraphSources,
-    pub lints: Vec<LintConfig>,
-    pub errors: Vec<miette::Report>,
-}
-
-impl ProjectConfig {
-    // Given a source map and profile, create a default program config which
-    // has no dependencies.
-    // Useful for testing and single-file scenarios.
-    // #[must_use]
-    // pub fn with_no_dependencies(sources: Vec<(Arc<str>, Arc<str>)>) -> Self {
-    //     Self {
-    //         compilation_uri: "qsharp-project".into(),
-    //         package_graph_sources: PackageGraphSources::with_no_dependencies(
-    //             sources,
-    //             LanguageFeatures::default(),
-    //         ),
-    //         lints: Vec::default(),
-    //         errors: Vec::default(),
-    //     }
-    // }
 }
 
 #[derive(Debug)]
@@ -563,7 +522,51 @@ impl PackageGraphSources {
     }
 }
 
-/// Turns a `FileSystem` into a `FileSystemAsync`
+/// This trait is used to abstract filesystem logic with regards to Q# projects.
+/// A Q# project requires some multi-file structure, but that may not actually be
+/// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
+/// cached implementation. This interface defines the minimal filesystem requirements
+/// for the Q# project system to function correctly.
+pub trait FileSystem {
+    type Entry: DirEntry;
+    /// Given a path, parse its contents and return a tuple representing (`FileName`, `FileContents`).
+    fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
+
+    /// Given a path, list its directory contents (if any).
+    fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
+
+    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
+
+    fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>>;
+
+    fn load_project_with_deps(
+        &self,
+        directory: &Path,
+        global_cache: Option<&RefCell<PackageCache>>,
+    ) -> miette::Result<ProjectConfig> {
+        // Rather than rewriting all the async code in the project loader,
+        // we call the async implementation here, doing some tricks to make it
+        // run synchronously.
+
+        let fs = ToFileSystemAsync { fs: self };
+
+        // WARNING: This will panic if there are *any* await points in the
+        // load_project implementation. Right now, we know that will never be the case
+        // because we just passed in our synchronous FS functions to the project loader.
+        // Proceed with caution if you make the `FileSystemAsync` implementation any
+        // more complex.
+        FutureExt::now_or_never(fs.load_project_with_deps(directory, global_cache))
+            .expect("load_project_with_deps should never await")
+    }
+}
+
+/// Trivial wrapper to turn a `FileSystem` into a `FileSystemAsync`
 struct ToFileSystemAsync<'a, FS>
 where
     FS: ?Sized,
@@ -582,12 +585,15 @@ where
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
         self.fs.read_file(path)
     }
+
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>> {
         self.fs.list_directory(path)
     }
+
     async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
         self.fs.resolve_path(base, path)
     }
+
     async fn fetch_github(
         &self,
         owner: &str,

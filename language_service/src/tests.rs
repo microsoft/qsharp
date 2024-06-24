@@ -4,15 +4,13 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::{protocol::DiagnosticUpdate, Encoding, LanguageService, UpdateWorker};
-use async_trait::async_trait;
 use expect_test::{expect, Expect};
 use qsc::{
     compile::{self, ErrorKind},
     line_column::Position,
 };
-use qsc_project::{FileSystem, JSFileEntry, ProjectHost};
-use std::{cell::RefCell, path::PathBuf, sync::Arc};
-use test_fs::{dir, file, FsNode};
+use std::{cell::RefCell, rc::Rc};
+use test_fs::{dir, file, FsNode, TestProjectHost};
 
 pub(crate) mod test_fs;
 
@@ -328,52 +326,14 @@ fn create_update_worker<'a>(
                     .collect::<Vec<_>>(),
             ));
         },
-        TestProjectHost {},
+        TestProjectHost {
+            fs: TEST_FS.with(Clone::clone),
+        },
     );
     worker
 }
 
-struct TestProjectHost {}
-
-#[async_trait(?Send)]
-impl ProjectHost for TestProjectHost {
-    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
-        TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
-    }
-
-    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
-        TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
-    }
-
-    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        TEST_FS.with(|fs| {
-            fs.borrow()
-                .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-                .map(|p| p.to_string_lossy().into())
-                .ok()
-        })
-    }
-
-    async fn fetch_github_(
-        &self,
-        _owner: &str,
-        _repo: &str,
-        _ref: &str,
-        _path: &str,
-    ) -> Option<Arc<str>> {
-        None
-    }
-
-    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
-        TEST_FS.with(|fs| {
-            fs.borrow()
-                .find_manifest_directory(doc_uri)
-                .map(|p| p.to_string_lossy().into())
-        })
-    }
-}
-
-thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
+thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs())) }
 
 fn test_fs() -> FsNode {
     FsNode::Dir(

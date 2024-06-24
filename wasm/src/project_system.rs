@@ -1,43 +1,49 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    diagnostic::{IQSharpError, QSharpError, VSDiagnostic},
-    line_column::{Position, Range},
-    serializable_type,
-};
+use crate::serializable_type;
 use async_trait::async_trait;
-use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
-use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, PackageCache, ProjectHost};
-use rustc_hash::FxHashMap;
+use qsc::linter::LintConfig;
+use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost};
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
+use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
 const IPROJECT_HOST: &'static str = r#"
-interface IProjectHost {
+export interface IProjectHost {
     readFile(uri: string): Promise<string | null>;
     listDirectory(uri: string): Promise<[string, number][]>;
     resolvePath(base: string, path: string): Promise<string | null>;
     fetchGithub(owner: string, repo: string, ref: string, path: string): Promise<string | null>;
     findManifestDirectory(docUri: string): Promise<string | null>;
 }
+
+/**
+ * Copy of the ProgramConfig type defined in compiler.ts,
+ * but with all the properties required and filled in with defaults where necessary.
+ */
+export interface IProgramConfig {
+    sources: [string, string][];
+    languageFeatures: string[];
+    profile: TargetProfile;
+}
 "#;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "IProjectHost")]
-    pub type JSProjectHost;
+    pub type ProjectHost;
+
+    // Methods of `IProjectHost``, expected to be implemented JS-side
+    #[wasm_bindgen(method, structural)]
+    async fn readFile(this: &ProjectHost, uri: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn readFile(this: &JSProjectHost, uri: &str) -> JsValue;
+    async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn listDirectory(this: &JSProjectHost, uri: &str) -> JsValue;
-
-    #[wasm_bindgen(method, structural)]
-    async fn resolvePath(this: &JSProjectHost, base: &str, path: &str) -> JsValue;
+    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
     async fn fetchGithub(
@@ -49,7 +55,24 @@ extern "C" {
     ) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
-    async fn findManifestDirectory(this: &JSProjectHost, docUri: &str) -> JsValue;
+    async fn findManifestDirectory(this: &ProjectHost, docUri: &str) -> JsValue;
+
+    /// Alias for an array of [sourceName, sourceContents] tuples
+    #[wasm_bindgen(typescript_type = "[string, string][]")]
+    pub type ProjectSources;
+
+    #[wasm_bindgen(typescript_type = "IProgramConfig")]
+    pub type ProgramConfig;
+
+    // Getters for IProgramConfig
+    #[wasm_bindgen(method, getter, structural)]
+    fn sources(this: &ProgramConfig) -> ProjectSources;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn languageFeatures(this: &ProgramConfig) -> Vec<String>;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn profile(this: &ProgramConfig) -> String;
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
@@ -61,23 +84,23 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     Into::<js_sys::Function>::into(val)
 }
 
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+
 /// a minimal implementation for interacting with async JS filesystem callbacks to
 /// load project files
 #[wasm_bindgen]
-pub struct ProjectLoader(JSProjectHost);
-
-thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+pub struct ProjectLoader(ProjectHost);
 
 #[async_trait(?Send)]
-impl ProjectHost for JSProjectHost {
-    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+impl JSProjectHost for ProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
         let name = Arc::from(uri);
 
         let val = self.readFile(uri).await;
         (name, val.as_string().unwrap_or_default().into())
     }
 
-    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
         let js_val = self.listDirectory(uri).await;
         match js_val.dyn_into::<js_sys::Array>() {
             Ok(arr) => arr
@@ -112,12 +135,12 @@ impl ProjectHost for JSProjectHost {
         }
     }
 
-    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
         let js_val = self.resolvePath(base, path).await;
         js_val.as_string().map(Into::into)
     }
 
-    async fn fetch_github_(
+    async fn fetch_github(
         &self,
         owner: &str,
         repo: &str,
@@ -137,7 +160,7 @@ impl ProjectHost for JSProjectHost {
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
-    pub fn new(project_host: JSProjectHost) -> Self {
+    pub fn new(project_host: ProjectHost) -> Self {
         ProjectLoader(project_host)
     }
 
@@ -212,6 +235,14 @@ impl From<qsc_project::PackageInfo> for PackageInfo {
                 .collect(),
         }
     }
+
+    #[allow(clippy::from_iter_instead_of_collect)]
+    pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
+        match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
+            Ok(p) => Ok(p.into()),
+            Err(e) => Err(JsError::new(&format!("{e}")).into()),
+        }
+    }
 }
 
 impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
@@ -268,6 +299,30 @@ serializable_type! {
         languageFeatures: string[];
         dependencies: Record<string,string>;
     }"#
+}
+
+impl From<ProjectSources> for Vec<(String, String)> {
+    fn from(sources: ProjectSources) -> Self {
+        serde_wasm_bindgen::from_value(sources.into())
+            .expect("sources object should be an array of string pairs")
+    }
+}
+
+impl From<qsc_project::Project> for IProjectConfig {
+    fn from(value: qsc_project::Project) -> Self {
+        let project_config = ProjectConfig {
+            project_name: value.name.to_string(),
+            project_uri: value.manifest_path.to_string(),
+            sources: value
+                .sources
+                .into_iter()
+                .map(|(a, b)| (a.to_string(), b.to_string()))
+                .collect(),
+            language_features: value.manifest.language_features,
+            lints: value.manifest.lints,
+        };
+        project_config.into()
+    }
 }
 
 serializable_type! {
@@ -334,8 +389,9 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
 
 /// This returns the common parameters that the compiler/interpreter uses
 #[allow(clippy::type_complexity)]
+#[allow(clippy::needless_pass_by_value)]
 pub(crate) fn into_qsc_args(
-    program: IProgramConfig,
+    program: ProgramConfig,
     entry: Option<String>,
 ) -> (
     qsc::SourceMap,

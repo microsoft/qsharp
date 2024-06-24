@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::line_column::{Location, Range};
-use crate::project_system::{into_qsc_args, IProgramConfig};
+use crate::project_system::{into_qsc_args, ProgramConfig};
 use crate::{serializable_type, CallbackReceiver};
 use qsc::fir::StmtId;
 use qsc::fmt_complex;

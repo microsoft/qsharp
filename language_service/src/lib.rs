@@ -32,7 +32,7 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
 };
-use qsc_project::ProjectHost;
+use qsc_project::JSProjectHost;
 use state::{CompilationState, CompilationStateUpdater};
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -67,7 +67,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        project_host: impl ProjectHost + 'static,
+        project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();

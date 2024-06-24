@@ -7,9 +7,8 @@
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
     protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
-    tests::test_fs::{dir, file, FsNode},
+    tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
-use async_trait::async_trait;
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
@@ -1129,7 +1128,7 @@ async fn delete_manifest() {
         "#]],
     );
 
-    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
     updater
         .update_document(
@@ -1214,7 +1213,7 @@ async fn delete_manifest_then_close() {
         "#]],
     );
 
-    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
     updater.close_document("project/src/this_file.qs").await;
 
@@ -1281,7 +1280,10 @@ async fn doc_switches_project() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
     // by the parent directory's qsharp.json
-    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with(|fs| {
+        fs.borrow_mut()
+            .remove("nested_projects/src/subdir/qsharp.json");
+    });
 
     updater
         .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
@@ -1386,7 +1388,10 @@ async fn doc_switches_project_on_close() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/src/a.qs to be picked up
     // by the parent directory's qsharp.json
-    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with(|fs| {
+        fs.borrow_mut()
+            .remove("nested_projects/src/subdir/qsharp.json");
+    });
 
     updater
         .close_document("nested_projects/src/subdir/src/a.qs")
@@ -1704,7 +1709,9 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        TestProjectHost {},
+        TestProjectHost {
+            fs: TEST_FS.with(Clone::clone),
+        },
     )
 }
 
@@ -1729,7 +1736,7 @@ fn new_updater_with_file_system<'a>(
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        FsProjectHost { fs: fs.clone() },
+        TestProjectHost { fs: fs.clone() },
     )
 }
 
@@ -1826,7 +1833,7 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
         .await
         .expect("manifest should exist");
 
-    let lints_config = manifest.lints;
+    let lints_config = manifest.manifest.lints;
 
     expected_config.assert_eq(&format!("{lints_config:#?}"));
 }
@@ -1835,47 +1842,7 @@ fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
     expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
-struct TestProjectHost {}
-
-#[async_trait(?Send)]
-impl ProjectHost for TestProjectHost {
-    async fn read_file_(&self, uri: &str) -> (Arc<str>, Arc<str>) {
-        TEST_FS.with(|fs| fs.borrow().read_file(uri.to_string()))
-    }
-
-    async fn list_directory_(&self, uri: &str) -> Vec<JSFileEntry> {
-        TEST_FS.with(|fs| fs.borrow().list_directory(uri.to_string()))
-    }
-
-    async fn resolve_path_(&self, base: &str, path: &str) -> Option<Arc<str>> {
-        TEST_FS.with(|fs| {
-            fs.borrow()
-                .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
-                .map(|p| p.to_string_lossy().into())
-                .ok()
-        })
-    }
-
-    async fn fetch_github_(
-        &self,
-        _owner: &str,
-        _repo: &str,
-        _ref: &str,
-        _path: &str,
-    ) -> Option<Arc<str>> {
-        None
-    }
-
-    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
-        TEST_FS.with(|fs| {
-            fs.borrow()
-                .find_manifest_directory(doc_uri)
-                .map(|p| p.to_string_lossy().into())
-        })
-    }
-}
-
-thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
+thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs()))}
 
 fn test_fs() -> FsNode {
     FsNode::Dir(

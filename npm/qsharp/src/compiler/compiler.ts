@@ -6,7 +6,7 @@ import {
   IDocFile,
   IOperationInfo,
   IPackageGraphSources,
-  IProgramConfig,
+  IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
@@ -71,7 +71,10 @@ export interface ICompiler {
   ): Promise<boolean>;
 }
 
-/** Type definition for the configuration of a program. */
+/**
+ * Type definition for the configuration of a program.
+ * If adding new properties, make them optional to maintain backward compatibility.
+ */
 export type ProgramConfig = (
   | {
       /** An array of source objects, each containing a name and contents. */
@@ -149,18 +152,6 @@ export class Compiler implements ICompiler {
       profile ?? "adaptive_ri",
     );
   }
-
-  async getQir(program: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
-  }
-
-  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
-    return this.wasm.get_estimates(
-      toWasmProgramConfig(program, "unrestricted"),
-      params,
-    );
-  }
-
   async run(
     program: ProgramConfig,
     expr: string,
@@ -175,6 +166,17 @@ export class Compiler implements ICompiler {
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler!),
       shots!,
+    );
+  }
+
+  async getQir(program: ProgramConfig): Promise<string> {
+    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
+  }
+
+  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
+    return this.wasm.get_estimates(
+      toWasmProgramConfig(program, "unrestricted"),
+      params,
     );
   }
 
@@ -215,6 +217,21 @@ export class Compiler implements ICompiler {
 
     return success;
   }
+}
+
+/**
+ * Fills in the defaults, to convert from the backwards-compatible ProgramConfig,
+ * to the IProgramConfig type that the wasm layer expects
+ */
+export function toWasmProgramConfig(
+  program: ProgramConfig,
+  defaultProfile: TargetProfile,
+): Required<wasmIProgramConfig> {
+  return {
+    sources: program.sources,
+    languageFeatures: program.languageFeatures || [],
+    profile: program.profile || defaultProfile,
+  };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {

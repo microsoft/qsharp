@@ -4,7 +4,7 @@
 use crate::{
     diagnostic::VSDiagnostic,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::JSProjectHost,
+    project_system::ProjectHost,
     serializable_type,
 };
 use qsc::{
@@ -33,7 +33,7 @@ impl LanguageService {
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        host: JSProjectHost,
+        host: ProjectHost,
     ) -> js_sys::Promise {
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");

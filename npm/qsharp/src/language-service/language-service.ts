@@ -115,11 +115,11 @@ export class QSharpLanguageService implements ILanguageService {
   constructor(
     private wasm: QscWasm,
     host: IProjectHost = {
-      findManifestDirectory: async () => null,
       readFile: async () => null,
       listDirectory: async () => [],
-      resolvePath: async () => "",
+      resolvePath: async () => null,
       fetchGithub: async () => null,
+      findManifestDirectory: async () => null,
     },
   ) {
     log.info("Constructing a QSharpLanguageService instance");

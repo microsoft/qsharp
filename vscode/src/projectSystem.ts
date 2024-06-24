@@ -85,6 +85,14 @@ async function tryReadManifestInDir(
   return listing;
 }
 
+export async function findManifestDirectory(uri: string) {
+  const result = await findManifestDocument(uri);
+  if (result) {
+    return result.directory.toString();
+  }
+  return null;
+}
+
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
 export async function listDirectory(
@@ -168,19 +176,16 @@ export async function loadProject(
 
   if (!projectLoader) {
     projectLoader = await getProjectLoader({
-      findManifestDirectory: async (uri: string) => {
-        const result = await findManifestDocument(uri);
-        if (result) {
-          return result.directory.toString();
-        }
-        return null;
-      },
+      findManifestDirectory,
       readFile,
       listDirectory,
-      resolvePath: async (a, b) => resolvePath(a, b) || "",
       fetchGithub: fetchGithubRaw,
+      resolvePath: async (a, b) => resolvePath(a, b),
     });
   }
+
+  // Clear diagnostics for this project
+  updateQSharpJsonDiagnostics(manifestDocument.uri);
 
   const project = await projectLoader.load_project_with_deps(
     manifestDocument.directory.toString(),
@@ -191,10 +196,22 @@ export async function loadProject(
       updateQSharpJsonDiagnostics(manifestDocument.uri, error);
     }
   }
-  // TODO: is this also coming from the native layer?
-  project.projectUri = manifestDocument.uri.toString();
-  project.projectName =
-    Utils.basename(manifestDocument.directory) || "Q# Project";
+
+  let project;
+  try {
+    project = await projectLoader.load_project(
+      manifestDocument.directory.toString(),
+    );
+  } catch (e: any) {
+    updateQSharpJsonDiagnostics(
+      manifestDocument.uri,
+      e.message ||
+        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
+    );
+
+    throw e;
+  }
+
   return project;
 }
 
