@@ -16,7 +16,7 @@ use crate::{
     system::modeling::default_t_factory,
 };
 
-use super::super::constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS};
+use super::super::constants::MAX_EXTRA_DISTILLATION_ROUNDS;
 
 use super::code_distance_iterators::{iterate_for_code_distances, search_for_code_distances};
 use super::distillation_units_map::DistillationUnitsMap;
@@ -215,6 +215,7 @@ pub(crate) fn find_nondominated_tfactories<'a>(
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
+    max_distillation_rounds: u64,
 ) -> Vec<Cow<'a, TFactory>> {
     let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
@@ -222,6 +223,7 @@ pub(crate) fn find_nondominated_tfactories<'a>(
         distillation_unit_templates,
         output_t_error_rate,
         max_code_distance,
+        max_distillation_rounds,
     );
 
     points
@@ -237,6 +239,7 @@ fn find_nondominated_population<P>(
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
+    max_distillation_rounds: u64,
 ) -> Population<P>
 where
     P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
@@ -274,13 +277,13 @@ where
 
     let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
 
-    for num_rounds in 1..=MAX_DISTILLATION_ROUNDS {
-        process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
+    for num_rounds in 1..=max_distillation_rounds {
+        process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds as usize);
     }
 
     if searcher.frontier_factories.items().is_empty() || P::ITERATE_MAX_NUM_ROUNDS {
-        for num_rounds in MAX_DISTILLATION_ROUNDS + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
-            process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
+        for num_rounds in max_distillation_rounds + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
+            process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds as usize);
         }
     }
 
@@ -341,22 +344,18 @@ fn process_for_specifications_combination<P>(
 
 pub struct TFactoryBuilder {
     distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+    max_distillation_rounds: u64,
 }
 
 impl TFactoryBuilder {
-    pub fn set_distillation_unit_templates(
-        &mut self,
+    #[must_use]
+    pub fn new(
         distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
-    ) {
-        self.distillation_unit_templates = distillation_unit_templates;
-    }
-}
-
-impl Default for TFactoryBuilder {
-    fn default() -> Self {
+        max_distillation_rounds: u64,
+    ) -> Self {
         Self {
-            distillation_unit_templates:
-                TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
+            distillation_unit_templates,
+            max_distillation_rounds,
         }
     }
 }
@@ -378,6 +377,7 @@ impl FactoryBuilder<Protocol> for TFactoryBuilder {
             &self.distillation_unit_templates,
             output_t_error_rate,
             *max_code_distance,
+            self.max_distillation_rounds,
         ))
     }
 }

@@ -25,7 +25,7 @@ pub struct JobParams {
     #[serde(default)]
     qubit_params: Rc<PhysicalQubit>,
 
-    #[serde(default, skip_serializing_if = "Constraints::is_default")]
+    #[serde(default)]
     constraints: Constraints,
 
     #[serde(default, skip_serializing_if = "Profiling::is_default")]

@@ -3,7 +3,7 @@
 
 use crate::{
     estimates::{optimization::Point2D, Factory},
-    system::modeling::TFactory,
+    system::{constants::MAX_DISTILLATION_ROUNDS, modeling::TFactory},
 };
 
 use super::{
@@ -24,6 +24,7 @@ fn test_one_t_error_rate() {
         &TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         1e-18,
         35,
+        MAX_DISTILLATION_ROUNDS,
     );
     let elapsed = start.elapsed();
 
@@ -143,6 +144,7 @@ fn required_logical_tstate_error_too_high() {
         &distillation_unit_templates,
         output_t_error_rate,
         max_code_distance,
+        MAX_DISTILLATION_ROUNDS,
     );
 
     assert_eq!(population.items().len(), 1);
@@ -165,6 +167,7 @@ fn find_tfactories<'a>(ftp: &Protocol, qubit_name: &str) -> Vec<Cow<'a, TFactory
         &create_test_templates(),
         output_t_error_rate,
         ftp.max_code_distance(),
+        MAX_DISTILLATION_ROUNDS,
     )
 }
 
