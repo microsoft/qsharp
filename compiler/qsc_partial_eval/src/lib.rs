@@ -1298,7 +1298,7 @@ impl<'a> PartialEvaluator<'a> {
             | "GlobalPhase" => Ok(Value::unit()),
             // The following intrinsic functions and operations should never make it past conditional compilation and
             // the capabilities check pass.
-            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" | "Length" => {
+            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" | "DrawRandomBool" | "Length" => {
                 Err(Error::Unexpected(
                     format!(
                         "`{}` is not a supported by partial evaluation",
