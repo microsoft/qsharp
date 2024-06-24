@@ -1373,7 +1373,7 @@ impl GlobalTable {
                 (global::Kind::Namespace, hir::Visibility::Public) => {
                     self.scope.insert_or_find_namespace(global.namespace);
                 }
-                (global::Kind::Export, _) => {
+                (global::Kind::Export(item_id), _) => {
                     todo!()
                 }
                 (_, hir::Visibility::Internal) => {}

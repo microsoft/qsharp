@@ -3,7 +3,8 @@
 
 use crate::{
     hir::{
-        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility,
+        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, TermOrTy,
+        Visibility,
     },
     ty::Scheme,
 };
@@ -27,7 +28,7 @@ pub enum Kind {
     Namespace,
     Ty(Ty),
     Term(Term),
-    Export,
+    Export(ItemId),
 }
 
 impl std::fmt::Debug for Kind {
@@ -36,7 +37,7 @@ impl std::fmt::Debug for Kind {
             Kind::Namespace => write!(f, "Namespace"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
             Kind::Term(term) => write!(f, "Term({})", term.id),
-            Kind::Export => todo!(),
+            Kind::Export(id) => write!(f, "Export{id}"),
         }
     }
 }
@@ -97,7 +98,9 @@ impl FromIterator<Global> for Table {
                         .insert(global.name, term);
                 }
                 Kind::Namespace => {}
-                Kind::Export => todo!(),
+                Kind::Export(item) => {
+                    todo!("alex: add exports to table")
+                }
             }
         }
 
@@ -194,14 +197,14 @@ impl PackageIter<'_> {
                 kind: Kind::Namespace,
             }),
             (
-                ItemKind::Export(name, ItemId { package, item }),
+                ItemKind::Export(name, item_id @ ItemId { package, item }),
                 Some(ItemKind::Namespace(namespace, _)),
             ) => Some(Global {
                 namespace: namespace.into(),
                 name: name.name.clone(),
                 visibility: Visibility::Public,
                 status,
-                kind: Kind::Export,
+                kind: Kind::Export(*item_id),
             }),
             (ItemKind::Callable(_), None) => todo!(),
             (ItemKind::Namespace(_, _), Some(_)) => todo!(),
