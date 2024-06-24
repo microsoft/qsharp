@@ -7,7 +7,9 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_data_structures::{
+    language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
+};
 use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::{CallableKind, PackageId};
 use qsc_passes::PackageType;
@@ -23,24 +25,28 @@ fn multiple_lints() {
                     level: Warn,
                     message: "redundant semicolons",
                     help: "remove the redundant semicolons",
+                    code_action_edits: [],
                 },
                 SrcLint {
                     source: "((1 + 2)) / 0",
                     level: Error,
                     message: "attempt to divide by zero",
                     help: "division by zero will fail at runtime",
+                    code_action_edits: [],
                 },
                 SrcLint {
                     source: "((1 + 2))",
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
                 SrcLint {
                     source: "RunProgram",
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -58,6 +64,7 @@ fn double_parens() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -75,6 +82,7 @@ fn division_by_zero() {
                     level: Error,
                     message: "attempt to divide by zero",
                     help: "division by zero will fail at runtime",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -92,6 +100,7 @@ fn needless_parens_in_assignment() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -109,18 +118,21 @@ fn needless_parens() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
                 SrcLint {
                     source: "(5 * 4 * (2 ^ 10))",
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
                 SrcLint {
                     source: "(2 ^ 10)",
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -138,6 +150,7 @@ fn redundant_semicolons() {
                     level: Warn,
                     message: "redundant semicolons",
                     help: "remove the redundant semicolons",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -155,6 +168,7 @@ fn needless_operation_lambda_operations() {
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -182,6 +196,7 @@ fn needless_operation_non_empty_op_and_no_specialization() {
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -206,6 +221,7 @@ fn needless_operation_non_empty_op_and_specialization() {
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -260,6 +276,7 @@ fn needless_operation_partial_application() {
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -278,6 +295,7 @@ fn deprecated_newtype_usage() {
                     level: Warn,
                     message: "deprecated `newtype` declarations",
                     help: "`newtype` declarations are deprecated, use `struct` instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -298,6 +316,7 @@ fn deprecated_function_cons() {
                     level: Warn,
                     message: "deprecated function constructors",
                     help: "function constructors for struct types are deprecated, use `new` instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -321,6 +340,15 @@ fn deprecated_with_op_for_structs() {
                     level: Warn,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
+                    code_action_edits: [
+                        (
+                            "new Foo {\n        ...foo,\n        x = 3,\n    }",
+                            Span {
+                                lo: 110,
+                                hi: 123,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
@@ -345,6 +373,15 @@ fn deprecated_with_eq_op_for_structs() {
                     level: Warn,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
+                    code_action_edits: [
+                        (
+                            "set foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
+                            Span {
+                                lo: 114,
+                                hi: 132,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
@@ -395,12 +432,14 @@ fn wrap_in_callable(source: &str, callable_type: CallableKind) -> String {
 
 /// A version of Lint that replaces the span by source code
 /// to make unit tests easier to write and verify.
+#[allow(dead_code)]
 #[derive(Debug)]
 struct SrcLint {
     source: String,
     level: LintLevel,
     message: &'static str,
     help: &'static str,
+    code_action_edits: Vec<(String, Span)>,
 }
 
 impl SrcLint {
@@ -410,22 +449,12 @@ impl SrcLint {
             level: lint.level,
             message: lint.message,
             help: lint.help,
+            code_action_edits: lint
+                .code_action_edits
+                .iter()
+                .map(|(edit, span)| (edit.clone(), *span))
+                .collect(),
         }
-    }
-}
-
-impl std::fmt::Display for SrcLint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Lint {{
-                source: {},
-                level: {},
-                message: {},
-                help: {},
-            }}",
-            self.source, self.level, self.message, self.help
-        )
     }
 }
 

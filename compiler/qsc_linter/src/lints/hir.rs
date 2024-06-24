@@ -275,10 +275,7 @@ impl HirLintPass for DeprecatedWithOperator {
                     }
                     new_expr.push_str(&format!("{:indent$}}}", "", indent = indentation - 4));
                     let code_action_edits = vec![(new_expr, info.span)];
-
-                    lint!(self, info.span, code_action_edits);
-
-                    buffer.push(lint!(self, info.span));
+                    buffer.push(lint!(self, info.span, code_action_edits));
                     self.lint_info = None;
                 }
             }
