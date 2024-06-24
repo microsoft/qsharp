@@ -264,4 +264,16 @@ namespace Microsoft.Quantum.Convert {
         );
     }
 
+    /// # Summary
+    /// Produces string representation of given double with desired precision
+    ///
+    /// # Input
+    /// ## input
+    /// Double to be converted
+    /// ## precision
+    /// Number of decimal digits
+    function DoubleAsStringWithPrecision(input: Double, precision: Int) : String {
+        body intrinsic;
+    }
+
 }

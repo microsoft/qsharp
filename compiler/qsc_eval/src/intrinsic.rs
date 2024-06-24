@@ -11,12 +11,13 @@ use crate::{
     error::PackageSpan,
     output::Receiver,
     val::{self, Qubit, Value},
-    Error,
+    Error, Rc,
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
 use rustc_hash::FxHashSet;
 use std::array;
+use std::convert::TryFrom;
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn call(
@@ -36,6 +37,15 @@ pub(crate) fn call(
         #[allow(clippy::cast_precision_loss)]
         "IntAsDouble" => Ok(Value::Double(arg.unwrap_int() as f64)),
         "IntAsBigInt" => Ok(Value::BigInt(BigInt::from(arg.unwrap_int()))),
+        "DoubleAsStringWithPrecision" => {
+            let [input, prec_val] = unwrap_tuple(arg);
+            let precision = usize::try_from(prec_val.unwrap_int()).expect("integer value");
+            Ok(Value::String(Rc::from(format!(
+                "{:.*}",
+                precision,
+                input.unwrap_double()
+            ))))
+        }
         "DumpMachine" => {
             let (state, qubit_count) = sim.capture_quantum_state();
             match out.state(state, qubit_count) {
