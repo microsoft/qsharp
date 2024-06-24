@@ -25,6 +25,10 @@ def list_directory(dir_path: str) -> List[Dict[str, str]]:
     return list(map(map_dir, os.listdir(dir_path)))
 
 
+def resolve(base: str, path: str) -> str:
+    return os.path.normpath(join(base, path))
+
+
 def exists(path) -> bool:
     return os.path.exists(path)
 

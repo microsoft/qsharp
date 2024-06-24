@@ -14,6 +14,7 @@ def qsharp():
     qsharp._fs.list_directory = list_directory_memfs
     qsharp._fs.exists = exists_memfs
     qsharp._fs.join = join_memfs
+    qsharp._fs.resolve = resolve_memfs
 
     return qsharp
 
@@ -47,7 +48,7 @@ def test_project_unreadable_qsharp_json(qsharp) -> None:
 def test_project_unreadable_source(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/unreadable_source")
-    assert str(excinfo.value).startswith("  × OSError: could not read test.qs")
+    assert str(excinfo.value).find("OSError: could not read test.qs") != -1
 
 
 memfs = {
@@ -129,5 +130,20 @@ def exists_memfs(path):
     return True
 
 
+# The below functions force the use of `/` separators in the unit tests
+# so that they function on Windows consistently with other platforms.
 def join_memfs(path, *paths):
     return "/".join([path, *paths])
+
+
+def resolve_memfs(base, path):
+    parts = f"{base}/{path}".split("/")
+    new_parts = []
+    for part in parts:
+        if part == ".":
+            continue
+        if part == "..":
+            new_parts.pop()
+            continue
+        new_parts.append(part)
+    return "/".join(new_parts)

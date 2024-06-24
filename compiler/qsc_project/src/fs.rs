@@ -91,4 +91,8 @@ impl FileSystem for StdFs {
             .collect::<Result<_, _>>()
             .map_err(crate::Error::from)?)
     }
+
+    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
+        std::fs::canonicalize(base.join(path)).into_diagnostic()
+    }
 }

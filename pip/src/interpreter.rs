@@ -113,6 +113,7 @@ impl Interpreter {
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
@@ -136,6 +137,9 @@ impl Interpreter {
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
                 list_directory.expect(
+                    "file system hooks should have been passed in with a manifest descriptor",
+                ),
+                resolve_path.expect(
                     "file system hooks should have been passed in with a manifest descriptor",
                 ),
             )
