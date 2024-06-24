@@ -130,6 +130,13 @@ impl With<'_> {
             .exports()
             .filter_map(|item| self.names.get(item.name().id))
             .collect::<Vec<_>>();
+        if namespace.name.name().contains("PackageA") {
+            println!(
+                "Namespace with name {} exports: {:?}",
+                namespace.name.name(),
+                exports,
+            );
+        }
 
         let exported_hir_ids = exports
             .iter()
@@ -138,6 +145,16 @@ impl With<'_> {
                 _ => None,
             })
             .collect::<Vec<_>>();
+
+        if namespace.name.name().contains("PackageA") {
+            println!(
+                "Namespace with name {} exports hir ids: {:?}",
+                namespace.name.name(),
+                exported_hir_ids,
+            );
+            println!("namespace has {} items", namespace.items.len());
+            println!("{:?}", namespace.items);
+        }
 
         /*
         for exported_item in exported_hir_ids {
@@ -159,6 +176,9 @@ impl With<'_> {
             // TODO(alex) might not need exported_ids anymore
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
+        if namespace.name.name().contains("PackageA") {
+            println!("namespace with name PackageA has items: {items:?}");
+        }
 
         let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
@@ -186,17 +206,34 @@ impl With<'_> {
             .collect();
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::Item(item, _)) => item,
+            Some(&resolve::Res::ExportedItem(item)) | Some(&resolve::Res::Item(item, _)) => item,
             _ => panic!("item should have item ID"),
         };
 
         let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) |
-            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
 
-            ast::ItemKind::ImportOrExport(_) => {
+            ast::ItemKind::ImportOrExport(item) => {
+                if item.is_import() {
+                    return None;
+                }
+                for item in item.items.iter() {
+                    let id = resolve_id(item.name().id);
+                    let name = self.lower_ident(item.name());
+                    let kind = hir::ItemKind::Export(name, id);
+                    self.lowerer.items.push(hir::Item {
+                        id: id.item,
+                        span: item.span(),
+                        parent: self.lowerer.parent,
+                        doc: "".into(),
+                        // attrs on exports not supported
+                        attrs: Vec::new(),
+                        visibility: Visibility::Public,
+                        kind,
+                    });
+                }
                 return None;
-            },
+            }
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
@@ -235,8 +272,15 @@ impl With<'_> {
         } else {
             Visibility::Internal
         };
-        println!("For item {:?}, visibility is {:?}", id, visibility);
+
+        println!("For item {id:?}, visibility is {visibility:?}");
         dbg!(&exported_ids);
+
+        match &*item.kind {
+            ast::ItemKind::Callable(x) => println!("decl: {x:?}"),
+            ast::ItemKind::ImportOrExport(i) => println!("import/export: {i:?}"),
+            _ => (),
+        }
 
         self.lowerer.items.push(hir::Item {
             id: id.item,

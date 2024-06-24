@@ -330,7 +330,10 @@ impl GlobalScope {
             NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
         };
-        items.get(namespace).and_then(|items| items.get(name))
+        let ns = items.get(namespace);
+        let (ns_name, _) = self.namespaces.find_namespace_by_id(&namespace);
+        println!("In namespace {}, items are: {:?} ", ns_name.join("."), ns);
+        ns.and_then(|items| items.get(name))
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their

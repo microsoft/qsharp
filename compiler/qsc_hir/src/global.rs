@@ -126,10 +126,9 @@ impl PackageIter<'_> {
                 .expect("parent should exist")
                 .kind
         });
-        println!("global item being called on {item:?}");
         let (id, visibility) = match &item.kind {
             ItemKind::Export(name, item_id) => {
-                println!("exporting {name:?} {:?}", item_id);
+                println!("exporting {name:?} {item_id:?}");
                 (
                     ItemId {
                         package: item_id.package.or(self.id),
@@ -148,6 +147,11 @@ impl PackageIter<'_> {
         };
         //        todo!("The problem is that Length is coming out of this as a Term with visibility internal, when it should be either a public term or an export");
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
+
+        if let ItemKind::Callable(decl) = &item.kind {
+            println!("global binding for {}", decl.name.name);
+            println!("callable {decl:?}");
+        }
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
@@ -192,17 +196,18 @@ impl PackageIter<'_> {
             (
                 ItemKind::Export(name, ItemId { package, item }),
                 Some(ItemKind::Namespace(namespace, _)),
-            ) => {
-                panic!("do we hit this? {name:?} {package:?} {item:?} {namespace:?}");
-                Some(Global {
-                    namespace: namespace.into(),
-                    name: name.name.clone(),
-                    visibility: Visibility::Public,
-                    status,
-                    kind: Kind::Export,
-                })
-            }
-            _ => None,
+            ) => Some(Global {
+                namespace: namespace.into(),
+                name: name.name.clone(),
+                visibility: Visibility::Public,
+                status,
+                kind: Kind::Export,
+            }),
+            (ItemKind::Callable(_), None) => todo!(),
+            (ItemKind::Namespace(_, _), Some(_)) => todo!(),
+            (ItemKind::Ty(_, _), None) => todo!(),
+            (ItemKind::Export(_, _), None) => todo!(),
+            _ => todo!(),
         }
     }
 }
