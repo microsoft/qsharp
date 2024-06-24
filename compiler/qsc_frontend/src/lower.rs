@@ -128,59 +128,27 @@ impl With<'_> {
         // Exports are `Res` items, which contain `hir::ItemId`s.
         let exports = namespace
             .exports()
+            // is this just pointing to itself?
+            // that is, maybe this is causing the export to get its own hir id
             .filter_map(|item| self.names.get(item.name().id))
             .collect::<Vec<_>>();
-        if namespace.name.name().contains("PackageA") {
-            println!(
-                "Namespace with name {} exports: {:?}",
-                namespace.name.name(),
-                exports,
-            );
-        }
 
         let exported_hir_ids = exports
             .iter()
             .filter_map(|res| match res {
-                resolve::Res::ExportedItem(id) => Some(*id),
+                resolve::Res::ExportedItem(id) | resolve::Res::Item(id, _) => Some(*id),
                 _ => None,
             })
             .collect::<Vec<_>>();
 
-        if namespace.name.name().contains("PackageA") {
-            println!(
-                "Namespace with name {} exports hir ids: {:?}",
-                namespace.name.name(),
-                exported_hir_ids,
-            );
-            println!("namespace has {} items", namespace.items.len());
-            println!("{:?}", namespace.items);
-        }
-
-        /*
-        for exported_item in exported_hir_ids {
-            self.lowerer.items.push(hir::Item {
-                id: exported_item,
-                span: namespace.span,
-                parent: self.lowerer.parent,
-                doc: Rc::clone(&namespace.doc),
-                attrs: Vec::new(),
-                visibility: hir::Visibility::Public,
-                kind: hir::ItemKind::Export(todo!("name"), exported_item),
-            });
-        }
-        */
-
         let items = namespace
             .items
             .iter()
-            // TODO(alex) might not need exported_ids anymore
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
-        if namespace.name.name().contains("PackageA") {
-            println!("namespace with name PackageA has items: {items:?}");
-        }
 
         let name = self.lower_idents(&namespace.name);
+
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -206,8 +174,8 @@ impl With<'_> {
             .collect();
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::ExportedItem(item)) | Some(&resolve::Res::Item(item, _)) => item,
-            _ => panic!("item should have item ID"),
+            Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => item,
+            otherwise => todo!("item should have item ID {otherwise:?} (was looking for {id}",),
         };
 
         let (id, kind) = match &*item.kind {
@@ -219,18 +187,25 @@ impl With<'_> {
                 }
                 for item in item.items.iter() {
                     let id = resolve_id(item.name().id);
-                    let name = self.lower_ident(item.name());
-                    let kind = hir::ItemKind::Export(name, id);
-                    self.lowerer.items.push(hir::Item {
-                        id: id.item,
-                        span: item.span(),
-                        parent: self.lowerer.parent,
-                        doc: "".into(),
-                        // attrs on exports not supported
-                        attrs: Vec::new(),
-                        visibility: Visibility::Public,
-                        kind,
-                    });
+                    if id.package.is_some() {
+                        let name = self.lower_ident(item.name());
+                        let kind = hir::ItemKind::Export(name, id);
+                        // i have a few options here:
+                        // 1. if the package is None, it is a local item,
+                        // push a public item
+                        // 2. if the package is Some, push an Export
+                        // 3. use separate ids for exports, instead of overriding
+                        self.lowerer.items.push(hir::Item {
+                            id: self.assigner.next_item(),
+                            span: item.span(),
+                            parent: self.lowerer.parent,
+                            doc: "".into(),
+                            // attrs on exports not supported
+                            attrs: Vec::new(),
+                            visibility: Visibility::Public,
+                            kind,
+                        });
+                    }
                 }
                 return None;
             }
@@ -272,15 +247,6 @@ impl With<'_> {
         } else {
             Visibility::Internal
         };
-
-        println!("For item {id:?}, visibility is {visibility:?}");
-        dbg!(&exported_ids);
-
-        match &*item.kind {
-            ast::ItemKind::Callable(x) => println!("decl: {x:?}"),
-            ast::ItemKind::ImportOrExport(i) => println!("import/export: {i:?}"),
-            _ => (),
-        }
 
         self.lowerer.items.push(hir::Item {
             id: id.item,
@@ -833,7 +799,7 @@ impl With<'_> {
         match self.names.get(path.id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            // TODO(alex)
+            // TODO(alex) explain clearly
             Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,

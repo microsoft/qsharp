@@ -1689,8 +1689,8 @@ fn reexport() {
                     import A.PackageA.Foo;
                     @EntryPoint()
                     function Main() : Unit {
-                        let z = Foo;
-                        let len = Foo([]);
+                        use qs = Qubit[2];
+                        let len = Foo(qs);
                     }
                 "}
             .into(),

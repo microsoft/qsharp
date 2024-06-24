@@ -147,6 +147,7 @@ impl Display for Ty {
     }
 }
 
+#[derive(Debug)]
 /// A type scheme.
 pub struct Scheme {
     params: Vec<GenericParam>,

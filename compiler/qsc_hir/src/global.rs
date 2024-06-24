@@ -57,6 +57,7 @@ pub struct Term {
 pub struct Table {
     tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Ty>>,
     terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Term>>,
+    exports: FxHashMap<NamespaceId, FxHashMap<Rc<str>, ItemId>>,
     namespaces: NamespaceTreeRoot,
 }
 
@@ -84,6 +85,7 @@ impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
         let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut terms: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
+        let mut exports: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut namespaces = NamespaceTreeRoot::default();
         for global in iter {
             let namespace = namespaces.insert_or_find_namespace(global.namespace.into_iter());
@@ -99,7 +101,10 @@ impl FromIterator<Global> for Table {
                 }
                 Kind::Namespace => {}
                 Kind::Export(item) => {
-                    todo!("alex: add exports to table")
+                    exports
+                        .entry(namespace)
+                        .or_default()
+                        .insert(global.name, item);
                 }
             }
         }
@@ -108,6 +113,7 @@ impl FromIterator<Global> for Table {
             tys,
             terms,
             namespaces,
+            exports,
         }
     }
 }
@@ -130,16 +136,13 @@ impl PackageIter<'_> {
                 .kind
         });
         let (id, visibility) = match &item.kind {
-            ItemKind::Export(name, item_id) => {
-                println!("exporting {name:?} {item_id:?}");
-                (
-                    ItemId {
-                        package: item_id.package.or(self.id),
-                        item: item_id.item,
-                    },
-                    hir::Visibility::Public,
-                )
-            }
+            ItemKind::Export(name, item_id) if item_id.package.is_some() => (
+                ItemId {
+                    package: item_id.package.or(self.id),
+                    item: item_id.item,
+                },
+                hir::Visibility::Public,
+            ),
             _ => (
                 ItemId {
                     package: self.id,
@@ -150,11 +153,6 @@ impl PackageIter<'_> {
         };
         //        todo!("The problem is that Length is coming out of this as a Term with visibility internal, when it should be either a public term or an export");
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
-
-        if let ItemKind::Callable(decl) = &item.kind {
-            println!("global binding for {}", decl.name.name);
-            println!("callable {decl:?}");
-        }
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
@@ -199,18 +197,30 @@ impl PackageIter<'_> {
             (
                 ItemKind::Export(name, item_id @ ItemId { package, item }),
                 Some(ItemKind::Namespace(namespace, _)),
-            ) => Some(Global {
-                namespace: namespace.into(),
-                name: name.name.clone(),
-                visibility: Visibility::Public,
-                status,
-                kind: Kind::Export(*item_id),
-            }),
+            ) => {
+                if package.is_none() {
+                    // if there is no package, then this was declared in this package
+                    // and this is a noop -- it will be marked as public on export
+                    return None;
+                } else {
+                    Some(Global {
+                        namespace: namespace.into(),
+                        name: name.name.clone(),
+                        visibility: Visibility::Public,
+                        status,
+                        kind: Kind::Export(*item_id),
+                    })
+                }
+            }
+            _ => None,
+            //             TODO(alex) verify below
+            /*
             (ItemKind::Callable(_), None) => todo!(),
             (ItemKind::Namespace(_, _), Some(_)) => todo!(),
             (ItemKind::Ty(_, _), None) => todo!(),
             (ItemKind::Export(_, _), None) => todo!(),
             _ => todo!(),
+            */
         }
     }
 }

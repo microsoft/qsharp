@@ -332,7 +332,6 @@ impl GlobalScope {
         };
         let ns = items.get(namespace);
         let (ns_name, _) = self.namespaces.find_namespace_by_id(&namespace);
-        println!("In namespace {}, items are: {:?} ", ns_name.join("."), ns);
         ns.and_then(|items| items.get(name))
     }
 
@@ -819,7 +818,6 @@ impl Resolver {
                 self.resolve_path(NameKind::Term, &item.path),
                 self.resolve_path(NameKind::Ty, &item.path),
             );
-            println!("item is {:?}", item.path);
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
@@ -861,7 +859,7 @@ impl Resolver {
                 ItemSource::Imported
             };
 
-            if let Ok(Res::Item(id, _)) = term_result {
+            if let Ok(Res::Item(id, _) | Res::ExportedItem(id)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
                         self.globals
@@ -876,7 +874,7 @@ impl Resolver {
                     .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
             }
 
-            if let Ok(Res::Item(id, _)) = ty_result {
+            if let Ok(Res::Item(id, _) | Res::ExportedItem(id)) = ty_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
                         self.globals
@@ -892,8 +890,9 @@ impl Resolver {
             }
 
             let res = match (term_result, ty_result) {
-                (Ok(res @ Res::Item(..)), _) | (_, Ok(res @ Res::Item(..))) => res,
-                (Ok(_), _) | (_, Ok(_)) => {
+                (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
+                | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
+                (Ok(a), _) | (_, Ok(a)) => {
                     let err = if is_export {
                         Error::ExportedNonItem
                     } else {
@@ -908,22 +907,13 @@ impl Resolver {
                     continue;
                 }
             };
-            // insert the item into the names we know about
-            if is_export {
-                // this makes the microsoft.quantum.core thing fail
-                // if false { -- this works
-                match res {
-                    Res::Item(item_id, _) => {
-                        println!("inserting export {:?}", Res::ExportedItem(item_id));
-                        self.names
-                            .insert(item.name().id, Res::ExportedItem(item_id));
-                    }
-                    // TODO(alex)
-                    _ => todo!("res should be an item"),
+            match res {
+                Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
+                    self.names
+                        .insert(item.name().id, Res::ExportedItem(item_id));
                 }
-            } else {
-                println!("inserting import {:?}", res);
-                self.names.insert(item.name().id, res);
+                // TODO(alex)
+                _ => self.names.insert(item.name().id, res),
             }
         }
     }
@@ -1347,7 +1337,6 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
-            println!("inserting global {:?}", global);
             let namespace = self
                 .scope
                 .insert_or_find_namespace_from_root(global.namespace.clone(), root);
@@ -1374,7 +1363,18 @@ impl GlobalTable {
                     self.scope.insert_or_find_namespace(global.namespace);
                 }
                 (global::Kind::Export(item_id), _) => {
-                    todo!()
+                    // figure  out if this export is a ty or a term
+                    // and insert res accordingly
+                    // TODO(alex)
+
+                    self.scope
+                        .tys
+                        .get_mut_or_default(namespace)
+                        .insert(global.name.clone(), Res::ExportedItem(item_id));
+                    self.scope
+                        .terms
+                        .get_mut_or_default(namespace)
+                        .insert(global.name, Res::ExportedItem(item_id));
                 }
                 (_, hir::Visibility::Internal) => {}
             }

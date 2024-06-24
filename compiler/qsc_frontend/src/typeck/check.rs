@@ -73,17 +73,18 @@ impl GlobalTable {
                 name,
                 ItemId {
                     package: other_package,
-                    item,
+                    item: exported_item,
                 },
             ) => {
+                // TODO(alex) explain this very clearly
                 let package_id = other_package.unwrap_or(package_id);
                 let package = store.get(package_id).expect("package should exist");
-                let item = package
+                let resolved_export = package
                     .package
                     .items
-                    .get(*item)
+                    .get(*exported_item)
                     .expect("exported item should exist");
-                self.handle_item(item, package_id, store);
+                self.handle_item(resolved_export, package_id, store);
             }
         };
     }
