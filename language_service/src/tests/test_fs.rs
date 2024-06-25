@@ -7,7 +7,7 @@
 //! tests, it could use some work to make methods a little more general.
 
 use async_trait::async_trait;
-use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost, Manifest};
+use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
