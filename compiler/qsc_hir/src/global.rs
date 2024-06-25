@@ -126,7 +126,7 @@ impl PackageIter<'_> {
                 .kind
         });
         let (id, visibility) = match &item.kind {
-            ItemKind::Export(_name, item_id) if item_id.package.is_some() => (
+            ItemKind::Export(name, item_id) if item_id.package.is_some() => (
                 ItemId {
                     package: item_id.package.or(self.id),
                     item: item_id.item,

@@ -128,15 +128,22 @@ impl With<'_> {
         // Exports are `Res` items, which contain `hir::ItemId`s.
         let exports = namespace
             .exports()
-            // is this just pointing to itself?
-            // that is, maybe this is causing the export to get its own hir id
-            .filter_map(|item| self.names.get(item.name().id))
+            .map(|item| self.names.get(dbg!(&item.path).id).unwrap())
             .collect::<Vec<_>>();
+
+        for export in namespace.exports() {
+            println!(
+                "for export {export:?}, result is {:?}",
+                self.names.get(export.path.id)
+            );
+        }
+
+        dbg!(&exports);
 
         let exported_hir_ids = exports
             .iter()
             .filter_map(|res| match res {
-                resolve::Res::ExportedItem(id) | resolve::Res::Item(id, _) => Some(*id),
+                resolve::Res::ExportedItem(id) => Some(*id),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -146,6 +153,8 @@ impl With<'_> {
             .iter()
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
+
+        dbg!(&items);
 
         let name = self.lower_idents(&namespace.name);
 
@@ -185,6 +194,7 @@ impl With<'_> {
                 if item.is_import() {
                     return None;
                 }
+                let export_decl_id = self.assigner.next_item();
                 for item in item.items.iter() {
                     let Some(id) = resolve_id(item.name().id) else {
                         continue;
@@ -208,9 +218,29 @@ impl With<'_> {
                             visibility: Visibility::Public,
                             kind,
                         });
+                    } else if item.alias.is_some() {
+                        println!("found an alias: {:?}", item);
+                        // we need to preserve the alias, if there is one
+                        dbg!(&item.name());
+                        let name = self
+                            .lower_ident(item.alias.as_ref().expect("invariant -- checked above"));
+                        dbg!(&name);
+
+                        dbg!(&self.names);
+
+                        let kind = hir::ItemKind::Export(name, id);
+                        self.lowerer.items.push(hir::Item {
+                            id: self.assigner.next_item(),
+                            span: item.span(),
+                            parent: self.lowerer.parent,
+                            doc: "".into(),
+                            // attrs on exports not supported
+                            attrs: Vec::new(),
+                            visibility: Visibility::Public,
+                            kind,
+                        });
                     }
                 }
-                return None;
             }
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id)?;

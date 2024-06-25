@@ -912,6 +912,10 @@ impl Resolver {
                     self.names
                         .insert(item.name().id, Res::ExportedItem(item_id));
                 }
+                // todo can consolidate here
+                Res::Item(item_id, _) if item.alias.is_some() => {
+                    self.names.insert(item.name().id, res);
+                }
                 _ => self.names.insert(item.name().id, res),
             }
         }
@@ -1735,6 +1739,7 @@ fn check_scoped_resolutions(
             return Some(Ok(res));
         }
     }
+
     let aliases = scope
         .opens
         .iter()
@@ -1860,7 +1865,7 @@ where
     }
 
     for (candidate_namespace_id, open) in namespaces_to_search {
-        if find_symbol_in_namespace(
+        find_symbol_in_namespace(
             kind,
             globals,
             provided_namespace_name,
@@ -1868,9 +1873,7 @@ where
             &mut candidates,
             candidate_namespace_id,
             open,
-        ) {
-            continue;
-        }
+        );
     }
 
     if candidates.len() > 1 {
@@ -1892,8 +1895,7 @@ fn find_symbol_in_namespace<O>(
     candidates: &mut FxHashMap<Res, O>,
     candidate_namespace_id: NamespaceId,
     open: O,
-) -> bool
-where
+) where
     O: Clone + std::fmt::Debug,
 {
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
@@ -1912,7 +1914,7 @@ where
     // for example, if the query is `Foo.Bar.Baz`, we know there must exist a `Foo.Bar` somewhere.
     // If we didn't find it above, then even if we find `Baz` here, it is not the correct location.
     if provided_namespace_name.is_some() && namespace.is_none() {
-        return true;
+        return;
     }
 
     // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
@@ -1922,7 +1924,6 @@ where
     if let Some(res) = res {
         candidates.insert(*res, open);
     }
-    false
 }
 
 /// Fetch the name and namespace ID of all prelude namespaces.
