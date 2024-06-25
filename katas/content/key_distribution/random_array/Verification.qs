@@ -6,8 +6,8 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         // The test only checks that the operation returns an array of correct length
         // and that it's not always the same. It doesn't analyze the distribution of true and false elements.
-        let N = 10;
-        let randomArrays = ForEach(Kata.RandomArray, [N, N, N]);
+        let N = 20;
+        let randomArrays = ForEach(Kata.RandomArray, [N, size = 10]);
 
         for array in randomArrays {
             if Length(array) != N {
@@ -17,7 +17,13 @@ namespace Kata.Verification {
         }
 
         let randomInts = Mapped(BoolArrayAsInt, randomArrays);
-        if randomInts[0] == randomInts[1] or randomInts[1] == randomInts[2] or randomInts[0] == randomInts[2] {
+        mutable allSame = true;
+        for int in randomInts {
+            if int != randomInts[0] {
+                set allSame = false;
+            }
+        }
+        if allSame {
             Message($"Random generation should not return a fixed array.");
             return false;
         }
