@@ -7,7 +7,7 @@
 //! tests, it could use some work to make methods a little more general.
 
 use async_trait::async_trait;
-use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost, Manifest};
+use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
@@ -97,12 +97,6 @@ impl FsNode {
         }
 
         parts.join("/")
-
-        // TODO: shouldn't we need a little more validation than this?
-        // like checking that the resolved path is actually within the root?
-        // or like checking that the resolved path is actually a file or directory?
-        // or like checking that the resolved path is not a symlink?
-        // thanks copilot!
     }
 
     pub fn find_manifest_directory(&self, file: &str) -> Option<PathBuf> {
@@ -115,13 +109,8 @@ impl FsNode {
             curr = curr.and_then(|node| match node {
                 FsNode::Dir(dir) => {
                     if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
-                        // TODO: is this true?
-                        // The semantics of get_manifest is that we only return the manifest
-                        // if we've succeeded in parsing it
-                        if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
-                            last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
-                            last_manifest = Some(manifest);
-                        }
+                        last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                        last_manifest = Some(manifest);
                     }
                     curr_path = format!("{curr_path}{part}/");
                     dir.get(part)
