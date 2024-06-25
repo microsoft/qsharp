@@ -172,11 +172,10 @@ impl With<'_> {
             .iter()
             .filter_map(|a| self.lower_attr(a))
             .collect();
-        //        println!("looking for {item:?}");
 
         let resolve_id = |id| match self.names.get(id) {
             Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => Some(item),
-            otherwise => None,
+            _otherwise => None,
         };
 
         let (id, kind) = match &*item.kind {
@@ -193,6 +192,7 @@ impl With<'_> {
                     if id.package.is_some() {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
+                        // TODO(alex) explain this clearly
                         // i have a few options here:
                         // 1. if the package is None, it is a local item,
                         // push a public item

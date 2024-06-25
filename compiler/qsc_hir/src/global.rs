@@ -3,8 +3,7 @@
 
 use crate::{
     hir::{
-        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, TermOrTy,
-        Visibility,
+        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility,
     },
     ty::Scheme,
 };
@@ -57,7 +56,6 @@ pub struct Term {
 pub struct Table {
     tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Ty>>,
     terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Term>>,
-    exports: FxHashMap<NamespaceId, FxHashMap<Rc<str>, ItemId>>,
     namespaces: NamespaceTreeRoot,
 }
 
@@ -85,7 +83,6 @@ impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
         let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut terms: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
-        let mut exports: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut namespaces = NamespaceTreeRoot::default();
         for global in iter {
             let namespace = namespaces.insert_or_find_namespace(global.namespace.into_iter());
@@ -99,13 +96,7 @@ impl FromIterator<Global> for Table {
                         .or_default()
                         .insert(global.name, term);
                 }
-                Kind::Namespace => {}
-                Kind::Export(item) => {
-                    exports
-                        .entry(namespace)
-                        .or_default()
-                        .insert(global.name, item);
-                }
+                Kind::Namespace | Kind::Export(_) => {}
             }
         }
 
@@ -113,7 +104,6 @@ impl FromIterator<Global> for Table {
             tys,
             terms,
             namespaces,
-            exports,
         }
     }
 }
@@ -136,7 +126,7 @@ impl PackageIter<'_> {
                 .kind
         });
         let (id, visibility) = match &item.kind {
-            ItemKind::Export(name, item_id) if item_id.package.is_some() => (
+            ItemKind::Export(_name, item_id) if item_id.package.is_some() => (
                 ItemId {
                     package: item_id.package.or(self.id),
                     item: item_id.item,
@@ -195,13 +185,13 @@ impl PackageIter<'_> {
                 kind: Kind::Namespace,
             }),
             (
-                ItemKind::Export(name, item_id @ ItemId { package, item }),
+                ItemKind::Export(name, item_id @ ItemId { package, .. }),
                 Some(ItemKind::Namespace(namespace, _)),
             ) => {
                 if package.is_none() {
                     // if there is no package, then this was declared in this package
                     // and this is a noop -- it will be marked as public on export
-                    return None;
+                    None
                 } else {
                     Some(Global {
                         namespace: namespace.into(),
@@ -213,14 +203,6 @@ impl PackageIter<'_> {
                 }
             }
             _ => None,
-            //             TODO(alex) verify below
-            /*
-            (ItemKind::Callable(_), None) => todo!(),
-            (ItemKind::Namespace(_, _), Some(_)) => todo!(),
-            (ItemKind::Ty(_, _), None) => todo!(),
-            (ItemKind::Export(_, _), None) => todo!(),
-            _ => todo!(),
-            */
         }
     }
 }

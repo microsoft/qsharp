@@ -326,12 +326,6 @@ impl Display for Item {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum TermOrTy {
-    Term,
-    Ty,
-}
-
 /// An item kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {

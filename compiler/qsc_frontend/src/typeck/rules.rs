@@ -405,7 +405,9 @@ impl<'a> Context<'a> {
                         .clone(),
                 ),
                 Some(Res::ExportedItem(item_id)) => {
-                    // TODO(alex)
+                    // we don't need to invidiually type check exports
+                    // when they are referred to, the "chain" of exports is
+                    // resolved to the original definition
                     todo!()
                 }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {

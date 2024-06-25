@@ -330,9 +330,7 @@ impl GlobalScope {
             NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
         };
-        let ns = items.get(namespace);
-        let (ns_name, _) = self.namespaces.find_namespace_by_id(&namespace);
-        ns.and_then(|items| items.get(name))
+        items.get(namespace).and_then(|items| items.get(name))
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
@@ -890,9 +888,10 @@ impl Resolver {
             }
 
             let res = match (term_result, ty_result) {
+                // TODO(alex) explain this
                 (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
                 | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
-                (Ok(a), _) | (_, Ok(a)) => {
+                (Ok(_), _) | (_, Ok(_)) => {
                     let err = if is_export {
                         Error::ExportedNonItem
                     } else {
@@ -908,11 +907,11 @@ impl Resolver {
                 }
             };
             match res {
+                // TODO(alex) explain this
                 Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
                     self.names
                         .insert(item.name().id, Res::ExportedItem(item_id));
                 }
-                // TODO(alex)
                 _ => self.names.insert(item.name().id, res),
             }
         }

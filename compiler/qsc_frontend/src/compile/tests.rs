@@ -1656,7 +1656,6 @@ fn multiple_packages_disallow_unexported_imports() {
 
 #[test]
 fn reexport() {
-    println!("=====COMPILING CORE");
     let mut store = PackageStore::new(super::core());
 
     let package_a = SourceMap::new(
@@ -1670,7 +1669,6 @@ fn reexport() {
         None,
     );
 
-    println!("=====COMPILING A");
     let package_a = compile(
         &store,
         &[],
@@ -1698,10 +1696,92 @@ fn reexport() {
         None,
     );
 
-    println!("=====COMPILING USER_CODE");
     let user_code = compile(
         &store,
         &[(package_a, Some(Arc::from("A")))],
+        user_code,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+
+    expect!["[]"].assert_eq(&format!("{:#?}", user_code.errors));
+}
+
+#[test]
+fn reexport_callable() {
+    let mut store = PackageStore::new(super::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo;
+                import A.PackageA.Foo as Foo2;
+                export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
+
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+
+    let package_b = store.insert(package_b);
+
+    let user_code = SourceMap::new(
+        [(
+            "UserCode".into(),
+            indoc! {"
+                    import B.PackageB.Foo;
+                    @EntryPoint()
+                    function Main() : Unit {
+                        Foo(10, true);
+                        Foo2(10, true);
+                        Bar(10, true);
+                        Bar2(10, true);
+                    }
+                "}
+            .into(),
+        )],
+        None,
+    );
+
+    let user_code = compile(
+        &store,
+        &[(package_b, Some(Arc::from("B")))],
         user_code,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),

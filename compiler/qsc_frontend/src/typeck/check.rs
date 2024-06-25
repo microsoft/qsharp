@@ -70,7 +70,7 @@ impl GlobalTable {
                     .insert(item_id, udt.cons_scheme(item_id).with_package(package_id));
             }
             hir::ItemKind::Export(
-                name,
+                _,
                 ItemId {
                     package: other_package,
                     item: exported_item,
