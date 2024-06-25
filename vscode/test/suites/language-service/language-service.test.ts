@@ -11,7 +11,7 @@ suite("Q# Language Service Tests", function suite() {
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
-  const docUri = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
+  const testQs = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
   const projectMainDocUri = vscode.Uri.joinPath(
     workspaceFolderUri,
     "packages",
@@ -26,6 +26,7 @@ suite("Q# Language Service Tests", function suite() {
     "src",
     "Main.qs",
   );
+  const noErrorsQs = vscode.Uri.joinPath(workspaceFolderUri, "no-errors.qs");
 
   this.beforeAll(async () => {
     await activateExtension();
@@ -36,14 +37,15 @@ suite("Q# Language Service Tests", function suite() {
     // But we don't currently have to await background language service tasks.
     // This is the best we can do to ensure the features have been initialized
     // before we start testing.
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
     await vscode.workspace.openTextDocument(projectMainDocUri);
+    await vscode.workspace.openTextDocument(noErrorsQs);
     // Give it a tiny bit of time to settle
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   test("Q# language is registered", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     assert.equal(
       doc.languageId,
       "qsharp",
@@ -54,7 +56,7 @@ suite("Q# Language Service Tests", function suite() {
   test("Completions", async () => {
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
-      docUri,
+      testQs,
       new vscode.Position(0, 0),
     )) as vscode.CompletionList;
 
@@ -65,7 +67,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Definition", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -74,18 +76,18 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Location[];
 
     const location = actualDefinition[0];
-    assert.equal(location.uri.toString(), docUri.toString());
+    assert.equal(location.uri.toString(), testQs.toString());
     assert.equal(location.range.start.line, 3);
     assert.equal(location.range.start.character, 12);
   });
 
   test("Diagnostics", async () => {
-    const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
+    const actualDiagnostics = vscode.languages.getDiagnostics(testQs);
     assert.lengthOf(actualDiagnostics, 1);
 
     assert.include(actualDiagnostics[0].message, "syntax error");
@@ -93,7 +95,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Hover", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -102,7 +104,7 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualHovers = (await vscode.commands.executeCommand(
       "vscode.executeHoverProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Hover[];
 
@@ -113,7 +115,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Signature Help", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -122,7 +124,7 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualSignatureHelp = (await vscode.commands.executeCommand(
       "vscode.executeSignatureHelpProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.SignatureHelp;
 
@@ -134,11 +136,11 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document", async () => {
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
 
     const actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatDocumentProvider",
-      docUri,
+      testQs,
     )) as vscode.TextEdit[];
 
     assert.lengthOf(actualFormatEdits, 1);
@@ -150,7 +152,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document Range", async () => {
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
 
     const noEditRange = new vscode.Range(
       new vscode.Position(7, 24),
@@ -163,7 +165,7 @@ suite("Q# Language Service Tests", function suite() {
 
     let actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatRangeProvider",
-      docUri,
+      testQs,
       noEditRange,
     )) as vscode.TextEdit[];
 
@@ -172,7 +174,7 @@ suite("Q# Language Service Tests", function suite() {
 
     actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatRangeProvider",
-      docUri,
+      testQs,
       editRange,
     )) as vscode.TextEdit[];
 
@@ -185,17 +187,17 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Code Lens", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(noErrorsQs);
 
     const actualCodeLenses = (await vscode.commands.executeCommand(
       "vscode.executeCodeLensProvider",
-      docUri,
+      doc.uri,
     )) as vscode.CodeLens[];
 
     assert.lengthOf(actualCodeLenses, 5);
 
     for (const lens of actualCodeLenses) {
-      assert.include(doc.getText(lens.range), "operation Test()");
+      assert.include(doc.getText(lens.range), "function Test()");
     }
   });
 
