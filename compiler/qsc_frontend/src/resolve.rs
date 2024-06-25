@@ -31,8 +31,9 @@ use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
 
-// All AST Path nodes get mapped
+// All AST Path nodes that are namespace paths get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
+// The first Ident of an AST Path node that is a field accessor gets mapped instead of the Path node
 pub(super) type Names = IndexMap<NodeId, Res>;
 
 // If the path is a field accessor, returns the mapped node id of the first ident's declaration and the vec of part's idents.
