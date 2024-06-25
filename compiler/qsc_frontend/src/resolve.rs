@@ -35,6 +35,24 @@ use crate::compile::preprocess::TrackedName;
 // All AST Ident nodes get mapped, except those under AST Path nodes
 pub(super) type Names = IndexMap<NodeId, Res>;
 
+// If the path is a field accessor, returns the mapped node id of the first ident's declaration and the vec of part's idents.
+// Otherwise, returns None.
+#[must_use]
+pub fn path_as_field_accessor(
+    names: &Names,
+    path: &ast::Path,
+) -> Option<(NodeId, Vec<ast::Ident>)> {
+    if path.segments.is_some() {
+        let parts: Vec<Ident> = path.into();
+        let first = parts.first().expect("path should have at least one part");
+        if let Some(&Res::Local(node_id)) = names.get(first.id) {
+            return Some((node_id, parts));
+        }
+    }
+    // If any of the above conditions are not met, return None.
+    None
+}
+
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

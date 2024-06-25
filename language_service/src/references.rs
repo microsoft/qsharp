@@ -10,7 +10,6 @@ use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
-use qsc::ast::Ident;
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -369,24 +368,23 @@ struct FindFieldRefs<'a> {
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     fn visit_path(&mut self, path: &ast::Path) {
-        let parts: Vec<Ident> = path.into();
-        if path.segments.is_some() {
+        if let Some((_, parts)) =
+            resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path)
+        {
             let (first, rest) = parts
                 .split_first()
                 .expect("paths should have at least one part");
-            if self.compilation.get_res(first.id).is_some() {
-                let mut prev_id = first.id;
-                // Loop through the parts of the path to find references
-                for part in rest {
-                    if part.name == self.field_name {
-                        if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(prev_id) {
-                            if self.eq(id) {
-                                self.locations.push(part.span);
-                            }
+            let mut prev_id = first.id;
+            // Loop through the parts of the path to find references
+            for part in rest {
+                if part.name == self.field_name {
+                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(prev_id) {
+                        if self.eq(id) {
+                            self.locations.push(part.span);
                         }
                     }
-                    prev_id = part.id;
                 }
+                prev_id = part.id;
             }
         }
     }
@@ -457,21 +455,19 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
     }
 
     fn visit_path(&mut self, path: &ast::Path) {
-        if path.segments.is_some() {
-            let parts: Vec<Ident> = path.into();
-            let first = parts.first().expect("paths should have at least one part");
-            if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {
-                if *node_id == self.node_id {
+        match resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path) {
+            Some((node_id, parts)) => {
+                let first = parts.first().expect("paths should have at least one part");
+                if node_id == self.node_id {
                     self.locations.push(first.span);
                 }
-                return;
             }
-        }
-
-        let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Local(node_id)) = res {
-            if *node_id == self.node_id {
-                self.locations.push(path.name.span);
+            None => {
+                if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(path.id) {
+                    if *node_id == self.node_id {
+                        self.locations.push(path.name.span);
+                    }
+                }
             }
         }
     }

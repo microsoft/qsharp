@@ -7,7 +7,6 @@ use std::rc::Rc;
 use crate::compilation::Compilation;
 use crate::qsc_utils::find_ident;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
-use qsc::ast::Ident;
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
@@ -383,18 +382,17 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     // Handles local variable, UDT, and callable references
     fn visit_path(&mut self, path: &'package ast::Path) {
         if path.span.touches(self.offset) {
-            let parts: Vec<Ident> = path.into();
-            if path.segments.is_some() {
-                let (first, rest) = parts
-                    .split_first()
-                    .expect("paths should have at least one part");
-                // If the left-most identifier is a local variable, the path is a field accessor
-                if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(first.id) {
+            match resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path) {
+                // The path is a field accessor.
+                Some((node_id, parts)) => {
+                    let (first, rest) = parts
+                        .split_first()
+                        .expect("paths should have at least one part");
                     if first.span.touches(self.offset) {
                         if let Some(curr) = self.context.current_callable {
                             if let Some(definition) = find_ident(node_id, curr) {
                                 self.inner
-                                    .at_local_ref(&self.context, first, *node_id, definition);
+                                    .at_local_ref(&self.context, first, node_id, definition);
                             }
                         }
                     } else {
@@ -416,14 +414,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                             last_id = part.id;
                         }
                     }
-                    return;
                 }
-            }
-
-            // Otherwise, the path is a reference to a callable, UDT, or namespace
-            if let Some(res) = self.compilation.get_res(path.id) {
-                match &res {
-                    resolve::Res::Item(item_id, _) => {
+                // The path is a namespace path.
+                None => match self.compilation.get_res(path.id) {
+                    Some(resolve::Res::Item(item_id, _)) => {
                         let (item, _, resolved_item_id) = self
                             .compilation
                             .resolve_item_relative_to_user_package(item_id);
@@ -443,9 +437,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                             }
                         }
                     }
-                    resolve::Res::Local(node_id) => {
+                    Some(resolve::Res::Local(node_id)) => {
                         if let Some(curr) = self.context.current_callable {
-                            if let Some(definition) = find_ident(node_id, curr) {
+                            if let Some(definition) = find_ident(*node_id, curr) {
                                 self.inner.at_local_ref(
                                     &self.context,
                                     &path.name,
@@ -456,7 +450,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
                     }
                     _ => {}
-                }
+                },
             }
         }
     }

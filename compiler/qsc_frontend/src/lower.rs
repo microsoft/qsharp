@@ -778,22 +778,13 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
-        if path.segments.is_some() {
-            let parts: Vec<Ident> = path.into();
-            let first = parts.first().expect("path should have at least one part");
-            // This is the indication that the path is a field accessor
-            if self.names.contains_key(first.id) {
-                let res = self.node_id_to_res(first.id);
-                return self.path_parts_to_fields(
-                    hir::ExprKind::Var(res, Vec::new()),
-                    &parts,
-                    path.span.lo,
-                );
+        match resolve::path_as_field_accessor(self.names, path) {
+            Some((first_id, parts)) => {
+                let res = hir::Res::Local(self.lower_id(first_id));
+                self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, path.span.lo)
             }
+            None => hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args),
         }
-
-        // If path is not field accessor, it is regular path.
-        hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args)
     }
 
     fn path_parts_to_fields(

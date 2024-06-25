@@ -547,44 +547,40 @@ impl<'a> Context<'a> {
     }
 
     fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        if path.segments.is_some() {
-            let parts: Vec<Ident> = path.into();
-            let (first, rest) = parts
-                .split_first()
-                .expect("path should have at least one part");
-            // This is the indication that the path is a field accessor
-            if let Some(&Res::Local(first_ref)) = self.names.get(first.id) {
+        match resolve::path_as_field_accessor(self.names, path) {
+            Some((first_id, parts)) => {
                 let record = converge(
                     self.table
                         .terms
-                        .get(first_ref)
+                        .get(first_id)
                         .expect("local should have type")
                         .clone(),
                 );
+                let (first, rest) = parts
+                    .split_first()
+                    .expect("path should have at least one part");
                 self.record(first.id, record.ty.clone());
-                return self.infer_path_parts(record, rest, expr.span.lo);
+                self.infer_path_parts(record, rest, expr.span.lo)
             }
-        }
-
-        // Path is not a field accessor
-        match self.names.get(path.id) {
-            None => converge(Ty::Err),
-            Some(Res::Item(item, _)) => {
-                let scheme = self.globals.get(item).expect("item should have scheme");
-                let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
-                self.table.generics.insert(expr.id, args);
-                converge(Ty::Arrow(Box::new(ty)))
-            }
-            Some(&Res::Local(node)) => converge(
-                self.table
-                    .terms
-                    .get(node)
-                    .expect("local should have type")
-                    .clone(),
-            ),
-            Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
-                panic!("expression resolves to type")
-            }
+            None => match self.names.get(path.id) {
+                None => converge(Ty::Err),
+                Some(Res::Item(item, _)) => {
+                    let scheme = self.globals.get(item).expect("item should have scheme");
+                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
+                }
+                Some(&Res::Local(node)) => converge(
+                    self.table
+                        .terms
+                        .get(node)
+                        .expect("local should have type")
+                        .clone(),
+                ),
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                    panic!("expression resolves to type")
+                }
+            },
         }
     }
 
