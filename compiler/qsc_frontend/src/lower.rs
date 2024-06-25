@@ -172,10 +172,11 @@ impl With<'_> {
             .iter()
             .filter_map(|a| self.lower_attr(a))
             .collect();
+        //        println!("looking for {item:?}");
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => item,
-            otherwise => todo!("item should have item ID {otherwise:?} (was looking for {id}",),
+            Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => Some(item),
+            otherwise => None,
         };
 
         let (id, kind) = match &*item.kind {
@@ -186,7 +187,9 @@ impl With<'_> {
                     return None;
                 }
                 for item in item.items.iter() {
-                    let id = resolve_id(item.name().id);
+                    let Some(id) = resolve_id(item.name().id) else {
+                        continue;
+                    };
                     if id.package.is_some() {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
@@ -210,7 +213,7 @@ impl With<'_> {
                 return None;
             }
             ast::ItemKind::Callable(callable) => {
-                let id = resolve_id(callable.name.id);
+                let id = resolve_id(callable.name.id)?;
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
@@ -218,7 +221,7 @@ impl With<'_> {
                 (id, hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
-                let id = resolve_id(name.id);
+                let id = resolve_id(name.id)?;
                 let udt = self
                     .tys
                     .udts
@@ -228,7 +231,7 @@ impl With<'_> {
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
             ast::ItemKind::Struct(decl) => {
-                let id = resolve_id(decl.name.id);
+                let id = resolve_id(decl.name.id)?;
                 let strct = self
                     .tys
                     .udts

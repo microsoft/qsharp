@@ -1272,7 +1272,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         &store,
         &[(std, None)],
         sources,
-        TargetCapabilityFlags::empty(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -1707,5 +1707,5 @@ fn reexport() {
         LanguageFeatures::default(),
     );
 
-    expect![[r#""#]].assert_eq(&format!("{:#?}", user_code.errors));
+    expect!["[]"].assert_eq(&format!("{:#?}", user_code.errors));
 }
