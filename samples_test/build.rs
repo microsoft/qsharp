@@ -29,6 +29,10 @@ fn main() {
             .expect("file name should be separable")
             .to_str()
             .expect("file name should be valid");
+        assert!(
+            !file_stem.contains(' '),
+            "file name `{file_name}` should not contain spaces"
+        );
         let file_stem_upper = file_stem.to_uppercase();
 
         writeln!(
@@ -46,6 +50,8 @@ fn main() {
             #[test]
             fn run_{file_stem}() {{
                 let output = compile_and_run({file_stem}_src());
+                // This constant must be defined in `samples_test/src/tests.rs` and
+                // must contain the output of the sample {file_name}
                 {file_stem_upper}_EXPECT.assert_eq(&output);
             }}
 
@@ -53,6 +59,8 @@ fn main() {
             #[test]
             fn debug_{file_stem}() {{
                 let output = compile_and_run_debug({file_stem}_src());
+                // This constant must be defined in `samples_test/src/tests.rs` and
+                // must contain the output of the sample {file_name}
                 {file_stem_upper}_EXPECT_DEBUG.assert_eq(&output);
             }}
             "#
