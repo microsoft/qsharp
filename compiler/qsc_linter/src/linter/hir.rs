@@ -93,11 +93,10 @@ pub(crate) trait HirLintPass {
 /// declarations and implementations of [`HirLintsConfig`] and [`CombinedHirLints`] for
 /// the lint to be integrated with the our linting infrastructure.
 macro_rules! declare_hir_lints {
-    ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr $(, $info:ty)?) ),* $(,)?) => {
+    ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr) ),* $(,)?) => {
         // Declare the structs representing each lint.
         use crate::{Lint, LintKind, LintLevel, linter::hir::HirLintPass};
-        $(declare_hir_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help $(, $info)? })*
-        $(declare_hir_lints!{ @LINT_IMPL $lint_name, $default_level, $msg, $help })*
+        $(declare_hir_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help })*
 
         // This is a silly wrapper module to avoid contaminating the environment
         // calling the macro with unwanted imports.
@@ -123,38 +122,6 @@ macro_rules! declare_hir_lints {
 
     // Declare & implement a struct representing a lint.
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
-        pub(crate) struct $lint_name {
-            level: LintLevel,
-        }
-
-        impl Default for $lint_name {
-            fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL }
-            }
-        }
-
-        impl From<LintLevel> for $lint_name {
-            fn from(value: LintLevel) -> Self {
-                Self { level: value }
-            }
-        }
-    };
-
-    // Declare & implement a struct with lint-specific fields representing a lint.
-    (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr, $info:ty) => {
-        pub(crate) struct $lint_name {
-            level: LintLevel,
-            lint_info: $info,
-        }
-
-        impl Default for $lint_name {
-            fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, lint_info: Default::default() }
-            }
-        }
-    };
-
-    (@LINT_IMPL $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
         impl $lint_name {
             const DEFAULT_LEVEL: LintLevel = $default_level;
 
