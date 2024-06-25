@@ -93,6 +93,6 @@ impl FileSystem for StdFs {
     }
 
     fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
-        std::fs::canonicalize(base.join(path)).into_diagnostic()
+        Ok(base.join(path))
     }
 }
