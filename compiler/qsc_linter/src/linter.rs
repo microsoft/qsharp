@@ -7,17 +7,9 @@ pub(crate) mod hir;
 use self::{ast::run_ast_lints, hir::run_hir_lints};
 use crate::lints::{ast::AstLint, hir::HirLint};
 use miette::{Diagnostic, LabeledSpan};
-use qsc_ast::ast::NodeId;
 use qsc_data_structures::span::Span;
-use qsc_doc_gen::display::Lookup;
-use qsc_frontend::{
-    compile::{CompileUnit, PackageStore},
-    resolve,
-};
-use qsc_hir::{
-    hir::{Item, ItemId, Package, PackageId},
-    ty,
-};
+use qsc_frontend::compile::{CompileUnit, PackageStore};
+use qsc_hir::hir::{Item, ItemId};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -26,13 +18,12 @@ use std::fmt::Display;
 #[must_use]
 pub fn run_lints(
     package_store: &PackageStore,
-    user_package_id: PackageId,
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
-        user_package_id,
+        compile_unit,
     };
 
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
@@ -47,77 +38,30 @@ pub fn run_lints(
 #[derive(Clone, Copy)]
 pub(crate) struct Compilation<'a> {
     pub package_store: &'a PackageStore,
-    pub user_package_id: PackageId,
+    pub compile_unit: &'a CompileUnit,
 }
 
-impl<'a> Lookup for Compilation<'a> {
-    fn get_ty(&self, _: NodeId) -> Option<&ty::Ty> {
-        unimplemented!("Not needed for linter")
-    }
-
-    fn get_res(&self, _: NodeId) -> Option<&resolve::Res> {
-        unimplemented!("Not needed for linter")
-    }
-
-    /// Returns the hir `Item` node referred to by `item_id`,
-    /// along with the `Package` and `PackageId` for the package
-    /// that it was found in.
-    fn resolve_item_relative_to_user_package(&self, item_id: &ItemId) -> (&Item, &Package, ItemId) {
-        self.resolve_item(self.user_package_id, item_id)
-    }
-
-    /// Returns the hir `Item` node referred to by `res`.
-    /// `Res`s can resolve to external packages, and the references
-    /// are relative, so here we also need the
-    /// local `PackageId` that the `res` itself came from.
-    fn resolve_item_res(
-        &self,
-        local_package_id: PackageId,
-        res: &qsc_hir::hir::Res,
-    ) -> (&Item, ItemId) {
-        match res {
-            qsc_hir::hir::Res::Item(item_id) => {
-                let (item, _, resolved_item_id) = self.resolve_item(local_package_id, item_id);
-                (item, resolved_item_id)
+impl Compilation<'_> {
+    /// Resolves an item id to an item.
+    pub fn resolve_item_id(&self, item_id: &ItemId) -> &Item {
+        let package = match item_id.package {
+            Some(package_id) => {
+                &self
+                    .package_store
+                    .get(package_id)
+                    .expect("package should exist in store")
+                    .package
             }
-            _ => panic!("expected to find item"),
-        }
-    }
-
-    /// Returns the hir `Item` node referred to by `item_id`.
-    /// `ItemId`s can refer to external packages, and the references
-    /// are relative, so here we also need the local `PackageId`
-    /// that the `ItemId` originates from.
-    fn resolve_item(
-        &self,
-        local_package_id: PackageId,
-        item_id: &ItemId,
-    ) -> (&Item, &Package, ItemId) {
-        // If the `ItemId` contains a package id, use that.
-        // Lack of a package id means the item is in the
-        // same package as the one this `ItemId` reference
-        // came from. So use the local package id passed in.
-        let package_id = item_id.package.unwrap_or(local_package_id);
-        let package = &self
-            .package_store
-            .get(package_id)
-            .expect("package should exist in store")
-            .package;
-        (
-            package
-                .items
-                .get(item_id.item)
-                .expect("item id should exist"),
-            package,
-            ItemId {
-                package: Some(package_id),
-                item: item_id.item,
-            },
-        )
+            None => &self.compile_unit.package,
+        };
+        package
+            .items
+            .get(item_id.item)
+            .expect("item id should exist")
     }
 }
 
-/// A lint emited by the linter.
+/// A lint emitted by the linter.
 #[derive(Debug, Clone, thiserror::Error)]
 pub struct Lint {
     /// A span indicating where the diagnostic is in the source code.

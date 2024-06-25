@@ -4,7 +4,6 @@
 use std::rc::Rc;
 
 use qsc_data_structures::span::Span;
-use qsc_doc_gen::display::Lookup;
 use qsc_hir::{
     hir::{
         CallableDecl, CallableKind, Expr, ExprKind, Field, ItemKind, Res, SpecBody, SpecDecl, Stmt,
@@ -140,7 +139,7 @@ impl HirLintPass for NeedlessOperation {
 impl HirLintPass for DeprecatedFunctionConstructor {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
         if let ExprKind::Var(Res::Item(item_id), _) = &expr.kind {
-            let (item, _, _) = compilation.resolve_item_relative_to_user_package(item_id);
+            let item = compilation.resolve_item_id(item_id);
             if let ItemKind::Ty(_, udt) = &item.kind {
                 if udt.is_struct() {
                     buffer.push(lint!(self, expr.span));
@@ -160,12 +159,8 @@ struct WithOperatorLint {
 impl DeprecatedWithOperator {
     /// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
     fn get_source_code(span: Span, compilation: Compilation) -> String {
-        let unit = compilation
-            .package_store
-            .get(compilation.user_package_id)
-            .expect("user package should exist");
-
-        let source = unit
+        let source = compilation
+            .compile_unit
             .sources
             .find_by_offset(span.lo)
             .expect("source should exist");
@@ -177,12 +172,8 @@ impl DeprecatedWithOperator {
 
     /// Returns the indentation at the given offset.
     fn indentation_at_offset(offset: u32, compilation: Compilation) -> u32 {
-        let unit = compilation
-            .package_store
-            .get(compilation.user_package_id)
-            .expect("user package should exist");
-
-        let source = unit
+        let source = compilation
+            .compile_unit
             .sources
             .find_by_offset(offset)
             .expect("source should exist");
@@ -213,7 +204,7 @@ impl HirLintPass for DeprecatedWithOperator {
             ExprKind::UpdateField(container, field, value)
             | ExprKind::AssignField(container, field, value) => {
                 if let Ty::Udt(ty_name, Res::Item(item_id)) = &container.ty {
-                    let (item, _, _) = compilation.resolve_item_relative_to_user_package(item_id);
+                    let item = compilation.resolve_item_id(item_id);
                     if let ItemKind::Ty(_, udt) = &item.kind {
                         if udt.is_struct() {
                             let field_name = if let Field::Path(path) = field {

@@ -85,7 +85,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(&mut errors, &package_store, package_id, unit, lints_config);
+        run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
@@ -141,7 +141,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(&mut errors, &package_store, package_id, unit, lints_config);
+        run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
@@ -299,12 +299,11 @@ fn run_fir_passes(
 fn run_linter_passes(
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     package_store: &PackageStore,
-    user_package_id: PackageId,
     unit: &CompileUnit,
     config: &[LintConfig],
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(package_store, user_package_id, unit, Some(config));
+        let lints = qsc::linter::run_lints(package_store, unit, Some(config));
         let lints = lints
             .into_iter()
             .filter(|lint| !matches!(lint.level, LintLevel::Allow))

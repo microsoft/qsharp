@@ -11,7 +11,7 @@ use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
 };
 use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
-use qsc_hir::hir::{CallableKind, PackageId};
+use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
 #[test]
@@ -405,7 +405,7 @@ fn check(source: &str, expected: &Expect) {
     let id = store.insert(unit);
     let unit = store.get(id).expect("user package should exist");
 
-    let actual: Vec<SrcLint> = run_lints(&store, id, unit, None)
+    let actual: Vec<SrcLint> = run_lints(&store, unit, None)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
@@ -460,13 +460,12 @@ impl SrcLint {
 
 fn run_lints(
     package_store: &PackageStore,
-    user_package_id: PackageId,
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
-        user_package_id,
+        compile_unit,
     };
 
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
