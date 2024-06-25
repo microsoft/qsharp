@@ -131,21 +131,16 @@ impl Interpreter {
         };
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            let project = file_system(
-                py,
-                read_file.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                list_directory.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                resolve_path.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-            )
-            .load_project(&manifest_descriptor.0)
-            .map_py_err()?;
-            SourceMap::new(project.sources, None)
+            if let (Some(read_file), Some(list_directory), Some(resolve_path)) =
+                (read_file, list_directory, resolve_path)
+            {
+                let project = file_system(py, read_file, list_directory, resolve_path)
+                    .load_project(&manifest_descriptor.0)
+                    .map_py_err()?;
+                SourceMap::new(project.sources, None)
+            } else {
+                panic!("file system hooks should have been passed in with a manifest descriptor")
+            }
         } else {
             SourceMap::default()
         };

@@ -16,7 +16,7 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
  */
 async function findManifestDocument(
   currentDocumentUriString: string,
-): Promise<{ directory: vscode.Uri; uri: vscode.Uri; content: string } | null> {
+): Promise<{ directory: URI; manifest: URI } | null> {
   // file://home/foo/bar/src/document.qs
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
@@ -48,11 +48,19 @@ async function findManifestDocument(
     }
 
     if (seenSrcDir) {
-      const listing: { uri: vscode.Uri; content: string } | null =
-        await tryReadManifestInDir(uriToQuery);
+      let qsharpJsonExists = false;
+      const potentialManifestUri = Utils.joinPath(uriToQuery, "qsharp.json");
 
-      if (listing) {
-        return { directory: Utils.dirname(listing.uri), ...listing };
+      try {
+        qsharpJsonExists =
+          (await vscode.workspace.fs.stat(potentialManifestUri)).type ===
+          vscode.FileType.File;
+      } catch (err) {
+        // qsharp.json doesn't exist or is inaccessible, move on
+      }
+
+      if (qsharpJsonExists) {
+        return { directory: uriToQuery, manifest: potentialManifestUri };
       }
     }
     if (uriToQuery.toString().endsWith("src")) {
@@ -68,20 +76,6 @@ async function findManifestDocument(
     }
   }
   return null;
-}
-
-async function tryReadManifestInDir(
-  uriToQuery: URI,
-): Promise<{ uri: vscode.Uri; content: string } | null> {
-  const potentialManifestLocation = Utils.joinPath(uriToQuery, "qsharp.json");
-
-  let listing: { uri: vscode.Uri; content: string } | null = null;
-  try {
-    listing = await readFileUri(potentialManifestLocation);
-  } catch (err) {
-    log.error("Error thrown when reading file: ", err);
-  }
-  return listing;
 }
 
 export async function findManifestDirectory(uri: string) {
@@ -183,7 +177,7 @@ export async function loadProject(
   }
 
   // Clear diagnostics for this project
-  updateQSharpJsonDiagnostics(manifestDocument.uri);
+  updateQSharpJsonDiagnostics(manifestDocument.manifest);
 
   let project;
   try {
@@ -192,7 +186,7 @@ export async function loadProject(
     );
   } catch (e: any) {
     updateQSharpJsonDiagnostics(
-      manifestDocument.uri,
+      manifestDocument.manifest,
       e.message ||
         "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
     );
