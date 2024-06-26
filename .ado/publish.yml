@@ -375,7 +375,7 @@ extends:
             VSIX_FNAME=`ls $VSIX_RPATH/*.vsix`
             echo "RPATH: $VSIX_RPATH"
             echo "FNAME: $VSIX_FNAME"
-#            vsce publish --pre-release --packagePath $VSIX_FNAME 2>&1 > pub.log
+            vsce publish --pre-release --packagePath $VSIX_FNAME 2>&1 > pub.log
           condition: and(succeeded(), eq(variables['BUILD_TYPE'], 'dev'))
           displayName: Publish pre-release VSCode Extension
           env:
@@ -386,7 +386,7 @@ extends:
             VSIX_FNAME=`ls $VSIX_RPATH/*.vsix`
             echo "RPATH: $VSIX_RPATH"
             echo "FNAME: $VSIX_FNAME"
-#            vsce publish --packagePath $VSIX_FNAME 2>&1 > pub.log
+            vsce publish --packagePath $VSIX_FNAME 2>&1 > pub.log
           condition: and(succeeded(), ne(variables['BUILD_TYPE'], 'dev'))
           displayName: Publish VSCode Extension
           env:
@@ -437,19 +437,19 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
-        # - task: EsrpRelease@4
-        #   inputs:
-        #     ConnectedServiceName: 'ESRP_Release'
-        #     Intent: 'PackageDistribution'
-        #     ContentType: 'PyPi'
-        #     FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
-        #     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
-        #     Approvers: 'billti@microsoft.com'
-        #     # Auto-inserted Debugging defaults:
-        #     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-        #     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
-        #     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-        #   displayName: Publish Py Packages
+        - task: EsrpRelease@4
+          inputs:
+            ConnectedServiceName: 'ESRP_Release'
+            Intent: 'PackageDistribution'
+            ContentType: 'PyPi'
+            FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+            Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
+            Approvers: 'billti@microsoft.com'
+            # Auto-inserted Debugging defaults:
+            ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+            MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+            DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+          displayName: Publish Py Packages
 
 
       - job: "Publish_NPM_Package"
@@ -469,16 +469,16 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/npm/qsharp/*
           displayName: Display NPM Artifacts in Publishing Dir
 
-        # - task: EsrpRelease@4
-        #   inputs:
-        #     ConnectedServiceName: 'ESRP_Release'
-        #     Intent: 'PackageDistribution'
-        #     ContentType: 'NPM'
-        #     FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
-        #     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
-        #     Approvers: 'billti@microsoft.com'
-        #     # Auto-inserted Debugging defaults:
-        #     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-        #     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
-        #     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-        #   displayName: Publish NPM Package
+        - task: EsrpRelease@4
+          inputs:
+            ConnectedServiceName: 'ESRP_Release'
+            Intent: 'PackageDistribution'
+            ContentType: 'NPM'
+            FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
+            Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
+            Approvers: 'billti@microsoft.com'
+            # Auto-inserted Debugging defaults:
+            ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+            MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+            DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+          displayName: Publish NPM Package
