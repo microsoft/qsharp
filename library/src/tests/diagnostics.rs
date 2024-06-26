@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::test_expression;
+use expect_test::expect;
 use qsc::interpret::Value;
 
 #[test]
@@ -291,4 +292,51 @@ fn check_counting_qubits_works_with_allocation_in_operation_calls() {
         }",
         &Value::Bool(true),
     );
+}
+
+#[test]
+fn check_dumpoperation_for_x() {
+    let output = test_expression(
+        "Microsoft.Quantum.Diagnostics.DumpOperation(1, qs => X(qs[0]))",
+        &Value::unit(),
+    );
+    expect![[r#"
+        MATRIX:
+        0.0000+0.0000𝑖 1.0000+0.0000𝑖
+        1.0000+0.0000𝑖 0.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&output);
+}
+
+#[test]
+fn check_dumpoperation_for_h() {
+    let output = test_expression(
+        "Microsoft.Quantum.Diagnostics.DumpOperation(1, qs => H(qs[0]))",
+        &Value::unit(),
+    );
+    expect![[r#"
+        MATRIX:
+        0.7071+0.0000𝑖 0.7071+0.0000𝑖
+        0.7071+0.0000𝑖 −0.7071+0.0000𝑖
+    "#]]
+    .assert_eq(&output);
+}
+
+#[test]
+fn check_dumpoperation_for_ccnot() {
+    let output = test_expression(
+        "Microsoft.Quantum.Diagnostics.DumpOperation(3, qs => CCNOT(qs[0], qs[1], qs[2]))",
+        &Value::unit(),
+    );
+    expect![[r#"
+        MATRIX:
+        1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖
+        0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖
+    "#]].assert_eq(&output);
 }

@@ -740,6 +740,10 @@ impl Receiver for OptionalCallbackReceiver<'_> {
         Ok(())
     }
 
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> std::result::Result<(), Error> {
+        todo!()
+    }
+
     fn message(&mut self, msg: &str) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
             let out = DisplayableOutput::Message(msg.to_owned());

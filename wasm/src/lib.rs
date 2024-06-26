@@ -269,6 +269,10 @@ where
         Ok(())
     }
 
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), output::Error> {
+        todo!()
+    }
+
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {
         let msg_json = json!({"type": "Message", "message": msg});
         (self.event_cb)(&msg_json.to_string());

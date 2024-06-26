@@ -16,6 +16,11 @@ pub trait Receiver {
     /// This will return an error if handling the output fails.
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error>;
 
+    /// Receive matrix output
+    /// # Errors
+    /// This will return an error if handling the output fails.
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error>;
+
     /// Receive generic message output
     /// # Errors
     /// This will return an error if handling the output fails.
@@ -43,6 +48,15 @@ impl<'a> Receiver for GenericReceiver<'a> {
                 fmt_complex(&state),
             )
             .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.writer, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.writer, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }
@@ -82,6 +96,15 @@ impl<'a> Receiver for CursorReceiver<'a> {
                 state
             )
             .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.cursor, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.cursor, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }
