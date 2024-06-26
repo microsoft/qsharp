@@ -478,7 +478,7 @@ fn reexport_callable_combined_aliases() {
             indoc! {"
                     import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
                     @EntryPoint()
-                    function Main() : Unit {
+                    operation Main() : Unit {
                         Foo(10, true);
                         Foo2(10, true);
                         Bar(10, true);
