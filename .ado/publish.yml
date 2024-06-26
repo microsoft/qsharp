@@ -428,9 +428,12 @@ extends:
             artifactName: Wheels.JupyterLab
         steps:
         - script: |
-            ls *.whl
+            ls $(System.DefaultWorkingDirectory)/*.whl
+            ls $(System.DefaultWorkingDirectory)/qsharp*.tar.gz
             mkdir -p $(System.DefaultWorkingDirectory)/target/wheels
-            mv *.whl $(System.DefaultWorkingDirectory)/target/wheels
+            mv $(System.DefaultWorkingDirectory)/*.whl $(System.DefaultWorkingDirectory)/target/wheels
+            mv $(System.DefaultWorkingDirectory)/qsharp*.tar.gz $(System.DefaultWorkingDirectory)/target/wheels
+            ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
         # - task: EsrpRelease@4
