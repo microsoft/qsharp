@@ -104,23 +104,12 @@ fn quick_fixes(
                     is_preferred: None,
                 }),
                 LintKind::Hir(HirLint::DeprecatedDoubleColonOperator) => {
-                    let source = compilation
-                        .user_unit()
-                        .sources
-                        .find_by_name(source_name)
-                        .expect("source should exist");
-                    let text_edits: Vec<_> = lint
-                        .code_action_edits
-                        .iter()
-                        .map(|(new_text, span)| TextEdit {
-                            new_text: new_text.clone(),
-                            range: qsc::line_column::Range::from_span(
-                                encoding,
-                                &source.contents,
-                                span,
-                            ),
-                        })
-                        .collect();
+                    let text_edits = code_action_edits_to_text_edits(
+                        &lint.code_action_edits,
+                        compilation,
+                        source_name,
+                        encoding,
+                    );
                     code_actions.push(CodeAction {
                         title: diagnostic.to_string(),
                         edit: Some(WorkspaceEdit {
@@ -136,6 +125,26 @@ fn quick_fixes(
     }
 
     code_actions
+}
+
+fn code_action_edits_to_text_edits(
+    code_action_edits: &[(String, Span)],
+    compilation: &Compilation,
+    source_name: &str,
+    encoding: Encoding,
+) -> Vec<TextEdit> {
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_name(source_name)
+        .expect("source should exist");
+    code_action_edits
+        .iter()
+        .map(|(new_text, span)| TextEdit {
+            new_text: new_text.clone(),
+            range: qsc::line_column::Range::from_span(encoding, &source.contents, span),
+        })
+        .collect()
 }
 
 /// Returns true if the error has a `Range` and it overlaps

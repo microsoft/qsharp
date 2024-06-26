@@ -195,7 +195,7 @@ impl HirLintPass for DeprecatedWithOperator {
                             } else {
                                 panic!("field should be a path");
                             };
-                            let field_value = Rc::from(get_source_code(value.span, compilation));
+                            let field_value = Rc::from(compilation.get_source_code(value.span));
                             let field_info = (field_name, field_value);
 
                             match &mut self.lint_info {
@@ -219,8 +219,8 @@ impl HirLintPass for DeprecatedWithOperator {
                 if let Some(info) = &self.lint_info {
                     // Construct a Struct constructor expr and print it back into Q# code
                     let indentation =
-                        (indentation_at_offset(info.span.lo, compilation) + 4) as usize;
-                    let innermost_expr = get_source_code(expr.span, compilation);
+                        (compilation.indentation_at_offset(info.span.lo) + 4) as usize;
+                    let innermost_expr = compilation.get_source_code(expr.span);
                     let mut new_expr = if info.is_w_eq {
                         format!("set {} = new {} {{\n", innermost_expr, info.ty_name)
                     } else {
@@ -271,7 +271,7 @@ impl HirLintPass for DeprecatedDoubleColonOperator {
                     lo: container.span.hi,
                     hi: expr.span.hi,
                 };
-                if let Some(i) = get_source_code(op_search_span, compilation).find("::") {
+                if let Some(i) = compilation.get_source_code(op_search_span).find("::") {
                     let i = u32::try_from(i).expect("span value should fit in u32");
                     let op_span = Span {
                         lo: op_search_span.lo + i,
@@ -306,43 +306,4 @@ impl HirLintPass for DeprecatedDoubleColonOperator {
             }
         }
     }
-}
-
-/// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
-fn get_source_code(span: Span, compilation: Compilation) -> String {
-    let source = compilation
-        .compile_unit
-        .sources
-        .find_by_offset(span.lo)
-        .expect("source should exist");
-
-    let lo = (span.lo - source.offset) as usize;
-    let hi = (span.hi - source.offset) as usize;
-    source.contents[lo..hi].to_string()
-}
-
-/// Returns the indentation at the given offset.
-fn indentation_at_offset(offset: u32, compilation: Compilation) -> u32 {
-    let source = compilation
-        .compile_unit
-        .sources
-        .find_by_offset(offset)
-        .expect("source should exist");
-
-    let mut indentation = 0;
-    for c in source.contents[..(offset - source.offset) as usize]
-        .chars()
-        .rev()
-    {
-        if c == '\n' {
-            break;
-        } else if c == ' ' {
-            indentation += 1;
-        } else if c == '\t' {
-            indentation += 4;
-        } else {
-            indentation = 0;
-        }
-    }
-    indentation
 }

@@ -59,6 +59,45 @@ impl Compilation<'_> {
             .get(item_id.item)
             .expect("item id should exist")
     }
+
+    /// Returns a substring of the user code's `SourceMap` in the range `lo..hi`.
+    pub fn get_source_code(&self, span: Span) -> String {
+        let source = self
+            .compile_unit
+            .sources
+            .find_by_offset(span.lo)
+            .expect("source should exist");
+
+        let lo = (span.lo - source.offset) as usize;
+        let hi = (span.hi - source.offset) as usize;
+        source.contents[lo..hi].to_string()
+    }
+
+    /// Returns the indentation at the given offset.
+    pub fn indentation_at_offset(&self, offset: u32) -> u32 {
+        let source = self
+            .compile_unit
+            .sources
+            .find_by_offset(offset)
+            .expect("source should exist");
+
+        let mut indentation = 0;
+        for c in source.contents[..(offset - source.offset) as usize]
+            .chars()
+            .rev()
+        {
+            if c == '\n' {
+                break;
+            } else if c == ' ' {
+                indentation += 1;
+            } else if c == '\t' {
+                indentation += 4;
+            } else {
+                indentation = 0;
+            }
+        }
+        indentation
+    }
 }
 
 /// A lint emitted by the linter.
