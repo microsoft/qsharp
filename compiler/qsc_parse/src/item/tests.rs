@@ -1821,15 +1821,12 @@ fn parse_export_list() {
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-151]:
                     Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92]:
-                        expr: <none>
                         Ident _id_ [84-87] "Baz"
                         Ident _id_ [88-92] "Quux", Path _id_ [94-118]:
-                        expr: <none>
                         Ident _id_ [94-98] "Math"
                         Ident _id_ [99-106] "Quantum"
                         Ident _id_ [107-111] "Some"
                         Ident _id_ [112-118] "Nested", Path _id_ [120-150]:
-                        expr: <none>
                         Ident _id_ [120-124] "Math"
                         Ident _id_ [125-132] "Quantum"
                         Ident _id_ [133-137] "Some"
@@ -1854,10 +1851,8 @@ fn parse_multiple_imports() {
         "import Foo.Bar, Foo.Baz;",
         &expect![[r#"
             ImportOrExportDecl [0-24]: [Path _id_ [7-14]:
-                expr: <none>
                 Ident _id_ [7-10] "Foo"
                 Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                expr: <none>
                 Ident _id_ [16-19] "Foo"
                 Ident _id_ [20-23] "Baz"]"#]],
     );
@@ -1881,10 +1876,8 @@ fn multi_import_with_alias() {
         "import Foo.Bar as Baz, Foo.Quux;",
         &expect![[r#"
             ImportOrExportDecl [0-32]: [Path _id_ [7-14]:
-                expr: <none>
                 Ident _id_ [7-10] "Foo"
                 Ident _id_ [11-14] "Bar" as Ident _id_ [18-21] "Baz", Path _id_ [23-31]:
-                expr: <none>
                 Ident _id_ [23-26] "Foo"
                 Ident _id_ [27-31] "Quux"]"#]],
     );
@@ -1936,10 +1929,8 @@ fn parse_glob_import_in_list() {
         "import Foo.Bar, Foo.Baz.*;",
         &expect![[r#"
             ImportOrExportDecl [0-26]: [Path _id_ [7-14]:
-                expr: <none>
                 Ident _id_ [7-10] "Foo"
                 Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                expr: <none>
                 Ident _id_ [16-19] "Foo"
                 Ident _id_ [20-23] "Baz".*]"#]],
     );
@@ -1952,10 +1943,8 @@ fn parse_glob_import_of_parent_in_list() {
         "import Foo.Bar, Foo.Baz, Foo.*;",
         &expect![[r#"
             ImportOrExportDecl [0-31]: [Path _id_ [7-14]:
-                expr: <none>
                 Ident _id_ [7-10] "Foo"
                 Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                expr: <none>
                 Ident _id_ [16-19] "Foo"
                 Ident _id_ [20-23] "Baz", Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#]],
     );
@@ -1979,10 +1968,8 @@ fn parse_aliased_glob_import_in_list() {
         "import Foo.Bar, Foo.Baz.* as Quux;",
         &expect![[r#"
             ImportOrExportDecl [0-34]: [Path _id_ [7-14]:
-                expr: <none>
                 Ident _id_ [7-10] "Foo"
                 Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
-                expr: <none>
                 Ident _id_ [16-19] "Foo"
                 Ident _id_ [20-23] "Baz".* as Ident _id_ [29-33] "Quux"]"#]],
     );

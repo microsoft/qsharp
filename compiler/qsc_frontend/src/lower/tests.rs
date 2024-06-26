@@ -916,10 +916,10 @@ fn lower_fields_path_with_expr() {
                                 Stmt 9 [129-149]: Local (Immutable):
                                     Pat 10 [133-134] [Type Int]: Bind: Ident 11 [133-134] "x"
                                     Expr 12 [137-148] [Type Int]: Field:
-                                        Expr 18 [137-146] [Type UDT<"C": Item 3>]: Field:
-                                            Expr 13 [137-144] [Type UDT<"B": Item 2>]: Expr Block: Block 14 [137-144] [Type UDT<"B": Item 2>]:
-                                                Stmt 15 [139-142]: Expr: Expr 16 [139-142] [Type UDT<"B": Item 2>]: Field:
-                                                    Expr 17 [139-140] [Type UDT<"A": Item 1>]: Var: Local 6
+                                        Expr 13 [137-146] [Type UDT<"C": Item 3>]: Field:
+                                            Expr 14 [137-144] [Type UDT<"B": Item 2>]: Expr Block: Block 15 [137-144] [Type UDT<"B": Item 2>]:
+                                                Stmt 16 [139-142]: Expr: Expr 17 [139-142] [Type UDT<"B": Item 2>]: Field:
+                                                    Expr 18 [139-140] [Type UDT<"A": Item 1>]: Var: Local 6
                                                     Path(FieldPath { indices: [0] })
                                             Path(FieldPath { indices: [0] })
                                         Path(FieldPath { indices: [0] })

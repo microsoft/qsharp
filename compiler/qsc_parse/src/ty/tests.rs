@@ -125,7 +125,6 @@ fn ty_path2() {
         "Foo.Bar",
         &expect![[r#"
             Type _id_ [0-7]: Path: Path _id_ [0-7]:
-                expr: <none>
                 Ident _id_ [0-3] "Foo"
                 Ident _id_ [4-7] "Bar""#]],
     );
