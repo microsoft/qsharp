@@ -190,7 +190,7 @@ export async function loadProject(
     // TODO: clean up error reporting
     if (project.errors.length > 0) {
       updateQSharpJsonDiagnostics(
-        manifestDocument.uri,
+        manifestDocument.manifest,
         project.errors.join(","),
       );
     }
