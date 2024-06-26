@@ -345,8 +345,8 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
 }
 
 pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
-    if let Some(ref ns) = path.namespace {
-        vis.visit_idents(ns);
+    if let Some(ref parts) = path.segments {
+        vis.visit_idents(parts);
     }
     vis.visit_ident(&path.name);
 }

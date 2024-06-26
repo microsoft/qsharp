@@ -805,6 +805,131 @@ fn lower_struct_copy_constructor_with_alternative_fields() {
 }
 
 #[test]
+fn lower_fields_path() {
+    check_hir(
+        indoc! {r#"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                operation Bar(a : A) : Unit {
+                    let x = a.b.c.i;
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-153] (Public):
+                    Namespace (Ident 16 [10-13] "Foo"): Item 1, Item 2, Item 3, Item 4
+                Item 1 [20-38] (Public):
+                    Parent: 0
+                    Type (Ident 0 [27-28] "A"): UDT [20-38]:
+                        TyDef [20-38]: Tuple:
+                            TyDef [31-36]: Field:
+                                name: b [31-32]
+                                type: UDT<"B": Item 2>
+                Item 2 [43-61] (Public):
+                    Parent: 0
+                    Type (Ident 1 [50-51] "B"): UDT [43-61]:
+                        TyDef [43-61]: Tuple:
+                            TyDef [54-59]: Field:
+                                name: c [54-55]
+                                type: UDT<"C": Item 3>
+                Item 3 [66-86] (Public):
+                    Parent: 0
+                    Type (Ident 2 [73-74] "C"): UDT [66-86]:
+                        TyDef [66-86]: Tuple:
+                            TyDef [77-84]: Field:
+                                name: i [77-78]
+                                type: Int
+                Item 4 [91-151] (Public):
+                    Parent: 0
+                    Callable 3 [91-151] (operation):
+                        name: Ident 4 [101-104] "Bar"
+                        input: Pat 5 [105-110] [Type UDT<"A": Item 1>]: Bind: Ident 6 [105-106] "a"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 7 [91-151]: Impl:
+                            Block 8 [119-151] [Type Unit]:
+                                Stmt 9 [129-145]: Local (Immutable):
+                                    Pat 10 [133-134] [Type Int]: Bind: Ident 11 [133-134] "x"
+                                    Expr 12 [137-144] [Type Int]: Field:
+                                        Expr 15 [137-142] [Type UDT<"C": Item 3>]: Field:
+                                            Expr 14 [137-140] [Type UDT<"B": Item 2>]: Field:
+                                                Expr 13 [137-138] [Type UDT<"A": Item 1>]: Var: Local 6
+                                                Path(FieldPath { indices: [0] })
+                                            Path(FieldPath { indices: [0] })
+                                        Path(FieldPath { indices: [0] })
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lower_fields_path_with_expr() {
+    check_hir(
+        indoc! {r#"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                operation Bar(a : A) : Unit {
+                    let x = { a.b }.c.i;
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-157] (Public):
+                    Namespace (Ident 19 [10-13] "Foo"): Item 1, Item 2, Item 3, Item 4
+                Item 1 [20-38] (Public):
+                    Parent: 0
+                    Type (Ident 0 [27-28] "A"): UDT [20-38]:
+                        TyDef [20-38]: Tuple:
+                            TyDef [31-36]: Field:
+                                name: b [31-32]
+                                type: UDT<"B": Item 2>
+                Item 2 [43-61] (Public):
+                    Parent: 0
+                    Type (Ident 1 [50-51] "B"): UDT [43-61]:
+                        TyDef [43-61]: Tuple:
+                            TyDef [54-59]: Field:
+                                name: c [54-55]
+                                type: UDT<"C": Item 3>
+                Item 3 [66-86] (Public):
+                    Parent: 0
+                    Type (Ident 2 [73-74] "C"): UDT [66-86]:
+                        TyDef [66-86]: Tuple:
+                            TyDef [77-84]: Field:
+                                name: i [77-78]
+                                type: Int
+                Item 4 [91-155] (Public):
+                    Parent: 0
+                    Callable 3 [91-155] (operation):
+                        name: Ident 4 [101-104] "Bar"
+                        input: Pat 5 [105-110] [Type UDT<"A": Item 1>]: Bind: Ident 6 [105-106] "a"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 7 [91-155]: Impl:
+                            Block 8 [119-155] [Type Unit]:
+                                Stmt 9 [129-149]: Local (Immutable):
+                                    Pat 10 [133-134] [Type Int]: Bind: Ident 11 [133-134] "x"
+                                    Expr 12 [137-148] [Type Int]: Field:
+                                        Expr 13 [137-146] [Type UDT<"C": Item 3>]: Field:
+                                            Expr 14 [137-144] [Type UDT<"B": Item 2>]: Expr Block: Block 15 [137-144] [Type UDT<"B": Item 2>]:
+                                                Stmt 16 [139-142]: Expr: Expr 17 [139-142] [Type UDT<"B": Item 2>]: Field:
+                                                    Expr 18 [139-140] [Type UDT<"A": Item 1>]: Var: Local 6
+                                                    Path(FieldPath { indices: [0] })
+                                            Path(FieldPath { indices: [0] })
+                                        Path(FieldPath { indices: [0] })
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
 fn lambda_function_empty_closure() {
     check_hir(
         indoc! {"
