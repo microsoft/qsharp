@@ -157,13 +157,6 @@ def check_prereqs(install=False, skip_wasm=False):
 
 
 def wasm_checks(install, installed_rust_targets):
-    # Ensure the required wasm target is installed
-    if "wasm32-unknown-unknown" not in installed_rust_targets:
-        print("WASM rust target is not installed.")
-        print("Please install the missing target by running:")
-        print("rustup target add wasm32-unknown-unknown")
-        exit(1)
-
     ### Check the wasm_pack version ###
     try:
         wasm_pack_version = subprocess.check_output(["wasm-pack", "--version"])
@@ -212,6 +205,13 @@ def wasm_checks(install, installed_rust_targets):
             exit(1)
     else:
         print("Unable to determine the wasm-pack version")
+
+    # Ensure the required wasm target is installed
+    if "wasm32-unknown-unknown" not in installed_rust_targets:
+        print("WASM rust target is not installed.")
+        print("Please install the missing target by running:")
+        print("rustup target add wasm32-unknown-unknown")
+        exit(1)
 
 
 if __name__ == "__main__":
