@@ -118,7 +118,7 @@ extends:
           # build steps
 
           - script: |
-              python build.py --npm --wasm
+              python build.py --npm --wasm --no-check-prereqs
             displayName: Build VSCode Extension
 
           - script: |
@@ -165,7 +165,7 @@ extends:
         # build steps
 
         - script: |
-            python build.py --wasm --npm --vscode --integration-tests
+            python build.py --wasm --npm --vscode --integration-tests --no-check-prereqs
           displayName: Build VSCode Extension
 
         - script: |
@@ -204,11 +204,11 @@ extends:
             versionSpec: '3.11'
 
         - script: |
-            python ./prereqs.py --install && python ./version.py
+            python ./prereqs.py --skip-wasm && python ./version.py
           displayName: Install Prereqs and set version
 
         - script: |
-            python ./build.py --jupyterlab --widgets --no-check
+            python ./build.py --jupyterlab --widgets --no-check --no-check-prereqs
           displayName: Build JupyterLab Package
 
         - script: |
@@ -272,7 +272,7 @@ extends:
               versionSpec: '3.11'
 
           - script: |
-              python ./prereqs.py --install && python ./version.py
+              python ./prereqs.py --skip-wasm && python ./version.py
             displayName: Install Prereqs and set version
 
           - script: |
