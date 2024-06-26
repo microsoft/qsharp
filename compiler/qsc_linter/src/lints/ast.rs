@@ -51,9 +51,33 @@ impl NeedlessParens {
     fn push(&self, parent: &Expr, child: &Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::Paren(expr) = &*child.kind {
             if precedence(parent) < precedence(expr) {
-                buffer.push(lint!(self, child.span));
+                buffer.push(lint!(
+                    self,
+                    child.span,
+                    Self::get_code_action_edits(child.span)
+                ));
             }
         }
+    }
+
+    /// Returns the code action edits that strip out the first and last characters for the given span.
+    fn get_code_action_edits(span: Span) -> Vec<(String, Span)> {
+        vec![
+            (
+                String::new(), // Remove the lower `(`
+                Span {
+                    lo: span.lo,
+                    hi: span.lo + 1,
+                },
+            ),
+            (
+                String::new(), // Remove the upper `)`
+                Span {
+                    lo: span.hi - 1,
+                    hi: span.hi,
+                },
+            ),
+        ]
     }
 }
 
@@ -75,7 +99,11 @@ impl AstLintPass for NeedlessParens {
     fn check_stmt(&self, stmt: &Stmt, buffer: &mut Vec<Lint>) {
         if let StmtKind::Local(_, _, right) = &*stmt.kind {
             if let ExprKind::Paren(_) = &*right.kind {
-                buffer.push(lint!(self, right.span));
+                buffer.push(lint!(
+                    self,
+                    right.span,
+                    Self::get_code_action_edits(right.span)
+                ));
             }
         }
     }
@@ -86,7 +114,7 @@ impl RedundantSemicolons {
     /// found two or more semicolons.
     fn maybe_push(&self, seq: &mut Option<Span>, buffer: &mut Vec<Lint>) {
         if let Some(span) = seq.take() {
-            buffer.push(lint!(self, span));
+            buffer.push(lint!(self, span, vec![(String::new(), span)]));
         }
     }
 }

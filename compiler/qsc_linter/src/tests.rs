@@ -25,7 +25,15 @@ fn multiple_lints() {
                     level: Warn,
                     message: "redundant semicolons",
                     help: "remove the redundant semicolons",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 94,
+                                hi: 97,
+                            },
+                        ),
+                    ],
                 },
                 SrcLint {
                     source: "((1 + 2)) / 0",
@@ -39,7 +47,22 @@ fn multiple_lints() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 80,
+                                hi: 81,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 88,
+                                hi: 89,
+                            },
+                        ),
+                    ],
                 },
                 SrcLint {
                     source: "RunProgram",
@@ -64,7 +87,22 @@ fn double_parens() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 79,
+                                hi: 80,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 87,
+                                hi: 88,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
@@ -100,7 +138,22 @@ fn needless_parens_in_assignment() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 79,
+                                hi: 80,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 82,
+                                hi: 83,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
@@ -118,21 +171,66 @@ fn needless_parens() {
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 79,
+                                hi: 80,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 81,
+                                hi: 82,
+                            },
+                        ),
+                    ],
                 },
                 SrcLint {
                     source: "(5 * 4 * (2 ^ 10))",
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 85,
+                                hi: 86,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 102,
+                                hi: 103,
+                            },
+                        ),
+                    ],
                 },
                 SrcLint {
                     source: "(2 ^ 10)",
                     level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 94,
+                                hi: 95,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 101,
+                                hi: 102,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
@@ -150,7 +248,15 @@ fn redundant_semicolons() {
                     level: Warn,
                     message: "redundant semicolons",
                     help: "remove the redundant semicolons",
-                    code_action_edits: [],
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 81,
+                                hi: 85,
+                            },
+                        ),
+                    ],
                 },
             ]
         "#]],
