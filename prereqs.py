@@ -35,7 +35,7 @@ def get_installed_rust_targets() -> str:
         raise Exception(message)
 
 
-def check_prereqs(install=False):
+def check_prereqs(install=False, skip_wasm=False):
     ### Check the Python version ###
     if (
         sys.version_info.major != python_ver[0]
@@ -45,6 +45,28 @@ def check_prereqs(install=False):
             f"Python {python_ver[0]}.{python_ver[1]} or later is required. Please update"
         )
         exit(1)
+
+    ### Check the Node.js version ###
+    try:
+        node_version = subprocess.check_output(["node", "-v"])
+        print(f"Detected node.js version {node_version.decode()}")
+    except FileNotFoundError:
+        print("Node.js not found. Please install from https://nodejs.org/")
+        exit(1)
+
+    version_match = re.search(r"v(\d+)\.(\d+)\.\d+", node_version.decode())
+    if version_match:
+        node_major = int(version_match.group(1))
+        node_minor = int(version_match.group(2))
+        if node_major < node_ver[0] or (
+            node_major == node_ver[0] and node_minor < node_ver[1]
+        ):
+            print(
+                f"Node.js v{node_ver[0]}.{node_ver[1]} or later is required. Please update."
+            )
+            exit(1)
+    else:
+        raise Exception("Unable to determine the Node.js version.")
 
     ### Check the rustc compiler version ###
     try:
@@ -121,13 +143,6 @@ def check_prereqs(install=False):
 
     installed_rust_targets = get_installed_rust_targets()
 
-    # Ensure the required wasm target is installed
-    target = "wasm32-unknown-unknown"
-    if target not in installed_rust_targets:
-        print("WASM rust target is not installed.")
-        print("Please install the missing target by running:")
-        print("rustup target add wasm32-unknown-unknown")
-
     # On MacOS, ensure the required targets are installed
     if platform.system() == "Darwin":
         targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
@@ -137,28 +152,11 @@ def check_prereqs(install=False):
             print("rustup target add aarch64-apple-darwin")
             print("rustup target add x86_64-apple-darwin")
 
-    ### Check the Node.js version ###
-    try:
-        node_version = subprocess.check_output(["node", "-v"])
-        print(f"Detected node.js version {node_version.decode()}")
-    except FileNotFoundError:
-        print("Node.js not found. Please install from https://nodejs.org/")
-        exit(1)
+    if not skip_wasm:
+        wasm_checks(install, installed_rust_targets)
 
-    version_match = re.search(r"v(\d+)\.(\d+)\.\d+", node_version.decode())
-    if version_match:
-        node_major = int(version_match.group(1))
-        node_minor = int(version_match.group(2))
-        if node_major < node_ver[0] or (
-            node_major == node_ver[0] and node_minor < node_ver[1]
-        ):
-            print(
-                f"Node.js v{node_ver[0]}.{node_ver[1]} or later is required. Please update."
-            )
-            exit(1)
-    else:
-        raise Exception("Unable to determine the Node.js version.")
 
+def wasm_checks(install, installed_rust_targets):
     ### Check the wasm_pack version ###
     try:
         wasm_pack_version = subprocess.check_output(["wasm-pack", "--version"])
@@ -208,9 +206,14 @@ def check_prereqs(install=False):
     else:
         print("Unable to determine the wasm-pack version")
 
+    # Ensure the required wasm target is installed
+    if "wasm32-unknown-unknown" not in installed_rust_targets:
+        print("WASM rust target is not installed.")
+        print("Please install the missing target by running:")
+        print("rustup target add wasm32-unknown-unknown")
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--install":
-        check_prereqs(install=True)
-    else:
-        check_prereqs(install=False)
+    skip_wasm = "--skip-wasm" in sys.argv
+    install = "--install" in sys.argv
+    check_prereqs(install=install, skip_wasm=skip_wasm)
