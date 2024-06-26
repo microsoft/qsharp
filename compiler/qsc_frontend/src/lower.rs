@@ -198,12 +198,6 @@ impl With<'_> {
                     if id.package.is_some() {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
-                        // TODO(alex) explain this clearly
-                        // i have a few options here:
-                        // 1. if the package is None, it is a local item,
-                        // push a public item
-                        // 2. if the package is Some, push an Export
-                        // 3. use separate ids for exports, instead of overriding
                         self.lowerer.items.push(hir::Item {
                             id: self.assigner.next_item(),
                             span: item.span(),
@@ -826,7 +820,8 @@ impl With<'_> {
         match self.names.get(path.id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            // TODO(alex) explain clearly
+            // Exported items are just pass-throughs to the items they reference, and should be
+            // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,

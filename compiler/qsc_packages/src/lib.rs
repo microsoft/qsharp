@@ -17,7 +17,9 @@ pub struct BuildableProgram {
 impl BuildableProgram {
     #[must_use]
     pub fn new(profile: &str, package_graph_sources: PackageGraphSources) -> Self {
-        let capabilities = Profile::from_str(profile).expect("TODO(alex)").into();
+        let capabilities = Profile::from_str(profile)
+            .expect("invalid profile handed to packages")
+            .into();
         prepare_package_store(capabilities, package_graph_sources)
     }
 }

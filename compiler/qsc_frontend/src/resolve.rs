@@ -888,9 +888,14 @@ impl Resolver {
             }
 
             let res = match (term_result, ty_result) {
-                // TODO(alex) explain this
+                // This is kind of a messy match, it is merged and formatted this way
+                // to appease clippy and rustfmt. What it is saying is that if either
+                // a term or a ty exists for this item already, as either an item or an export,
+                // then we should use that res.
                 (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
                 | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
+                // Then, if the item was found as either a term or ty but is _not_ an item or export, this export
+                // refers to an invalid res.
                 (Ok(_), _) | (_, Ok(_)) => {
                     let err = if is_export {
                         Error::ExportedNonItem
@@ -901,13 +906,18 @@ impl Resolver {
                     self.errors.push(err);
                     continue;
                 }
+                // Lastly, if neither was found, use the error from the term_result to report a not
+                // found error.
                 (Err(err), _) => {
                     self.errors.push(err);
                     continue;
                 }
             };
             match res {
-                // TODO(alex) explain this
+                // There's a bit of special casing here -- if this item is an export,
+                // and it originates from another package, we want to track the res as
+                // a separate exported item which points to the original package where
+                // the definition comes from.
                 Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
                     self.names
                         .insert(item.name().id, Res::ExportedItem(item_id));
@@ -1323,6 +1333,7 @@ impl GlobalTable {
         &mut self,
         id: PackageId,
         package: &hir::Package,
+        store: &crate::compile::PackageStore,
         alias: &Option<Arc<str>>,
     ) {
         let root = match alias {
@@ -1362,23 +1373,50 @@ impl GlobalTable {
                     self.scope.insert_or_find_namespace(global.namespace);
                 }
                 (global::Kind::Export(item_id), _) => {
-                    // figure  out if this export is a ty or a term
-                    // and insert res accordingly
-                    // TODO(alex)
-
-                    self.scope
-                        .tys
-                        .get_mut_or_default(namespace)
-                        .insert(global.name.clone(), Res::ExportedItem(item_id));
-                    self.scope
-                        .terms
-                        .get_mut_or_default(namespace)
-                        .insert(global.name, Res::ExportedItem(item_id));
+                    let Some(item) = find_item(store, item_id, id) else {
+                        return;
+                    };
+                    match item.kind {
+                        hir::ItemKind::Callable(..) => {
+                            self.scope
+                                .terms
+                                .get_mut_or_default(namespace)
+                                .insert(global.name.clone(), Res::ExportedItem(item_id));
+                        }
+                        hir::ItemKind::Namespace(ns, _items) => {
+                            self.scope.insert_or_find_namespace(ns);
+                        }
+                        hir::ItemKind::Ty(..) => {
+                            self.scope
+                                .tys
+                                .get_mut_or_default(namespace)
+                                .insert(global.name.clone(), Res::ExportedItem(item_id));
+                        }
+                        hir::ItemKind::Export(_, _) => {
+                            unreachable!("find_item will never return an Export")
+                        }
+                    };
                 }
                 (_, hir::Visibility::Internal) => {}
             }
         }
     }
+}
+
+fn find_item(
+    store: &crate::compile::PackageStore,
+    item: ItemId,
+    this_package: PackageId,
+) -> Option<hir::Item> {
+    let package_id = item.package.unwrap_or(this_package);
+    let package = store.get(package_id)?;
+    let item = package.package.items.get(item.item)?;
+    Some(match &item.kind {
+        hir::ItemKind::Callable(_) | hir::ItemKind::Namespace(_, _) | hir::ItemKind::Ty(_, _) => {
+            item.clone()
+        }
+        hir::ItemKind::Export(_alias, item) => return find_item(store, *item, package_id),
+    })
 }
 
 /// Given some namespace `namespace`, add all the globals declared within it to the global scope.

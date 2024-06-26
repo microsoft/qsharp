@@ -368,7 +368,9 @@ pub trait FileSystemAsync {
                     package_graph_sources: PackageGraphSources { root, packages },
                     lints: manifest.lints,
                     errors,
-                    target_profile: "unrestricted".into(), // TODO(alex)
+                    target_profile: "unrestricted".into(), // TODO(alex) where should we get the
+                                                           // profile from? also maybe
+                                                           // TODO(minestarks)
                 })
             }
         }

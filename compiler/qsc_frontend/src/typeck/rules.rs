@@ -109,17 +109,16 @@ impl<'a> Context<'a> {
                 Some(&Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
-                Some(Res::ExportedItem(_item_id)) => {
-                    // TODO(alex) query the types, which should have already
-                    // gotten what they need from the package store
-                    todo!()
-                }
                 None => Ty::Err,
                 // a path should never resolve to a parameter,
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+                // A path can also never resolve to an export, because in typeck/check,
+                // we resolve exports to their original definition.
+                Some(
+                    resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_),
+                ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),

@@ -64,7 +64,7 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals.add_external_package(PackageId::CORE, &unit.package, &None);
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
             typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
@@ -73,7 +73,7 @@ impl Compiler {
             let unit = store
                 .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.add_external_package(*id, &unit.package, alias);
+            resolve_globals.add_external_package(*id, &unit.package, store, alias);
             typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }

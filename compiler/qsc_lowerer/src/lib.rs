@@ -224,7 +224,7 @@ impl Lowerer {
 
                 fir::ItemKind::Ty(name, udt)
             }
-            // TODO(alex)
+            // TODO(alex) implement FIR items
             hir::ItemKind::Export(_, _) => todo!("fir::ItemKind::Export(item)"),
         };
         let attrs = lower_attrs(&item.attrs);

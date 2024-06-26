@@ -291,9 +291,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             display.hir_udt(udt).to_string(),
             MetadataKind::Udt,
         )),
-        ItemKind::Namespace(_, _) => None,
-        // TODO(alex)
-        ItemKind::Export(_, _) => todo!(),
+        ItemKind::Namespace(_, _) | ItemKind::Export(_, _) => None,
     }?;
 
     let summary = parse_doc_for_summary(&item.doc)

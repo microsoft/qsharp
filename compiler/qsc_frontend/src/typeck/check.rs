@@ -76,14 +76,18 @@ impl GlobalTable {
                     item: exported_item,
                 },
             ) => {
-                // TODO(alex) explain this very clearly
+                // If this item is an export, then we need to grab the ID that it references.
+                // It could be from the same package, or it could be from another package.
                 let package_id = other_package.unwrap_or(package_id);
+                // So, we get the correct package first,
                 let package = store.get(package_id).expect("package should exist");
+                // find the actual item
                 let resolved_export = package
                     .package
                     .items
                     .get(*exported_item)
                     .expect("exported item should exist");
+                // and recursively resolve it (it could be another export, i.e. a chain of exports.
                 self.handle_item(resolved_export, package_id, store);
             }
         };
