@@ -651,7 +651,7 @@ impl Display for FunctorExprKind {
 }
 
 /// A type.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Ty {
     /// The node ID.
     pub id: NodeId,
@@ -674,7 +674,7 @@ impl WithSpan for Ty {
 }
 
 /// A type kind.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum TyKind {
     /// An array type.
     Array(Box<Ty>),
@@ -1261,7 +1261,7 @@ pub enum StringComponent {
 }
 
 /// A pattern.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
@@ -1284,7 +1284,7 @@ impl WithSpan for Pat {
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub enum PatKind {
     /// A binding with an optional type annotation.
     Bind(Box<Ident>, Option<Box<Ty>>),
@@ -1416,7 +1416,7 @@ impl Display for QubitInitKind {
 }
 
 /// A path to a declaration.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct Path {
     /// The node ID.
     pub id: NodeId,
@@ -1896,7 +1896,7 @@ pub enum SetOp {
     Intersect,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 /// Represents an export declaration.
 pub struct ImportOrExportDecl {
     /// The span.
@@ -1949,7 +1949,7 @@ impl ImportOrExportDecl {
 }
 
 /// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ImportOrExportItem {
     /// The path to the item being exported.
     pub path: Path,
