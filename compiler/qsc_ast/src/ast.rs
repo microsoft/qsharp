@@ -1528,7 +1528,7 @@ impl From<Vec<Ident>> for Idents {
 
 impl From<Idents> for Vec<Ident> {
     fn from(v: Idents) -> Self {
-        v.0.to_vec()
+        v.0.into_vec()
     }
 }
 
