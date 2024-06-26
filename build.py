@@ -218,6 +218,7 @@ if build_cli:
     cargo_build_args = ["cargo", "build"]
     if build_type == "release":
         cargo_build_args.append("--release")
+    cargo_build_args.append("--all-targets")
     subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
 
     if run_tests:
