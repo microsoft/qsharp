@@ -45,6 +45,7 @@ class Interpreter:
         manifest_descriptor: Optional[Dict[str, str]],
         read_file: Callable[[str], str],
         list_directory: Callable[[str], str],
+        resolve_path: Callable[[str, str], str],
     ) -> None:
         """
         Initializes the Q# interpreter.
@@ -53,6 +54,7 @@ class Interpreter:
         :param manifest_descriptor: A dictionary that represents the manifest descriptor
         :param read_file: A function that reads a file from the file system.
         :param list_directory: A function that lists the contents of a directory.
+        :param resolve_path: A function that joins path segments and normalizes the resulting path.
         """
         ...
 

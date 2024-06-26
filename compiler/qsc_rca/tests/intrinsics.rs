@@ -1149,6 +1149,31 @@ fn check_rca_for_draw_random_double() {
 }
 
 #[test]
+fn check_rca_for_draw_random_bool() {
+    let compilation_context = CompilationContext::default();
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "DrawRandomBool",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(0x0)
+                        value_kind: Element(Dynamic)
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
+                            value_kind: Element(Dynamic)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_begin_estimate_caching() {
     let compilation_context = CompilationContext::default();
     check_callable_compute_properties(

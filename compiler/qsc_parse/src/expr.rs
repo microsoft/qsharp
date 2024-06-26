@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, path, recovering_token, seq, shorten, token},
+    prim::{ident, opt, pat, path, recovering_token, seq, shorten, single_ident_path, token},
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
@@ -21,7 +21,7 @@ use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, FieldAssign, Functor, Lit, NodeId, Pat, PatKind,
-    Pauli, StringComponent, TernOp, UnOp,
+    Path, Pauli, StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
 use std::{result, str::FromStr};
@@ -206,7 +206,7 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
-    } else if let Some(p) = opt(s, path)? {
+    } else if let Some(p) = opt(s, single_ident_path)? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {
         Err(Error(ErrorKind::Rule(
@@ -332,7 +332,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
+    matches!(kind, ExprKind::Path(path) if path.segments.is_none() && path.name.name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -634,6 +634,10 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Rich(field_op),
             precedence: 15,
         }),
+        OpName::Token(TokenKind::Dot) => Some(MixfixOp {
+            kind: OpKind::Rich(path_field_op),
+            precedence: 15,
+        }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
             kind: OpKind::Rich(index_op),
             precedence: 15,
@@ -668,6 +672,33 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
 
 fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+}
+
+fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+    if let ExprKind::Path(leading_path) = *lhs.kind {
+        let rest = path(s)?;
+        let name = rest.name;
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rest.span.hi,
+        };
+        let parts = {
+            let mut v = vec![*leading_path.name];
+            if let Some(parts) = rest.segments {
+                v.append(&mut parts.into());
+            }
+            v.into()
+        };
+        let path = Path {
+            id: NodeId::default(),
+            span,
+            segments: Some(parts),
+            name,
+        };
+        Ok(Box::new(ExprKind::Path(Box::new(path))))
+    } else {
+        Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+    }
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
@@ -716,7 +747,7 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Path(path) if path.segments.is_none() => Ok(PatKind::Bind(path.name, None)),
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),

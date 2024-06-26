@@ -35,7 +35,12 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { getManifest, listDir, readFile } from "./projectSystem.js";
+import {
+  findManifestDirectory,
+  listDirectory,
+  readFile,
+  resolvePath,
+} from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
@@ -337,11 +342,12 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService(
+  const languageService = await getLanguageService({
+    findManifestDirectory,
     readFile,
-    listDir,
-    getManifest,
-  );
+    listDirectory,
+    resolvePath: async (a, b) => resolvePath(a, b),
+  });
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(

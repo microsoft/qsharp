@@ -5,6 +5,7 @@ import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circu
 import {
   IDocFile,
   IOperationInfo,
+  IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
@@ -43,61 +44,24 @@ export interface ICompiler {
     profile?: TargetProfile,
   ): Promise<string>;
 
-  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
-   * sources and language features separately, pass an object with named properties. This change was made
-   * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing language features. If you need to pass language features, you must use
-   * the new API.
-   **/
   run(
-    sources: [string, string][],
-    expr: string,
-    shots: number,
-    eventHandler: IQscEventTarget,
-  ): Promise<void>;
-  run(
-    config: ProgramConfig,
+    program: ProgramConfig,
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
 
-  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
-   * sources and language features separately, pass an object with named properties. This change was made
-   * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing language features. If you need to pass language features, you must use
-   * the new API.
-   **/
-  getQir(
-    sources: [string, string][],
-    languageFeatures?: string[],
-  ): Promise<string>;
-  getQir(config: ProgramConfig): Promise<string>;
+  getQir(program: ProgramConfig): Promise<string>;
 
-  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
-   * sources and language features separately, pass an object with named properties. This change was made
-   * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing language features. If you need to pass language features, you must use
-   * the new API.
-   **/
-  getEstimates(
-    sources: [string, string][],
-    params: string,
-    languageFeatures?: string[],
-  ): Promise<string>;
-  getEstimates(config: ProgramConfig, params: string): Promise<string>;
+  getEstimates(program: ProgramConfig, params: string): Promise<string>;
+
   getCircuit(
-    config: ProgramConfig,
-    target: TargetProfile,
+    program: ProgramConfig,
     simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
 
-  getDocumentation(
-    additionalSources?: [string, string][],
-    targetProfile?: string,
-    languageFeatures?: string[],
-  ): Promise<IDocFile[]>;
+  getDocumentation(additionalProgram?: ProgramConfig): Promise<IDocFile[]>;
 
   checkExerciseSolution(
     userCode: string,
@@ -106,7 +70,10 @@ export interface ICompiler {
   ): Promise<boolean>;
 }
 
-/** Type definition for the configuration of a program. */
+/**
+ * Type definition for the configuration of a program.
+ * If adding new properties, make them optional to maintain backward compatibility.
+ */
 export type ProgramConfig = {
   /** An array of source objects, each containing a name and contents. */
   sources: [string, string][];
@@ -138,9 +105,12 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
-      () => Promise.resolve(null),
-      () => Promise.resolve([]),
-      () => Promise.resolve(null),
+      {
+        readFile: async () => null,
+        listDirectory: async () => [],
+        resolvePath: async () => null,
+        findManifestDirectory: async () => null,
+      },
     );
     languageService.update_document("code", 1, code);
     // Yield to let the language service background worker handle the update
@@ -149,74 +119,6 @@ export class Compiler implements ICompiler {
     await work;
     languageService.free();
     return diags;
-  }
-
-  async getQir(
-    sourcesOrConfig: [string, string][] | ProgramConfig,
-    languageFeatures?: string[],
-  ): Promise<string> {
-    if (Array.isArray(sourcesOrConfig)) {
-      return this.deprecatedGetQir(sourcesOrConfig, languageFeatures || []);
-    } else {
-      const config = sourcesOrConfig as ProgramConfig;
-      return this.newGetQir(config);
-    }
-  }
-
-  async newGetQir({
-    sources,
-    languageFeatures = [],
-    profile = "base",
-  }: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures, profile);
-  }
-
-  async deprecatedGetQir(
-    sources: [string, string][],
-    languageFeatures: string[],
-  ): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures, "base");
-  }
-
-  async getEstimates(
-    sourcesOrConfig: [string, string][] | ProgramConfig,
-    params: string,
-    languageFeatures: string[] = [],
-  ): Promise<string> {
-    if (Array.isArray(sourcesOrConfig)) {
-      return this.deprecatedGetEstimates(
-        sourcesOrConfig,
-        params,
-        languageFeatures,
-      );
-    } else {
-      return this.newGetEstimates(sourcesOrConfig, params);
-    }
-  }
-
-  async newGetEstimates(
-    { sources, languageFeatures, profile = "unrestricted" }: ProgramConfig,
-    params: string,
-  ): Promise<string> {
-    return this.wasm.get_estimates(
-      sources,
-      params,
-      languageFeatures || [],
-      profile,
-    );
-  }
-
-  async deprecatedGetEstimates(
-    sources: [string, string][],
-    params: string,
-    languageFeatures: string[],
-  ): Promise<string> {
-    return this.wasm.get_estimates(
-      sources,
-      params,
-      languageFeatures,
-      "unrestricted",
-    );
   }
 
   async getAst(
@@ -244,47 +146,40 @@ export class Compiler implements ICompiler {
   }
 
   async run(
-    sourcesOrConfig: [string, string][] | ProgramConfig,
+    program: ProgramConfig,
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
   ): Promise<void> {
-    let sources;
-    let profile: TargetProfile = "unrestricted";
-    let languageFeatures: string[] = [];
-
-    if (Array.isArray(sourcesOrConfig)) {
-      // this is the deprecated API
-      sources = sourcesOrConfig;
-    } else {
-      // this is the new API
-      sources = sourcesOrConfig.sources;
-      languageFeatures = sourcesOrConfig.languageFeatures || [];
-      profile = sourcesOrConfig.profile || "unrestricted";
-    }
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
     this.wasm.run(
-      sources,
+      toWasmProgramConfig(program, "unrestricted"),
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler!),
       shots!,
-      languageFeatures,
-      profile,
+    );
+  }
+
+  async getQir(program: ProgramConfig): Promise<string> {
+    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
+  }
+
+  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
+    return this.wasm.get_estimates(
+      toWasmProgramConfig(program, "unrestricted"),
+      params,
     );
   }
 
   async getCircuit(
-    config: ProgramConfig,
-    target: TargetProfile,
+    program: ProgramConfig,
     simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData> {
     return this.wasm.get_circuit(
-      config.sources,
-      target,
-      config.languageFeatures || [],
+      toWasmProgramConfig(program, "unrestricted"),
       simulate,
       operation,
     );
@@ -294,15 +189,11 @@ export class Compiler implements ICompiler {
   // and loaded project (if requested). This include file names and metadata,
   // including specially formatted table of content file.
   async getDocumentation(
-    additionalSources?: [string, string][],
-    targetProfile?: string,
-    languageFeatures?: string[],
+    additionalProgram?: ProgramConfig,
   ): Promise<IDocFile[]> {
-    // Get documentation from wasm layer
     return this.wasm.generate_docs(
-      additionalSources,
-      targetProfile,
-      languageFeatures,
+      additionalProgram &&
+        toWasmProgramConfig(additionalProgram, "unrestricted"),
     );
   }
 
@@ -319,6 +210,21 @@ export class Compiler implements ICompiler {
 
     return success;
   }
+}
+
+/**
+ * Fills in the defaults, to convert from the backwards-compatible ProgramConfig,
+ * to the IProgramConfig type that the wasm layer expects
+ */
+export function toWasmProgramConfig(
+  program: ProgramConfig,
+  defaultProfile: TargetProfile,
+): Required<wasmIProgramConfig> {
+  return {
+    sources: program.sources,
+    languageFeatures: program.languageFeatures || [],
+    profile: program.profile || defaultProfile,
+  };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {

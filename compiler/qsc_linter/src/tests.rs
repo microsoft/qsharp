@@ -388,6 +388,27 @@ fn deprecated_with_eq_op_for_structs() {
     );
 }
 
+#[test]
+fn needless_operation_inside_function_call() {
+    check(
+        indoc! {"
+    operation Main() : Unit {
+        Wrapper(A());
+    }
+
+    function Wrapper(_: Unit) : Unit {}
+
+    operation A() : Unit {
+        use q = Qubit();
+        M(q);
+    }
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());

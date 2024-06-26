@@ -874,7 +874,7 @@ pub enum ExprKind {
     Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F`.
+    /// A field accessor: `a::F` or `a.F`.
     Field(Box<Expr>, Box<Ident>),
     /// A for loop: `for a in b { ... }`.
     For(Box<Pat>, Box<Expr>, Box<Block>),
@@ -1422,16 +1422,27 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Idents>,
+    /// The segments that make up the front of the path before the final `.`.
+    pub segments: Option<Idents>,
     /// The declaration name.
     pub name: Box<Ident>,
 }
 
 impl From<Path> for Vec<Ident> {
     fn from(val: Path) -> Self {
-        let mut buf = val.namespace.unwrap_or_default().0.to_vec();
+        let mut buf = val.segments.unwrap_or_default().0.to_vec();
         buf.push(*val.name);
+        buf
+    }
+}
+
+impl From<&Path> for Vec<Ident> {
+    fn from(val: &Path) -> Self {
+        let mut buf = match &val.segments {
+            Some(inner) => inner.0.to_vec(),
+            None => Vec::new(),
+        };
+        buf.push(val.name.as_ref().clone());
         buf
     }
 }
@@ -1441,26 +1452,34 @@ impl From<Vec<Ident>> for Path {
         let name = v
             .pop()
             .expect("parser should never produce empty vector of idents");
-        let namespace: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
+        let segments: Option<Idents> = if v.is_empty() { None } else { Some(v.into()) };
         let span = Span {
-            lo: namespace.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
+            lo: segments.as_ref().map_or(name.span.lo, |ns| ns.span().lo),
             hi: name.span.hi,
         };
         Self {
-            namespace,
-            name: name.into(),
-            span,
             id: NodeId::default(),
+            span,
+            segments,
+            name: name.into(),
         }
     }
 }
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
+        if self.segments.is_none() {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
+        } else {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "Path {} {}:", self.id, self.span)?;
+            indent = set_indentation(indent, 1);
+            if let Some(parts) = &self.segments {
+                for part in parts {
+                    write!(indent, "\n{part}")?;
+                }
+            }
+            write!(indent, "\n{}", self.name)?;
         }
         Ok(())
     }
@@ -1509,7 +1528,7 @@ impl From<Vec<Ident>> for Idents {
 
 impl From<Idents> for Vec<Ident> {
     fn from(v: Idents) -> Self {
-        v.0.to_vec()
+        v.0.into_vec()
     }
 }
 
@@ -1563,7 +1582,7 @@ impl FromIterator<Ident> for Idents {
 
 impl From<Path> for Idents {
     fn from(p: Path) -> Self {
-        let mut buf = p.namespace.unwrap_or_default().0.to_vec();
+        let mut buf = p.segments.unwrap_or_default().0.to_vec();
         buf.push(*p.name);
         Self(buf.into_boxed_slice())
     }
@@ -1871,7 +1890,7 @@ pub enum SetOp {
     Intersect,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 /// Represents an export declaration.
 pub struct ImportOrExportDecl {
     /// The span.
@@ -1924,7 +1943,7 @@ impl ImportOrExportDecl {
 }
 
 /// An individual item within an [`ExportDecl`]. This can be a path or a path with an alias.
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ImportOrExportItem {
     /// The path to the item being exported.
     pub path: Path,

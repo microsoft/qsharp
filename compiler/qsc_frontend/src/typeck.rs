@@ -26,6 +26,7 @@ pub struct Table {
     pub udts: FxHashMap<ItemId, Udt>,
 
     // AST nodes that get mapped to types are Expr, Block, Pat, and QubitInit nodes
+    // AST Ident nodes under Paths that are field accessors are also mapped to types, as they will become expressions in the HIR
     pub terms: IndexMap<NodeId, Ty>,
     pub generics: IndexMap<NodeId, Vec<GenericArg>>,
 }

@@ -546,8 +546,8 @@ struct AstPath<'a> {
 
 impl<'a> Display for AstPath<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.path.namespace.as_ref() {
-            Some(ns) => write!(f, "{ns}.{}", self.path.name.name),
+        match self.path.segments.as_ref() {
+            Some(parts) => write!(f, "{parts}.{}", self.path.name.name),
             None => write!(f, "{}", self.path.name.name),
         }
     }

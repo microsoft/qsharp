@@ -958,6 +958,72 @@ fn struct_field_cons_ref() {
 }
 
 #[test]
+fn struct_field_path_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉↘c◉.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `B`
+            ```qsharp
+            c : C
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_first_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = ◉↘a◉.b.c.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            a : A
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉↘b◉ }.c.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `A`
+            ```qsharp
+            b : B
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn primitive_type() {
     check_none(indoc! {r#"
         namespace Test {

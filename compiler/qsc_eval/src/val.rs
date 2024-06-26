@@ -87,7 +87,7 @@ impl From<usize> for Result {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Qubit(pub usize);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -379,6 +379,29 @@ impl Value {
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",
             Value::Var(_) => "Var",
+        }
+    }
+
+    /// Returns any qubits contained in the value as a vector. This does not
+    /// consume the value, and will recursively search through any nested values.
+    #[must_use]
+    pub fn qubits(&self) -> Vec<Qubit> {
+        match self {
+            Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
+            Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
+            Value::Qubit(q) => vec![*q],
+            Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
+
+            Value::BigInt(_)
+            | Value::Bool(_)
+            | Value::Double(_)
+            | Value::Global(..)
+            | Value::Int(_)
+            | Value::Pauli(_)
+            | Value::Range(_)
+            | Value::Result(_)
+            | Value::String(_)
+            | Value::Var(_) => Vec::new(),
         }
     }
 }

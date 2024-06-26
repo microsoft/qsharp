@@ -130,6 +130,13 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_idents(&mut self, vec_ident: &Idents) {
+        let parts: Vec<Ident> = vec_ident.clone().into();
+        let first = parts.first().expect("should contain at least one item");
+        if let Some(&id) = self.names.get(first.id) {
+            self.changes.push((first.span, id.into()));
+            return;
+        }
+
         let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
             Some(x) => x,
             None => match self
@@ -1179,6 +1186,66 @@ fn struct_decl_cons_with_fields() {
 
                 function item4() : item3 {
                     new item3 { a = new item1 {}, b = new item2 {} }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_accessor() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+
+                function D() : Unit {
+                    let a = new A { b = new B { c = new C { i = 4 } } };
+                    let i = a.b.c.i;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 { b : item2 }
+                struct item2 { c : item3}
+                struct item3 { i : Int }
+
+                function item4() : Unit {
+                    let local37 = new item1 { b = new item2 { c = new item3 { i = 4 } } };
+                    let local56 = local37.b.c.i;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_accessor_with_expr() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+
+                function D() : Unit {
+                    let a = new A { b = new B { c = new C { i = 4 } } };
+                    let i = { a }.b.c.i;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                struct item1 { b : item2 }
+                struct item2 { c : item3}
+                struct item3 { i : Int }
+
+                function item4() : Unit {
+                    let local37 = new item1 { b = new item2 { c = new item3 { i = 4 } } };
+                    let local56 = { local37 }.b.c.i;
                 }
             }
         "#]],

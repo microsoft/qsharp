@@ -1,29 +1,32 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ProgramConfig } from "qsharp-lang";
+import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
 import { Utils } from "vscode-uri";
 import { isQsharpDocument } from "./common";
 import { getTarget } from "./config";
-import { ProjectConfig, loadProject } from "./projectSystem";
+import { loadProject } from "./projectSystem";
 
 /**
- * Notice the similarity to @type {ProgramConfig} and @type {ProjectConfig}.
- * These should almost be the same, with a few differences:
+ * Notice the similarity to @type {ProgramConfig} and @type {IProjectConfig}.
+ * These types look similar but have a few differences:
  *
  * ProgramConfig is used in the API for the qsharp-lang package. All properties
  * are optional for backward compatibility. It only contains the properties
  * that are needed by the compiler APIs.
  *
  * ProjectConfig contains the values come from the Q# manifest, or for single-file
- * programs, the defaults for these values.
+ * programs, the defaults for these values. In the future, for projects with
+ * dependencies, it will also contain the full dependency graph and sources for
+ * all packages referenced by the project.
  *
  * FullProgramConfig is a union of the above. It's meant to represent a fully
  * populated configuration that can be used across a variety of extension features.
  * So all the properties are required.
  */
-export type FullProgramConfig = Required<ProgramConfig & ProjectConfig>;
+
+export type FullProgramConfig = Required<ProgramConfig & IProjectConfig>;
 
 type FullProgramConfigOrError =
   | {

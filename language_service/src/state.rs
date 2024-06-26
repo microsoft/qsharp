@@ -11,17 +11,10 @@ use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{FileSystemAsync, JSFileEntry};
+use qsc_project::{FileSystemAsync, JSProjectHost, Manifest, Project};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
-
-/// the desugared return type of an "async fn"
-type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
-
-/// represents a unary async fn where `Arg` is the input
-/// parameter and `Return` is the return type. The lifetime
-/// `'a` represents the lifetime of the contained `dyn Fn`.
-type AsyncFunction<'a, Arg, Return> = Box<dyn Fn(Arg) -> PinnedFuture<Return> + 'a>;
+use std::path::PathBuf;
+use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
 
 #[derive(Default, Debug)]
 pub(super) struct CompilationState {
@@ -108,39 +101,22 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
-    /// Callback which lets the service read a file from the target filesystem
-    pub(crate) read_file_callback: AsyncFunction<'a, String, (Arc<str>, Arc<str>)>,
-    /// Callback which lets the service list directory contents
-    /// on the target file system
-    pub(crate) list_directory: AsyncFunction<'a, String, Vec<JSFileEntry>>,
-    /// Fetch the manifest file for a specific path
-    get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
-}
-
-struct LoadManifestResult {
-    compilation_uri: Arc<str>,
-    sources: Vec<(Arc<str>, Arc<str>)>,
-    language_features: Option<LanguageFeatures>,
-    lints: Vec<LintConfig>,
+    /// Functions to interact with the host filesystem for project system operations.
+    project_host: Box<dyn JSProjectHost>,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
+        project_host: impl JSProjectHost + 'static,
     ) -> Self {
         Self {
             state,
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
-            read_file_callback: Box::new(read_file),
-            list_directory: Box::new(list_directory),
-            get_manifest: Box::new(get_manifest),
+            project_host: Box::new(project_host),
         }
     }
 
@@ -162,20 +138,25 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let project = self.load_manifest(&doc_uri).await;
 
-        let LoadManifestResult {
-            compilation_uri,
-            sources,
-            language_features,
-            lints: lints_config,
-        } = project.unwrap_or_else(|| {
-            // If we are in single file mode, use the file's path as the compilation identifier.
-            LoadManifestResult {
-                compilation_uri: doc_uri.clone(),
-                sources: vec![(doc_uri.clone(), text.clone())],
-                language_features: None,
-                lints: Vec::default(),
-            }
-        });
+        let (compilation_uri, sources, language_features, lints_config) =
+            if let Some(project) = project {
+                (
+                    project.manifest_path,
+                    project.sources,
+                    Some(LanguageFeatures::from_iter(
+                        project.manifest.language_features,
+                    )),
+                    project.manifest.lints,
+                )
+            } else {
+                // If we are in single file mode, use the file's path as the compilation identifier.
+                (
+                    doc_uri.clone(),
+                    vec![(doc_uri.clone(), text.clone())],
+                    None,
+                    Vec::default(),
+                )
+            };
 
         let prev_compilation_uri = self.with_state_mut(|state| {
             state
@@ -212,23 +193,14 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
-        let manifest = (self.get_manifest)(doc_uri.to_string()).await;
-        if let Some(ref manifest) = manifest {
-            let res = self.load_project(manifest).await;
+    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<Project> {
+        let dir = self.project_host.find_manifest_directory(doc_uri).await;
+
+        if let Some(dir) = dir {
+            let dir = PathBuf::from(dir.to_string());
+            let res = self.project_host.load_project_in_dir(&dir).await;
             match res {
-                Ok(o) => Some(LoadManifestResult {
-                    compilation_uri: manifest.compilation_uri(),
-                    sources: o.sources,
-                    language_features: Some(
-                        manifest
-                            .manifest
-                            .language_features
-                            .iter()
-                            .collect::<LanguageFeatures>(),
-                    ),
-                    lints: manifest.manifest.lints.clone(),
-                }),
+                Ok(proj) => Some(proj),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
                     None
@@ -294,17 +266,22 @@ impl<'a> CompilationStateUpdater<'a> {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents
             // for this document
-            if let Some(LoadManifestResult {
+            if let Some(Project {
                 sources,
-                compilation_uri,
-                language_features,
-                lints: lints_config,
+                manifest_path: compilation_uri,
+                manifest:
+                    Manifest {
+                        language_features,
+                        lints: lints_config,
+                        ..
+                    },
+                ..
             }) = project
             {
                 self.insert_buffer_aware_compilation(
                     sources,
                     &compilation_uri,
-                    language_features,
+                    Some(LanguageFeatures::from_iter(language_features)),
                     lints_config,
                 );
             }
