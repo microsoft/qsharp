@@ -266,6 +266,27 @@ fn needless_operation_partial_application() {
     );
 }
 
+#[test]
+fn needless_operation_nested_operations() {
+    check(
+        indoc! {"
+    operation Main() : Unit {
+        Wrapper(A());
+    }
+
+    function Wrapper(_: Unit) : Unit {}
+
+    operation A() : Unit {
+        use q = Qubit();
+        M(q);
+    }
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
