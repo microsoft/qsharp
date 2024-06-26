@@ -125,13 +125,14 @@ impl PackageIter<'_> {
                 .expect("parent should exist")
                 .kind
         });
-        let (id, visibility) = match &item.kind {
-            ItemKind::Export(name, item_id) if item_id.package.is_some() => (
+        let (id, visibility, alias) = match &item.kind {
+            ItemKind::Export(name, item_id) => (
                 ItemId {
                     package: item_id.package.or(self.id),
                     item: item_id.item,
                 },
                 hir::Visibility::Public,
+                Some(name),
             ),
             _ => (
                 ItemId {
@@ -139,6 +140,7 @@ impl PackageIter<'_> {
                     item: item.id,
                 },
                 item.visibility,
+                None,
             ),
         };
         //        todo!("The problem is that Length is coming out of this as a Term with visibility internal, when it should be either a public term or an export");
@@ -147,7 +149,7 @@ impl PackageIter<'_> {
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: namespace.into(),
-                name: Rc::clone(&decl.name.name),
+                name: alias.map_or_else(|| Rc::clone(&decl.name.name), |alias| alias.name.clone()),
                 visibility,
                 status,
                 kind: Kind::Term(Term {
@@ -159,7 +161,7 @@ impl PackageIter<'_> {
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: namespace.into(),
-                    name: Rc::clone(&name.name),
+                    name: alias.map_or_else(|| Rc::clone(&name.name), |alias| alias.name.clone()),
                     visibility,
                     status,
                     kind: Kind::Term(Term {
@@ -188,7 +190,7 @@ impl PackageIter<'_> {
                 ItemKind::Export(name, item_id @ ItemId { package, .. }),
                 Some(ItemKind::Namespace(namespace, _)),
             ) => {
-                if package.is_none() {
+                if package.is_none() && alias.is_none() {
                     // if there is no package, then this was declared in this package
                     // and this is a noop -- it will be marked as public on export
                     None
@@ -196,7 +198,7 @@ impl PackageIter<'_> {
                     Some(Global {
                         namespace: namespace.into(),
                         name: name.name.clone(),
-                        visibility: Visibility::Public,
+                        visibility,
                         status,
                         kind: Kind::Export(*item_id),
                     })

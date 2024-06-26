@@ -126,24 +126,21 @@ impl With<'_> {
         self.lowerer.parent = Some(id);
 
         // Exports are `Res` items, which contain `hir::ItemId`s.
-        let exports = namespace
+        // The second element in the tuple is the optional alias
+        let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
-            .map(|item| self.names.get(dbg!(&item.path).id).unwrap())
+            .filter_map(|item| {
+                self.names
+                    .get(item.path.id)
+                    .map(|x| (x, item.alias.clone()))
+            })
             .collect::<Vec<_>>();
-
-        for export in namespace.exports() {
-            println!(
-                "for export {export:?}, result is {:?}",
-                self.names.get(export.path.id)
-            );
-        }
-
-        dbg!(&exports);
 
         let exported_hir_ids = exports
             .iter()
-            .filter_map(|res| match res {
-                resolve::Res::ExportedItem(id) => Some(*id),
+            .filter_map(|(res, alias)| match res {
+                resolve::Res::ExportedItem(id) => Some((*id, alias)),
+                resolve::Res::Item(id, _) => Some((*id, alias)),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -153,8 +150,6 @@ impl With<'_> {
             .iter()
             .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
-
-        dbg!(&items);
 
         let name = self.lower_idents(&namespace.name);
 
@@ -174,9 +169,10 @@ impl With<'_> {
     fn lower_item(
         &mut self,
         item: &ast::Item,
-        exported_ids: &[hir::ItemId],
+        // the optional ident is the export alias, if any
+        exported_ids: &[(hir::ItemId, &Option<ast::Ident>)],
     ) -> Option<LocalItemId> {
-        let attrs = item
+        let attrs: Vec<_> = item
             .attrs
             .iter()
             .filter_map(|a| self.lower_attr(a))
@@ -194,11 +190,12 @@ impl With<'_> {
                 if item.is_import() {
                     return None;
                 }
-                let export_decl_id = self.assigner.next_item();
                 for item in item.items.iter() {
                     let Some(id) = resolve_id(item.name().id) else {
                         continue;
                     };
+                    // if the package is some, then this is a re-export and we
+                    // need to preserve the reference to the original `ItemId`
                     if id.package.is_some() {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
@@ -218,29 +215,9 @@ impl With<'_> {
                             visibility: Visibility::Public,
                             kind,
                         });
-                    } else if item.alias.is_some() {
-                        println!("found an alias: {:?}", item);
-                        // we need to preserve the alias, if there is one
-                        dbg!(&item.name());
-                        let name = self
-                            .lower_ident(item.alias.as_ref().expect("invariant -- checked above"));
-                        dbg!(&name);
-
-                        dbg!(&self.names);
-
-                        let kind = hir::ItemKind::Export(name, id);
-                        self.lowerer.items.push(hir::Item {
-                            id: self.assigner.next_item(),
-                            span: item.span(),
-                            parent: self.lowerer.parent,
-                            doc: "".into(),
-                            // attrs on exports not supported
-                            attrs: Vec::new(),
-                            visibility: Visibility::Public,
-                            kind,
-                        });
                     }
                 }
+                return None;
             }
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id)?;
@@ -275,10 +252,28 @@ impl With<'_> {
             }
         };
 
-        let visibility = if exported_ids.contains(&id) {
-            Visibility::Public
-        } else {
-            Visibility::Internal
+        let export_info = exported_ids.iter().find(|(hir_id, _)| hir_id == &id);
+        let visibility = match export_info {
+            Some((id, Some(alias))) => {
+                // this is the special case where this item _is_ exported,
+                // but it is exported with an alias.
+                // We want to hide the original item, making it private, but make
+                // the alias itself public.
+                let alias = self.lower_ident(alias);
+                let kind = hir::ItemKind::Export(alias.clone(), *id);
+                self.lowerer.items.push(hir::Item {
+                    id: self.assigner.next_item(),
+                    span: alias.span,
+                    parent: self.lowerer.parent,
+                    doc: Rc::clone(&item.doc),
+                    attrs: attrs.clone(),
+                    visibility: Visibility::Public,
+                    kind,
+                });
+                Visibility::Internal
+            }
+            Some((_, None)) => Visibility::Public,
+            None => Visibility::Internal,
         };
 
         self.lowerer.items.push(hir::Item {
