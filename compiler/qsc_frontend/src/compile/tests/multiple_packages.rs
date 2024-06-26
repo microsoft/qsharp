@@ -418,7 +418,6 @@ fn reexport_reexport_has_alias() {
     expect!["[]"].assert_eq(&format!("{:#?}", user_code.errors));
 }
 
-/*
 #[test]
 fn reexport_callable_combined_aliases() {
     let mut store = PackageStore::new(core());
@@ -477,7 +476,7 @@ fn reexport_callable_combined_aliases() {
         [(
             "UserCode".into(),
             indoc! {"
-                    import B.PackageB.Foo;
+                    import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
                     @EntryPoint()
                     function Main() : Unit {
                         Foo(10, true);
@@ -501,4 +500,3 @@ fn reexport_callable_combined_aliases() {
 
     expect!["[]"].assert_eq(&format!("{:#?}", user_code.errors));
 }
-*/
