@@ -539,7 +539,6 @@ fn double_path() {
         "foo.bar",
         &expect![[r#"
             Expr _id_ [0-7]: Path: Path _id_ [0-7]:
-                expr: <none>
                 Ident _id_ [0-3] "foo"
                 Ident _id_ [4-7] "bar""#]],
     );
@@ -551,8 +550,8 @@ fn leading_expr_path() {
         expr,
         "foo().bar",
         &expect![[r#"
-            Expr _id_ [0-9]: Path: Path _id_ [0-9]:
-                expr: Expr _id_ [0-5]: Call:
+            Expr _id_ [0-9]: Field:
+                Expr _id_ [0-5]: Call:
                     Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "foo")
                     Expr _id_ [3-5]: Unit
                 Ident _id_ [6-9] "bar""#]],
