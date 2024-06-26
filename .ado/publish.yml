@@ -3,7 +3,9 @@ name: qsharp-publish-$(BuildId)
 # Run on merges to main to ensure that the latest code
 # is always able to be published.
 trigger:
-- main
+  branches:
+    include:
+    - main
 
 pr: none
 
