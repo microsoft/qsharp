@@ -139,8 +139,7 @@ impl With<'_> {
         let exported_hir_ids = exports
             .iter()
             .filter_map(|(res, alias)| match res {
-                resolve::Res::ExportedItem(id) => Some((*id, alias)),
-                resolve::Res::Item(id, _) => Some((*id, alias)),
+                resolve::Res::ExportedItem(id) | resolve::Res::Item(id, _) => Some((*id, alias)),
                 _ => None,
             })
             .collect::<Vec<_>>();

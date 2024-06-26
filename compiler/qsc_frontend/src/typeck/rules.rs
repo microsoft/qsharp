@@ -404,11 +404,11 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
-                Some(Res::ExportedItem(item_id)) => {
+                Some(Res::ExportedItem(_)) => {
                     // we don't need to invidiually type check exports
                     // when they are referred to, the "chain" of exports is
                     // resolved to the original definition
-                    todo!()
+                    self.diverge()
                 }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression resolves to type")

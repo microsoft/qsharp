@@ -912,10 +912,6 @@ impl Resolver {
                     self.names
                         .insert(item.name().id, Res::ExportedItem(item_id));
                 }
-                // todo can consolidate here
-                Res::Item(item_id, _) if item.alias.is_some() => {
-                    self.names.insert(item.name().id, res);
-                }
                 _ => self.names.insert(item.name().id, res),
             }
         }
