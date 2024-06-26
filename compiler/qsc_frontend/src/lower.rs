@@ -151,7 +151,7 @@ impl With<'_> {
         let items = namespace
             .items
             .iter()
-            .flat_map(|i| self.lower_item(i, &exported_hir_ids[..]))
+            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
 
         dbg!(&items);
@@ -171,38 +171,37 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    fn lower_item(&mut self, item: &ast::Item, exported_ids: &[hir::ItemId]) -> Vec<LocalItemId> {
+    fn lower_item(
+        &mut self,
+        item: &ast::Item,
+        exported_ids: &[hir::ItemId],
+    ) -> Option<LocalItemId> {
         let attrs = item
             .attrs
             .iter()
             .filter_map(|a| self.lower_attr(a))
-            .collect::<Vec<_>>();
+            .collect();
 
         let resolve_id = |id| match self.names.get(id) {
             Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => Some(item),
             _otherwise => None,
         };
 
-        let items: Vec<(hir::ItemId, hir::ItemKind)> = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return vec![],
+        let (id, kind) = match &*item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
 
             ast::ItemKind::ImportOrExport(item) => {
                 if item.is_import() {
-                    return vec![];
+                    return None;
                 }
-                let mut lowered_ids = Vec::with_capacity(item.items.len());
+                let export_decl_id = self.assigner.next_item();
                 for item in item.items.iter() {
                     let Some(id) = resolve_id(item.name().id) else {
                         continue;
                     };
-                    let lowered_id = self.assigner.next_item();
                     if id.package.is_some() {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
-                        lowered_ids.push((
-                            resolve_id(item.name().id).expect("invariant -- checked above"),
-                            kind.clone(),
-                        ));
                         // TODO(alex) explain this clearly
                         // i have a few options here:
                         // 1. if the package is None, it is a local item,
@@ -210,7 +209,7 @@ impl With<'_> {
                         // 2. if the package is Some, push an Export
                         // 3. use separate ids for exports, instead of overriding
                         self.lowerer.items.push(hir::Item {
-                            id: lowered_id,
+                            id: self.assigner.next_item(),
                             span: item.span(),
                             parent: self.lowerer.parent,
                             doc: "".into(),
@@ -230,12 +229,8 @@ impl With<'_> {
                         dbg!(&self.names);
 
                         let kind = hir::ItemKind::Export(name, id);
-                        lowered_ids.push((
-                            resolve_id(item.name().id).expect("invariant -- checked above"),
-                            kind.clone(),
-                        ));
                         self.lowerer.items.push(hir::Item {
-                            id: lowered_id,
+                            id: self.assigner.next_item(),
                             span: item.span(),
                             parent: self.lowerer.parent,
                             doc: "".into(),
@@ -246,66 +241,57 @@ impl With<'_> {
                         });
                     }
                 }
-                lowered_ids
             }
             ast::ItemKind::Callable(callable) => {
-                let Some(id) = resolve_id(callable.name.id) else {
-                    return vec![];
-                };
+                let id = resolve_id(callable.name.id)?;
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
                 self.lowerer.parent = grandparent;
-                vec![(id, hir::ItemKind::Callable(callable))]
+                (id, hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
-                let Some(id) = resolve_id(name.id) else {
-                    return vec![];
-                };
+                let id = resolve_id(name.id)?;
                 let udt = self
                     .tys
                     .udts
                     .get(&id)
                     .expect("type item should have lowered UDT");
 
-                vec![(id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))]
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
             ast::ItemKind::Struct(decl) => {
-                let Some(id) = resolve_id(decl.name.id) else {
-                    return vec![];
-                };
+                let id = resolve_id(decl.name.id)?;
                 let strct = self
                     .tys
                     .udts
                     .get(&id)
                     .expect("type item should have lowered struct");
 
-                vec![(
+                (
                     id,
                     hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
-                )]
+                )
             }
         };
 
-        for (id, kind) in &items {
-            let visibility = if exported_ids.contains(&id) {
-                Visibility::Public
-            } else {
-                Visibility::Internal
-            };
+        let visibility = if exported_ids.contains(&id) {
+            Visibility::Public
+        } else {
+            Visibility::Internal
+        };
 
-            self.lowerer.items.push(hir::Item {
-                id: id.item,
-                span: item.span,
-                parent: self.lowerer.parent,
-                doc: Rc::clone(&item.doc),
-                attrs: attrs.clone(),
-                visibility,
-                kind: kind.clone(),
-            });
-        }
+        self.lowerer.items.push(hir::Item {
+            id: id.item,
+            span: item.span,
+            parent: self.lowerer.parent,
+            doc: Rc::clone(&item.doc),
+            attrs,
+            visibility,
+            kind,
+        });
 
-        items.into_iter().map(|(id, _)| id.item).collect::<Vec<_>>()
+        Some(id.item)
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
@@ -489,14 +475,7 @@ impl With<'_> {
         let kind = match &*stmt.kind {
             ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => {
-                // this call only returns a vec of length > 1 if
-                // it is an export statement.
-                // Since a stmtkind::item will never be an export, this is
-                // safe.
-                let item = *self.lower_item(item, &[]).get(0)?;
-                hir::StmtKind::Item(item)
-            }
+            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item, &[])?),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
                 self.lower_pat(lhs),
