@@ -267,7 +267,7 @@ fn needless_operation_partial_application() {
 }
 
 #[test]
-fn needless_operation_nested_operations() {
+fn needless_operation_inside_function_call() {
     check(
         indoc! {"
     operation Main() : Unit {
