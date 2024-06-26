@@ -9,7 +9,6 @@ pub mod definition;
 pub mod format;
 pub mod hover;
 mod name_locator;
-mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
@@ -33,9 +32,9 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
 };
-use qsc_project::JSFileEntry;
+use qsc_project::JSProjectHost;
 use state::{CompilationState, CompilationStateUpdater};
-use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 pub struct LanguageService {
     /// All [`Position`]s and [`Range`]s will be mapped using this encoding.
@@ -68,10 +67,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
+        project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();
@@ -79,9 +75,7 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
-                read_file,
-                list_directory,
-                get_manifest,
+                project_host,
             ),
             recv,
         };
