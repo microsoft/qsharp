@@ -69,6 +69,45 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Given an operation, displays diagnostics about
+    /// the operation that are made available by the current
+    /// execution target.
+    ///
+    /// # Input
+    /// ## nQubits
+    /// The number of qubits on which the given operation acts.
+    /// ## op
+    /// The operation that is to be diagnosed.
+    ///
+    /// # Remarks
+    /// When run on the sparse-state simulator, the following snippet
+    /// will output the matrix
+    /// $\left(\begin{matrix} 0.0 & 0.707 \\\\ 0.707 & 0.0\end{matrix}\right)$:
+    ///
+    /// ```qsharp
+    /// operation DumpH() : Unit {
+    ///     DumpOperation(1, qs => H(qs[0]));
+    /// }
+    /// ```
+    /// Calling this operation has no observable effect from within
+    /// Q#. The exact diagnostics that are displayed, if any, are
+    /// dependent on the current execution target and editor environment.
+    operation DumpOperation(nQubits : Int, op : (Qubit[] => Unit)) : Unit {
+        use (targets, extra) = (Qubit[nQubits], Qubit[nQubits]);
+        for i in 0..nQubits - 1 {
+            H(targets[i]);
+            CNOT(targets[i], extra[i]);
+        }
+        op(targets);
+        DumpMatrix(targets + extra);
+        ResetAll(targets + extra);
+    }
+
+    internal function DumpMatrix(qs : Qubit[]) : Unit {
+        body intrinsic;
+    }
+
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;

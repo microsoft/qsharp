@@ -6,6 +6,7 @@ use std::io::{Cursor, Write};
 use crate::state::{fmt_complex, format_state_id};
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use qsc_data_structures::display::join;
 
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Error;
@@ -15,6 +16,11 @@ pub trait Receiver {
     /// # Errors
     /// This will return an error if handling the output fails.
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error>;
+
+    /// Receive matrix output
+    /// # Errors
+    /// This will return an error if handling the output fails.
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error>;
 
     /// Receive generic message output
     /// # Errors
@@ -43,6 +49,15 @@ impl<'a> Receiver for GenericReceiver<'a> {
                 fmt_complex(&state),
             )
             .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.writer, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.writer, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }
@@ -82,6 +97,15 @@ impl<'a> Receiver for CursorReceiver<'a> {
                 state
             )
             .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.cursor, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.cursor, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }
