@@ -604,8 +604,10 @@ impl Resolver {
         let name = &path.name;
         let segments = &path.segments;
 
+        // First we check if the the path can be resolved as a field accessor.
+        // We do this by checking if the first part of the path is a local variable.
         if let (NameKind::Term, Some(parts)) = (kind, segments) {
-            let parts: Vec<ast::Ident> = parts.into();
+            let parts: Vec<ast::Ident> = parts.clone().into();
             let first = parts
                 .first()
                 .expect("path `parts` should have at least one element");
@@ -617,15 +619,18 @@ impl Resolver {
                 &None,
             ) {
                 Ok(res) if matches!(res, Res::Local(_)) => {
-                    // The Path is a Field Accessor
+                    // The path is a field accessor.
                     self.names.insert(first.id, res);
                     return Ok(res);
                 }
-                Err(err) if !matches!(err, Error::NotFound(_, _)) => return Err(err), // Local was found but has issues
-                _ => {} // The Path is assumed to not be a Field Accessor, so move on to process it as a regular Path
+                Err(err) if !matches!(err, Error::NotFound(_, _)) => return Err(err), // Local was found but has issues.
+                _ => {} // The path is assumed to not be a field accessor, so move on to process it as a namespace path.
             }
         }
 
+        // If the path is not a field accessor, we resolve it as a namespace path.
+        // This is done by passing in the last part of the path as the name to resolve,
+        // with the rest of the parts as the namespace segments.
         match resolve(
             kind,
             &self.globals,

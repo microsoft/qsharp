@@ -578,7 +578,7 @@ impl<'a> Context<'a> {
                         .clone(),
                 ),
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
-                    panic!("expression resolves to type")
+                    panic!("expression should not resolve to type reference")
                 }
             },
         }

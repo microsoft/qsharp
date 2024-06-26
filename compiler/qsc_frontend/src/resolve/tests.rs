@@ -130,7 +130,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_idents(&mut self, vec_ident: &Idents) {
-        let parts: Vec<Ident> = vec_ident.into();
+        let parts: Vec<Ident> = vec_ident.clone().into();
         let first = parts.first().expect("should contain at least one item");
         if let Some(&id) = self.names.get(first.id) {
             self.changes.push((first.span, id.into()));

@@ -1532,12 +1532,6 @@ impl From<Idents> for Vec<Ident> {
     }
 }
 
-impl From<&Idents> for Vec<Ident> {
-    fn from(v: &Idents) -> Self {
-        v.0.to_vec()
-    }
-}
-
 impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
