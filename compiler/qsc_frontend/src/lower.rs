@@ -787,6 +787,7 @@ impl With<'_> {
         }
     }
 
+    // Lowers the parts of a field accessor Path into nested Field Accessor nodes.
     fn path_parts_to_fields(
         &mut self,
         init_kind: hir::ExprKind,
@@ -806,6 +807,7 @@ impl With<'_> {
                     lo,
                     hi: prev.span.hi,
                 },
+                // The ids of the Ident segments are specially mapped in the tys to give us the type of the expressions being created here.
                 ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone),
                 kind,
             };

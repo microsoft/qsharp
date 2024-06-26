@@ -540,6 +540,8 @@ impl<'a> Context<'a> {
                     item: item_ty.clone(),
                 },
             );
+            // The ids of the segments are mapped specially because they will become the
+            // types of the field expressions that these Ident segments will be lowered into.
             self.record(part.id, item_ty.clone());
             record = self.diverge_if(record.diverges, converge(item_ty));
         }
@@ -548,6 +550,8 @@ impl<'a> Context<'a> {
 
     fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
         match resolve::path_as_field_accessor(self.names, path) {
+            // If the path is a field accessor, we infer the type of first segment
+            // as an expr, and the rest as subsequent fields.
             Some((first_id, parts)) => {
                 let record = converge(
                     self.table
@@ -562,6 +566,7 @@ impl<'a> Context<'a> {
                 self.record(first.id, record.ty.clone());
                 self.infer_path_parts(record, rest, expr.span.lo)
             }
+            // Otherwise we infer the path as a namespace path.
             None => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item, _)) => {

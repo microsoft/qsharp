@@ -38,6 +38,7 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 
 // If the path is a field accessor, returns the mapped node id of the first ident's declaration and the vec of part's idents.
 // Otherwise, returns None.
+// Field accessor paths have their leading segment mapped as a local variable, whereas namespace paths have their path id mapped.
 #[must_use]
 pub fn path_as_field_accessor(
     names: &Names,
