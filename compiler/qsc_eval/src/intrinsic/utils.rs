@@ -185,3 +185,28 @@ where
         self.re.is_nearly_zero() && self.im.is_nearly_zero()
     }
 }
+
+pub(crate) fn state_to_matrix(
+    state: Vec<(BigUint, Complex64)>,
+    qubit_count: usize,
+) -> Vec<Vec<Complex64>> {
+    let state: FxHashMap<BigUint, Complex<f64>> = state.into_iter().collect();
+    let mut matrix = Vec::new();
+    let num_entries: usize = 1 << qubit_count;
+    #[allow(clippy::cast_precision_loss)]
+    let factor = (num_entries as f64).sqrt();
+    for i in 0..num_entries {
+        let mut row = Vec::new();
+        for j in 0..num_entries {
+            let key = BigUint::from(i * num_entries + j);
+            let val = match state.get(&key) {
+                Some(val) => val * factor,
+                None => Complex::zero(),
+            };
+            row.push(val);
+        }
+        matrix.push(row);
+    }
+
+    matrix
+}
