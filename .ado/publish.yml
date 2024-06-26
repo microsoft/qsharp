@@ -416,23 +416,24 @@ extends:
           inputs:  # All input build artifacts must be declared here
           - input: pipelineArtifact
             artifactName: Wheels.Win.x86_64
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
           - input: pipelineArtifact
             artifactName: Wheels.Win.aarch64
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
           - input: pipelineArtifact
             artifactName: Wheels.Mac
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
           - input: pipelineArtifact
             artifactName: Wheels.Linux.x86_64
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
           - input: pipelineArtifact
             artifactName: Wheels.Linux.aarch64
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
           - input: pipelineArtifact
             artifactName: Wheels.JupyterLab
+            targetPath: $(System.DefaultWorkingDirectory)/target/wheels
         steps:
         - script: |
-            ls $(System.DefaultWorkingDirectory)/*.whl
-            ls $(System.DefaultWorkingDirectory)/qsharp*.tar.gz
-            mkdir -p $(System.DefaultWorkingDirectory)/target/wheels
-            mv $(System.DefaultWorkingDirectory)/*.whl $(System.DefaultWorkingDirectory)/target/wheels
-            mv $(System.DefaultWorkingDirectory)/qsharp*.tar.gz $(System.DefaultWorkingDirectory)/target/wheels
             ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
