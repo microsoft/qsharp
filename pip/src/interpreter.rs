@@ -138,31 +138,27 @@ impl Interpreter {
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
         let buildable_program = if let Some(manifest_descriptor) = manifest_descriptor {
-            let mut project = file_system(
-                py,
-                read_file.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                list_directory.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                resolve_path.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                fetch_github.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-            )
-            .load_project_with_deps(&manifest_descriptor.0.manifest_dir, Some(&package_cache))
-            .map_py_err()?;
+            if let (Some(read_file), Some(list_directory), Some(resolve_path), Some(fetch_github)) =
+                (read_file, list_directory, resolve_path, fetch_github)
+            {
+                let mut project =
+                    file_system(py, read_file, list_directory, resolve_path, fetch_github)
+                        .load_project_with_deps(
+                            &manifest_descriptor.0.manifest_dir,
+                            Some(&package_cache),
+                        )
+                        .map_py_err()?;
 
-            // TODO: this is a bit too aggressive? Should be a warning instead?
-            if !project.errors.is_empty() {
-                let first_err = project.errors.remove(0);
-                return Err(first_err.into_py_err());
+                // TODO: this is a bit too aggressive? Should be a warning instead?
+                if !project.errors.is_empty() {
+                    let first_err = project.errors.remove(0);
+                    return Err(first_err.into_py_err());
+                }
+
+                BuildableProgram::new(target.to_str(), project.package_graph_sources)
+            } else {
+                panic!("file system hooks should have been passed in with a manifest descriptor")
             }
-
-            BuildableProgram::new(target.to_str(), project.package_graph_sources)
         } else {
             let graph = PackageGraphSources::with_no_dependencies(
                 Vec::default(),

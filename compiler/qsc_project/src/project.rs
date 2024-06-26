@@ -81,6 +81,8 @@ pub trait FileSystemAsync {
     /// This function should only return files that end in *.qs and folders.
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
+    /// Given a base path and a relative path, join the segments and normalize
+    /// the path, i.e. replace '..', '.', and redundant separators.
     async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
 
     // TODO: stretching the definition of "file system" here...

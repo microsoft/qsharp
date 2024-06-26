@@ -9,7 +9,7 @@ use crate::{DirEntry, EntryType, FileSystem};
 use miette::{Context, IntoDiagnostic};
 use std::convert::Infallible;
 use std::fs::DirEntry as StdEntry;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::{path::PathBuf, sync::Arc};
 
 /// This struct represents management of Q# projects from the [`std::fs`] filesystem implementation.
@@ -93,7 +93,32 @@ impl FileSystem for StdFs {
     }
 
     fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
-        Ok(base.join(path))
+        let joined = base.join(path);
+        // Adapted from https://github.com/rust-lang/cargo/blob/a879a1ca12e3997d9fdd71b70f34f1f3c866e1da/crates/cargo-util/src/paths.rs#L84
+        let mut components = joined.components().peekable();
+        let mut normalized = if let Some(c @ Component::Prefix(..)) = components.peek().copied() {
+            components.next();
+            PathBuf::from(c.as_os_str())
+        } else {
+            PathBuf::new()
+        };
+
+        for component in components {
+            match component {
+                Component::Prefix(..) => unreachable!(),
+                Component::RootDir => {
+                    normalized.push(component.as_os_str());
+                }
+                Component::CurDir => {}
+                Component::ParentDir => {
+                    normalized.pop();
+                }
+                Component::Normal(c) => {
+                    normalized.push(c);
+                }
+            }
+        }
+        Ok(normalized)
     }
 
     fn fetch_github(

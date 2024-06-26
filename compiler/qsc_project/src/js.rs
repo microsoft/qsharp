@@ -40,7 +40,7 @@ pub trait JSProjectHost {
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>>;
 }
 
-/// FileSystem implementation for types that implement `ProjectHost`.
+/// [`FileSystemAsync`] implementation for types that implement [`JSProjectHost`].
 #[async_trait(?Send)]
 impl<T> FileSystemAsync for T
 where
