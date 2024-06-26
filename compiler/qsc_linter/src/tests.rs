@@ -327,7 +327,7 @@ fn deprecated_function_cons() {
 fn deprecated_with_op_for_structs() {
     check(
         indoc! {"
-        struct Foo { x : Int}
+        struct Foo { x : Int }
         function Bar() : Foo {
             let foo = new Foo { x = 2 };
             foo w/ x <- 3
@@ -344,8 +344,8 @@ fn deprecated_with_op_for_structs() {
                         (
                             "new Foo {\n        ...foo,\n        x = 3,\n    }",
                             Span {
-                                lo: 110,
-                                hi: 123,
+                                lo: 111,
+                                hi: 124,
                             },
                         ),
                     ],
@@ -359,7 +359,7 @@ fn deprecated_with_op_for_structs() {
 fn deprecated_with_eq_op_for_structs() {
     check(
         indoc! {"
-        struct Foo { x : Int}
+        struct Foo { x : Int }
         function Bar() : Foo {
             mutable foo = new Foo { x = 2 };
             set foo w/= x <- 3;
@@ -377,8 +377,90 @@ fn deprecated_with_eq_op_for_structs() {
                         (
                             "set foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
                             Span {
-                                lo: 114,
-                                hi: 132,
+                                lo: 115,
+                                hi: 133,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_double_colon_op() {
+    check(
+        indoc! {"
+        struct A { b : B }
+        struct B { c : C }
+        struct C { i : Int }
+        function Bar(a : A) : Unit {
+            a::b.c::i
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "a::b.c::i",
+                    level: Warn,
+                    message: "deprecated `::` for field access",
+                    help: "`::` operator is deprecated, use `.` instead",
+                    code_action_edits: [
+                        (
+                            ".",
+                            Span {
+                                lo: 126,
+                                hi: 128,
+                            },
+                        ),
+                        (
+                            ".",
+                            Span {
+                                lo: 121,
+                                hi: 123,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_double_colon_op_with_spacing() {
+    check(
+        indoc! {"
+        struct A { b : B }
+        struct B { c : C }
+        struct C { i : Int }
+        function Bar(a : A) : Unit {
+            a  ::  b.c
+            ::
+            i
+        }
+    "},
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "a  ::  b.c\n    ::\n    i",
+                    level: Warn,
+                    message: "deprecated `::` for field access",
+                    help: "`::` operator is deprecated, use `.` instead",
+                    code_action_edits: [
+                        (
+                            ".",
+                            Span {
+                                lo: 135,
+                                hi: 137,
+                            },
+                        ),
+                        (
+                            ".",
+                            Span {
+                                lo: 123,
+                                hi: 125,
                             },
                         ),
                     ],

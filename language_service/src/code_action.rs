@@ -93,7 +93,7 @@ fn quick_fixes(
                         changes: vec![(
                             source_name.to_string(),
                             vec![TextEdit {
-                                // Same source code without the unused variable.
+                                // Use the text from the lint to replace the deprecated operator.
                                 new_text: lint.code_action_edits[0].0.clone(),
                                 range: resolve_range(diagnostic, encoding)
                                     .expect("range should exist"),
@@ -103,6 +103,33 @@ fn quick_fixes(
                     kind: Some(CodeActionKind::QuickFix),
                     is_preferred: None,
                 }),
+                LintKind::Hir(HirLint::DeprecatedDoubleColonOperator) => {
+                    let source = compilation
+                        .user_unit()
+                        .sources
+                        .find_by_name(source_name)
+                        .expect("source should exist");
+                    let text_edits: Vec<_> = lint
+                        .code_action_edits
+                        .iter()
+                        .map(|(new_text, span)| TextEdit {
+                            new_text: new_text.clone(),
+                            range: qsc::line_column::Range::from_span(
+                                encoding,
+                                &source.contents,
+                                span,
+                            ),
+                        })
+                        .collect();
+                    code_actions.push(CodeAction {
+                        title: diagnostic.to_string(),
+                        edit: Some(WorkspaceEdit {
+                            changes: vec![(source_name.to_string(), text_edits)],
+                        }),
+                        kind: Some(CodeActionKind::QuickFix),
+                        is_preferred: None,
+                    });
+                }
                 _ => (),
             }
         }
