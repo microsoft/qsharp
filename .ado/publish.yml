@@ -3,7 +3,9 @@ name: qsharp-publish-$(BuildId)
 # Run on merges to main to ensure that the latest code
 # is always able to be published.
 trigger:
-- main
+  branches:
+    include:
+    - main
 
 pr: none
 
@@ -97,6 +99,7 @@ extends:
             displayName: 'Upload NPM Package Artifact'
             targetPath: $(System.DefaultWorkingDirectory)/target/npm/qsharp
             artifactName: NPM
+            condition: succeeded()
         steps:
           # common init steps
           - task: RustInstaller@1
@@ -139,6 +142,7 @@ extends:
             displayName: 'Upload VSCode Extension Artifact'
             targetPath: $(System.DefaultWorkingDirectory)/target/vscode
             artifactName: VSIX
+            condition: succeeded()
         steps:
         # common init steps
         - task: RustInstaller@1
@@ -196,6 +200,7 @@ extends:
             displayName: 'Upload JupyterLab Python Artifacts'
             targetPath: $(System.DefaultWorkingDirectory)/target/wheels/
             artifactName: Wheels.JupyterLab
+            condition: succeeded()
         steps:
         # common init steps
 
@@ -228,17 +233,17 @@ extends:
             outputs:
             - output: pipelineArtifact
               displayName: 'Upload Python Artifacts Mac'
-              condition: eq(variables['Agent.OS'], 'Darwin')
+              condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
               targetPath: $(System.DefaultWorkingDirectory)/target/wheels
               artifactName: Wheels.Mac
             - output: pipelineArtifact
               displayName: 'Upload Python Artifacts Win'
-              condition: eq(variables['Agent.OS'], 'Windows_NT')
+              condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
               targetPath: $(System.DefaultWorkingDirectory)/target/wheels
               artifactName: Wheels.Win.${{ target.arch }}
             - output: pipelineArtifact
               displayName: 'Upload Python Artifacts Linux'
-              condition: eq(variables['Agent.OS'], 'Linux')
+              condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
               targetPath: $(System.DefaultWorkingDirectory)/target/wheels
               artifactName: Wheels.Linux.${{ target.arch }}
           steps:
@@ -335,7 +340,7 @@ extends:
     - stage: approval
       displayName: Approval
       dependsOn: build
-      condition: eq(variables['Build.Reason'], 'Manual')
+      condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
       jobs:
       - job: "Approval"
         pool: server
@@ -351,7 +356,7 @@ extends:
     - stage: release
       displayName: Release
       dependsOn: approval
-      condition: eq(variables['Build.Reason'], 'Manual')
+      condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
       jobs:
       - job: "Publish_VSIX_Package"
         pool:
@@ -438,6 +443,7 @@ extends:
           displayName: Display Py Artifacts in Publishing Dir
 
         - task: EsrpRelease@4
+          condition: succeeded()
           inputs:
             ConnectedServiceName: 'ESRP_Release'
             Intent: 'PackageDistribution'
@@ -470,6 +476,7 @@ extends:
           displayName: Display NPM Artifacts in Publishing Dir
 
         - task: EsrpRelease@4
+          condition: succeeded()
           inputs:
             ConnectedServiceName: 'ESRP_Release'
             Intent: 'PackageDistribution'
