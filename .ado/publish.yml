@@ -335,7 +335,7 @@ extends:
     - stage: approval
       displayName: Approval
       dependsOn: build
-      condition: eq(variables['Build.Reason'], 'Manual')
+      condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
       jobs:
       - job: "Approval"
         pool: server
@@ -351,7 +351,7 @@ extends:
     - stage: release
       displayName: Release
       dependsOn: approval
-      condition: eq(variables['Build.Reason'], 'Manual')
+      condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
       jobs:
       - job: "Publish_VSIX_Package"
         pool:
