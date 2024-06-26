@@ -52,7 +52,7 @@ fn one_entrypoint() {
         r#"
         namespace Test {
             @EntryPoint()
-            ◉operation Main() : Unit{
+            ◉operation Test() : Unit{
             }◉
         }"#,
         &expect![[r#"
@@ -80,29 +80,34 @@ fn two_entrypoints() {
         r#"
         namespace Test {
             @EntryPoint()
-            ◉operation Main() : Unit{
-            }◉
+            operation Main() : Unit{
+            }
 
             @EntryPoint()
-            ◉operation Foo() : Unit{
+            operation Foo() : Unit{
+            }
+        }"#,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn main_function() {
+    check(
+        r#"
+        namespace Test {
+            ◉operation Main() : Unit {
             }◉
+
+            operation Foo() : Unit{
+            }
         }"#,
         &expect![[r#"
             [
                 (
                     0,
-                    [
-                        Run,
-                        Histogram,
-                        Estimate,
-                        Debug,
-                        Circuit(
-                            None,
-                        ),
-                    ],
-                ),
-                (
-                    1,
                     [
                         Run,
                         Histogram,

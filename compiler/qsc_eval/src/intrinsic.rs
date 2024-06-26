@@ -100,6 +100,10 @@ pub(crate) fn call(
                 Ok(Value::Double(rng.gen_range(lo..=hi)))
             }
         }
+        "DrawRandomBool" => {
+            let p = arg.unwrap_double();
+            Ok(Value::Bool(rng.gen_bool(p)))
+        }
         #[allow(clippy::cast_possible_truncation)]
         "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
         "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),

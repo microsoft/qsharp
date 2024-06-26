@@ -10,7 +10,7 @@ import type {
   IStructStepResult,
   IVariable,
 } from "../../lib/web/qsc_wasm.js";
-import { TargetProfile } from "../browser.js";
+import { ProgramConfig } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
 import {
   IQscEventTarget,
@@ -20,17 +20,16 @@ import {
 } from "../compiler/events.js";
 import { log } from "../log.js";
 import { IServiceProxy, ServiceProtocol } from "../workers/common.js";
+import { toWasmProgramConfig } from "../compiler/compiler.js";
 
 type QscWasm = typeof import("../../lib/web/qsc_wasm.js");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
 export interface IDebugService {
-  loadSource(
-    sources: [string, string][],
-    target: TargetProfile,
+  loadProgram(
+    program: ProgramConfig,
     entry: string | undefined,
-    language_features: string[],
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
@@ -68,17 +67,13 @@ export class QSharpDebugService implements IDebugService {
     this.debugService = new wasm.DebugService();
   }
 
-  async loadSource(
-    sources: [string, string][],
-    target: TargetProfile,
+  async loadProgram(
+    program: ProgramConfig,
     entry: string | undefined,
-    language_features: string[],
   ): Promise<string> {
-    return this.debugService.load_source(
-      sources,
-      target,
+    return this.debugService.load_program(
+      toWasmProgramConfig(program, "unrestricted"),
       entry,
-      language_features,
     );
   }
 
@@ -183,7 +178,7 @@ export const debugServiceProtocol: ServiceProtocol<
 > = {
   class: QSharpDebugService,
   methods: {
-    loadSource: "request",
+    loadProgram: "request",
     getBreakpoints: "request",
     getLocalVariables: "request",
     captureQuantumState: "request",

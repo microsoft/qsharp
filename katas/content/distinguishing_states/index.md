@@ -23,6 +23,9 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Distinguishing Orthogonal States"
 })
 
+In this lesson, you will practice distinguishing sets of states that are pairwise orthogonal.
+In this scenario, the states can be distinguished perfectly, with 100% accuracy.
+
 @[exercise]({
     "id": "distinguishing_states__zero_one",
     "title": "|0〉 or |1〉?",
@@ -160,8 +163,10 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",
-    "title": "Distinguishing Non-orthogonal States"
+    "title": "Distinguishing Non-Orthogonal States"
 })
+
+This lesson offers you several variants of the task of distinguishing sets of states that are not orthogonal.
 
 @[exercise]({
     "id": "distinguishing_states__zero_plus",
@@ -195,6 +200,4 @@ This kata is designed to get you familiar with the concept of measurements and u
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you learned to use measurements and basic quantum computing gates to distinguish quantum states. Here are a few key concepts to keep in mind:
-
-- TODO
+Congratulations! In this kata you learned to use measurements and basic quantum computing gates to distinguish quantum states. 

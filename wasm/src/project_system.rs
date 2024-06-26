@@ -1,90 +1,68 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::serializable_type;
 use async_trait::async_trait;
-use js_sys::JsString;
 use qsc::linter::LintConfig;
-use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
-
-use std::iter::FromIterator;
-use std::{path::PathBuf, sync::Arc};
+use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost};
+use serde::{Deserialize, Serialize};
+use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<string | null>")]
-    pub type ReadFileCallback;
+#[wasm_bindgen(typescript_custom_section)]
+const IPROJECT_HOST: &'static str = r#"
+export interface IProjectHost {
+    readFile(uri: string): Promise<string | null>;
+    listDirectory(uri: string): Promise<[string, number][]>;
+    resolvePath(base: string, path: string): Promise<string | null>;
+    findManifestDirectory(docUri: string): Promise<string | null>;
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "(uri: string) => Promise<[string, number][]>")]
-    pub type ListDirectoryCallback;
+/**
+ * Copy of the ProgramConfig type defined in compiler.ts,
+ * but with all the properties required and filled in with defaults where necessary.
+ */
+export interface IProgramConfig {
+    sources: [string, string][];
+    languageFeatures: string[];
+    profile: TargetProfile;
 }
+"#;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "{ manifestDirectory: string }")]
-    pub type ManifestDescriptorObject;
-}
+    #[wasm_bindgen(typescript_type = "IProjectHost")]
+    pub type ProjectHost;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(
-        typescript_type = "(uri: string) => Promise<{ manifestDirectory: string }| null>"
-    )]
-    pub type GetManifestCallback;
-}
+    // Methods of `IProjectHost``, expected to be implemented JS-side
+    #[wasm_bindgen(method, structural)]
+    async fn readFile(this: &ProjectHost, uri: &str) -> JsValue;
 
-#[wasm_bindgen]
-extern "C" {
+    #[wasm_bindgen(method, structural)]
+    async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
+
+    #[wasm_bindgen(method, structural)]
+    async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
+
+    #[wasm_bindgen(method, structural)]
+    async fn findManifestDirectory(this: &ProjectHost, docUri: &str) -> JsValue;
+
+    /// Alias for an array of [sourceName, sourceContents] tuples
     #[wasm_bindgen(typescript_type = "[string, string][]")]
     pub type ProjectSources;
-}
 
-impl From<ManifestDescriptorObject> for Option<ManifestDescriptor> {
-    fn from(value: ManifestDescriptorObject) -> Self {
-        get_manifest_transformer(value.obj, String::default())
-    }
-}
+    #[wasm_bindgen(typescript_type = "IProgramConfig")]
+    pub type ProgramConfig;
 
-/// This macro produces a function that calls an async JS function, awaits it, and then applies a function to the resulting value.
-/// Ultimately, it returns a function that accepts a String and returns a Rust future that represents a JS Promise. Awaiting that
-/// Rust future will await the resolution of the promise.
-/// The name of this macro should be read like "convert a JS promise into an async rust function with this mapping function"
-macro_rules! into_async_rust_fn_with {
-    ($js_async_fn: ident, $map_result: expr) => {{
-        use crate::project_system::{map_js_promise, to_js_function};
-        use std::future::Future;
-        use std::pin::Pin;
-        use wasm_bindgen::JsValue;
-        use wasm_bindgen_futures::JsFuture;
+    // Getters for IProgramConfig
+    #[wasm_bindgen(method, getter, structural)]
+    fn sources(this: &ProgramConfig) -> ProjectSources;
 
-        let $js_async_fn = to_js_function($js_async_fn, stringify!($js_async_fn));
+    #[wasm_bindgen(method, getter, structural)]
+    fn languageFeatures(this: &ProgramConfig) -> Vec<String>;
 
-        let $js_async_fn = move |input: String| {
-            let path = JsValue::from_str(&input);
-            let res: js_sys::Promise = $js_async_fn
-                .call1(&JsValue::NULL, &path)
-                .expect("callback should succeed")
-                .into();
-
-            let res: JsFuture = res.into();
-
-            Box::pin(map_js_promise(res, move |x| $map_result(x, input.clone())))
-                as Pin<Box<dyn Future<Output = _> + 'static>>
-        };
-        $js_async_fn
-    }};
-}
-
-pub(crate) async fn map_js_promise<F, T>(res: JsFuture, func: F) -> T
-where
-    F: Fn(JsValue) -> T,
-{
-    let res = res.await.expect("js future shouldn't throw an exception");
-    func(res)
+    #[wasm_bindgen(method, getter, structural)]
+    fn profile(this: &ProgramConfig) -> String;
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
@@ -95,194 +73,162 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     );
     Into::<js_sys::Function>::into(val)
 }
-pub(crate) use into_async_rust_fn_with;
-
-/// Given a [`JsValue`] representing the result of a call to a `list_directory` function,
-/// and an unused `String` parameter for API compatibility, assert that `js_val`
-/// matches our expected return type of `[string, number][]` and transform that
-/// JS data into a [Vec<JSFileEntry>]
-pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFileEntry> {
-    match js_val.dyn_into::<js_sys::Array>() {
-        Ok(arr) => arr
-            .into_iter()
-            .map(|x| {
-                x.dyn_into::<js_sys::Array>()
-                    .expect("expected directory listing callback to return array of arrays")
-            })
-            .filter_map(|js_arr| {
-                let mut arr = js_arr.into_iter().take(2);
-                #[allow(clippy::cast_possible_truncation)]
-                match (
-                    arr.next().expect("should be string").as_string(),
-                    arr.next().expect("should be float").as_f64(),
-                ) {
-                    (Some(a), Some(b)) => Some((a, b as i32)),
-                    _ => None,
-                }
-            })
-            .map(|(name, ty)| JSFileEntry {
-                name,
-                r#type: match ty {
-                    0 => EntryType::Unknown,
-                    1 => EntryType::File,
-                    2 => EntryType::Folder,
-                    64 => EntryType::Symlink,
-                    _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
-                },
-            })
-            .collect::<Vec<_>>(),
-            Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
-    }
-}
-
-/// Given a [`JsValue`] representing the result of a call to a read file function,
-/// and a `String` representing the path that was originally passed in as an
-/// argument to that function, assert that `js_val` matches our expected return type of
-/// `string` and transform it into a tuple representing the path and the file contents.
-#[allow(clippy::needless_pass_by_value)]
-pub(crate) fn read_file_transformer(
-    js_val: JsValue,
-    path_buf_string: String,
-) -> (Arc<str>, Arc<str>) {
-    match js_val.as_string() {
-        Some(res) => (Arc::from(path_buf_string), Arc::from(res)),
-        // this can happen if the document is completely empty
-        None if js_val.is_null() => (Arc::from(path_buf_string), Arc::from("")),
-        None => unreachable!("Expected string from JS callback, received {js_val:?}"),
-    }
-}
-/// Given a [`JsValue`] representing the result of a call to a `get_manifest` function,
-/// and an unused `String` parameter for API compatibility, assert that `js_val`
-/// matches our expected return object shape  and transform it into a [`ManifestDescriptor`],
-/// or `None`
-#[allow(clippy::needless_pass_by_value)]
-pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<ManifestDescriptor> {
-    if js_val.is_null() {
-        return None;
-    }
-
-    let manifest_dir = match js_sys::Reflect::get(&js_val, &JsValue::from_str("manifestDirectory"))
-    {
-        Ok(v) => v.as_string().unwrap_or_else(|| {
-            panic!(
-                "manifest callback returned {v:?}, but we expected a string representing its URI"
-            )
-        }),
-        Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
-    };
-    let language_features = match js_sys::Reflect::get(&js_val, &JsValue::from_str("languageFeatures"))
-    {
-        Ok(v) => match v.dyn_into::<js_sys::Array>()  {
-            Ok(arr) => arr
-                .into_iter()
-                .map(|x| {
-                    x.as_string().unwrap_or_else(|| {
-                        panic!(
-                            "manifest callback returned {x:?}, but we expected a string representing a language feature"
-                        )
-                    })
-                }).collect::<Vec<_>>(),
-                Err(_) => Vec::new(),
-        },
-        _ => Vec::new(),
-
-    };
-
-    let lints: Vec<LintConfig> = match js_sys::Reflect::get(&js_val, &JsValue::from_str("lints")) {
-        Ok(v) => match v.dyn_into::<js_sys::Array>() {
-            Ok(arr) => arr
-                .into_iter()
-                .filter_map(|x| serde_wasm_bindgen::from_value::<LintConfig>(x).ok())
-                .collect::<Vec<_>>(),
-            Err(_) => Vec::new(),
-        },
-        _ => Vec::new(),
-    };
-
-    log::trace!("found manifest at {manifest_dir:?}");
-
-    let manifest_dir = PathBuf::from(manifest_dir);
-
-    Some(ManifestDescriptor {
-        manifest: Manifest {
-            language_features,
-            lints,
-            author: Option::default(),
-            license: Option::default(),
-        },
-        manifest_dir,
-    })
-}
 
 /// a minimal implementation for interacting with async JS filesystem callbacks to
 /// load project files
 #[wasm_bindgen]
-pub struct ProjectLoader(ProjectSystemCallbacks<'static>);
+pub struct ProjectLoader(ProjectHost);
+
+#[async_trait(?Send)]
+impl JSProjectHost for ProjectHost {
+    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+        let name = Arc::from(uri);
+
+        let val = self.readFile(uri).await;
+        (name, val.as_string().unwrap_or_default().into())
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        let js_val = self.listDirectory(uri).await;
+        match js_val.dyn_into::<js_sys::Array>() {
+            Ok(arr) => arr
+                .into_iter()
+                .map(|x| {
+                    x.dyn_into::<js_sys::Array>()
+                        .expect("expected directory listing callback to return array of arrays")
+                })
+                .filter_map(|js_arr| {
+                    let mut arr = js_arr.into_iter().take(2);
+                    #[allow(clippy::cast_possible_truncation)]
+                    match (
+                        arr.next().expect("should be string").as_string(),
+                        arr.next().expect("should be float").as_f64(),
+                    ) {
+                        (Some(a), Some(b)) => Some((a, b as i32)),
+                        _ => None,
+                    }
+                })
+                .map(|(name, ty)| JSFileEntry {
+                    name,
+                    r#type: match ty {
+                        0 => EntryType::Unknown,
+                        1 => EntryType::File,
+                        2 => EntryType::Folder,
+                        64 => EntryType::Symlink,
+                        _ => unreachable!("expected one of vscode.FileType. Received {ty:?}"),
+                    },
+                })
+                .collect::<Vec<_>>(),
+                Err(e) => unreachable!("controlled callback should have returned an array -- our typescript bindings should guarantee this. {e:?}"),
+        }
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        let js_val = self.resolvePath(base, path).await;
+        js_val.as_string().map(Into::into)
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        let js_val = self.findManifestDirectory(doc_uri).await;
+        js_val.as_string().map(Into::into)
+    }
+}
 
 #[wasm_bindgen]
 impl ProjectLoader {
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        read_file: ReadFileCallback,
-        list_directory: ListDirectoryCallback,
-        get_manifest: GetManifestCallback,
-    ) -> Self {
-        let read_file = read_file.into();
-        let read_file = into_async_rust_fn_with!(read_file, read_file_transformer);
-
-        let list_directory = list_directory.into();
-        let list_directory = into_async_rust_fn_with!(list_directory, list_directory_transformer);
-
-        let get_manifest: JsValue = get_manifest.into();
-        let get_manifest = into_async_rust_fn_with!(get_manifest, get_manifest_transformer);
-        ProjectLoader(ProjectSystemCallbacks {
-            read_file: Box::new(read_file),
-            list_directory: Box::new(list_directory),
-            get_manifest: Box::new(get_manifest),
-        })
+    pub fn new(project_host: ProjectHost) -> Self {
+        ProjectLoader(project_host)
     }
 
-    pub async fn load_project(&self, manifest: ManifestDescriptorObject) -> ProjectSources {
-        let manifest: Option<ManifestDescriptor> = manifest.into();
-        match manifest {
-            #[allow(clippy::from_iter_instead_of_collect)]
-            Some(manifest) => {
-                let res = qsc_project::FileSystemAsync::load_project(self, &manifest)
-                    .await
-                    .map_or_else(
-                        |_| js_sys::Array::new(),
-                        |proj| {
-                            proj.sources
-                                .into_iter()
-                                .map(|(path, contents)| {
-                                    js_sys::Array::from_iter::<std::slice::Iter<'_, JsString>>(
-                                        [path.to_string().into(), contents.to_string().into()]
-                                            .iter(),
-                                    )
-                                })
-                                .collect::<_>()
-                        },
-                    );
-                ProjectSources { obj: res.into() }
-            }
-            None => ProjectSources {
-                obj: js_sys::Array::new().into(),
-            },
+    #[allow(clippy::from_iter_instead_of_collect)]
+    pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
+        match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
+            Ok(p) => Ok(p.into()),
+            Err(e) => Err(JsError::new(&format!("{e}")).into()),
         }
     }
 }
 
-#[async_trait(?Send)]
-impl qsc_project::FileSystemAsync for ProjectLoader {
-    type Entry = JSFileEntry;
-    async fn read_file(
-        &self,
-        path: &std::path::Path,
-    ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        Ok((self.0.read_file)(path.to_string_lossy().to_string()).await)
+impl From<ProjectSources> for Vec<(String, String)> {
+    fn from(sources: ProjectSources) -> Self {
+        serde_wasm_bindgen::from_value(sources.into())
+            .expect("sources object should be an array of string pairs")
     }
+}
 
-    async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
-        Ok((self.0.list_directory)(path.to_string_lossy().to_string()).await)
+impl From<qsc_project::Project> for IProjectConfig {
+    fn from(value: qsc_project::Project) -> Self {
+        let project_config = ProjectConfig {
+            project_name: value.name.to_string(),
+            project_uri: value.manifest_path.to_string(),
+            sources: value
+                .sources
+                .into_iter()
+                .map(|(a, b)| (a.to_string(), b.to_string()))
+                .collect(),
+            language_features: value.manifest.language_features,
+            lints: value.manifest.lints,
+        };
+        project_config.into()
     }
+}
+
+serializable_type! {
+    ProjectConfig,
+    {
+        pub project_name: String,
+        pub project_uri: String,
+        pub sources: Vec<(String, String)>,
+        pub language_features: Vec<String>,
+        pub lints: Vec<LintConfig>,
+    },
+    r#"export interface IProjectConfig {
+        /**
+         * Friendly name for the project, based on the name of the Q# document or project directory
+         */
+        projectName: string;
+        /**
+         * Uri for the qsharp.json or the root source file (single file projects)
+         */
+        projectUri: string;
+        /**
+         * [sourceName, sourceContents] tuples
+         *
+         * In the future, for projects with dependencies, this will contain the
+         * full dependency graph and sources for all the packages referenced by the project.
+         */
+        sources: [string, string][];
+        languageFeatures: string[];
+        lints: {
+          lint: string;
+          level: string;
+        }[];
+    }"#,
+    IProjectConfig
+}
+
+/// This returns the common parameters that the compiler/interpreter uses
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn into_qsc_args(
+    program: ProgramConfig,
+    entry: Option<String>,
+) -> (
+    qsc::SourceMap,
+    qsc::TargetCapabilityFlags,
+    qsc::LanguageFeatures,
+) {
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
+    let sources: Vec<(String, String)> = program.sources().into();
+
+    let source_map = qsc::SourceMap::new(
+        sources.into_iter().map(|(a, b)| (a.into(), b.into())),
+        entry.map(Into::into),
+    );
+
+    let language_features = qsc::LanguageFeatures::from_iter(program.languageFeatures());
+
+    (source_map, capabilities, language_features)
 }

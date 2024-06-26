@@ -23,6 +23,8 @@ This kata offers you a series of tasks in which you are given one unitary from t
     "title": "Distinguishing Single-Qubit Gates"
 })
 
+To start with, let's look at some problems involving distinguishing single-qubit gates.
+
 @[exercise]({
     "id": "distinguishing_unitaries__i_x",
     "title": "Identity or X?",
@@ -127,6 +129,8 @@ This kata offers you a series of tasks in which you are given one unitary from t
     "id": "distinguishing_unitaries__multi_qubit",
     "title": "Distinguishing Multi-Qubit Gates"
 })
+
+In this lesson, the exercises focus on distinguishing multi-qubit gates.
 
 @[exercise]({
     "id": "distinguishing_unitaries__ix_cnot",
