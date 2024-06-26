@@ -66,7 +66,7 @@ type EventTypes = {
     measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: { associationId: string };
+    properties: { associationId: string; targetProfile: string };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
