@@ -207,6 +207,7 @@ def wasm_checks(install, installed_rust_targets):
         print("Unable to determine the wasm-pack version")
 
     # Ensure the required wasm target is installed
+    print(installed_rust_targets)
     if "wasm32-unknown-unknown" not in installed_rust_targets:
         print("WASM rust target is not installed.")
         print("Please install the missing target by running:")
