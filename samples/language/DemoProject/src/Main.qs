@@ -10,7 +10,7 @@
 namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
-    function Main() : Unit {
+    operation Main() : Unit {
 
         // this is coming from local deps
         // Foo.DependencyA.MagicFunction(); <--- COMMENT THIS BACK IN, WORKS IN VS CODE
