@@ -219,6 +219,8 @@ if build_cli:
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
+            cargo_test_args.append("--config")
+            cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
         step_end()
 
