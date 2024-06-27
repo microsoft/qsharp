@@ -1,11 +1,14 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #[cfg(test)]
 mod tests;
 
-use num_complex::Complex;
 use crate::{
     instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector,
     SquareMatrix, TOLERANCE,
 };
+use num_complex::Complex;
 
 /// A vectorized density matrix.
 #[derive(Debug, Clone)]

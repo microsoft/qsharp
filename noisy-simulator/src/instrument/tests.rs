@@ -1,6 +1,12 @@
-use nalgebra::ComplexField;
-use crate::{operation::{operation, Operation}, SquareMatrix, TOLERANCE};
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::Instrument;
+use crate::{
+    operation::{operation, Operation},
+    SquareMatrix, TOLERANCE,
+};
+use nalgebra::ComplexField;
 
 macro_rules! assert_approx_eq {
     ($left:expr, $right:expr $(,)?) => {
@@ -10,8 +16,8 @@ macro_rules! assert_approx_eq {
     };
 }
 
-fn approx_eq (a: f64, b: f64) -> bool {
-    (a-b).abs() <= TOLERANCE
+fn approx_eq(a: f64, b: f64) -> bool {
+    (a - b).abs() <= TOLERANCE
 }
 
 fn rng() -> f64 {
@@ -32,7 +38,7 @@ fn constructor() {
             for col in 0..4 {
                 assert_approx_eq!(
                     0.,
-                    (sum[(row, col)] - (op0.matrix()[(row, col)] + op1.matrix()[(row,col)])).abs()
+                    (sum[(row, col)] - (op0.matrix()[(row, col)] + op1.matrix()[(row, col)])).abs()
                 );
             }
         }
@@ -44,14 +50,13 @@ fn non_selective_evolution_operator() {
     let dim = 8;
     for _ in 0..10 {
         // Create dim^2 random kraus operators.
-        let kraus_operators: Vec<SquareMatrix> = (0..dim*dim)
+        let kraus_operators: Vec<SquareMatrix> = (0..dim * dim)
             .map(|_| SquareMatrix::from_fn(dim, dim, |_, _| (0.5 - rng()).into()))
             .collect();
         let op0 = Operation::new(kraus_operators);
-        let instrument_0 = Instrument::new(vec![op0]);        
-        let kraus_operators: Vec<SquareMatrix> = instrument_0
-            .non_selective_kraus_operators()
-            .to_vec();
+        let instrument_0 = Instrument::new(vec![op0]);
+        let kraus_operators: Vec<SquareMatrix> =
+            instrument_0.non_selective_kraus_operators().to_vec();
         let op1 = Operation::new(kraus_operators);
         let instrument_1 = Instrument::new(vec![op1]);
         let m0 = instrument_0.non_selective_operation_matrix();

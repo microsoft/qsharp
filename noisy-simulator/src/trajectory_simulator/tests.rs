@@ -1,6 +1,13 @@
-use num_complex::Complex;
-use crate::{instrument::Instrument, operation::{Operation, operation}, TOLERANCE};
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::TrajectorySimulator;
+use crate::{
+    instrument::Instrument,
+    operation::{operation, Operation},
+    TOLERANCE,
+};
+use num_complex::Complex;
 
 macro_rules! assert_approx_eq {
     ($left:expr, $right:expr $(,)?) => {
@@ -10,8 +17,8 @@ macro_rules! assert_approx_eq {
     };
 }
 
-fn approx_eq (a: f64, b: f64) -> bool {
-    (a-b).abs() <= TOLERANCE
+fn approx_eq(a: f64, b: f64) -> bool {
+    (a - b).abs() <= TOLERANCE
 }
 
 fn h() -> Operation {
@@ -67,7 +74,7 @@ fn one_qubit() {
 
 #[test]
 fn bell_pair_sampling() {
-    let (h, cnot, mz) = (h(), cnot(), mz());    
+    let (h, cnot, mz) = (h(), cnot(), mz());
 
     for _ in 0..10 {
         let mut sim = TrajectorySimulator::new(2);
@@ -116,7 +123,6 @@ fn bell_pair_projection_panic_2() {
     bell_pair_projection(2);
 }
 
-
 fn two_qubit_gate(outcome: usize) {
     assert!((0..4).contains(&outcome));
     let h = h();
@@ -125,7 +131,7 @@ fn two_qubit_gate(outcome: usize) {
     let m1 = operation!([0., 0.;
                          0., 1.;]);
     let mz = mz();
-    let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];    
+    let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];
     let crx = |t: f64| {
         let c = t.cos();
         let s = t.sin() * Complex::I;
@@ -146,10 +152,10 @@ fn two_qubit_gate(outcome: usize) {
 
             let mut sim = TrajectorySimulator::new(2);
             sim.apply_operation(&h, &[0]);
-            sim.apply_operation(&crx(0.3 * t), &[1,0]);
-            sim.apply_operation(&crx(0.7 * t), &[1,0]);
+            sim.apply_operation(&crx(0.3 * t), &[1, 0]);
+            sim.apply_operation(&crx(0.7 * t), &[1, 0]);
             sim.apply_operation(if b1 { &m1 } else { &m0 }, &[0]);
-            
+
             if b1 {
                 assert_approx_eq!(0.5, sim.trace_change());
                 sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1]);
@@ -209,13 +215,13 @@ fn alternating_mz_and_mx() {
         operation!([
              0.5, -0.5;
             -0.5,  0.5;
-        ])
+        ]),
     ]);
 
     let mut sim = TrajectorySimulator::new(1);
     sim.apply_operation(&h, &[0]);
     let mut prob = 1.0;
-    
+
     for _ in 0..5 {
         sim.sample_instrument(&mz, &[0]);
         prob *= 0.5;

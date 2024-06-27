@@ -1,7 +1,13 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use nalgebra::dmatrix;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::{operation::{operation, Operation}, SquareMatrix, TOLERANCE};
+use crate::{
+    operation::{operation, Operation},
+    SquareMatrix, TOLERANCE,
+};
 
 macro_rules! assert_approx_eq {
     ($left:expr, $right:expr $(,)?) => {
@@ -11,8 +17,8 @@ macro_rules! assert_approx_eq {
     };
 }
 
-fn approx_eq (a: f64, b: f64) -> bool {
-    (a-b).abs() <= TOLERANCE
+fn approx_eq(a: f64, b: f64) -> bool {
+    (a - b).abs() <= TOLERANCE
 }
 
 #[test]
@@ -39,7 +45,8 @@ fn constructor() {
          6.,  7., 12., 19.;
          9., 12., 23., 37.;
         15., 19., 37., 61.;
-    ].map(|z| z.into());
+    ]
+    .map(|z| z.into());
 
     let eff1 = dmatrix! [
         11.3225 + 0.   * I, 6.1 - 1.85 * I, 9.  - 1.95 * I, 15. - 3.4 * I;
@@ -49,11 +56,11 @@ fn constructor() {
     ];
 
     let eff = eff0 + eff1;
-    
+
     for (x0, x1) in eff.iter().zip(op.effect_matrix_transpose().iter()) {
         assert_approx_eq!(0., (x0 - x1.conj()).abs());
     }
-    
+
     let op0: SquareMatrix = dmatrix![
         0.,  0.,  0.,  0. ,  0.,  1.,  2.,  4. ,  0.,  2.,  4.,  8. ,  0. ,  4. ,  8. ,  16.;
         0.,  0.,  0.,  0. ,  1.,  2.,  3.,  4. ,  2.,  4.,  6.,  8. ,  4. ,  8. ,  12.,  16.;
@@ -71,7 +78,8 @@ fn constructor() {
         3.,  6.,  9.,  12.,  1.,  2.,  3.,  4. ,  1.,  2.,  3.,  4. ,  2. ,  4. ,  6. ,  8. ;
         3.,  3.,  9.,  15.,  1.,  1.,  3.,  5. ,  1.,  1.,  3.,  5. ,  2. ,  2. ,  6. ,  10.;
         9.,  3.,  3.,  6. ,  3.,  1.,  1.,  2. ,  3.,  1.,  1.,  2. ,  6. ,  2. ,  2. ,  4. ;
-    ].map(|z| z.into());
+    ]
+    .map(|z| z.into());
 
     let op1 = dmatrix![
         0.01   + 0.   * I, 0.1  + 0.1  * I, 0. + 0.2  * I, 0.  + 0.4  * I, 0.1  - 0.1  * I, 2. + 0. * I, 2. + 2. * I, 4.  + 4. * I, 0. - 0.2  * I, 2. - 2. * I, 4. + 0. * I, 8.  + 0. * I, 0.  - 0.4  * I, 4.  - 4. * I, 8.  + 0. * I, 16. + 0. * I;
@@ -94,5 +102,5 @@ fn constructor() {
 
     for ((x, x0), x1) in op.matrix().iter().zip(op0.iter()).zip(op1.iter()) {
         assert_approx_eq!(0., (x0 + x1 - x).abs());
-    }    
+    }
 }

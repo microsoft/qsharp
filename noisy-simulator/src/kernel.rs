@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use nalgebra::Complex;
 
 use crate::{ComplexVector, SquareMatrix};

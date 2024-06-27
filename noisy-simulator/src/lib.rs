@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use nalgebra::{DMatrix, DVector};
 use num_complex::Complex;
 
