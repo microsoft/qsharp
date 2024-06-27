@@ -1940,8 +1940,8 @@ mod given_interpreter {
                 Err(err) => panic!("failed to create interpreter: {err:#?}"),
             };
 
-            let package = get_package_for_call("A", "B");
-            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            let package = get_package_for_call("UserCode", "Main");
+            let (result, output) = fragment(&mut interpreter, "UserCode.Main()", package);
             is_only_value(
                 &result,
                 &output,

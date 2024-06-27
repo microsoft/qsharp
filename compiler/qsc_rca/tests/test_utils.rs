@@ -54,8 +54,13 @@ impl CompilationContext {
             .expect("code should compile");
         let package_id = map_hir_package_to_fir(self.compiler.package_id());
         let fir_package = self.fir_store.get_mut(package_id);
-        self.lowerer
-            .lower_and_update_package(fir_package, &increment.hir);
+        self.lowerer.lower_and_update_package(
+            fir_package,
+            &increment.hir,
+            // TODO(alex) refactor this so we have access to the fir store
+            // or, since this is a test, just don't support reexports
+            todo!(),
+        );
         self.compiler.update(increment);
 
         // Clear the compute properties of the package to update.
@@ -150,10 +155,8 @@ fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore 
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
         let mut lowerer = Lowerer::new();
-        fir_store.insert(
-            map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
-        );
+        let pkg = lowerer.lower_package(&unit.package, &fir_store);
+        fir_store.insert(map_hir_package_to_fir(id), pkg);
     }
     fir_store
 }

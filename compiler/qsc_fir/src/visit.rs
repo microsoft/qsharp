@@ -8,7 +8,7 @@ use crate::fir::{
 };
 
 pub trait Visitor<'a>: Sized {
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, store: &crate::fir::PackageStore) {
         walk_package(self, package);
     }
 
@@ -65,6 +65,9 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Export(name, _) => {
+            vis.visit_ident(name);
+        }
     };
 }
 

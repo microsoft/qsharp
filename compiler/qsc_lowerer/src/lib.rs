@@ -87,7 +87,11 @@ impl Lowerer {
             .collect()
     }
 
-    pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
+    pub fn lower_package(
+        &mut self,
+        package: &hir::Package,
+        store: &fir::PackageStore,
+    ) -> fir::Package {
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let entry_exec_graph = self.exec_graph.drain(..).collect();
         let items: IndexMap<LocalItemId, fir::Item> = package
@@ -116,7 +120,7 @@ impl Lowerer {
             pats,
             stmts,
         };
-        qsc_fir::validate::validate(&package);
+        qsc_fir::validate::validate(&package, store);
         package
     }
 
@@ -128,6 +132,7 @@ impl Lowerer {
         &mut self,
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
+        store: &fir::PackageStore,
     ) {
         // Clear the previous increment since we are about to take a new one.
         self.fir_increment = FirIncrement::default();
@@ -154,7 +159,7 @@ impl Lowerer {
 
         fir_package.entry = entry;
 
-        qsc_fir::validate::validate(fir_package);
+        qsc_fir::validate::validate(fir_package, store);
     }
 
     pub fn revert_last_increment(&mut self, package: &mut fir::Package) {
@@ -224,8 +229,12 @@ impl Lowerer {
 
                 fir::ItemKind::Ty(name, udt)
             }
-            // TODO(alex) implement FIR items
-            hir::ItemKind::Export(_, _) => todo!("fir::ItemKind::Export(item)"),
+            hir::ItemKind::Export(name, item) => {
+                let name = self.lower_ident(name);
+                let item = lower_item_id(item);
+
+                fir::ItemKind::Export(name, item)
+            }
         };
         let attrs = lower_attrs(&item.attrs);
         fir::Item {

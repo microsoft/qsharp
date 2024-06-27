@@ -627,6 +627,8 @@ impl PackageLookup for Package {
             ItemKind::Callable(callable) => Some(Global::Callable(callable)),
             ItemKind::Namespace(..) => None,
             ItemKind::Ty(..) => Some(Global::Udt),
+            // TODO(alex) verify
+            ItemKind::Export(_name, _id) => None,
         }
     }
 
@@ -701,6 +703,8 @@ pub enum ItemKind {
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export referring to another item
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -721,6 +725,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(name, item) => write!(f, "Export ({name}): {item}"),
         }
     }
 }

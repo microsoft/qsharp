@@ -207,12 +207,10 @@ impl Interpreter {
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
-            fir_store.insert(
-                map_hir_package_to_fir(id),
-                qsc_lowerer::Lowerer::new()
-                    .with_debug(dbg)
-                    .lower_package(&unit.package),
-            );
+            let pkg = qsc_lowerer::Lowerer::new()
+                .with_debug(dbg)
+                .lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
 
         let source_package_id = compiler.source_package_id();
@@ -265,10 +263,8 @@ impl Interpreter {
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
             let mut lowerer = qsc_lowerer::Lowerer::new();
-            fir_store.insert(
-                map_hir_package_to_fir(id),
-                lowerer.lower_package(&unit.package),
-            );
+            let pkg = lowerer.lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
 
         let source_package_id = compiler.source_package_id();
@@ -631,9 +627,14 @@ impl Interpreter {
         if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
+
         let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit_addition.hir);
+        self.lowerer.lower_and_update_package(
+            fir_package,
+            &unit_addition.hir,
+            // TODO(alex): refactor this so fir_package_store can be used
+            todo!(),
+        );
         Ok((self.lowerer.take_exec_graph(), None))
     }
 
@@ -643,8 +644,12 @@ impl Interpreter {
     ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
         let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit.hir);
+        self.lowerer.lower_and_update_package(
+            fir_package,
+            &unit.hir,
+            // TODO(alex): refactor this so fir_package_store can be used
+            todo!(),
+        );
 
         let cap_results =
             PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
@@ -858,7 +863,7 @@ impl Debugger {
                 package,
                 self.position_encoding,
             );
-            collector.visit_package(package);
+            collector.visit_package(package, &self.interpreter.fir_store);
             let mut spans: Vec<_> = collector.statements.into_iter().collect();
 
             // Sort by start position (line first, column next)
