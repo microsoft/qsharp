@@ -627,7 +627,6 @@ impl PackageLookup for Package {
             ItemKind::Callable(callable) => Some(Global::Callable(callable)),
             ItemKind::Namespace(..) => None,
             ItemKind::Ty(..) => Some(Global::Udt),
-            // TODO(alex) verify
             ItemKind::Export(_name, _id) => None,
         }
     }
