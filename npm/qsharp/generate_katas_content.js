@@ -437,7 +437,7 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Aggregate the exercise sources. The verification source file is Verification.qs.
   let resolvedVerificationFile = join(exercisePath, "Verification.qs");
 
-  // These are implicit dependencies (added to simplify dependency handling per https://github.com/microsoft/qsharp/issues/1640)
+  // Implicit dependencies to simplify dependency handling:
   // ../KatasLibrary.qs must be included
   // ./Common.qs must be included if present in current kata
   const implicitDependencies = ["../KatasLibrary.qs"];
