@@ -8,7 +8,7 @@ use crate::fir::{
 };
 
 pub trait Visitor<'a>: Sized {
-    fn visit_package(&mut self, package: &'a Package, store: &crate::fir::PackageStore) {
+    fn visit_package(&mut self, package: &'a Package, _: &crate::fir::PackageStore) {
         walk_package(self, package);
     }
 

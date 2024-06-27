@@ -628,14 +628,18 @@ impl Interpreter {
             return self.run_fir_passes(unit_addition);
         }
 
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer.lower_and_update_package(
-            fir_package,
-            &unit_addition.hir,
-            // TODO(alex): refactor this so fir_package_store can be used
-            todo!(),
-        );
+        self.lower_and_update_package(unit_addition);
         Ok((self.lowerer.take_exec_graph(), None))
+    }
+
+    fn lower_and_update_package(&mut self, unit: &qsc_frontend::incremental::Increment) {
+        {
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer
+                .lower_and_update_package(fir_package, &unit.hir);
+        }
+        let fir_package: &Package = self.fir_store.get(self.package);
+        qsc_fir::validate::validate(fir_package, &self.fir_store);
     }
 
     fn run_fir_passes(
@@ -643,13 +647,7 @@ impl Interpreter {
         unit: &qsc_frontend::incremental::Increment,
     ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer.lower_and_update_package(
-            fir_package,
-            &unit.hir,
-            // TODO(alex): refactor this so fir_package_store can be used
-            todo!(),
-        );
+        self.lower_and_update_package(unit);
 
         let cap_results =
             PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);

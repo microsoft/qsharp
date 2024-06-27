@@ -132,7 +132,6 @@ impl Lowerer {
         &mut self,
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
-        store: &fir::PackageStore,
     ) {
         // Clear the previous increment since we are about to take a new one.
         self.fir_increment = FirIncrement::default();
@@ -158,8 +157,6 @@ impl Lowerer {
         }
 
         fir_package.entry = entry;
-
-        qsc_fir::validate::validate(fir_package, store);
     }
 
     pub fn revert_last_increment(&mut self, package: &mut fir::Package) {

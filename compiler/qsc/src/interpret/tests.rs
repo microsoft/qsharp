@@ -1942,11 +1942,7 @@ mod given_interpreter {
 
             let package = get_package_for_call("UserCode", "Main");
             let (result, output) = fragment(&mut interpreter, "UserCode.Main()", package);
-            is_only_value(
-                &result,
-                &output,
-                &Value::Result(qsc_eval::val::Result::Val(false)),
-            );
+            is_only_value(&result, &output, &Value::unit());
         }
 
         fn get_package_for_call(ns: &str, name: &str) -> crate::ast::Package {

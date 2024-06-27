@@ -53,14 +53,7 @@ impl CompilationContext {
             .compile_fragments_fail_fast("rca-test", source)
             .expect("code should compile");
         let package_id = map_hir_package_to_fir(self.compiler.package_id());
-        let fir_package = self.fir_store.get_mut(package_id);
-        self.lowerer.lower_and_update_package(
-            fir_package,
-            &increment.hir,
-            // TODO(alex) refactor this so we have access to the fir store
-            // or, since this is a test, just don't support reexports
-            todo!(),
-        );
+        self.lower_and_update_package(&increment, package_id);
         self.compiler.update(increment);
 
         // Clear the compute properties of the package to update.
@@ -71,6 +64,20 @@ impl CompilationContext {
             self.compute_properties.clone(),
         );
         self.compute_properties = analyzer.analyze_package(package_id);
+    }
+
+    fn lower_and_update_package(
+        &mut self,
+        unit: &qsc_frontend::incremental::Increment,
+        package_id: qsc::fir::PackageId,
+    ) {
+        {
+            let fir_package = self.fir_store.get_mut(package_id);
+            self.lowerer
+                .lower_and_update_package(fir_package, &unit.hir);
+        }
+        let fir_package: &Package = self.fir_store.get(package_id);
+        qsc_fir::validate::validate(fir_package, &self.fir_store);
     }
 }
 

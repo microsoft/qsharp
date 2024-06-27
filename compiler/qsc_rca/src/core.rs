@@ -1873,7 +1873,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 self.visit_callable_decl(decl);
             }
             ItemKind::Export(
-                name,
+                _,
                 qsc_fir::fir::ItemId {
                     package: Some(package),
                     item,
@@ -1885,16 +1885,9 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 };
                 self.visit_item(item);
             }
-            ItemKind::Export(
-                name,
-                qsc_fir::fir::ItemId {
-                    package: None,
-                    item,
-                },
-            ) => {
+            ItemKind::Export(_, qsc_fir::fir::ItemId { package: None, .. }) => {
                 // if the package is none, then we know this item was defined in this package
                 // and therefore doesn't need to be analyzed -- the item itself will be analyzed.
-                return;
             }
         };
     }
