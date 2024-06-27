@@ -455,6 +455,8 @@ pub trait PackageStoreLookup {
     fn get_pat(&self, id: StorePatId) -> &Pat;
     /// Gets a statement.
     fn get_stmt(&self, id: StoreStmtId) -> &Stmt;
+    /// Gets an item.
+    fn get_item(&self, id: StoreItemId) -> &Item;
 }
 
 /// A FIR package store.
@@ -480,6 +482,10 @@ impl PackageStoreLookup for PackageStore {
 
     fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
         self.get(id.package).get_stmt(id.stmt)
+    }
+
+    fn get_item(&self, id: StoreItemId) -> &Item {
+        self.get(id.package).get_item(id.item)
     }
 }
 
@@ -801,6 +807,8 @@ pub enum CallableImpl {
     Intrinsic,
     /// A specialized callable implementation.
     Spec(SpecImpl),
+    /// An intrinsic with a simulation override.
+    SimulatableIntrinsic(SpecDecl),
 }
 
 impl Display for CallableImpl {
@@ -814,6 +822,11 @@ impl Display for CallableImpl {
                 write!(indent, "Spec:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{spec_impl}")?;
+            }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                write!(indent, "SimulatableIntrinsic:")?;
+                indent = set_indentation(indent, 1);
+                write!(indent, "\n{spec_decl}")?;
             }
         }
 

@@ -50,7 +50,29 @@ namespace Microsoft.Quantum.Random {
     operation DrawRandomDouble(min : Double, max : Double) : Double {
         body intrinsic;
     }
+    /// # Summary
+    /// Given a success probability, returns a single Bernoulli trial
+    /// that is true with the given probability.
+    ///
+    /// # Input
+    /// ## successProbability
+    /// The probability with which true should be returned.
+    ///
+    /// # Output
+    /// `true` with probability `successProbability`
+    /// and `false` with probability `1.0 - successProbability`.
+    ///
+    /// # Example
+    /// The following Q# snippet samples flips from a biased coin:
+    /// ```qsharp
+    /// let flips = DrawMany(DrawRandomBool, 10, 0.6);
+    /// ```
+    @Config(Unrestricted)
+    operation DrawRandomBool(successProbability : Double) : Bool {
+        body intrinsic;
+    }
 
     export DrawRandomInt,
-    DrawRandomDouble;
+    DrawRandomDouble,
+    DrawRandomBool;
 }

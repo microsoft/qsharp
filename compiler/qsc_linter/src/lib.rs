@@ -38,7 +38,7 @@
 //! ```
 //! declare_ast_lints!{
 //!   ...
-//!   (DoubleParens, LintLevel::Warn, "unnecesary double parentheses"),
+//!   (DoubleParens, LintLevel::Warn, "unnecessary parentheses", "remove the extra parentheses for clarity"),
 //! }
 //! ```
 //!
@@ -52,7 +52,7 @@
 //!         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
 //!             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
 //!                 // we push the lint to the buffer
-//!                 push_lint!(Self, expr.span, buffer);
+//!                 buffer.push(lint!(self, child.span))
 //!             }
 //!         }
 //!     }

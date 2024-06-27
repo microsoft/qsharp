@@ -82,6 +82,9 @@ pub fn walk_callable_impl<'a>(vis: &mut impl MutVisitor<'a>, callable_impl: &'a 
         CallableImpl::Spec(spec_impl) => {
             vis.visit_spec_impl(spec_impl);
         }
+        CallableImpl::SimulatableIntrinsic(spec_decl) => {
+            vis.visit_spec_decl(spec_decl);
+        }
     }
 }
 

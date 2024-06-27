@@ -1,19 +1,30 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import pytest
+
 import qsharp
-from pyqir import (
-    Call,
-    Context,
-    Module,
-    Opcode,
-    qubit_id,
-    result_id,
-    required_num_qubits,
-    required_num_results,
-)
+
+try:
+    from pyqir import (
+        Call,
+        Context,
+        Module,
+        Opcode,
+        qubit_id,
+        result_id,
+        required_num_qubits,
+        required_num_results,
+    )
+
+    PYQIR_AVAILABLE = True
+except ImportError:
+    PYQIR_AVAILABLE = False
+
+SKIP_REASON = "PyQIR is not available"
 
 
+@pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
@@ -39,6 +50,7 @@ def test_compile_qir_input_data() -> None:
     assert func.basic_blocks[0].instructions[5].opcode == Opcode.RET
 
 
+@pytest.mark.skipif(not PYQIR_AVAILABLE, reason=SKIP_REASON)
 def test_compile_qir_all_gates() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     operation = qsharp.compile(

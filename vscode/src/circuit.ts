@@ -334,7 +334,7 @@ export function updateCircuitPanel(
 ) {
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
-    : projectName || "Circuit";
+    : projectName;
 
   // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
   const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;

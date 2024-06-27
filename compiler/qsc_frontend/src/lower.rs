@@ -326,6 +326,17 @@ impl With<'_> {
                 }
                 None
             }
+            Ok(hir::Attr::SimulatableIntrinsic) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => {
+                    Some(hir::Attr::SimulatableIntrinsic)
+                }
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),

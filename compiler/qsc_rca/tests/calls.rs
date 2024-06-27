@@ -229,3 +229,60 @@ fn check_rca_for_call_to_operation_with_one_classical_return_and_one_dynamic_ret
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_intrinsic() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        @SimulatableIntrinsic()
+        operation Foo() : Unit {
+            mutable a = 0;
+            use q = Qubit();
+            if M(q) == Zero {
+                set a = 1;
+            }
+            Message($"a = {a}");
+        }
+        Foo()"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Element(Static)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_intrinsic_that_takes_qubit_arg(
+) {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        @SimulatableIntrinsic()
+        operation Foo(q : Qubit) : Unit {
+            mutable a = 0;
+            if M(q) == Zero {
+                set a = 1;
+            }
+            Message($"a = {a}");
+        }
+        use q = Qubit();
+        Foo(q)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Element(Static)
+                dynamic_param_applications: <empty>"#]],
+    );
+}

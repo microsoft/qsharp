@@ -313,6 +313,15 @@ pub struct ApplicationGeneratorSet {
     pub(crate) dynamic_param_applications: Vec<ParamApplication>,
 }
 
+impl Default for ApplicationGeneratorSet {
+    fn default() -> Self {
+        Self {
+            inherent: ComputeKind::Classical,
+            dynamic_param_applications: Vec::new(),
+        }
+    }
+}
+
 impl Display for ApplicationGeneratorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);

@@ -228,6 +228,75 @@ if build_cli:
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
     step_end()
 
+
+def install_qsharp_python_package(cwd, wheelhouse, interpreter):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheelhouse,
+        "qsharp",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+# If any package fails to install when using a requirements file, the entire
+# process will fail with unpredicatable state of installed packages. To avoid
+# this, we install each package individually from the requirements file.
+#
+# The reason we allow failures is that tooling for integration tests may not
+# be available on all platforms, so we don't want to fail the build if we can't
+# run the tests. The CI will run the tests on the platforms where the tooling
+# is available giving us the confidence that the tests pass on those platforms.
+def install_python_test_requirements(cwd, interpreter, check: bool = True):
+    requirements_file_path = os.path.join(cwd, "test_requirements.txt")
+    with open(requirements_file_path, "r", encoding="utf-8") as f:
+        # Skip empty lines
+        requirements = [line for line in f if line.strip()]
+    for requirement in requirements:
+        command_args = [
+            interpreter,
+            "-m",
+            "pip",
+            "install",
+            requirement,
+            "--only-binary",
+            "qirrunner",
+            "--only-binary",
+            "pyqir",
+        ]
+        subprocess.run(command_args, check=check, text=True, cwd=cwd)
+
+
+def build_qsharp_wheel(cwd, out_dir, interpreter, pip_env_dir):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "wheel",
+        "--wheel-dir",
+        out_dir,
+        "-v",
+        cwd,
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd, env=pip_env_dir)
+
+
+def run_python_tests(cwd, interpreter):
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def run_python_integration_tests(cwd, interpreter):
+    # don't check to see if pip succeeds. We'll see if the import works later.
+    # If it doesn't, we'll skip the tests.
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
 if build_pip:
     step_start("Building the pip package")
 
@@ -239,70 +308,29 @@ if build_pip:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
-    pip_build_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "wheel",
-        "--wheel-dir",
-        wheels_dir,
-        "-v",
-        pip_src,
-    ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
+    build_qsharp_wheel(pip_src, wheels_dir, python_bin, pip_env)
+    step_end()
 
     if run_tests:
-        print("Running tests for the pip package")
+        step_start("Running tests for the pip package")
 
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            "--no-index",
-            "--find-links=" + wheels_dir,
-            f"qsharp",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(
-            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
-        )
+        install_python_test_requirements(pip_src, python_bin)
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+        run_python_tests(os.path.join(pip_src, "tests"), python_bin)
 
-        qir_test_dir = os.path.join(pip_src, "tests-qir")
-        # Try to install PyQIR and if successful, run additional tests.
-        qir_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
-        pyqir_check_args = [python_bin, "-c", "import pyqir"]
-        if (
-            subprocess.run(
-                pyqir_check_args, check=False, text=True, cwd=qir_test_dir
-            ).returncode
-            == 0
-        ):
-            print("Running tests for the pip package with PyQIR")
-            pytest_args = [python_bin, "-m", "pytest"]
-            subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
-        else:
-            print("Could not import PyQIR, skipping tests")
-    step_end()
+        step_end()
+
+    if args.integration_tests:
+        step_start("Running integration tests for the pip package")
+        test_dir = os.path.join(pip_src, "tests-integration")
+
+        install_python_test_requirements(test_dir, python_bin, check=False)
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+
+        run_python_integration_tests(test_dir, python_bin)
+
+        step_end()
+
 
 if build_widgets:
     step_start("Building the Python widgets")

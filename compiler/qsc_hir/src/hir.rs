@@ -1320,6 +1320,9 @@ pub enum Attr {
     EntryPoint,
     /// Indicates that an item does not have an implementation available for use.
     Unimplemented,
+    /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
+    /// and any implementation should be ignored.
+    SimulatableIntrinsic,
 }
 
 impl FromStr for Attr {
@@ -1330,6 +1333,7 @@ impl FromStr for Attr {
             "Config" => Ok(Self::Config),
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
+            "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             _ => Err(()),
         }
     }

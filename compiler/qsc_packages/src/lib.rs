@@ -544,28 +544,28 @@ mod tests {
                                     ),
                                 }: Udt {
                                     span: Span {
-                                        lo: 264819,
-                                        hi: 264924,
+                                        lo: 265534,
+                                        hi: 265639,
                                     },
                                     name: "AndChain",
                                     definition: UdtDef {
                                         span: Span {
-                                            lo: 264847,
-                                            hi: 264923,
+                                            lo: 265562,
+                                            hi: 265638,
                                         },
                                         kind: Tuple(
                                             [
                                                 UdtDef {
                                                     span: Span {
-                                                        lo: 264857,
-                                                        hi: 264877,
+                                                        lo: 265572,
+                                                        hi: 265592,
                                                     },
                                                     kind: Field(
                                                         UdtField {
                                                             name_span: Some(
                                                                 Span {
-                                                                    lo: 264857,
-                                                                    hi: 264871,
+                                                                    lo: 265572,
+                                                                    hi: 265586,
                                                                 },
                                                             ),
                                                             name: Some(
@@ -579,15 +579,15 @@ mod tests {
                                                 },
                                                 UdtDef {
                                                     span: Span {
-                                                        lo: 264887,
-                                                        hi: 264917,
+                                                        lo: 265602,
+                                                        hi: 265632,
                                                     },
                                                     kind: Field(
                                                         UdtField {
                                                             name_span: Some(
                                                                 Span {
-                                                                    lo: 264887,
-                                                                    hi: 264892,
+                                                                    lo: 265602,
+                                                                    hi: 265607,
                                                                 },
                                                             ),
                                                             name: Some(
