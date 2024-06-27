@@ -711,7 +711,15 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     RedundantSemicolons,
                                 ),
-                                code_action_edits: [],
+                                code_action_edits: [
+                                    (
+                                        "",
+                                        Span {
+                                            lo: 34,
+                                            hi: 37,
+                                        },
+                                    ),
+                                ],
                             },
                         ),
                     ],
@@ -1539,7 +1547,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
-                        code_action_edits: [],
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1589,7 +1612,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
-                        code_action_edits: [],
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
