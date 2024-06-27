@@ -219,6 +219,7 @@ if build_cli:
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
+            # Disable LTO for release tests to speed up compilation
             cargo_test_args.append("--config")
             cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
