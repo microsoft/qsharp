@@ -94,7 +94,6 @@ impl Compilation {
                 package_graph_sources,
             },
             compile_errors: errors,
-            kind: CompilationKind::OpenProject,
             project_errors,
         }
     }

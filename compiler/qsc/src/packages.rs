@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{compile, hir::PackageId, target::Profile, PackageStore, TargetCapabilityFlags};
+use crate::{compile, hir::PackageId, PackageStore, TargetCapabilityFlags};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::SourceMap;
 use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 /// A program that is ready to be built -- dependencies have all been built, and the user code is ready.
 #[derive(Debug)]
@@ -19,8 +19,10 @@ pub struct BuildableProgram {
 
 impl BuildableProgram {
     #[must_use]
-    pub fn new(profile: &str, package_graph_sources: PackageGraphSources) -> Self {
-        let capabilities = Profile::from_str(profile).expect("TODO(alex)").into();
+    pub fn new(
+        capabilities: TargetCapabilityFlags,
+        package_graph_sources: PackageGraphSources,
+    ) -> Self {
         prepare_package_store(capabilities, package_graph_sources)
     }
 }
@@ -109,12 +111,12 @@ mod tests {
     use expect_test::expect;
     use qsc_frontend::compile::SourceMap;
     use qsc_passes::PackageType;
-    use qsc_project::{LoadedProject, PackageInfo};
+    use qsc_project::{PackageInfo, Project};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    fn mock_program() -> LoadedProject {
-        LoadedProject {
+    fn mock_program() -> Project {
+        Project {
             // Mock data for the ProgramConfig
             package_graph_sources: qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
@@ -142,7 +144,7 @@ mod tests {
             },
             lints: vec![],
             errors: vec![],
-            manifest_path: "project/qsharp.json".into(),
+            path: "project/qsharp.json".into(),
             name: "project".into(),
         }
     }

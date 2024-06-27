@@ -12,9 +12,7 @@ use miette::Diagnostic;
 use qsc::{compile, project};
 use qsc::{target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
-use qsc_project::{
-    FileSystemAsync, JSProjectHost, LoadedProject, PackageCache, PackageGraphSources, Project,
-};
+use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
 use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
@@ -226,8 +224,10 @@ impl<'a> CompilationStateUpdater<'a> {
             }
 
             let compilation_overrides = PartialConfiguration {
-                language_features: Some(language_features),
-                lints_config,
+                language_features: Some(
+                    loaded_project.package_graph_sources.root.language_features,
+                ),
+                lints_config: loaded_project.lints,
                 ..PartialConfiguration::default()
             };
 
@@ -242,10 +242,9 @@ impl<'a> CompilationStateUpdater<'a> {
                 loaded_project.errors,
             );
 
-            state.compilations.insert(
-                compilation_uri.clone(),
-                (compilation, compilation_overrides),
-            );
+            state
+                .compilations
+                .insert(loaded_project.path, (compilation, compilation_overrides));
         });
     }
 

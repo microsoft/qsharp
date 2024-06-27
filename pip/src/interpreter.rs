@@ -23,7 +23,7 @@ use qsc::{
         CircuitEntryPoint, Value,
     },
     packages::BuildableProgram,
-    project::{FileSystem, Manifest, ManifestDescriptor, PackageCache, PackageGraphSources},
+    project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -77,8 +77,6 @@ pub(crate) struct Interpreter {
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
 
-thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
-
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
@@ -102,8 +100,7 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
         };
 
-        let mut language_features =
-            LanguageFeatures::from_iter(language_features.unwrap_or_default());
+        let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
 
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
@@ -120,12 +117,7 @@ impl Interpreter {
                     return Err(project.errors.into_py_err());
                 }
 
-                let (sources, project_features) =
-                    project.package_graph_sources.into_sources_temporary();
-
-                language_features.merge(LanguageFeatures::from_iter(project_features));
-
-                BuildableProgram::new(target.to_str(), project.package_graph_sources)
+                BuildableProgram::new(target.into(), project.package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -134,7 +126,7 @@ impl Interpreter {
                 Vec::default(),
                 LanguageFeatures::from_iter(language_features),
             );
-            BuildableProgram::new(target.to_str(), graph)
+            BuildableProgram::new(target.into(), graph)
         };
 
         match interpret::Interpreter::new(

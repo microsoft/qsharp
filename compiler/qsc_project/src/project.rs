@@ -15,20 +15,20 @@ use std::{
 };
 use thiserror::Error;
 
-/// Describes a Q# project with all its sources and dependencies resolved.
-#[derive(Debug)]
-pub struct LoadedProject {
-    /// Friendly name, typically based on project directory name
-    /// Not guaranteed to be unique. Don't use as a key.
-    pub name: Arc<str>,
-    /// Full path to the project's `qsharp.json` file
-    pub manifest_path: Arc<str>,
-    pub package_graph_sources: PackageGraphSources,
-    pub lints: Vec<LintConfig>,
-    pub errors: Vec<miette::Report>,
-}
+// /// Describes a Q# project with all its sources and dependencies resolved.
+// #[derive(Debug)]
+// pub struct Project {
+//     /// Friendly name, typically based on project directory name
+//     /// Not guaranteed to be unique. Don't use as a key.
+//     pub name: Arc<str>,
+//     /// Full path to the project's `qsharp.json` file
+//     pub manifest_path: Arc<str>,
+//     pub package_graph_sources: PackageGraphSources,
+//     pub lints: Vec<LintConfig>,
+//     pub errors: Vec<miette::Report>,
+// }
 
-/// Describes a Q# project
+/// Describes a Q# project with all its sources and dependencies resolved.
 #[derive(Debug, Clone)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
@@ -523,249 +523,249 @@ pub trait FileSystemAsync {
         stack.pop();
     }
 
-    async fn read_local_manifest_and_sources(&self, directory: &Path) -> miette::Result<Project> {
-        let manifest = self.parse_manifest_in_dir(directory).await?;
+    // async fn read_local_manifest_and_sources(&self, directory: &Path) -> miette::Result<Project> {
+    //     let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        self.load_project_sources(&ManifestDescriptor {
-            manifest_dir: directory.to_path_buf(),
-            manifest,
-        })
-        .await
-    }
+    //     self.load_project_sources(&ManifestDescriptor {
+    //         manifest_dir: directory.to_path_buf(),
+    //         manifest,
+    //     })
+    //     .await
+    // }
 
-    async fn read_github_manifest_and_sources(&self, dep: &GitHubRef) -> miette::Result<Project> {
-        let path = dep
-            .path
-            .as_ref()
-            .map(|p| if p == "/" { "" } else { p })
-            .unwrap_or_default();
-        let manifest_path = format!("{path}/qsharp.json",);
-        let manifest_content = self
-            .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &manifest_path)
-            .await?;
-        let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
-            miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
-        })?;
+    // async fn read_github_manifest_and_sources(&self, dep: &GitHubRef) -> miette::Result<Project> {
+    //     let path = dep
+    //         .path
+    //         .as_ref()
+    //         .map(|p| if p == "/" { "" } else { p })
+    //         .unwrap_or_default();
+    //     let manifest_path = format!("{path}/qsharp.json",);
+    //     let manifest_content = self
+    //         .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &manifest_path)
+    //         .await?;
+    //     let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
+    //         miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
+    //     })?;
 
-        // TODO: file list should be required for github packages (and possibly local packages too)
-        let mut sources = vec![];
-        for file in &manifest.files {
-            let path = format!("{path}/{file}");
-            let contents = self
-                .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
-                .await?;
-            sources.push((
-                format!(
-                    "qsharp-github-source:{}/{}/{}{path}",
-                    dep.owner, dep.repo, dep.r#ref
-                )
-                .into(),
-                contents,
-            ));
-        }
+    //     // TODO: file list should be required for github packages (and possibly local packages too)
+    //     let mut sources = vec![];
+    //     for file in &manifest.files {
+    //         let path = format!("{path}/{file}");
+    //         let contents = self
+    //             .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
+    //             .await?;
+    //         sources.push((
+    //             format!(
+    //                 "qsharp-github-source:{}/{}/{}{path}",
+    //                 dep.owner, dep.repo, dep.r#ref
+    //             )
+    //             .into(),
+    //             contents,
+    //         ));
+    //     }
 
-        Ok(Project {
-            sources,
-            manifest,
-            name: format!("{}/{}", dep.owner, dep.repo).into(),
-            manifest_path: manifest_path.into(),
-        })
-    }
+    //     Ok(Project {
+    //         sources,
+    //         manifest,
+    //         name: format!("{}/{}", dep.owner, dep.repo).into(),
+    //         manifest_path: manifest_path.into(),
+    //     })
+    // }
 
-    async fn read_manifest_and_sources(
-        &self,
-        this_pkg: &Dependency,
-    ) -> miette::Result<(Project, PackageInfo)> {
-        let mut project = match this_pkg {
-            Dependency::GitHub { github } => self.read_github_manifest_and_sources(github).await?,
-            Dependency::Path { path } => {
-                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())
-                    .await?
-            }
-        };
+    // async fn read_manifest_and_sources(
+    //     &self,
+    //     this_pkg: &Dependency,
+    // ) -> miette::Result<(Project, PackageInfo)> {
+    //     let mut project = match this_pkg {
+    //         Dependency::GitHub { github } => self.read_github_manifest_and_sources(github).await?,
+    //         Dependency::Path { path } => {
+    //             self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())
+    //                 .await?
+    //         }
+    //     };
 
-        let mut dependencies = FxHashMap::default();
-        for (alias, dep) in &mut project.manifest.dependencies {
-            if let Dependency::Path { path: dep_path } = dep {
-                if let Dependency::Path { path: this_path } = this_pkg {
-                    *dep_path = self
-                        .resolve_path(
-                            PathBuf::from(this_path).as_path(),
-                            PathBuf::from(dep_path.clone()).as_path(),
-                        )
-                        .await?
-                        .to_string_lossy()
-                        .into();
-                }
-            }
-            dependencies.insert(alias.clone().into(), key_for_dependency_definition(dep));
-        }
+    //     let mut dependencies = FxHashMap::default();
+    //     for (alias, dep) in &mut project.manifest.dependencies {
+    //         if let Dependency::Path { path: dep_path } = dep {
+    //             if let Dependency::Path { path: this_path } = this_pkg {
+    //                 *dep_path = self
+    //                     .resolve_path(
+    //                         PathBuf::from(this_path).as_path(),
+    //                         PathBuf::from(dep_path.clone()).as_path(),
+    //                     )
+    //                     .await?
+    //                     .to_string_lossy()
+    //                     .into();
+    //             }
+    //         }
+    //         dependencies.insert(alias.clone().into(), key_for_dependency_definition(dep));
+    //     }
 
-        let language_features = LanguageFeatures::from_iter(&project.manifest.language_features);
+    //     let language_features = LanguageFeatures::from_iter(&project.manifest.language_features);
 
-        let sources = project.sources.clone();
+    //     let sources = project.sources.clone();
 
-        Ok((
-            project,
-            PackageInfo {
-                sources,
-                language_features,
-                dependencies,
-            },
-        ))
-    }
+    //     Ok((
+    //         project,
+    //         PackageInfo {
+    //             sources,
+    //             language_features,
+    //             dependencies,
+    //         },
+    //     ))
+    // }
 
-    async fn read_manifest_and_sources_cached(
-        &self,
-        global_cache: &RefCell<PackageCache>,
-        key: PackageKey,
-        this_pkg: &Dependency,
-    ) -> miette::Result<(Project, PackageInfo)> {
-        {
-            let cache = global_cache.borrow();
-            if let Some(cached) = cache.get(&key) {
-                return cached.clone().map_err(miette::ErrReport::msg);
-            }
-        }
+    // async fn read_manifest_and_sources_cached(
+    //     &self,
+    //     global_cache: &RefCell<PackageCache>,
+    //     key: PackageKey,
+    //     this_pkg: &Dependency,
+    // ) -> miette::Result<(Project, PackageInfo)> {
+    //     {
+    //         let cache = global_cache.borrow();
+    //         if let Some(cached) = cache.get(&key) {
+    //             return cached.clone().map_err(miette::ErrReport::msg);
+    //         }
+    //     }
 
-        let result = self.read_manifest_and_sources(this_pkg).await;
+    //     let result = self.read_manifest_and_sources(this_pkg).await;
 
-        {
-            let mut cache = global_cache.borrow_mut();
-            cache.insert(
-                key,
-                match &result {
-                    Ok(result) => Ok(result.clone()),
-                    Err(e) => Err(e.to_string()),
-                },
-            );
-        }
-        result
-    }
+    //     {
+    //         let mut cache = global_cache.borrow_mut();
+    //         cache.insert(
+    //             key,
+    //             match &result {
+    //                 Ok(result) => Ok(result.clone()),
+    //                 Err(e) => Err(e.to_string()),
+    //             },
+    //         );
+    //     }
+    //     result
+    // }
 
-    #[allow(clippy::too_many_arguments)]
-    async fn collect_deps(
-        &self,
-        key: Arc<str>,
-        pkg: &PackageInfo,
-        global_cache: &RefCell<PackageCache>,
-        stack: &mut Vec<PackageKey>,
-        packages: &mut FxHashMap<PackageKey, PackageInfo>,
-        errors: &mut Vec<miette::Report>,
-        this_pkg: &Dependency,
-    ) {
-        stack.push(key.clone());
+    // #[allow(clippy::too_many_arguments)]
+    // async fn collect_deps(
+    //     &self,
+    //     key: Arc<str>,
+    //     pkg: &PackageInfo,
+    //     global_cache: &RefCell<PackageCache>,
+    //     stack: &mut Vec<PackageKey>,
+    //     packages: &mut FxHashMap<PackageKey, PackageInfo>,
+    //     errors: &mut Vec<miette::Report>,
+    //     this_pkg: &Dependency,
+    // ) {
+    //     stack.push(key.clone());
 
-        for (alias, dep_key) in &pkg.dependencies {
-            if stack.contains(dep_key) {
-                // TODO: ok to disallow circular dependencies?
-                // Technically we could support them but it's a pain
-                errors.push(miette::ErrReport::msg(format!(
-                    "Circular dependency detected: {alias} -> {dep_key}"
-                )));
-                continue;
-            }
+    //     for (alias, dep_key) in &pkg.dependencies {
+    //         if stack.contains(dep_key) {
+    //             // TODO: ok to disallow circular dependencies?
+    //             // Technically we could support them but it's a pain
+    //             errors.push(miette::ErrReport::msg(format!(
+    //                 "Circular dependency detected: {alias} -> {dep_key}"
+    //             )));
+    //             continue;
+    //         }
 
-            let dependency = decode_dependency_defintion_from_key(dep_key);
-            if matches!(dependency, Dependency::Path { .. })
-                && matches!(this_pkg, Dependency::GitHub { .. })
-            {
-                errors.push(miette::ErrReport::msg(
-                    "Local dependencies are not allowed in GitHub dependencies.",
-                ));
-                continue;
-            }
+    //         let dependency = decode_dependency_defintion_from_key(dep_key);
+    //         if matches!(dependency, Dependency::Path { .. })
+    //             && matches!(this_pkg, Dependency::GitHub { .. })
+    //         {
+    //             errors.push(miette::ErrReport::msg(
+    //                 "Local dependencies are not allowed in GitHub dependencies.",
+    //             ));
+    //             continue;
+    //         }
 
-            let dep_result = self
-                .read_manifest_and_sources_cached(global_cache, dep_key.clone(), &dependency)
-                .await;
+    //         let dep_result = self
+    //             .read_manifest_and_sources_cached(global_cache, dep_key.clone(), &dependency)
+    //             .await;
 
-            match dep_result {
-                Ok((_, pkg)) => {
-                    self.collect_deps(
-                        dep_key.clone(),
-                        &pkg,
-                        global_cache,
-                        stack,
-                        packages,
-                        errors,
-                        &dependency,
-                    )
-                    .await;
-                    // TODO: do we ever end up processing the same package twice, and is that a big deal?
-                    packages.insert(dep_key.clone(), pkg);
-                }
-                Err(e) => {
-                    errors.push(e);
-                }
-            };
+    //         match dep_result {
+    //             Ok((_, pkg)) => {
+    //                 self.collect_deps(
+    //                     dep_key.clone(),
+    //                     &pkg,
+    //                     global_cache,
+    //                     stack,
+    //                     packages,
+    //                     errors,
+    //                     &dependency,
+    //                 )
+    //                 .await;
+    //                 // TODO: do we ever end up processing the same package twice, and is that a big deal?
+    //                 packages.insert(dep_key.clone(), pkg);
+    //             }
+    //             Err(e) => {
+    //                 errors.push(e);
+    //             }
+    //         };
 
-            // TODO: absolute paths in manifests
-            // TODO: os-specific slashes in manifests
-        }
+    //         // TODO: absolute paths in manifests
+    //         // TODO: os-specific slashes in manifests
+    //     }
 
-        stack.pop();
-    }
+    //     stack.pop();
+    // }
 
-    async fn load_project_with_deps(
-        &self,
-        directory: &Path,
-        global_cache: Option<&RefCell<PackageCache>>,
-    ) -> miette::Result<LoadedProject> {
-        let manifest = self.parse_manifest_in_dir(directory).await?;
+    // async fn load_project_with_deps(
+    //     &self,
+    //     directory: &Path,
+    //     global_cache: Option<&RefCell<PackageCache>>,
+    // ) -> miette::Result<LoadedProject> {
+    //     let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        let mut errors = vec![];
-        let mut packages = FxHashMap::default();
-        let mut stack = vec![];
+    //     let mut errors = vec![];
+    //     let mut packages = FxHashMap::default();
+    //     let mut stack = vec![];
 
-        let root_dep = Dependency::Path {
-            path: directory.to_string_lossy().into(),
-        };
+    //     let root_dep = Dependency::Path {
+    //         path: directory.to_string_lossy().into(),
+    //     };
 
-        let result = self.read_manifest_and_sources(&root_dep).await;
-        let root = match result {
-            Ok(pkg) => Some(pkg),
-            Err(e) => {
-                errors.push(e);
-                None
-            }
-        };
+    //     let result = self.read_manifest_and_sources(&root_dep).await;
+    //     let root = match result {
+    //         Ok(pkg) => Some(pkg),
+    //         Err(e) => {
+    //             errors.push(e);
+    //             None
+    //         }
+    //     };
 
-        match root {
-            None => Err(miette::ErrReport::msg(format!(
-                "Failed to load root package : {}",
-                errors
-                    .into_iter()
-                    .map(|e| e.to_string())
-                    .collect::<Vec<_>>()
-                    .join("; ")
-            ))),
-            Some(root) => {
-                let (project, pkg) = root;
-                self.collect_deps(
-                    key_for_dependency_definition(&root_dep),
-                    &pkg,
-                    global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
-                    &mut stack,
-                    &mut packages,
-                    &mut errors,
-                    &root_dep,
-                )
-                .await;
+    //     match root {
+    //         None => Err(miette::ErrReport::msg(format!(
+    //             "Failed to load root package : {}",
+    //             errors
+    //                 .into_iter()
+    //                 .map(|e| e.to_string())
+    //                 .collect::<Vec<_>>()
+    //                 .join("; ")
+    //         ))),
+    //         Some(root) => {
+    //             let (project, pkg) = root;
+    //             self.collect_deps(
+    //                 key_for_dependency_definition(&root_dep),
+    //                 &pkg,
+    //                 global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
+    //                 &mut stack,
+    //                 &mut packages,
+    //                 &mut errors,
+    //                 &root_dep,
+    //             )
+    //             .await;
 
-                Ok(LoadedProject {
-                    package_graph_sources: PackageGraphSources {
-                        root: pkg,
-                        packages,
-                    },
-                    lints: manifest.lints,
-                    errors,
-                    name: project.name.clone(),
-                    manifest_path: project.manifest_path.clone(),
-                })
-            }
-        }
-    }
+    //             Ok(LoadedProject {
+    //                 package_graph_sources: PackageGraphSources {
+    //                     root: pkg,
+    //                     packages,
+    //                 },
+    //                 lints: manifest.lints,
+    //                 errors,
+    //                 name: project.name.clone(),
+    //                 manifest_path: project.manifest_path.clone(),
+    //             })
+    //         }
+    //     }
+    // }
 }
 
 /// Filters out any hidden files (files that start with '.')
@@ -818,6 +818,11 @@ pub struct PackageGraphSources {
     pub packages: FxHashMap<PackageKey, PackageInfo>,
 }
 
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
+
 impl PackageGraphSources {
     /// Temporary implementation which just concatenates all sources.
     /// This will be replaced soon to build and return all the dependencies
@@ -831,6 +836,77 @@ impl PackageGraphSources {
         }
 
         (sources, self.root.language_features)
+    }
+
+    /// Produces an ordered vector over the packages in the order they should be compiled
+    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        for (key, package_info) in &self.packages {
+            in_degree.entry(key).or_insert(0);
+            for dep in package_info.dependencies.values() {
+                graph.entry(dep).or_default().push(key);
+                *in_degree.entry(key).or_insert(0) += 1;
+            }
+        }
+
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree
+                        .get_mut(neighbor)
+                        .expect("graph pre-calculated this");
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        // if sorted_keys.len() != self.packages.len() {
+        //     return Err(DependencyCycle);
+        // }
+
+        let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        sorted_packages.sort_by_key(|(a_key, _pkg)| {
+            sorted_keys
+                .iter()
+                .position(|key| key.as_str() == &**a_key)
+                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
+        });
+
+        log::info!("build plan: {:#?}", sorted_keys);
+
+        Ok((sorted_packages, self.root))
+    }
+
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        language_features: LanguageFeatures,
+    ) -> Self {
+        Self {
+            root: PackageInfo {
+                sources,
+                language_features,
+                dependencies: FxHashMap::default(),
+            },
+            packages: FxHashMap::default(),
+        }
     }
 }
 

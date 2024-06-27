@@ -218,7 +218,7 @@ suite("Q# Language Service Tests", function suite() {
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(3, 16), new vscode.Position(3, 26)),
+      new vscode.Range(new vscode.Position(1, 16), new vscode.Position(1, 26)),
     );
     assert.equal(text, "MyFunction", "Test file contents don't match expected");
 
@@ -226,7 +226,7 @@ suite("Q# Language Service Tests", function suite() {
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       projectMainDocUri,
-      new vscode.Position(2, 18), // cursor on the usage of "MyFunction"
+      new vscode.Position(1, 20), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
     // Returned location should be in DepPackage on the definition of "MyFunction"
@@ -247,15 +247,15 @@ suite("Q# Language Service Tests", function suite() {
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(3, 8), new vscode.Position(3, 26)),
+      new vscode.Range(new vscode.Position(2, 4), new vscode.Position(2, 32)),
     );
-    assert.equal(text, "Library.MyFunction");
+    assert.equal(text, "GitHubDep.Library.MyFunction");
 
     // Verify go-to-definition works across packages
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       projectMainDocUri,
-      new vscode.Position(3, 20), // cursor on the usage of "MyFunction"
+      new vscode.Position(2, 30), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
     // Returned location should be in the web dependency on the definition of "MyFunction"

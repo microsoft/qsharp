@@ -4,7 +4,7 @@
 use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
-use qsc::{linter::LintConfig, LanguageFeatures};
+use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -56,15 +56,6 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, structural)]
-    async fn fetchGithub(
-        this: &ProjectHost,
-        owner: &str,
-        repo: &str,
-        r#ref: &str,
-        path: &str,
-    ) -> JsValue;
-
-    #[wasm_bindgen(method, structural)]
     async fn findManifestDirectory(this: &ProjectHost, docUri: &str) -> JsValue;
 
     /// Alias for an array of [sourceName, sourceContents] tuples
@@ -80,9 +71,6 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
-
-    #[wasm_bindgen(method, getter, structural)]
-    fn packageGraphSources(this: &ProgramConfig) -> IPackageGraphSources;
 }
 
 pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_sys::Function {
@@ -307,49 +295,18 @@ serializable_type! {
         dependencies: Record<string,string>;
     }"#
 }
-
-impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
-    fn from(value: qsc_project::PackageGraphSources) -> Self {
-        Self {
-            root: value.root.into(),
-            packages: value
-                .packages
-                .into_iter()
-                .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
-                .collect(),
-        }
-    }
-}
-
-serializable_type! {
-    PackageGraphSources,
-    {
-        pub root: PackageInfo,
-        pub packages: FxHashMap<PackageKey,PackageInfo>,
-    },
-    r#"
-    export type PackageKey = string;
-
-    export interface IPackageGraphSources {
-        root: IPackageInfo;
-        packages: Record<PackageKey,IPackageInfo>;
-    }"#,
-    IPackageGraphSources
-}
-
-serializable_type! {
-    PackageInfo,
-    {
-        pub sources: Vec<(String, String)>,
-        pub language_features: Vec<String>,
-        pub dependencies: FxHashMap<PackageAlias,PackageKey>,
-    },
-    r#"export interface IPackageInfo {
-        sources: [string, string][];
-        languageFeatures: string[];
-        dependencies: Record<string,string>;
-    }"#
-}
+// impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
+//     fn from(value: qsc_project::PackageGraphSources) -> Self {
+//         Self {
+//             root: value.root.into(),
+//             packages: value
+//                 .packages
+//                 .into_iter()
+//                 .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
+//                 .collect(),
+//         }
+//     }
+// }
 
 impl TryFrom<qsc_project::Project> for IProjectConfig {
     type Error = String;
@@ -452,9 +409,16 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
-    let (sources, language_features) = pkg_graph.into_sources_temporary();
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+    } = BuildableProgram::new(capabilities, pkg_graph);
 
-    let source_map = qsc::SourceMap::new(sources, entry.map(Into::into));
+    let sources = user_code.sources;
+
+    let source_map = qsc::SourceMap::new(sources, entry.map(std::convert::Into::into));
+    let language_features = qsc::LanguageFeatures::from_iter(user_code.language_features);
 
     (
         source_map,

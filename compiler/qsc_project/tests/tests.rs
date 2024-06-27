@@ -15,7 +15,7 @@ fn basic_manifest() {
     check(
         &"basic_manifest".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "basic_manifest",
                 path: "basic_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -52,7 +52,7 @@ fn circular_imports() {
     check(
         &"circular_imports".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "circular_imports",
                 path: "circular_imports/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -89,7 +89,7 @@ fn different_files_same_manifest() {
     check(
         &"different_files_same_manifest".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "different_files_same_manifest",
                 path: "different_files_same_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -126,7 +126,7 @@ fn empty_manifest() {
     check(
         &"empty_manifest".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "empty_manifest",
                 path: "empty_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -155,9 +155,13 @@ fn folder_structure() {
     check(
         &"folder_structure".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "folder_structure",
                 path: "folder_structure/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
                                 "folder_structure/src/Project.qs",
                                 "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
                             ),
@@ -191,7 +195,7 @@ fn hidden_files() {
     check(
         &"hidden_files".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "hidden_files",
                 path: "hidden_files/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -227,7 +231,7 @@ fn peer_file() {
     check(
         &"peer_file".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "peer_file",
                 path: "peer_file/qsharp.json",
                 package_graph_sources: PackageGraphSources {
@@ -268,7 +272,7 @@ fn language_feature() {
     check(
         &"language_feature".into(),
         &expect![[r#"
-            LoadedProject {
+            Project {
                 name: "language_feature",
                 path: "language_feature/qsharp.json",
                 package_graph_sources: PackageGraphSources {
