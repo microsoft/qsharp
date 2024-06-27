@@ -1,11 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This module contains the `Instrument` struct, used to make measurments
+//! in a quantum system.
+
 #[cfg(test)]
 mod tests;
 
 use crate::{operation::Operation, SquareMatrix, TOLERANCE};
 
+/// An instrument is the means by which we make measurements on a quantum system.
 pub struct Instrument {
     operations: Vec<Operation>,
     summed_operation: SquareMatrix,
@@ -15,6 +19,7 @@ pub struct Instrument {
 }
 
 impl Instrument {
+    /// Creates a new instrument.
     pub fn new(operations: Vec<Operation>) -> Self {
         let summed_operation: SquareMatrix = operations.iter().map(|op| op.matrix()).sum();
         let summed_effect: SquareMatrix = operations.iter().map(|op| op.effect_matrix()).sum();

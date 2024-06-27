@@ -41,6 +41,9 @@ pub mod kernel;
 pub mod operation;
 pub mod trajectory_simulator;
 
+/// A square matrix of `Complex<f64>`.
 pub type SquareMatrix = DMatrix<Complex<f64>>;
+/// A complex vector.
 pub type ComplexVector = DVector<Complex<f64>>;
-pub const TOLERANCE: f64 = 1e-12;
+/// Error tolerance used in the simulators.
+pub(crate) const TOLERANCE: f64 = 1e-12;

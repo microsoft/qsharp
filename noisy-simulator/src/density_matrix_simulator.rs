@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This module contains two structs: the `DensityMatrixSimulator` and its
+//! internal `DensityMatrix` state.
+
 #[cfg(test)]
 mod tests;
 
@@ -136,7 +139,7 @@ impl DensityMatrixSimulator {
         }
     }
 
-    /// Apply an arbitrary operation to given qubit ids.
+    /// Apply an operation to given qubit ids.
     pub fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) {
         self.state
             .apply_operation_matrix(operation.matrix(), qubits);
@@ -152,6 +155,8 @@ impl DensityMatrixSimulator {
 
     /// Performs selective evolution under the given instrument.
     /// Returns the index of the observed outcome.
+    ///
+    /// Use this method to perform measurements on the quantum system.
     pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> usize {
         self.sample_instrument_with_distribution(instrument, qubits, rand::random())
     }

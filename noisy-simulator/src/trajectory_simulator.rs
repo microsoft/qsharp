@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This module contains two structs: the `TrajectorySimulator` and its
+//! internal `StateVector` state.
+
 #[cfg(test)]
 mod tests;
 
@@ -9,6 +12,7 @@ use crate::{
     SquareMatrix, TOLERANCE,
 };
 
+/// A vector representing the state of a quantum system.
 pub struct StateVector {
     /// Dimension of the vector.
     dim: usize,
@@ -133,12 +137,14 @@ pub struct TrajectorySimulator {
 }
 
 impl TrajectorySimulator {
+    /// Creates a new `TrajectorySimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
         Self {
             state: StateVector::new(number_of_qubits),
         }
     }
 
+    /// Apply an operation to given qubit ids.
     pub fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) {
         let renormalization_factor = self
             .state
@@ -152,6 +158,7 @@ impl TrajectorySimulator {
         );
     }
 
+    /// Apply non selective evolution.
     pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) {
         let renormalization_factor = self
             .state
@@ -167,6 +174,8 @@ impl TrajectorySimulator {
 
     /// Performs selective evolution under the given instrument.
     /// Returns the index of the observed outcome.
+    ///
+    /// Use this method to perform measurements on the quantum system.
     pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> usize {
         self.sample_instrument_with_distribution(instrument, qubits, rand::random())
     }
@@ -243,6 +252,9 @@ impl TrajectorySimulator {
         self.state = state;
     }
 
+    /// Return theoretical change in trace due to operations that have been applied so far
+    /// In reality, the density matrix is always renormalized after instruments/operations
+    /// have been applied.
     pub fn trace_change(&self) -> f64 {
         self.state.trace_change()
     }

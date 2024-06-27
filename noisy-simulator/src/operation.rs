@@ -1,11 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This module contains the `Operation` struct and the `operation!` macro
+//! to conveniently construct operations from Kraus matrices.
+
 #[cfg(test)]
 mod tests;
 use crate::SquareMatrix;
 
 /// A helper macro to write operations more conveniently.
+///
+/// Example usage:
+/// ```
+/// // Create operation from two 2x2 Kraus matrices.
+/// operation!(
+///     [1., 0.;
+///      0., 0.;],
+///     [0., 0.;
+///      0., 0.;]
+/// )
+/// ```
 #[macro_export]
 macro_rules! operation {
     ($([$($($v:expr),* );*]),*) => {
@@ -17,6 +31,8 @@ macro_rules! operation {
     };
 }
 
+/// A quantum operation is a linear transformation that maps a valid density
+/// matrix to another valid density matrices.
 pub struct Operation {
     number_of_qubits: usize,
     kraus_operators: Vec<SquareMatrix>,

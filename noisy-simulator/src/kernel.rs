@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use nalgebra::Complex;
+//! This module contains the apply_kernel function used by the `DensityMatrixSimualtor`
+//! and the `TrajectorySimulator`.
+
 use crate::{ComplexVector, SquareMatrix};
+use nalgebra::Complex;
 
 /// This function extracts the relevant entries from the `state_vector` into its own vector.
 /// Then it applies the `operation_matrix` to this extracted entries.
