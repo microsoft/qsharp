@@ -1,5 +1,5 @@
 [package]
-name = "noisy-simulator-rs"
+name = "noisy-simulator"
 version = "0.1.0"
 edition = "2021"
 
