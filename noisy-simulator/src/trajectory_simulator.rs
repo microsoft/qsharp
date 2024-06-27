@@ -37,6 +37,11 @@ impl StateVector {
         }
     }
 
+    /// Returns a reference to the vector containing the density matrix's data.
+    pub fn data(&self) -> &ComplexVector {
+        &self.data
+    }
+
     /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
     pub fn dim(&self) -> usize {
         self.dim
@@ -252,10 +257,41 @@ impl TrajectorySimulator {
         self.state = state;
     }
 
+    /// For debugging and testing purposes.
+    pub fn set_state_from_vec(&mut self, data: ComplexVector) {
+        let provided_len = data.len();
+        let self_len = self.state.data.len();
+        assert_eq!(
+            provided_len,
+            self_len,
+            "the provided state should have the same dimensions as the quantum system's state {} != {}",
+            provided_len,
+            self_len
+        );
+
+        let state = StateVector {
+            dim: self.state.dim(),
+            number_of_qubits: self.state.number_of_qubits(),
+            trace_change: self.trace_change(),
+            data,
+        };
+
+        self.set_state(state);
+    }
+
     /// Return theoretical change in trace due to operations that have been applied so far
     /// In reality, the density matrix is always renormalized after instruments/operations
     /// have been applied.
     pub fn trace_change(&self) -> f64 {
         self.state.trace_change()
+    }
+
+    /// For debugging and testing purposes.
+    pub fn set_trace(&mut self, trace: f64) {
+        assert!(
+            trace >= TOLERANCE && (trace - 1.) <= TOLERANCE,
+            "Trace needs to be between 0 and 1, but it is {trace}"
+        );
+        self.state.trace_change = trace;
     }
 }

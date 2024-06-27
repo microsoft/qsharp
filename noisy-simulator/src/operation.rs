@@ -33,6 +33,7 @@ macro_rules! operation {
 
 /// A quantum operation is a linear transformation that maps a valid density
 /// matrix to another valid density matrices.
+#[derive(Clone)]
 pub struct Operation {
     number_of_qubits: usize,
     kraus_operators: Vec<SquareMatrix>,

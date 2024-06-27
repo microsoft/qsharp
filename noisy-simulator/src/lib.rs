@@ -47,3 +47,8 @@ pub type SquareMatrix = DMatrix<Complex<f64>>;
 pub type ComplexVector = DVector<Complex<f64>>;
 /// Error tolerance used in the simulators.
 pub(crate) const TOLERANCE: f64 = 1e-12;
+
+pub use {
+    density_matrix_simulator::DensityMatrixSimulator, instrument::Instrument, operation::Operation,
+    trajectory_simulator::TrajectorySimulator,
+};
