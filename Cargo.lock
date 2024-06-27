@@ -1290,6 +1290,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
 ]
 

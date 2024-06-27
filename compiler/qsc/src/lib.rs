@@ -32,7 +32,7 @@ pub mod ast {
 
 pub mod project {
     pub use qsc_project::{
-        DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor, PackageCache,
+        DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
         PackageGraphSources,
     };
 }

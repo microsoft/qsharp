@@ -17,7 +17,7 @@ fn basic_manifest() {
         &expect![[r#"
             LoadedProject {
                 name: "basic_manifest",
-                manifest_path: "basic_manifest/qsharp.json",
+                path: "basic_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -54,7 +54,7 @@ fn circular_imports() {
         &expect![[r#"
             LoadedProject {
                 name: "circular_imports",
-                manifest_path: "circular_imports/qsharp.json",
+                path: "circular_imports/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -91,7 +91,7 @@ fn different_files_same_manifest() {
         &expect![[r#"
             LoadedProject {
                 name: "different_files_same_manifest",
-                manifest_path: "different_files_same_manifest/qsharp.json",
+                path: "different_files_same_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -128,7 +128,7 @@ fn empty_manifest() {
         &expect![[r#"
             LoadedProject {
                 name: "empty_manifest",
-                manifest_path: "empty_manifest/qsharp.json",
+                path: "empty_manifest/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -157,11 +157,7 @@ fn folder_structure() {
         &expect![[r#"
             LoadedProject {
                 name: "folder_structure",
-                manifest_path: "folder_structure/qsharp.json",
-                package_graph_sources: PackageGraphSources {
-                    root: PackageInfo {
-                        sources: [
-                            (
+                path: "folder_structure/qsharp.json",
                                 "folder_structure/src/Project.qs",
                                 "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
                             ),
@@ -197,7 +193,7 @@ fn hidden_files() {
         &expect![[r#"
             LoadedProject {
                 name: "hidden_files",
-                manifest_path: "hidden_files/qsharp.json",
+                path: "hidden_files/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -233,7 +229,7 @@ fn peer_file() {
         &expect![[r#"
             LoadedProject {
                 name: "peer_file",
-                manifest_path: "peer_file/qsharp.json",
+                path: "peer_file/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -274,7 +270,7 @@ fn language_feature() {
         &expect![[r#"
             LoadedProject {
                 name: "language_feature",
-                manifest_path: "language_feature/qsharp.json",
+                path: "language_feature/qsharp.json",
                 package_graph_sources: PackageGraphSources {
                     root: PackageInfo {
                         sources: [
@@ -292,6 +288,173 @@ fn language_feature() {
                 },
                 lints: [],
                 errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn with_local_dep() {
+    check(
+        &"with_local_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "with_local_dep",
+                path: "with_local_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "with_local_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n        Dependency.LibraryFn();\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyDep": "{\"path\":\"local_dep\"}",
+                        },
+                    },
+                    packages: {
+                        "{\"path\":\"local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "local_dep/src/Dependency.qs",
+                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
+                        },
+                    },
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn transitive_dep() {
+    check(
+        &"transitive_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "transitive_dep",
+                path: "transitive_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "transitive_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyDep": "{\"path\":\"with_local_dep\"}",
+                        },
+                    },
+                    packages: {
+                        "{\"path\":\"local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "local_dep/src/Dependency.qs",
+                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
+                        },
+                        "{\"path\":\"with_local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "with_local_dep/src/Main.qs",
+                                    "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n        Dependency.LibraryFn();\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {
+                                "MyDep": "{\"path\":\"local_dep\"}",
+                            },
+                        },
+                    },
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn explicit_files_list() {
+    check(
+        &"explicit_files_list".into(),
+        &expect![[r#"
+            Project {
+                name: "explicit_files_list",
+                path: "explicit_files_list/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "explicit_files_list/src/Main.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn circular_dep() {
+    check(
+        &"circular_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "circular_dep",
+                path: "circular_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "circular_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {}\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyCircularDep": "{\"path\":\"circular_dep\"}",
+                        },
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [
+                    Circular(
+                        "REPLACED",
+                        "REPLACED",
+                    ),
+                ],
             }"#]],
     );
 }

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #[cfg(feature = "fs")]
-use crate::Error;
+use crate::StdFsError;
 #[cfg(feature = "fs")]
 use std::{
     env::current_dir,
@@ -27,14 +27,14 @@ pub struct Manifest {
     #[serde(default)]
     pub lints: Vec<LintConfig>,
     #[serde(default)]
-    pub dependencies: FxHashMap<String, Dependency>,
+    pub dependencies: FxHashMap<String, PackageRef>,
     #[serde(default)]
     pub files: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(untagged)]
-pub enum Dependency {
+pub enum PackageRef {
     GitHub { github: GitHubRef },
     Path { path: String },
 }
@@ -64,7 +64,7 @@ impl Manifest {
     /// name.
     pub fn load(
         manifest_path: Option<PathBuf>,
-    ) -> std::result::Result<Option<ManifestDescriptor>, Error> {
+    ) -> std::result::Result<Option<ManifestDescriptor>, StdFsError> {
         let dir = match manifest_path {
             Some(path) => path,
             None => current_dir()?,
@@ -76,7 +76,9 @@ impl Manifest {
     /// Returns [None] if no manifest named [`MANIFEST_FILE_NAME`] is found.
     /// Returns an error if a manifest is found, but is not parsable into the
     /// expected format.
-    pub fn load_from_path(path: PathBuf) -> std::result::Result<Option<ManifestDescriptor>, Error> {
+    pub fn load_from_path(
+        path: PathBuf,
+    ) -> std::result::Result<Option<ManifestDescriptor>, StdFsError> {
         // if the given path points to a file, change it to point to the parent folder.
         // This lets consumers pass in either the path directly to the manifest file, or the path
         // to the folder containing the manifest file.

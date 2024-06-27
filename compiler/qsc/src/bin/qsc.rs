@@ -17,7 +17,7 @@ use qsc_frontend::{
 use qsc_hir::hir::Package;
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, Manifest, StdFs};
+use qsc_project::{FileSystem, StdFs};
 use std::{
     concat, fs,
     io::{self, Read},
@@ -123,22 +123,28 @@ fn main() -> miette::Result<ExitCode> {
     if sources.is_empty() {
         // TODO(alex) resolve transitive dependencies from the manifest here
         let fs = StdFs;
-        let manifest = Manifest::load(cli.qsharp_json)?;
-        if let Some(manifest) = manifest {
-            let mut project = fs.load_project_with_deps(&manifest.manifest_dir, None)?;
-            let mut project_sources = project.package_graph_sources.root.sources;
+        if let Some(qsharp_json) = cli.qsharp_json {
+            if let Some(dir) = qsharp_json.parent() {
+                let project = match fs.load_project(dir, None) {
+                    Ok(project) => project,
+                    Err(errs) => {
+                        for e in errs {
+                            eprintln!("{e:?}");
+                        }
+                        return Ok(ExitCode::FAILURE);
+                    }
+                };
 
-            // Concatenate all the dependencies into the sources
-            // TODO: Properly convert these into something that the compiler & language service can use
-            for dep in project.package_graph_sources.packages.values_mut() {
-                project_sources.append(&mut dep.sources);
+                let (mut project_sources, language_features) =
+                    project.package_graph_sources.into_sources_temporary();
+
+                sources.append(&mut project_sources);
+
+                features.merge(LanguageFeatures::from_iter(language_features));
+            } else {
+                eprintln!("{} must have a parent directory", qsharp_json.display());
+                return Ok(ExitCode::FAILURE);
             }
-
-            sources.append(&mut project_sources);
-
-            features.merge(LanguageFeatures::from_iter(
-                manifest.manifest.language_features,
-            ));
         }
     }
 

@@ -92,7 +92,6 @@ def init(
             )
 
     manifest_contents = None
-    manifest_descriptor = None
     if project_root is not None:
         qsharp_json = join(project_root, "qsharp.json")
         if not exists(qsharp_json):
@@ -100,12 +99,8 @@ def init(
                 f"{qsharp_json} not found. qsharp.json should exist at the project root and be a valid JSON file."
             )
 
-        manifest_descriptor = {}
-        manifest_descriptor["manifest_dir"] = project_root
-
         try:
             (_, manifest_contents) = read_file(qsharp_json)
-            manifest_descriptor["manifest"] = manifest_contents
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
@@ -114,7 +109,7 @@ def init(
     _interpreter = Interpreter(
         target_profile,
         language_features,
-        manifest_descriptor,
+        project_root,
         read_file,
         list_directory,
         resolve,

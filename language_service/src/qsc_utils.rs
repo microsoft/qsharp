@@ -34,7 +34,6 @@ pub(crate) fn into_location(
         span,
         package_id,
         &compilation.package_store,
-        compilation.user_package_id,
         position_encoding,
     )
 }

@@ -118,7 +118,7 @@ export class QSharpLanguageService implements ILanguageService {
       readFile: async () => null,
       listDirectory: async () => [],
       resolvePath: async () => null,
-      fetchGithub: async () => null,
+      fetchGithub: async () => "",
       findManifestDirectory: async () => null,
     },
   ) {

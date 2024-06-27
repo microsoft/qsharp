@@ -6,13 +6,14 @@ mod tests;
 
 use super::compilation::Compilation;
 use super::protocol::{DiagnosticUpdate, NotebookMetadata};
-use crate::protocol::WorkspaceConfigurationUpdate;
-use log::{error, trace};
+use crate::protocol::{ErrorKind, WorkspaceConfigurationUpdate};
+use log::{debug, trace};
 use miette::Diagnostic;
-use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
+use qsc::{compile, project};
+use qsc::{target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
 use qsc_project::{
-    FileSystemAsync, JSProjectHost, LoadedProject, PackageCache, PackageGraphSources,
+    FileSystemAsync, JSProjectHost, LoadedProject, PackageCache, PackageGraphSources, Project,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
@@ -140,26 +141,16 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = self.load_manifest(&doc_uri).await;
-
-        let (compilation_uri, package_graph_sources, lints_config) = if let Some(project) = project
-        {
-            (
-                project.manifest_path,
-                project.package_graph_sources,
-                project.lints,
-            )
-        } else {
-            // If we are in single file mode, use the file's path as the compilation identifier.
-            (
-                doc_uri.clone(),
-                PackageGraphSources::with_no_dependencies(
-                    vec![(doc_uri.clone(), text.clone())],
-                    self.configuration.language_features,
-                ),
-                Vec::default(),
-            )
+        let project = match self.load_manifest(&doc_uri).await {
+            Ok(Some(p)) => p,
+            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
+            Err(errors) => Project {
+                errors,
+                ..Project::from_single_file(doc_uri.clone(), text.clone())
+            },
         };
+
+        let compilation_uri = project.path.clone();
 
         let prev_compilation_uri = self.with_state_mut(|state| {
             state
@@ -183,7 +174,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(&compilation_uri, lints_config, package_graph_sources);
+        self.insert_buffer_aware_compilation(project);
 
         self.publish_diagnostics();
     }
@@ -191,43 +182,43 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadedProject> {
+    async fn load_manifest(
+        &self,
+        doc_uri: &Arc<str>,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         if let Some(dir) = dir {
             let dir = PathBuf::from(dir.to_string());
             let res = self
                 .project_host
-                .load_project_with_deps(&dir, Some(&self.cache))
+                .load_project(&dir, Some(&self.cache))
                 .await;
             match res {
-                Ok(proj) => Some(proj),
+                Ok(proj) => Ok(Some(proj)),
                 Err(e) => {
-                    error!("failed to load manifest: {e:?}, defaulting to single-file mode");
-                    None
+                    debug!("failed to load manifest: {e:?}, defaulting to single-file mode");
+                    Err(e)
                 }
             }
         } else {
             trace!("Running in single file mode");
-            None
+            Ok(None)
         }
     }
 
-    /// This function takes a vector of sources and creates a compilation out of them.
+    /// This function takes a `LoadedProject` and creates a compilation out of them.
     /// It checks currently open documents and uses those buffers instead of any
     /// sources provided in the vector, effectively prioritizing open document contents
     /// over fs contents.
-    fn insert_buffer_aware_compilation(
-        &mut self,
-        compilation_uri: &Arc<str>,
-        lints_config: Vec<LintConfig>,
-        mut package_graph_sources: PackageGraphSources,
-    ) {
+    fn insert_buffer_aware_compilation(&mut self, mut loaded_project: Project) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
-            for (ref l_uri, ref mut source) in &mut package_graph_sources.root.sources {
+            for (ref l_uri, ref mut source) in
+                &mut loaded_project.package_graph_sources.root.sources
+            {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();
@@ -235,7 +226,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
 
             let compilation_overrides = PartialConfiguration {
-                language_features: Some(package_graph_sources.root.language_features),
+                language_features: Some(language_features),
                 lints_config,
                 ..PartialConfiguration::default()
             };
@@ -247,7 +238,8 @@ impl<'a> CompilationStateUpdater<'a> {
                 configuration.target_profile,
                 configuration.language_features,
                 &configuration.lints_config,
-                package_graph_sources,
+                loaded_project.package_graph_sources,
+                loaded_project.errors,
             );
 
             state.compilations.insert(
@@ -262,23 +254,13 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let removed_compilation = self.remove_open_document(uri);
 
+        // TODO: consume dependency sources as well
         if !removed_compilation {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents
             // for this document
-            if let Some(LoadedProject {
-                package_graph_sources,
-                manifest_path: compilation_uri,
-                lints: lints_config,
-                ..
-            }) = project
-            {
-                // TODO(alex) maybe preserve store and dependencies
-                self.insert_buffer_aware_compilation(
-                    &compilation_uri,
-                    lints_config,
-                    package_graph_sources,
-                );
+            if let Ok(Some(project)) = project {
+                self.insert_buffer_aware_compilation(project);
             }
         }
 
@@ -400,7 +382,12 @@ impl<'a> CompilationStateUpdater<'a> {
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
                 trace!("publishing diagnostics for {compilation_uri}");
-                for (uri, errors) in map_errors_to_docs(compilation_uri, &compilation.0.errors) {
+
+                for (uri, errors) in map_errors_to_docs(
+                    compilation_uri,
+                    &compilation.0.compile_errors,
+                    &compilation.0.project_errors,
+                ) {
                     if !docs_with_errors.insert(uri.clone()) {
                         // We already published diagnostics for this document for
                         // a different compilation.
@@ -423,7 +410,12 @@ impl<'a> CompilationStateUpdater<'a> {
         self.documents_with_errors = docs_with_errors;
     }
 
-    fn publish_diagnostics_for_doc(&self, state: &CompilationState, uri: &str, errors: Vec<Error>) {
+    fn publish_diagnostics_for_doc(
+        &self,
+        state: &CompilationState,
+        uri: &str,
+        errors: Vec<ErrorKind>,
+    ) {
         let version = state.open_documents.get(uri).map(|d| d.version);
         trace!(
             "publishing diagnostics for {uri} {version:?}): {} errors",
@@ -534,11 +526,12 @@ impl CompilationState {
 
 fn map_errors_to_docs(
     compilation_uri: &Arc<str>,
-    errors: &Vec<Error>,
-) -> FxHashMap<Arc<str>, Vec<Error>> {
+    compile_errors: &Vec<compile::Error>,
+    project_errors: &Vec<project::Error>,
+) -> FxHashMap<Arc<str>, Vec<ErrorKind>> {
     let mut map = FxHashMap::default();
 
-    for err in errors {
+    for err in compile_errors {
         // Use the compilation_uri as a location for span-less errors
         let doc = err
             .labels()
@@ -552,7 +545,17 @@ fn map_errors_to_docs(
 
         map.entry(doc.clone())
             .or_insert_with(Vec::new)
-            .push(err.clone());
+            .push(ErrorKind::from(err.clone()));
+    }
+
+    for err in project_errors {
+        let doc = err
+            .path()
+            .map_or(compilation_uri.clone(), |path| path.to_string().into());
+
+        map.entry(doc.clone())
+            .or_insert_with(Vec::new)
+            .push(ErrorKind::from(err.clone()));
     }
 
     map

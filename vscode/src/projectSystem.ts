@@ -10,7 +10,7 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
-import { updateQSharpJsonDiagnostics } from "./diagnostics";
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
@@ -133,14 +133,16 @@ async function readFileUri(
         uri: uri,
       };
     });
-  } catch (_err) {
+  } catch (err) {
     // `readFile` should throw the below if the file is not found
     if (
-      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+      !(err instanceof vscode.FileSystemError && err.code === "FileNotFound")
     ) {
-      log.error("Unexpected error trying to read file", _err);
+      log.error("Unexpected error trying to read file", err);
+      return null;
+    } else {
+      throw err;
     }
-    return null;
   }
 }
 
@@ -178,31 +180,12 @@ export async function loadProject(
     });
   }
 
-  // Clear diagnostics for this project
-  updateQSharpJsonDiagnostics(manifestDocument.manifest);
-
-  let project;
-  try {
-    project = await projectLoader.load_project_with_deps(
-      manifestDocument.directory.toString(),
-    );
-
-    // TODO: clean up error reporting
-    if (project.errors.length > 0) {
-      updateQSharpJsonDiagnostics(
-        manifestDocument.manifest,
-        project.errors.join(","),
-      );
-    }
-  } catch (e: any) {
-    updateQSharpJsonDiagnostics(
-      manifestDocument.manifest,
-      e.message ||
-        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-    );
-
-    throw e;
-  }
+  const project = invokeAndReportCommandDiagnostics(
+    async () =>
+      await projectLoader!.load_project_with_deps(
+        manifestDocument.directory.toString(),
+      ),
+  );
 
   return project;
 }
@@ -247,17 +230,20 @@ export function setGithubEndpoint(endpoint: string) {
 
 export function getGithubSourceContent(uri: URI): string | undefined {
   const key = uri.toString();
-  return githubSourceCache.get(key);
+  return knownGitHubSources.get(key);
 }
 
-const githubSourceCache = new Map<string, string>();
+const knownGitHubSources = new Map<string, string>();
 
+/**
+ * Makes a request to the GitHub raw content service to retrieve a file.
+ */
 export async function fetchGithubRaw(
   owner: string,
   repo: string,
   ref: string,
   path: string,
-): Promise<string | null> {
+): Promise<string> {
   const pathNoLeadingSlash = path.startsWith("/") ? path.slice(1) : path;
 
   const uri = `${githubEndpoint}/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
@@ -267,14 +253,16 @@ export async function fetchGithubRaw(
     log.warn(
       `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${response.status} ${response.statusText}`,
     );
-    return null;
+    throw new Error(
+      `Request to ${uri} failed with status ${response.status} ${response.statusText ? ": " + response.statusText : ""}`,
+    );
   }
 
   let text;
   try {
     text = await response.text();
 
-    githubSourceCache.set(
+    knownGitHubSources.set(
       URI.from({
         scheme: qsharpGithubUriScheme,
         path: `${owner}/${repo}/${ref}/${pathNoLeadingSlash}`,
@@ -286,11 +274,12 @@ export async function fetchGithubRaw(
       log.warn(
         `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${e.message}`,
       );
+      throw new Error(
+        `Request to ${uri} did not return text content: ${e.message}`,
+      );
     }
-    return null;
+    throw new Error(`Request to ${uri} did not return text content`);
   }
-
-  // TODO: report errors up
 
   return text;
 }

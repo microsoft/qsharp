@@ -1,0 +1,8 @@
+{
+  "author": "Microsoft",
+  "dependencies": {
+    "MyDep": {
+      "path": "../with_local_dep"
+    }
+  }
+}

@@ -117,7 +117,7 @@ export class Compiler implements ICompiler {
         readFile: async () => null,
         listDirectory: async () => [],
         resolvePath: async () => null,
-        fetchGithub: async () => null,
+        fetchGithub: async () => "",
         findManifestDirectory: async () => null,
       },
     );

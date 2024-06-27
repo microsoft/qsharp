@@ -27,7 +27,7 @@ impl DirEntry for JSFileEntry {
 /// Trait for interacting with a project host in JavaScript.
 #[async_trait(?Send)]
 pub trait JSProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>);
+    async fn read_file(&self, uri: &str) -> miette::Result<(Arc<str>, Arc<str>)>;
     async fn list_directory(&self, dir_uri: &str) -> Vec<JSFileEntry>;
     async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>>;
     async fn fetch_github(
@@ -36,7 +36,7 @@ pub trait JSProjectHost {
         repo: &str,
         r#ref: &str,
         path: &str,
-    ) -> Option<Arc<str>>;
+    ) -> miette::Result<Arc<str>>;
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>>;
 }
 
@@ -52,7 +52,7 @@ where
         &self,
         path: &std::path::Path,
     ) -> miette::Result<(std::sync::Arc<str>, std::sync::Arc<str>)> {
-        return Ok(self.read_file(&path.to_string_lossy()).await);
+        self.read_file(&path.to_string_lossy()).await
     }
 
     async fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
@@ -78,10 +78,6 @@ where
         r#ref: &str,
         path: &str,
     ) -> miette::Result<std::sync::Arc<str>> {
-        let content = self
-            .fetch_github(owner, repo, r#ref, path)
-            .await
-            .ok_or(Error::msg("Github content could not be retrieved"))?;
-        return Ok(content);
+        self.fetch_github(owner, repo, r#ref, path).await
     }
 }

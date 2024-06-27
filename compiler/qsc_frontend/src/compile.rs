@@ -13,7 +13,6 @@ use crate::{
     typeck::{self, Checker, Table},
 };
 
-use library::QSHARP_LIBRARY_URI_SCHEME;
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -419,6 +418,8 @@ pub fn compile_ast(
         dropped_names,
     }
 }
+
+pub const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 
 /// Compiles the core library.
 ///
