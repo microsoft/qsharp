@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::serializable_type;
+use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
-use qsc::linter::LintConfig;
-use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost};
+use miette::Report;
+use qsc::{linter::LintConfig, LanguageFeatures};
+use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{iter::FromIterator, path::PathBuf, str::FromStr, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, rc::Rc, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -15,6 +17,7 @@ export interface IProjectHost {
     readFile(uri: string): Promise<string | null>;
     listDirectory(uri: string): Promise<[string, number][]>;
     resolvePath(base: string, path: string): Promise<string | null>;
+    fetchGithub(owner: string, repo: string, ref: string, path: string): Promise<string>;
     findManifestDirectory(docUri: string): Promise<string | null>;
 }
 
@@ -23,8 +26,7 @@ export interface IProjectHost {
  * but with all the properties required and filled in with defaults where necessary.
  */
 export interface IProgramConfig {
-    sources: [string, string][];
-    languageFeatures: string[];
+    packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
 }
 "#;
@@ -35,14 +37,23 @@ extern "C" {
     pub type ProjectHost;
 
     // Methods of `IProjectHost``, expected to be implemented JS-side
-    #[wasm_bindgen(method, structural)]
-    async fn readFile(this: &ProjectHost, uri: &str) -> JsValue;
+    #[wasm_bindgen(method, structural, catch)]
+    async fn readFile(this: &ProjectHost, uri: &str) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, structural)]
     async fn listDirectory(this: &ProjectHost, uri: &str) -> JsValue;
 
     #[wasm_bindgen(method, structural)]
     async fn resolvePath(this: &ProjectHost, base: &str, path: &str) -> JsValue;
+
+    #[wasm_bindgen(method, structural, catch)]
+    async fn fetchGithub(
+        this: &ProjectHost,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, structural)]
     async fn findManifestDirectory(this: &ProjectHost, docUri: &str) -> JsValue;
@@ -56,10 +67,7 @@ extern "C" {
 
     // Getters for IProgramConfig
     #[wasm_bindgen(method, getter, structural)]
-    fn sources(this: &ProgramConfig) -> ProjectSources;
-
-    #[wasm_bindgen(method, getter, structural)]
-    fn languageFeatures(this: &ProgramConfig) -> Vec<String>;
+    fn packageGraphSources(this: &ProgramConfig) -> IPackageGraphSources;
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
@@ -74,6 +82,8 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     Into::<js_sys::Function>::into(val)
 }
 
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
+
 /// a minimal implementation for interacting with async JS filesystem callbacks to
 /// load project files
 #[wasm_bindgen]
@@ -81,11 +91,23 @@ pub struct ProjectLoader(ProjectHost);
 
 #[async_trait(?Send)]
 impl JSProjectHost for ProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+    async fn read_file(&self, uri: &str) -> miette::Result<(Arc<str>, Arc<str>)> {
         let name = Arc::from(uri);
 
-        let val = self.readFile(uri).await;
-        (name, val.as_string().unwrap_or_default().into())
+        match self.readFile(uri).await {
+            Ok(val) => Ok((name, val.as_string().unwrap_or_default().into())),
+
+            Err(js_val) => {
+                let err: js_sys::Error = js_val
+                    .dyn_into()
+                    .expect("exception should be an error type");
+                let message = err
+                    .message()
+                    .as_string()
+                    .expect("error message should be a string");
+                Err(Report::msg(message))
+            }
+        }
     }
 
     async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
@@ -128,6 +150,31 @@ impl JSProjectHost for ProjectHost {
         js_val.as_string().map(Into::into)
     }
 
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>> {
+        match self.fetchGithub(owner, repo, r#ref, path).await {
+            Ok(js_val) => Ok(js_val
+                .as_string()
+                .expect("fetchGithub should return a string or throw")
+                .into()),
+            Err(js_val) => {
+                let err: js_sys::Error = js_val
+                    .dyn_into()
+                    .expect("exception should be an error type");
+                let message = err
+                    .message()
+                    .as_string()
+                    .expect("error message should be a string");
+                Err(Report::msg(message))
+            }
+        }
+    }
+
     async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
         let js_val = self.findManifestDirectory(doc_uri).await;
         js_val.as_string().map(Into::into)
@@ -141,36 +188,110 @@ impl ProjectLoader {
         ProjectLoader(project_host)
     }
 
-    #[allow(clippy::from_iter_instead_of_collect)]
-    pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
-        match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
-            Ok(p) => Ok(p.into()),
-            Err(e) => Err(JsError::new(&format!("{e}")).into()),
+    pub async fn load_project_with_deps(
+        &self,
+        directory: String,
+    ) -> Result<IProjectConfig, String> {
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
+        let dir_path = std::path::Path::new(&directory);
+        let project_config = match self.0.load_project(dir_path, Some(&package_cache)).await {
+            Ok(loaded_project) => loaded_project,
+            Err(errs) => return Err(project_errors_into_qsharp_errors_json(&directory, &errs)),
+        };
+
+        // Will return error if project has errors
+        project_config.try_into()
+    }
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn project_errors_into_qsharp_errors_json(
+    project_dir: &str,
+    errs: &[qsc_project::Error],
+) -> String {
+    serde_json::to_string(&project_errors_into_qsharp_errors(project_dir, errs))
+        .expect("serializing errors to json should succeed")
+}
+
+impl From<qsc_project::PackageInfo> for PackageInfo {
+    fn from(value: qsc_project::PackageInfo) -> Self {
+        Self {
+            sources: value
+                .sources
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            language_features: value.language_features.into(),
+            dependencies: value
+                .dependencies
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
         }
     }
 }
 
-impl From<ProjectSources> for Vec<(String, String)> {
-    fn from(sources: ProjectSources) -> Self {
-        serde_wasm_bindgen::from_value(sources.into())
-            .expect("sources object should be an array of string pairs")
+impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
+    fn from(value: qsc_project::PackageGraphSources) -> Self {
+        Self {
+            root: value.root.into(),
+            packages: value
+                .packages
+                .into_iter()
+                .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
+                .collect(),
+        }
     }
 }
 
-impl From<qsc_project::Project> for IProjectConfig {
-    fn from(value: qsc_project::Project) -> Self {
+serializable_type! {
+    PackageGraphSources,
+    {
+        pub root: PackageInfo,
+        pub packages: FxHashMap<PackageKey,PackageInfo>,
+    },
+    r#"
+    export type PackageKey = string;
+
+    export interface IPackageGraphSources {
+        root: IPackageInfo;
+        packages: Record<PackageKey,IPackageInfo>;
+    }"#,
+    IPackageGraphSources
+}
+
+serializable_type! {
+    PackageInfo,
+    {
+        pub sources: Vec<(String, String)>,
+        pub language_features: Vec<String>,
+        pub dependencies: FxHashMap<PackageAlias,PackageKey>,
+    },
+    r#"export interface IPackageInfo {
+        sources: [string, string][];
+        languageFeatures: string[];
+        dependencies: Record<string,string>;
+    }"#
+}
+
+impl TryFrom<qsc_project::Project> for IProjectConfig {
+    type Error = String;
+
+    fn try_from(value: qsc_project::Project) -> Result<Self, Self::Error> {
+        if !value.errors.is_empty() {
+            return Err(project_errors_into_qsharp_errors_json(
+                &value.path,
+                &value.errors,
+            ));
+        }
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
-            project_uri: value.manifest_path.to_string(),
-            sources: value
-                .sources
-                .into_iter()
-                .map(|(a, b)| (a.to_string(), b.to_string()))
-                .collect(),
-            language_features: value.manifest.language_features,
-            lints: value.manifest.lints,
+            project_uri: value.path.to_string(),
+            lints: value.lints,
+            package_graph_sources: value.package_graph_sources.into(),
         };
-        project_config.into()
+        Ok(project_config.into())
     }
 }
 
@@ -179,8 +300,7 @@ serializable_type! {
     {
         pub project_name: String,
         pub project_uri: String,
-        pub sources: Vec<(String, String)>,
-        pub language_features: Vec<String>,
+        pub package_graph_sources: PackageGraphSources,
         pub lints: Vec<LintConfig>,
     },
     r#"export interface IProjectConfig {
@@ -192,20 +312,47 @@ serializable_type! {
          * Uri for the qsharp.json or the root source file (single file projects)
          */
         projectUri: string;
-        /**
-         * [sourceName, sourceContents] tuples
-         *
-         * In the future, for projects with dependencies, this will contain the
-         * full dependency graph and sources for all the packages referenced by the project.
-         */
-        sources: [string, string][];
-        languageFeatures: string[];
+        packageGraphSources: IPackageGraphSources;
         lints: {
           lint: string;
           level: string;
         }[];
     }"#,
     IProjectConfig
+}
+
+type PackageAlias = String;
+type PackageKey = String;
+
+impl From<PackageGraphSources> for qsc_project::PackageGraphSources {
+    fn from(value: PackageGraphSources) -> Self {
+        Self {
+            root: value.root.into(),
+            packages: value
+                .packages
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), v.into()))
+                .collect(),
+        }
+    }
+}
+
+impl From<PackageInfo> for qsc_project::PackageInfo {
+    fn from(value: PackageInfo) -> Self {
+        Self {
+            sources: value
+                .sources
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), Arc::from(v)))
+                .collect(),
+            language_features: LanguageFeatures::from_iter(value.language_features),
+            dependencies: value
+                .dependencies
+                .into_iter()
+                .map(|(k, v)| (Arc::from(k), Arc::from(v)))
+                .collect(),
+        }
+    }
 }
 
 /// This returns the common parameters that the compiler/interpreter uses
@@ -221,14 +368,13 @@ pub(crate) fn into_qsc_args(
     let capabilities = qsc::target::Profile::from_str(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
         .into();
-    let sources: Vec<(String, String)> = program.sources().into();
 
-    let source_map = qsc::SourceMap::new(
-        sources.into_iter().map(|(a, b)| (a.into(), b.into())),
-        entry.map(Into::into),
-    );
+    let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
-    let language_features = qsc::LanguageFeatures::from_iter(program.languageFeatures());
+    let (sources, language_features) = pkg_graph.into_sources_temporary();
+
+    let source_map = qsc::SourceMap::new(sources, entry.map(Into::into));
 
     (source_map, capabilities, language_features)
 }

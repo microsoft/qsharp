@@ -3,14 +3,13 @@
 
 use log::trace;
 use qsc::{
-    ast,
-    compile::{self, Error},
+    ast, compile,
     display::Lookup,
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
-    resolve,
+    project, resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
@@ -26,7 +25,8 @@ pub(crate) struct Compilation {
     /// The `PackageId` of the user package. User code
     /// is non-library code, i.e. all code except the std and core libs.
     pub user_package_id: PackageId,
-    pub errors: Vec<Error>,
+    pub project_errors: Vec<project::Error>,
+    pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
 }
 
@@ -50,6 +50,7 @@ impl Compilation {
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
+        project_errors: Vec<project::Error>,
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -90,8 +91,9 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
+            compile_errors: errors,
             kind: CompilationKind::OpenProject,
+            project_errors,
         }
     }
 
@@ -146,8 +148,9 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
+            compile_errors: errors,
             kind: CompilationKind::Notebook,
+            project_errors: Vec::new(),
         }
     }
 
@@ -248,14 +251,16 @@ impl Compilation {
                 target_profile,
                 language_features,
                 lints_config,
+                Vec::new(), // project errors will stay the same
             ),
             CompilationKind::Notebook => {
                 Self::new_notebook(sources, target_profile, language_features, lints_config)
             }
         };
+
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
-        self.errors = new.errors;
+        self.compile_errors = new.compile_errors;
     }
 }
 

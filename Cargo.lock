@@ -1189,10 +1189,13 @@ dependencies = [
  "async-trait",
  "expect-test",
  "futures",
+ "log",
  "miette",
+ "qsc_data_structures",
  "qsc_linter",
  "qsc_project",
  "regex-lite",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1287,6 +1290,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
 ]
 

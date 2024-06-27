@@ -23,12 +23,13 @@ import {
   ILanguageServiceWorker,
   QSharpLanguageService,
   languageServiceProtocol,
+  qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { LogLevel, log } from "./log.js";
 import { createProxy } from "./workers/browser.js";
 
-export { qsharpLibraryUriScheme };
+export { qsharpGithubUriScheme, qsharpLibraryUriScheme };
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -172,7 +173,22 @@ export type {
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
-export { type LanguageServiceEvent } from "./language-service/language-service.js";
+export {
+  getAllKatas,
+  getExerciseSources,
+  getKata,
+  type ContentItem,
+  type Example,
+  type Exercise,
+  type ExplainedSolution,
+  type ExplainedSolutionItem,
+  type Kata,
+  type KataSection,
+  type Lesson,
+  type LessonItem,
+  type Question,
+} from "./katas.js";
+export type { LanguageServiceEvent } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
 export { log, type LogLevel, type TargetProfile };
 export type {

@@ -1,23 +1,62 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{Manifest, ManifestDescriptor};
+use crate::{manifest::GitHubRef, Manifest, ManifestDescriptor, PackageRef};
 use async_trait::async_trait;
 use futures::FutureExt;
+use miette::Diagnostic;
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_linter::LintConfig;
+use rustc_hash::FxHashMap;
 use std::{
+    cell::RefCell,
     path::{Path, PathBuf},
     sync::Arc,
 };
+use thiserror::Error;
 
-/// Describes a Q# project
+/// Describes a Q# project with all its sources and dependencies resolved.
 #[derive(Debug)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
+    /// Not guaranteed to be unique. Don't use as a key.
     pub name: Arc<str>,
-    /// Full path to the project's `qsharp.json` file
-    pub manifest_path: Arc<str>,
-    pub sources: Vec<(Arc<str>, Arc<str>)>,
-    pub manifest: crate::Manifest,
+    /// A path that represents the whole project.
+    /// Typically the `qsharp.json` path for projects, or the document path for single files.
+    pub path: Arc<str>,
+    /// The package graph, including all sources and per-package
+    /// configuration settings.
+    pub package_graph_sources: PackageGraphSources,
+    /// Lint configuration for the project, typically comes from the root `qsharp.json`.
+    pub lints: Vec<LintConfig>,
+    /// Any errors encountered while loading the project.
+    pub errors: Vec<Error>,
+}
+
+impl Project {
+    #[must_use]
+    /// Given a source file, creates a project that contains just that file and
+    /// default configuration options.
+    pub fn from_single_file(name: Arc<str>, contents: Arc<str>) -> Self {
+        let display_name = PathBuf::from(name.as_ref())
+            .file_name()
+            .map_or_else(|| name.clone(), |f| f.to_string_lossy().into());
+
+        Self {
+            package_graph_sources: PackageGraphSources {
+                root: PackageInfo {
+                    sources: vec![(name.clone(), contents)],
+                    language_features: LanguageFeatures::default(),
+                    dependencies: FxHashMap::default(),
+                },
+                packages: FxHashMap::default(),
+            },
+            path: name,
+            name: display_name,
+            lints: Vec::default(),
+            errors: Vec::default(),
+        }
+    }
 }
 
 /// This enum represents a filesystem object type. It is analogous to [`std::fs::FileType`].
@@ -49,6 +88,60 @@ pub trait DirEntry {
     }
 }
 
+/// Errors that can occur during project loading and dependency resolution.
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("No `src` directory found for project")]
+    #[diagnostic(code("Qsc.Project.NoSrcDir"))]
+    NoSrcDir { path: String },
+
+    #[error("Failed to parse manifest: {error}")]
+    #[diagnostic(code("Qsc.Project.ManifestParse"))]
+    ManifestParse { path: String, error: String },
+
+    #[error("Failed to parse manifest for GitHub dependency {repo}/{owner} : {error}")]
+    #[diagnostic(code("Qsc.Project.GitHubManifestParse"))]
+    GitHubManifestParse {
+        path: String,
+        owner: String,
+        repo: String,
+        error: String,
+    },
+
+    #[error("Circular dependency detected between {0} and {1}")]
+    #[diagnostic(code("Qsc.Project.CircularDependency"))]
+    Circular(String, String),
+
+    #[error("GitHub dependency {0} contains a local dependency {1}, which is not supported")]
+    #[diagnostic(code("Qsc.Project.GitHubToLocal"))]
+    GitHubToLocal(String, String),
+
+    #[error("File system error: {0}")]
+    #[diagnostic(code("Qsc.Project.FileSystem"))]
+    FileSystem(String),
+
+    #[error("Error fetching from GitHub: {0}")]
+    #[diagnostic(code("Qsc.Project.GitHub"))]
+    GitHub(String),
+}
+
+impl Error {
+    #[must_use]
+    pub fn path(&self) -> Option<&String> {
+        match self {
+            Error::GitHubManifestParse { path, .. }
+            | Error::NoSrcDir { path }
+            | Error::ManifestParse { path, .. } => Some(path),
+            Error::GitHubToLocal(_, _)
+            | Error::FileSystem(_)
+            | Error::Circular(_, _)
+            | Error::GitHub(_) => None,
+        }
+    }
+}
+
+type ProjectResult<T> = Result<T, Error>;
+
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
 /// A Q# project requires some multi-file structure, but that may not actually be
 /// an OS filesystem. It could be a virtual filesystem on vscode.dev, or perhaps a
@@ -68,12 +161,24 @@ pub trait FileSystemAsync {
     /// the path, i.e. replace '..', '.', and redundant separators.
     async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
 
+    /// Given a path to a file hosted on GitHub, fetches it from GitHub and returns the contents.
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>>;
+
     /// Given an initial path, fetch files matching <initial_path>/**/*.qs
     async fn collect_project_sources(
         &self,
         initial_path: &Path,
-    ) -> miette::Result<Vec<Self::Entry>> {
-        let listing = self.list_directory(initial_path).await?;
+    ) -> ProjectResult<Vec<Self::Entry>> {
+        let listing = self
+            .list_directory(initial_path)
+            .await
+            .map_err(|e| Error::FileSystem(e.to_string()))?;
         if let Some(src_dir) = listing.into_iter().find(|x| {
             let Ok(entry_type) = x.entry_type() else {
                 return false;
@@ -82,17 +187,20 @@ pub trait FileSystemAsync {
         }) {
             self.collect_project_sources_inner(&src_dir.path()).await
         } else {
-            Err(miette::ErrReport::msg(
-                "No `src` directory found for project.",
-            ))
+            Err(Error::NoSrcDir {
+                path: initial_path.to_string_lossy().to_string(),
+            })
         }
     }
 
     async fn collect_project_sources_inner(
         &self,
         initial_path: &Path,
-    ) -> miette::Result<Vec<Self::Entry>> {
-        let listing = self.list_directory(initial_path).await?;
+    ) -> ProjectResult<Vec<Self::Entry>> {
+        let listing = self
+            .list_directory(initial_path)
+            .await
+            .map_err(|e| Error::FileSystem(e.to_string()))?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
@@ -106,54 +214,300 @@ pub trait FileSystemAsync {
         Ok(files)
     }
 
-    /// Given a [ManifestDescriptor], load project sources.
-    async fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
-        let project_path = manifest.manifest_dir.clone();
-        let qs_files = self.collect_project_sources(&project_path).await?;
+    /// Given a directory, loads the project sources
+    /// and the sources for all its dependencies.
+    async fn load_project(
+        &self,
+        directory: &Path,
+        global_cache: Option<&RefCell<PackageCache>>,
+    ) -> Result<Project, Vec<Error>> {
+        let manifest = self
+            .parse_manifest_in_dir(directory)
+            .await
+            .map_err(|e| vec![e])?;
 
-        let qs_files = qs_files.into_iter().map(|file| file.path());
+        let root = self
+            .read_local_manifest_and_sources(directory)
+            .await
+            .map_err(|e| vec![e])?;
+
+        let mut errors = vec![];
+        let mut packages = FxHashMap::default();
+        let mut stack = vec![];
+
+        let root_path = directory.to_string_lossy().to_string();
+        let root_ref = PackageRef::Path { path: root_path };
+
+        self.collect_deps(
+            key_for_dependency_definition(&root_ref),
+            &root,
+            global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
+            &mut stack,
+            &mut packages,
+            &mut errors,
+            &root_ref,
+        )
+        .await;
+
+        let name = directory
+            .file_name()
+            .map(|f| f.to_string_lossy().into())
+            .unwrap_or(format!("Q# project at {}", directory.display()))
+            .into();
+
+        let manifest_path = self
+            .resolve_path(directory, Path::new("qsharp.json"))
+            .await
+            .map_err(|e| vec![Error::FileSystem(e.to_string())])?
+            .to_string_lossy()
+            .into();
+
+        Ok(Project {
+            package_graph_sources: PackageGraphSources { root, packages },
+            lints: manifest.lints,
+            errors,
+            name,
+            path: manifest_path,
+        })
+    }
+
+    /// Given a directory, attemps to parse a `qsharp.json` in that directory
+    /// according to the manifest schema.
+    async fn parse_manifest_in_dir(&self, directory: &Path) -> ProjectResult<Manifest> {
+        let manifest_path = self
+            .resolve_path(directory, Path::new("qsharp.json"))
+            .await
+            .map_err(|e| Error::FileSystem(e.to_string()))?;
+        let (_, manifest_content) = self
+            .read_file(&manifest_path)
+            .await
+            .map_err(|e| Error::FileSystem(e.to_string()))?;
+        let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
+            Error::ManifestParse {
+                path: manifest_path.to_string_lossy().to_string(),
+                error: e.to_string(),
+            }
+        })?;
+        Ok(manifest)
+    }
+
+    /// Load the sources for a single package at the given directory. Also load its
+    /// dependency information but don't recurse into dependencies yet.
+    async fn read_local_manifest_and_sources(
+        &self,
+        directory: &Path,
+    ) -> ProjectResult<PackageInfo> {
+        let manifest = self.parse_manifest_in_dir(directory).await?;
+
+        let manifest = ManifestDescriptor {
+            manifest_dir: directory.to_path_buf(),
+            manifest,
+        };
+
+        let project_path = manifest.manifest_dir.clone();
+
+        // If the `files` field exists in the manifest, prefer that.
+        // Otherwise, collect all files in the project directory.
+        let qs_files: Vec<PathBuf> = if manifest.manifest.files.is_empty() {
+            let qs_files = self.collect_project_sources(&project_path).await?;
+            qs_files.into_iter().map(|file| file.path()).collect()
+        } else {
+            let mut v = vec![];
+            for file in manifest.manifest.files {
+                v.push(
+                    self.resolve_path(&project_path, Path::new(&file))
+                        .await
+                        .map_err(|e| Error::FileSystem(e.to_string()))?,
+                );
+            }
+            v
+        };
 
         let mut sources = Vec::with_capacity(qs_files.len());
         for path in qs_files {
-            sources.push(self.read_file(&path).await?);
+            sources.push(
+                self.read_file(&path)
+                    .await
+                    .map_err(|e| Error::FileSystem(e.to_string()))?,
+            );
         }
 
-        let manifest_path = self
-            .resolve_path(&manifest.manifest_dir, Path::new("qsharp.json"))
-            .await?;
+        let mut dependencies = FxHashMap::default();
 
-        Ok(Project {
-            name: manifest
-                .manifest_dir
-                .file_name()
-                .map(|f| f.to_string_lossy().into())
-                .unwrap_or(format!("Q# project at {}", manifest.manifest_dir.display()).into()),
-            manifest_path: manifest_path.to_string_lossy().into(),
-            manifest: manifest.manifest.clone(),
+        // For any local dependencies, convert relative paths to absolute,
+        // so that multiple references to the same package, from different packages,
+        // get merged correctly.
+        for (alias, mut dep) in manifest.manifest.dependencies {
+            if let PackageRef::Path { path: dep_path } = &mut dep {
+                *dep_path = self
+                    .resolve_path(&project_path, &PathBuf::from(dep_path.clone()))
+                    .await
+                    .map_err(|e| Error::FileSystem(e.to_string()))?
+                    .to_string_lossy()
+                    .into();
+            }
+            dependencies.insert(alias.into(), key_for_dependency_definition(&dep));
+        }
+
+        Ok(PackageInfo {
             sources,
+            language_features: LanguageFeatures::from_iter(&manifest.manifest.language_features),
+            dependencies,
         })
     }
 
-    /// Given a directory path, parse the manifest and load the project sources.
-    async fn load_project_in_dir(&self, directory: &Path) -> miette::Result<Project> {
-        let manifest = self.parse_manifest_in_dir(directory).await?;
+    /// Load the sources for a single package at the given GitHub ref. Also load its
+    /// dependency information but don't recurse into dependencies yet.
+    async fn read_github_manifest_and_sources(
+        &self,
+        dep: &GitHubRef,
+    ) -> ProjectResult<PackageInfo> {
+        let path_no_trailing_sep = dep
+            .path
+            .as_ref()
+            .map(|p| if p == "/" { "" } else { p })
+            .unwrap_or_default();
 
-        self.load_project(&ManifestDescriptor {
-            manifest_dir: directory.to_path_buf(),
-            manifest,
-        })
-        .await
-    }
+        let manifest_path = format!("{path_no_trailing_sep}/qsharp.json",);
+        let manifest_content = self
+            .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &manifest_path)
+            .await
+            .map_err(|e| Error::GitHub(e.to_string()))?;
 
-    async fn parse_manifest_in_dir(&self, directory: &Path) -> Result<Manifest, miette::Error> {
-        let manifest_path = self
-            .resolve_path(directory, Path::new("qsharp.json"))
-            .await?;
-        let (_, manifest_content) = self.read_file(&manifest_path).await?;
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
-            miette::ErrReport::msg(format!("Failed to parse `qsharp.json` file: {e}"))
+            Error::GitHubManifestParse {
+                path: format!(
+                    "qsharp-github-source:{}/{}/{}{path_no_trailing_sep}",
+                    dep.owner, dep.repo, dep.r#ref
+                ),
+                owner: dep.owner.clone(),
+                repo: dep.repo.clone(),
+                error: e.to_string(),
+            }
         })?;
-        Ok(manifest)
+
+        // Look at the files field in the manifest to find the sources.
+        let mut sources = vec![];
+        for file in &manifest.files {
+            let path = format!("{path_no_trailing_sep}/{file}");
+            let contents = self
+                .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
+                .await
+                .map_err(|e| Error::GitHub(e.to_string()))?;
+
+            // Use the well-known URI scheme for the generated GitHub source paths.
+            // This will allow the editor to recognize these URIs as GitHub sources
+            // and open them using cached contents.
+            sources.push((
+                format!(
+                    "qsharp-github-source:{}/{}/{}{path}",
+                    dep.owner, dep.repo, dep.r#ref
+                )
+                .into(),
+                contents,
+            ));
+        }
+
+        Ok(PackageInfo {
+            sources,
+            language_features: LanguageFeatures::from_iter(&manifest.language_features),
+            dependencies: manifest
+                .dependencies
+                .into_iter()
+                .map(|(k, v)| (k.into(), key_for_dependency_definition(&v)))
+                .collect(),
+        })
+    }
+
+    /// Load the sources and dependency information for a single package,
+    /// using a previously cached version if available.
+    async fn read_manifest_and_sources(
+        &self,
+        global_cache: &RefCell<PackageCache>,
+        key: PackageKey,
+        this_pkg: &PackageRef,
+    ) -> ProjectResult<PackageInfo> {
+        match this_pkg {
+            PackageRef::GitHub { github } => {
+                {
+                    let cache = global_cache.borrow();
+                    if let Some(cached) = cache.get(&key) {
+                        return cached.clone();
+                    }
+                }
+
+                let result = self.read_github_manifest_and_sources(github).await;
+
+                let mut cache = global_cache.borrow_mut();
+                cache.insert(key, result.clone());
+
+                result
+            }
+            PackageRef::Path { path } => {
+                // Local dependencies are not cached at the moment, to make the multi-project
+                // editing experience as intuitive as possible. This may change if we start
+                // hitting perf issues, but careful consideration is needed into when to
+                // invalidate the cache.
+                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())
+                    .await
+            }
+        }
+    }
+
+    /// Recursive method to load sources for all dependencies and their
+    /// dependencies, etc.
+    #[allow(clippy::too_many_arguments)]
+    async fn collect_deps(
+        &self,
+        key: Arc<str>,
+        pkg: &PackageInfo,
+        global_cache: &RefCell<PackageCache>,
+        stack: &mut Vec<PackageKey>,
+        packages: &mut FxHashMap<PackageKey, PackageInfo>,
+        errors: &mut Vec<Error>,
+        this_pkg: &PackageRef,
+    ) {
+        stack.push(key.clone());
+
+        for (alias, dep_key) in &pkg.dependencies {
+            if stack.contains(dep_key) {
+                errors.push(Error::Circular(key.to_string(), dep_key.to_string()));
+                continue;
+            }
+
+            let dependency = dependency_definition_from_key(dep_key);
+            if matches!(dependency, PackageRef::Path { .. })
+                && matches!(this_pkg, PackageRef::GitHub { .. })
+            {
+                errors.push(Error::GitHubToLocal(key.to_string(), alias.to_string()));
+                continue;
+            }
+
+            let dep_result = self
+                .read_manifest_and_sources(global_cache, dep_key.clone(), &dependency)
+                .await;
+
+            match dep_result {
+                Ok(pkg) => {
+                    self.collect_deps(
+                        dep_key.clone(),
+                        &pkg,
+                        global_cache,
+                        stack,
+                        packages,
+                        errors,
+                        &dependency,
+                    )
+                    .await;
+                    packages.insert(dep_key.clone(), pkg);
+                }
+                Err(e) => {
+                    errors.push(e);
+                }
+            };
+        }
+
+        stack.pop();
     }
 }
 
@@ -162,6 +516,65 @@ fn filter_hidden_files<Entry: DirEntry>(
     listing: impl Iterator<Item = Entry>,
 ) -> impl Iterator<Item = Entry> {
     listing.filter(|x| !x.entry_name().starts_with('.'))
+}
+
+/// We're using JSON to generate a key for the packages,
+/// but something more readable would also be okay as long as we can
+/// guarantee uniqueness.
+#[must_use]
+pub fn key_for_dependency_definition(dep: &PackageRef) -> PackageKey {
+    serde_json::to_string(dep)
+        .expect("dependency should be serializable")
+        .into()
+}
+
+#[must_use]
+pub fn dependency_definition_from_key(key: &PackageKey) -> PackageRef {
+    serde_json::from_str(key).expect("dependency should be deserializable")
+}
+
+/// A `PackageKey` is a global unique identifier for a package, and it's
+/// simply generated from the dependency information in the manifest
+/// (local or GitHub path).
+type PackageKey = Arc<str>;
+
+/// A `PackageAlias` is the name that a package uses to refer to one of its
+/// dependencies. The same package can live under different aliases in the
+/// same package graph.
+type PackageAlias = Arc<str>;
+
+/// Long-lived cache that can optionally be used for loading packages.
+pub type PackageCache = FxHashMap<PackageKey, ProjectResult<PackageInfo>>;
+
+type Sources = Vec<(Arc<str>, Arc<str>)>;
+
+#[derive(Clone, Debug)]
+pub struct PackageInfo {
+    pub sources: Sources,
+    pub language_features: LanguageFeatures,
+    pub dependencies: FxHashMap<PackageAlias, PackageKey>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PackageGraphSources {
+    pub root: PackageInfo,
+    pub packages: FxHashMap<PackageKey, PackageInfo>,
+}
+
+impl PackageGraphSources {
+    /// Temporary implementation which just concatenates all sources.
+    /// This will be replaced soon to build and return all the dependencies
+    /// along with the root package sources.
+    /// TODO(packages): delete this method and use the package graph instead
+    #[must_use]
+    pub fn into_sources_temporary(self) -> (Sources, LanguageFeatures) {
+        let mut sources = self.root.sources;
+        for mut pkg in self.packages.into_values() {
+            sources.append(&mut pkg.sources);
+        }
+
+        (sources, self.root.language_features)
+    }
 }
 
 /// This trait is used to abstract filesystem logic with regards to Q# projects.
@@ -179,8 +592,19 @@ pub trait FileSystem {
 
     fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf>;
 
-    /// Given a [`ManifestDescriptor`], load project sources.
-    fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
+    fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>>;
+
+    fn load_project(
+        &self,
+        directory: &Path,
+        global_cache: Option<&RefCell<PackageCache>>,
+    ) -> Result<Project, Vec<Error>> {
         // Rather than rewriting all the async code in the project loader,
         // we call the async implementation here, doing some tricks to make it
         // run synchronously.
@@ -192,7 +616,8 @@ pub trait FileSystem {
         // because we just passed in our synchronous FS functions to the project loader.
         // Proceed with caution if you make the `FileSystemAsync` implementation any
         // more complex.
-        FutureExt::now_or_never(fs.load_project(manifest)).expect("load_project should never await")
+        FutureExt::now_or_never(fs.load_project(directory, global_cache))
+            .expect("load_project_with_deps should never await")
     }
 }
 
@@ -215,10 +640,22 @@ where
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)> {
         self.fs.read_file(path)
     }
+
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>> {
         self.fs.list_directory(path)
     }
+
     async fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
         self.fs.resolve_path(base, path)
+    }
+
+    async fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>> {
+        self.fs.fetch_github(owner, repo, r#ref, path)
     }
 }
