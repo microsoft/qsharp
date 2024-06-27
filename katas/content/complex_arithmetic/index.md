@@ -50,8 +50,7 @@ We'll call the number $i$ and its real multiples (numbers obtained by multiplyin
 @[exercise]({ 
     "id": "complex_arithmetic__powers_of_i", 
     "title": "Powers of Imaginary Unit", 
-    "path": "./powers_of_i/", 
-    "qsDependencies": [] 
+    "path": "./powers_of_i/"
 })
 
 @[section]({ 
@@ -78,19 +77,13 @@ Let's see how to do the main arithmetic operations on complex numbers.
 @[exercise]({ 
     "id": "complex_arithmetic__complex_addition", 
     "title": "Add Complex Numbers", 
-    "path": "./complex_addition/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_addition/"
 })
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_multiplication", 
     "title": "Multiply Complex Numbers", 
-    "path": "./complex_multiplication/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_multiplication/"
 })
 
 @[section]({ 
@@ -118,10 +111,7 @@ $$\overline{x \cdot y} = \overline{x} \cdot \overline{y}$$
 @[exercise]({ 
     "id": "complex_arithmetic__complex_conjugate_exercise", 
     "title": "Find Conjugate", 
-    "path": "./complex_conjugate/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_conjugate/"
 })
 
 @[section]({ 
@@ -146,10 +136,7 @@ $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 @[exercise]({ 
     "id": "complex_arithmetic__complex_division_exercise", 
     "title": "Divide Complex Numbers", 
-    "path": "./complex_division/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_division/"
 })
 
 @[section]({ 
@@ -184,10 +171,7 @@ $$|x + y| \leq |x| + |y|$$
 @[exercise]({ 
     "id": "complex_arithmetic__complex_modulus_exercise", 
     "title": "Find Modulus", 
-    "path": "./complex_modulus/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_modulus/"
 })
 
 @[section]({ 
@@ -227,19 +211,13 @@ Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$
 @[exercise]({ 
     "id": "complex_arithmetic__complex_exponents_exercise", 
     "title": "Find Complex Exponent", 
-    "path": "./complex_exponents/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_exponents/"
 })
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_powers_real_exercise", 
     "title": "Find Complex Power of Real Number", 
-    "path": "./complex_powers_real/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./complex_powers_real/"
 })
 
 @[section]({ 
@@ -266,28 +244,19 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 @[exercise]({ 
     "id": "complex_arithmetic__cartesian_to_polar", 
     "title": "Convert Cartesian to Polar", 
-    "path": "./cartesian_to_polar/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./cartesian_to_polar/"
 })
 
 @[exercise]({ 
     "id": "complex_arithmetic__polar_to_cartesian", 
     "title": "Convert Polar to Cartesian", 
-    "path": "./polar_to_cartesian/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./polar_to_cartesian/"
 })
 
 @[exercise]({ 
     "id": "complex_arithmetic__polar_multiplication", 
     "title": "Multiply Polar Numbers", 
-    "path": "./polar_multiplication/", 
-    "qsDependencies": [ 
-        "./Common.qs"
-    ] 
+    "path": "./polar_multiplication/"
 })
 
 
