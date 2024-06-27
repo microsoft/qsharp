@@ -17,7 +17,7 @@ namespace MyQuantumApp {
 
         // this is coming from github - sezna/qsharp-project-template
         // GitHub.Diagnostics.DumpMachine_();
-        GitHub.Demo.HelloFromGithub();
+        // GitHub.Demo.HelloFromGithub();  <--- COMMENT THIS BACK IN, WORKS IN VS CODE
 
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);
