@@ -109,7 +109,7 @@ impl DensityMatrix {
         }
     }
 
-    /// Applies the matrix representing the operation to the target qubits.
+    /// Applies the operation matrix to the target qubits.
     fn apply_operation_matrix(&mut self, operation_matrix: &SquareMatrix, qubits: &[usize]) {
         // TODO [Research]: Figure out why they do this qubits_expanded thing.
         let mut qubits_expanded = Vec::with_capacity(2 * qubits.len());
@@ -123,11 +123,13 @@ impl DensityMatrix {
     }
 }
 
+/// A quantum circuit simulator using a density matrix.
 pub struct DensityMatrixSimulator {
     state: DensityMatrix,
 }
 
 impl DensityMatrixSimulator {
+    /// Creates a new `DensityMatrixSimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
         Self {
             state: DensityMatrix::new(number_of_qubits),

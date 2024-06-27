@@ -127,6 +127,7 @@ impl StateVector {
     }
 }
 
+/// A quantum circuit simulator using a state vector.
 pub struct TrajectorySimulator {
     state: StateVector,
 }
