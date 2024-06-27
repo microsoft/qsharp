@@ -1,5 +1,6 @@
-use crate::{ComplexVector, Float, SquareMatrix};
-use num::One;
+use nalgebra::Complex;
+
+use crate::{ComplexVector, SquareMatrix};
 
 // TODO [FIX]: Improve this docstring
 /// This function extracts the relevant entries from the `state_vector` into its own vector.
@@ -38,7 +39,7 @@ pub fn apply_kernel(state: &mut ComplexVector, operation_matrix: &SquareMatrix, 
     let mut new_entries = ComplexVector::zeros(num_elements);
     for s in 0..state.len() {
         if (s & mask) == 0 {
-            new_entries.fill(num::zero());
+            new_entries.fill(Complex::ZERO);
 
             // Extract relevant entries into a vector to make the gate application easier.
             for k in 0..num_elements {
@@ -47,7 +48,7 @@ pub fn apply_kernel(state: &mut ComplexVector, operation_matrix: &SquareMatrix, 
             }
 
             // Apply the gate.
-            let one = num::Complex::<Float>::one();
+            let one = num_complex::Complex::<f64>::ONE;
             new_entries.gemv(one, operation_matrix, &extracted_entries, one);
 
             // Store accumulated result back into the state vector.

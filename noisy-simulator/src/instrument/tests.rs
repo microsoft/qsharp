@@ -1,5 +1,5 @@
 use nalgebra::ComplexField;
-use crate::{operation::{operation, Operation}, Float, SquareMatrix, TOLERANCE};
+use crate::{operation::{operation, Operation}, SquareMatrix, TOLERANCE};
 use super::Instrument;
 
 macro_rules! assert_approx_eq {
@@ -14,8 +14,8 @@ fn approx_eq (a: f64, b: f64) -> bool {
     (a-b).abs() <= TOLERANCE
 }
 
-fn rng() -> Float {
-    rand::random::<Float>()
+fn rng() -> f64 {
+    rand::random::<f64>()
 }
 
 #[test]

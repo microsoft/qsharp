@@ -1,7 +1,7 @@
 use nalgebra::dmatrix;
-use num::{complex::ComplexFloat, Complex};
+use num_complex::{Complex, ComplexFloat};
 
-use crate::{operation::{operation, Operation}, Float, SquareMatrix, TOLERANCE};
+use crate::{operation::{operation, Operation}, SquareMatrix, TOLERANCE};
 
 macro_rules! assert_approx_eq {
     ($left:expr, $right:expr $(,)?) => {
@@ -17,7 +17,7 @@ fn approx_eq (a: f64, b: f64) -> bool {
 
 #[test]
 fn constructor() {
-    const I: Complex<Float> = Complex::I;
+    const I: Complex<f64> = Complex::I;
 
     let op = operation!(
         [

@@ -2,7 +2,7 @@
 mod tests;
 
 use crate::{
-    instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector, Float,
+    instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector,
     SquareMatrix, TOLERANCE,
 };
 
@@ -12,7 +12,7 @@ pub struct StateVector {
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
-    trace_change: Float,
+    trace_change: f64,
     /// Vector storing the entries of the density matrix.
     data: ComplexVector,
 }
@@ -46,14 +46,14 @@ impl StateVector {
     }
 
     /// Returns the squared L2 norm of the matrix.
-    fn norm_squared(&self) -> Float {
+    fn norm_squared(&self) -> f64 {
         self.data.norm_squared()
     }
 
     /// Return theoretical change in trace due to operations that have been applied so far.
     /// In reality, the density matrix is always renormalized after instruments / operations
     /// have been applied.
-    fn trace_change(&self) -> Float {
+    fn trace_change(&self) -> f64 {
         self.trace_change
     }
 
@@ -68,7 +68,7 @@ impl StateVector {
     }
 
     /// Renormalizes the matrix such that the trace is 1. Uses a precomputed `norm_squared`.
-    fn renormalize_with_norm(&mut self, norm_squared: Float) {
+    fn renormalize_with_norm(&mut self, norm_squared: f64) {
         assert!(norm_squared >= TOLERANCE, "arrived at probability-0 event");
         let renormalization_factor = 1.0 / norm_squared.sqrt();
         for entry in self.data.iter_mut() {
@@ -77,7 +77,7 @@ impl StateVector {
     }
 
     /// Return the probability of a given effect.
-    fn effect_probability(&self, effect_matrix: &SquareMatrix, qubits: &[usize]) -> Float {
+    fn effect_probability(&self, effect_matrix: &SquareMatrix, qubits: &[usize]) -> f64 {
         let mut state_copy = self.data.clone();
         apply_kernel(&mut state_copy, effect_matrix, qubits);
         state_copy.dot(&self.data.conjugate()).re
@@ -87,8 +87,8 @@ impl StateVector {
         &mut self,
         kraus_operators: &[SquareMatrix],
         qubits: &[usize],
-        renormalization_factor: Float,
-        random_sample: Float,
+        renormalization_factor: f64,
+        random_sample: f64,
     ) {
         let mut summed_probability = 0.0;
         let mut last_non_zero_probability = 0.0;
@@ -173,7 +173,7 @@ impl TrajectorySimulator {
         &mut self,
         instrument: &Instrument,
         qubits: &[usize],
-        random_sample: Float,
+        random_sample: f64,
     ) -> usize {
         let renormalization_factor = self
             .state
@@ -239,7 +239,7 @@ impl TrajectorySimulator {
         self.state = state;
     }
 
-    pub fn trace_change(&self) -> Float {
+    pub fn trace_change(&self) -> f64 {
         self.state.trace_change()
     }
 }

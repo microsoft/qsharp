@@ -1,12 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use nalgebra::DMatrix;
-use num::Complex;
-use std::fmt::Display;
-
+use num_complex::Complex;
 use crate::{
-    instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector, Float,
+    instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector,
     SquareMatrix, TOLERANCE,
 };
 
@@ -18,19 +15,10 @@ pub struct DensityMatrix {
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
-    trace_change: Float,
+    trace_change: f64,
     /// Vector storing the entries of the density matrix.
     // TODO [FIX]: Remove pub from this field.
     pub data: ComplexVector,
-}
-
-impl Display for DensityMatrix {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let data: Vec<_> = self.data.data.clone().into();
-        let data: Vec<f64> = data.into_iter().map(|z| z.re).collect();
-        let m = DMatrix::from_vec(self.dim, self.dim, data);
-        write!(f, "{:.3}", m)
-    }
 }
 
 impl DensityMatrix {
@@ -78,8 +66,8 @@ impl DensityMatrix {
     }
 
     /// Returns the trace of the matrix. The trace is the sum of the diagonal entries of a matrix.
-    fn trace(&self) -> Float {
-        let mut trace: Complex<Float> = num::zero();
+    fn trace(&self) -> f64 {
+        let mut trace: Complex<f64> = Complex::ZERO;
         for idx in 0..self.dim {
             trace += self.data[(self.dim + 1) * idx];
         }
@@ -94,7 +82,7 @@ impl DensityMatrix {
     /// Return theoretical change in trace due to operations that have been applied so far.
     /// In reality, the density matrix is always renormalized after instruments / operations
     /// have been applied.
-    fn trace_change(&self) -> Float {
+    fn trace_change(&self) -> f64 {
         self.trace_change
     }
 
@@ -110,7 +98,7 @@ impl DensityMatrix {
     }
 
     /// Renormalizes the matrix such that the trace is 1. Uses a precomputed `trace`.
-    fn renormalize_with_trace(&mut self, trace: Float) {
+    fn renormalize_with_trace(&mut self, trace: f64) {
         assert!(trace >= TOLERANCE, "arrived at probability-0 event");
         self.trace_change *= trace;
         let renormalization_factor = 1.0 / trace;
@@ -170,7 +158,7 @@ impl DensityMatrixSimulator {
         &mut self,
         instrument: &Instrument,
         qubits: &[usize],
-        random_sample: Float,
+        random_sample: f64,
     ) -> usize {
         let mut tmp_state = self.state.clone();
         apply_kernel(
@@ -184,8 +172,8 @@ impl DensityMatrixSimulator {
             "arrived at probability-0 event"
         );
         let mut last_non_zero_trace_outcome: usize = 0;
-        let mut last_non_zero_trace: Float = 0.0;
-        let mut summed_probability: Float = 0.0;
+        let mut last_non_zero_trace: f64 = 0.0;
+        let mut summed_probability: f64 = 0.0;
 
         for outcome in 0..instrument.num_operations() {
             if summed_probability > random_sample {
@@ -244,7 +232,7 @@ impl DensityMatrixSimulator {
     /// Return theoretical change in trace due to operations that have been applied so far
     /// In reality, the density matrix is always renormalized after instruments/operations
     /// have been applied.
-    pub fn trace_change(&self) -> Float {
+    pub fn trace_change(&self) -> f64 {
         self.state.trace_change()
     }
 }

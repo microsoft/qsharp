@@ -8,7 +8,7 @@ macro_rules! operation {
     ($([$($($v:expr),* );*]),*) => {
         Operation::new(vec![
             $(nalgebra::dmatrix![
-                $($(num::Complex::<$crate::Float>::from($v)),* );*
+                $($(num_complex::Complex::<f64>::from($v)),* );*
             ]),*
         ])
     };

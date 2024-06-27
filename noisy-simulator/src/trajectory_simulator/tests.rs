@@ -1,5 +1,5 @@
-use num::Complex;
-use crate::{instrument::Instrument, operation::{Operation, operation}, Float, TOLERANCE};
+use num_complex::Complex;
+use crate::{instrument::Instrument, operation::{Operation, operation}, TOLERANCE};
 use super::TrajectorySimulator;
 
 macro_rules! assert_approx_eq {
@@ -15,7 +15,7 @@ fn approx_eq (a: f64, b: f64) -> bool {
 }
 
 fn h() -> Operation {
-    let f = Float::from(0.5).sqrt();
+    let f = 0.5_f64.sqrt();
     operation!([f,  f;
                 f, -f;])
 }
@@ -125,8 +125,8 @@ fn two_qubit_gate(outcome: usize) {
     let m1 = operation!([0., 0.;
                          0., 1.;]);
     let mz = mz();
-    let probabilities: Vec<Float> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];    
-    let crx = |t: Float| {
+    let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];    
+    let crx = |t: f64| {
         let c = t.cos();
         let s = t.sin() * Complex::I;
         operation!(
