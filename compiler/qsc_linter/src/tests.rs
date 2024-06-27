@@ -398,7 +398,7 @@ fn deprecated_newtype_usage() {
             [
                 SrcLint {
                     source: "newtype Foo = ();",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated `newtype` declarations",
                     help: "`newtype` declarations are deprecated, use `struct` instead",
                     code_action_edits: [],
@@ -419,7 +419,7 @@ fn deprecated_function_cons() {
             [
                 SrcLint {
                     source: "Foo",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated function constructors",
                     help: "function constructors for struct types are deprecated, use `new` instead",
                     code_action_edits: [],
@@ -443,7 +443,7 @@ fn deprecated_with_op_for_structs() {
             [
                 SrcLint {
                     source: "foo w/ x <- 3",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
                     code_action_edits: [
@@ -476,7 +476,7 @@ fn deprecated_with_eq_op_for_structs() {
             [
                 SrcLint {
                     source: "set foo w/= x <- 3",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
                     code_action_edits: [
@@ -509,7 +509,7 @@ fn deprecated_double_colon_op() {
             [
                 SrcLint {
                     source: "a::b.c::i",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated `::` for field access",
                     help: "`::` operator is deprecated, use `.` instead",
                     code_action_edits: [
@@ -551,7 +551,7 @@ fn deprecated_double_colon_op_with_spacing() {
             [
                 SrcLint {
                     source: "a  ::  b.c\n    ::\n    i",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated `::` for field access",
                     help: "`::` operator is deprecated, use `.` instead",
                     code_action_edits: [

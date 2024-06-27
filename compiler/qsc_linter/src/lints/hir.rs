@@ -36,9 +36,9 @@ use super::lint;
 //  in qsc_linter/lib.rs.
 declare_hir_lints! {
     (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead"),
-    (DeprecatedFunctionConstructor, LintLevel::Warn, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
-    (DeprecatedWithOperator, LintLevel::Warn, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
-    (DeprecatedDoubleColonOperator, LintLevel::Warn, "deprecated `::` for field access", "`::` operator is deprecated, use `.` instead"),
+    (DeprecatedFunctionConstructor, LintLevel::Allow, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
+    (DeprecatedWithOperator, LintLevel::Allow, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
+    (DeprecatedDoubleColonOperator, LintLevel::Allow, "deprecated `::` for field access", "`::` operator is deprecated, use `.` instead"),
 }
 
 /// Helper to check if an operation has desired operation characteristics
