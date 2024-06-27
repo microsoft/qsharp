@@ -2,13 +2,11 @@
 // Licensed under the MIT License.
 
 use nalgebra::Complex;
-
 use crate::{ComplexVector, SquareMatrix};
 
-// TODO [FIX]: Improve this docstring
 /// This function extracts the relevant entries from the `state_vector` into its own vector.
 /// Then it applies the `operation_matrix` to this extracted entries.
-/// Finally it store back the results into the state vector.
+/// Finally it stores the results back into the state vector.
 pub fn apply_kernel(state: &mut ComplexVector, operation_matrix: &SquareMatrix, qubits: &[usize]) {
     // Construct a mask that has 1s at locations given by the target `qubits` ids.
     let mask = make_mask(state, qubits);

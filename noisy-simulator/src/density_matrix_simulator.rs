@@ -20,8 +20,7 @@ pub struct DensityMatrix {
     /// Theoretical change in trace due to operations that have been applied so far.
     trace_change: f64,
     /// Vector storing the entries of the density matrix.
-    // TODO [FIX]: Remove pub from this field.
-    pub data: ComplexVector,
+    data: ComplexVector,
 }
 
 impl DensityMatrix {
@@ -110,7 +109,7 @@ impl DensityMatrix {
         }
     }
 
-    /// TODO: write docstring
+    /// Applies the matrix representing the operation to the target qubits.
     fn apply_operation_matrix(&mut self, operation_matrix: &SquareMatrix, qubits: &[usize]) {
         // TODO [Research]: Figure out why they do this qubits_expanded thing.
         let mut qubits_expanded = Vec::with_capacity(2 * qubits.len());
@@ -228,7 +227,6 @@ impl DensityMatrixSimulator {
         );
         assert!(state.is_hermitian(), "`state` is not Hermitian");
 
-        // TODO [Fix]: Check if state is positive semidefinite? Might be too expensive.
         self.state = state;
     }
 
