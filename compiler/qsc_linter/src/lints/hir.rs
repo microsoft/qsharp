@@ -93,6 +93,8 @@ impl Visitor<'_> for IsQuantumOperation {
                     if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation)
                     {
                         self.is_op = true;
+                    } else {
+                        visit::walk_expr(self, expr);
                     }
                 }
                 ExprKind::Conjugate(..) | ExprKind::Repeat(..) => {

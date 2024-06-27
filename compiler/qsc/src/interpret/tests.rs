@@ -1860,7 +1860,7 @@ mod given_interpreter {
             let path = Path {
                 id: NodeId::default(),
                 span: Span::default(),
-                namespace: Some(
+                segments: Some(
                     std::iter::once(qsc_ast::ast::Ident {
                         id: NodeId::default(),
                         span: Span::default(),

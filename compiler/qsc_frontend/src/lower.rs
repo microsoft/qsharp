@@ -10,13 +10,13 @@ use crate::{
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self};
+use qsc_ast::ast::{self, Ident};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, Ty},
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
@@ -560,7 +560,7 @@ impl With<'_> {
                     .generics
                     .get(expr.id)
                     .map_or(Vec::new(), Clone::clone);
-                hir::ExprKind::Var(self.lower_path(path), args)
+                self.lower_path(path, args)
             }
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -574,7 +574,7 @@ impl With<'_> {
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
             ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
-                self.lower_path(name),
+                self.node_id_to_res(name.id),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
                     .iter()
@@ -779,13 +779,54 @@ impl With<'_> {
         }
     }
 
-    fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.names.get(path.id) {
+    fn node_id_to_res(&mut self, id: ast::NodeId) -> hir::Res {
+        match self.names.get(id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }
+    }
+
+    fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
+        match resolve::path_as_field_accessor(self.names, path) {
+            Some((first_id, parts)) => {
+                let res = hir::Res::Local(self.lower_id(first_id));
+                self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, path.span.lo)
+            }
+            None => hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args),
+        }
+    }
+
+    // Lowers the parts of a field accessor Path into nested Field Accessor nodes.
+    fn path_parts_to_fields(
+        &mut self,
+        init_kind: hir::ExprKind,
+        parts: &[Ident],
+        lo: u32,
+    ) -> hir::ExprKind {
+        let (first, rest) = parts
+            .split_first()
+            .expect("path should have at least one part");
+
+        let mut kind = init_kind;
+        let mut prev = first;
+        for part in rest {
+            let prev_expr = hir::Expr {
+                id: self.assigner.next_node(),
+                span: Span {
+                    lo,
+                    hi: prev.span.hi,
+                },
+                // The ids of the Ident segments are specially mapped in the tys to give us the type of the expressions being created here.
+                ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone),
+                kind,
+            };
+            let field = self.lower_field(&prev_expr.ty, &part.name);
+            kind = hir::ExprKind::Field(Box::new(prev_expr), field);
+            prev = part;
+        }
+        kind
     }
 
     fn lower_ident(&mut self, ident: &ast::Ident) -> hir::Ident {

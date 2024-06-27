@@ -358,7 +358,7 @@ mod tests {
                                                                         lo: 33,
                                                                         hi: 37,
                                                                     },
-                                                                    namespace: None,
+                                                                    segments: None,
                                                                     name: Ident {
                                                                         id: NodeId(
                                                                             12,

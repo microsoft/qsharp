@@ -167,7 +167,7 @@ fn fixup_bad_namespace_name_with_dash() {
                                                     lo: 19,
                                                     hi: 23,
                                                 },
-                                                namespace: None,
+                                                segments: None,
                                                 name: Ident {
                                                     id: NodeId(
                                                         4294967295,
