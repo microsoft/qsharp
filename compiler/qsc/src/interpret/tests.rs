@@ -1945,6 +1945,96 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
         }
 
+        #[test]
+        fn reexports_still_type_check() {
+            let mut store = qsc_frontend::compile::PackageStore::new(crate::compile::core());
+
+            let package_a = SourceMap::new(
+                [(
+                    "PackageA.qs".into(),
+                    indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;
+            "}
+                    .into(),
+                )],
+                None,
+            );
+
+            let (package_a, errors) = crate::compile::compile(
+                &store,
+                &[],
+                package_a,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+            assert!(errors.is_empty(), "{errors:#?}");
+
+            let package_a = store.insert(package_a);
+
+            let package_b = SourceMap::new(
+                [(
+                    "PackageB.qs".into(),
+                    indoc! {"
+                    import A.PackageA.Bar;
+                    export Bar as Baz;
+            "}
+                    .into(),
+                )],
+                None,
+            );
+
+            let (package_b, errors) = crate::compile::compile(
+                &store,
+                &[(package_a, Some(Arc::from("A")))],
+                package_b,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+
+            assert!(errors.is_empty(), "{errors:#?}");
+
+            let package_b = store.insert(package_b);
+
+            let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+
+            let user_code = SourceMap::new(
+                [(
+                    "UserCode".into(),
+                    indoc! {"
+
+                    import B.PackageB.Baz as Quux;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Quux(10, 10);
+                    }
+                "}
+                    .into(),
+                )],
+                None,
+            );
+
+            let mut interpreter = match Interpreter::new(
+                user_code,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(package_b, Some(Arc::from("B"))), (std_id, None)],
+            ) {
+                Ok(o) => o,
+                Err(err) => panic!("failed to create interpreter: {err:#?}"),
+            };
+
+            let package = get_package_for_call("UserCode", "Main");
+            let (result, output) = fragment(&mut interpreter, "UserCode.Main()", package);
+            is_only_value(&result, &output, &Value::unit());
+        }
+
         fn get_package_for_call(ns: &str, name: &str) -> crate::ast::Package {
             let args = Expr {
                 id: NodeId::default(),
