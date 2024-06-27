@@ -19,3 +19,9 @@ indoc = { workspace = true }
 
 [lib]
 doctest = false
+
+[[bin]]
+name = "qsc_formatter"
+bench = false
+test = false
+
