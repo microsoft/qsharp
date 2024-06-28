@@ -26,7 +26,7 @@ pub(super) struct CompilationState {
     ///
     /// For notebooks, the `CompilationUri` is the notebook uri.
     ///
-    /// The `CompilatinUri` is used when compilation-level errors get reported
+    /// The `CompilationUri` is used when compilation-level errors get reported
     /// to the client. Compilation-level errors are defined as errors without
     /// an associated source document.
     ///

@@ -14,7 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::LintConfig;
+use qsc_linter::{LintConfig, LintLevel};
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -85,7 +85,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
@@ -141,7 +141,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
@@ -293,18 +293,20 @@ fn run_fir_passes(
 }
 
 /// Compute new lints and append them to the errors Vec.
-/// Lints are only computed if the erros vector is empty. For performance
+/// Lints are only computed if the errors vector is empty. For performance
 /// reasons we don't want to waste time running lints every few keystrokes,
 /// if the user is in the middle of typing a statement, for example.
 fn run_linter_passes(
-    config: &[LintConfig],
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
+    package_store: &PackageStore,
     unit: &CompileUnit,
+    config: &[LintConfig],
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(unit, Some(config));
+        let lints = qsc::linter::run_lints(package_store, unit, Some(config));
         let lints = lints
             .into_iter()
+            .filter(|lint| !matches!(lint.level, LintLevel::Allow))
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
         errors.extend(lints);
     }

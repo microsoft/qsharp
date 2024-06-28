@@ -1109,6 +1109,7 @@ dependencies = [
  "qsc",
  "qsc_ast",
  "qsc_data_structures",
+ "qsc_doc_gen",
  "qsc_frontend",
  "qsc_hir",
  "qsc_parse",
