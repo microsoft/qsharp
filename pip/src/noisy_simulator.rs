@@ -103,11 +103,13 @@ impl DensityMatrixSimulator {
     }
 
     /// Apply an arbitrary operation to given qubit ids.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) {
         self.0.apply_operation(&operation.0, &qubits);
     }
 
     /// Apply non selective evolution.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) {
         self.0.apply_instrument(&instrument.0, &qubits);
     }
@@ -116,6 +118,7 @@ impl DensityMatrixSimulator {
     /// Returns the index of the observed outcome.
     ///
     /// Use this method to perform measurements on the quantum system.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) -> usize {
         self.0.sample_instrument(&instrument.0, &qubits)
     }
@@ -150,11 +153,13 @@ impl TrajectorySimulator {
     }
 
     /// Apply an arbitrary operation to given qubit ids.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) {
         self.0.apply_operation(&operation.0, &qubits);
     }
 
     /// Apply non selective evolution.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) {
         self.0.apply_instrument(&instrument.0, &qubits);
     }
@@ -163,6 +168,7 @@ impl TrajectorySimulator {
     /// Returns the index of the observed outcome.
     ///
     /// Use this method to perform measurements on the quantum system.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) -> usize {
         self.0.sample_instrument(&instrument.0, &qubits)
     }
