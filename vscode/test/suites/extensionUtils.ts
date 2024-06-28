@@ -16,6 +16,17 @@ export async function activateExtension() {
 
   const start = performance.now();
   const extensionApi: ExtensionApi = await ext.activate();
+
+  // http://localhost:3000/static/mount is set up by the @vscode/test-web
+  // test infrastructure. This local webserver is normally set up to serve
+  // files for the test workspace. We're taking advantage of it here to
+  // also act as a a fake github endpoint.
+  //
+  // /web/github is a folder in the test workspace.
+  extensionApi.setGithubEndpoint(
+    "http://localhost:3000/static/mount/web/github",
+  );
+
   const logForwarder = extensionApi.logging;
   if (!logForwarder) {
     throw new Error(`qsharp-tests: extension did not return a log forwarder`);

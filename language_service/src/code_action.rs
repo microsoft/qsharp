@@ -35,7 +35,7 @@ fn quick_fixes(
 
     // get relevant diagnostics
     let diagnostics = compilation
-        .errors
+        .compile_errors
         .iter()
         .filter(|error| is_error_relevant(error, span));
 

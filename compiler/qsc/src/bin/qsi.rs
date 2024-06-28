@@ -16,7 +16,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, Manifest, StdFs};
+use qsc_project::{FileSystem, StdFs};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -93,18 +93,31 @@ fn main() -> miette::Result<ExitCode> {
 
     if sources.is_empty() {
         let fs = StdFs;
-        let manifest = Manifest::load(cli.qsharp_json)?;
-        if let Some(manifest) = manifest {
-            let project = fs.load_project(&manifest)?;
-            let mut project_sources = project.sources;
+        if let Some(qsharp_json) = cli.qsharp_json {
+            if let Some(dir) = qsharp_json.parent() {
+                let project = match fs.load_project(dir, None) {
+                    Ok(project) => project,
+                    Err(errs) => {
+                        for e in errs {
+                            eprintln!("{e:?}");
+                        }
+                        return Ok(ExitCode::FAILURE);
+                    }
+                };
 
-            sources.append(&mut project_sources);
+                let (mut project_sources, language_features) =
+                    project.package_graph_sources.into_sources_temporary();
 
-            features.merge(LanguageFeatures::from_iter(
-                manifest.manifest.language_features,
-            ));
+                sources.append(&mut project_sources);
+
+                features.merge(LanguageFeatures::from_iter(language_features));
+            } else {
+                eprintln!("{} must have a parent directory", qsharp_json.display());
+                return Ok(ExitCode::FAILURE);
+            }
         }
     }
+
     if cli.exec {
         let mut interpreter = match (if cli.debug {
             Interpreter::new_with_debug
