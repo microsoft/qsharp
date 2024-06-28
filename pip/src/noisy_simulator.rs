@@ -13,7 +13,7 @@ pub(crate) fn register_noisy_sim_submodule(py: Python, parent_module: &PyModule)
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;
-    m.add_class::<TrajectorySimulator>()?;
+    m.add_class::<StateVectorSimulator>()?;
     parent_module.add_submodule(m)?;
     Ok(())
 }
@@ -150,15 +150,15 @@ impl DensityMatrixSimulator {
 }
 
 #[pyclass(name = "trajsimulator")]
-pub(crate) struct TrajectorySimulator(noisy_simulator::TrajectorySimulator);
+pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 
 #[pymethods]
-impl TrajectorySimulator {
+impl StateVectorSimulator {
     #[new]
     #[pyo3(signature = (number_of_qubits, seed=42))]
     #[allow(unused_variables)]
     pub fn new(number_of_qubits: usize, seed: usize) -> Self {
-        Self(noisy_simulator::TrajectorySimulator::new(number_of_qubits))
+        Self(noisy_simulator::StateVectorSimulator::new(number_of_qubits))
     }
 
     /// Apply an arbitrary operation to given qubit ids.

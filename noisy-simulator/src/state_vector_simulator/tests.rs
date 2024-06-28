@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::TrajectorySimulator;
+use super::StateVectorSimulator;
 use crate::{
     instrument::Instrument,
     operation::{operation, Operation},
@@ -44,7 +44,7 @@ fn mz() -> Instrument {
 
 #[test]
 fn constructor() {
-    let _sim = TrajectorySimulator::new(1);
+    let _sim = StateVectorSimulator::new(1);
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn one_qubit() {
     let mz = mz();
 
     for _ in 0..10 {
-        let mut sim = TrajectorySimulator::new(1);
+        let mut sim = StateVectorSimulator::new(1);
         sim.apply_operation(&h, &[0]);
         let measurement = sim.sample_instrument_with_distribution(&mz, &[0], 0.3);
         assert_eq!(measurement, 0);
@@ -63,7 +63,7 @@ fn one_qubit() {
     println!(":: :: ::");
 
     for _ in 0..10 {
-        let mut sim = TrajectorySimulator::new(1);
+        let mut sim = StateVectorSimulator::new(1);
         println!("OOOOOOOOOOOOOOOOOOOOOOOO");
         sim.apply_operation(&h, &[0]);
         println!("HHHHHHHHHHHHHHHHHHHHHHHH");
@@ -77,7 +77,7 @@ fn bell_pair_sampling() {
     let (h, cnot, mz) = (h(), cnot(), mz());
 
     for _ in 0..10 {
-        let mut sim = TrajectorySimulator::new(2);
+        let mut sim = StateVectorSimulator::new(2);
         sim.apply_operation(&h, &[0]);
         sim.apply_operation(&cnot, &[1, 0]);
         let m1 = sim.sample_instrument(&mz, &[0]);
@@ -89,7 +89,7 @@ fn bell_pair_sampling() {
 fn bell_pair_projection(outcome: usize) {
     assert!((0..4).contains(&outcome));
     let (h, cnot, mz) = (h(), cnot(), mz());
-    let mut sim = TrajectorySimulator::new(2);
+    let mut sim = StateVectorSimulator::new(2);
     sim.apply_operation(&h, &[0]);
     sim.apply_operation(&cnot, &[1, 0]);
     sim.apply_operation(mz.operation(outcome & 1), &[0]);
@@ -150,7 +150,7 @@ fn two_qubit_gate(outcome: usize) {
             let b1 = (outcome & 1) != 0;
             let b2 = (outcome >> 1) != 0;
 
-            let mut sim = TrajectorySimulator::new(2);
+            let mut sim = StateVectorSimulator::new(2);
             sim.apply_operation(&h, &[0]);
             sim.apply_operation(&crx(0.3 * t), &[1, 0]);
             sim.apply_operation(&crx(0.7 * t), &[1, 0]);
@@ -193,7 +193,7 @@ fn two_qubit_gate_panic_2() {
 fn repeated_mz() {
     let h = h();
     let mz = mz();
-    let mut sim = TrajectorySimulator::new(1);
+    let mut sim = StateVectorSimulator::new(1);
 
     for _ in 0..20 {
         sim.apply_operation(&h, &[0]);
@@ -218,7 +218,7 @@ fn alternating_mz_and_mx() {
         ]),
     ]);
 
-    let mut sim = TrajectorySimulator::new(1);
+    let mut sim = StateVectorSimulator::new(1);
     sim.apply_operation(&h, &[0]);
     let mut prob = 1.0;
 

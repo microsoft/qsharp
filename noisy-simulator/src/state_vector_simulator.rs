@@ -137,11 +137,11 @@ impl StateVector {
 }
 
 /// A quantum circuit simulator using a state vector.
-pub struct TrajectorySimulator {
+pub struct StateVectorSimulator {
     state: StateVector,
 }
 
-impl TrajectorySimulator {
+impl StateVectorSimulator {
     /// Creates a new `TrajectorySimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
         Self {

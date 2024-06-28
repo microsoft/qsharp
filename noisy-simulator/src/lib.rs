@@ -39,7 +39,7 @@ pub mod density_matrix_simulator;
 pub mod instrument;
 pub mod kernel;
 pub mod operation;
-pub mod trajectory_simulator;
+pub mod state_vector_simulator;
 
 /// A square matrix of `Complex<f64>`.
 pub type SquareMatrix = DMatrix<Complex<f64>>;
@@ -50,5 +50,5 @@ pub(crate) const TOLERANCE: f64 = 1e-12;
 
 pub use {
     density_matrix_simulator::DensityMatrixSimulator, instrument::Instrument, operation::Operation,
-    trajectory_simulator::TrajectorySimulator,
+    state_vector_simulator::StateVectorSimulator,
 };
