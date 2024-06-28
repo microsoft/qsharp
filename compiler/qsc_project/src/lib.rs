@@ -5,6 +5,9 @@
 //! This includes locating a manifest file in the filesystem, loading and parsing
 //! the manifest, and determining which files are members of the project.
 
+#[cfg(test)]
+mod tests;
+
 mod error;
 #[cfg(feature = "fs")]
 mod fs;

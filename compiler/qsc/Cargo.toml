@@ -51,14 +51,17 @@ doctest = false
 [[bin]]
 name = "qsc"
 bench = false
+test = false
 
 [[bin]]
 name = "qsi"
 bench = false
+test = false
 
 [[bin]]
 name = "memtest"
 bench = false
+test = false
 
 [[bench]]
 name = "large"

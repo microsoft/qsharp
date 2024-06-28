@@ -1447,6 +1447,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "samples_test"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "qsc",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

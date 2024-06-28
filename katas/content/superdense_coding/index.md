@@ -20,38 +20,25 @@ We split the superdense coding protocol into several steps:
 @[exercise]({
     "id": "superdense_coding__entangled_pair",
     "title": "Entangled Pair",
-    "path": "entangled_pair",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "entangled_pair"
 })
 
 @[exercise]({
     "id": "superdense_coding__alice_sends_message",
     "title": "Alice's Task: Encode Message",
-    "path": "alice_sends_message",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "alice_sends_message"
 })
 
 @[exercise]({
     "id": "superdense_coding__bob_decodes_message",
     "title": "Bob's Task: Decode Message",
-    "path": "bob_decodes_message",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "bob_decodes_message"
 })
 
 @[exercise]({
     "id": "superdense_coding__protocol_e2e",
     "title": "Superdense Coding Protocol: End to End",
-    "path": "protocol_e2e",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "protocol_e2e"
 })
 
 @[section]({
