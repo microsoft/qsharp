@@ -59,12 +59,10 @@ pub(crate) struct Operation(noisy_simulator::Operation);
 impl Operation {
     #[new]
     pub fn new(kraus_operators: Vec<PythonMatrix>) -> Self {
-        // Transform Python matrix to nalgebra matrix.
         let kraus_operators: Vec<SquareMatrix> = kraus_operators
             .into_iter()
             .map(python_to_nalgebra_matrix)
             .collect();
-
         Self(noisy_simulator::Operation::new(kraus_operators))
     }
 
