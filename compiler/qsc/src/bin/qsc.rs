@@ -7,6 +7,7 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::hir::PackageId;
+use qsc::packages::BuildableProgram;
 use qsc::{compile::compile, PassContext};
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -95,11 +96,10 @@ enum Emit {
     Qir,
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> miette::Result<ExitCode> {
     env_logger::init();
     let cli = Cli::parse();
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
     let profile: qsc::target::Profile = cli.profile.unwrap_or_default().into();
     let capabilities = profile.into();
     let package_type = if cli.emit.contains(&Emit::Qir) {
@@ -107,61 +107,80 @@ fn main() -> miette::Result<ExitCode> {
     } else {
         PackageType::Lib
     };
-
-    if !cli.nostdlib {
-        dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
-    }
-
     let mut features = LanguageFeatures::from_iter(cli.features);
 
-    let mut sources = cli
-        .sources
-        .iter()
-        .map(read_source)
-        .collect::<miette::Result<Vec<_>>>()?;
-
-    if sources.is_empty() {
-        // TODO(alex) resolve transitive dependencies from the manifest here
-        let fs = StdFs;
-        if let Some(qsharp_json) = cli.qsharp_json {
-            if let Some(dir) = qsharp_json.parent() {
-                let project = match fs.load_project(dir, None) {
-                    Ok(project) => project,
-                    Err(errs) => {
-                        for e in errs {
-                            eprintln!("{e:?}");
-                        }
-                        return Ok(ExitCode::FAILURE);
+    let (mut store, dependencies, source_map) = if let Some(qsharp_json) = cli.qsharp_json {
+        if let Some(dir) = qsharp_json.parent() {
+            let fs = StdFs;
+            let project = match fs.load_project(dir, None) {
+                Ok(project) => project,
+                Err(errs) => {
+                    for e in errs {
+                        eprintln!("{e:?}");
                     }
-                };
+                    return Ok(ExitCode::FAILURE);
+                }
+            };
 
-                let (mut project_sources, language_features) =
-                    project.package_graph_sources.into_sources_temporary();
-
-                sources.append(&mut project_sources);
-
-                features.merge(LanguageFeatures::from_iter(language_features));
-            } else {
-                eprintln!("{} must have a parent directory", qsharp_json.display());
+            if !project.errors.is_empty() {
+                for e in project.errors {
+                    eprintln!("{e:?}");
+                }
                 return Ok(ExitCode::FAILURE);
             }
-        }
-    }
 
-    let entry = cli.entry.unwrap_or_default();
-    let sources = SourceMap::new(sources, Some(entry.into()));
-    let mut store = PackageStore::new(qsc::compile::core());
-    let dependencies = if cli.nostdlib {
-        vec![]
+            // This builds all the dependencies
+            let buildable_program =
+                BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+
+            if !buildable_program.dependency_errors.is_empty() {
+                for e in buildable_program.dependency_errors {
+                    eprintln!("{e:?}");
+                }
+                return Ok(ExitCode::FAILURE);
+            }
+
+            let BuildableProgram {
+                store,
+                user_code,
+                user_code_dependencies,
+                ..
+            } = buildable_program;
+
+            let source_map = qsc::SourceMap::new(user_code.sources, None);
+
+            features.merge(LanguageFeatures::from_iter(user_code.language_features));
+
+            (store, user_code_dependencies, source_map)
+        } else {
+            eprintln!("{} must have a parent directory", qsharp_json.display());
+            return Ok(ExitCode::FAILURE);
+        }
     } else {
-        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
-        vec![(std_id, None)]
+        let sources = cli
+            .sources
+            .iter()
+            .map(read_source)
+            .collect::<miette::Result<Vec<_>>>()?;
+
+        let mut store = PackageStore::new(qsc::compile::core());
+        let dependencies = if cli.nostdlib {
+            vec![]
+        } else {
+            let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+            vec![(std_id, None)]
+        };
+        (
+            store,
+            dependencies,
+            SourceMap::new(sources, cli.entry.clone().map(std::convert::Into::into)),
+        )
     };
-    let dependencies = &dependencies[..];
+
     let (unit, errors) = compile(
         &store,
-        dependencies,
-        sources,
+        &dependencies,
+        source_map,
         package_type,
         capabilities,
         features,

@@ -16,8 +16,8 @@ use qsc::{
 };
 use qsc_linter::{LintConfig, LintLevel};
 use qsc_project::PackageGraphSources;
+use std::mem::take;
 use std::sync::Arc;
-use std::{mem::take, sync::Arc};
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.

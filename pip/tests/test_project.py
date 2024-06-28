@@ -126,9 +126,7 @@ memfs = {
         },
         "with_github_dep": {
             "src": {
-                # TODO(packages) When package aliases are taken into account,
-                # the below call should become: `Foo.Test.ReturnsTwelve()`
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Test.ReturnsTwelve(); } }",
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsTwelve(); } }",
             },
             "qsharp.json": """
                 {
@@ -152,7 +150,7 @@ def fetch_github_test(owner: str, repo: str, ref: str, path: str):
         case ("test-owner", "test-repo", "12345", "/qsharp.json"):
             return """{ "files" : ["src/test.qs"] }"""
         case ("test-owner", "test-repo", "12345", "/src/test.qs"):
-            return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
+            return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
         case _:
             raise Exception(
                 f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}"

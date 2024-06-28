@@ -856,20 +856,6 @@ pub struct DependencyCycle;
 pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
 
 impl PackageGraphSources {
-    /// Temporary implementation which just concatenates all sources.
-    /// This will be replaced soon to build and return all the dependencies
-    /// along with the root package sources.
-    /// TODO(packages): delete this method and use the package graph instead
-    #[must_use]
-    pub fn into_sources_temporary(self) -> (Sources, LanguageFeatures) {
-        let mut sources = self.root.sources;
-        for mut pkg in self.packages.into_values() {
-            sources.append(&mut pkg.sources);
-        }
-
-        (sources, self.root.language_features)
-    }
-
     /// Produces an ordered vector over the packages in the order they should be compiled
     pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
         // The order is defined by which packages depend on which other packages
