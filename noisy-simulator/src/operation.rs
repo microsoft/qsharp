@@ -13,12 +13,14 @@ use crate::SquareMatrix;
 /// Example usage:
 /// ```
 /// // Create operation from two 2x2 Kraus matrices.
-/// operation!(
+/// use noisy_simulator::{Operation, operation};
+///
+/// let op = operation!(
 ///     [1., 0.;
 ///      0., 0.;],
 ///     [0., 0.;
 ///      0., 0.;]
-/// )
+/// );
 /// ```
 #[macro_export]
 macro_rules! operation {
