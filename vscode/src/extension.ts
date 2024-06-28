@@ -55,6 +55,7 @@ import {
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
 import { initProjectCreator } from "./createProject.js";
+import { activateChatParticipant } from "./chatParticipant.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -96,6 +97,7 @@ export async function activate(
   registerWebViewCommands(context);
   initFileSystem(context);
   initProjectCreator(context);
+  activateChatParticipant(context);
 
   log.info("Q# extension activated.");
 
@@ -375,7 +377,7 @@ export class QsTextDocumentContentProvider
   provideTextDocumentContent(
     uri: vscode.Uri,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken,
+    _token: vscode.CancellationToken,
   ): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.path);
   }
