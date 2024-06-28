@@ -725,6 +725,15 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     RedundantSemicolons,
                                 ),
+                                code_action_edits: [
+                                    (
+                                        "",
+                                        Span {
+                                            lo: 34,
+                                            hi: 37,
+                                        },
+                                    ),
+                                ],
                             },
                         ),
                     ],
@@ -748,6 +757,7 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     DivisionByZero,
                                 ),
+                                code_action_edits: [],
                             },
                         ),
                     ],
@@ -1537,7 +1547,7 @@ async fn lints_update_after_manifest_change() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&received_errors, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
@@ -1560,6 +1570,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1574,6 +1600,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1585,7 +1612,7 @@ async fn lints_update_after_manifest_change() {
         .write_file("project/qsharp.json", r#"{ "lints": [{ "lint": "divisionByZero", "level": "warn" }, { "lint": "needlessParens", "level": "warn" }] }"#)
         .expect("qsharp.json should exist");
 
-    // Triger a document update
+    // Trigger a document update
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
@@ -1608,6 +1635,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1622,6 +1665,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1666,6 +1710,7 @@ async fn lints_prefer_workspace_over_defaults() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1702,7 +1747,7 @@ async fn lints_prefer_manifest_over_workspace() {
         ..WorkspaceConfigurationUpdate::default()
     });
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;

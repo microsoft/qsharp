@@ -19,7 +19,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -588,7 +588,10 @@ impl Udt {
         }
     }
 
-    fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
+    /// The field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
             let UdtDefKind::Tuple(items) = &udt_def.kind else {

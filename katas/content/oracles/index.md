@@ -39,11 +39,7 @@ Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decisi
 @[exercise]({
     "id": "oracles__implement_classical_oracles",
     "title": "Implement a Classical Oracle",
-    "path": "./classical_oracles/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./classical_oracles/"
 })
 
 @[section]({
@@ -113,11 +109,7 @@ In the next exercise you will implement the classical oracle that you've impleme
 @[exercise]({
     "id": "oracles__phase_oracle_seven",
     "title": "Implement a Phase Oracle",
-    "path": "./phase_oracle_seven/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./phase_oracle_seven/"
 })
 
 @[section]({
@@ -157,11 +149,7 @@ Now you will implement the same function you've seen in the first two exercises 
 @[exercise]({
     "id": "oracles__marking_oracle_seven",
     "title": "Implement a Marking Oracle",
-    "path": "./marking_oracle_seven/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./marking_oracle_seven/"
 })
 
 @[section]({
@@ -245,11 +233,7 @@ We can see that these two equations are identical, except for the $-1$ phase tha
 @[exercise]({
     "id": "oracles__marking_oracle_as_phase",
     "title": "Apply the Marking Oracle as a Phase Oracle",
-    "path": "./marking_oracle_as_phase/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./marking_oracle_as_phase/"
 })
 
 @[section]({
@@ -281,61 +265,37 @@ You will practice that in some of the exercises below.
 @[exercise]({
     "id": "oracles__or_oracle",
     "title": "Implement the OR Oracle",
-    "path": "./or_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./or_oracle/"
 })
 
 @[exercise]({
     "id": "oracles__kth_bit_oracle",
     "title": "Implement the K-th Bit Oracle",
-    "path": "./kth_bit_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./kth_bit_oracle/"
 })
 
 @[exercise]({
     "id": "oracles__or_but_kth_oracle",
     "title": "Implement the OR Oracle of All Bits Except the K-th",
-    "path": "./or_but_kth_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./or_but_kth_oracle/"
 })
 
 @[exercise]({
     "id": "oracles__bit_pattern_oracle",
     "title": "Implement the Arbitrary Bit Pattern Oracle",
-    "path": "./bit_pattern_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./bit_pattern_oracle/"
 })
 
 @[exercise]({
     "id": "oracles__bit_pattern_challenge",
     "title": "Implement the Arbitrary Bit Pattern Oracle (Challenge Version)",
-    "path": "./bit_pattern_challenge/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./bit_pattern_challenge/"
 })
 
 @[exercise]({
     "id": "oracles__meeting_oracle",
     "title": "Implement the Meeting Oracle",
-    "path": "./meeting_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./meeting_oracle/"
 })
 
 @[section]({

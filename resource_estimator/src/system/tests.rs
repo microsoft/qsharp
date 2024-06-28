@@ -8,7 +8,10 @@ use crate::estimates::{
     PhysicalResourceEstimation, PhysicalResourceEstimationResult,
 };
 
-use super::estimate_physical_resources;
+use super::{
+    constants::MAX_DISTILLATION_ROUNDS, estimate_physical_resources,
+    modeling::TFactoryDistillationUnitTemplate,
+};
 
 use crate::system::{
     data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
@@ -140,7 +143,7 @@ pub fn test_no_tstates() {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -159,7 +162,7 @@ pub fn single_tstate() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -183,7 +186,7 @@ pub fn perfect_tstate() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -231,7 +234,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit.clone(),
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -270,7 +273,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
 
     let same_ftp = Protocol::default();
     let output_t_error_rate = part.required_output_error_rate();
-    let builder = TFactoryBuilder::default();
+    let builder = create_factory_builder();
     let tfactories = builder
         .find_factories(
             &same_ftp,
@@ -326,7 +329,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit.clone(),
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -363,7 +366,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
 
     let output_t_error_rate = part.required_output_error_rate();
     let same_ftp = Protocol::floquet_code();
-    let builder = TFactoryBuilder::default();
+    let builder = create_factory_builder();
     let tfactories = builder
         .find_factories(
             &same_ftp,
@@ -418,7 +421,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -446,7 +449,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
     let estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(layout_overhead),
         partitioning,
     );
@@ -489,7 +492,7 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(counts),
         partitioning,
     )
@@ -660,7 +663,7 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(counts),
         partitioning,
     )
@@ -793,7 +796,7 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(counts),
         partitioning,
     )
@@ -895,7 +898,7 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        create_factory_builder(),
         Rc::new(counts),
         partitioning,
     )
@@ -984,6 +987,13 @@ fn test_report() {
                 .expect("Failed to parse JSON")
         )
     );
+}
+
+fn create_factory_builder() -> TFactoryBuilder {
+    TFactoryBuilder::new(
+        TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
+        MAX_DISTILLATION_ROUNDS,
+    )
 }
 
 fn find_factory<'a>(

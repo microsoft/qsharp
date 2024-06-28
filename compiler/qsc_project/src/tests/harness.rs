@@ -15,6 +15,7 @@ use rustc_hash::FxHashMap;
 
 pub fn check(project_path: &PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root_path.push(PathBuf::from("src"));
     root_path.push(PathBuf::from("tests"));
     root_path.push(PathBuf::from("projects"));
     let mut absolute_project_path = root_path.clone();

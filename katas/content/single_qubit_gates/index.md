@@ -328,55 +328,37 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 @[exercise]({
     "id": "single_qubit_gates__state_flip",
     "title": "State Flip",
-    "path": "./state_flip/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./state_flip/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__sign_flip",
     "title": "Sign Flip",
-    "path": "./sign_flip/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./sign_flip/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__y_gate",
     "title": "The Y Gate",
-    "path": "./y_gate/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./y_gate/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__sign_flip_on_zero",
     "title": "Sign Flip on Zero",
-    "path": "./sign_flip_on_zero/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./sign_flip_on_zero/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__global_phase_minusone",
     "title": "Global Phase -1",
-    "path": "./global_phase_minusone/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./global_phase_minusone/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__global_phase_i",
     "title": "Global Phase i",
-    "path": "./global_phase_i/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./global_phase_i/"
 })
 
 
@@ -438,20 +420,14 @@ $H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
 @[exercise]({
     "id": "single_qubit_gates__basis_change",
     "title": "Basis Change",
-    "path": "./basis_change/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./basis_change/"
 })
 
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_minus",
     "title": "Prepare Minus",
-    "path": "./prepare_minus/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_minus/"
 })
 
 @[section]({
@@ -501,19 +477,13 @@ $$T^2 = S, S^2 = Z$$
 @[exercise]({
     "id": "single_qubit_gates__phase_i",
     "title": "Relative Phase i",
-    "path": "./phase_i/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./phase_i/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__three_quarters_pi_phase",
     "title": "Three-Fourths Phase",
-    "path": "./three_quarters_pi_phase/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./three_quarters_pi_phase/"
 })
 
 @[section]({
@@ -593,37 +563,25 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 @[exercise]({
     "id": "single_qubit_gates__complex_phase",
     "title": "Complex Relative Phase",
-    "path": "./complex_phase/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./complex_phase/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__amplitude_change",
     "title": "Amplitude Change",
-    "path": "./amplitude_change/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./amplitude_change/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_rotated_state",
     "title": "Prepare Rotated State",
-    "path": "./prepare_rotated_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_rotated_state/"
 })
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_arbitrary_state",
     "title": "Prepare Arbitrary State",
-    "path": "./prepare_arbitrary_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_arbitrary_state/"
 })
 
 @[section]({
