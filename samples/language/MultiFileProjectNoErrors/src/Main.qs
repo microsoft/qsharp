@@ -13,7 +13,7 @@ namespace MyQuantumApp {
     function Main() : Unit {
 
         // this is coming from local deps
-        // Foo.DependencyA.MagicFunction(); <--- COMMENT THIS BACK IN, WORKS IN VS CODE
+        Foo.DependencyA.Foo();
 
         // this is coming from github - minestarks/qsharp-project-template
         // GitHub.Diagnostics.DumpMachine_();  <--- COMMENT THIS BACK IN, WORKS IN VS CODE
