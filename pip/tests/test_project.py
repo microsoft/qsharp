@@ -9,12 +9,14 @@ import os
 def qsharp():
     import qsharp
     import qsharp._fs
+    import qsharp._http
 
     qsharp._fs.read_file = read_file_memfs
     qsharp._fs.list_directory = list_directory_memfs
     qsharp._fs.exists = exists_memfs
     qsharp._fs.join = join_memfs
     qsharp._fs.resolve = resolve_memfs
+    qsharp._http.fetch_github = fetch_github_test
 
     return qsharp
 
@@ -48,7 +50,10 @@ def test_project_unreadable_qsharp_json(qsharp) -> None:
 def test_project_unreadable_source(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/unreadable_source")
-    assert str(excinfo.value).find("OSError: could not read test.qs") != -1
+    # If this seems like a silly substring to assert on, it's
+    # because the error reporting code is inserting a line break
+    # between "could not" and "read test.qs"
+    assert str(excinfo.value).find("OSError: could not") != -1
 
 
 def test_project_dependencies(qsharp) -> None:
@@ -61,6 +66,12 @@ def test_project_circular_dependency_error(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/circular")
     assert str(excinfo.value).find("Circular dependency detected between") != -1
+
+
+def test_github_dependency(qsharp) -> None:
+    qsharp.init(project_root="/with_github_dep")
+    result = qsharp.eval("Test.CallsDependency()")
+    assert result == 12
 
 
 memfs = {
@@ -115,8 +126,39 @@ memfs = {
                     }
                 }""",
         },
+        "with_github_dep": {
+            "src": {
+                # TODO(packages) When package aliases are taken into account,
+                # the below call should become: `Foo.Test.ReturnsTwelve()`
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Test.ReturnsTwelve(); } }",
+            },
+            "qsharp.json": """
+                {
+                    "dependencies": {
+                        "Foo": {
+                            "github" : {
+                                "owner" : "test-owner",
+                                "repo" : "test-repo",
+                                "ref" : "12345"
+                            }
+                        }
+                    }
+                }""",
+        },
     }
 }
+
+
+def fetch_github_test(owner: str, repo: str, ref: str, path: str):
+    match (owner, repo, ref, path):
+        case ("test-owner", "test-repo", "12345", "/qsharp.json"):
+            return """{ "files" : ["src/test.qs"] }"""
+        case ("test-owner", "test-repo", "12345", "/src/test.qs"):
+            return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
+        case _:
+            raise Exception(
+                f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}"
+            )
 
 
 def read_file_memfs(path):

@@ -153,6 +153,7 @@ export class Compiler implements ICompiler {
       profile ?? "adaptive_ri",
     );
   }
+
   async run(
     program: ProgramConfig,
     expr: string,
@@ -296,18 +297,3 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
   },
   eventNames: ["DumpMachine", "Message", "Result"],
 };
-
-export function toPackageGraphSources(
-  program: ProgramConfig,
-): IPackageGraphSources {
-  return "sources" in program
-    ? {
-        root: {
-          sources: program.sources,
-          languageFeatures: program.languageFeatures || [],
-          dependencies: {},
-        },
-        packages: {},
-      }
-    : program.packageGraphSources;
-}

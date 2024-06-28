@@ -8,8 +8,8 @@ use std::{
 
 use expect_test::Expect;
 use qsc_project::{
-    dependency_definition_from_key, key_for_dependency_definition, Error, FileSystem, Manifest,
-    PackageRef, Project, StdFs,
+    key_for_package_ref, package_ref_from_key, Error, FileSystem, Manifest, PackageRef, Project,
+    StdFs,
 };
 use rustc_hash::FxHashMap;
 
@@ -32,6 +32,10 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     expect.assert_eq(&format!("{project:#?}"));
 }
 
+/// If the `Project` contains absolute paths, replace them with relative paths
+/// so that running the tests on different machines produce the same results.
+/// Some error messages may contain paths formatted into strings, in that case
+/// we'll just replace the message with filler text.
 fn normalize(project: &mut Project, root_path: &Path) {
     let pkg_graph = &mut project.package_graph_sources;
 
@@ -59,12 +63,21 @@ fn normalize(project: &mut Project, root_path: &Path) {
                 remove_absolute_path_prefix(&mut str, root_path);
                 *path = str.to_string();
             }
+            Error::FileSystem {
+                about_path: path,
+                error,
+            } => {
+                let mut str = std::mem::take(path).into();
+                remove_absolute_path_prefix(&mut str, root_path);
+                *path = str.to_string();
+                *error = "REPLACED".to_string();
+            }
             Error::Circular(s1, s2) | Error::GitHubToLocal(s1, s2) => {
                 // These errors contain absolute paths which don't work well in test output
                 *s1 = "REPLACED".to_string();
                 *s2 = "REPLACED".to_string();
             }
-            Error::FileSystem(s) | Error::GitHub(s) => {
+            Error::GitHub(s) => {
                 *s = "REPLACED".to_string();
             }
         }
@@ -99,11 +112,11 @@ fn remove_absolute_path_prefix(path: &mut Arc<str>, root_path: &Path) {
 }
 
 fn remove_absolute_path_prefix_from_key(key: &mut Arc<str>, root_path: &Path) {
-    let def = dependency_definition_from_key(key);
+    let def = package_ref_from_key(key);
     if let PackageRef::Path { path } = def {
         let mut path = path.into();
         remove_absolute_path_prefix(&mut path, root_path);
-        *key = key_for_dependency_definition(&PackageRef::Path {
+        *key = key_for_package_ref(&PackageRef::Path {
             path: path.to_string(),
         });
     }

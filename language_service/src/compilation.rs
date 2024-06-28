@@ -64,7 +64,7 @@ impl Compilation {
         let std_package_id =
             package_store.insert(compile::std(&package_store, target_profile.into()));
 
-        let (unit, mut errors) = compile::compile(
+        let (unit, mut compile_errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
@@ -79,19 +79,19 @@ impl Compilation {
             .expect("expected to find user package");
 
         run_fir_passes(
-            &mut errors,
+            &mut compile_errors,
             target_profile,
             &package_store,
             package_id,
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(lints_config, &mut compile_errors, unit);
 
         Self {
             package_store,
             user_package_id: package_id,
-            compile_errors: errors,
+            compile_errors,
             kind: CompilationKind::OpenProject,
             project_errors,
         }

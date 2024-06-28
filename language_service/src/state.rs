@@ -258,7 +258,6 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let removed_compilation = self.remove_open_document(uri);
 
-        // TODO: consume dependency sources as well
         if !removed_compilation {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents

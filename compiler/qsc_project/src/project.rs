@@ -116,9 +116,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Project.GitHubToLocal"))]
     GitHubToLocal(String, String),
 
-    #[error("File system error: {0}")]
+    #[error("File system error: {about_path}: {error}")]
     #[diagnostic(code("Qsc.Project.FileSystem"))]
-    FileSystem(String),
+    FileSystem { about_path: String, error: String },
 
     #[error("Error fetching from GitHub: {0}")]
     #[diagnostic(code("Qsc.Project.GitHub"))]
@@ -126,14 +126,19 @@ pub enum Error {
 }
 
 impl Error {
+    /// Returns the document path that the error should be associated with when reporting.
     #[must_use]
     pub fn path(&self) -> Option<&String> {
         match self {
             Error::GitHubManifestParse { path, .. }
             | Error::NoSrcDir { path }
             | Error::ManifestParse { path, .. } => Some(path),
-            Error::GitHubToLocal(_, _)
-            | Error::FileSystem(_)
+            // Note we don't return the path for `FileSystem` errors,
+            // since for most errors such as "file not found", it's more meaningful
+            // to report the error for the manifest that was *referencing* the file,
+            // rather than for the file itself that provoked the I/O error.
+            Error::FileSystem { .. }
+            | Error::GitHubToLocal(_, _)
             | Error::Circular(_, _)
             | Error::GitHub(_) => None,
         }
@@ -178,7 +183,10 @@ pub trait FileSystemAsync {
         let listing = self
             .list_directory(initial_path)
             .await
-            .map_err(|e| Error::FileSystem(e.to_string()))?;
+            .map_err(|e| Error::FileSystem {
+                about_path: initial_path.to_string_lossy().to_string(),
+                error: e.to_string(),
+            })?;
         if let Some(src_dir) = listing.into_iter().find(|x| {
             let Ok(entry_type) = x.entry_type() else {
                 return false;
@@ -200,7 +208,10 @@ pub trait FileSystemAsync {
         let listing = self
             .list_directory(initial_path)
             .await
-            .map_err(|e| Error::FileSystem(e.to_string()))?;
+            .map_err(|e| Error::FileSystem {
+                about_path: initial_path.to_string_lossy().to_string(),
+                error: e.to_string(),
+            })?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
@@ -239,7 +250,7 @@ pub trait FileSystemAsync {
         let root_ref = PackageRef::Path { path: root_path };
 
         self.collect_deps(
-            key_for_dependency_definition(&root_ref),
+            key_for_package_ref(&root_ref),
             &root,
             global_cache.unwrap_or(&RefCell::new(FxHashMap::default())),
             &mut stack,
@@ -258,7 +269,12 @@ pub trait FileSystemAsync {
         let manifest_path = self
             .resolve_path(directory, Path::new("qsharp.json"))
             .await
-            .map_err(|e| vec![Error::FileSystem(e.to_string())])?
+            .map_err(|e| {
+                vec![Error::FileSystem {
+                    about_path: directory.to_string_lossy().to_string(),
+                    error: e.to_string(),
+                }]
+            })?
             .to_string_lossy()
             .into();
 
@@ -277,11 +293,17 @@ pub trait FileSystemAsync {
         let manifest_path = self
             .resolve_path(directory, Path::new("qsharp.json"))
             .await
-            .map_err(|e| Error::FileSystem(e.to_string()))?;
-        let (_, manifest_content) = self
-            .read_file(&manifest_path)
-            .await
-            .map_err(|e| Error::FileSystem(e.to_string()))?;
+            .map_err(|e| Error::FileSystem {
+                about_path: directory.to_string_lossy().to_string(),
+                error: e.to_string(),
+            })?;
+        let (_, manifest_content) =
+            self.read_file(&manifest_path)
+                .await
+                .map_err(|e| Error::FileSystem {
+                    about_path: manifest_path.to_string_lossy().to_string(),
+                    error: e.to_string(),
+                })?;
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             Error::ManifestParse {
                 path: manifest_path.to_string_lossy().to_string(),
@@ -317,7 +339,10 @@ pub trait FileSystemAsync {
                 v.push(
                     self.resolve_path(&project_path, Path::new(&file))
                         .await
-                        .map_err(|e| Error::FileSystem(e.to_string()))?,
+                        .map_err(|e| Error::FileSystem {
+                            about_path: project_path.to_string_lossy().to_string(),
+                            error: e.to_string(),
+                        })?,
                 );
             }
             v
@@ -325,11 +350,10 @@ pub trait FileSystemAsync {
 
         let mut sources = Vec::with_capacity(qs_files.len());
         for path in qs_files {
-            sources.push(
-                self.read_file(&path)
-                    .await
-                    .map_err(|e| Error::FileSystem(e.to_string()))?,
-            );
+            sources.push(self.read_file(&path).await.map_err(|e| Error::FileSystem {
+                about_path: path.to_string_lossy().to_string(),
+                error: e.to_string(),
+            })?);
         }
 
         let mut dependencies = FxHashMap::default();
@@ -342,11 +366,14 @@ pub trait FileSystemAsync {
                 *dep_path = self
                     .resolve_path(&project_path, &PathBuf::from(dep_path.clone()))
                     .await
-                    .map_err(|e| Error::FileSystem(e.to_string()))?
+                    .map_err(|e| Error::FileSystem {
+                        about_path: project_path.to_string_lossy().to_string(),
+                        error: e.to_string(),
+                    })?
                     .to_string_lossy()
                     .into();
             }
-            dependencies.insert(alias.into(), key_for_dependency_definition(&dep));
+            dependencies.insert(alias.into(), key_for_package_ref(&dep));
         }
 
         Ok(PackageInfo {
@@ -362,13 +389,18 @@ pub trait FileSystemAsync {
         &self,
         dep: &GitHubRef,
     ) -> ProjectResult<PackageInfo> {
-        let path_no_trailing_sep = dep
+        let path_trimmed_seps = dep
             .path
             .as_ref()
-            .map(|p| if p == "/" { "" } else { p })
+            .map(|p| {
+                p.strip_suffix('/')
+                    .unwrap_or(p)
+                    .strip_prefix('/')
+                    .unwrap_or(p)
+            })
             .unwrap_or_default();
 
-        let manifest_path = format!("{path_no_trailing_sep}/qsharp.json",);
+        let manifest_path = format!("{path_trimmed_seps}/qsharp.json",);
         let manifest_content = self
             .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &manifest_path)
             .await
@@ -377,7 +409,7 @@ pub trait FileSystemAsync {
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             Error::GitHubManifestParse {
                 path: format!(
-                    "qsharp-github-source:{}/{}/{}{path_no_trailing_sep}",
+                    "qsharp-github-source:{}/{}/{}/{path_trimmed_seps}/qsharp.json",
                     dep.owner, dep.repo, dep.r#ref
                 ),
                 owner: dep.owner.clone(),
@@ -389,7 +421,7 @@ pub trait FileSystemAsync {
         // Look at the files field in the manifest to find the sources.
         let mut sources = vec![];
         for file in &manifest.files {
-            let path = format!("{path_no_trailing_sep}/{file}");
+            let path = format!("{path_trimmed_seps}/{file}");
             let contents = self
                 .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
                 .await
@@ -414,7 +446,7 @@ pub trait FileSystemAsync {
             dependencies: manifest
                 .dependencies
                 .into_iter()
-                .map(|(k, v)| (k.into(), key_for_dependency_definition(&v)))
+                .map(|(k, v)| (k.into(), key_for_package_ref(&v)))
                 .collect(),
         })
     }
@@ -475,7 +507,7 @@ pub trait FileSystemAsync {
                 continue;
             }
 
-            let dependency = dependency_definition_from_key(dep_key);
+            let dependency = package_ref_from_key(dep_key);
             if matches!(dependency, PackageRef::Path { .. })
                 && matches!(this_pkg, PackageRef::GitHub { .. })
             {
@@ -522,14 +554,14 @@ fn filter_hidden_files<Entry: DirEntry>(
 /// but something more readable would also be okay as long as we can
 /// guarantee uniqueness.
 #[must_use]
-pub fn key_for_dependency_definition(dep: &PackageRef) -> PackageKey {
+pub fn key_for_package_ref(dep: &PackageRef) -> PackageKey {
     serde_json::to_string(dep)
         .expect("dependency should be serializable")
         .into()
 }
 
 #[must_use]
-pub fn dependency_definition_from_key(key: &PackageKey) -> PackageRef {
+pub fn package_ref_from_key(key: &PackageKey) -> PackageRef {
     serde_json::from_str(key).expect("dependency should be deserializable")
 }
 
@@ -617,7 +649,7 @@ pub trait FileSystem {
         // Proceed with caution if you make the `FileSystemAsync` implementation any
         // more complex.
         FutureExt::now_or_never(fs.load_project(directory, global_cache))
-            .expect("load_project_with_deps should never await")
+            .expect("load_project should never await")
     }
 }
 
