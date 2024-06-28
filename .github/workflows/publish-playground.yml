@@ -50,7 +50,7 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py
+        run: python ./build.py --no-check --no-test --wasm --npm --play
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:

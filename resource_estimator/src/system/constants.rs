@@ -5,10 +5,10 @@
 pub const MAX_CODE_DISTANCE: u64 = 50;
 
 /// Maximum number of distillation rounds
-pub const MAX_DISTILLATION_ROUNDS: usize = 3;
+pub const MAX_DISTILLATION_ROUNDS: u64 = 3;
 
 /// Maximum number of extra distillation rounds in case none is found for [`MAX_DISTILLATION_ROUNDS`]
-pub const MAX_EXTRA_DISTILLATION_ROUNDS: usize = 4;
+pub const MAX_EXTRA_DISTILLATION_ROUNDS: u64 = 4;
 
 /// (Γ_R in paper for layout)
 #[allow(clippy::doc_markdown)]

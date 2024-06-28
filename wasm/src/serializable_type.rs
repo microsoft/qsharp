@@ -104,7 +104,7 @@
 ///
 #[macro_export]
 macro_rules! serializable_type {
-    ($(#[$($attrss:tt)*])* $struct_ident: ident, $struct: tt, $typescript: literal) => {
+    ($(#[$($attrss:meta)*])* $struct_ident: ident, $struct: tt, $typescript: literal) => {
         #[derive(Debug, Serialize, Deserialize)]
         #[serde(rename_all = "camelCase")]
         $(#[$($attrss)*])*
@@ -117,7 +117,7 @@ macro_rules! serializable_type {
         const TYPESCRIPT_CUSTOM_SECTION: &'static str = $typescript;
     };
 
-    ($(#[$($attrss:tt)*])* $struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
+    ($(#[$($attrss:meta)*])* $struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
         #[derive(Debug, Serialize, Deserialize)]
         #[serde(rename_all = "camelCase")]
         $(#[$($attrss)*])*

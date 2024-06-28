@@ -411,7 +411,7 @@ function createQuestion(kataPath, properties) {
 
 function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
-  const requiredProperties = ["id", "title", "path", "qsDependencies"];
+  const requiredProperties = ["id", "title", "path"];
   const missingProperties = identifyMissingProperties(
     properties,
     requiredProperties,
@@ -434,10 +434,18 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   );
   const description = createTextContent(descriptionMarkdown);
 
-  // Aggregate the exercise sources. The verification source file is Verification.qs and additional dependecies are
-  // explicitly listed as source code file paths in the qsDependencies property.
+  // Aggregate the exercise sources. The verification source file is Verification.qs.
   let resolvedVerificationFile = join(exercisePath, "Verification.qs");
-  const resolvedDependencies = properties.qsDependencies.map((path) =>
+
+  // Implicit dependencies to simplify dependency handling:
+  // ../KatasLibrary.qs must be included
+  // ./Common.qs must be included if present in current kata
+  const implicitDependencies = ["../KatasLibrary.qs"];
+  if (existsSync(join(kataPath, "./Common.qs"))) {
+    implicitDependencies.push("./Common.qs");
+  }
+
+  const resolvedDependencies = implicitDependencies.map((path) =>
     join(kataPath, path),
   );
   const resolvedSources = [resolvedVerificationFile].concat(

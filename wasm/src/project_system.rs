@@ -205,7 +205,6 @@ impl ProjectLoader {
     }
 }
 
-#[allow(clippy::needless_pass_by_value)]
 fn project_errors_into_qsharp_errors_json(
     project_dir: &str,
     errs: &[qsc_project::Error],

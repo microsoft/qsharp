@@ -5,6 +5,9 @@
 //! It does this by evaluating all purely classical expressions and generating RIR instructions for expressions that are
 //! not purely classical.
 
+#[cfg(test)]
+mod tests;
+
 mod evaluation_context;
 mod management;
 

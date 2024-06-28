@@ -230,9 +230,13 @@ suite("Q# Language Service Tests", function suite() {
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(1, 16), new vscode.Position(1, 26)),
+      new vscode.Range(new vscode.Position(1, 4), new vscode.Position(1, 20)),
     );
-    assert.equal(text, "MyFunction", "Test file contents don't match expected");
+    assert.equal(
+      text,
+      "MyDep.MyFunction",
+      `${mainPackageMainQs.fsPath} file contents don't match expected`,
+    );
 
     // Verify go-to-definition works across packages
     const actualDefinition = (await vscode.commands.executeCommand(

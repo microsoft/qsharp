@@ -29,7 +29,7 @@ pub enum ErrorKind {
     Pass(#[from] qsc_passes::Error),
 
     /// `Lint` variant represents lints generated during the linting stage. These diagnostics are
-    /// typically emited from the language server and happens after all other compilation passes.
+    /// typically emitted from the language server and happens after all other compilation passes.
     Lint(#[from] qsc_linter::Lint),
 }
 

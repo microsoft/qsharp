@@ -115,19 +115,13 @@ It takes two parameters: the array of `Pauli` constants (`PauliI`, `PauliX`, `Pa
 @[exercise]({
     "id": "qec_shor__zz_measurement",
     "title": "Measurement in ZZ basis",
-    "path": "./zz_measurement/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./zz_measurement/"
 })
 
 @[exercise]({
     "id": "qec_shor__xx_measurement",
     "title": "Measurement in XX basis",
-    "path": "./xx_measurement/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./xx_measurement/"
 })
 
 
@@ -192,20 +186,13 @@ However, if a $Z$ error happens on any one of these qubits, we won't be able to 
 @[exercise]({
     "id": "qec_shor__bitflip_encode",
     "title": "Bit Flip Code: Encode Codewords",
-    "path": "./bitflip_encode/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./bitflip_encode/"
 })
 
 @[exercise]({
     "id": "qec_shor__bitflip_detect",
     "title": "Bit Flip Code: Detect X Error",
-    "path": "./bitflip_detect/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./bitflip_detect/"
 })
 
 
@@ -265,20 +252,13 @@ However, if an $X$ error happens on any one of these qubits, we won't be able to
 @[exercise]({
     "id": "qec_shor__phaseflip_encode",
     "title": "Phase Flip Code: Encode Codewords",
-    "path": "./phaseflip_encode/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./phaseflip_encode/"
 })
 
 @[exercise]({
     "id": "qec_shor__phaseflip_detect",
     "title": "Phase Flip Code: Detect Z Error",
-    "path": "./phaseflip_detect/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./phaseflip_detect/"
 })
 
 
@@ -336,19 +316,13 @@ To correct a $Z$ error, we can no longer simply apply a $Z$ gate to the affected
 @[exercise]({
     "id": "qec_shor__shor_encode",
     "title": "Shor Code: Encode Codewords",
-    "path": "./shor_encode/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./shor_encode/"
 })
 
 @[exercise]({
     "id": "qec_shor__shor_detect",
     "title": "Shor Code: Detect X, Y, and Z Errors",
-    "path": "./shor_detect/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./shor_detect/"
 })
 
 

@@ -34,51 +34,31 @@ This knowledge is sufficient to implement a simple random number generator!
 @[exercise]({
     "id": "random_numbers__random_bit",
     "title": "Generate a Single Random Bit",
-    "path": "./random_bit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_bit/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_two_bits",
     "title": "Generate a Random Two-Bit Number",
-    "path": "./random_two_bits/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_two_bits/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_n_bits",
     "title": "Generate a Number of Arbitrary Size",
-    "path": "./random_n_bits/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_n_bits/"
 })
 
 @[exercise]({
     "id": "random_numbers__weighted_random_bit",
     "title": "Generate a Weighted Bit",
-    "path": "./weighted_random_bit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./weighted_random_bit/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_number",
     "title": "Generate a Random Number Between Min and Max",
-    "path": "./random_number/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_number/"
 })
 
 @[section]({"id": "random_numbers__whats_next", "title": "What's Next?"})

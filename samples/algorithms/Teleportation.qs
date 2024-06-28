@@ -18,10 +18,10 @@ namespace Sample {
     operation Main() : Result[] {
         // Use the `Teleport` operation to send different quantum states.
         let stateInitializerBasisTuples = [
-            ("|0〉", I, PauliZ),
-            ("|1〉", X, PauliZ),
-            ("|+〉", SetToPlus, PauliX),
-            ("|-〉", SetToMinus, PauliX)
+            ("|0〉", I, PauliZ),
+            ("|1〉", X, PauliZ),
+            ("|+〉", SetToPlus, PauliX),
+            ("|-〉", SetToMinus, PauliX)
         ];
 
         mutable results = [];
@@ -60,7 +60,7 @@ namespace Sample {
     /// ## message
     /// A qubit whose state we wish to send.
     /// ## target
-    /// A qubit initially in the |0〉 state that we want to send
+    /// A qubit initially in the |0〉 state that we want to send
     /// the state of message to.
     operation Teleport(message : Qubit, target : Qubit) : Unit {
         // Allocate an auxiliary qubit.

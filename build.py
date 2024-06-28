@@ -214,18 +214,22 @@ if args.check:
     step_end()
 
 if build_cli:
-    step_start("Building the command line compiler")
-    cargo_build_args = ["cargo", "build"]
-    if build_type == "release":
-        cargo_build_args.append("--release")
-    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
-
     if run_tests:
-        print("Running tests for the command line compiler")
+        step_start("Running Rust unit tests")
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
+            # Disable LTO for release tests to speed up compilation
+            cargo_test_args.append("--config")
+            cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
+        step_end()
+
+    step_start("Building the command line compiler")
+    cargo_build_args = ["cargo", "build", "--bin", "qsc"]
+    if build_type == "release":
+        cargo_build_args.append("--release")
+    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
     step_end()
 
 

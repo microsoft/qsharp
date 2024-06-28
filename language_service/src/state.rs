@@ -27,7 +27,7 @@ pub(super) struct CompilationState {
     ///
     /// For notebooks, the `CompilationUri` is the notebook uri.
     ///
-    /// The `CompilatinUri` is used when compilation-level errors get reported
+    /// The `CompilationUri` is used when compilation-level errors get reported
     /// to the client. Compilation-level errors are defined as errors without
     /// an associated source document.
     ///
@@ -253,7 +253,6 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let removed_compilation = self.remove_open_document(uri);
 
-        // TODO: consume dependency sources as well
         if !removed_compilation {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents

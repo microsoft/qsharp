@@ -15,7 +15,7 @@ import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
-export async function findManifestDocument(
+async function findManifestDocument(
   currentDocumentUriString: string,
 ): Promise<{ directory: URI; manifest: URI } | null> {
   // file://home/foo/bar/src/document.qs
@@ -139,10 +139,8 @@ async function readFileUri(
       !(err instanceof vscode.FileSystemError && err.code === "FileNotFound")
     ) {
       log.error("Unexpected error trying to read file", err);
-      return null;
-    } else {
-      throw err;
     }
+    throw err;
   }
 }
 
