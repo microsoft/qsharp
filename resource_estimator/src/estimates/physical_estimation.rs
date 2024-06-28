@@ -1263,7 +1263,9 @@ impl<
     /// cycles.  We obtain the required logical error rate by dividing the error
     /// budget for logical operations by the volume.
     fn required_logical_error_rate(&self, num_cycles: u64) -> f64 {
-        let volume = self.layout_overhead.logical_qubits() * num_cycles;
+        let volume = self
+            .layout_overhead
+            .logical_volume(self.error_budget(), num_cycles);
 
         self.error_budget.logical() / volume as f64
     }

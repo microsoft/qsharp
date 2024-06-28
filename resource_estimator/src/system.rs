@@ -26,7 +26,10 @@ pub use self::modeling::{
     GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol, TFactory,
 };
 pub use self::optimization::TFactoryBuilder;
-pub use self::{data::LogicalResourceCounts, error::Error};
+pub use self::{
+    data::{LogicalResourceCounts, VolumeEntry},
+    error::Error,
+};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
 use serde::Serialize;

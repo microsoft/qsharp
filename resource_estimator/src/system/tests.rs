@@ -34,6 +34,7 @@ fn estimate_single() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = "[{}]";
@@ -60,6 +61,7 @@ fn estimate_frontier() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = r#"[{
@@ -90,6 +92,7 @@ fn physical_estimates_crash() {
             ccz_count: 8,
             ccix_count: 0,
             measurement_count: 5,
+            precise_volume_data: None,
         },
         r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
             "qecScheme": {"name": "floquet_code"},
@@ -972,6 +975,7 @@ fn test_report() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = "[{}]";
