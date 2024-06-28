@@ -1,0 +1,15 @@
+[package]
+name = "reproducer_of_bugs_terminator_of_souls"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+qsc_frontend = { path = "../compiler/qsc_frontend" }
+qsc = { path = "../compiler/qsc" }
+
+[lints]
+workspace = true
