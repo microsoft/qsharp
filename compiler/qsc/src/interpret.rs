@@ -2,15 +2,14 @@
 // Licensed under the MIT License.
 
 mod debug;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(test)]
-mod debugger_tests;
-
 #[cfg(test)]
 mod circuit_tests;
+#[cfg(test)]
+mod debugger_tests;
+#[cfg(test)]
+mod package_tests;
+#[cfg(test)]
+mod tests;
 
 use std::rc::Rc;
 
