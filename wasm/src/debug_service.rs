@@ -27,17 +27,7 @@ impl DebugService {
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
-        let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
-            into_qsc_args(program, entry);
-
-        match Debugger::new(
-            source_map,
-            capabilities,
-            Encoding::Utf16,
-            language_features,
-            package_store,
-            &user_code_dependencies[..],
-        ) {
+        match init_debugger(program, entry) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 String::new()
@@ -214,6 +204,24 @@ impl DebugService {
             .as_mut()
             .expect("debugger should be initialized")
     }
+}
+
+pub fn init_debugger(
+    program: ProgramConfig,
+    entry: Option<String>,
+) -> Result<Debugger, Vec<Error>> {
+    let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
+        into_qsc_args(program, entry)
+            .map_err(|e| e.into_iter().map(Into::into).collect::<Vec<_>>())?;
+
+    Debugger::new(
+        source_map,
+        capabilities,
+        Encoding::Utf16,
+        language_features,
+        package_store,
+        &user_code_dependencies[..],
+    )
 }
 
 fn render_errors(errors: Vec<Error>) -> String {

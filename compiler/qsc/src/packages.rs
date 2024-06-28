@@ -15,6 +15,7 @@ pub struct BuildableProgram {
     pub store: PackageStore,
     pub user_code: qsc_project::PackageInfo,
     pub user_code_dependencies: Vec<(PackageId, Option<Arc<str>>)>,
+    pub dependency_errors: Vec<compile::Error>,
 }
 
 impl BuildableProgram {
@@ -43,6 +44,8 @@ pub fn prepare_package_store(
     let (ordered_packages, user_code) = package_graph_sources
         .compilation_order()
         .expect("TODO error handling");
+
+    let mut dependency_errors = Vec::new();
     for (package_name, package_to_compile) in ordered_packages {
         let sources: Vec<(Arc<str>, Arc<str>)> =
             package_to_compile.sources.into_iter().collect::<Vec<_>>();
@@ -50,14 +53,11 @@ pub fn prepare_package_store(
         let dependencies = package_to_compile
             .dependencies
             .iter()
-            .map(|(alias, key)| {
-                (
-                    alias.clone(),
-                    canonical_package_identifier_to_package_id_mapping
-                        .get(key)
-                        .copied()
-                        .expect("TODO handle this err: missing package"),
-                )
+            .filter_map(|(alias, key)| {
+                canonical_package_identifier_to_package_id_mapping
+                    .get(key)
+                    .copied()
+                    .map(|pkg| (alias.clone(), pkg))
             })
             .collect::<FxHashMap<_, _>>();
         let dependencies = dependencies
@@ -65,7 +65,7 @@ pub fn prepare_package_store(
             .map(|(alias, b)| (*b, Some(alias.clone())))
             .chain(std::iter::once((std_id, None)))
             .collect::<Vec<_>>();
-        let (compile_unit, dependency_errors) = compile::compile(
+        let (compile_unit, mut this_errors) = compile::compile(
             &package_store,
             &dependencies[..],
             source_map,
@@ -73,31 +73,30 @@ pub fn prepare_package_store(
             capabilities,
             LanguageFeatures::from_iter(package_to_compile.language_features),
         );
-        if !dependency_errors.is_empty() {
-            todo!("handle errors in dependencies: {dependency_errors:?}");
-        }
 
         let package_id = package_store.insert(compile_unit);
+        if !this_errors.is_empty() {
+            dependency_errors.append(&mut this_errors);
+        }
+
         canonical_package_identifier_to_package_id_mapping.insert(package_name, package_id);
     }
 
     let user_code_dependencies = user_code
         .dependencies
         .iter()
-        .map(|(alias, key)| {
-            (
-                canonical_package_identifier_to_package_id_mapping
-                    .get(key)
-                    .copied()
-                    .expect("TODO handle this err: missing package"),
-                Some(alias.clone()),
-            )
+        .filter_map(|(alias, key)| {
+            canonical_package_identifier_to_package_id_mapping
+                .get(key)
+                .copied()
+                .map(|pkg| (pkg, Some(alias.clone())))
         })
         .chain(std::iter::once((std_id, None)))
         .collect::<Vec<_>>();
 
     BuildableProgram {
         store: package_store,
+        dependency_errors,
         user_code,
         user_code_dependencies,
     }
@@ -109,7 +108,7 @@ mod tests {
     // Licensed under the MIT License.
     use crate::{compile, LanguageFeatures, TargetCapabilityFlags};
     use expect_test::expect;
-    use qsc_frontend::compile::SourceMap;
+    use qsc_frontend::compile::{CompileUnit, SourceMap};
     use qsc_passes::PackageType;
     use qsc_project::{PackageInfo, Project};
     use rustc_hash::FxHashMap;
@@ -149,7 +148,6 @@ mod tests {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     #[test]
     fn test_prepare_package_store() {
         let program = mock_program();
@@ -157,6 +155,11 @@ mod tests {
             TargetCapabilityFlags::default(),
             program.package_graph_sources,
         );
+
+        expect![[r"
+            []
+        "]]
+        .assert_debug_eq(&buildable_program.dependency_errors);
 
         // compile the user code
         let compiled = compile::compile(
@@ -171,555 +174,234 @@ mod tests {
             LanguageFeatures::default(),
         );
 
+        let CompileUnit {
+            package,
+            ast,
+            errors,
+            ..
+        } = compiled.0;
+
         expect![[r#"
-            (
-                CompileUnit {
-                    package: Package {
-                        items: IndexMap {
-                            values: [
-                                "0: Item { id: LocalItemId(0), span: Span { lo: 0, hi: 40 }, parent: None, doc: \"\", attrs: [], visibility: Public, kind: Namespace(Idents([Ident { id: NodeId(5), span: Span { lo: 0, hi: 40 }, name: \"test\" }]), [LocalItemId(1)]) }",
-                                "1: Item { id: LocalItemId(1), span: Span { lo: 0, hi: 40 }, parent: Some(LocalItemId(0)), doc: \"\", attrs: [EntryPoint], visibility: Internal, kind: Callable(CallableDecl { id: NodeId(0), span: Span { lo: 14, hi: 40 }, kind: Operation, name: Ident { id: NodeId(1), span: Span { lo: 24, hi: 28 }, name: \"Main\" }, generics: [], input: Pat { id: NodeId(2), span: Span { lo: 28, hi: 30 }, ty: Tuple([]), kind: Tuple([]) }, output: Tuple([]), functors: Empty, body: SpecDecl { id: NodeId(3), span: Span { lo: 14, hi: 40 }, body: Impl(None, Block { id: NodeId(4), span: Span { lo: 38, hi: 40 }, ty: Tuple([]), stmts: [] }) }, adj: None, ctl: None, ctl_adj: None }) }",
-                            ],
+            Package:
+                entry expression: Expr 8 [0-0] [Type Unit]: Call:
+                    Expr 7 [24-28] [Type Unit]: Var: Item 1
+                    Expr 6 [28-30] [Type Unit]: Unit
+                Item 0 [0-40] (Public):
+                    Namespace (Ident 5 [0-40] "test"): Item 1
+                Item 1 [0-40] (Internal):
+                    Parent: 0
+                    EntryPoint
+                    Callable 0 [14-40] (operation):
+                        name: Ident 1 [24-28] "Main"
+                        input: Pat 2 [28-30] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [14-40]: Impl:
+                            Block 4 [38-40]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]]
+        .assert_eq(&package.to_string());
+        expect![[r#"
+            Package 0:
+                Namespace 1 [0-40] (Ident 2 [0-40] "test"):
+                    Item 3 [0-40]:
+                        Attr 4 [0-13] (Ident 5 [1-11] "EntryPoint"):
+                            Expr 6 [11-13]: Unit
+                        Callable 7 [14-40] (Operation):
+                            name: Ident 8 [24-28] "Main"
+                            input: Pat 9 [28-30]: Unit
+                            output: Type 10 [33-37]: Path: Path 11 [33-37] (Ident 12 [33-37] "Unit")
+                            body: Block: Block 13 [38-40]: <empty>"#]]
+        .assert_eq(&ast.package.to_string());
+        expect![[r"
+            []
+        "]]
+        .assert_debug_eq(&errors);
+    }
+
+    #[test]
+    fn missing_dependency() {
+        let mut program = mock_program();
+        program
+            .package_graph_sources
+            .root
+            .dependencies
+            .insert("NonExistent".into(), "nonexistent-dep-key".into());
+
+        let buildable_program = super::prepare_package_store(
+            TargetCapabilityFlags::default(),
+            program.package_graph_sources,
+        );
+
+        expect![[r"
+            []
+        "]]
+        .assert_debug_eq(&buildable_program.dependency_errors);
+
+        // compile the user code
+        let compiled = compile::compile(
+            &buildable_program.store,
+            &buildable_program.user_code_dependencies[..],
+            SourceMap::new(
+                buildable_program.user_code.sources,
+                None, /* TODO entry */
+            ),
+            PackageType::Exe,
+            TargetCapabilityFlags::default(),
+            LanguageFeatures::default(),
+        );
+
+        let CompileUnit {
+            package,
+            ast,
+            errors,
+            ..
+        } = compiled.0;
+
+        expect![[r#"
+            Package:
+                entry expression: Expr 8 [0-0] [Type Unit]: Call:
+                    Expr 7 [24-28] [Type Unit]: Var: Item 1
+                    Expr 6 [28-30] [Type Unit]: Unit
+                Item 0 [0-40] (Public):
+                    Namespace (Ident 5 [0-40] "test"): Item 1
+                Item 1 [0-40] (Internal):
+                    Parent: 0
+                    EntryPoint
+                    Callable 0 [14-40] (operation):
+                        name: Ident 1 [24-28] "Main"
+                        input: Pat 2 [28-30] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [14-40]: Impl:
+                            Block 4 [38-40]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]]
+        .assert_eq(&package.to_string());
+        expect![[r#"
+            Package 0:
+                Namespace 1 [0-40] (Ident 2 [0-40] "test"):
+                    Item 3 [0-40]:
+                        Attr 4 [0-13] (Ident 5 [1-11] "EntryPoint"):
+                            Expr 6 [11-13]: Unit
+                        Callable 7 [14-40] (Operation):
+                            name: Ident 8 [24-28] "Main"
+                            input: Pat 9 [28-30]: Unit
+                            output: Type 10 [33-37]: Path: Path 11 [33-37] (Ident 12 [33-37] "Unit")
+                            body: Block: Block 13 [38-40]: <empty>"#]]
+        .assert_eq(&ast.package.to_string());
+        expect![[r"
+            []
+        "]]
+        .assert_debug_eq(&errors);
+    }
+
+    #[test]
+    fn dependency_error() {
+        let mut program = mock_program();
+        // Inject a syntax error into one of the dependencies
+        program
+            .package_graph_sources
+            .packages
+            .values_mut()
+            .next()
+            .expect("expected at least one dependency in the mock program")
+            .sources[0]
+            .1 = "broken_syntax".into();
+
+        let buildable_program = super::prepare_package_store(
+            TargetCapabilityFlags::default(),
+            program.package_graph_sources,
+        );
+
+        expect![[r#"
+            [
+                WithSource {
+                    sources: [
+                        Source {
+                            name: "librarymain",
+                            contents: "broken_syntax",
+                            offset: 0,
                         },
-                        stmts: [],
-                        entry: Some(
-                            Expr {
-                                id: NodeId(
-                                    8,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 0,
-                                },
-                                ty: Tuple(
-                                    [],
-                                ),
-                                kind: Call(
-                                    Expr {
-                                        id: NodeId(
-                                            7,
-                                        ),
-                                        span: Span {
-                                            lo: 24,
-                                            hi: 28,
-                                        },
-                                        ty: Tuple(
-                                            [],
-                                        ),
-                                        kind: Var(
-                                            Item(
-                                                ItemId {
-                                                    package: None,
-                                                    item: LocalItemId(
-                                                        1,
-                                                    ),
-                                                },
-                                            ),
-                                            [],
-                                        ),
-                                    },
-                                    Expr {
-                                        id: NodeId(
-                                            6,
-                                        ),
-                                        span: Span {
-                                            lo: 28,
-                                            hi: 30,
-                                        },
-                                        ty: Tuple(
-                                            [],
-                                        ),
-                                        kind: Tuple(
-                                            [],
-                                        ),
-                                    },
-                                ),
-                            },
-                        ),
-                    },
-                    ast: AstPackage {
-                        package: Package {
-                            id: NodeId(
-                                0,
-                            ),
-                            nodes: [
-                                Namespace(
-                                    Namespace {
-                                        id: NodeId(
-                                            1,
-                                        ),
-                                        span: Span {
+                    ],
+                    error: Frontend(
+                        Error(
+                            Parse(
+                                Error(
+                                    ExpectedItem(
+                                        Ident,
+                                        Span {
                                             lo: 0,
-                                            hi: 40,
+                                            hi: 0,
                                         },
-                                        doc: "",
-                                        name: Idents(
-                                            [
-                                                Ident {
-                                                    id: NodeId(
-                                                        2,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 0,
-                                                        hi: 40,
-                                                    },
-                                                    name: "test",
-                                                },
-                                            ],
-                                        ),
-                                        items: [
-                                            Item {
-                                                id: NodeId(
-                                                    3,
-                                                ),
-                                                span: Span {
-                                                    lo: 0,
-                                                    hi: 40,
-                                                },
-                                                doc: "",
-                                                attrs: [
-                                                    Attr {
-                                                        id: NodeId(
-                                                            4,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 0,
-                                                            hi: 13,
-                                                        },
-                                                        name: Ident {
-                                                            id: NodeId(
-                                                                5,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 1,
-                                                                hi: 11,
-                                                            },
-                                                            name: "EntryPoint",
-                                                        },
-                                                        arg: Expr {
-                                                            id: NodeId(
-                                                                6,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 11,
-                                                                hi: 13,
-                                                            },
-                                                            kind: Tuple(
-                                                                [],
-                                                            ),
-                                                        },
-                                                    },
-                                                ],
-                                                kind: Callable(
-                                                    CallableDecl {
-                                                        id: NodeId(
-                                                            7,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 14,
-                                                            hi: 40,
-                                                        },
-                                                        kind: Operation,
-                                                        name: Ident {
-                                                            id: NodeId(
-                                                                8,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 24,
-                                                                hi: 28,
-                                                            },
-                                                            name: "Main",
-                                                        },
-                                                        generics: [],
-                                                        input: Pat {
-                                                            id: NodeId(
-                                                                9,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 28,
-                                                                hi: 30,
-                                                            },
-                                                            kind: Tuple(
-                                                                [],
-                                                            ),
-                                                        },
-                                                        output: Ty {
-                                                            id: NodeId(
-                                                                10,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 33,
-                                                                hi: 37,
-                                                            },
-                                                            kind: Path(
-                                                                Path {
-                                                                    id: NodeId(
-                                                                        11,
-                                                                    ),
-                                                                    span: Span {
-                                                                        lo: 33,
-                                                                        hi: 37,
-                                                                    },
-                                                                    segments: None,
-                                                                    name: Ident {
-                                                                        id: NodeId(
-                                                                            12,
-                                                                        ),
-                                                                        span: Span {
-                                                                            lo: 33,
-                                                                            hi: 37,
-                                                                        },
-                                                                        name: "Unit",
-                                                                    },
-                                                                },
-                                                            ),
-                                                        },
-                                                        functors: None,
-                                                        body: Block(
-                                                            Block {
-                                                                id: NodeId(
-                                                                    13,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 38,
-                                                                    hi: 40,
-                                                                },
-                                                                stmts: [],
-                                                            },
-                                                        ),
-                                                    },
-                                                ),
-                                            },
-                                        ],
-                                    },
+                                    ),
                                 ),
-                            ],
-                            entry: None,
-                        },
-                        tys: Table {
-                            udts: {
-                                ItemId {
-                                    package: Some(
-                                        PackageId(
-                                            1,
-                                        ),
-                                    ),
-                                    item: LocalItemId(
-                                        218,
-                                    ),
-                                }: Udt {
-                                    span: Span {
-                                        lo: 163009,
-                                        hi: 163361,
-                                    },
-                                    name: "ComplexPolar",
-                                    definition: UdtDef {
-                                        span: Span {
-                                            lo: 163321,
-                                            hi: 163360,
-                                        },
-                                        kind: Tuple(
-                                            [
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 163322,
-                                                        hi: 163340,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 163322,
-                                                                    hi: 163331,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "Magnitude",
-                                                            ),
-                                                            ty: Prim(
-                                                                Double,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 163342,
-                                                        hi: 163359,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 163342,
-                                                                    hi: 163350,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "Argument",
-                                                            ),
-                                                            ty: Prim(
-                                                                Double,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                },
-                                ItemId {
-                                    package: Some(
-                                        PackageId(
-                                            1,
-                                        ),
-                                    ),
-                                    item: LocalItemId(
-                                        217,
-                                    ),
-                                }: Udt {
-                                    span: Span {
-                                        lo: 162577,
-                                        hi: 163003,
-                                    },
-                                    name: "Complex",
-                                    definition: UdtDef {
-                                        span: Span {
-                                            lo: 162972,
-                                            hi: 163002,
-                                        },
-                                        kind: Tuple(
-                                            [
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 162973,
-                                                        hi: 162986,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 162973,
-                                                                    hi: 162977,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "Real",
-                                                            ),
-                                                            ty: Prim(
-                                                                Double,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 162988,
-                                                        hi: 163001,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 162988,
-                                                                    hi: 162992,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "Imag",
-                                                            ),
-                                                            ty: Prim(
-                                                                Double,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                },
-                                ItemId {
-                                    package: Some(
-                                        PackageId(
-                                            1,
-                                        ),
-                                    ),
-                                    item: LocalItemId(
-                                        354,
-                                    ),
-                                }: Udt {
-                                    span: Span {
-                                        lo: 265535,
-                                        hi: 265640,
-                                    },
-                                    name: "AndChain",
-                                    definition: UdtDef {
-                                        span: Span {
-                                            lo: 265563,
-                                            hi: 265639,
-                                        },
-                                        kind: Tuple(
-                                            [
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 265573,
-                                                        hi: 265593,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 265573,
-                                                                    hi: 265587,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "NGarbageQubits",
-                                                            ),
-                                                            ty: Prim(
-                                                                Int,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                                UdtDef {
-                                                    span: Span {
-                                                        lo: 265603,
-                                                        hi: 265633,
-                                                    },
-                                                    kind: Field(
-                                                        UdtField {
-                                                            name_span: Some(
-                                                                Span {
-                                                                    lo: 265603,
-                                                                    hi: 265608,
-                                                                },
-                                                            ),
-                                                            name: Some(
-                                                                "Apply",
-                                                            ),
-                                                            ty: Arrow(
-                                                                Arrow {
-                                                                    kind: Operation,
-                                                                    input: Array(
-                                                                        Prim(
-                                                                            Qubit,
-                                                                        ),
-                                                                    ),
-                                                                    output: Tuple(
-                                                                        [],
-                                                                    ),
-                                                                    functors: Value(
-                                                                        Adj,
-                                                                    ),
-                                                                },
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                },
-                            },
-                            terms: IndexMap {
-                                values: [
-                                    "9: Tuple([])",
-                                    "13: Tuple([])",
-                                ],
-                            },
-                            generics: IndexMap {
-                                values: [],
-                            },
-                        },
-                        names: IndexMap {
-                            values: [
-                                "1: Item(ItemId { package: None, item: LocalItemId(0) }, Available)",
-                                "8: Item(ItemId { package: None, item: LocalItemId(1) }, Available)",
-                                "11: UnitTy",
-                            ],
-                        },
-                        locals: Locals {
-                            scopes: [
-                                Scope {
-                                    span: Span {
-                                        lo: 0,
-                                        hi: 40,
-                                    },
-                                    kind: Namespace(
-                                        NamespaceId(
-                                            24,
-                                        ),
-                                    ),
-                                    opens: {
-                                        []: [
-                                            Open {
-                                                namespace: NamespaceId(
-                                                    24,
-                                                ),
-                                                span: Span {
-                                                    lo: 0,
-                                                    hi: 40,
-                                                },
-                                            },
-                                        ],
-                                    },
-                                    tys: {},
-                                    terms: {},
-                                    vars: {},
-                                    ty_vars: {},
-                                },
-                                Scope {
-                                    span: Span {
-                                        lo: 14,
-                                        hi: 40,
-                                    },
-                                    kind: Callable,
-                                    opens: {},
-                                    tys: {},
-                                    terms: {},
-                                    vars: {},
-                                    ty_vars: {},
-                                },
-                                Scope {
-                                    span: Span {
-                                        lo: 38,
-                                        hi: 40,
-                                    },
-                                    kind: Block,
-                                    opens: {},
-                                    tys: {},
-                                    terms: {},
-                                    vars: {},
-                                    ty_vars: {},
-                                },
-                            ],
-                        },
-                    },
-                    assigner: Assigner {
-                        next_node: NodeId(
-                            9,
+                            ),
                         ),
-                        next_item: LocalItemId(
-                            2,
-                        ),
-                    },
-                    sources: SourceMap {
-                        sources: [
-                            Source {
-                                name: "test",
-                                contents: "@EntryPoint() operation Main() : Unit {}",
-                                offset: 0,
-                            },
-                        ],
-                        common_prefix: None,
-                        entry: None,
-                    },
-                    errors: [],
-                    dropped_names: [],
+                    ),
                 },
-                [],
-            )
-        "#]].assert_debug_eq(&compiled);
+            ]
+        "#]]
+        .assert_debug_eq(&buildable_program.dependency_errors);
+
+        // compile the user code
+        let compiled = compile::compile(
+            &buildable_program.store,
+            &buildable_program.user_code_dependencies[..],
+            SourceMap::new(
+                buildable_program.user_code.sources,
+                None, /* TODO entry */
+            ),
+            PackageType::Exe,
+            TargetCapabilityFlags::default(),
+            LanguageFeatures::default(),
+        );
+
+        let CompileUnit {
+            package,
+            ast,
+            errors,
+            ..
+        } = compiled.0;
+
+        expect![[r#"
+            Package:
+                entry expression: Expr 8 [0-0] [Type Unit]: Call:
+                    Expr 7 [24-28] [Type Unit]: Var: Item 1
+                    Expr 6 [28-30] [Type Unit]: Unit
+                Item 0 [0-40] (Public):
+                    Namespace (Ident 5 [0-40] "test"): Item 1
+                Item 1 [0-40] (Internal):
+                    Parent: 0
+                    EntryPoint
+                    Callable 0 [14-40] (operation):
+                        name: Ident 1 [24-28] "Main"
+                        input: Pat 2 [28-30] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [14-40]: Impl:
+                            Block 4 [38-40]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]]
+        .assert_eq(&package.to_string());
+        expect![[r#"
+            Package 0:
+                Namespace 1 [0-40] (Ident 2 [0-40] "test"):
+                    Item 3 [0-40]:
+                        Attr 4 [0-13] (Ident 5 [1-11] "EntryPoint"):
+                            Expr 6 [11-13]: Unit
+                        Callable 7 [14-40] (Operation):
+                            name: Ident 8 [24-28] "Main"
+                            input: Pat 9 [28-30]: Unit
+                            output: Type 10 [33-37]: Path: Path 11 [33-37] (Ident 12 [33-37] "Unit")
+                            body: Block: Block 13 [38-40]: <empty>"#]]
+        .assert_eq(&ast.package.to_string());
+        expect![[r"
+            []
+        "]]
+        .assert_debug_eq(&errors);
     }
 }

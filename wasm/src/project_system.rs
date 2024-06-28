@@ -395,13 +395,16 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
 pub(crate) fn into_qsc_args(
     program: ProgramConfig,
     entry: Option<String>,
-) -> (
-    qsc::SourceMap,
-    qsc::TargetCapabilityFlags,
-    qsc::LanguageFeatures,
-    qsc::PackageStore,
-    Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
-) {
+) -> Result<
+    (
+        qsc::SourceMap,
+        qsc::TargetCapabilityFlags,
+        qsc::LanguageFeatures,
+        qsc::PackageStore,
+        Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
+    ),
+    Vec<qsc::compile::Error>,
+> {
     let capabilities = qsc::target::Profile::from_str(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
         .into();
@@ -409,22 +412,28 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
+    // This builds all the dependencies
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
+
+    if !buildable_program.dependency_errors.is_empty() {
+        return Err(buildable_program.dependency_errors);
+    }
+
     let BuildableProgram {
         store,
         user_code,
         user_code_dependencies,
-    } = BuildableProgram::new(capabilities, pkg_graph);
+        ..
+    } = buildable_program;
 
-    let sources = user_code.sources;
-
-    let source_map = qsc::SourceMap::new(sources, entry.map(std::convert::Into::into));
+    let source_map = qsc::SourceMap::new(user_code.sources, entry.map(std::convert::Into::into));
     let language_features = qsc::LanguageFeatures::from_iter(user_code.language_features);
 
-    (
+    Ok((
         source_map,
         capabilities,
         language_features,
         store,
         user_code_dependencies,
-    )
+    ))
 }
