@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
 import { assert } from "chai";
+import * as vscode from "vscode";
 import { activateExtension } from "../extensionUtils";
 
 suite("Q# Language Service Tests", function suite() {
@@ -11,22 +11,26 @@ suite("Q# Language Service Tests", function suite() {
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
-  const testQs = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
-  const projectMainDocUri = vscode.Uri.joinPath(
-    workspaceFolderUri,
-    "packages",
-    "MainPackage",
+  const joinPath = vscode.Uri.joinPath;
+  const packages = joinPath(workspaceFolderUri, "packages");
+
+  const testQs = joinPath(workspaceFolderUri, "test.qs");
+  const noErrorsQs = joinPath(workspaceFolderUri, "no-errors.qs");
+  const mainPackageMainQs = joinPath(packages, "MainPackage", "src", "Main.qs");
+  const depPackageMainQs = joinPath(packages, "DepPackage", "src", "Main.qs");
+  const missingDepMainQs = joinPath(packages, "MissingDep", "src", "Main.qs");
+  const missingDepManifest = joinPath(packages, "MissingDep", "qsharp.json");
+  const badManifestMainQs = joinPath(packages, "BadManifest", "src", "Main.qs");
+  const badManifestManifest = joinPath(packages, "BadManifest", "qsharp.json");
+  const circularDepMainQs = joinPath(packages, "CircularDep", "src", "Main.qs");
+  const circularDepManifest = joinPath(packages, "CircularDep", "qsharp.json");
+  const hasBadDepMainQs = joinPath(packages, "HasBadDep", "src", "Main.qs");
+  const withSyntaxErrorMainQs = joinPath(
+    packages,
+    "WithSyntaxError",
     "src",
     "Main.qs",
   );
-  const projectDepDocUri = vscode.Uri.joinPath(
-    workspaceFolderUri,
-    "packages",
-    "DepPackage",
-    "src",
-    "Main.qs",
-  );
-  const noErrorsQs = vscode.Uri.joinPath(workspaceFolderUri, "no-errors.qs");
 
   this.beforeAll(async () => {
     await activateExtension();
@@ -40,10 +44,19 @@ suite("Q# Language Service Tests", function suite() {
     // This is the best we can do to ensure the features have been initialized
     // before we start testing.
     await vscode.workspace.openTextDocument(testQs);
-    await vscode.workspace.openTextDocument(projectMainDocUri);
     await vscode.workspace.openTextDocument(noErrorsQs);
+    await vscode.workspace.openTextDocument(mainPackageMainQs);
+    await vscode.workspace.openTextDocument(depPackageMainQs);
+    await vscode.workspace.openTextDocument(missingDepMainQs);
+    await vscode.workspace.openTextDocument(badManifestMainQs);
+    await vscode.workspace.openTextDocument(circularDepMainQs);
+    await vscode.workspace.openTextDocument(hasBadDepMainQs);
+
     // Give the language service a tiny bit of time to settle
     await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Bring up Problems view for when we want to visually inspect what's going on
+    vscode.commands.executeCommand("workbench.action.problems.focus");
   });
 
   test("Q# language is registered", async () => {
@@ -204,12 +217,11 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Package dependencies", async () => {
-    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
-    vscode.commands.executeCommand("workbench.action.problems.focus");
+    const doc = await vscode.workspace.openTextDocument(mainPackageMainQs);
 
     // No errors if package dependencies are properly resolved
     const actualDiagnostics =
-      vscode.languages.getDiagnostics(projectMainDocUri);
+      vscode.languages.getDiagnostics(mainPackageMainQs);
 
     assert.isEmpty(
       actualDiagnostics,
@@ -225,7 +237,7 @@ suite("Q# Language Service Tests", function suite() {
     // Verify go-to-definition works across packages
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
-      projectMainDocUri,
+      mainPackageMainQs,
       new vscode.Position(1, 20), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
@@ -236,13 +248,13 @@ suite("Q# Language Service Tests", function suite() {
       "Expected to find one definition for MyFunction",
     );
     const location = actualDefinition[0];
-    assert.equal(location.uri.toString(), projectDepDocUri.toString());
+    assert.equal(location.uri.toString(), depPackageMainQs.toString());
     assert.equal(location.range.start.line, 1);
     assert.equal(location.range.start.character, 13);
   });
 
   test("Web package dependencies", async () => {
-    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    const doc = await vscode.workspace.openTextDocument(mainPackageMainQs);
     vscode.commands.executeCommand("workbench.action.problems.focus");
 
     // Sanity check the test setup - is this the correct position?
@@ -254,7 +266,7 @@ suite("Q# Language Service Tests", function suite() {
     // Verify go-to-definition works across packages
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
-      projectMainDocUri,
+      mainPackageMainQs,
       new vscode.Position(2, 30), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
@@ -274,7 +286,76 @@ suite("Q# Language Service Tests", function suite() {
 
     // No errors if package dependencies are properly resolved
     const actualDiagnostics =
-      vscode.languages.getDiagnostics(projectMainDocUri);
+      vscode.languages.getDiagnostics(mainPackageMainQs);
     assert.isEmpty(actualDiagnostics);
+  });
+
+  test("Manifest errors should be reported", async () => {
+    // Can't parse qsharp.json
+    vscode.workspace.openTextDocument(badManifestMainQs);
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(badManifestManifest);
+    assert.lengthOf(
+      actualDiagnostics,
+      1,
+      `Expected errors for ${badManifestManifest.fsPath}`,
+    );
+    assert.include(
+      actualDiagnostics[0].message,
+      "Failed to parse manifest",
+      `Expected syntax error in ${badManifestManifest.fsPath}`,
+    );
+  });
+
+  test("Package resolution errors should be reported", async () => {
+    // Dependency missing
+    vscode.workspace.openTextDocument(missingDepMainQs);
+    let actualDiagnostics = vscode.languages.getDiagnostics(missingDepManifest);
+    assert.lengthOf(
+      actualDiagnostics,
+      1,
+      `Expected errors for ${missingDepManifest.fsPath}`,
+    );
+    assert.include(
+      actualDiagnostics[0].message,
+      "File system error",
+      `Expected file system error in ${missingDepManifest.fsPath}`,
+    );
+
+    // Circular dependency
+    vscode.workspace.openTextDocument(circularDepMainQs);
+    actualDiagnostics = vscode.languages.getDiagnostics(circularDepManifest);
+    assert.lengthOf(
+      actualDiagnostics,
+      1,
+      `Expected errors for ${circularDepManifest.fsPath}`,
+    );
+    assert.include(
+      actualDiagnostics[0].message,
+      "Circular dependency detected",
+      `Expected circular dependency error in ${circularDepManifest.fsPath}`,
+    );
+  });
+
+  test("Errors from dependencies should be reported", async () => {
+    // Dependency has syntax error
+
+    // For a meaningful test, DON'T open the dependency source.
+    // Ensure dependency errors are still reported if the parent package is built.
+    vscode.workspace.openTextDocument(hasBadDepMainQs);
+
+    const actualDiagnostics = vscode.languages.getDiagnostics(
+      withSyntaxErrorMainQs,
+    );
+    assert.lengthOf(
+      actualDiagnostics,
+      1,
+      `Expected errors for ${withSyntaxErrorMainQs.fsPath}`,
+    );
+    assert.include(
+      actualDiagnostics[0].message,
+      "syntax error",
+      `Expected syntax error in ${withSyntaxErrorMainQs.fsPath}`,
+    );
   });
 });

@@ -57,11 +57,8 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
-
-    if capabilities == Profile::Unrestricted.into() {
-        return Err("Invalid target profile for QIR generation".to_string());
-    }
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
     _get_qir(
         source_map,
@@ -79,14 +76,17 @@ pub(crate) fn _get_qir(
     store: PackageStore,
     deps: &qsc::compile::Dependencies,
 ) -> Result<String, String> {
-    log::info!("deps are {:?}", deps);
     qsc::codegen::get_qir(sources, language_features, capabilities, store, deps)
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None)
+        .map_err(|mut e| {
+        // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
+        qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
+    })?;
 
     let mut interpreter = interpret::Interpreter::new(
         source_map,
@@ -111,7 +111,8 @@ pub fn get_circuit(
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
-    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
     let (package_type, entry_point) = match operation {
         Some(p) => {
@@ -146,6 +147,10 @@ pub fn get_circuit(
 fn interpret_errors_into_qsharp_errors_json(errs: Vec<qsc::interpret::Error>) -> String {
     serde_json::to_string(&interpret_errors_into_qsharp_errors(&errs))
         .expect("serializing errors to json should succeed")
+}
+
+fn compile_errors_into_qsharp_errors_json(errs: Vec<qsc::compile::Error>) -> String {
+    interpret_errors_into_qsharp_errors_json(errs.into_iter().map(Into::into).collect())
 }
 
 #[wasm_bindgen]
@@ -337,7 +342,13 @@ pub fn run(
     shots: u32,
 ) -> Result<bool, JsValue> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into()));
+        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+            // Wrap in `interpret::Error` and `JsError` to match the error type
+            // `run_internal_with_features` below
+            JsError::from(qsc::interpret::Error::from(
+                e.pop().expect("expected at least one error"),
+            ))
+        })?;
 
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
@@ -428,11 +439,16 @@ serializable_type! {
 #[wasm_bindgen]
 #[must_use]
 pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile> {
-    let docs = if let Some((source_map, capabilities, language_features, _store, _deps)) =
-        additional_program.map(|p| into_qsc_args(p, None))
-    {
+    let docs = if let Some(additional_program) = additional_program {
+        let Ok((source_map, capabilities, language_features, package_store, dependencies)) =
+            into_qsc_args(additional_program, None)
+        else {
+            // Can't generate docs if building dependencies failed
+            return Vec::new();
+        };
+
         qsc_doc_gen::generate_docs::generate_docs(
-            Some(source_map),
+            Some((package_store, &dependencies, source_map)),
             Some(capabilities),
             Some(language_features),
         )

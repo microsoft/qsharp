@@ -16,7 +16,7 @@ use qsc::{
 };
 use qsc_linter::LintConfig;
 use qsc_project::PackageGraphSources;
-use std::sync::Arc;
+use std::{mem::take, sync::Arc};
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -56,14 +56,20 @@ impl Compilation {
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
     ) -> Self {
+        let mut buildable_program =
+            prepare_package_store(target_profile.into(), package_graph_sources.clone());
+
+        let mut compile_errors = take(&mut buildable_program.dependency_errors);
+
         let BuildableProgram {
             store: mut package_store,
             user_code,
             user_code_dependencies,
-        } = prepare_package_store(target_profile.into(), package_graph_sources.clone());
+            ..
+        } = buildable_program;
         let user_code = SourceMap::new(user_code.sources, None);
 
-        let (unit, mut errors) = compile::compile(
+        let (unit, mut this_errors) = compile::compile(
             &package_store,
             &user_code_dependencies,
             user_code,
@@ -72,20 +78,22 @@ impl Compilation {
             language_features,
         );
 
+        compile_errors.append(&mut this_errors);
+
         let package_id = package_store.insert(unit);
         let unit = package_store
             .get(package_id)
             .expect("expected to find user package");
 
         run_fir_passes(
-            &mut errors,
+            &mut compile_errors,
             target_profile,
             &package_store,
             package_id,
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(lints_config, &mut compile_errors, unit);
 
         Self {
             package_store,
@@ -93,7 +101,7 @@ impl Compilation {
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
             },
-            compile_errors: errors,
+            compile_errors,
             project_errors,
         }
     }
