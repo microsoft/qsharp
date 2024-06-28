@@ -18,6 +18,10 @@ pub(crate) fn register_noisy_sim_submodule(py: Python, parent_module: &PyModule)
     Ok(())
 }
 
+/// Performance Warning:
+///  nalgebra stores its matrices in column major order, and we want to send it
+///  to Python in row major order, this means that there will be lots of
+///  cache-misses in the convertion from one format to another.
 fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> SquareMatrix {
     let nrows = matrix.len();
     let ncols = matrix[0].len();
