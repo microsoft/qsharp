@@ -158,7 +158,7 @@ pub fn iter_package(id: Option<PackageId>, package: &Package) -> PackageIter {
     PackageIter {
         id,
         package,
-        items: package.items.values(),
+        items: dbg!(&package.items).values(),
         next: None,
     }
 }

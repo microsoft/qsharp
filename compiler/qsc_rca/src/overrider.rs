@@ -106,7 +106,7 @@ impl<'a> Overrider<'a> {
 
     fn populate_package_internal(&mut self, package_id: PackageId, package: &'a Package) {
         self.current_package = Some(package_id);
-        self.visit_package(package);
+        self.visit_package(package, self.package_store);
         self.current_package = None;
     }
 
@@ -197,7 +197,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
             .insert_expr((package_id, id).into(), application_generator_set);
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, _: &PackageStore) {
         // Go through each namespace, identifying the callables for which we have overrides.
         let namespaces = package
             .items

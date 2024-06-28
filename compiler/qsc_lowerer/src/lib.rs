@@ -87,7 +87,11 @@ impl Lowerer {
             .collect()
     }
 
-    pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
+    pub fn lower_package(
+        &mut self,
+        package: &hir::Package,
+        store: &fir::PackageStore,
+    ) -> fir::Package {
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let entry_exec_graph = self.exec_graph.drain(..).collect();
         let items: IndexMap<LocalItemId, fir::Item> = package
@@ -116,7 +120,7 @@ impl Lowerer {
             pats,
             stmts,
         };
-        qsc_fir::validate::validate(&package);
+        qsc_fir::validate::validate(&package, store);
         package
     }
 
@@ -153,8 +157,6 @@ impl Lowerer {
         }
 
         fir_package.entry = entry;
-
-        qsc_fir::validate::validate(fir_package);
     }
 
     pub fn revert_last_increment(&mut self, package: &mut fir::Package) {
@@ -223,6 +225,12 @@ impl Lowerer {
                 let udt = self.lower_udt(udt);
 
                 fir::ItemKind::Ty(name, udt)
+            }
+            hir::ItemKind::Export(name, item) => {
+                let name = self.lower_ident(name);
+                let item = lower_item_id(item);
+
+                fir::ItemKind::Export(name, item)
             }
         };
         let attrs = lower_attrs(&item.attrs);

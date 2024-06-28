@@ -149,13 +149,14 @@ impl Backend for CustomSim {
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
+    let fir_store = fir::PackageStore::new();
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package, &fir_store);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
-    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package, &fir_store);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -168,7 +169,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
-    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
     let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);

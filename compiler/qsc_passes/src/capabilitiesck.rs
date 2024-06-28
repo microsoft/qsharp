@@ -39,7 +39,7 @@ pub fn lower_store(
 ) -> qsc_fir::fir::PackageStore {
     let mut fir_store = qsc_fir::fir::PackageStore::new();
     for (id, unit) in package_store {
-        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
         fir_store.insert(map_hir_package_to_fir(id), package);
     }
     fir_store
@@ -55,8 +55,12 @@ pub fn run_rca_pass(
     let fir_package = fir_store.get(package_id);
 
     let package_compute_properties = compute_properties.get(package_id);
-    let mut errors =
-        check_supported_capabilities(fir_package, package_compute_properties, capabilities);
+    let mut errors = check_supported_capabilities(
+        fir_package,
+        package_compute_properties,
+        capabilities,
+        fir_store,
+    );
 
     if errors.is_empty() {
         Ok(compute_properties)
@@ -74,6 +78,7 @@ pub fn check_supported_capabilities(
     package: &Package,
     compute_properties: &PackageComputeProperties,
     capabilities: TargetCapabilityFlags,
+    store: &qsc_fir::fir::PackageStore,
 ) -> Vec<Error> {
     let checker = Checker {
         package,
@@ -81,6 +86,7 @@ pub fn check_supported_capabilities(
         target_capabilities: capabilities,
         current_callable: None,
         missing_features_map: FxHashMap::<Span, RuntimeFeatureFlags>::default(),
+        store,
     };
 
     checker.check_all()
@@ -92,6 +98,7 @@ struct Checker<'a> {
     target_capabilities: TargetCapabilityFlags,
     current_callable: Option<LocalItemId>,
     missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
+    store: &'a qsc_fir::fir::PackageStore,
 }
 
 impl<'a> Visitor<'a> for Checker<'a> {
@@ -111,7 +118,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
         self.package.get_stmt(id)
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, _: &crate::fir::PackageStore) {
         package
             .items
             .iter()
@@ -192,7 +199,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
 
 impl<'a> Checker<'a> {
     pub fn check_all(mut self) -> Vec<Error> {
-        self.visit_package(self.package);
+        self.visit_package(self.package, self.store);
         self.generate_errors()
     }
 

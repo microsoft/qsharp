@@ -435,6 +435,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                     path.id
                                 )
                             }
+                            hir::ItemKind::Export(_, _) => todo!(),
                         }
                     }
                     Some(resolve::Res::Local(node_id)) => {

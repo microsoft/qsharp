@@ -123,7 +123,7 @@ impl<'a> Analyzer<'a> {
 
     fn analyze_package_internal(&mut self, package_id: PackageId, package: &'a Package) {
         self.current_package = Some(package_id);
-        self.visit_package(package);
+        self.visit_package(package, self.package_store);
         self.current_package = None;
     }
 
@@ -223,9 +223,9 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         unimplemented!();
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, store: &PackageStore) {
         let package_id = self.get_current_package();
-        let cycle_detector = CycleDetector::new(package_id, package);
+        let cycle_detector = CycleDetector::new(package_id, package, store);
         let specializations_with_cycles = cycle_detector.detect_specializations_with_cycles();
         for cyclic_specialization in specializations_with_cycles {
             self.analyze_cyclic_specialization(cyclic_specialization);
