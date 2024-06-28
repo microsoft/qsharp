@@ -73,10 +73,7 @@ It can be less straightforward when a multi-qubit gate is applied to a subset of
 @[exercise]({
     "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
-    "path": "./compound_gate/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./compound_gate/"
 })
 
 @[section]({
@@ -125,19 +122,13 @@ The $CNOT$ gate is self-adjoint: applying it for the second time reverses its ef
 @[exercise]({
     "id": "multi_qubit_gates__entangle_qubits",
     "title": "Entangle Qubits",
-    "path": "./entangle_qubits/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./entangle_qubits/"
 })
 
 @[exercise]({
     "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
-    "path": "./preparing_bell_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./preparing_bell_state/"
 })
 
 @[section]({
@@ -190,10 +181,7 @@ The $CZ$ gate is also self-adjoint: applying it a second time reverses its effec
 @[exercise]({
     "id": "multi_qubit_gates__relative_phase_minusone",
     "title": "Relative Phase -1",
-    "path": "./relative_phase_minusone/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./relative_phase_minusone/"
 })
 
 @[section]({
@@ -329,10 +317,7 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
 @[exercise]({
     "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
-    "path": "./qubit_swap/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./qubit_swap/"
 })
 
 @[section]({
@@ -527,18 +512,12 @@ In other cases, you'll need to define the controlled version of an operation man
 @[exercise]({
     "id": "multi_qubit_gates__fredkin_gate",
     "title": "Fredkin Gate",
-    "path": "./fredkin_gate/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./fredkin_gate/"
 })
 @[exercise]({
     "id": "multi_qubit_gates__controlled_rotation",
     "title": "Controlled Rotation",
-    "path": "./controlled_rotation/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./controlled_rotation/"
 })
 
 @[section]({
@@ -569,10 +548,7 @@ To construct a multi-controlled version of an operation in Q#, you can use the C
 @[exercise]({
     "id": "multi_qubit_gates__toffoli_gate",
     "title": "Toffoli Gate",
-    "path": "./toffoli_gate/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./toffoli_gate/"
 })
 
 @[section]({
@@ -647,19 +623,13 @@ The sequence of steps that implement this variant are:
 @[exercise]({
     "id": "multi_qubit_gates__anti_controlled_gate",
     "title": "Anti-Controlled Gate",
-    "path": "./anti_controlled_gate/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./anti_controlled_gate/"
 })
 
 @[exercise]({
     "id": "multi_qubit_gates__arbitrary_controls",
     "title": "Arbitrary Controls",
-    "path": "./arbitrary_controls/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./arbitrary_controls/"
 })
 
 @[section]({

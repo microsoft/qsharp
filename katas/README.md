@@ -35,8 +35,8 @@ The following macros are available for katas composition:
         - `Placeholder.qs`: the Q# code that is given to the learner to start with.
         - `Verification.qs`: the Q# code that checks whether the learner's solution is correct.
         - `solution.md`: the Markdown description of the solution(s) to the exercise.
-        - `Solution.qs`: the Q# code that contains a "reference solution" described in `solution.md`. 
-    - qsDependencies: Q# file paths used in addition to `Verification.qs`. This code is not shown to the learner but is used to build the learner's code. The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
+        - `Solution.qs`: the Q# code that contains a "reference solution" described in `solution.md`.
+    The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
 - @[example]: Standalone Q# code snippets that can be referenced from markdown files.
     - id: Unique identifier for the example.
     - codePath: Path to a Q# file that contains the example code.

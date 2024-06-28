@@ -60,8 +60,5 @@ _The Japanese word for "form", a pattern of learning and practicing new skills._
 @[exercise]({
     "id": "getting_started__flip_qubit",
     "title": "Flip a Qubit",
-    "path": "./flip_qubit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./flip_qubit/"
 })

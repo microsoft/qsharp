@@ -99,10 +99,7 @@ After that, you'll try to implement the oracle for the fourth function on your o
 @[exercise]({
     "id": "deutsch_algo__one_minus_x_oracle",
     "title": "Oracle for f(x) = 1 - x",
-    "path": "./one_minus_x_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./one_minus_x_oracle/"
 })
 
 
@@ -160,10 +157,7 @@ We can follow the steps of the algorithm for the constant and the balanced scena
 @[exercise]({
     "id": "deutsch_algo__implement_algo",
     "title": "Implement Deutsch Algorithm",
-    "path": "./implement_algo/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./implement_algo/"
 })
 
 

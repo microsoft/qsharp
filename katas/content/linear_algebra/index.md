@@ -96,10 +96,7 @@ Matrix addition has the following properties:
 @[exercise]({ 
     "id": "linear_algebra__addition", 
     "title": "Add Matrices", 
-    "path": "./addition/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./addition/"
 })
 
 
@@ -133,10 +130,7 @@ Scalar multiplication has the following properties:
 @[exercise]({ 
     "id": "linear_algebra__scalar_multiplication_ex", 
     "title": "Multiply a Matrix by a Scalar", 
-    "path": "./scalar_multiplication/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./scalar_multiplication/"
 })
 
 
@@ -201,10 +195,7 @@ This is why $I_n$ is called an identity matrix - it acts as a **multiplicative i
 @[exercise]({ 
     "id": "linear_algebra__matrix_multiplication_ex", 
     "title": "Multiply Two Matrices", 
-    "path": "./multiplication/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./multiplication/"
 })
 
 
@@ -233,10 +224,7 @@ For larger matrices, the determinant is defined through determinants of sub-matr
 @[exercise]({ 
     "id": "linear_algebra__inverse_matrix_ex", 
     "title": "Invert a Matrix", 
-    "path": "./inverse/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./inverse/"
 })
 
 
@@ -294,10 +282,7 @@ $$(AB)^T = B^TA^T$$
 @[exercise]({ 
     "id": "linear_algebra__transpose_ex", 
     "title": "Transpose a Matrix", 
-    "path": "./transpose/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./transpose/"
 })
 
 
@@ -335,10 +320,7 @@ $$\overline{AB} = (\overline{A})(\overline{B})$$
 @[exercise]({ 
     "id": "linear_algebra__conjugate_ex", 
     "title": "Conjugate of a Matrix", 
-    "path": "./conjugate/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./conjugate/"
 })
 
 
@@ -363,10 +345,7 @@ $$(AB)^\dagger = B^\dagger A^\dagger$$
 @[exercise]({ 
     "id": "linear_algebra__adjoint_ex", 
     "title": "Adjoint of a Matrix", 
-    "path": "./adjoint/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./adjoint/"
 })
 
 
@@ -456,19 +435,13 @@ The inner product has the following properties:
 @[exercise]({ 
     "id": "linear_algebra__inner_product_ex", 
     "title": "Inner Product of Two Vectors", 
-    "path": "./inner_product/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./inner_product/"
 })
 
 @[exercise]({ 
     "id": "linear_algebra__normalized_vector", 
     "title": "Normalized Vector", 
-    "path": "./normalized_vector/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./normalized_vector/"
 })
 
 
@@ -482,10 +455,7 @@ The **outer product** of two vectors $V$ and $W$ is defined as $VW^\dagger$. Tha
 @[exercise]({ 
     "id": "linear_algebra__outer_product_ex", 
     "title": "Outer Product of Two Vectors", 
-    "path": "./outer_product/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./outer_product/"
 })
 
 
@@ -533,10 +503,7 @@ The tensor product has the following properties:
 @[exercise]({ 
     "id": "linear_algebra__tensor_product_ex", 
     "title": "Tensor Product of Two Matrices", 
-    "path": "./tensor_product/", 
-    "qsDependencies": [
-        "./Common.qs"
-    ] 
+    "path": "./tensor_product/"
 })
 
 
