@@ -136,7 +136,7 @@ impl Overhead for LogicalResourceCounts {
             }
         }
 
-        self.logical_qubits() * depth
+        self.logical_qubits() * adjusted_logical_depth
     }
 }
 

@@ -133,6 +133,10 @@ impl Overhead for TestLayoutOverhead {
     fn num_magic_states(&self, _: &ErrorBudget, _: usize) -> u64 {
         self.num_tstates
     }
+
+    fn logical_volume(&self, _: &ErrorBudget, adjusted_logical_depth: u64) -> u64 {
+        self.num_qubits * adjusted_logical_depth
+    }
 }
 
 #[test]
