@@ -378,8 +378,8 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 
 pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
     vis.visit_span(&mut path.span);
-    if let Some(ref mut ns) = path.namespace {
-        vis.visit_idents(ns);
+    if let Some(ref mut parts) = path.segments {
+        vis.visit_idents(parts);
     }
     vis.visit_ident(&mut path.name);
 }

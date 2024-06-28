@@ -29,7 +29,6 @@ impl Location {
         span: Span,
         package_id: PackageId,
         package_store: &PackageStore,
-        _user_package_id: PackageId,
         position_encoding: Encoding,
     ) -> Self {
         let source = package_store
@@ -62,13 +61,12 @@ mod tests {
 
     #[test]
     fn from_std_span() {
-        let (store, std_package_id, user_package_id) = compile_package();
+        let (store, std_package_id, _) = compile_package();
 
         let location = Location::from(
             Span { lo: 0, hi: 1 },
             std_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -92,13 +90,12 @@ mod tests {
 
     #[test]
     fn from_core_span() {
-        let (store, _, user_package_id) = compile_package();
+        let (store, _, _) = compile_package();
 
         let location = Location::from(
             Span { lo: 0, hi: 1 },
             PackageId::CORE,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -139,7 +136,6 @@ mod tests {
             },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -169,7 +165,6 @@ mod tests {
             Span { lo: 1000, hi: 2000 },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -200,7 +195,6 @@ mod tests {
             Span { lo: 0, hi: 2000 },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 

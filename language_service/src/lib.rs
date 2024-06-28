@@ -32,9 +32,9 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
 };
+use qsc_project::JSProjectHost;
 use state::{CompilationState, CompilationStateUpdater};
-pub use state::{LoadProjectResult, LoadProjectResultInner};
-use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 pub struct LanguageService {
     /// All [`Position`]s and [`Range`]s will be mapped using this encoding.
@@ -67,7 +67,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        load_project: impl Fn(String) -> Pin<Box<dyn Future<Output = LoadProjectResult>>> + 'a,
+        project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();
@@ -75,7 +75,7 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
-                load_project,
+                project_host,
             ),
             recv,
         };

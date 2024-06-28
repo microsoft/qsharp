@@ -3,14 +3,14 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::{protocol::DiagnosticUpdate, Encoding, LanguageService, UpdateWorker};
-use expect_test::{expect, Expect};
-use qsc::{
-    compile::{self, ErrorKind},
-    line_column::Position,
+use crate::{
+    protocol::{DiagnosticUpdate, ErrorKind},
+    Encoding, LanguageService, UpdateWorker,
 };
-use std::{cell::RefCell, future::ready};
-use test_fs::{dir, file, FsNode};
+use expect_test::{expect, Expect};
+use qsc::{compile, line_column::Position, project};
+use std::{cell::RefCell, rc::Rc};
+use test_fs::{dir, file, FsNode, TestProjectHost};
 
 pub(crate) mod test_fs;
 
@@ -42,6 +42,7 @@ async fn single_document() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]]),
@@ -90,6 +91,7 @@ async fn single_document_update() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]]),
@@ -128,6 +130,7 @@ async fn single_document_update() {
                     Some(
                         1,
                     ),
+                    [],
                     [],
                 ),
             ]
@@ -185,6 +188,7 @@ async fn document_in_project() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -275,7 +279,7 @@ async fn completions_requested_after_document_load() {
 
 fn check_errors_and_compilation(
     ls: &LanguageService,
-    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    received_errors: &mut Vec<ErrorInfo>,
     uri: &str,
     expected_errors: &Expect,
     expected_compilation: &Expect,
@@ -287,7 +291,7 @@ fn check_errors_and_compilation(
 
 fn check_errors_and_no_compilation(
     ls: &LanguageService,
-    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    received_errors: &mut Vec<ErrorInfo>,
     uri: &str,
     expected_errors: &Expect,
 ) {
@@ -306,7 +310,12 @@ fn assert_compilation(ls: &LanguageService, uri: &str, expected: &Expect) {
     expected.assert_debug_eq(&compilation.user_unit().sources);
 }
 
-type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
+type ErrorInfo = (
+    String,
+    Option<u32>,
+    Vec<compile::ErrorKind>,
+    Vec<project::Error>,
+);
 
 fn create_update_worker<'a>(
     ls: &mut LanguageService,
@@ -314,28 +323,32 @@ fn create_update_worker<'a>(
 ) -> UpdateWorker<'a> {
     let worker = ls.create_update_worker(
         |update: DiagnosticUpdate| {
+            let project_errors = update.errors.iter().filter_map(|error| match error {
+                ErrorKind::Project(error) => Some(error.clone()),
+                ErrorKind::Compile(_) => None,
+            });
+            let compile_errors = update.errors.iter().filter_map(|error| match error {
+                ErrorKind::Compile(error) => Some(error.error().clone()),
+                ErrorKind::Project(_) => None,
+            });
+
             let mut v = received_errors.borrow_mut();
 
             v.push((
-                update.uri.to_string(),
+                update.uri,
                 update.version,
-                update
-                    .errors
-                    .iter()
-                    .map(|e| e.error().clone())
-                    .collect::<Vec<_>>(),
+                compile_errors.collect(),
+                project_errors.collect(),
             ));
         },
-        |file| {
-            Box::pin(ready(
-                TEST_FS.with(|fs| fs.borrow().load_project_with_deps(&file)),
-            ))
+        TestProjectHost {
+            fs: TEST_FS.with(Clone::clone),
         },
     );
     worker
 }
 
-thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
+thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs())) }
 
 fn test_fs() -> FsNode {
     FsNode::Dir(

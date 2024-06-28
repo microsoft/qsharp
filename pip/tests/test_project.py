@@ -34,7 +34,7 @@ def test_project_compile_error(qsharp) -> None:
 def test_project_bad_qsharp_json(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/bad_qsharp_json")
-    assert str(excinfo.value).startswith("Error parsing /bad_qsharp_json/qsharp.json")
+    assert str(excinfo.value).find("Failed to parse manifest") != -1
 
 
 def test_project_unreadable_qsharp_json(qsharp) -> None:
@@ -51,11 +51,23 @@ def test_project_unreadable_source(qsharp) -> None:
     assert str(excinfo.value).find("OSError: could not read test.qs") != -1
 
 
+def test_project_dependencies(qsharp) -> None:
+    qsharp.init(project_root="/with_deps")
+    result = qsharp.eval("Test.CallsDependency()")
+    assert result == 4
+
+
+def test_project_circular_dependency_error(qsharp) -> None:
+    with pytest.raises(Exception) as excinfo:
+        qsharp.init(project_root="/circular")
+    assert str(excinfo.value).find("Circular dependency detected between") != -1
+
+
 memfs = {
     "": {
         "good": {
             "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } }",
+                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
             },
             "qsharp.json": "{}",
         },
@@ -74,6 +86,32 @@ memfs = {
                 "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
             },
             "qsharp.json": "{}",
+        },
+        "with_deps": {
+            "src": {
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
+            },
+            "qsharp.json": """
+                {
+                    "dependencies": {
+                        "Foo": {
+                            "path": "../good"
+                        }
+                    }
+                }""",
+        },
+        "circular": {
+            "src": {
+                "test.qs": "namespace Test {}",
+            },
+            "qsharp.json": """
+                {
+                    "dependencies": {
+                        "Foo": {
+                            "path": "../circular"
+                        }
+                    }
+                }""",
         },
     }
 }
@@ -131,7 +169,7 @@ def exists_memfs(path):
 
 
 # The below functions force the use of `/` separators in the unit tests
-# so that they function on Windows, consistently with other platforms.
+# so that they function on Windows consistently with other platforms.
 def join_memfs(path, *paths):
     return "/".join([path, *paths])
 

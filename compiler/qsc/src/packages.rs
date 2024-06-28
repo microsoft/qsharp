@@ -1,25 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-use std::{str::FromStr, sync::Arc};
 
-use qsc::{target::Profile, TargetCapabilityFlags};
+use crate::{compile, hir::PackageId, PackageStore, TargetCapabilityFlags};
+use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_frontend::compile::SourceMap;
+use qsc_passes::PackageType;
 use qsc_project::PackageGraphSources;
 use rustc_hash::FxHashMap;
+use std::sync::Arc;
 
 /// A program that is ready to be built -- dependencies have all been built, and the user code is ready.
 #[derive(Debug)]
 pub struct BuildableProgram {
-    pub store: qsc::PackageStore,
+    pub store: PackageStore,
     pub user_code: qsc_project::PackageInfo,
-    pub user_code_dependencies: Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
+    pub user_code_dependencies: Vec<(PackageId, Option<Arc<str>>)>,
 }
 
 impl BuildableProgram {
     #[must_use]
-    pub fn new(profile: &str, package_graph_sources: PackageGraphSources) -> Self {
-        let capabilities = Profile::from_str(profile)
-            .expect("invalid profile handed to packages")
-            .into();
+    pub fn new(
+        capabilities: TargetCapabilityFlags,
+        package_graph_sources: PackageGraphSources,
+    ) -> Self {
         prepare_package_store(capabilities, package_graph_sources)
     }
 }
@@ -30,9 +33,9 @@ pub fn prepare_package_store(
     capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
 ) -> BuildableProgram {
-    let core = qsc::compile::core();
-    let mut package_store = qsc::PackageStore::new(core);
-    let std = qsc::compile::std(&package_store, capabilities);
+    let core = compile::core();
+    let mut package_store = PackageStore::new(core);
+    let std = compile::std(&package_store, capabilities);
     let std_id = package_store.insert(std);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
@@ -43,7 +46,7 @@ pub fn prepare_package_store(
     for (package_name, package_to_compile) in ordered_packages {
         let sources: Vec<(Arc<str>, Arc<str>)> =
             package_to_compile.sources.into_iter().collect::<Vec<_>>();
-        let source_map = qsc::SourceMap::new(sources, None);
+        let source_map = SourceMap::new(sources, None);
         let dependencies = package_to_compile
             .dependencies
             .iter()
@@ -62,13 +65,13 @@ pub fn prepare_package_store(
             .map(|(alias, b)| (*b, Some(alias.clone())))
             .chain(std::iter::once((std_id, None)))
             .collect::<Vec<_>>();
-        let (compile_unit, dependency_errors) = qsc::compile::compile(
+        let (compile_unit, dependency_errors) = compile::compile(
             &package_store,
             &dependencies[..],
             source_map,
-            qsc::PackageType::Lib,
+            PackageType::Lib,
             capabilities,
-            qsc::LanguageFeatures::from_iter(package_to_compile.language_features),
+            LanguageFeatures::from_iter(package_to_compile.language_features),
         );
         if !dependency_errors.is_empty() {
             todo!("handle errors in dependencies: {dependency_errors:?}");
@@ -104,15 +107,16 @@ pub fn prepare_package_store(
 mod tests {
     // Copyright (c) Microsoft Corporation.
     // Licensed under the MIT License.
+    use crate::{compile, LanguageFeatures, TargetCapabilityFlags};
+    use expect_test::expect;
+    use qsc_frontend::compile::SourceMap;
+    use qsc_passes::PackageType;
+    use qsc_project::{PackageInfo, Project};
+    use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    use expect_test::expect;
-    use qsc::{LanguageFeatures, TargetCapabilityFlags};
-    use qsc_project::PackageInfo;
-    use rustc_hash::FxHashMap;
-
-    fn mock_program() -> qsc_project::ProgramConfig {
-        qsc_project::ProgramConfig {
+    fn mock_program() -> Project {
+        Project {
             // Mock data for the ProgramConfig
             package_graph_sources: qsc_project::PackageGraphSources {
                 root: qsc_project::PackageInfo {
@@ -140,7 +144,8 @@ mod tests {
             },
             lints: vec![],
             errors: vec![],
-            target_profile: "unrestricted".into(),
+            path: "project/qsharp.json".into(),
+            name: "project".into(),
         }
     }
 
@@ -154,14 +159,14 @@ mod tests {
         );
 
         // compile the user code
-        let compiled = qsc::compile::compile(
+        let compiled = compile::compile(
             &buildable_program.store,
             &buildable_program.user_code_dependencies[..],
-            qsc::SourceMap::new(
+            SourceMap::new(
                 buildable_program.user_code.sources,
                 None, /* TODO entry */
             ),
-            qsc::PackageType::Exe,
+            PackageType::Exe,
             TargetCapabilityFlags::default(),
             LanguageFeatures::default(),
         );
@@ -355,7 +360,7 @@ mod tests {
                                                                         lo: 33,
                                                                         hi: 37,
                                                                     },
-                                                                    namespace: None,
+                                                                    segments: None,
                                                                     name: Ident {
                                                                         id: NodeId(
                                                                             12,
@@ -544,28 +549,28 @@ mod tests {
                                     ),
                                 }: Udt {
                                     span: Span {
-                                        lo: 265534,
-                                        hi: 265639,
+                                        lo: 265535,
+                                        hi: 265640,
                                     },
                                     name: "AndChain",
                                     definition: UdtDef {
                                         span: Span {
-                                            lo: 265562,
-                                            hi: 265638,
+                                            lo: 265563,
+                                            hi: 265639,
                                         },
                                         kind: Tuple(
                                             [
                                                 UdtDef {
                                                     span: Span {
-                                                        lo: 265572,
-                                                        hi: 265592,
+                                                        lo: 265573,
+                                                        hi: 265593,
                                                     },
                                                     kind: Field(
                                                         UdtField {
                                                             name_span: Some(
                                                                 Span {
-                                                                    lo: 265572,
-                                                                    hi: 265586,
+                                                                    lo: 265573,
+                                                                    hi: 265587,
                                                                 },
                                                             ),
                                                             name: Some(
@@ -579,15 +584,15 @@ mod tests {
                                                 },
                                                 UdtDef {
                                                     span: Span {
-                                                        lo: 265602,
-                                                        hi: 265632,
+                                                        lo: 265603,
+                                                        hi: 265633,
                                                     },
                                                     kind: Field(
                                                         UdtField {
                                                             name_span: Some(
                                                                 Span {
-                                                                    lo: 265602,
-                                                                    hi: 265607,
+                                                                    lo: 265603,
+                                                                    hi: 265608,
                                                                 },
                                                             ),
                                                             name: Some(

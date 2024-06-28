@@ -9,15 +9,17 @@ import { getTarget } from "./config";
 import { loadProject } from "./projectSystem";
 
 /**
- * Notice the similarity to @type {import("qsharp-lang").ProgramConfig} and @type {ProjectConfig}.
- * These should almost be the same, with a few differences:
+ * Notice the similarity to @type {ProgramConfig} and @type {IProjectConfig}.
+ * These types look similar but have a few differences:
  *
- * ProgramConfig is an API boundary for the qsharp-lang package, so all properties
+ * ProgramConfig is used in the API for the qsharp-lang package. All properties
  * are optional for backward compatibility. It only contains the properties
  * that are needed by the compiler APIs.
  *
  * ProjectConfig contains the values come from the Q# manifest, or for single-file
- * programs, the defaults for these values.
+ * programs, the defaults for these values. In the future, for projects with
+ * dependencies, it will also contain the full dependency graph and sources for
+ * all packages referenced by the project.
  *
  * FullProgramConfig is a union of the above. It's meant to represent a fully
  * populated configuration that can be used across a variety of extension features.
@@ -78,7 +80,7 @@ export async function getProgramForDocument(
     return { success: false, errorMsg: `${docUri.fsPath} is not a Q# file` };
   }
 
-  // Target profile comes from the user settings
+  // Target profile comes from settings
   const profile = getTarget();
 
   // Project configs come from the document and/or manifest

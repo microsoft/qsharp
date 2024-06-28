@@ -9,7 +9,6 @@ import type {
   ILocation,
   INotebookMetadata,
   IPosition,
-  IProjectConfig,
   IRange,
   ISignatureHelp,
   ITextEdit,
@@ -18,6 +17,7 @@ import type {
   LanguageService,
   VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
+import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
 import {
   IServiceEventTarget,
@@ -113,16 +113,21 @@ export class QSharpLanguageService implements ILanguageService {
   private backgroundWork: Promise<void>;
 
   constructor(
-    wasm: QscWasm,
-    loadProject: (uri: string) => Promise<IProjectConfig | null> = () =>
-      Promise.resolve(null),
+    private wasm: QscWasm,
+    host: IProjectHost = {
+      readFile: async () => null,
+      listDirectory: async () => [],
+      resolvePath: async () => null,
+      fetchGithub: async () => "",
+      findManifestDirectory: async () => null,
+    },
   ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService();
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
-      loadProject,
+      host,
     );
   }
 

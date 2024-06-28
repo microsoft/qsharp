@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::line_column::{Location, Range};
-use crate::project_system::{into_qsc_args, IProgramConfig};
+use crate::project_system::{into_qsc_args, ProgramConfig};
 use crate::{serializable_type, CallbackReceiver};
 use qsc::fir::StmtId;
 use qsc::fmt_complex;
@@ -26,7 +26,7 @@ impl DebugService {
     }
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
-    pub fn load_program(&mut self, program: IProgramConfig, entry: Option<String>) -> String {
+    pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
         let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
             into_qsc_args(program, entry);
 

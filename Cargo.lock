@@ -1128,16 +1128,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qsc_packages"
-version = "0.0.0"
-dependencies = [
- "expect-test",
- "qsc",
- "qsc_project",
- "rustc-hash",
-]
-
-[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
@@ -1257,7 +1247,6 @@ dependencies = [
  "qsc",
  "qsc_codegen",
  "qsc_doc_gen",
- "qsc_packages",
  "qsc_project",
  "qsls",
  "resource_estimator",
@@ -1297,11 +1286,11 @@ dependencies = [
  "miette",
  "qsc",
  "qsc_linter",
- "qsc_packages",
  "qsc_project",
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
 ]
 

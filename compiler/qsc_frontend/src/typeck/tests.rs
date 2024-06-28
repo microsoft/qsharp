@@ -12,7 +12,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, NodeId, Package, Pat, QubitInit, TopLevelNode},
+    ast::{Block, Expr, Ident, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -36,6 +36,21 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
         let ty = self.tys.get(expr.id);
         self.nodes.push((expr.id, expr.span, ty));
         visit::walk_expr(self, expr);
+    }
+
+    fn visit_path(&mut self, path: &'a Path) {
+        visit::walk_path(self, path);
+        let parts: Vec<Ident> = path.into();
+        if self
+            .tys
+            .get(parts.first().expect("should contain at least one part").id)
+            .is_some()
+        {
+            for part in parts {
+                let ty = self.tys.get(part.id);
+                self.nodes.push((part.id, part.span, ty));
+            }
+        }
     }
 
     fn visit_pat(&mut self, pat: &'a Pat) {
@@ -2628,6 +2643,127 @@ fn newtype_field_invalid() {
             #25 92-93 "x" : UDT<"Foo": Item 1>
             Error(Type(Error(MissingClassHasField("Foo", "Nope", Span { lo: 92, hi: 99 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = x.b.c.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 103-110 "(x : A)" : UDT<"A": Item 1>
+            #31 104-109 "x : A" : UDT<"A": Item 1>
+            #39 118-150 "{\n        let y = x.b.c.i;\n    }" : Unit
+            #41 132-133 "y" : Int
+            #43 136-143 "x.b.c.i" : Int
+            #45 136-137 "x" : UDT<"A": Item 1>
+            #46 138-139 "b" : UDT<"B": Item 2>
+            #47 140-141 "c" : UDT<"C": Item 3>
+            #48 142-143 "i" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_invalid() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = x.b.Nope.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 102-109 "(x : A)" : UDT<"A": Item 1>
+            #31 103-108 "x : A" : UDT<"A": Item 1>
+            #39 117-152 "{\n        let y = x.b.Nope.i;\n    }" : Unit
+            #41 131-132 "y" : ?3
+            #43 135-145 "x.b.Nope.i" : ?3
+            #45 135-136 "x" : UDT<"A": Item 1>
+            #46 137-138 "b" : UDT<"B": Item 2>
+            #47 139-143 "Nope" : ?2
+            #48 144-145 "i" : ?3
+            Error(Type(Error(MissingClassHasField("B", "Nope", Span { lo: 135, hi: 143 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 143 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 145 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = { x.b }.c.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 103-110 "(x : A)" : UDT<"A": Item 1>
+            #31 104-109 "x : A" : UDT<"A": Item 1>
+            #39 118-154 "{\n        let y = { x.b }.c.i;\n    }" : Unit
+            #41 132-133 "y" : Int
+            #43 136-147 "{ x.b }.c.i" : Int
+            #44 136-145 "{ x.b }.c" : UDT<"C": Item 3>
+            #45 136-143 "{ x.b }" : UDT<"B": Item 2>
+            #46 136-143 "{ x.b }" : UDT<"B": Item 2>
+            #48 138-141 "x.b" : UDT<"B": Item 2>
+            #50 138-139 "x" : UDT<"A": Item 1>
+            #51 140-141 "b" : UDT<"B": Item 2>
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_invalid() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = { x }.b.Nope.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 102-109 "(x : A)" : UDT<"A": Item 1>
+            #31 103-108 "x : A" : UDT<"A": Item 1>
+            #39 117-156 "{\n        let y = { x }.b.Nope.i;\n    }" : Unit
+            #41 131-132 "y" : ?3
+            #43 135-149 "{ x }.b.Nope.i" : ?3
+            #44 135-147 "{ x }.b.Nope" : ?2
+            #45 135-142 "{ x }.b" : UDT<"B": Item 2>
+            #46 135-140 "{ x }" : UDT<"A": Item 1>
+            #47 135-140 "{ x }" : UDT<"A": Item 1>
+            #49 137-138 "x" : UDT<"A": Item 1>
+            Error(Type(Error(MissingClassHasField("B", "Nope", Span { lo: 135, hi: 147 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 147 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 149 }))))
         "#]],
     );
 }

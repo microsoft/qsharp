@@ -3,19 +3,18 @@
 
 use log::trace;
 use qsc::{
-    ast,
-    compile::{self, Error},
+    ast, compile,
     display::Lookup,
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
-    resolve,
+    packages::{prepare_package_store, BuildableProgram},
+    project, resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::LintConfig;
-use qsc_packages::{prepare_package_store, BuildableProgram};
 use qsc_project::PackageGraphSources;
 use std::sync::Arc;
 
@@ -28,7 +27,8 @@ pub(crate) struct Compilation {
     /// The `PackageId` of the user package. User code
     /// is non-library code, i.e. all code except the std and core libs.
     pub user_package_id: PackageId,
-    pub errors: Vec<Error>,
+    pub project_errors: Vec<project::Error>,
+    pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
 }
 
@@ -54,6 +54,7 @@ impl Compilation {
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
         package_graph_sources: PackageGraphSources,
+        project_errors: Vec<project::Error>,
     ) -> Self {
         let BuildableProgram {
             store: mut package_store,
@@ -89,10 +90,11 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
             },
+            compile_errors: errors,
+            project_errors,
         }
     }
 
@@ -151,8 +153,9 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
+            compile_errors: errors,
             kind: CompilationKind::Notebook,
+            project_errors: Vec::new(),
         }
     }
 
@@ -256,6 +259,7 @@ impl Compilation {
                 language_features,
                 lints_config,
                 package_graph_sources.clone(),
+                Vec::new(), // project errors will stay the same
             ),
             CompilationKind::Notebook => Self::new_notebook(
                 sources.into_iter(),
@@ -264,9 +268,10 @@ impl Compilation {
                 lints_config,
             ),
         };
+
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
-        self.errors = new.errors;
+        self.compile_errors = new.compile_errors;
     }
 }
 

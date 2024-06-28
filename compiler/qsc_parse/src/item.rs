@@ -412,7 +412,7 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
         return Err(Error(ErrorKind::Convert("identifier", "type", ty.span)));
     };
     if let Path {
-        namespace: None,
+        segments: None,
         name,
         ..
     } = *path

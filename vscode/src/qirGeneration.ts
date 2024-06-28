@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getCompilerWorker, log, ProgramConfig } from "qsharp-lang";
+import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
@@ -29,8 +29,8 @@ export async function getQirForActiveWindow(
     throw new QirGenerationError(program.errorMsg);
   }
 
-  const { packageGraphSources, profile: targetProfile } = program.programConfig;
-
+  const config = program.programConfig;
+  const targetProfile = config.profile;
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";
 
@@ -82,12 +82,14 @@ export async function getQirForActiveWindow(
   try {
     const associationId = getRandomGuid();
     const start = performance.now();
-    sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.GenerateQirStart,
+      { associationId, targetProfile },
+      {},
+    );
 
-    const config = {
-      packageGraphSources,
-      profile: getTarget(),
-    } as ProgramConfig;
+    // Override the program config with the new target profile (if updated above)
+    config.profile = getTarget();
 
     result = await vscode.window.withProgress(
       {

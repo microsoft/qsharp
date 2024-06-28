@@ -3,9 +3,8 @@
 
 use crate::{
     diagnostic::VSDiagnostic,
-    into_async_rust_fn_with,
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
-    project_system::{IProjectConfig, LoadProjectCallback},
+    project_system::ProjectHost,
     serializable_type,
 };
 use qsc::{
@@ -30,26 +29,12 @@ impl LanguageService {
         LanguageService(qsls::LanguageService::new(Encoding::Utf16))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        load_project: LoadProjectCallback,
+        host: ProjectHost,
     ) -> js_sys::Promise {
-        let load_project = load_project.into();
-        let load_project = into_async_rust_fn_with!(load_project, |s: JsValue, _| {
-            if s.is_null() {
-                None
-            } else {
-                let s: IProjectConfig = s.into();
-                let s: crate::project_system::ProjectConfig = s.into();
-                Some((
-                    s.project_name.into(),
-                    s.package_graph_sources.into(),
-                    s.lints,
-                ))
-            }
-        });
-
         let diagnostics_callback =
             crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
 
@@ -62,7 +47,7 @@ impl LanguageService {
             let diags = update
                 .errors
                 .iter()
-                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                .map(|err| VSDiagnostic::from_ls_error(&update.uri, err))
                 .collect::<Vec<_>>();
             let _ = diagnostics_callback
                 .call3(
@@ -74,9 +59,7 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self
-            .0
-            .create_update_worker(diagnostics_callback, load_project);
+        let mut worker = self.0.create_update_worker(diagnostics_callback, host);
 
         future_to_promise(async move {
             worker.run().await;

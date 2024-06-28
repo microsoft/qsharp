@@ -5,10 +5,7 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, {
-  IProjectConfig,
-  TargetProfile,
-} from "../lib/web/qsc_wasm.js";
+import initWasm, { IProjectHost, TargetProfile } from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -102,33 +99,16 @@ export async function getLibrarySourceContent(
   return wasm.get_library_source_content(path);
 }
 
-export async function getGithubSourceContent(
-  path: string,
-): Promise<string | undefined> {
-  await instantiateWasm();
-  return wasm.get_github_source_content(path);
-}
-
 export async function getDebugService(): Promise<IDebugService> {
   await instantiateWasm();
   return new QSharpDebugService(wasm);
 }
 
 export async function getProjectLoader(
-  readFile: (path: string) => Promise<string | null>,
-  loadDirectory: (path: string) => Promise<[string, number][]>,
-  resolvePath: (base: string, relative: string) => Promise<string>,
-  fetchGithub: (
-    owner: string,
-    repo: string,
-    ref: string,
-    path: string,
-  ) => Promise<string | null>,
+  host: IProjectHost,
 ): Promise<wasm.ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(readFile, loadDirectory, resolvePath, (args) =>
-    fetchGithub(args[0], args[1], args[2], args[3]),
-  );
+  return new wasm.ProjectLoader(host);
 }
 
 // Create the debugger inside a WebWorker and proxy requests.
@@ -155,10 +135,10 @@ export function getCompilerWorker(worker: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(
-  loadProject: (uri: string) => Promise<IProjectConfig | null>,
+  host?: IProjectHost,
 ): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm, loadProject);
+  return new QSharpLanguageService(wasm, host);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
@@ -181,11 +161,13 @@ export type {
   IOperationInfo,
   IPosition,
   IProjectConfig,
+  IProjectHost,
   IQSharpError,
   IRange,
   IStackFrame,
   IStructStepResult,
   IWorkspaceEdit,
+  ProjectLoader,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";

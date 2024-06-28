@@ -6,7 +6,7 @@ import {
   IDocFile,
   IOperationInfo,
   IPackageGraphSources,
-  IProgramConfig,
+  IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
@@ -71,7 +71,10 @@ export interface ICompiler {
   ): Promise<boolean>;
 }
 
-/** Type definition for the configuration of a program. */
+/**
+ * Type definition for the configuration of a program.
+ * If adding new properties, make them optional to maintain backward compatibility.
+ */
 export type ProgramConfig = (
   | {
       /** An array of source objects, each containing a name and contents. */
@@ -80,6 +83,7 @@ export type ProgramConfig = (
       languageFeatures?: string[];
     }
   | {
+      /** Sources from all resolved dependencies, along with their languageFeatures configuration */
       packageGraphSources: IPackageGraphSources;
     }
 ) & {
@@ -109,7 +113,13 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
-      () => Promise.resolve(null),
+      {
+        readFile: async () => null,
+        listDirectory: async () => [],
+        resolvePath: async () => null,
+        fetchGithub: async () => "",
+        findManifestDirectory: async () => null,
+      },
     );
     languageService.update_document("code", 1, code);
     // Yield to let the language service background worker handle the update
@@ -143,18 +153,6 @@ export class Compiler implements ICompiler {
       profile ?? "adaptive_ri",
     );
   }
-
-  async getQir(program: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
-  }
-
-  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
-    return this.wasm.get_estimates(
-      toWasmProgramConfig(program, "unrestricted"),
-      params,
-    );
-  }
-
   async run(
     program: ProgramConfig,
     expr: string,
@@ -169,6 +167,17 @@ export class Compiler implements ICompiler {
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler!),
       shots!,
+    );
+  }
+
+  async getQir(program: ProgramConfig): Promise<string> {
+    return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
+  }
+
+  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
+    return this.wasm.get_estimates(
+      toWasmProgramConfig(program, "unrestricted"),
+      params,
     );
   }
 
@@ -209,6 +218,35 @@ export class Compiler implements ICompiler {
 
     return success;
   }
+}
+
+/**
+ * Fills in the defaults, to convert from the backwards-compatible ProgramConfig,
+ * to the IProgramConfig type that the wasm layer expects
+ */
+export function toWasmProgramConfig(
+  program: ProgramConfig,
+  defaultProfile: TargetProfile,
+): Required<wasmIProgramConfig> {
+  let packageGraphSources: IPackageGraphSources;
+
+  if ("sources" in program) {
+    // The simpler type is used, where there are no dependencies and only a list
+    // of sources is passed in.
+    packageGraphSources = {
+      root: {
+        sources: program.sources,
+        languageFeatures: program.languageFeatures || [],
+        dependencies: {},
+      },
+      packages: {},
+    };
+  } else {
+    // A full package graph is passed in.
+    packageGraphSources = program.packageGraphSources;
+  }
+
+  return { packageGraphSources, profile: program.profile || defaultProfile };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
@@ -272,15 +310,4 @@ export function toPackageGraphSources(
         packages: {},
       }
     : program.packageGraphSources;
-}
-
-export function toWasmProgramConfig(
-  program: ProgramConfig,
-  defaultProfile: TargetProfile,
-): IProgramConfig {
-  const packageGraphSources = toPackageGraphSources(program);
-  return {
-    packageGraphSources,
-    targetProfile: program.profile || defaultProfile,
-  };
 }

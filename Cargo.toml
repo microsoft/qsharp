@@ -13,7 +13,7 @@ members = [
     "compiler/qsc_frontend",
     "compiler/qsc_hir",
     "compiler/qsc_linter",
-    "compiler/qsc_lowerer", "compiler/qsc_packages",
+    "compiler/qsc_lowerer",
     "compiler/qsc_parse",
     "compiler/qsc_partial_eval",
     "compiler/qsc_passes",

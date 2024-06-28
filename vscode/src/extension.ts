@@ -3,7 +3,6 @@
 
 import {
   ILanguageService,
-  getGithubSourceContent,
   getLanguageService,
   getLibrarySourceContent,
   loadWasmModule,
@@ -13,8 +12,8 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
-import { createCodeLensProvider } from "./codeLens.js";
 import { createCodeActionsProvider } from "./codeActions.js";
+import { createCodeLensProvider } from "./codeLens.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
@@ -22,9 +21,11 @@ import {
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
 import { getTarget } from "./config";
+import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
+import { createFormattingProvider } from "./format.js";
 import { createHoverProvider } from "./hover";
 import {
   Logging,
@@ -37,12 +38,19 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { loadProjectNoSingleFile, setFetchHook } from "./projectSystem.js";
+import {
+  fetchGithubRaw,
+  findManifestDirectory,
+  getGithubSourceContent,
+  listDirectory,
+  readFile,
+  resolvePath,
+  setGithubEndpoint,
+} from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
-import { createFormattingProvider } from "./format.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
@@ -51,15 +59,11 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { initProjectCreator } from "./createProject.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<ExtensionApi> {
-  const api: ExtensionApi = { setFetchHook };
-  // setFetchHook(async () => {
-  //   return "namespace Foo { HELLO }";
-  // });
+  const api: ExtensionApi = { setGithubEndpoint };
 
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     // Don't log to the output window in tests, forward to a listener instead
@@ -86,7 +90,7 @@ export async function activate(
       qsharpGithubUriScheme,
       {
         provideTextDocumentContent(uri) {
-          return getGithubSourceContent(uri.toString());
+          return getGithubSourceContent(uri);
         },
       },
     ),
@@ -116,8 +120,7 @@ export async function activate(
 export interface ExtensionApi {
   // Only available in test mode. Allows listening to extension log events.
   logging?: Logging;
-  // Only available in test mode.
-  setFetchHook: (hook: (url: string) => Promise<string>) => Promise<void>;
+  setGithubEndpoint: (endpoint: string) => void;
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
@@ -355,9 +358,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService((s) =>
-    loadProjectNoSingleFile(vscode.Uri.parse(s, true)),
-  );
+  const languageService = await getLanguageService({
+    findManifestDirectory,
+    readFile,
+    listDirectory,
+    resolvePath: async (a, b) => resolvePath(a, b),
+    fetchGithub: fetchGithubRaw,
+  });
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(

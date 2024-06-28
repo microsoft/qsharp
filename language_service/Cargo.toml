@@ -24,8 +24,8 @@ miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 qsc_linter = { path = "../compiler/qsc_linter" }
 qsc_project = { path = "../compiler/qsc_project" }
-qsc_packages = { path = "../compiler/qsc_packages" }
 rustc-hash = { workspace = true }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true

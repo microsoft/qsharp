@@ -9,7 +9,7 @@ use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{into_async_rust_fn_with, into_qsc_args, IProgramConfig};
+use project_system::{into_qsc_args, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
     format_state_id, get_latex,
@@ -56,7 +56,7 @@ pub fn git_hash() -> String {
 }
 
 #[wasm_bindgen]
-pub fn get_qir(program: IProgramConfig) -> Result<String, String> {
+pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     if capabilities == Profile::Unrestricted.into() {
@@ -85,7 +85,7 @@ pub(crate) fn _get_qir(
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(program: IProgramConfig, params: &str) -> Result<String, String> {
+pub fn get_estimates(program: ProgramConfig, params: &str) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None);
 
     let mut interpreter = interpret::Interpreter::new(
@@ -107,7 +107,7 @@ pub fn get_estimates(program: IProgramConfig, params: &str) -> Result<String, St
 
 #[wasm_bindgen]
 pub fn get_circuit(
-    program: IProgramConfig,
+    program: ProgramConfig,
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
@@ -331,7 +331,7 @@ where
 
 #[wasm_bindgen]
 pub fn run(
-    program: IProgramConfig,
+    program: ProgramConfig,
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
@@ -427,7 +427,7 @@ serializable_type! {
 
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs(additional_program: Option<IProgramConfig>) -> Vec<IDocFile> {
+pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile> {
     let docs = if let Some((source_map, capabilities, language_features, _store, _deps)) =
         additional_program.map(|p| into_qsc_args(p, None))
     {

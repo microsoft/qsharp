@@ -6,11 +6,10 @@
 //! language service expects the fs to behave; if we want to reuse this in other
 //! tests, it could use some work to make methods a little more general.
 
-use qsc_project::{EntryType, FileSystem, JSFileEntry, Manifest, ManifestDescriptor};
+use async_trait::async_trait;
+use qsc_project::{EntryType, FileSystem, JSFileEntry, JSProjectHost};
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
-
-use crate::state::LoadProjectResult;
+use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 
 pub(crate) enum FsNode {
     Dir(FxHashMap<Arc<str>, FsNode>),
@@ -24,7 +23,7 @@ pub(crate) enum FsError {
 }
 
 impl FsNode {
-    pub fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
+    pub fn read_file(&self, file: String) -> miette::Result<(Arc<str>, Arc<str>)> {
         let mut curr = Some(self);
 
         for part in file.split('/') {
@@ -35,8 +34,8 @@ impl FsNode {
         }
 
         match curr {
-            Some(FsNode::File(contents)) => (file.into(), contents.clone()),
-            Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
+            Some(FsNode::File(contents)) => Ok((file.into(), contents.clone())),
+            Some(FsNode::Dir(_)) | None => Err(miette::Error::msg("file not found")),
         }
     }
 
@@ -98,15 +97,9 @@ impl FsNode {
         }
 
         parts.join("/")
-
-        // TODO: shouldn't we need a little more validation than this?
-        // like checking that the resolved path is actually within the root?
-        // or like checking that the resolved path is actually a file or directory?
-        // or like checking that the resolved path is not a symlink?
-        // thanks copilot!
     }
 
-    pub fn get_manifest(&self, file: &str) -> Option<ManifestDescriptor> {
+    pub fn find_manifest_directory(&self, file: &str) -> Option<PathBuf> {
         let mut curr = Some(self);
         let mut curr_path = String::new();
         let mut last_manifest_dir = None;
@@ -116,12 +109,8 @@ impl FsNode {
             curr = curr.and_then(|node| match node {
                 FsNode::Dir(dir) => {
                     if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
-                        // The semantics of get_manifest is that we only return the manifest
-                        // if we've succeeded in parsing it
-                        if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
-                            last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
-                            last_manifest = Some(manifest);
-                        }
+                        last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                        last_manifest = Some(manifest);
                     }
                     curr_path = format!("{curr_path}{part}/");
                     dir.get(part)
@@ -132,10 +121,7 @@ impl FsNode {
 
         match curr {
             Some(FsNode::Dir(_)) | None => None,
-            Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
-                manifest: last_manifest.unwrap_or_default(),
-                manifest_dir: dir.into(),
-            }),
+            Some(FsNode::File(_)) => last_manifest_dir.map(Into::into),
         }
     }
 
@@ -160,33 +146,13 @@ impl FsNode {
             Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
         };
     }
-
-    pub fn load_project_with_deps(&self, file: &str) -> LoadProjectResult {
-        let manifest = self.get_manifest(file);
-
-        if let Some(manifest) = manifest {
-            // TODO: I guess this should actually consume the deps?
-            let project = FileSystem::load_project_with_deps(self, &manifest.manifest_dir, None);
-            if let Ok(project) = project {
-                Some((
-                    manifest.compilation_uri(),
-                    project.package_graph_sources,
-                    manifest.manifest.lints,
-                ))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
 }
 
 impl FileSystem for FsNode {
     type Entry = JSFileEntry;
 
     fn read_file(&self, path: &std::path::Path) -> miette::Result<(Arc<str>, Arc<str>)> {
-        Ok(self.read_file(path.to_string_lossy().into()))
+        self.read_file(path.to_string_lossy().into())
     }
 
     fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
@@ -223,4 +189,44 @@ pub(crate) fn dir<const COUNT: usize>(
 
 pub(crate) fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
     (name.into(), FsNode::File(Arc::from(contents)))
+}
+
+pub(crate) struct TestProjectHost {
+    pub fs: Rc<RefCell<FsNode>>,
+}
+
+#[async_trait(?Send)]
+impl JSProjectHost for TestProjectHost {
+    async fn read_file(&self, uri: &str) -> miette::Result<(Arc<str>, Arc<str>)> {
+        self.fs.borrow().read_file(uri.to_string())
+    }
+
+    async fn list_directory(&self, uri: &str) -> Vec<JSFileEntry> {
+        self.fs.borrow().list_directory(uri.to_string())
+    }
+
+    async fn resolve_path(&self, base: &str, path: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .resolve_path(PathBuf::from(base).as_path(), PathBuf::from(path).as_path())
+            .map(|p| p.to_string_lossy().into())
+            .ok()
+    }
+
+    async fn find_manifest_directory(&self, doc_uri: &str) -> Option<Arc<str>> {
+        self.fs
+            .borrow()
+            .find_manifest_directory(doc_uri)
+            .map(|p| p.to_string_lossy().into())
+    }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        unimplemented!()
+    }
 }

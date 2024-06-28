@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use miette::Diagnostic;
 use qsc::line_column::Range;
-use qsc::{
-    compile::Error, linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures,
-    PackageType,
-};
+use qsc::{compile, project};
+use qsc::{linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures, PackageType};
+use thiserror::Error;
 
 /// A change to the workspace configuration
 #[derive(Clone, Debug, Default)]
@@ -16,11 +16,21 @@ pub struct WorkspaceConfigurationUpdate {
     pub lints_config: Option<Vec<LintConfig>>,
 }
 
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum ErrorKind {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Compile(#[from] compile::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Project(#[from] project::Error),
+}
+
 #[derive(Debug)]
 pub struct DiagnosticUpdate {
     pub uri: String,
     pub version: Option<u32>,
-    pub errors: Vec<Error>,
+    pub errors: Vec<ErrorKind>,
 }
 
 #[derive(Debug)]

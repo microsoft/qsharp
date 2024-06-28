@@ -11,14 +11,10 @@ suite("Q# Language Service Tests", function suite() {
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
-  const docUri = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
+  const testQs = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
   const projectMainDocUri = vscode.Uri.joinPath(
     workspaceFolderUri,
     "packages",
-    // TODO: I wanted to call this main-package but my current hacky way of
-    // concatenating source lists makes that an invalid namespace way.
-    // Change it back when we have things properly implemented so we can validate
-    // that we support dashes in project folder names.
     "MainPackage",
     "src",
     "Main.qs",
@@ -26,32 +22,32 @@ suite("Q# Language Service Tests", function suite() {
   const projectDepDocUri = vscode.Uri.joinPath(
     workspaceFolderUri,
     "packages",
-    // TODO: I wanted to call this main-package but my current hacky way of
-    // concatenating source lists makes that an invalid namespace way.
-    // Change it back when we have things properly implemented so we can validate
-    // that we support dashes in project folder names.
     "DepPackage",
     "src",
     "Main.qs",
   );
+  const noErrorsQs = vscode.Uri.joinPath(workspaceFolderUri, "no-errors.qs");
 
   this.beforeAll(async () => {
     await activateExtension();
 
     // Pre-open the text documents that are going to be interacted with in
     // the tests. This just gives the language a service a bit of time to load
-    // fully in the background before the test cases run. Is it a hack? Absolutely.
-    // But we don't currently have to await background language service tasks.
+    // fully in the background before the test cases run.
+    //
+    // This isn't great, but we don't currently have a way to await background
+    // language service tasks in tests.
     // This is the best we can do to ensure the features have been initialized
     // before we start testing.
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
     await vscode.workspace.openTextDocument(projectMainDocUri);
-    // Give it a tiny bit of time to settle
+    await vscode.workspace.openTextDocument(noErrorsQs);
+    // Give the language service a tiny bit of time to settle
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   test("Q# language is registered", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     assert.equal(
       doc.languageId,
       "qsharp",
@@ -62,7 +58,7 @@ suite("Q# Language Service Tests", function suite() {
   test("Completions", async () => {
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
-      docUri,
+      testQs,
       new vscode.Position(0, 0),
     )) as vscode.CompletionList;
 
@@ -73,7 +69,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Definition", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -82,18 +78,18 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Location[];
 
     const location = actualDefinition[0];
-    assert.equal(location.uri.toString(), docUri.toString());
+    assert.equal(location.uri.toString(), testQs.toString());
     assert.equal(location.range.start.line, 3);
     assert.equal(location.range.start.character, 12);
   });
 
   test("Diagnostics", async () => {
-    const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
+    const actualDiagnostics = vscode.languages.getDiagnostics(testQs);
     assert.lengthOf(actualDiagnostics, 1);
 
     assert.include(actualDiagnostics[0].message, "syntax error");
@@ -101,7 +97,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Hover", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -110,7 +106,7 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualHovers = (await vscode.commands.executeCommand(
       "vscode.executeHoverProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.Hover[];
 
@@ -121,7 +117,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Signature Help", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(testQs);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
     );
@@ -130,7 +126,7 @@ suite("Q# Language Service Tests", function suite() {
 
     const actualSignatureHelp = (await vscode.commands.executeCommand(
       "vscode.executeSignatureHelpProvider",
-      docUri,
+      testQs,
       new vscode.Position(4, 18), // cursor on the usage of foo
     )) as vscode.SignatureHelp;
 
@@ -142,11 +138,11 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document", async () => {
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
 
     const actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatDocumentProvider",
-      docUri,
+      testQs,
     )) as vscode.TextEdit[];
 
     assert.lengthOf(actualFormatEdits, 1);
@@ -158,7 +154,7 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Format Document Range", async () => {
-    await vscode.workspace.openTextDocument(docUri);
+    await vscode.workspace.openTextDocument(testQs);
 
     const noEditRange = new vscode.Range(
       new vscode.Position(7, 24),
@@ -171,7 +167,7 @@ suite("Q# Language Service Tests", function suite() {
 
     let actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatRangeProvider",
-      docUri,
+      testQs,
       noEditRange,
     )) as vscode.TextEdit[];
 
@@ -180,7 +176,7 @@ suite("Q# Language Service Tests", function suite() {
 
     actualFormatEdits = (await vscode.commands.executeCommand(
       "vscode.executeFormatRangeProvider",
-      docUri,
+      testQs,
       editRange,
     )) as vscode.TextEdit[];
 
@@ -193,17 +189,17 @@ suite("Q# Language Service Tests", function suite() {
   });
 
   test("Code Lens", async () => {
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(noErrorsQs);
 
     const actualCodeLenses = (await vscode.commands.executeCommand(
       "vscode.executeCodeLensProvider",
-      docUri,
+      doc.uri,
     )) as vscode.CodeLens[];
 
     assert.lengthOf(actualCodeLenses, 5);
 
     for (const lens of actualCodeLenses) {
-      assert.include(doc.getText(lens.range), "operation Test()");
+      assert.include(doc.getText(lens.range), "function Test()");
     }
   });
 
@@ -211,23 +207,68 @@ suite("Q# Language Service Tests", function suite() {
     const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
     vscode.commands.executeCommand("workbench.action.problems.focus");
 
+    // No errors if package dependencies are properly resolved
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(projectMainDocUri);
+
+    assert.isEmpty(
+      actualDiagnostics,
+      `Expected no diagnostics, but got ${JSON.stringify(actualDiagnostics)}`,
+    );
+
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
       new vscode.Range(new vscode.Position(1, 16), new vscode.Position(1, 26)),
     );
-    assert.equal(text, "MyFunction");
+    assert.equal(text, "MyFunction", "Test file contents don't match expected");
 
     // Verify go-to-definition works across packages
     const actualDefinition = (await vscode.commands.executeCommand(
       "vscode.executeDefinitionProvider",
       projectMainDocUri,
-      new vscode.Position(1, 21), // cursor on the usage of "MyFunction"
+      new vscode.Position(1, 20), // cursor on the usage of "MyFunction"
     )) as vscode.Location[];
 
     // Returned location should be in DepPackage on the definition of "MyFunction"
-    assert.lengthOf(actualDefinition, 1);
+    assert.lengthOf(
+      actualDefinition,
+      1,
+      "Expected to find one definition for MyFunction",
+    );
     const location = actualDefinition[0];
     assert.equal(location.uri.toString(), projectDepDocUri.toString());
+    assert.equal(location.range.start.line, 1);
+    assert.equal(location.range.start.character, 13);
+  });
+
+  test("Web package dependencies", async () => {
+    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    vscode.commands.executeCommand("workbench.action.problems.focus");
+
+    // Sanity check the test setup - is this the correct position?
+    const text = doc.getText(
+      new vscode.Range(new vscode.Position(2, 4), new vscode.Position(2, 32)),
+    );
+    assert.equal(text, "GitHubDep.Library.MyFunction");
+
+    // Verify go-to-definition works across packages
+    const actualDefinition = (await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      projectMainDocUri,
+      new vscode.Position(2, 30), // cursor on the usage of "MyFunction"
+    )) as vscode.Location[];
+
+    // Returned location should be in the web dependency on the definition of "MyFunction"
+    assert.lengthOf(
+      actualDefinition,
+      1,
+      "Expected to find one definition for MyFunction",
+    );
+    const location = actualDefinition[0];
+    assert.equal(
+      location.uri.toString(),
+      "qsharp-github-source:test-owner/test-repo/test-ref/src/Main.qs",
+    );
     assert.equal(location.range.start.line, 1);
     assert.equal(location.range.start.character, 13);
 
