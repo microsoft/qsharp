@@ -6,8 +6,17 @@
 use noisy_simulator::{ComplexVector, SquareMatrix};
 use num_complex::Complex;
 use pyo3::prelude::*;
-
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
+
+pub(crate) fn register_noisy_sim_submodule(py: Python, parent_module: &PyModule) -> PyResult<()> {
+    let m = PyModule::new(py, "noisy_sim")?;
+    m.add_class::<Operation>()?;
+    m.add_class::<Instrument>()?;
+    m.add_class::<DensityMatrixSimulator>()?;
+    m.add_class::<TrajectorySimulator>()?;
+    parent_module.add_submodule(m)?;
+    Ok(())
+}
 
 fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> SquareMatrix {
     let nrows = matrix.len();
