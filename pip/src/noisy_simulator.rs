@@ -51,7 +51,7 @@ fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
     list
 }
 
-#[pyclass(name = "operation")]
+#[pyclass]
 #[derive(Clone)]
 pub(crate) struct Operation(noisy_simulator::Operation);
 
@@ -85,7 +85,7 @@ impl Operation {
     }
 }
 
-#[pyclass(name = "instrument")]
+#[pyclass]
 pub(crate) struct Instrument(noisy_simulator::Instrument);
 
 #[pymethods]
@@ -149,7 +149,7 @@ impl DensityMatrixSimulator {
     }
 }
 
-#[pyclass(name = "trajsimulator")]
+#[pyclass]
 pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 
 #[pymethods]
