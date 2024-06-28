@@ -164,7 +164,7 @@ fn precedence(expr: &Expr) -> u8 {
     }
 }
 
-/// Crates a lint for deprecated user-defined types declarations using `newtype`.
+/// Creates a lint for deprecated user-defined types declarations using `newtype`.
 impl AstLintPass for DeprecatedNewtype {
     fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
         if let ItemKind::Ty(_, _) = item.kind.as_ref() {
