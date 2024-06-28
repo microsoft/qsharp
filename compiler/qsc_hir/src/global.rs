@@ -36,7 +36,7 @@ impl std::fmt::Debug for Kind {
             Kind::Namespace => write!(f, "Namespace"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
             Kind::Term(term) => write!(f, "Term({})", term.id),
-            Kind::Export(id) => write!(f, "Export{id}"),
+            Kind::Export(id) => write!(f, "Export({id:?})"),
         }
     }
 }
@@ -187,7 +187,7 @@ impl PackageIter<'_> {
                 kind: Kind::Namespace,
             }),
             (
-                ItemKind::Export(name, item_id @ ItemId { package, .. }),
+                ItemKind::Export(name, ItemId { package, .. }),
                 Some(ItemKind::Namespace(namespace, _)),
             ) => {
                 if package.is_none() && alias.is_none() {
@@ -200,7 +200,7 @@ impl PackageIter<'_> {
                         name: name.name.clone(),
                         visibility,
                         status,
-                        kind: Kind::Export(*item_id),
+                        kind: Kind::Export(id),
                     })
                 }
             }

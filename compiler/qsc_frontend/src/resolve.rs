@@ -788,7 +788,7 @@ impl Resolver {
         let current_namespace_name: Option<Rc<str>> = current_namespace_name.map(Idents::name);
         let is_export = decl.is_export();
 
-        for item in decl
+        for decl_item in decl
             .items()
             // filter out any dropped names
             // this is so you can still export an item that has been conditionally removed from compilation
@@ -808,22 +808,28 @@ impl Resolver {
             })
             .collect::<Vec<_>>()
         {
-            if item.is_glob {
-                self.bind_glob_import_or_export(item, decl.is_export());
+            if decl_item.is_glob {
+                self.bind_glob_import_or_export(decl_item, decl.is_export());
                 continue;
             }
+
             let (term_result, ty_result) = (
-                self.resolve_path(NameKind::Term, &item.path),
-                self.resolve_path(NameKind::Ty, &item.path),
+                self.resolve_path(NameKind::Term, &decl_item.path),
+                self.resolve_path(NameKind::Ty, &decl_item.path),
             );
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
-                self.handle_namespace_import_or_export(is_export, item, current_namespace, err);
+                self.handle_namespace_import_or_export(
+                    is_export,
+                    decl_item,
+                    current_namespace,
+                    err,
+                );
                 continue;
             };
 
-            let local_name = item.name().name.clone();
+            let local_name = decl_item.name().name.clone();
 
             {
                 let scope = self.current_scope_mut();
@@ -835,7 +841,8 @@ impl Resolver {
                     (true, Some(entry), _) | (true, _, Some(entry))
                         if entry.source == ItemSource::Exported =>
                     {
-                        let err = Error::DuplicateExport(local_name.to_string(), item.name().span);
+                        let err =
+                            Error::DuplicateExport(local_name.to_string(), decl_item.name().span);
                         self.errors.push(err);
                         continue;
                     }
@@ -843,7 +850,7 @@ impl Resolver {
                         if entry.source == ItemSource::Imported =>
                     {
                         let err =
-                            Error::ImportedDuplicate(local_name.to_string(), item.name().span);
+                            Error::ImportedDuplicate(local_name.to_string(), decl_item.name().span);
                         self.errors.push(err);
                         continue;
                     }
@@ -902,7 +909,7 @@ impl Resolver {
                     } else {
                         Error::ImportedNonItem
                     };
-                    let err = err(item.path.span);
+                    let err = err(decl_item.path.span);
                     self.errors.push(err);
                     continue;
                 }
@@ -920,9 +927,14 @@ impl Resolver {
                 // the definition comes from.
                 Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
                     self.names
-                        .insert(item.name().id, Res::ExportedItem(item_id));
+                        .insert(decl_item.name().id, Res::ExportedItem(item_id));
                 }
-                _ => self.names.insert(item.name().id, res),
+                Res::Item(underlying_item_id, _) if decl_item.alias.is_some() && is_export => {
+                    // insert the export's alias
+                    self.names
+                        .insert(decl_item.name().id, Res::ExportedItem(underlying_item_id));
+                }
+                _ => self.names.insert(decl_item.name().id, res),
             }
         }
     }

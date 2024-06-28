@@ -25,6 +25,7 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     let mut prev_id_and_name: Option<(PackageId, &str)> = None;
     let num_packages = packages.len();
     for (ix, (package_name, package_source)) in packages.into_iter().enumerate() {
+        println!("___compiling {package_name}_____");
         let is_last = ix == num_packages - 1;
         let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
             vec![(prev_id, Some(Arc::from(prev_name)))]
@@ -290,4 +291,71 @@ fn reexport_callable_combined_aliases() {
             ",
         ),
     ]);
+}
+
+#[test]
+fn direct_reexport() {
+    multiple_package_check(vec![
+        (
+            "A",
+            "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;",
+        ),
+        ("B", "export A.A.Bar as Baz;"),
+        (
+            "C",
+            "import B.B.Baz as Quux;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Quux(10, true);
+                    }",
+        ),
+    ]);
+}
+
+#[test]
+fn reexports_still_type_check() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "A",
+                "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;",
+            ),
+            (
+                "B",
+                "
+                 export A.A.Bar as Baz;",
+            ),
+            (
+                "C",
+                "import B.B.Baz as Quux;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Quux(10, 10);
+                    }",
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Type(
+                        Error(
+                            TyMismatch(
+                                "Bool",
+                                "Int",
+                                Span {
+                                    lo: 128,
+                                    hi: 140,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
 }
