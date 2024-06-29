@@ -2,6 +2,9 @@
 ///
 /// This Q# code generates a random bit by setting a qubit in a superposition of
 /// the computational basis states |0〉 and |1〉, and returning the measurement result.
+
+// QUESTION: Is this needed when we have Getting started(aka minimal) and superposition sample??
+// Also, this is not in samples.mjs list
 namespace QuantumHelloWorld {
 
     @EntryPoint()

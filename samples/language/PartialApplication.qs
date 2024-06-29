@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
     open Microsoft.Quantum.Arrays;
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // This takes our adding function and partially applies it,
         // filling the second argument with `1` and returning another
         // function that takes one argument and passes it in to `Add`.
