@@ -15,10 +15,13 @@ mod js;
 mod manifest;
 mod project;
 
-pub use error::Error;
+pub use error::StdFsError;
 #[cfg(feature = "fs")]
 pub use fs::StdFs;
 pub use js::{JSFileEntry, JSProjectHost};
-pub use manifest::{Manifest, ManifestDescriptor, MANIFEST_FILE_NAME};
+pub use manifest::{Manifest, ManifestDescriptor, PackageRef, MANIFEST_FILE_NAME};
 pub use project::FileSystemAsync;
-pub use project::{DirEntry, EntryType, FileSystem, Project};
+pub use project::{
+    key_for_package_ref, package_ref_from_key, DirEntry, EntryType, Error, FileSystem,
+    PackageCache, PackageGraphSources, PackageInfo, Project,
+};

@@ -1057,7 +1057,7 @@ pub enum ExprKind {
     Closure(Vec<LocalVarId>, LocalItemId),
     /// A failure: `fail "message"`.
     Fail(ExprId),
-    /// A field accessor: `a::F`.
+    /// A field accessor: `a::F` or `a.F`.
     Field(ExprId, Field),
     /// An unspecified expression, _, which may indicate partial application or discards
     Hole,

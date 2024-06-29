@@ -116,7 +116,40 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py --no-check
+        run: python ./build.py --no-check --wasm --npm --vscode --play --pip --widgets --jupyterlab
+
+  unit-tests:
+    name: Rust Unit and Samples tests
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-14]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Add additional Rust targets
+        run: |
+          rustup target add x86_64-apple-darwin
+        if: matrix.os == 'macos-14'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Prereqs
+        run: python ./prereqs.py --install
+      - name: Build and Test
+        run: python ./build.py --no-check --cli --samples
 
   integration-tests:
     name: Integration tests
@@ -222,7 +255,7 @@ jobs:
 
   status-check:
     name: Status Check
-    needs: [format, clippy, web-check, build, format-qsc, integration-tests, runBenchmark, runMemoryProfile]
+    needs: [format, clippy, web-check, build, unit-tests, format-qsc, integration-tests, runBenchmark, runMemoryProfile]
     runs-on: ubuntu-latest
     if: failure()
     steps:

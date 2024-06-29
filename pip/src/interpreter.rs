@@ -5,7 +5,7 @@ use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
 };
-use miette::Report;
+use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
@@ -13,7 +13,7 @@ use pyo3::{
     exceptions::PyException,
     prelude::*,
     pyclass::CompareOp,
-    types::{PyComplex, PyDict, PyList, PyString, PyTuple},
+    types::{PyComplex, PyDict, PyList, PyTuple},
 };
 use qsc::{
     fir,
@@ -22,12 +22,12 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor},
+    project::{FileSystem, PackageCache},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use std::fmt::Write;
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -74,35 +74,12 @@ pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
 }
 
-pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
-
-impl FromPyObject<'_> for PyManifestDescriptor {
-    fn extract(ob: &PyAny) -> PyResult<Self> {
-        let dict = ob.downcast::<PyDict>()?;
-        let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
-            PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
-        )?;
-
-        let manifest = get_dict_opt_string(dict, "manifest")?.ok_or(PyException::new_err(
-            "missing key `manifest` in manifest descriptor",
-        ))?;
-
-        let manifest = serde_json::from_str::<Manifest>(&manifest).map_err(|_| {
-            PyErr::new::<PyException, _>(format!(
-                "Error parsing {manifest_dir}/qsharp.json . Manifest should be a valid JSON file."
-            ))
-        })?;
-
-        Ok(Self(ManifestDescriptor {
-            manifest,
-            manifest_dir: manifest_dir.into(),
-        }))
-    }
-}
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
 
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
@@ -110,42 +87,48 @@ impl Interpreter {
         py: Python,
         target: TargetProfile,
         language_features: Option<Vec<String>>,
-        manifest_descriptor: Option<PyManifestDescriptor>,
+        project_root: Option<String>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
         resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
             TargetProfile::Base => Profile::Base,
             TargetProfile::Unrestricted => Profile::Unrestricted,
         };
-        // If no features were passed in as an argument, use the features from the manifest.
-        // this way we prefer the features from the argument over those from the manifest.
-        let language_features: Vec<String> = match (language_features, &manifest_descriptor) {
-            (Some(language_features), _) => language_features,
-            (_, Some(manifest_descriptor)) => {
-                manifest_descriptor.0.manifest.language_features.clone()
-            }
-            (None, None) => vec![],
-        };
 
-        let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            if let (Some(read_file), Some(list_directory), Some(resolve_path)) =
-                (read_file, list_directory, resolve_path)
+        let mut language_features =
+            LanguageFeatures::from_iter(language_features.unwrap_or_default());
+
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
+        let sources = if let Some(project_root) = project_root {
+            if let (Some(read_file), Some(list_directory), Some(resolve_path), Some(fetch_github)) =
+                (read_file, list_directory, resolve_path, fetch_github)
             {
-                let project = file_system(py, read_file, list_directory, resolve_path)
-                    .load_project(&manifest_descriptor.0)
-                    .map_py_err()?;
-                SourceMap::new(project.sources, None)
+                let project =
+                    file_system(py, read_file, list_directory, resolve_path, fetch_github)
+                        .load_project(&PathBuf::from(project_root), Some(&package_cache))
+                        .map_err(IntoPyErr::into_py_err)?;
+
+                if !project.errors.is_empty() {
+                    return Err(project.errors.into_py_err());
+                }
+
+                let (sources, project_features) =
+                    project.package_graph_sources.into_sources_temporary();
+
+                language_features.merge(LanguageFeatures::from_iter(project_features));
+
+                SourceMap::new(sources, None)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
         } else {
             SourceMap::default()
         };
-
-        let language_features = LanguageFeatures::from_iter(language_features);
 
         match interpret::Interpreter::new(
             true,
@@ -580,22 +563,6 @@ impl Circuit {
     }
 }
 
-trait MapPyErr<T, E> {
-    fn map_py_err(self) -> core::result::Result<T, PyErr>;
-}
-
-impl<T, E> MapPyErr<T, E> for core::result::Result<T, E>
-where
-    E: IntoPyErr,
-{
-    fn map_py_err(self) -> core::result::Result<T, PyErr>
-    where
-        E: IntoPyErr,
-    {
-        self.map_err(IntoPyErr::into_py_err)
-    }
-}
-
 trait IntoPyErr {
     fn into_py_err(self) -> PyErr;
 }
@@ -606,20 +573,16 @@ impl IntoPyErr for Report {
     }
 }
 
-impl IntoPyErr for Vec<interpret::Error> {
+impl<E> IntoPyErr for Vec<E>
+where
+    E: Diagnostic + Send + Sync + 'static,
+{
     fn into_py_err(self) -> PyErr {
         let mut message = String::new();
-        for error in self {
-            writeln!(message, "{error}").expect("string should be writable");
+        for diag in self {
+            let report = Report::new(diag);
+            writeln!(message, "{report:?}").expect("string should be writable");
         }
         PyException::new_err(message)
     }
-}
-
-fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
-    let value = dict.get_item(key)?;
-    Ok(match value {
-        Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
-        None => None,
-    })
 }

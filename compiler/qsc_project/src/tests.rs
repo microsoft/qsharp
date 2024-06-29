@@ -17,29 +17,32 @@ fn basic_manifest() {
         &expect![[r#"
             Project {
                 name: "basic_manifest",
-                manifest_path: "basic_manifest/qsharp.json",
-                sources: [
-                    (
-                        "basic_manifest/src/Dependency1.qs",
-                        "namespace Dependency1 {\n    function First() : String {\n        \"123\"\n    }\n}\n",
-                    ),
-                    (
-                        "basic_manifest/src/Dependency2.qs",
-                        "namespace Dependency2 {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
-                    ),
-                    (
-                        "basic_manifest/src/Main.qs",
-                        "namespace Main {\n    open Dependency1;\n    open Dependency2;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: Some(
-                        "Microsoft",
-                    ),
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "basic_manifest/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "basic_manifest/src/Dependency1.qs",
+                                "namespace Dependency1 {\n    function First() : String {\n        \"123\"\n    }\n}\n",
+                            ),
+                            (
+                                "basic_manifest/src/Dependency2.qs",
+                                "namespace Dependency2 {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
+                            ),
+                            (
+                                "basic_manifest/src/Main.qs",
+                                "namespace Main {\n    open Dependency1;\n    open Dependency2;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -51,29 +54,32 @@ fn circular_imports() {
         &expect![[r#"
             Project {
                 name: "circular_imports",
-                manifest_path: "circular_imports/qsharp.json",
-                sources: [
-                    (
-                        "circular_imports/src/Evens.qs",
-                        "namespace Evens {\n    open Odds;\n    function Two() : String {\n        \"2\"\n    }\n    function Four() : String {\n        \"4\"\n    }\n    function Twelve() : String {\n        One_() + Two()\n    }\n}\n",
-                    ),
-                    (
-                        "circular_imports/src/Main.qs",
-                        "namespace Main {\n    open Evens;\n    open Odds;\n\n    @EntryPoint()\n    operation Main() : String {\n        Twelve() + Three() + FortyFive()\n    }\n}\n",
-                    ),
-                    (
-                        "circular_imports/src/Odds.qs",
-                        "namespace Odds {\n    open Evens;\n    function One_() : String {\n        \"1\"\n    }\n    function Three() : String {\n        \"3\"\n    }\n    function Five() : String {\n        \"5\"\n    }\n    function FortyFive() : String {\n        Four() + Five()\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: Some(
-                        "Microsoft",
-                    ),
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "circular_imports/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "circular_imports/src/Evens.qs",
+                                "namespace Evens {\n    open Odds;\n    function Two() : String {\n        \"2\"\n    }\n    function Four() : String {\n        \"4\"\n    }\n    function Twelve() : String {\n        One_() + Two()\n    }\n}\n",
+                            ),
+                            (
+                                "circular_imports/src/Main.qs",
+                                "namespace Main {\n    open Evens;\n    open Odds;\n\n    @EntryPoint()\n    operation Main() : String {\n        Twelve() + Three() + FortyFive()\n    }\n}\n",
+                            ),
+                            (
+                                "circular_imports/src/Odds.qs",
+                                "namespace Odds {\n    open Evens;\n    function One_() : String {\n        \"1\"\n    }\n    function Three() : String {\n        \"3\"\n    }\n    function Five() : String {\n        \"5\"\n    }\n    function FortyFive() : String {\n        Four() + Five()\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -85,29 +91,32 @@ fn different_files_same_manifest() {
         &expect![[r#"
             Project {
                 name: "different_files_same_manifest",
-                manifest_path: "different_files_same_manifest/qsharp.json",
-                sources: [
-                    (
-                        "different_files_same_manifest/src/Dependency1.qs",
-                        "namespace Dependency {\n    function First() : String {\n        \"123\"\n    }\n}\n",
-                    ),
-                    (
-                        "different_files_same_manifest/src/Dependency2.qs",
-                        "namespace Dependency {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
-                    ),
-                    (
-                        "different_files_same_manifest/src/Main.qs",
-                        "namespace Main {\n    open Dependency;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: Some(
-                        "Microsoft",
-                    ),
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "different_files_same_manifest/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "different_files_same_manifest/src/Dependency1.qs",
+                                "namespace Dependency {\n    function First() : String {\n        \"123\"\n    }\n}\n",
+                            ),
+                            (
+                                "different_files_same_manifest/src/Dependency2.qs",
+                                "namespace Dependency {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
+                            ),
+                            (
+                                "different_files_same_manifest/src/Main.qs",
+                                "namespace Main {\n    open Dependency;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -119,19 +128,24 @@ fn empty_manifest() {
         &expect![[r#"
             Project {
                 name: "empty_manifest",
-                manifest_path: "empty_manifest/qsharp.json",
-                sources: [
-                    (
-                        "empty_manifest/src/Main.qs",
-                        "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: None,
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "empty_manifest/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "empty_manifest/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    operation Main() : String {\n        \"12345\"\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -143,31 +157,36 @@ fn folder_structure() {
         &expect![[r#"
             Project {
                 name: "folder_structure",
-                manifest_path: "folder_structure/qsharp.json",
-                sources: [
-                    (
-                        "folder_structure/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
-                    ),
-                    (
-                        "folder_structure/src/utils/ops/Add.qs",
-                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
-                    ),
-                    (
-                        "folder_structure/src/utils/ops/Subtract.qs",
-                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
-                    ),
-                    (
-                        "folder_structure/src/utils/strings/Concat.qs",
-                        "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: None,
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "folder_structure/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "folder_structure/src/Project.qs",
+                                "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
+                            ),
+                            (
+                                "folder_structure/src/utils/ops/Add.qs",
+                                "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
+                            ),
+                            (
+                                "folder_structure/src/utils/ops/Subtract.qs",
+                                "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
+                            ),
+                            (
+                                "folder_structure/src/utils/strings/Concat.qs",
+                                "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -178,27 +197,32 @@ fn hidden_files() {
         &expect![[r#"
             Project {
                 name: "hidden_files",
-                manifest_path: "hidden_files/qsharp.json",
-                sources: [
-                    (
-                        "hidden_files/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
-                    ),
-                    (
-                        "hidden_files/src/utils/ops/Add.qs",
-                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
-                    ),
-                    (
-                        "hidden_files/src/utils/ops/Subtract.qs",
-                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: None,
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "hidden_files/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "hidden_files/src/Project.qs",
+                                "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
+                            ),
+                            (
+                                "hidden_files/src/utils/ops/Add.qs",
+                                "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
+                            ),
+                            (
+                                "hidden_files/src/utils/ops/Subtract.qs",
+                                "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -209,31 +233,36 @@ fn peer_file() {
         &expect![[r#"
             Project {
                 name: "peer_file",
-                manifest_path: "peer_file/qsharp.json",
-                sources: [
-                    (
-                        "peer_file/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
-                    ),
-                    (
-                        "peer_file/src/utils/ops/Add.qs",
-                        "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
-                    ),
-                    (
-                        "peer_file/src/utils/ops/Subtract.qs",
-                        "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
-                    ),
-                    (
-                        "peer_file/src/utils/strings/Concat.qs",
-                        "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
-                    ),
-                ],
-                manifest: Manifest {
-                    author: None,
-                    license: None,
-                    language_features: [],
-                    lints: [],
+                path: "peer_file/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "peer_file/src/Project.qs",
+                                "namespace Project {\n    @EntryPoint()\n    operation Entry() : String {\n        Strings.Concat(\"12\", $\"{(Math.Subtract(346, 1))}\")\n    }\n}\n",
+                            ),
+                            (
+                                "peer_file/src/utils/ops/Add.qs",
+                                "namespace Math {\n    function Add(a: Int, b: Int) : Int {\n        a + b\n    }\n}\n",
+                            ),
+                            (
+                                "peer_file/src/utils/ops/Subtract.qs",
+                                "namespace Math {\n    function Subtract(a: Int, b: Int) : Int {\n        a - b\n    }\n}\n",
+                            ),
+                            (
+                                "peer_file/src/utils/strings/Concat.qs",
+                                "namespace Strings {\n    function Concat(a: String, b: String) : String {\n        a + b\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
                 },
+                lints: [],
+                errors: [],
             }"#]],
     );
 }
@@ -245,21 +274,191 @@ fn language_feature() {
         &expect![[r#"
             Project {
                 name: "language_feature",
-                manifest_path: "language_feature/qsharp.json",
-                sources: [
-                    (
-                        "language_feature/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use qs = Qubit[2] { };\n    }\n}\n",
+                path: "language_feature/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "language_feature/src/Project.qs",
+                                "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use qs = Qubit[2] { };\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            1,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn with_local_dep() {
+    check(
+        &"with_local_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "with_local_dep",
+                path: "with_local_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "with_local_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n        Dependency.LibraryFn();\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyDep": "{\"path\":\"local_dep\"}",
+                        },
+                    },
+                    packages: {
+                        "{\"path\":\"local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "local_dep/src/Dependency.qs",
+                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
+                        },
+                    },
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn transitive_dep() {
+    check(
+        &"transitive_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "transitive_dep",
+                path: "transitive_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "transitive_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyDep": "{\"path\":\"with_local_dep\"}",
+                        },
+                    },
+                    packages: {
+                        "{\"path\":\"local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "local_dep/src/Dependency.qs",
+                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
+                        },
+                        "{\"path\":\"with_local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "with_local_dep/src/Main.qs",
+                                    "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {\n        Dependency.LibraryFn();\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {
+                                "MyDep": "{\"path\":\"local_dep\"}",
+                            },
+                        },
+                    },
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn explicit_files_list() {
+    check(
+        &"explicit_files_list".into(),
+        &expect![[r#"
+            Project {
+                name: "explicit_files_list",
+                path: "explicit_files_list/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "explicit_files_list/src/Main.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn circular_dep() {
+    check(
+        &"circular_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "circular_dep",
+                path: "circular_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "circular_dep/src/Main.qs",
+                                "namespace Main {\n    @EntryPoint()\n    function Main() : Unit {}\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyCircularDep": "{\"path\":\"circular_dep\"}",
+                        },
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [
+                    Circular(
+                        "REPLACED",
+                        "REPLACED",
                     ),
                 ],
-                manifest: Manifest {
-                    author: None,
-                    license: None,
-                    language_features: [
-                        "v2-preview-syntax",
-                    ],
-                    lints: [],
-                },
             }"#]],
     );
 }

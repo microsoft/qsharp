@@ -12,10 +12,38 @@ suite("Q# Language Service Tests", function suite() {
 
   const workspaceFolderUri = workspaceFolder.uri;
   const testQs = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
+  const projectMainDocUri = vscode.Uri.joinPath(
+    workspaceFolderUri,
+    "packages",
+    "MainPackage",
+    "src",
+    "Main.qs",
+  );
+  const projectDepDocUri = vscode.Uri.joinPath(
+    workspaceFolderUri,
+    "packages",
+    "DepPackage",
+    "src",
+    "Main.qs",
+  );
   const noErrorsQs = vscode.Uri.joinPath(workspaceFolderUri, "no-errors.qs");
 
   this.beforeAll(async () => {
     await activateExtension();
+
+    // Pre-open the text documents that are going to be interacted with in
+    // the tests. This just gives the language a service a bit of time to load
+    // fully in the background before the test cases run.
+    //
+    // This isn't great, but we don't currently have a way to await background
+    // language service tasks in tests.
+    // This is the best we can do to ensure the features have been initialized
+    // before we start testing.
+    await vscode.workspace.openTextDocument(testQs);
+    await vscode.workspace.openTextDocument(projectMainDocUri);
+    await vscode.workspace.openTextDocument(noErrorsQs);
+    // Give the language service a tiny bit of time to settle
+    await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   test("Q# language is registered", async () => {
@@ -173,5 +201,84 @@ suite("Q# Language Service Tests", function suite() {
     for (const lens of actualCodeLenses) {
       assert.include(doc.getText(lens.range), "function Test()");
     }
+  });
+
+  test("Package dependencies", async () => {
+    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    vscode.commands.executeCommand("workbench.action.problems.focus");
+
+    // No errors if package dependencies are properly resolved
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(projectMainDocUri);
+
+    assert.isEmpty(
+      actualDiagnostics,
+      `Expected no diagnostics, but got ${JSON.stringify(actualDiagnostics)}`,
+    );
+
+    // Sanity check the test setup - is this the correct position?
+    const text = doc.getText(
+      new vscode.Range(new vscode.Position(2, 8), new vscode.Position(2, 24)),
+    );
+    assert.equal(
+      text,
+      "MyDep.MyFunction",
+      `${projectMainDocUri.fsPath} file contents don't match expected`,
+    );
+
+    // Verify go-to-definition works across packages
+    const actualDefinition = (await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      projectMainDocUri,
+      new vscode.Position(2, 18), // cursor on the usage of "MyFunction"
+    )) as vscode.Location[];
+
+    // Returned location should be in DepPackage on the definition of "MyFunction"
+    assert.lengthOf(
+      actualDefinition,
+      1,
+      "Expected to find one definition for MyFunction",
+    );
+    const location = actualDefinition[0];
+    assert.equal(location.uri.toString(), projectDepDocUri.toString());
+    assert.equal(location.range.start.line, 1);
+    assert.equal(location.range.start.character, 13);
+  });
+
+  test("Web package dependencies", async () => {
+    const doc = await vscode.workspace.openTextDocument(projectMainDocUri);
+    vscode.commands.executeCommand("workbench.action.problems.focus");
+
+    // Sanity check the test setup - is this the correct position?
+    const text = doc.getText(
+      new vscode.Range(new vscode.Position(3, 8), new vscode.Position(3, 26)),
+    );
+    assert.equal(text, "Library.MyFunction");
+
+    // Verify go-to-definition works across packages
+    const actualDefinition = (await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      projectMainDocUri,
+      new vscode.Position(3, 20), // cursor on the usage of "MyFunction"
+    )) as vscode.Location[];
+
+    // Returned location should be in the web dependency on the definition of "MyFunction"
+    assert.lengthOf(
+      actualDefinition,
+      1,
+      "Expected to find one definition for MyFunction",
+    );
+    const location = actualDefinition[0];
+    assert.equal(
+      location.uri.toString(),
+      "qsharp-github-source:test-owner/test-repo/test-ref/src/Main.qs",
+    );
+    assert.equal(location.range.start.line, 1);
+    assert.equal(location.range.start.character, 13);
+
+    // No errors if package dependencies are properly resolved
+    const actualDiagnostics =
+      vscode.languages.getDiagnostics(projectMainDocUri);
+    assert.isEmpty(actualDiagnostics);
   });
 });

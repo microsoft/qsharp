@@ -46,7 +46,7 @@ impl LanguageService {
             let diags = update
                 .errors
                 .iter()
-                .map(|err| VSDiagnostic::from_compile_error(&update.uri, err))
+                .map(|err| VSDiagnostic::from_ls_error(&update.uri, err))
                 .collect::<Vec<_>>();
             let _ = diagnostics_callback
                 .call3(
