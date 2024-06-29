@@ -396,6 +396,9 @@ if build_samples:
         for f in filenames
         if f == "qsharp.json"
         if "ExpectErrors" not in dp
+        if "DemoProject" not in dp
+        if "MultiFileProjectNoErrors"
+        not in dp  # nothing wrong with these projects, they just have gh references which cli can't handle
     ]
     cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":

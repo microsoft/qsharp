@@ -230,11 +230,11 @@ suite("Q# Language Service Tests", function suite() {
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(
-      new vscode.Range(new vscode.Position(1, 4), new vscode.Position(1, 20)),
+      new vscode.Range(new vscode.Position(1, 4), new vscode.Position(1, 26)),
     );
     assert.equal(
       text,
-      "MyDep.MyFunction",
+      "MyDep.MyDep.MyFunction",
       `${mainPackageMainQs.fsPath} file contents don't match expected`,
     );
 
