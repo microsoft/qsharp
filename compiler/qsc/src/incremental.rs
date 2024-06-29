@@ -23,6 +23,7 @@ pub struct Compiler {
     /// The ID of the source package. The source package
     /// is made up of the initial sources passed in when creating the compiler.
     source_package_id: PackageId,
+    dependencies: Vec<PackageId>,
     /// Context for passes that is reused across incremental compilations.
     passes: PassContext,
     /// The frontend incremental compiler.
@@ -50,7 +51,7 @@ impl Compiler {
             let std = std(&store, capabilities);
             let id = store.insert(std);
             dependencies.push(id);
-        }
+        };
 
         let (unit, errors) = compile(
             &store,
@@ -69,7 +70,7 @@ impl Compiler {
 
         let frontend = qsc_frontend::incremental::Compiler::new(
             &store,
-            dependencies,
+            dependencies.clone(),
             capabilities,
             language_features,
         );
@@ -78,6 +79,7 @@ impl Compiler {
         Ok(Self {
             store,
             source_package_id,
+            dependencies,
             frontend,
             passes: PassContext::default(),
         })
@@ -86,6 +88,7 @@ impl Compiler {
     pub fn from(
         store: PackageStore,
         source_package_id: PackageId,
+        dependencies: Vec<PackageId>,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
@@ -96,6 +99,7 @@ impl Compiler {
         Ok(Self {
             store,
             source_package_id,
+            dependencies,
             frontend,
             passes: PassContext::default(),
         })
@@ -289,8 +293,9 @@ impl Compiler {
     /// Consumes the incremental compiler and returns an immutable package store.
     /// This method can be used to finalize the compilation.
     #[must_use]
-    pub fn into_package_store(self) -> (PackageStore, PackageId) {
-        self.store.into_package_store()
+    pub fn into_package_store(self) -> (PackageStore, PackageId, Vec<PackageId>) {
+        let t = self.store.into_package_store();
+        (t.0, t.1, self.dependencies)
     }
 }
 

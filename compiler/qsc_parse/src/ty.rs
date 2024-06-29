@@ -13,7 +13,8 @@ use super::{
 use crate::{
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
-    ErrorKind,
+    prim::keyword,
+    ErrorKind, Prediction,
 };
 use qsc_ast::ast::{
     CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind,
@@ -35,7 +36,7 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
-            let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
+            let functors = if keyword(s, Keyword::Is).is_ok() {
                 Some(Box::new(functor_expr(s)?))
             } else {
                 None
@@ -85,11 +86,14 @@ fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
 fn base(s: &mut ParserContext) -> Result<Ty> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
-    let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
+    let kind = if keyword(s, Keyword::Underscore).is_ok() {
         Ok(TyKind::Hole)
-    } else if let Some(name) = opt(s, param)? {
+    } else if let Some(name) = { opt(s, param)? } {
         Ok(TyKind::Param(name))
-    } else if let Some(path) = opt(s, path)? {
+    } else if let Some(path) = {
+        s.push_prediction(vec![Prediction::Ty]);
+        opt(s, path)?
+    } {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (tys, final_sep) = seq(s, ty)?;
@@ -119,9 +123,9 @@ fn functor_base(s: &mut ParserContext) -> Result<FunctorExpr> {
         let e = functor_expr(s)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(FunctorExprKind::Paren(Box::new(e)))
-    } else if token(s, TokenKind::Keyword(Keyword::Adj)).is_ok() {
+    } else if keyword(s, Keyword::Adj).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Adj))
-    } else if token(s, TokenKind::Keyword(Keyword::Ctl)).is_ok() {
+    } else if keyword(s, Keyword::Ctl).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Ctl))
     } else {
         Err(Error(ErrorKind::Rule(

@@ -25,6 +25,7 @@ pub(crate) struct Compilation {
     /// The `PackageId` of the user package. User code
     /// is non-library code, i.e. all code except the std and core libs.
     pub user_package_id: PackageId,
+    pub dependencies: Vec<PackageId>,
     pub project_errors: Vec<project::Error>,
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
@@ -91,6 +92,7 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
+            dependencies: vec![std_package_id],
             compile_errors,
             kind: CompilationKind::OpenProject,
             project_errors,
@@ -130,7 +132,7 @@ impl Compilation {
             compiler.update(increment);
         }
 
-        let (package_store, package_id) = compiler.into_package_store();
+        let (package_store, package_id, dependencies) = compiler.into_package_store();
         let unit = package_store
             .get(package_id)
             .expect("expected to find user package");
@@ -149,6 +151,7 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
+            dependencies,
             kind: CompilationKind::Notebook,
             project_errors: Vec::new(),
         }

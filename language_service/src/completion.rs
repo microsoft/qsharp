@@ -4,25 +4,23 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, CompilationKind};
-use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
-use crate::qsc_utils::into_range;
-
-use qsc::ast::visit::{self, Visitor};
-use qsc::display::{CodeDisplay, Lookup};
-
-use qsc::hir::{ItemKind, Package, PackageId, Visibility};
-use qsc::line_column::{Encoding, Position, Range};
+use crate::{
+    compilation::{Compilation, CompilationKind},
+    protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit},
+    qsc_utils::{self, into_range},
+};
 use qsc::{
+    ast::visit::{self, Visitor},
+    completion::Prediction,
+    display::{CodeDisplay, Lookup},
+    hir::{ItemKind, Package, PackageId, Visibility},
+    line_column::{Encoding, Position, Range},
     resolve::{Local, LocalKind},
-    PRELUDE,
 };
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
-type NamespaceName = Vec<Rc<str>>;
-type NamespaceAlias = Rc<str>;
-
+#[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -32,6 +30,12 @@ pub(crate) fn get_completions(
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_offset(offset)
+        .expect("source should exist");
+    let source_offset: u32 = offset - source.offset;
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
@@ -48,6 +52,8 @@ pub(crate) fn get_completions(
         current_namespace_name: None,
     };
     context_finder.visit_package(user_ast_package);
+
+    let mut builder = CompletionListBuilder::new();
 
     let insert_open_at = match compilation.kind {
         CompilationKind::OpenProject => context_finder.start_of_namespace,
@@ -70,86 +76,81 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
-    let mut prelude_ns_ids: Vec<_> = PRELUDE
-        .into_iter()
-        .map(|ns| (ns.into_iter().map(Rc::from).collect(), None))
-        .collect();
+    // // The PRELUDE namespaces are always implicitly opened.
+    // context_finder.opens.append(&mut prelude_ns_ids);
 
-    // The PRELUDE namespaces are always implicitly opened.
-    context_finder.opens.append(&mut prelude_ns_ids);
+    // Just making sure certain things only get added once
+    // whats_next is still a bit fuzzy and returns the same
+    // constraint multiple times sometimes
 
-    let mut builder = CompletionListBuilder::new();
+    let source = compilation
+        .user_unit()
+        .sources
+        .find_by_offset(offset)
+        .expect("source should exist in the user source map");
 
-    match context_finder.context {
-        Context::Namespace => {
-            // Include "open", "operation", etc
-            builder.push_item_decl_keywords();
-            builder.push_attributes();
-
-            // Typing into a callable decl sometimes breaks the
-            // parser and the context appears to be a namespace block,
-            // so just include everything that may be relevant
-            builder.push_stmt_keywords();
-            builder.push_expr_keywords();
-            builder.push_types();
-            builder.push_globals(
-                compilation,
-                &context_finder.opens,
-                insert_open_range,
-                &context_finder.current_namespace_name,
-                &indent,
-            );
-        }
-
-        Context::CallableSignature => {
-            builder.push_types();
-            builder.push_locals(compilation, offset, false, true);
-        }
-        Context::Block => {
-            // Pretty much anything goes in a block
-            builder.push_locals(compilation, offset, true, true);
-            builder.push_stmt_keywords();
-            builder.push_expr_keywords();
-            builder.push_types();
-            builder.push_globals(
-                compilation,
-                &context_finder.opens,
-                insert_open_range,
-                &context_finder.current_namespace_name,
-                &indent,
-            );
-
-            // Item decl keywords last, unlike in a namespace
-            builder.push_item_decl_keywords();
-        }
-        Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenProject => builder.push_namespace_keyword(),
-            CompilationKind::Notebook => {
-                // For notebooks, the top-level allows for
-                // more syntax.
-
-                builder.push_locals(compilation, offset, true, true);
-
-                // Item declarations
-                builder.push_item_decl_keywords();
-
-                // Things that go in a block
-                builder.push_stmt_keywords();
-                builder.push_expr_keywords();
-                builder.push_types();
+    // there's some contradiction here because we're using one source file
+    // but we'll need the whole source map at some point. Makes no difference
+    // rn b/c there's only ever one file
+    for completion_constraint in qsc_utils::whats_next(
+        &source.contents,
+        source_offset,
+        matches!(compilation.kind, CompilationKind::Notebook),
+    ) {
+        println!("completion_constraint: {completion_constraint:?}");
+        match completion_constraint {
+            Prediction::Path => {
+                builder.push_locals(compilation, offset, true, false);
                 builder.push_globals(
                     compilation,
                     &context_finder.opens,
                     insert_open_range,
                     &context_finder.current_namespace_name,
                     &indent,
+                    false,
                 );
-
-                // Namespace declarations - least likely to be used, so last
-                builder.push_namespace_keyword();
             }
-        },
-    };
+            Prediction::Ty => {
+                builder.push_locals(compilation, offset, false, true);
+                builder.push_builtin_types();
+                // TODO: UDTS
+                // builder.push_globals(
+                //     compilation,
+                //     &context_finder.opens,
+                //     insert_open_range,
+                //     &context_finder.current_namespace_name,
+                //     &indent,
+                //     false,
+                // );
+            }
+            Prediction::Namespace => {
+                builder.push_globals(
+                    compilation,
+                    &context_finder.opens,
+                    insert_open_range,
+                    &context_finder.current_namespace_name,
+                    &indent,
+                    true,
+                );
+            }
+            Prediction::Keyword(keyword) => {
+                builder.push_completions([keyword].into_iter(), CompletionItemKind::Keyword);
+            }
+            Prediction::Qubit => {
+                builder.push_completions(["Qubit"].into_iter(), CompletionItemKind::Interface);
+            }
+            Prediction::Attr => {
+                // Only known attribute is EntryPoint
+                builder.push_completions(["EntryPoint"].into_iter(), CompletionItemKind::Interface);
+            }
+            Prediction::TyParam => {
+                builder.push_locals(compilation, offset, false, true);
+            }
+            Prediction::Field => {} // {
+                                    //     builder.push_completions(["bogus_field"].into_iter(), CompletionItemKind::Function);
+                                    // }
+        }
+    }
 
     CompletionList {
         items: builder.into_items(),
@@ -224,97 +225,32 @@ impl CompletionListBuilder {
         self.items.into_iter().collect()
     }
 
-    fn push_item_decl_keywords(&mut self) {
-        static ITEM_KEYWORDS: [&str; 5] = ["operation", "open", "internal", "function", "newtype"];
-
-        self.push_completions(
-            ITEM_KEYWORDS
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
-                .into_iter(),
-        );
-    }
-
-    fn push_attributes(&mut self) {
-        static ATTRIBUTES: [&str; 2] = ["@EntryPoint()", "@Config()"];
-
-        self.push_completions(
-            ATTRIBUTES
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Property))
-                .into_iter(),
-        );
-    }
-
-    fn push_namespace_keyword(&mut self) {
-        self.push_completions(
-            [CompletionItem::new(
-                "namespace".to_string(),
-                CompletionItemKind::Keyword,
-            )]
-            .into_iter(),
-        );
-    }
-
-    fn push_types(&mut self) {
-        static PRIMITIVE_TYPES: [&str; 10] = [
-            "Qubit", "Int", "Unit", "Result", "Bool", "BigInt", "Double", "Pauli", "Range",
-            "String",
-        ];
-        static FUNCTOR_KEYWORDS: [&str; 3] = ["Adj", "Ctl", "is"];
-
-        self.push_completions(
-            PRIMITIVE_TYPES
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Interface))
-                .into_iter(),
-        );
-
-        self.push_completions(
-            FUNCTOR_KEYWORDS
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
-                .into_iter(),
-        );
-    }
-
-    fn push_globals(
+    /// Each invocation of this function increments the sort group so that
+    /// in the eventual completion list, the groups of items show up in the
+    /// order they were added.
+    /// The items are then sorted according to the input list order (not alphabetical)
+    pub fn push_completions<'a>(
         &mut self,
-        compilation: &Compilation,
-        opens: &[(NamespaceName, Option<NamespaceAlias>)],
-        insert_open_range: Option<Range>,
-        current_namespace_name: &Option<Vec<Rc<str>>>,
-        indent: &String,
+        iter: impl Iterator<Item = &'a str>,
+        kind: CompletionItemKind,
     ) {
-        let core = &compilation
-            .package_store
-            .get(PackageId::CORE)
-            .expect("expected to find core package")
-            .package;
+        let mut current_sort_prefix = 0;
 
-        let mut all_except_core = compilation
-            .package_store
-            .iter()
-            .filter(|p| p.0 != PackageId::CORE)
-            .collect::<Vec<_>>();
+        self.items.extend(iter.map(|name| CompletionItem {
+            label: name.to_string(),
+            kind,
+            sort_text: {
+                current_sort_prefix += 1;
+                Some(format!(
+                    "{:02}{:02}{}",
+                    self.current_sort_group, current_sort_prefix, name
+                ))
+            },
+            detail: None,
+            additional_text_edits: None,
+        }));
 
-        // Reverse to collect symbols starting at the current package backwards
-        all_except_core.reverse();
-
-        for (package_id, _) in &all_except_core {
-            self.push_sorted_completions(Self::get_callables(
-                compilation,
-                *package_id,
-                opens,
-                insert_open_range,
-                current_namespace_name.clone(),
-                indent,
-            ));
-        }
-
-        self.push_sorted_completions(Self::get_core_callables(compilation, core));
-
-        for (_, unit) in &all_except_core {
-            self.push_completions(Self::get_namespaces(&unit.package));
-        }
-
-        self.push_completions(Self::get_namespaces(core));
+        self.current_sort_group += 1;
     }
 
     fn push_locals(
@@ -338,34 +274,74 @@ impl CompletionListBuilder {
         );
     }
 
-    fn push_stmt_keywords(&mut self) {
-        static STMT_KEYWORDS: [&str; 5] = ["let", "return", "use", "mutable", "borrow"];
+    /// Push a group of completions that are themselves sorted into subgroups
+    fn push_sorted_completions(&mut self, iter: impl Iterator<Item = (CompletionItem, u32)>) {
+        self.items
+            .extend(iter.map(|(item, item_sort_group)| CompletionItem {
+                sort_text: Some(format!(
+                    "{:02}{:02}{}",
+                    self.current_sort_group, item_sort_group, item.label
+                )),
+                ..item
+            }));
 
-        self.push_completions(
-            STMT_KEYWORDS
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
-                .into_iter(),
-        );
+        self.current_sort_group += 1;
     }
 
-    fn push_expr_keywords(&mut self) {
-        static EXPR_KEYWORDS: [&str; 11] = [
-            "if", "for", "in", "within", "apply", "repeat", "until", "fixup", "set", "while",
-            "fail",
-        ];
+    fn push_globals(
+        &mut self,
+        compilation: &Compilation,
+        opens: &[(NamespaceName, Option<NamespaceAlias>)],
+        insert_open_range: Option<Range>,
+        current_namespace_name: &Option<Vec<Rc<str>>>,
+        indent: &String,
+        namespaces_only: bool,
+    ) {
+        // let core = &compilation
+        //     .package_store
+        //     .get(PackageId::CORE)
+        //     .expect("expected to find core package")
+        //     .package;
 
-        self.push_completions(
-            EXPR_KEYWORDS
-                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
-                .into_iter(),
+        let mut all = compilation
+            .package_store
+            .iter()
+            .filter(|p| {
+                compilation.dependencies.contains(&p.0) || compilation.user_package_id == p.0
+            })
+            .collect::<Vec<_>>();
+
+        // Reverse to collect symbols starting at the current package backwards
+        all.reverse();
+
+        println!(
+            "packages to collect globals from: {:?}",
+            all.iter().map(|(id, _)| id).collect::<Vec<_>>()
         );
+
+        if !namespaces_only {
+            for (package_id, _) in &all {
+                self.push_sorted_completions(get_callables(
+                    compilation,
+                    *package_id,
+                    opens,
+                    insert_open_range,
+                    current_namespace_name.clone(),
+                    indent,
+                ));
+            }
+        }
+
+        // self.push_sorted_completions(Self::get_core_callables(compilation, core));
+
+        for (_, unit) in &all {
+            self.push_completions_2(get_namespaces(&unit.package));
+        }
+
+        // self.push_completions(Self::get_namespaces(core));
     }
 
-    /// Each invocation of this function increments the sort group so that
-    /// in the eventual completion list, the groups of items show up in the
-    /// order they were added.
-    /// The items are then sorted according to the input list order (not alphabetical)
-    fn push_completions(&mut self, iter: impl Iterator<Item = CompletionItem>) {
+    fn push_completions_2(&mut self, iter: impl Iterator<Item = CompletionItem>) {
         let mut current_sort_prefix = 0;
 
         self.items.extend(iter.map(|item| CompletionItem {
@@ -382,180 +358,186 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
-    /// Push a group of completions that are themselves sorted into subgroups
-    fn push_sorted_completions(&mut self, iter: impl Iterator<Item = (CompletionItem, u32)>) {
-        self.items
-            .extend(iter.map(|(item, item_sort_group)| CompletionItem {
-                sort_text: Some(format!(
-                    "{:02}{:02}{}",
-                    self.current_sort_group, item_sort_group, item.label
-                )),
-                ..item
-            }));
+    fn push_builtin_types(&mut self) {
+        static PRIMITIVE_TYPES: [&str; 10] = [
+            "Qubit", "Int", "Unit", "Result", "Bool", "BigInt", "Double", "Pauli", "Range",
+            "String",
+        ];
 
-        self.current_sort_group += 1;
+        self.push_completions_2(
+            PRIMITIVE_TYPES
+                .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Interface))
+                .into_iter(),
+        );
     }
+}
+// fn push_stmt_keywords(&mut self) {
+//     static STMT_KEYWORDS: [&str; 5] = ["let", "return", "use", "mutable", "borrow"];
 
-    /// Get all callables in a package
-    fn get_callables<'a>(
-        compilation: &'a Compilation,
-        package_id: PackageId,
-        // name and alias
-        opens: &'a [(NamespaceName, Option<NamespaceAlias>)],
-        // The range at which to insert an open statement if one is needed
-        insert_open_at: Option<Range>,
-        // The name of the current namespace, if any --
-        current_namespace_name: Option<Vec<Rc<str>>>,
-        indent: &'a String,
-    ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        let package = &compilation
-            .package_store
-            .get(package_id)
-            .expect("package id should exist")
-            .package;
-        let display = CodeDisplay { compilation };
+//     self.push_completions(
+//         STMT_KEYWORDS
+//             .map(|key| CompletionItem::new(key.to_string(), CompletionItemKind::Keyword))
+//             .into_iter(),
+//     );
+// }
 
-        let is_user_package = compilation.user_package_id == package_id;
+/// Get all callables in a package
+fn get_callables<'a>(
+    compilation: &'a Compilation,
+    package_id: PackageId,
+    // name and alias
+    opens: &'a [(NamespaceName, Option<NamespaceAlias>)],
+    // The range at which to insert an open statement if one is needed
+    insert_open_at: Option<Range>,
+    // The name of the current namespace, if any --
+    current_namespace_name: Option<Vec<Rc<str>>>,
+    indent: &'a String,
+) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
+    let package = &compilation
+        .package_store
+        .get(package_id)
+        .expect("package id should exist")
+        .package;
+    let display = CodeDisplay { compilation };
 
-        package.items.values().filter_map(move |i| {
-            // We only want items whose parents are namespaces
-            if let Some(item_id) = i.parent {
-                if let Some(parent) = package.items.get(item_id) {
-                    if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
-                            return None;
+    let is_user_package = compilation.user_package_id == package_id;
+
+    package.items.values().filter_map(move |i| {
+        // We only want items whose parents are namespaces
+        if let Some(item_id) = i.parent {
+            if let Some(parent) = package.items.get(item_id) {
+                if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                    if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
+                        return None;
+                    }
+                    // If the item's visibility is internal, the item may be ignored
+                    if matches!(i.visibility, Visibility::Internal) {
+                        if !is_user_package {
+                            return None; // ignore item if not in the user's package
                         }
-                        // If the item's visibility is internal, the item may be ignored
-                        if matches!(i.visibility, Visibility::Internal) {
-                            if !is_user_package {
-                                return None; // ignore item if not in the user's package
-                            }
-                            // ignore item if the user is not in the item's namespace
-                            match &current_namespace_name {
-                                Some(curr_ns) => {
-                                    if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
-                                        return None;
-                                    }
-                                }
-                                None => {
+                        // ignore item if the user is not in the item's namespace
+                        match &current_namespace_name {
+                            Some(curr_ns) => {
+                                if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
                                     return None;
                                 }
                             }
+                            None => {
+                                return None;
+                            }
                         }
-                        return match &i.kind {
-                            ItemKind::Callable(callable_decl) => {
-                                let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
-                                // Everything that starts with a __ goes last in the list
-                                let sort_group = u32::from(name.starts_with("__"));
-                                let mut additional_edits = vec![];
-                                let mut qualification: Option<Vec<Rc<str>>> = None;
-                                match &current_namespace_name {
-                                    Some(curr_ns)
-                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
-                                    _ => {
-                                        // open is an option of option of Rc<str>
-                                        // the first option tells if it found an open with the namespace name
-                                        // the second, nested option tells if that open has an alias
-                                        let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == Into::<Vec<_>>::into(namespace) {
-                                                Some(alias)
-                                            } else {
+                    }
+                    return match &i.kind {
+                        ItemKind::Callable(callable_decl) => {
+                            let name = callable_decl.name.name.as_ref();
+                            let detail = Some(display.hir_callable_decl(callable_decl).to_string());
+                            // Everything that starts with a __ goes last in the list
+                            let sort_group = u32::from(name.starts_with("__"));
+                            let mut additional_edits = vec![];
+                            let mut qualification: Option<Vec<Rc<str>>> = None;
+                            match &current_namespace_name {
+                                Some(curr_ns) if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                _ => {
+                                    // open is an option of option of Rc<str>
+                                    // the first option tells if it found an open with the namespace name
+                                    // the second, nested option tells if that open has an alias
+                                    let open = opens.iter().find_map(|(name, alias)| {
+                                        if *name == Into::<Vec<_>>::into(namespace) {
+                                            Some(alias)
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                    qualification = match open {
+                                        Some(alias) => alias.clone().map(|x| vec![x]),
+                                        None => match insert_open_at {
+                                            Some(start) => {
+                                                additional_edits.push(TextEdit {
+                                                    new_text: format!(
+                                                        "open {};{indent}",
+                                                        namespace.name()
+                                                    ),
+                                                    range: start,
+                                                });
                                                 None
                                             }
-                                        });
-                                        qualification = match open {
-                                            Some(alias) => alias.clone().map(|x| vec![x]),
-                                            None => match insert_open_at {
-                                                Some(start) => {
-                                                    additional_edits.push(TextEdit {
-                                                        new_text: format!(
-                                                            "open {};{indent}",
-                                                            namespace.name()
-                                                        ),
-                                                        range: start,
-                                                    });
-                                                    None
-                                                }
-                                                None => Some(namespace.into()),
-                                            },
-                                        }
+                                            None => Some(namespace.into()),
+                                        },
                                     }
                                 }
-
-                                let additional_text_edits = if additional_edits.is_empty() {
-                                    None
-                                } else {
-                                    Some(additional_edits)
-                                };
-
-                                let label = if let Some(qualification) = qualification {
-                                    format!("{}.{name}", qualification.join("."))
-                                } else {
-                                    name.to_owned()
-                                };
-                                Some((
-                                    CompletionItem {
-                                        label,
-                                        kind: CompletionItemKind::Function,
-                                        sort_text: None, // This will get filled in during `push_sorted_completions`
-                                        detail,
-                                        additional_text_edits,
-                                    },
-                                    sort_group,
-                                ))
                             }
-                            _ => None,
-                        };
-                    }
+
+                            let additional_text_edits = if additional_edits.is_empty() {
+                                None
+                            } else {
+                                Some(additional_edits)
+                            };
+
+                            let label = if let Some(qualification) = qualification {
+                                format!("{}.{name}", qualification.join("."))
+                            } else {
+                                name.to_owned()
+                            };
+                            Some((
+                                CompletionItem {
+                                    label,
+                                    kind: CompletionItemKind::Function,
+                                    sort_text: None, // This will get filled in during `push_sorted_completions`
+                                    detail,
+                                    additional_text_edits,
+                                },
+                                sort_group,
+                            ))
+                        }
+                        _ => None,
+                    };
                 }
             }
-            None
-        })
-    }
+        }
+        None
+    })
+}
 
-    /// Get all callables in the core package
-    fn get_core_callables<'a>(
-        compilation: &'a Compilation,
-        package: &'a Package,
-    ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
-        let display = CodeDisplay { compilation };
+// /// Get all callables in the core package
+// fn get_core_callables<'a>(
+//     compilation: &'a Compilation,
+//     package: &'a Package,
+// ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
+//     let display = CodeDisplay { compilation };
 
-        package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Callable(callable_decl) => {
-                let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
-                // Everything that starts with a __ goes last in the list
-                let sort_group = u32::from(name.starts_with("__"));
-                Some((
-                    CompletionItem {
-                        label: name.to_string(),
-                        kind: CompletionItemKind::Function,
-                        sort_text: None, // This will get filled in during `push_sorted_completions`
-                        detail,
-                        additional_text_edits: None,
-                    },
-                    sort_group,
-                ))
-            }
-            _ => None,
-        })
-    }
+//     package.items.values().filter_map(move |i| match &i.kind {
+//         ItemKind::Callable(callable_decl) => {
+//             let name = callable_decl.name.name.as_ref();
+//             let detail = Some(display.hir_callable_decl(callable_decl).to_string());
+//             // Everything that starts with a __ goes last in the list
+//             let sort_group = u32::from(name.starts_with("__"));
+//             Some((
+//                 CompletionItem {
+//                     label: name.to_string(),
+//                     kind: CompletionItemKind::Function,
+//                     sort_text: None, // This will get filled in during `push_sorted_completions`
+//                     detail,
+//                     additional_text_edits: None,
+//                 },
+//                 sort_group,
+//             ))
+//         }
+//         _ => None,
+//     })
+// }
 
-    fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
-        package.items.values().filter_map(|i| match &i.kind {
-            ItemKind::Namespace(namespace, _)
-                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
-            {
-                Some(CompletionItem::new(
-                    namespace.name().to_string(),
-                    CompletionItemKind::Module,
-                ))
-            }
-            _ => None,
-        })
-    }
+fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
+    package.items.values().filter_map(|i| match &i.kind {
+        ItemKind::Namespace(namespace, _)
+            if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
+        {
+            Some(CompletionItem::new(
+                namespace.name().to_string(),
+                CompletionItemKind::Module,
+            ))
+        }
+        _ => None,
+    })
 }
 
 /// Convert a local into a completion item
@@ -618,6 +600,8 @@ fn local_completion(
     })
 }
 
+type NamespaceName = Vec<Rc<str>>;
+type NamespaceAlias = Rc<str>;
 struct ContextFinder {
     offset: u32,
     context: Context,

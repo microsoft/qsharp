@@ -35,6 +35,7 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
+use qsc_parse::Prediction;
 use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
 
@@ -454,6 +455,21 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
+}
+
+#[must_use]
+pub fn whats_next(source: &str, cursor_offset: u32, notebook: bool) -> Vec<Prediction> {
+    if notebook {
+        qsc_parse::whats_next_notebook(source, cursor_offset)
+    } else {
+        qsc_parse::whats_next(source, cursor_offset)
+    }
+}
+
+pub enum GatherOptions {
+    NamespacesAndTerms,
+    NamespacesAndTypes,
+    Namespaces,
 }
 
 fn parse_all(
