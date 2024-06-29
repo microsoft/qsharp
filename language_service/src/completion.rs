@@ -8,6 +8,7 @@ use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
 use crate::qsc_utils::into_range;
 
+use log::{log_enabled, trace, Level::Trace};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
@@ -23,6 +24,7 @@ use std::rc::Rc;
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -32,6 +34,22 @@ pub(crate) fn get_completions(
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
+
+    if log_enabled!(Trace) {
+        let last_char = compilation
+            .user_unit()
+            .sources
+            .find_by_offset(offset)
+            .map(|s| {
+                let offset = offset - s.offset;
+                if offset > 0 {
+                    s.contents[(offset as usize - 1)..].chars().next()
+                } else {
+                    None
+                }
+            });
+        trace!("the character before the cursor is: {last_char:?}");
+    }
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
