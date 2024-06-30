@@ -12,7 +12,7 @@ namespace MyQuantumApp {
 
     /// This is a doc-comment for the `Main` operation.
     @EntryPoint()
-    operation Main() : Result[] {
+    function Main() : Result[] {
         // Comments can go anywhere in a program, although they typically
         // preface what they refer to.
         return [];

@@ -10,10 +10,11 @@
 namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);
 
         let particleC = addParticles(particleA, particleB);
+        Message($"Particle C: Particle({particleC::x}, {particleC::y}, {particleC::z})")
     }
 }

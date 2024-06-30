@@ -5,7 +5,7 @@
 /// Variables in Q# are immutable by default and can be shadowed.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // Immutable variables are declared with the `let` keyword:
         let immutableInt = 42;
         Message($"Immutable Int: {immutableInt}");

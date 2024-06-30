@@ -10,7 +10,7 @@ namespace MyQuantumApp {
     newtype Pair = (first : Int, second : Int);
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let array = [10, 11, 12, 13];
         let pair = Pair(20, 21);
 

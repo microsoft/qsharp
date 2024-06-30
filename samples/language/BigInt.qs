@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : BigInt {
+    function Main() : BigInt {
         // Numbers can be declared in hex, octal, decimal, or binary.
         let foo = 0x42L;
         Message($"Hexadecimal BigInt: {foo}");

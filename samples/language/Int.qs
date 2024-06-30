@@ -7,7 +7,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Int {
+    function Main() : Int {
         // Numbers can be declared in hex, octal, decimal, or binary.
         let foo = 0x42;
         Message($"Hexadecimal: {foo}");

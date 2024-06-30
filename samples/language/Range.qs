@@ -11,7 +11,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Range {
+    function Main() : Range {
 
         // Ranges can be captured as local variables.
 

@@ -6,7 +6,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : String {
+    function Main() : String {
         // Strings literals are declared with double quotes:
         let myString = "Foo";
 

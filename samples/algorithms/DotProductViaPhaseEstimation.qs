@@ -67,7 +67,7 @@ namespace IterativePhaseEstimation {
         return x;
     }
 
-    operation ClassicalInnerProduct(theta1 : Double, theta2 : Double) : Double {
+    function ClassicalInnerProduct(theta1 : Double, theta2 : Double) : Double {
         return Cos(theta1 / 2.0) * Cos(theta2 / 2.0) + Sin(theta1 / 2.0) * Sin(theta2 / 2.0);
     }
 

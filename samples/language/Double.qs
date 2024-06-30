@@ -10,7 +10,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Double {
+    function Main() : Double {
         // A double declared in standard notation.
         let double = 0.1973269804;
 

@@ -9,7 +9,7 @@
 namespace MyQuantumApp {
     open Microsoft.Quantum.Arrays;
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // A lambda function is defined with an arrow `->`.
         // The below function takes two inputs and adds them.
         let add = (x, y) -> x + y;

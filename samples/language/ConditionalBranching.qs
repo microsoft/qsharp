@@ -9,7 +9,7 @@
 /// If expressions allow your code to branch, or conditionally execute parts of a Q# program.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let number = 5;
         // Conditionally messages "Fizz" if the `number`, in this case 5, is divisible by 3.
         // Since 5 is not divisible by 3, the message "Fizz" will not be printed.
