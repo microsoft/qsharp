@@ -1244,7 +1244,8 @@ fn format_glob_import() {
     check(
         input,
         &expect![[r#"
-            import Microsoft.Quantum. *,
+            import
+                Microsoft.Quantum.*,
                 Foo.Bar.Baz as SomethingElse,
                 AnotherThing;"#]],
     );
@@ -1253,7 +1254,7 @@ fn format_glob_import() {
 fn no_newlines_glob() {
     let input = "import foo, bar, baz.quux.*;";
 
-    check(input, &expect!["import foo, bar, baz.quux. *;"]);
+    check(input, &expect!["import foo, bar, baz.quux.*;"]);
 }
 
 #[test]
@@ -1265,7 +1266,119 @@ fn format_export_statement_newlines() {
     check(
         input,
         &expect![[r#"
-            export Microsoft.Quantum.Diagnostics,
+            export
+                Microsoft.Quantum.Diagnostics,
                 Foo.Bar.Baz;"#]],
+    );
+}
+
+#[test]
+fn export_fmt_within_namespace() {
+    let input = r#"
+
+namespace Microsoft.Quantum.Arrays {
+    
+
+    export
+    All,
+    Any,
+    Chunks,
+    CircularlyShifted,
+    ColumnAt,
+    Count,
+    Diagonal,
+    DrawMany,
+    Enumerated,
+    Excluding,
+    Filtered,
+    FlatMapped,
+    Flattened,
+    Fold,
+    ForEach,
+    Head,
+    HeadAndRest,
+    IndexOf,
+    IndexRange,
+    Interleaved,
+    IsEmpty,
+    IsRectangularArray,
+    IsSorted,
+    IsSquareArray,
+    Mapped,
+    MappedByIndex,
+    MappedOverRange,
+    Most,
+    MostAndTail,
+    Padded,
+    Partitioned,
+    Rest,
+    Reversed,
+    SequenceI,
+    SequenceL,
+    Sorted,
+    Subarray,
+    Swapped,
+    Transposed,
+    Tail,
+    Unzipped,
+    Where,
+    Windows,
+    Zipped;
+}
+"#;
+
+    check(
+        input,
+        &expect![[r#"
+        namespace Microsoft.Quantum.Arrays {
+
+
+            export
+                All,
+                Any,
+                Chunks,
+                CircularlyShifted,
+                ColumnAt,
+                Count,
+                Diagonal,
+                DrawMany,
+                Enumerated,
+                Excluding,
+                Filtered,
+                FlatMapped,
+                Flattened,
+                Fold,
+                ForEach,
+                Head,
+                HeadAndRest,
+                IndexOf,
+                IndexRange,
+                Interleaved,
+                IsEmpty,
+                IsRectangularArray,
+                IsSorted,
+                IsSquareArray,
+                Mapped,
+                MappedByIndex,
+                MappedOverRange,
+                Most,
+                MostAndTail,
+                Padded,
+                Partitioned,
+                Rest,
+                Reversed,
+                SequenceI,
+                SequenceL,
+                Sorted,
+                Subarray,
+                Swapped,
+                Transposed,
+                Tail,
+                Unzipped,
+                Where,
+                Windows,
+                Zipped;
+        }
+    "#]],
     );
 }

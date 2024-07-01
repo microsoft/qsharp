@@ -146,7 +146,7 @@ enum TypeParameterListState {
 }
 
 /// Whether or not we are currently handling an import or export statement.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum ImportExportState {
     /// Yes, this is an import or export statement.
     HandlingImportExportStatement,
@@ -178,12 +178,6 @@ enum Delimiter {
     Open,
     // The token is a close delimiter. i.e. `}`, `]`, `)`, and sometimes `>`.
     Close,
-    // the token is an `import` keyword or `export` keyword which starts a new
-    // sequence context until the next semicolon
-    ImportOrExport,
-    // A semicolon is only a closing delimiter if we are handling an import or export
-    // sequence context
-    Semi,
     // The token is not a delimiter.
     NonDelim,
 }
@@ -209,7 +203,7 @@ impl Delimiter {
                 Delimiter::Close
             }
             ConcreteTokenKind::Syntax(TokenKind::Keyword(Keyword::Import | Keyword::Export)) => {
-                Delimiter::ImportOrExport
+                Delimiter::Open
             }
             ConcreteTokenKind::Syntax(TokenKind::Semi)
                 if matches!(
@@ -217,7 +211,7 @@ impl Delimiter {
                     ImportExportState::HandlingImportExportStatement
                 ) =>
             {
-                Delimiter::Semi
+                Delimiter::Close
             }
             _ => Delimiter::NonDelim,
         }
@@ -254,7 +248,7 @@ impl<'a> Formatter<'a> {
         self.update_spec_decl_state(&left.kind);
 
         let (left_delim_state, right_delim_state) =
-            self.update_type_param_state(&left.kind, &right.kind);
+            self.update_formatter_state(&left.kind, &right.kind);
 
         let newline_context = self.update_indent_level(
             left_delim_state,
@@ -285,12 +279,22 @@ impl<'a> Formatter<'a> {
                 }
                 // else do nothing, preserving the user's spaces before the comment
             }
-            (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
+            (Syntax(cooked_left), Syntax(cooked_right)) => match (&cooked_left, cooked_right) {
                 (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
                     // This case is used to ignore the spacing around a `-`.
                     // This is done because we currently don't have the architecture
                     // to be able to differentiate between the unary `-` and the binary `-`
                     // which would have different spacing rules.
+                }
+                (_, ClosedBinOp(ClosedBinOp::Star))
+                    if matches!(
+                        self.import_export_state,
+                        ImportExportState::HandlingImportExportStatement
+                    ) =>
+                {
+                    // if this is a star and we are in an import/export, then it isn't actually a
+                    // binop and it's a glob import
+                    effect_no_space(left, whitespace, right, &mut edits);
                 }
                 (Semi, _) if matches!(newline_context, NewlineContext::Spaces) => {
                     effect_single_space(left, whitespace, right, &mut edits);
@@ -522,10 +526,10 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    /// Updates the type_param_state of the FormatterState based
+    /// Updates the type_param_state and import_export_state of the FormatterState based
     /// on the left and right token kinds. Returns the delimiter
     /// state of the left and right tokens.
-    fn update_type_param_state(
+    fn update_formatter_state(
         &mut self,
         left_kind: &ConcreteTokenKind,
         right_kind: &ConcreteTokenKind,
@@ -541,14 +545,27 @@ impl<'a> Formatter<'a> {
             self.import_export_state,
         );
 
-        // If we are leaving a type param list, reset the state
-        if matches!(left_kind, Syntax(Gt))
-            && matches!(
-                self.type_param_state,
-                TypeParameterListState::InTypeParamList
-            )
-        {
-            self.type_param_state = TypeParameterListState::NoState
+        // Based on the left-hand-side token, we determine if:
+        // 1. we are ending a type parameter list context
+        // 2. we are ending an import/export context
+        // 3. we are starting an import/export context
+        match left_kind {
+            // If we are leaving a type param list, reset the state
+            Syntax(Gt)
+                if matches!(
+                    self.type_param_state,
+                    TypeParameterListState::InTypeParamList
+                ) =>
+            {
+                self.type_param_state = TypeParameterListState::NoState;
+            }
+            Syntax(Semi) => {
+                self.import_export_state = ImportExportState::NoState;
+            }
+            Syntax(Keyword(Keyword::Import | Keyword::Export)) => {
+                self.import_export_state = ImportExportState::HandlingImportExportStatement;
+            }
+            _ => (),
         }
 
         match right_kind {
@@ -636,24 +653,6 @@ impl<'a> Formatter<'a> {
             (Delimiter::Open, _) => {
                 newline_context = NewlineContext::Spaces;
                 self.delim_newlines_stack.push(newline_context);
-            }
-            // sequence context for imports and exports
-            (Delimiter::ImportOrExport, _) if are_newlines_in_spaces => {
-                println!("newlines!");
-                newline_context = NewlineContext::Newlines;
-                self.import_export_state = ImportExportState::HandlingImportExportStatement;
-                self.indent_level += 1;
-                self.delim_newlines_stack.push(newline_context);
-            }
-            (_, Delimiter::Semi)
-                if matches!(
-                    self.import_export_state,
-                    ImportExportState::HandlingImportExportStatement
-                ) =>
-            {
-                self.delim_newlines_stack.pop();
-                self.import_export_state = ImportExportState::NoState;
-                self.indent_level = self.indent_level.saturating_sub(1);
             }
             (_, Delimiter::Close) => {
                 self.delim_newlines_stack.pop();
