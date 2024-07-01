@@ -144,9 +144,13 @@ enum TypeParameterListState {
     /// starting `<`.
     InTypeParamList,
 }
+
+/// Whether or not we are currently handling an import or export statement.
 #[derive(Clone, Copy)]
-enum ImportExportState {
+enum WhethImportExportState {
+    /// Yes, this is an import or export statement.
     HandlingImportExportStatement,
+    /// No, this is not an import or export statement.
     NoState,
 }
 
