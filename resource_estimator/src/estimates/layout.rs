@@ -21,4 +21,16 @@ pub trait Overhead {
     /// The index is used to indicate the type of magic states and must be
     /// supported by available factory builders in the physical estimation.
     fn num_magic_states(&self, budget: &ErrorBudget, index: usize) -> u64;
+
+    /// Computes the logical volume
+    ///
+    /// By default, the logical volume is the number of logical qubits
+    /// multiplied with the logical depth.
+    fn logical_volume(
+        &self,
+        budget: &ErrorBudget,
+        #[allow(unused_variables)] adjusted_logical_depth: u64,
+    ) -> u64 {
+        self.logical_qubits() * self.logical_depth(budget)
+    }
 }
