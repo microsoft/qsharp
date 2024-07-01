@@ -265,14 +265,18 @@ namespace Microsoft.Quantum.Convert {
     }
 
     /// # Summary
-    /// Produces string representation of given double with desired precision
+    /// Produces string representation of given double with desired precision (performs rounding).
     ///
     /// # Input
     /// ## input
-    /// Double to be converted
+    /// Double to be converted.
     /// ## precision
-    /// Number of decimal digits
-    function DoubleAsStringWithPrecision(input: Double, precision: Int) : String {
+    /// Number of decimal digits.
+    /// # Example
+    /// ```qsharp
+    /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35 rather than 0.354
+    /// ```
+    function DoubleAsStringWithPrecision(input : Double, precision : Int) : String {
         body intrinsic;
     }
 

@@ -39,12 +39,17 @@ pub(crate) fn call(
         "IntAsBigInt" => Ok(Value::BigInt(BigInt::from(arg.unwrap_int()))),
         "DoubleAsStringWithPrecision" => {
             let [input, prec_val] = unwrap_tuple(arg);
-            let precision = usize::try_from(prec_val.unwrap_int()).expect("integer value");
-            Ok(Value::String(Rc::from(format!(
+            let prec_int = prec_val.unwrap_int();
+            if prec_int < 0 {
+                Err(Error::InvalidNegativeInt(prec_int, arg_span))
+            } else {
+                let precision = usize::try_from(prec_int).expect("integer value");
+                Ok(Value::String(Rc::from(format!(
                 "{:.*}",
                 precision,
                 input.unwrap_double()
             ))))
+            }
         }
         "DumpMachine" => {
             let (state, qubit_count) = sim.capture_quantum_state();
