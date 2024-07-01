@@ -44,6 +44,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
         delim_newlines_stack: vec![],
         type_param_state: TypeParameterListState::NoState,
         spec_decl_state: SpecDeclState::NoState,
+        import_export_state: ImportExportState::NoState,
     };
 
     // The sliding window used is over three adjacent tokens
@@ -143,6 +144,11 @@ enum TypeParameterListState {
     /// starting `<`.
     InTypeParamList,
 }
+#[derive(Clone, Copy)]
+enum ImportExportState {
+    HandlingImportExportStatement,
+    NoState,
+}
 
 /// This is to keep track of whether or not the formatter
 /// is currently processing a functor specialization
@@ -168,6 +174,12 @@ enum Delimiter {
     Open,
     // The token is a close delimiter. i.e. `}`, `]`, `)`, and sometimes `>`.
     Close,
+    // the token is an `import` keyword or `export` keyword which starts a new
+    // sequence context until the next semicolon
+    ImportOrExport,
+    // A semicolon is only a closing delimiter if we are handling an import or export
+    // sequence context
+    Semi,
     // The token is not a delimiter.
     NonDelim,
 }
@@ -177,6 +189,7 @@ impl Delimiter {
     fn from_concrete_toke_kind(
         kind: &ConcreteTokenKind,
         type_param_state: TypeParameterListState,
+        import_export_state: ImportExportState,
     ) -> Delimiter {
         match kind {
             ConcreteTokenKind::Syntax(TokenKind::Open(_)) => Delimiter::Open,
@@ -191,6 +204,17 @@ impl Delimiter {
             {
                 Delimiter::Close
             }
+            ConcreteTokenKind::Syntax(TokenKind::Keyword(Keyword::Import | Keyword::Export)) => {
+                Delimiter::ImportOrExport
+            }
+            ConcreteTokenKind::Syntax(TokenKind::Semi)
+                if matches!(
+                    import_export_state,
+                    ImportExportState::HandlingImportExportStatement
+                ) =>
+            {
+                Delimiter::Semi
+            }
             _ => Delimiter::NonDelim,
         }
     }
@@ -202,6 +226,7 @@ struct Formatter<'a> {
     delim_newlines_stack: Vec<NewlineContext>,
     type_param_state: TypeParameterListState,
     spec_decl_state: SpecDeclState,
+    import_export_state: ImportExportState,
 }
 
 impl<'a> Formatter<'a> {
@@ -424,6 +449,9 @@ impl<'a> Formatter<'a> {
                 (_, Keyword(Keyword::Is)) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
+                (_, Keyword(Keyword::Export | Keyword::Import)) => {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
                 (_, Keyword(keyword)) if is_starter_keyword(keyword) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
@@ -503,7 +531,11 @@ impl<'a> Formatter<'a> {
         use TokenKind::*;
 
         // Save the left token's status as a delimiter before updating the delimiter state
-        let left_delim_state = Delimiter::from_concrete_toke_kind(left_kind, self.type_param_state);
+        let left_delim_state = Delimiter::from_concrete_toke_kind(
+            left_kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
         // If we are leaving a type param list, reset the state
         if matches!(left_kind, Syntax(Gt))
@@ -553,8 +585,11 @@ impl<'a> Formatter<'a> {
         }
 
         // Save the right token's status as a delimiter after updating the delimiter state
-        let right_delim_state =
-            Delimiter::from_concrete_toke_kind(right_kind, self.type_param_state);
+        let right_delim_state = Delimiter::from_concrete_toke_kind(
+            right_kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
         (left_delim_state, right_delim_state)
     }
@@ -597,6 +632,24 @@ impl<'a> Formatter<'a> {
             (Delimiter::Open, _) => {
                 newline_context = NewlineContext::Spaces;
                 self.delim_newlines_stack.push(newline_context);
+            }
+            // sequence context for imports and exports
+            (Delimiter::ImportOrExport, _) if are_newlines_in_spaces => {
+                println!("newlines!");
+                newline_context = NewlineContext::Newlines;
+                self.import_export_state = ImportExportState::HandlingImportExportStatement;
+                self.indent_level += 1;
+                self.delim_newlines_stack.push(newline_context);
+            }
+            (_, Delimiter::Semi)
+                if matches!(
+                    self.import_export_state,
+                    ImportExportState::HandlingImportExportStatement
+                ) =>
+            {
+                self.delim_newlines_stack.pop();
+                self.import_export_state = ImportExportState::NoState;
+                self.indent_level = self.indent_level.saturating_sub(1);
             }
             (_, Delimiter::Close) => {
                 self.delim_newlines_stack.pop();

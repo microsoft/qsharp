@@ -1223,3 +1223,52 @@ fn sample_has_no_formatting_changes() {
         "#};
     assert!(super::calculate_format_edits(input).is_empty());
 }
+
+#[test]
+fn format_export_statement_no_newlines() {
+    let input = "export Microsoft.Quantum.Diagnostics, Foo.Bar.Baz;";
+
+    check(
+        input,
+        &expect![["export Microsoft.Quantum.Diagnostics, Foo.Bar.Baz;"]],
+    );
+}
+
+#[test]
+fn format_glob_import() {
+    let input = "import
+    Microsoft.Quantum.*, 
+        Foo.Bar.Baz as SomethingElse,
+        AnotherThing;";
+
+    check(
+        input,
+        &expect![[r#"
+            import Microsoft.Quantum. *,
+                Foo.Bar.Baz as SomethingElse,
+                AnotherThing;"#]],
+    );
+}
+#[test]
+fn no_newlines_glob() {
+    let input = "import foo, bar, baz.quux.*;";
+
+    check(
+        input,
+        &expect!["import foo, bar, baz.quux. *;"],
+    );
+}
+
+#[test]
+fn format_export_statement_newlines() {
+    let input = "export 
+    Microsoft.Quantum.Diagnostics, 
+        Foo.Bar.Baz;";
+
+    check(
+        input,
+        &expect![[r#"
+            export Microsoft.Quantum.Diagnostics,
+                Foo.Bar.Baz;"#]],
+    );
+}
