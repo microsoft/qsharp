@@ -307,10 +307,7 @@ If they are not in zero state by that time, they can potentially be still entang
 @[exercise]({
     "id": "multi_qubit_systems__learn_basis_state_amplitudes",
     "title": "Learn Basis State Amplitudes Using DumpMachine",
-    "path": "./learn_basis_state_amplitudes/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./learn_basis_state_amplitudes/"
 })
 
 @[section]({
@@ -327,37 +324,25 @@ Array elements are indexed starting with 0, the first array element corresponds 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_basis_state",
     "title": "Prepare a Basis State",
-    "path": "./prepare_basis_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_basis_state/"
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_superposition",
     "title": "Prepare a Superposition of Two Basis States",
-    "path": "./prepare_superposition/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_superposition/"
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_with_real",
     "title": " Prepare a Superposition with Real Amplitudes",
-    "path": "./prepare_with_real/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_with_real/"
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_with_complex",
     "title": "Prepare a Superposition with Complex Amplitudes",
-    "path": "./prepare_with_complex/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./prepare_with_complex/"
 })
 
 @[section]({
@@ -370,28 +355,19 @@ Entangled quantum states can be manipulated using single-qubit gates. For exampl
 @[exercise]({
     "id": "multi_qubit_systems__bell_state_change_1 ",
     "title": "Bell State Change 1",
-    "path": "./bell_state_change_1/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./bell_state_change_1/"
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__bell_state_change_2 ",
     "title": "Bell State Change 2",
-    "path": "./bell_state_change_2/",
-    "qsDependencies": [
-    "../KatasLibrary.qs"
-    ]
+    "path": "./bell_state_change_2/"
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__bell_state_change_3 ",
     "title": "Bell State Change 3",
-    "path": "./bell_state_change_3/",
-    "qsDependencies": [
-    "../KatasLibrary.qs"
-    ]
+    "path": "./bell_state_change_3/"
 })
 
 @[section]({

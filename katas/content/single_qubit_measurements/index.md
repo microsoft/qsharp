@@ -107,10 +107,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_0_and_1",
     "title": "Distinguish |0〉 and |1〉",
-    "path": "./distinguish_0_and_1/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./distinguish_0_and_1/"
 })
 
 @[section]({
@@ -136,10 +133,7 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_plus_and_minus",
     "title": "Distinguish |+〉 and |-〉",
-    "path": "./distinguish_plus_and_minus/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./distinguish_plus_and_minus/"
 })
 
 @[section]({
@@ -295,28 +289,19 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_1",
     "title": "Distinguishing Orthogonal States: 1",
-    "path": "./distinguish_orthogonal_states_1/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./distinguish_orthogonal_states_1/"
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_2",
     "title": "Distinguishing Orthogonal States: 2",
-    "path": "./distinguish_orthogonal_states_2/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./distinguish_orthogonal_states_2/"
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__a_b_basis_measurements",
     "title": "Measurement in the |A〉, |B〉 Basis",
-    "path": "./a_b_basis_measurements/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./a_b_basis_measurements/"
 })
 
 @[section]({

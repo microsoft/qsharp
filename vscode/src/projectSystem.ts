@@ -5,11 +5,12 @@ import {
   IProjectConfig,
   getProjectLoader,
   log,
+  qsharpGithubUriScheme,
   ProjectLoader,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
-import { updateQSharpJsonDiagnostics } from "./diagnostics";
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
@@ -132,14 +133,14 @@ async function readFileUri(
         uri: uri,
       };
     });
-  } catch (_err) {
+  } catch (err) {
     // `readFile` should throw the below if the file is not found
     if (
-      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+      !(err instanceof vscode.FileSystemError && err.code === "FileNotFound")
     ) {
-      log.error("Unexpected error trying to read file", _err);
+      log.error("Unexpected error trying to read file", err);
     }
-    return null;
+    throw err;
   }
 }
 
@@ -172,27 +173,17 @@ export async function loadProject(
       findManifestDirectory,
       readFile,
       listDirectory,
+      fetchGithub: fetchGithubRaw,
       resolvePath: async (a, b) => resolvePath(a, b),
     });
   }
 
-  // Clear diagnostics for this project
-  updateQSharpJsonDiagnostics(manifestDocument.manifest);
-
-  let project;
-  try {
-    project = await projectLoader.load_project(
-      manifestDocument.directory.toString(),
-    );
-  } catch (e: any) {
-    updateQSharpJsonDiagnostics(
-      manifestDocument.manifest,
-      e.message ||
-        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-    );
-
-    throw e;
-  }
+  const project = invokeAndReportCommandDiagnostics(
+    async () =>
+      await projectLoader!.load_project_with_deps(
+        manifestDocument.directory.toString(),
+      ),
+  );
 
   return project;
 }
@@ -205,8 +196,17 @@ async function singleFileProject(
   return {
     projectName: Utils.basename(documentUri),
     projectUri: documentUri.toString(),
-    sources: [[documentUri.toString(), file.getText()]] as [string, string][],
-    languageFeatures: [],
+    packageGraphSources: {
+      root: {
+        sources: [[documentUri.toString(), file.getText()]] as [
+          string,
+          string,
+        ][],
+        languageFeatures: [],
+        dependencies: {},
+      },
+      packages: {},
+    },
     lints: [],
   };
 }
@@ -218,4 +218,65 @@ export function resolvePath(base: string, relative: string): string | null {
     log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
     return null;
   }
+}
+
+let githubEndpoint = "https://raw.githubusercontent.com";
+export function setGithubEndpoint(endpoint: string) {
+  githubEndpoint = endpoint;
+}
+
+export function getGithubSourceContent(uri: URI): string | undefined {
+  const key = uri.toString();
+  return knownGitHubSources.get(key);
+}
+
+const knownGitHubSources = new Map<string, string>();
+
+/**
+ * Makes a request to the GitHub raw content service to retrieve a file.
+ */
+export async function fetchGithubRaw(
+  owner: string,
+  repo: string,
+  ref: string,
+  path: string,
+): Promise<string> {
+  const pathNoLeadingSlash = path.startsWith("/") ? path.slice(1) : path;
+
+  const uri = `${githubEndpoint}/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
+  log.info(`making request to ${uri}`);
+  const response = await fetch(uri);
+  if (!response.ok) {
+    log.warn(
+      `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${response.status} ${response.statusText}`,
+    );
+    throw new Error(
+      `Request to ${uri} failed with status ${response.status} ${response.statusText ? ": " + response.statusText : ""}`,
+    );
+  }
+
+  let text;
+  try {
+    text = await response.text();
+
+    knownGitHubSources.set(
+      URI.from({
+        scheme: qsharpGithubUriScheme,
+        path: `${owner}/${repo}/${ref}/${pathNoLeadingSlash}`,
+      }).toString(),
+      text,
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      log.warn(
+        `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${e.message}`,
+      );
+      throw new Error(
+        `Request to ${uri} did not return text content: ${e.message}`,
+      );
+    }
+    throw new Error(`Request to ${uri} did not return text content`);
+  }
+
+  return text;
 }

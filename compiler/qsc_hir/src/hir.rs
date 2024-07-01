@@ -628,7 +628,7 @@ pub enum ExprKind {
     Conjugate(Block, Block),
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F`.
+    /// A field accessor: `a::F` or `a.F`.
     Field(Box<Expr>, Field),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
