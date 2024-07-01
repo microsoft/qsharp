@@ -248,6 +248,7 @@ fn double_as_string_with_precision() {
     )
 }
 
+#[test]
 fn double_as_string_with_precision_extend() {
     check_intrinsic_result(
         "",
@@ -256,6 +257,7 @@ fn double_as_string_with_precision_extend() {
     )
 }
 
+#[test]
 fn double_as_string_with_precision_negative_error() {
     check_intrinsic_result(
         "",

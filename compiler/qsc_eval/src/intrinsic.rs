@@ -45,10 +45,10 @@ pub(crate) fn call(
             } else {
                 let precision = usize::try_from(prec_int).expect("integer value");
                 Ok(Value::String(Rc::from(format!(
-                "{:.*}",
-                precision,
-                input.unwrap_double()
-            ))))
+                    "{:.*}",
+                    precision,
+                    input.unwrap_double()
+                ))))
             }
         }
         "DumpMachine" => {
