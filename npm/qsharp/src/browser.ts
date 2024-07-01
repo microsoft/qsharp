@@ -5,7 +5,7 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, { TargetProfile } from "../lib/web/qsc_wasm.js";
+import initWasm, { IProjectHost, TargetProfile } from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -23,12 +23,13 @@ import {
   ILanguageServiceWorker,
   QSharpLanguageService,
   languageServiceProtocol,
+  qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
 } from "./language-service/language-service.js";
 import { LogLevel, log } from "./log.js";
 import { createProxy } from "./workers/browser.js";
 
-export { qsharpLibraryUriScheme };
+export { qsharpGithubUriScheme, qsharpLibraryUriScheme };
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -104,14 +105,10 @@ export async function getDebugService(): Promise<IDebugService> {
 }
 
 export async function getProjectLoader(
-  readFile: (path: string) => Promise<string | null>,
-  loadDirectory: (path: string) => Promise<[string, number][]>,
-  getManifest: (path: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
+  host: IProjectHost,
 ): Promise<wasm.ProjectLoader> {
   await instantiateWasm();
-  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
+  return new wasm.ProjectLoader(host);
 }
 
 // Create the debugger inside a WebWorker and proxy requests.
@@ -138,14 +135,10 @@ export function getCompilerWorker(worker: string | Worker): ICompilerWorker {
 }
 
 export async function getLanguageService(
-  readFile?: (uri: string) => Promise<string | null>,
-  listDir?: (uri: string) => Promise<[string, number][]>,
-  getManifest?: (uri: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
+  host?: IProjectHost,
 ): Promise<ILanguageService> {
   await instantiateWasm();
-  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
+  return new QSharpLanguageService(wasm, host);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
@@ -167,17 +160,20 @@ export type {
   ILocation,
   IOperationInfo,
   IPosition,
+  IProjectConfig,
+  IProjectHost,
   IQSharpError,
   IRange,
   IStackFrame,
-  IWorkspaceEdit,
   IStructStepResult,
+  IWorkspaceEdit,
+  ProjectLoader,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
-export { type LanguageServiceEvent } from "./language-service/language-service.js";
+export type { LanguageServiceEvent } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
 export { log, type LogLevel, type TargetProfile };
 export type {

@@ -23,7 +23,7 @@ namespace Sample {
 
         // Use Shor's algorithm to factor a semiprime integer.
         let (a, b) = FactorSemiprimeInteger(n);
-        Message($"Found factorization {n} = {a} * {b} ");
+        Message($"Found factorization {n} = {a} * {b}");
         return (a, b);
     }
 

@@ -89,7 +89,10 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
+        TFactoryBuilder::new(
+            distillation_unit_templates,
+            job_params.constraints().max_distillation_rounds,
+        ),
         logical_resources,
         partitioning,
     );
@@ -105,9 +108,6 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
     if let Some(max_physical_qubits) = job_params.constraints().max_physical_qubits {
         estimation.set_max_physical_qubits(max_physical_qubits);
     }
-    estimation
-        .factory_builder_mut()
-        .set_distillation_unit_templates(distillation_unit_templates);
 
     match job_params.estimate_type() {
         EstimateType::Frontier => {

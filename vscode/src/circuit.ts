@@ -244,7 +244,6 @@ async function getCircuitOrError(
   try {
     const circuit = await worker.getCircuit(
       params.program,
-      params.program.profile,
       simulate,
       params.operation,
     );

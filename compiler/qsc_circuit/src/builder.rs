@@ -26,7 +26,7 @@ impl Backend for Builder {
         let ctl0 = self.map(ctl0);
         let ctl1 = self.map(ctl1);
         let q = self.map(q);
-        self.push_gate(controlled_gate("CX", [ctl0, ctl1], [q]));
+        self.push_gate(controlled_gate("X", [ctl0, ctl1], [q]));
     }
 
     fn cx(&mut self, ctl: usize, q: usize) {

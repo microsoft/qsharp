@@ -5,13 +5,14 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::{CompilationState, CompilationStateUpdater};
-use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate};
+use crate::{
+    protocol::{DiagnosticUpdate, ErrorKind, NotebookMetadata, WorkspaceConfigurationUpdate},
+    tests::test_fs::{dir, file, FsNode, TestProjectHost},
+};
 use expect_test::{expect, Expect};
-use qsc::{compile::ErrorKind, target::Profile, PackageType};
+use qsc::{compile, project, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
-use rustc_hash::FxHashMap;
-use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 #[tokio::test]
 async fn no_error() {
@@ -72,6 +73,7 @@ async fn clear_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -94,6 +96,7 @@ async fn clear_error() {
                     Some(
                         2,
                     ),
+                    [],
                     [],
                 ),
             ]
@@ -182,10 +185,12 @@ async fn close_last_doc_in_project() {
                             ),
                         ),
                     ],
+                    [],
                 ),
                 (
                     "project/src/this_file.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -245,6 +250,7 @@ async fn clear_on_document_close() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -259,6 +265,7 @@ async fn clear_on_document_close() {
                 (
                     "single/foo.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -301,6 +308,7 @@ async fn compile_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -354,6 +362,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -417,6 +426,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -469,6 +479,7 @@ async fn package_type_update_causes_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -515,6 +526,7 @@ async fn target_profile_update_fixes_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -534,6 +546,7 @@ async fn target_profile_update_fixes_error() {
                     Some(
                         1,
                     ),
+                    [],
                     [],
                 ),
             ]
@@ -585,6 +598,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -667,6 +681,7 @@ fn notebook_document_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -710,9 +725,19 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     RedundantSemicolons,
                                 ),
+                                code_action_edits: [
+                                    (
+                                        "",
+                                        Span {
+                                            lo: 34,
+                                            hi: 37,
+                                        },
+                                    ),
+                                ],
                             },
                         ),
                     ],
+                    [],
                 ),
                 (
                     "cell2",
@@ -732,9 +757,11 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     DivisionByZero,
                                 ),
+                                code_action_edits: [],
                             },
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -794,6 +821,7 @@ fn notebook_update_remove_cell_clears_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -812,6 +840,7 @@ fn notebook_update_remove_cell_clears_errors() {
                 (
                     "cell2",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -872,6 +901,7 @@ fn close_notebook_clears_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -886,6 +916,7 @@ fn close_notebook_clears_errors() {
                 (
                     "cell2",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -977,6 +1008,7 @@ async fn update_doc_updates_project() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -1069,10 +1101,12 @@ async fn close_doc_prioritizes_fs() {
                             ),
                         ),
                     ],
+                    [],
                 ),
                 (
                     "project/src/this_file.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -1126,7 +1160,7 @@ async fn delete_manifest() {
         "#]],
     );
 
-    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
     updater
         .update_document(
@@ -1211,7 +1245,7 @@ async fn delete_manifest_then_close() {
         "#]],
     );
 
-    TEST_FS.with_borrow_mut(|fs| fs.remove("project/qsharp.json"));
+    TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
     updater.close_document("project/src/this_file.qs").await;
 
@@ -1278,7 +1312,10 @@ async fn doc_switches_project() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/a.qs to be picked up
     // by the parent directory's qsharp.json
-    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with(|fs| {
+        fs.borrow_mut()
+            .remove("nested_projects/src/subdir/qsharp.json");
+    });
 
     updater
         .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
@@ -1383,7 +1420,10 @@ async fn doc_switches_project_on_close() {
     // This is just a trick to cause the file to move between projects.
     // Deleting subdir/qsharp.json will cause subdir/src/a.qs to be picked up
     // by the parent directory's qsharp.json
-    TEST_FS.with_borrow_mut(|fs| fs.remove("nested_projects/src/subdir/qsharp.json"));
+    TEST_FS.with(|fs| {
+        fs.borrow_mut()
+            .remove("nested_projects/src/subdir/qsharp.json");
+    });
 
     updater
         .close_document("nested_projects/src/subdir/src/a.qs")
@@ -1507,13 +1547,13 @@ async fn lints_update_after_manifest_change() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&received_errors, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
 
     // Check generated lints.
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1530,6 +1570,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1544,6 +1600,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1555,13 +1612,13 @@ async fn lints_update_after_manifest_change() {
         .write_file("project/qsharp.json", r#"{ "lints": [{ "lint": "divisionByZero", "level": "warn" }, { "lint": "needlessParens", "level": "warn" }] }"#)
         .expect("qsharp.json should exist");
 
-    // Triger a document update
+    // Trigger a document update
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
 
     // Check lints again
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1578,6 +1635,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1592,6 +1665,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1619,7 +1693,7 @@ async fn lints_prefer_workspace_over_defaults() {
         .await;
 
     // Check generated lints.
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1636,6 +1710,7 @@ async fn lints_prefer_workspace_over_defaults() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1672,7 +1747,7 @@ async fn lints_prefer_manifest_over_workspace() {
         ..WorkspaceConfigurationUpdate::default()
     });
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
@@ -1681,33 +1756,148 @@ async fn lints_prefer_manifest_over_workspace() {
     assert_eq!(received_errors.borrow().len(), 0);
 }
 
-type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
+#[tokio::test]
+async fn missing_dependency_reported() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "dependencies" : { "MyDep" : { "path" : "../child" } } }"#,
+                ),
+                dir("src", [file("main.qs", "function Main() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
+    updater
+        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .await;
+
+    expect![[r#"
+        [
+            (
+                "parent/qsharp.json",
+                None,
+                [],
+                [
+                    FileSystem {
+                        about_path: "child/qsharp.json",
+                        error: "file not found",
+                    },
+                ],
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&received_errors.borrow());
+}
+
+#[tokio::test]
+async fn error_from_dependency_reported() {
+    let fs = FsNode::Dir(
+        [
+            dir(
+                "parent",
+                [
+                    file(
+                        "qsharp.json",
+                        r#"{ "dependencies" : { "MyDep" : { "path" : "../child" } } }"#,
+                    ),
+                    dir("src", [file("main.qs", "function Main() : Unit {}")]),
+                ],
+            ),
+            dir(
+                "child",
+                [
+                    file("qsharp.json", "{}"),
+                    dir("src", [file("main.qs", "broken_syntax")]),
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
+    updater
+        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .await;
+
+    expect![[r#"
+        [
+            (
+                "child/src/main.qs",
+                None,
+                [
+                    Frontend(
+                        Error(
+                            Parse(
+                                Error(
+                                    ExpectedItem(
+                                        Ident,
+                                        Span {
+                                            lo: 26,
+                                            hi: 26,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+                [],
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&received_errors.borrow());
+}
+
+type ErrorInfo = (
+    String,
+    Option<u32>,
+    Vec<compile::ErrorKind>,
+    Vec<project::Error>,
+);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let project_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Project(error) => Some(error.clone()),
+            ErrorKind::Compile(_) => None,
+        });
+        let compile_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Compile(error) => Some(error.error().clone()),
+            ErrorKind::Project(_) => None,
+        });
+
         let mut v = received_errors.borrow_mut();
 
         v.push((
-            update.uri.to_string(),
+            update.uri,
             update.version,
-            update
-                .errors
-                .iter()
-                .map(|e| e.error().clone())
-                .collect::<Vec<_>>(),
+            compile_errors.collect(),
+            project_errors.collect(),
         ));
     };
 
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file: String| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().read_file(file)))),
-        |dir_name: String| {
-            Box::pin(ready(
-                TEST_FS.with(|fs| fs.borrow().list_directory(dir_name)),
-            ))
+        TestProjectHost {
+            fs: TEST_FS.with(Clone::clone),
         },
-        |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(file)))),
     )
 }
 
@@ -1716,29 +1906,29 @@ fn new_updater_with_file_system<'a>(
     fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let project_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Project(error) => Some(error.clone()),
+            ErrorKind::Compile(_) => None,
+        });
+        let compile_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Compile(error) => Some(error.error().clone()),
+            ErrorKind::Project(_) => None,
+        });
+
         let mut v = received_errors.borrow_mut();
 
         v.push((
-            update.uri.to_string(),
+            update.uri,
             update.version,
-            update
-                .errors
-                .iter()
-                .map(|e| e.error().clone())
-                .collect::<Vec<_>>(),
+            compile_errors.collect(),
+            project_errors.collect(),
         ));
     };
-
-    let fs1 = fs.clone();
-    let fs2 = fs.clone();
-    let fs3 = fs.clone();
 
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        move |file: String| Box::pin(ready(fs1.borrow().read_file(file))),
-        move |dir_name: String| Box::pin(ready(fs2.borrow().list_directory(dir_name))),
-        move |file| Box::pin(ready(fs3.borrow().get_manifest(file))),
+        TestProjectHost { fs: fs.clone() },
     )
 }
 
@@ -1793,6 +1983,7 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
     let manifest = updater
         .load_manifest(&"project/src/this_file.qs".into())
         .await
+        .expect("manifest should load successfully")
         .expect("manifest should exist");
 
     let lints_config = manifest.lints;
@@ -1800,11 +1991,11 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
     expected_config.assert_eq(&format!("{lints_config:#?}"));
 }
 
-fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
+fn check_lints(lints: &[compile::ErrorKind], expected_lints: &Expect) {
     expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
-thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
+thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs()))}
 
 fn test_fs() -> FsNode {
     FsNode::Dir(
@@ -1851,145 +2042,4 @@ fn test_fs() -> FsNode {
         .into_iter()
         .collect(),
     )
-}
-
-/// An in-memory file system implementation for the unit tests.
-enum FsNode {
-    Dir(FxHashMap<Arc<str>, FsNode>),
-    File(Arc<str>),
-}
-
-/// A file system operation error.
-#[derive(Debug)]
-enum FsError {
-    NotFound,
-}
-
-impl FsNode {
-    fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
-        let mut curr = Some(self);
-
-        for part in file.split('/') {
-            curr = curr.and_then(|node| match node {
-                FsNode::Dir(dir) => dir.get(part),
-                FsNode::File(_) => None,
-            });
-        }
-
-        match curr {
-            Some(FsNode::File(contents)) => (file.into(), contents.clone()),
-            Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
-        }
-    }
-
-    fn write_file(&mut self, file: &str, contents: &str) -> Result<(), FsError> {
-        let mut curr = Some(self);
-
-        for part in file.split('/') {
-            curr = curr.and_then(|node| match node {
-                FsNode::Dir(dir) => dir.get_mut(part),
-                FsNode::File(_) => None,
-            });
-        }
-
-        if let Some(FsNode::File(curr_contents)) = curr {
-            *curr_contents = contents.into();
-            Ok(())
-        } else {
-            Err(FsError::NotFound)
-        }
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    fn list_directory(&self, dir_name: String) -> Vec<JSFileEntry> {
-        let mut curr = Some(self);
-
-        for part in dir_name.split('/') {
-            curr = curr.and_then(|node| match node {
-                FsNode::Dir(dir) => dir.get(part),
-                FsNode::File(_) => None,
-            });
-        }
-
-        match curr {
-            Some(FsNode::Dir(dir)) => dir
-                .iter()
-                .map(|(name, node)| JSFileEntry {
-                    name: format!("{dir_name}/{name}"),
-                    r#type: match node {
-                        FsNode::Dir(_) => EntryType::Folder,
-                        FsNode::File(_) => EntryType::File,
-                    },
-                })
-                .collect(),
-            Some(FsNode::File(_)) | None => Vec::default(),
-        }
-    }
-
-    #[allow(clippy::needless_pass_by_value)]
-    fn get_manifest(&self, file: String) -> Option<ManifestDescriptor> {
-        let mut curr = Some(self);
-        let mut curr_path = String::new();
-        let mut last_manifest_dir = None;
-        let mut last_manifest = None;
-
-        for part in file.split('/') {
-            curr = curr.and_then(|node| match node {
-                FsNode::Dir(dir) => {
-                    if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
-                        // The semantics of get_manifest is that we only return the manifest
-                        // if we've succeeded in parsing it
-                        if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
-                            last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
-                            last_manifest = Some(manifest);
-                        }
-                    }
-                    curr_path = format!("{curr_path}{part}/");
-                    dir.get(part)
-                }
-                FsNode::File(_) => None,
-            });
-        }
-
-        match curr {
-            Some(FsNode::Dir(_)) | None => None,
-            Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
-                manifest: last_manifest.unwrap_or_default(),
-                manifest_dir: dir.into(),
-            }),
-        }
-    }
-
-    fn remove(&mut self, path: &str) {
-        let mut curr_parent = Some(self);
-        let mut curr_name = None;
-
-        for part in path.split('/') {
-            if let Some(name) = curr_name {
-                if let Some(FsNode::Dir(dir)) = curr_parent {
-                    curr_parent = dir.get_mut(name);
-                }
-            }
-
-            curr_name = Some(part);
-        }
-
-        let name = curr_name.expect("file name should have been set");
-
-        match curr_parent {
-            Some(FsNode::Dir(dir)) => dir.remove(name),
-            Some(FsNode::File(_)) | None => panic!("path {path} does not exist"),
-        };
-    }
-}
-
-fn dir<const COUNT: usize>(
-    name: &str,
-    contents: [(Arc<str>, FsNode); COUNT],
-) -> (Arc<str>, FsNode) {
-    (name.into(), FsNode::Dir(contents.into_iter().collect()))
-}
-
-fn file(name: &str, contents: &str) -> (Arc<str>, FsNode) {
-    (name.into(), FsNode::File(Arc::from(contents)))
 }

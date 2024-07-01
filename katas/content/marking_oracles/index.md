@@ -23,141 +23,85 @@ This kata continues the exploration of quantum oracles started in the Oracles ka
 @[exercise]({
     "id": "marking_oracles__kth_bit",
     "title": "K-th Bit",
-    "path": "./kth_bit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./kth_bit/"
 })
 
 @[exercise]({
     "id": "marking_oracles__parity",
     "title": "Parity Function",
-    "path": "./parity/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./parity/"
 })
 
 @[exercise]({
     "id": "marking_oracles__product",
     "title": "Product Function",
-    "path": "./product/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./product/"
 })
 
 @[exercise]({
     "id": "marking_oracles__product_negation",
     "title": "Product Function with Negation",
-    "path": "./product_negation/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./product_negation/"
 })
 
 @[exercise]({
     "id": "marking_oracles__palindrome",
     "title": "Palindrome Checker",
-    "path": "./palindrome/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./palindrome/"
 })
 
 @[exercise]({
     "id": "marking_oracles__periodic_p",
     "title": "Is Bit String Periodic with Period P?",
-    "path": "./periodic_p/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./periodic_p/"
 })
 
 @[exercise]({
     "id": "marking_oracles__periodic",
     "title": "Is Bit String Periodic?",
-    "path": "./periodic/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./periodic/"
 })
 
 @[exercise]({
     "id": "marking_oracles__contains_substring_p",
     "title": "Does Bit String Contain Substring At Position?",
-    "path": "./contains_substring_p/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./contains_substring_p/"
 })
 
 @[exercise]({
     "id": "marking_oracles__pattern_match",
     "title": "Pattern Matching",
-    "path": "./pattern_match/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./pattern_match/"
 })
 
 @[exercise]({
     "id": "marking_oracles__contains_substring",
     "title": "Does Bit String Contain Substring?",
-    "path": "./contains_substring/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./contains_substring/"
 })
 
 @[exercise]({
     "id": "marking_oracles__balanced",
     "title": "Is Bit String Balanced?",
-    "path": "./balanced/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./balanced/"
 })
 
 @[exercise]({
     "id": "marking_oracles__majority",
     "title": "Majority Function",
-    "path": "./majority/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./majority/"
 })
 
 @[exercise]({
     "id": "marking_oracles__bit_sum_div_3",
     "title": "Is Bit Sum Divisible by 3?",
-    "path": "./bit_sum_div_3/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./bit_sum_div_3/"
 })
 
 @[exercise]({
     "id": "marking_oracles__num_div_3",
     "title": "Is Number Divisible by 3?",
-    "path": "./num_div_3/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./num_div_3/"
 })
 
 @[section]({

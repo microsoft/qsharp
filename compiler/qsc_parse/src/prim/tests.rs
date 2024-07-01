@@ -91,7 +91,10 @@ fn path_double() {
     check(
         path,
         "Foo.Bar",
-        &expect![[r#"Path _id_ [0-7] (Ident _id_ [0-3] "Foo") (Ident _id_ [4-7] "Bar")"#]],
+        &expect![[r#"
+            Path _id_ [0-7]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar""#]],
     );
 }
 
@@ -100,9 +103,11 @@ fn path_triple() {
     check(
         path,
         "Foo.Bar.Baz",
-        &expect![[
-            r#"Path _id_ [0-11] ([Ident _id_ [0-3] "Foo", Ident _id_ [4-7] "Bar"]) (Ident _id_ [8-11] "Baz")"#
-        ]],
+        &expect![[r#"
+            Path _id_ [0-11]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar"
+                Ident _id_ [8-11] "Baz""#]],
     );
 }
 
@@ -262,7 +267,10 @@ fn opt_succeed() {
     check_opt(
         |s| opt(s, path),
         "Foo.Bar",
-        &expect![[r#"Path _id_ [0-7] (Ident _id_ [0-3] "Foo") (Ident _id_ [4-7] "Bar")"#]],
+        &expect![[r#"
+            Path _id_ [0-7]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar""#]],
     );
 }
 

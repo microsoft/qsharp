@@ -482,7 +482,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: qubits in invocation are not unique
-                       [intrinsic.qs] [(control, target)]
+                       [qsharp-library-source:intrinsic.qs] [(control, target)]
                 "#]],
             );
         }
@@ -1740,7 +1740,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: program failed: Cannot allocate qubit array with a negative length
-                      explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                      explicit fail [qsharp-library-source:core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
         }
@@ -1883,7 +1883,7 @@ mod given_interpreter {
             let path = Path {
                 id: NodeId::default(),
                 span: Span::default(),
-                namespace: Some(
+                segments: Some(
                     std::iter::once(qsc_ast::ast::Ident {
                         id: NodeId::default(),
                         span: Span::default(),

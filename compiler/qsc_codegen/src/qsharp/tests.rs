@@ -622,10 +622,10 @@ fn field_access_and_string_interning() {
             namespace A {
                 open Microsoft.Quantum.Math;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0.0 {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0.0 {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#},
@@ -634,10 +634,10 @@ fn field_access_and_string_interning() {
             namespace A {
                 open Microsoft.Quantum.Math;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0. {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0. {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#]],
@@ -943,7 +943,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1.0, 2.0, 3.0);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }
@@ -956,7 +956,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1., 2., 3.);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }

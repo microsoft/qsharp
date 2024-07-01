@@ -169,7 +169,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
   );
 
   const dismissActionProvider = vscode.languages.registerCodeActionsProvider(
-    qsharpLanguageId,
+    [qsharpLanguageId, { language: "json", pattern: "**/qsharp.json" }],
     {
       provideCodeActions(doc, range, context): vscode.CodeAction[] | undefined {
         const commandErrors = context.diagnostics.filter((d) =>

@@ -1109,6 +1109,7 @@ dependencies = [
  "qsc",
  "qsc_ast",
  "qsc_data_structures",
+ "qsc_doc_gen",
  "qsc_frontend",
  "qsc_hir",
  "qsc_parse",
@@ -1188,10 +1189,14 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "expect-test",
+ "futures",
+ "log",
  "miette",
+ "qsc_data_structures",
  "qsc_linter",
  "qsc_project",
  "regex-lite",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1286,6 +1291,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
 ]
 
@@ -1442,6 +1448,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "samples_test"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "qsc",
 ]
 
 [[package]]

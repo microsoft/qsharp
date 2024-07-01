@@ -27,12 +27,10 @@ import {
   IStructStepResult,
   QscEventTarget,
   StepResultId,
-  TargetProfile,
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
 import { basename, isQsharpDocument, toVscodeRange } from "../common";
-import { getTarget } from "../config";
 import {
   DebugEvent,
   EventType,
@@ -94,7 +92,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
 
-    for (const source of program.sources) {
+    const allKnownSources = getAllSources(program);
+    for (const source of allKnownSources) {
       const uri = vscode.Uri.parse(source[0], true);
 
       // In Debug Protocol requests, the VS Code debug adapter client
@@ -111,14 +110,14 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const failureMessage = await this.debugService.loadSource(
-      this.program.sources,
-      this.program.profile,
+    const failureMessage = await this.debugService.loadProgram(
+      this.program,
       this.config.entry,
-      this.program.languageFeatures,
     );
-    for (const [path, _contents] of this.program.sources) {
-      if (failureMessage == "") {
+
+    if (failureMessage == "") {
+      for (const [path, _contents] of this.program.packageGraphSources.root
+        .sources) {
         const locations = await this.debugService.getBreakpoints(path);
         log.trace(`init breakpointLocations: %O`, locations);
         const mapped = locations.map((location) => {
@@ -139,10 +138,10 @@ export class QscDebugSession extends LoggingDebugSession {
           } as IBreakpointLocationData;
         });
         this.breakpointLocations.set(path, mapped);
-      } else {
-        log.warn(`compilation failed. ${failureMessage}`);
-        this.failureMessage = failureMessage;
       }
+    } else {
+      log.warn(`compilation failed. ${failureMessage}`);
+      this.failureMessage = failureMessage;
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
@@ -962,4 +961,12 @@ export class QscDebugSession extends LoggingDebugSession {
       this.revealedCircuit = true;
     }
   }
+}
+
+function getAllSources(program: FullProgramConfig) {
+  return program.packageGraphSources.root.sources.concat(
+    Object.values(program.packageGraphSources.packages).flatMap(
+      (p) => p.sources,
+    ),
+  );
 }

@@ -1,47 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getProjectLoader, log } from "qsharp-lang";
+import {
+  IProjectConfig,
+  getProjectLoader,
+  log,
+  qsharpGithubUriScheme,
+  ProjectLoader,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
-import { updateQSharpJsonDiagnostics } from "./diagnostics";
-
-/**
- * Finds and parses a manifest. Returns `null` if no manifest was found for the given uri, or if the manifest
- * was malformed.
- */
-export async function getManifest(uri: string): Promise<{
-  manifestDirectory: string;
-  languageFeatures: string[] | undefined;
-  lints: { lint: string; level: string }[];
-} | null> {
-  const manifestDocument = await findManifestDocument(uri);
-  if (manifestDocument === null) {
-    return null;
-  }
-  let result;
-  try {
-    result = await getManifestThrowsOnParseFailure(uri);
-  } catch (e) {
-    log.warn(
-      `failed to parse manifest at ${manifestDocument.uri.toString()}`,
-      e,
-    );
-    updateQSharpJsonDiagnostics(
-      manifestDocument.uri,
-      "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-    );
-    return null;
-  }
-  return result;
-}
+import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
  */
 async function findManifestDocument(
   currentDocumentUriString: string,
-): Promise<{ uri: vscode.Uri; content: string } | null> {
+): Promise<{ directory: URI; manifest: URI } | null> {
   // file://home/foo/bar/src/document.qs
   // or, e.g. in vscode on a virtual file system,
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
@@ -73,20 +49,19 @@ async function findManifestDocument(
     }
 
     if (seenSrcDir) {
-      const potentialManifestLocation = Utils.joinPath(
-        uriToQuery,
-        "qsharp.json",
-      );
+      let qsharpJsonExists = false;
+      const potentialManifestUri = Utils.joinPath(uriToQuery, "qsharp.json");
 
-      let listing;
       try {
-        listing = await readFileUri(potentialManifestLocation);
+        qsharpJsonExists =
+          (await vscode.workspace.fs.stat(potentialManifestUri)).type ===
+          vscode.FileType.File;
       } catch (err) {
-        log.error("Error thrown when reading file: ", err);
+        // qsharp.json doesn't exist or is inaccessible, move on
       }
 
-      if (listing) {
-        return listing;
+      if (qsharpJsonExists) {
+        return { directory: uriToQuery, manifest: potentialManifestUri };
       }
     }
     if (uriToQuery.toString().endsWith("src")) {
@@ -104,9 +79,17 @@ async function findManifestDocument(
   return null;
 }
 
+export async function findManifestDirectory(uri: string) {
+  const result = await findManifestDocument(uri);
+  if (result) {
+    return result.directory.toString();
+  }
+  return null;
+}
+
 // this function currently assumes that `directoryQuery` will be a relative path from
 // the root of the workspace
-export async function listDir(
+export async function listDirectory(
   directoryQuery: string,
 ): Promise<[string, number][]> {
   const uriToQuery = vscode.Uri.parse(directoryQuery);
@@ -150,68 +133,18 @@ async function readFileUri(
         uri: uri,
       };
     });
-  } catch (_err) {
+  } catch (err) {
     // `readFile` should throw the below if the file is not found
     if (
-      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+      !(err instanceof vscode.FileSystemError && err.code === "FileNotFound")
     ) {
-      log.error("Unexpected error trying to read file", _err);
+      log.error("Unexpected error trying to read file", err);
     }
-    return null;
+    throw err;
   }
 }
 
-async function getManifestThrowsOnParseFailure(uri: string): Promise<{
-  manifestDirectory: string;
-  languageFeatures: string[] | undefined;
-  lints: { lint: string; level: string }[];
-} | null> {
-  const manifestDocument = await findManifestDocument(uri);
-  let parsedManifest: {
-    languageFeatures: string[];
-    lints: { lint: string; level: string }[] | undefined;
-  } | null = null;
-
-  if (manifestDocument) {
-    try {
-      parsedManifest = JSON.parse(manifestDocument.content); // will throw if invalid
-    } catch (e: any) {
-      updateQSharpJsonDiagnostics(
-        manifestDocument.uri,
-        "Failed to parse Q# manifest. For a minimal Q# project manifest, try: {}",
-      );
-      throw new Error(
-        "Failed to parse qsharp.json. For a minimal Q# project manifest, try: {}",
-      );
-    }
-
-    updateQSharpJsonDiagnostics(manifestDocument.uri);
-
-    const manifestDirectory = Utils.dirname(manifestDocument.uri);
-
-    return {
-      manifestDirectory: manifestDirectory.toString(),
-      languageFeatures: parsedManifest?.languageFeatures,
-      lints: parsedManifest?.lints || [],
-    };
-  }
-  return null;
-}
-
-let projectLoader: any | undefined = undefined;
-
-export type ProjectConfig = {
-  /**
-   * Friendly name for the project, based on the name of the Q# document or project directory
-   */
-  projectName: string;
-  sources: [string, string][];
-  languageFeatures: string[];
-  lints: {
-    lint: string;
-    level: string;
-  }[];
-};
+let projectLoader: ProjectLoader | undefined = undefined;
 
 /**
  * Given a Q# Document URI, returns the configuration and list of complete source files
@@ -227,33 +160,123 @@ export type ProjectConfig = {
  */
 export async function loadProject(
   documentUri: vscode.Uri,
-): Promise<ProjectConfig> {
-  // get the project using this.program
-  const manifest = await getManifestThrowsOnParseFailure(
-    documentUri.toString(),
-  );
-  if (manifest === null) {
-    // return just the one file if we are in single file mode
-    const file = await vscode.workspace.openTextDocument(documentUri);
+): Promise<IProjectConfig> {
+  const manifestDocument = await findManifestDocument(documentUri.toString());
 
-    return {
-      projectName: Utils.basename(documentUri),
-      sources: [[documentUri.toString(), file.getText()]],
-      languageFeatures: [],
-      lints: [],
-    };
+  if (!manifestDocument) {
+    // return just the one file if we are in single file mode
+    return await singleFileProject(documentUri);
   }
 
   if (!projectLoader) {
-    projectLoader = await getProjectLoader(readFile, listDir, getManifest);
+    projectLoader = await getProjectLoader({
+      findManifestDirectory,
+      readFile,
+      listDirectory,
+      fetchGithub: fetchGithubRaw,
+      resolvePath: async (a, b) => resolvePath(a, b),
+    });
   }
-  const project: [string, string][] =
-    await projectLoader.load_project(manifest);
+
+  const project = invokeAndReportCommandDiagnostics(
+    async () =>
+      await projectLoader!.load_project_with_deps(
+        manifestDocument.directory.toString(),
+      ),
+  );
+
+  return project;
+}
+
+async function singleFileProject(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig> {
+  const file = await vscode.workspace.openTextDocument(documentUri);
+
   return {
-    projectName:
-      Utils.basename(URI.parse(manifest.manifestDirectory)) || "Q# Project",
-    sources: project,
-    languageFeatures: manifest.languageFeatures || [],
-    lints: manifest.lints,
+    projectName: Utils.basename(documentUri),
+    projectUri: documentUri.toString(),
+    packageGraphSources: {
+      root: {
+        sources: [[documentUri.toString(), file.getText()]] as [
+          string,
+          string,
+        ][],
+        languageFeatures: [],
+        dependencies: {},
+      },
+      packages: {},
+    },
+    lints: [],
   };
+}
+
+export function resolvePath(base: string, relative: string): string | null {
+  try {
+    return Utils.resolvePath(URI.parse(base, true), relative).toString();
+  } catch (e) {
+    log.warn(`Failed to resolve path ${base} and ${relative}: ${e}`);
+    return null;
+  }
+}
+
+let githubEndpoint = "https://raw.githubusercontent.com";
+export function setGithubEndpoint(endpoint: string) {
+  githubEndpoint = endpoint;
+}
+
+export function getGithubSourceContent(uri: URI): string | undefined {
+  const key = uri.toString();
+  return knownGitHubSources.get(key);
+}
+
+const knownGitHubSources = new Map<string, string>();
+
+/**
+ * Makes a request to the GitHub raw content service to retrieve a file.
+ */
+export async function fetchGithubRaw(
+  owner: string,
+  repo: string,
+  ref: string,
+  path: string,
+): Promise<string> {
+  const pathNoLeadingSlash = path.startsWith("/") ? path.slice(1) : path;
+
+  const uri = `${githubEndpoint}/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
+  log.info(`making request to ${uri}`);
+  const response = await fetch(uri);
+  if (!response.ok) {
+    log.warn(
+      `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${response.status} ${response.statusText}`,
+    );
+    throw new Error(
+      `Request to ${uri} failed with status ${response.status} ${response.statusText ? ": " + response.statusText : ""}`,
+    );
+  }
+
+  let text;
+  try {
+    text = await response.text();
+
+    knownGitHubSources.set(
+      URI.from({
+        scheme: qsharpGithubUriScheme,
+        path: `${owner}/${repo}/${ref}/${pathNoLeadingSlash}`,
+      }).toString(),
+      text,
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      log.warn(
+        `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${e.message}`,
+      );
+      throw new Error(
+        `Request to ${uri} did not return text content: ${e.message}`,
+      );
+    }
+    throw new Error(`Request to ${uri} did not return text content`);
+  }
+
+  return text;
 }

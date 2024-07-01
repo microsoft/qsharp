@@ -374,6 +374,54 @@ fn struct_field_ref_cons() {
 }
 
 #[test]
+fn struct_field_ref_path() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { b : B }
+        struct B { ◉c◉ : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = a.b.↘c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_path_with_expr() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { b : B }
+        struct B { ◉c◉ : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = { a.b }.↘c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_path_inside_expr() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { ◉b◉ : B }
+        struct B { c : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = { a.↘b }.c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
 fn lambda_param() {
     assert_definition(
         r#"
