@@ -147,7 +147,7 @@ enum TypeParameterListState {
 
 /// Whether or not we are currently handling an import or export statement.
 #[derive(Clone, Copy)]
-enum WhethImportExportState {
+enum ImportExportState {
     /// Yes, this is an import or export statement.
     HandlingImportExportStatement,
     /// No, this is not an import or export statement.
@@ -766,6 +766,8 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
                     | Use
                     | Borrow
                     | Fixup
+                    | Import
+                    | Export
             )
     )
 }

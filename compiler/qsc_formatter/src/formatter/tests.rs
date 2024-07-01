@@ -1253,10 +1253,7 @@ fn format_glob_import() {
 fn no_newlines_glob() {
     let input = "import foo, bar, baz.quux.*;";
 
-    check(
-        input,
-        &expect!["import foo, bar, baz.quux. *;"],
-    );
+    check(input, &expect!["import foo, bar, baz.quux. *;"]);
 }
 
 #[test]
