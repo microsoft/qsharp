@@ -229,14 +229,6 @@ impl From<qsc_project::PackageInfo> for PackageInfo {
                 .collect(),
         }
     }
-
-    // #[allow(clippy::from_iter_instead_of_collect)]
-    // pub async fn load_project(&self, directory: String) -> Result<IProjectConfig, JsValue> {
-    //     match self.0.load_project_in_dir(&PathBuf::from(directory)).await {
-    //         Ok(p) => Ok(p.into()),
-    //         Err(e) => Err(JsError::new(&format!("{e}")).into()),
-    //     }
-    // }
 }
 
 impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
@@ -251,19 +243,6 @@ impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
         }
     }
 }
-
-// serializable_type! {
-//     ProgramConfig,
-//     {
-//         pub package_graph_sources: PackageGraphSources,
-//         pub target_profile: String,
-//     },
-//     r#"export interface IProgramConfig {
-//         packageGraphSources: IPackageGraphSources;
-//         targetProfile: TargetProfile;
-//     }"#,
-//     IProgramConfig
-// }
 
 serializable_type! {
     PackageGraphSources,
