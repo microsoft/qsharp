@@ -44,6 +44,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
         delim_newlines_stack: vec![],
         type_param_state: TypeParameterListState::NoState,
         spec_decl_state: SpecDeclState::NoState,
+        import_export_state: ImportExportState::NoState,
     };
 
     // The sliding window used is over three adjacent tokens
@@ -144,6 +145,15 @@ enum TypeParameterListState {
     InTypeParamList,
 }
 
+/// Whether or not we are currently handling an import or export statement.
+#[derive(Clone, Copy, Debug)]
+enum ImportExportState {
+    /// Yes, this is an import or export statement.
+    HandlingImportExportStatement,
+    /// No, this is not an import or export statement.
+    NoState,
+}
+
 /// This is to keep track of whether or not the formatter
 /// is currently processing a functor specialization
 /// declaration.
@@ -177,6 +187,7 @@ impl Delimiter {
     fn from_concrete_toke_kind(
         kind: &ConcreteTokenKind,
         type_param_state: TypeParameterListState,
+        import_export_state: ImportExportState,
     ) -> Delimiter {
         match kind {
             ConcreteTokenKind::Syntax(TokenKind::Open(_)) => Delimiter::Open,
@@ -191,6 +202,17 @@ impl Delimiter {
             {
                 Delimiter::Close
             }
+            ConcreteTokenKind::Syntax(TokenKind::Keyword(Keyword::Import | Keyword::Export)) => {
+                Delimiter::Open
+            }
+            ConcreteTokenKind::Syntax(TokenKind::Semi)
+                if matches!(
+                    import_export_state,
+                    ImportExportState::HandlingImportExportStatement
+                ) =>
+            {
+                Delimiter::Close
+            }
             _ => Delimiter::NonDelim,
         }
     }
@@ -202,6 +224,7 @@ struct Formatter<'a> {
     delim_newlines_stack: Vec<NewlineContext>,
     type_param_state: TypeParameterListState,
     spec_decl_state: SpecDeclState,
+    import_export_state: ImportExportState,
 }
 
 impl<'a> Formatter<'a> {
@@ -225,7 +248,7 @@ impl<'a> Formatter<'a> {
         self.update_spec_decl_state(&left.kind);
 
         let (left_delim_state, right_delim_state) =
-            self.update_type_param_state(&left.kind, &right.kind);
+            self.update_formatter_state(&left.kind, &right.kind);
 
         let newline_context = self.update_indent_level(
             left_delim_state,
@@ -256,12 +279,22 @@ impl<'a> Formatter<'a> {
                 }
                 // else do nothing, preserving the user's spaces before the comment
             }
-            (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
+            (Syntax(cooked_left), Syntax(cooked_right)) => match (&cooked_left, cooked_right) {
                 (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
                     // This case is used to ignore the spacing around a `-`.
                     // This is done because we currently don't have the architecture
                     // to be able to differentiate between the unary `-` and the binary `-`
                     // which would have different spacing rules.
+                }
+                (_, ClosedBinOp(ClosedBinOp::Star))
+                    if matches!(
+                        self.import_export_state,
+                        ImportExportState::HandlingImportExportStatement
+                    ) =>
+                {
+                    // if this is a star and we are in an import/export, then it isn't actually a
+                    // binop and it's a glob import
+                    effect_no_space(left, whitespace, right, &mut edits);
                 }
                 (Semi, _) if matches!(newline_context, NewlineContext::Spaces) => {
                     effect_single_space(left, whitespace, right, &mut edits);
@@ -424,6 +457,9 @@ impl<'a> Formatter<'a> {
                 (_, Keyword(Keyword::Is)) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
+                (_, Keyword(Keyword::Export | Keyword::Import)) => {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
                 (_, Keyword(keyword)) if is_starter_keyword(keyword) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
@@ -490,10 +526,10 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    /// Updates the type_param_state of the FormatterState based
+    /// Updates the type_param_state and import_export_state of the FormatterState based
     /// on the left and right token kinds. Returns the delimiter
     /// state of the left and right tokens.
-    fn update_type_param_state(
+    fn update_formatter_state(
         &mut self,
         left_kind: &ConcreteTokenKind,
         right_kind: &ConcreteTokenKind,
@@ -503,16 +539,33 @@ impl<'a> Formatter<'a> {
         use TokenKind::*;
 
         // Save the left token's status as a delimiter before updating the delimiter state
-        let left_delim_state = Delimiter::from_concrete_toke_kind(left_kind, self.type_param_state);
+        let left_delim_state = Delimiter::from_concrete_toke_kind(
+            left_kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
-        // If we are leaving a type param list, reset the state
-        if matches!(left_kind, Syntax(Gt))
-            && matches!(
-                self.type_param_state,
-                TypeParameterListState::InTypeParamList
-            )
-        {
-            self.type_param_state = TypeParameterListState::NoState
+        // Based on the left-hand-side token, we determine if:
+        // 1. we are ending a type parameter list context
+        // 2. we are ending an import/export context
+        // 3. we are starting an import/export context
+        match left_kind {
+            // If we are leaving a type param list, reset the state
+            Syntax(Gt)
+                if matches!(
+                    self.type_param_state,
+                    TypeParameterListState::InTypeParamList
+                ) =>
+            {
+                self.type_param_state = TypeParameterListState::NoState;
+            }
+            Syntax(Semi) => {
+                self.import_export_state = ImportExportState::NoState;
+            }
+            Syntax(Keyword(Keyword::Import | Keyword::Export)) => {
+                self.import_export_state = ImportExportState::HandlingImportExportStatement;
+            }
+            _ => (),
         }
 
         match right_kind {
@@ -553,8 +606,11 @@ impl<'a> Formatter<'a> {
         }
 
         // Save the right token's status as a delimiter after updating the delimiter state
-        let right_delim_state =
-            Delimiter::from_concrete_toke_kind(right_kind, self.type_param_state);
+        let right_delim_state = Delimiter::from_concrete_toke_kind(
+            right_kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
         (left_delim_state, right_delim_state)
     }
@@ -709,6 +765,8 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
                     | Use
                     | Borrow
                     | Fixup
+                    | Import
+                    | Export
             )
     )
 }
