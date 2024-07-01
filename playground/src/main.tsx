@@ -251,7 +251,7 @@ function registerMonacoLanguageServiceProviders(
   monaco.languages.setLanguageConfiguration("qsharp", {
     // This pattern is duplicated in /vscode/language-configuration.json . Please keep them in sync.
     wordPattern: new RegExp(
-      "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\<\\>\\/\\?\\s]+)",
+      "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\.\\'\\\"\\,\\<\\>\\/\\?\\s]+)",
     ),
   });
   monaco.languages.registerCompletionItemProvider("qsharp", {

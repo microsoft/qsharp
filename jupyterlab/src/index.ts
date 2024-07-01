@@ -46,7 +46,7 @@ function registerQSharpLanguage(
     },
     {
       token: "keyword",
-      regex: String.raw`(namespace|open|as|operation|function|body|adjoint|newtype|controlled|internal)\b`,
+      regex: String.raw`(namespace|open|import|export|as|operation|function|body|adjoint|newtype|struct|new|controlled|internal)\b`,
       beginWord: true,
     },
     {
