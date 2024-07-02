@@ -1,7 +1,6 @@
 name: CI Build and Test
 
 on:
-  on:
   pull_request:
     branches: "main"
     types:
