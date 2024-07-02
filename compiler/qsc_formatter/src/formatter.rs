@@ -292,7 +292,7 @@ impl<'a> Formatter<'a> {
                 }
                 // else do nothing, preserving the user's spaces before the comment
             }
-            (Syntax(cooked_left), Syntax(cooked_right)) => match (&cooked_left, cooked_right) {
+            (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
                 (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
                     // This case is used to ignore the spacing around a `-`.
                     // This is done because we currently don't have the architecture
@@ -566,21 +566,14 @@ impl<'a> Formatter<'a> {
         use ConcreteTokenKind::*;
         use TokenKind::*;
 
-        // Based on the left-hand-side token, we determine if:
-        // 1. we are ending a type parameter list context
-        // 2. we are ending an import/export context
-        // 3. we are starting an import/export context
-        match left_kind {
-            // If we are leaving a type param list, reset the state
-            Syntax(Gt)
-                if matches!(
-                    self.type_param_state,
-                    TypeParameterListState::InTypeParamList
-                ) =>
-            {
-                self.type_param_state = TypeParameterListState::NoState;
-            }
-            _ => (),
+        // If we are leaving a type param list, reset the state
+        if matches!(left_kind, Syntax(Gt))
+            && matches!(
+                self.type_param_state,
+                TypeParameterListState::InTypeParamList
+            )
+        {
+            self.type_param_state = TypeParameterListState::NoState;
         }
 
         match right_kind {
