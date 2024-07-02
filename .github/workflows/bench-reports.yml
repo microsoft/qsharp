@@ -1,4 +1,4 @@
-name: CI Build and Test
+name: Benchmark Reports
 
 on:
   pull_request:
