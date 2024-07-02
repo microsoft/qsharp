@@ -184,7 +184,7 @@ enum Delimiter {
 
 impl Delimiter {
     /// Constructs a Delimiter from a token, given the current type-parameter state.
-    fn from_concrete_toke_kind(
+    fn from_concrete_token_kind(
         kind: &ConcreteTokenKind,
         type_param_state: TypeParameterListState,
         import_export_state: ImportExportState,
@@ -245,10 +245,23 @@ impl<'a> Formatter<'a> {
         let are_newlines_in_spaces = whitespace.contains('\n');
         let does_right_required_newline = matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
 
-        self.update_spec_decl_state(&left.kind);
+        // Save the left token's status as a delimiter before updating the delimiter state
+        let left_delim_state = Delimiter::from_concrete_token_kind(
+            &left.kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
-        let (left_delim_state, right_delim_state) =
-            self.update_formatter_state(&left.kind, &right.kind);
+        self.update_spec_decl_state(&left.kind);
+        self.update_type_param_state(&left.kind, &right.kind);
+        self.update_import_export_state(&left.kind);
+
+        // Save the right token's status as a delimiter after updating the delimiter state
+        let right_delim_state = Delimiter::from_concrete_token_kind(
+            &right.kind,
+            self.type_param_state,
+            self.import_export_state,
+        );
 
         let newline_context = self.update_indent_level(
             left_delim_state,
@@ -526,24 +539,35 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    /// Updates the type_param_state and import_export_state of the FormatterState based
-    /// on the left and right token kinds. Returns the delimiter
-    /// state of the left and right tokens.
-    fn update_formatter_state(
-        &mut self,
-        left_kind: &ConcreteTokenKind,
-        right_kind: &ConcreteTokenKind,
-    ) -> (Delimiter, Delimiter) {
+    fn update_import_export_state(&mut self, left_kind: &ConcreteTokenKind) {
         use qsc_frontend::keyword::Keyword;
         use ConcreteTokenKind::*;
         use TokenKind::*;
 
-        // Save the left token's status as a delimiter before updating the delimiter state
-        let left_delim_state = Delimiter::from_concrete_toke_kind(
-            left_kind,
-            self.type_param_state,
-            self.import_export_state,
-        );
+        match left_kind {
+            Comment => {
+                // Comments don't update state
+            }
+            Syntax(Keyword(Keyword::Import | Keyword::Export)) => {
+                self.import_export_state = ImportExportState::HandlingImportExportStatement;
+            }
+            Syntax(Semi) => {
+                self.import_export_state = ImportExportState::NoState;
+            }
+            _ => (),
+        }
+    }
+
+    /// Updates the type_param_state of the FormatterState based
+    /// on the left and right token kinds.
+    fn update_type_param_state(
+        &mut self,
+        left_kind: &ConcreteTokenKind,
+        right_kind: &ConcreteTokenKind,
+    ) {
+        use qsc_frontend::keyword::Keyword;
+        use ConcreteTokenKind::*;
+        use TokenKind::*;
 
         // Based on the left-hand-side token, we determine if:
         // 1. we are ending a type parameter list context
@@ -558,12 +582,6 @@ impl<'a> Formatter<'a> {
                 ) =>
             {
                 self.type_param_state = TypeParameterListState::NoState;
-            }
-            Syntax(Semi) => {
-                self.import_export_state = ImportExportState::NoState;
-            }
-            Syntax(Keyword(Keyword::Import | Keyword::Export)) => {
-                self.import_export_state = ImportExportState::HandlingImportExportStatement;
             }
             _ => (),
         }
@@ -604,15 +622,6 @@ impl<'a> Formatter<'a> {
                 self.type_param_state = TypeParameterListState::NoState;
             }
         }
-
-        // Save the right token's status as a delimiter after updating the delimiter state
-        let right_delim_state = Delimiter::from_concrete_toke_kind(
-            right_kind,
-            self.type_param_state,
-            self.import_export_state,
-        );
-
-        (left_delim_state, right_delim_state)
     }
 
     /// Updates the indent level and manages the `delim_newlines_stack`
