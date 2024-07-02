@@ -638,10 +638,6 @@ impl PackageGraphSources {
             }
         }
 
-        // if sorted_keys.len() != self.packages.len() {
-        //     return Err(DependencyCycle);
-        // }
-
         let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
         sorted_packages.sort_by_key(|(a_key, _pkg)| {
             sorted_keys

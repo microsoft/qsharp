@@ -43,7 +43,7 @@ pub fn prepare_package_store(
 
     let (ordered_packages, user_code) = package_graph_sources
         .compilation_order()
-        .expect("TODO error handling");
+        .expect("dependency cycle detected in package graph -- this should have been caught by the target scenario");
 
     let mut dependency_errors = Vec::new();
     for (package_name, package_to_compile) in ordered_packages {
@@ -165,10 +165,7 @@ mod tests {
         let compiled = compile::compile(
             &buildable_program.store,
             &buildable_program.user_code_dependencies[..],
-            SourceMap::new(
-                buildable_program.user_code.sources,
-                None, /* TODO entry */
-            ),
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Exe,
             TargetCapabilityFlags::default(),
             LanguageFeatures::default(),
@@ -243,10 +240,7 @@ mod tests {
         let compiled = compile::compile(
             &buildable_program.store,
             &buildable_program.user_code_dependencies[..],
-            SourceMap::new(
-                buildable_program.user_code.sources,
-                None, /* TODO entry */
-            ),
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Exe,
             TargetCapabilityFlags::default(),
             LanguageFeatures::default(),
@@ -350,10 +344,7 @@ mod tests {
         let compiled = compile::compile(
             &buildable_program.store,
             &buildable_program.user_code_dependencies[..],
-            SourceMap::new(
-                buildable_program.user_code.sources,
-                None, /* TODO entry */
-            ),
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Exe,
             TargetCapabilityFlags::default(),
             LanguageFeatures::default(),

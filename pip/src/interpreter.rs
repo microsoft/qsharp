@@ -297,9 +297,6 @@ fn format_errors(errors: Vec<interpret::Error>) -> String {
             }
             let additional_help = python_help(&e);
             let report = Report::new(e.clone());
-            // TODO: There's a weird panic here when we call DumpMachine_() from the
-            // GitHub package, most likely a preexisting bug, but marking to investigate
-            // later.
             write!(message, "{report:?}")
                 .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
             if let Some(additional_help) = additional_help {
