@@ -10,3 +10,4 @@ nalgebra = { workspace = true }
 num-complex = { workspace = true }
 rand = { workspace = true }
 rayon = { workspace = true }
+thiserror = { workspace = true }

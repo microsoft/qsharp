@@ -5,7 +5,7 @@ use super::StateVectorSimulator;
 use crate::{
     instrument::Instrument,
     operation::{operation, Operation},
-    TOLERANCE,
+    Error, TOLERANCE,
 };
 use num_complex::Complex;
 
@@ -54,20 +54,21 @@ fn one_qubit() {
 
     for _ in 0..10 {
         let mut sim = StateVectorSimulator::new(1);
-        sim.apply_operation(&h, &[0]);
-        let measurement = sim.sample_instrument_with_distribution(&mz, &[0], 0.3);
+        sim.apply_operation(&h, &[0])
+            .expect("operation should succeed");
+        let measurement = sim
+            .sample_instrument_with_distribution(&mz, &[0], 0.3)
+            .expect("measurement should succeed");
         assert_eq!(measurement, 0);
-        println!("--");
     }
-
-    println!(":: :: ::");
 
     for _ in 0..10 {
         let mut sim = StateVectorSimulator::new(1);
-        println!("OOOOOOOOOOOOOOOOOOOOOOOO");
-        sim.apply_operation(&h, &[0]);
-        println!("HHHHHHHHHHHHHHHHHHHHHHHH");
-        let measurement = sim.sample_instrument_with_distribution(&mz, &[0], 0.7);
+        sim.apply_operation(&h, &[0])
+            .expect("operation should succeed");
+        let measurement = sim
+            .sample_instrument_with_distribution(&mz, &[0], 0.7)
+            .expect("measurement should succeed");
         assert_eq!(measurement, 1);
     }
 }
@@ -78,52 +79,63 @@ fn bell_pair_sampling() {
 
     for _ in 0..10 {
         let mut sim = StateVectorSimulator::new(2);
-        sim.apply_operation(&h, &[0]);
-        sim.apply_operation(&cnot, &[1, 0]);
-        let m1 = sim.sample_instrument(&mz, &[0]);
-        let m2 = sim.sample_instrument(&mz, &[1]);
+        sim.apply_operation(&h, &[0])
+            .expect("operation should succeed");
+        sim.apply_operation(&cnot, &[1, 0])
+            .expect("operation should succeed");
+        let m1 = sim
+            .sample_instrument(&mz, &[0])
+            .expect("measurement should succeed");
+        let m2 = sim
+            .sample_instrument(&mz, &[1])
+            .expect("measurement should succeed");
         assert_eq!(m1, m2);
     }
 }
 
-fn bell_pair_projection(outcome: usize) {
+fn bell_pair_projection(outcome: usize) -> Result<(), Error> {
     assert!((0..4).contains(&outcome));
     let (h, cnot, mz) = (h(), cnot(), mz());
     let mut sim = StateVectorSimulator::new(2);
-    sim.apply_operation(&h, &[0]);
-    sim.apply_operation(&cnot, &[1, 0]);
-    sim.apply_operation(mz.operation(outcome & 1), &[0]);
+    sim.apply_operation(&h, &[0])
+        .expect("operation should succeed");
+    sim.apply_operation(&cnot, &[1, 0])
+        .expect("operation should succeed");
+    sim.apply_operation(mz.operation(outcome & 1), &[0])
+        .expect("operation should succeed");
 
     if outcome == 0 || outcome == 3 {
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1]);
-        assert_approx_eq!(0.5, sim.trace_change());
-        sim.apply_operation(mz.operation(outcome & 1), &[0]);
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1]);
-        assert_approx_eq!(0.5, sim.trace_change());
+        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
+        assert_approx_eq!(0.5, sim.trace_change()?);
+        sim.apply_operation(mz.operation(outcome & 1), &[0])?;
+        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
+        assert_approx_eq!(0.5, sim.trace_change()?);
     } else {
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1]);
+        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
     }
+
+    Ok(())
 }
 
 #[test]
 fn bell_pair_projection_pass() {
-    bell_pair_projection(0);
-    bell_pair_projection(3);
+    bell_pair_projection(0).expect("test should pass");
+    bell_pair_projection(3).expect("test should pass");
 }
 
 #[test]
-#[should_panic(expected = "numerical error; failed to sample Kraus operators")]
+#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
 fn bell_pair_projection_panic_1() {
-    bell_pair_projection(1);
+    bell_pair_projection(1).expect("test should fail");
 }
 
 #[test]
-#[should_panic(expected = "numerical error; failed to sample Kraus operators")]
+#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
 fn bell_pair_projection_panic_2() {
-    bell_pair_projection(2);
+    bell_pair_projection(2).expect("test should fail");
 }
 
-fn two_qubit_gate(outcome: usize) {
+fn two_qubit_gate(outcome: usize) -> Result<(), Error> {
     assert!((0..4).contains(&outcome));
     let h = h();
     let m0 = operation!([1., 0.;
@@ -151,42 +163,44 @@ fn two_qubit_gate(outcome: usize) {
             let b2 = (outcome >> 1) != 0;
 
             let mut sim = StateVectorSimulator::new(2);
-            sim.apply_operation(&h, &[0]);
-            sim.apply_operation(&crx(0.3 * t), &[1, 0]);
-            sim.apply_operation(&crx(0.7 * t), &[1, 0]);
-            sim.apply_operation(if b1 { &m1 } else { &m0 }, &[0]);
+            sim.apply_operation(&h, &[0])?;
+            sim.apply_operation(&crx(0.3 * t), &[1, 0])?;
+            sim.apply_operation(&crx(0.7 * t), &[1, 0])?;
+            sim.apply_operation(if b1 { &m1 } else { &m0 }, &[0])?;
 
             if b1 {
-                assert_approx_eq!(0.5, sim.trace_change());
-                sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1]);
-                assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change());
-                sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1]);
-                assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change());
+                assert_approx_eq!(0.5, sim.trace_change()?);
+                sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
+                assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
+                sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
+                assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
             } else {
-                assert_eq!(0, sim.sample_instrument(&mz, &[1]));
-                assert_approx_eq!(0.5, sim.trace_change());
-                sim.apply_operation(&m1, &[1]);
+                assert_eq!(0, sim.sample_instrument(&mz, &[1])?);
+                assert_approx_eq!(0.5, sim.trace_change()?);
+                sim.apply_operation(&m1, &[1])?;
             }
         }
     }
+
+    Ok(())
 }
 
 #[test]
 fn two_qubit_gate_pass() {
-    two_qubit_gate(1);
-    two_qubit_gate(3);
+    two_qubit_gate(1).expect("test should pass");
+    two_qubit_gate(3).expect("test should pass");
 }
 
 #[test]
-#[should_panic(expected = "numerical error; failed to sample Kraus operators")]
+#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
 fn two_qubit_gate_panic_0() {
-    two_qubit_gate(0);
+    two_qubit_gate(0).expect("test should fail");
 }
 
 #[test]
-#[should_panic(expected = "numerical error; failed to sample Kraus operators")]
+#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
 fn two_qubit_gate_panic_2() {
-    two_qubit_gate(2);
+    two_qubit_gate(2).expect("test should fail");
 }
 
 #[test]
@@ -195,10 +209,15 @@ fn repeated_mz() {
     let mz = mz();
     let mut sim = StateVectorSimulator::new(1);
 
-    for _ in 0..20 {
-        sim.apply_operation(&h, &[0]);
-        let outcome_0 = sim.sample_instrument(&mz, &[0]);
-        let outcome_1 = sim.sample_instrument(&mz, &[0]);
+    for _ in 0..100 {
+        sim.apply_operation(&h, &[0])
+            .expect("operation should succeed");
+        let outcome_0 = sim
+            .sample_instrument(&mz, &[0])
+            .expect("measurement should succeed");
+        let outcome_1 = sim
+            .sample_instrument(&mz, &[0])
+            .expect("measurement should succeed");
         assert_eq!(outcome_0, outcome_1);
     }
 }
@@ -219,15 +238,18 @@ fn alternating_mz_and_mx() {
     ]);
 
     let mut sim = StateVectorSimulator::new(1);
-    sim.apply_operation(&h, &[0]);
+    sim.apply_operation(&h, &[0])
+        .expect("operation should succeed");
     let mut prob = 1.0;
 
     for _ in 0..5 {
-        sim.sample_instrument(&mz, &[0]);
+        sim.sample_instrument(&mz, &[0])
+            .expect("measurement should succeed");
         prob *= 0.5;
-        assert_approx_eq!(prob, sim.trace_change());
-        sim.sample_instrument(&mx, &[0]);
+        assert_approx_eq!(prob, sim.trace_change().expect("state should be valid"));
+        sim.sample_instrument(&mx, &[0])
+            .expect("measurement should succeed");
         prob *= 0.5;
-        assert_approx_eq!(prob, sim.trace_change());
+        assert_approx_eq!(prob, sim.trace_change().expect("state should be valid"));
     }
 }

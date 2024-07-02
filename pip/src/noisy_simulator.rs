@@ -5,7 +5,7 @@
 
 use noisy_simulator::{ComplexVector, SquareMatrix};
 use num_complex::Complex;
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
 pub(crate) fn register_noisy_sim_submodule(py: Python, parent_module: &PyModule) -> PyResult<()> {
@@ -55,6 +55,8 @@ fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
     list
 }
 
+pyo3::create_exception!(qsharp.noisy_sim, SimulationError, PyException);
+
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Operation(noisy_simulator::Operation);
@@ -100,6 +102,44 @@ impl Instrument {
 }
 
 #[pyclass]
+#[derive(Clone)]
+pub(crate) struct DensityMatrix {
+    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
+    dim: usize,
+    /// Number of qubits in the system.
+    number_of_qubits: usize,
+    /// Theoretical change in trace due to operations that have been applied so far.
+    trace_change: f64,
+    /// Vector storing the entries of the density matrix.
+    data: Vec<Complex<f64>>,
+}
+
+impl From<&noisy_simulator::DensityMatrix> for DensityMatrix {
+    fn from(dm: &noisy_simulator::DensityMatrix) -> Self {
+        Self {
+            dim: dm.dim(),
+            number_of_qubits: dm.number_of_qubits(),
+            trace_change: dm.trace_change(),
+            data: dm.data().iter().copied().collect::<Vec<_>>(),
+        }
+    }
+}
+
+impl TryInto<noisy_simulator::DensityMatrix> for DensityMatrix {
+    type Error = PyErr;
+
+    fn try_into(self) -> PyResult<noisy_simulator::DensityMatrix> {
+        noisy_simulator::DensityMatrix::try_from(
+            self.dim,
+            self.number_of_qubits,
+            self.trace_change,
+            ComplexVector::from_vec(self.data),
+        )
+        .ok_or(SimulationError::new_err("invalid density matrix"))
+    }
+}
+
+#[pyclass]
 pub(crate) struct DensityMatrixSimulator(noisy_simulator::DensityMatrixSimulator);
 
 #[pymethods]
@@ -115,14 +155,22 @@ impl DensityMatrixSimulator {
 
     /// Apply an arbitrary operation to given qubit ids.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) {
-        self.0.apply_operation(&operation.0, &qubits);
+    pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) -> PyResult<()> {
+        self.0
+            .apply_operation(&operation.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// Apply non selective evolution.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) {
-        self.0.apply_instrument(&instrument.0, &qubits);
+    pub fn apply_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: Vec<usize>,
+    ) -> PyResult<()> {
+        self.0
+            .apply_instrument(&instrument.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// Performs selective evolution under the given instrument.
@@ -130,24 +178,74 @@ impl DensityMatrixSimulator {
     ///
     /// Use this method to perform measurements on the quantum system.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) -> usize {
-        self.0.sample_instrument(&instrument.0, &qubits)
+    pub fn sample_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: Vec<usize>,
+    ) -> PyResult<usize> {
+        self.0
+            .sample_instrument(&instrument.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// For debugging and testing purposes.
-    pub fn get_state(&self) -> Vec<Complex<f64>> {
-        self.0.state().data().iter().copied().collect::<Vec<_>>()
+    pub fn get_state(&self) -> PyResult<DensityMatrix> {
+        match self.0.state() {
+            Ok(dm) => Ok(dm.into()),
+            Err(err) => Err(SimulationError::new_err(err.to_string())),
+        }
     }
 
     /// For debugging and testing purposes.
-    pub fn set_state(&mut self, state: Vec<Complex<f64>>) {
-        let data = ComplexVector::from_vec(state);
-        self.0.set_state_from_vec(data);
+    pub fn set_state(&mut self, state: DensityMatrix) -> PyResult<()> {
+        self.0
+            .set_state(state.try_into()?)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// For debugging and testing purposes.
-    pub fn set_trace(&mut self, trace: f64) {
-        self.0.set_trace(trace);
+    pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
+        self.0
+            .set_trace(trace)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct StateVector {
+    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
+    dim: usize,
+    /// Number of qubits in the system.
+    number_of_qubits: usize,
+    /// Theoretical change in trace due to operations that have been applied so far.
+    trace_change: f64,
+    /// Vector storing the entries of the density matrix.
+    data: Vec<Complex<f64>>,
+}
+
+impl From<&noisy_simulator::StateVector> for StateVector {
+    fn from(dm: &noisy_simulator::StateVector) -> Self {
+        Self {
+            dim: dm.dim(),
+            number_of_qubits: dm.number_of_qubits(),
+            trace_change: dm.trace_change(),
+            data: dm.data().iter().copied().collect::<Vec<_>>(),
+        }
+    }
+}
+
+impl TryInto<noisy_simulator::StateVector> for StateVector {
+    type Error = PyErr;
+
+    fn try_into(self) -> PyResult<noisy_simulator::StateVector> {
+        noisy_simulator::StateVector::try_from(
+            self.dim,
+            self.number_of_qubits,
+            self.trace_change,
+            ComplexVector::from_vec(self.data),
+        )
+        .ok_or(SimulationError::new_err("invalid density matrix"))
     }
 }
 
@@ -165,14 +263,22 @@ impl StateVectorSimulator {
 
     /// Apply an arbitrary operation to given qubit ids.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) {
-        self.0.apply_operation(&operation.0, &qubits);
+    pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) -> PyResult<()> {
+        self.0
+            .apply_operation(&operation.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// Apply non selective evolution.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) {
-        self.0.apply_instrument(&instrument.0, &qubits);
+    pub fn apply_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: Vec<usize>,
+    ) -> PyResult<()> {
+        self.0
+            .apply_instrument(&instrument.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// Performs selective evolution under the given instrument.
@@ -180,23 +286,35 @@ impl StateVectorSimulator {
     ///
     /// Use this method to perform measurements on the quantum system.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: Vec<usize>) -> usize {
-        self.0.sample_instrument(&instrument.0, &qubits)
+    pub fn sample_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: Vec<usize>,
+    ) -> PyResult<usize> {
+        self.0
+            .sample_instrument(&instrument.0, &qubits)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// For debugging and testing purposes.
-    pub fn get_state(&self) -> Vec<Complex<f64>> {
-        self.0.state().data().iter().copied().collect::<Vec<_>>()
+    pub fn get_state(&self) -> PyResult<StateVector> {
+        match self.0.state() {
+            Ok(dm) => Ok(dm.into()),
+            Err(err) => Err(SimulationError::new_err(err.to_string())),
+        }
     }
 
     /// For debugging and testing purposes.
-    pub fn set_state(&mut self, state: Vec<Complex<f64>>) {
-        let data = ComplexVector::from_vec(state);
-        self.0.set_state_from_vec(data);
+    pub fn set_state(&mut self, state: StateVector) -> PyResult<()> {
+        self.0
+            .set_state(state.try_into()?)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
     /// For debugging and testing purposes.
-    pub fn set_trace(&mut self, trace: f64) {
-        self.0.set_trace(trace);
+    pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
+        self.0
+            .set_trace(trace)
+            .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 }

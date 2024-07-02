@@ -787,6 +787,7 @@ dependencies = [
  "num-complex",
  "rand",
  "rayon",
+ "thiserror",
 ]
 
 [[package]]

@@ -8,8 +8,8 @@
 mod tests;
 
 use crate::{
-    instrument::Instrument, kernel::apply_kernel, operation::Operation, ComplexVector,
-    SquareMatrix, TOLERANCE,
+    handle_error, instrument::Instrument, kernel::apply_kernel, operation::Operation,
+    ComplexVector, Error, SquareMatrix, TOLERANCE,
 };
 
 /// A vector representing the state of a quantum system.
@@ -34,6 +34,28 @@ impl StateVector {
             number_of_qubits,
             trace_change: 1.0,
             data: state_vector,
+        }
+    }
+
+    /// Builds a `StateVector` from its raw fields. Returns `None` if
+    ///  the provided args don't represent a valid `StateVector`.
+    ///
+    /// This method is to be used from the PyO3 wrapper.
+    pub fn try_from(
+        dim: usize,
+        number_of_qubits: usize,
+        trace_change: f64,
+        data: ComplexVector,
+    ) -> Option<Self> {
+        if 1 << number_of_qubits != dim || data.len() != dim * dim {
+            None
+        } else {
+            Some(Self {
+                dim,
+                number_of_qubits,
+                trace_change,
+                data,
+            })
         }
     }
 
@@ -65,34 +87,36 @@ impl StateVector {
     /// Return theoretical change in trace due to operations that have been applied so far.
     /// In reality, the density matrix is always renormalized after instruments / operations
     /// have been applied.
-    fn trace_change(&self) -> f64 {
+    pub fn trace_change(&self) -> f64 {
         self.trace_change
     }
 
     /// Renormalizes the matrix such that the trace is 1.
-    fn renormalize(&mut self) {
-        let norm_squared = self.norm_squared();
-        assert!(norm_squared >= TOLERANCE, "arrived at probability-0 event");
-        let renormalization_factor = 1.0 / norm_squared.sqrt();
-        for entry in self.data.iter_mut() {
-            *entry *= renormalization_factor;
-        }
+    fn renormalize(&mut self) -> Result<(), Error> {
+        self.renormalize_with_norm_squared(self.norm_squared())
     }
 
     /// Renormalizes the matrix such that the trace is 1. Uses a precomputed `norm_squared`.
-    fn renormalize_with_norm(&mut self, norm_squared: f64) {
-        assert!(norm_squared >= TOLERANCE, "arrived at probability-0 event");
+    fn renormalize_with_norm_squared(&mut self, norm_squared: f64) -> Result<(), Error> {
+        if norm_squared < TOLERANCE {
+            return Err(Error::ProbabilityZeroEvent);
+        }
         let renormalization_factor = 1.0 / norm_squared.sqrt();
         for entry in self.data.iter_mut() {
             *entry *= renormalization_factor;
         }
+        Ok(())
     }
 
     /// Return the probability of a given effect.
-    fn effect_probability(&self, effect_matrix: &SquareMatrix, qubits: &[usize]) -> f64 {
+    fn effect_probability(
+        &self,
+        effect_matrix: &SquareMatrix,
+        qubits: &[usize],
+    ) -> Result<f64, Error> {
         let mut state_copy = self.data.clone();
-        apply_kernel(&mut state_copy, effect_matrix, qubits);
-        state_copy.dot(&self.data.conjugate()).re
+        apply_kernel(&mut state_copy, effect_matrix, qubits)?;
+        Ok(state_copy.dot(&self.data.conjugate()).re)
     }
 
     fn sample_kraus_operators(
@@ -101,14 +125,14 @@ impl StateVector {
         qubits: &[usize],
         renormalization_factor: f64,
         random_sample: f64,
-    ) {
+    ) -> Result<(), Error> {
         let mut summed_probability = 0.0;
         let mut last_non_zero_probability = 0.0;
         let mut last_non_zero_probability_index = 0;
 
         for (i, kraus_operator) in kraus_operators.iter().enumerate() {
             let mut state_copy = self.data.clone();
-            apply_kernel(&mut state_copy, kraus_operator, qubits);
+            apply_kernel(&mut state_copy, kraus_operator, qubits)?;
             let norm_squared = state_copy.norm_squared();
             let p = norm_squared / renormalization_factor;
             summed_probability += p;
@@ -117,71 +141,97 @@ impl StateVector {
                 last_non_zero_probability_index = i;
                 if summed_probability > random_sample {
                     self.data = state_copy;
-                    self.renormalize_with_norm(norm_squared);
-                    return;
+                    self.renormalize_with_norm_squared(norm_squared)?;
+                    return Ok(());
                 }
             }
         }
-        assert!(
-            summed_probability + TOLERANCE > random_sample
-                && last_non_zero_probability >= TOLERANCE,
-            "numerical error; failed to sample Kraus operators"
-        );
+        if summed_probability + TOLERANCE > random_sample && last_non_zero_probability >= TOLERANCE
+        {
+            return Err(Error::FailedToSampleKrausOperators);
+        }
         apply_kernel(
             &mut self.data,
             &kraus_operators[last_non_zero_probability_index],
             qubits,
-        );
-        self.renormalize();
+        )?;
+        self.renormalize()
     }
 }
 
 /// A quantum circuit simulator using a state vector.
 pub struct StateVectorSimulator {
-    state: StateVector,
+    /// A `StateVector` representing the current state of the quantum system.
+    state: Result<StateVector, Error>,
+    /// Dimension of the density matrix. We need this field to verify the size of the
+    /// quantum system in the `set_state` method in the case that `self.state == Err(...)`.
+    dim: usize,
 }
 
 impl StateVectorSimulator {
     /// Creates a new `TrajectorySimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
+        let state_vector = StateVector::new(number_of_qubits);
+        let dim = state_vector.dim();
         Self {
-            state: StateVector::new(number_of_qubits),
+            state: Ok(state_vector),
+            dim,
         }
     }
 
     /// Apply an operation to given qubit ids.
-    pub fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) {
+    pub fn apply_operation(
+        &mut self,
+        operation: &Operation,
+        qubits: &[usize],
+    ) -> Result<(), Error> {
         let renormalization_factor = self
             .state
-            .effect_probability(operation.effect_matrix(), qubits);
-        self.state.trace_change *= renormalization_factor;
-        self.state.sample_kraus_operators(
+            .as_mut()?
+            .effect_probability(operation.effect_matrix(), qubits)?;
+        self.state.as_mut()?.trace_change *= renormalization_factor;
+        if let Err(err) = self.state.as_mut()?.sample_kraus_operators(
             operation.kraus_operators(),
             qubits,
             renormalization_factor,
             rand::random(),
-        );
+        ) {
+            handle_error!(self, err);
+        };
+        Ok(())
     }
 
     /// Apply non selective evolution.
-    pub fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) {
+    pub fn apply_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: &[usize],
+    ) -> Result<(), Error> {
         let renormalization_factor = self
             .state
-            .effect_probability(instrument.total_effect(), qubits);
-        self.state.trace_change *= renormalization_factor;
-        self.state.sample_kraus_operators(
+            .as_mut()?
+            .effect_probability(instrument.total_effect(), qubits)?;
+        self.state.as_mut()?.trace_change *= renormalization_factor;
+        if let Err(err) = self.state.as_mut()?.sample_kraus_operators(
             instrument.non_selective_kraus_operators(),
             qubits,
             renormalization_factor,
             rand::random(),
-        );
+        ) {
+            handle_error!(self, err);
+        };
+        Ok(())
     }
 
     /// Performs selective evolution under the given instrument.
     /// Returns the index of the observed outcome.
     ///
     /// Use this method to perform measurements on the quantum system.
-    pub fn sample_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> usize {
+    pub fn sample_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: &[usize],
+    ) -> Result<usize, Error> {
         self.sample_instrument_with_distribution(instrument, qubits, rand::random())
     }
 
@@ -192,17 +242,19 @@ impl StateVectorSimulator {
         instrument: &Instrument,
         qubits: &[usize],
         random_sample: f64,
-    ) -> usize {
+    ) -> Result<usize, Error> {
         let renormalization_factor = self
             .state
-            .effect_probability(instrument.total_effect(), qubits);
+            .as_mut()?
+            .effect_probability(instrument.total_effect(), qubits)?;
         let mut last_non_zero_norm_squared = 0.0;
         let mut summed_probability = 0.0;
         let mut last_non_zero_outcome = 0;
         for outcome in 0..instrument.num_operations() {
             let norm_squared = self
                 .state
-                .effect_probability(instrument.operation(outcome).effect_matrix(), qubits);
+                .as_mut()?
+                .effect_probability(instrument.operation(outcome).effect_matrix(), qubits)?;
             let p = norm_squared / renormalization_factor;
             if p >= TOLERANCE {
                 last_non_zero_outcome = outcome;
@@ -214,84 +266,68 @@ impl StateVectorSimulator {
             }
         }
 
-        assert!(
-            summed_probability + TOLERANCE > random_sample
-                && last_non_zero_norm_squared >= TOLERANCE,
-            "Numerical error? No outcome found when sampling instrument."
-        );
-        self.state.trace_change *= last_non_zero_norm_squared;
+        if summed_probability + TOLERANCE <= random_sample || last_non_zero_norm_squared < TOLERANCE
+        {
+            let err = Error::FailedToSampleInstrumentOutcome;
+            handle_error!(self, err);
+        }
+
+        self.state.as_mut()?.trace_change *= last_non_zero_norm_squared;
         let rescaled_random_sample = ((summed_probability - random_sample)
             / last_non_zero_norm_squared
             * renormalization_factor)
             .max(0.0);
-        self.state.sample_kraus_operators(
+
+        if let Err(err) = self.state.as_mut()?.sample_kraus_operators(
             instrument
                 .operation(last_non_zero_outcome)
                 .kraus_operators(),
             qubits,
             last_non_zero_norm_squared,
             rescaled_random_sample,
-        );
-        last_non_zero_outcome
-    }
-
-    /// For debugging and testing purposes.
-    pub fn state(&self) -> &StateVector {
-        &self.state
-    }
-
-    /// For debugging and testing purposes.
-    pub fn set_state(&mut self, state: StateVector) {
-        assert!(
-            self.state.dim() == state.dim(),
-            "`state` is of the wrong size {} != {}",
-            self.state.dim(),
-            state.dim(),
-        );
-        assert!(
-            state.is_normalized(),
-            "`state` is not normalized, norm_squared is {}",
-            state.norm_squared()
-        );
-
-        self.state = state;
-    }
-
-    /// For debugging and testing purposes.
-    pub fn set_state_from_vec(&mut self, data: ComplexVector) {
-        let provided_len = data.len();
-        let self_len = self.state.data.len();
-        assert_eq!(
-            provided_len,
-            self_len,
-            "the provided state should have the same dimensions as the quantum system's state {} != {}",
-            provided_len,
-            self_len
-        );
-
-        let state = StateVector {
-            dim: self.state.dim(),
-            number_of_qubits: self.state.number_of_qubits(),
-            trace_change: self.trace_change(),
-            data,
+        ) {
+            handle_error!(self, err);
         };
+        Ok(last_non_zero_outcome)
+    }
 
-        self.set_state(state);
+    /// Returns the `StateVector` if the simulator is in a valid state.
+    pub fn state(&self) -> Result<&StateVector, &Error> {
+        self.state.as_ref()
+    }
+
+    /// Set state of the quantum system.
+    pub fn set_state(&mut self, new_state: StateVector) -> Result<(), Error> {
+        if self.dim != new_state.dim() {
+            return Err(Error::InvalidState(format!(
+                "the provided state should have the same dimensions as the quantum system's state, {} != {}",
+                self.dim,
+                new_state.dim(),
+            )));
+        }
+        if !new_state.is_normalized() {
+            return Err(Error::InvalidState(format!(
+                "`state` is not normalized, norm_squared is {}",
+                new_state.norm_squared()
+            )));
+        }
+        self.state = Ok(new_state);
+        Ok(())
     }
 
     /// Return theoretical change in trace due to operations that have been applied so far
     /// In reality, the density matrix is always renormalized after instruments/operations
     /// have been applied.
-    pub fn trace_change(&self) -> f64 {
-        self.state.trace_change()
+    pub fn trace_change(&self) -> Result<f64, Error> {
+        Ok(self.state.as_ref()?.trace_change())
     }
 
-    /// For debugging and testing purposes.
-    pub fn set_trace(&mut self, trace: f64) {
-        assert!(
-            trace >= TOLERANCE && (trace - 1.) <= TOLERANCE,
-            "Trace needs to be between 0 and 1, but it is {trace}"
-        );
-        self.state.trace_change = trace;
+    /// Set the trace of the quantum system.
+    pub fn set_trace(&mut self, trace: f64) -> Result<(), Error> {
+        if trace < TOLERANCE || (trace - 1.) > TOLERANCE {
+            return Err(Error::NotNormalized(trace));
+        }
+        self.state.as_mut()?.trace_change = trace;
+        Ok(())
     }
 }

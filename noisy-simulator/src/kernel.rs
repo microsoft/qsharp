@@ -4,23 +4,34 @@
 //! This module contains the apply_kernel function used by the `DensityMatrixSimualtor`
 //! and the `TrajectorySimulator`.
 
-use crate::{ComplexVector, SquareMatrix};
+use crate::{ComplexVector, Error, SquareMatrix};
 use nalgebra::Complex;
 
 /// This function extracts the relevant entries from the `state_vector` into its own vector.
 /// Then it applies the `operation_matrix` to this extracted entries.
 /// Finally it stores the results back into the state vector.
-pub fn apply_kernel(state: &mut ComplexVector, operation_matrix: &SquareMatrix, qubits: &[usize]) {
+///
+/// Errors: If the `operation_matrix` doesn't have the right dimension for the number of target `qubits`,
+/// this function will return `Error::MatrixVecDimensionMismatch`.
+pub fn apply_kernel(
+    state: &mut ComplexVector,
+    operation_matrix: &SquareMatrix,
+    qubits: &[usize],
+) -> Result<(), Error> {
     // Construct a mask that has 1s at locations given by the target `qubits` ids.
     let mask = make_mask(state, qubits);
 
     // Number of elements in small matrix-vector multiplications (dimension of gate matrix).
     let num_elements: usize = 1 << qubits.len();
     let (nrows, ncols) = operation_matrix.shape();
-    assert!(
-        num_elements == ncols,
-        "matrix ⋅ vector multiplication mismatch; matrix is of dimension ({nrows} {ncols}) but vector has {num_elements} entries"
-    );
+
+    if num_elements != ncols {
+        return Err(Error::MatrixVecDimensionMismatch {
+            nrows,
+            ncols,
+            vec_dim: num_elements,
+        });
+    }
 
     // Compute all index offsets of the entries to load.
     // E.g., for a 2-qubit gate acting on qubits [k1,k2],
@@ -62,6 +73,8 @@ pub fn apply_kernel(state: &mut ComplexVector, operation_matrix: &SquareMatrix, 
             }
         }
     }
+
+    Ok(())
 }
 
 /// Construct a mask that has 1s at locations given by the target `qubits` ids.

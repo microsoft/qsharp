@@ -116,4 +116,5 @@ impl Operation {
     }
 }
 
-pub use operation;
+#[cfg(test)]
+pub(crate) use operation;
