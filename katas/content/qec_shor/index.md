@@ -25,7 +25,7 @@ This kata introduces you to the basic concepts of quantum error correction using
     "title": "Noise in Classical and Quantum Systems"
 })
 
-Any quantum system that can carry out quantum computation is inherently noisy. 
+Any quantum system we can use to carry out quantum computation is inherently noisy. 
 Quantum noise can be caused by different physical processes, depending on the type of particle or device you use as a qubit.
 From the computation point of view, the presence of noise in the quantum system means that its state can suffer from random errors, and thus end up in a different state from the state you're relying on to do your computations. 
 This makes computations unreliable very fast, since the effects of noise accumulate quickly to make computation results effectively random.
