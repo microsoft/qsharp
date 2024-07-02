@@ -164,7 +164,7 @@ $$U_f \left(\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \ket{x} \right) = \frac{1}{\
 
 ### Step 3. Apply Hadamard transform to each qubit again
 
-In this step, you don't worry about the whole expression for the state of the qubits after applying the $H$ gates to them; instead you calculate only the resulting amplitude of the basis state $\ket{0}^{\otimes N}$.
+In this step, you don't need to worry about the whole expression for the state of the qubits after applying the $H$ gates to them; it's enough to calculate only the resulting amplitude of the basis state $\ket{0}^{\otimes N}$.
 
 Consider one of the basis states $\ket{x}$ in the expression $\sum_{x=0}^{2^N-1} (-1)^{f(x)} \ket{x}$.  
 It can be written as $\ket{x} = \ket{x_{0} } \otimes \cdots \otimes \ket{x_{N-1}}$, where each $\ket{x_k}$ is either $\ket{0}$ or $\ket{1}$.  
