@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, ops::Sub};
 
 use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashMap;
@@ -32,9 +32,9 @@ struct BlockQubitMap {
 pub fn reindex_qubits(program: &mut Program) {
     validate_assumptions(program);
 
-    let (used_mz, mz_id) = match find_callable(program, "__quantum__qis__mz__body") {
+    let (used_m, m_id) = match find_callable(program, "__quantum__qis__m__body") {
         Some(id) => (true, id),
-        None => (false, add_mz(program)),
+        None => (false, add_m(program)),
     };
     let (used_cx, cx_id) = match find_callable(program, "__quantum__qis__cx__body") {
         Some(id) => (true, id),
@@ -42,12 +42,16 @@ pub fn reindex_qubits(program: &mut Program) {
     };
     let mresetz_id = find_callable(program, "__quantum__qis__mresetz__body");
     let mut pass = ReindexQubitPass {
-        used_mz,
-        mz_id,
+        used_m,
+        m_id,
         used_cx,
         cx_id,
         mresetz_id,
-        highest_used_id: program.num_qubits - 1,
+        // For this calculation, qubit IDs can never be lower than zero but a program may not use
+        // any qubits. Since `highest_used_id` is only needed for remapping pass and a program without any
+        // qubits won't do any remapping, it's safe to treat this as 1 and let `highest_used_id` default
+        // to zero.
+        highest_used_id: program.num_qubits.max(1).sub(1),
     };
 
     let pred_map = build_predecessors_map(program);
@@ -124,8 +128,8 @@ pub fn reindex_qubits(program: &mut Program) {
         .retain(|id, callable| callable.call_type != CallableType::Reset && Some(id) != mresetz_id);
 
     // If mz or cx were added but not used, remove them.
-    if !pass.used_mz {
-        program.callables.remove(mz_id);
+    if !pass.used_m {
+        program.callables.remove(m_id);
     }
     if !pass.used_cx {
         program.callables.remove(cx_id);
@@ -133,8 +137,8 @@ pub fn reindex_qubits(program: &mut Program) {
 }
 
 struct ReindexQubitPass {
-    used_mz: bool,
-    mz_id: CallableId,
+    used_m: bool,
+    m_id: CallableId,
     used_cx: bool,
     cx_id: CallableId,
     mresetz_id: Option<CallableId>,
@@ -182,7 +186,7 @@ impl ReindexQubitPass {
                         })
                         .collect::<Vec<_>>();
 
-                    if call_id == self.mz_id {
+                    if call_id == self.m_id {
                         // Since the call was to mz, the new qubit replacing this one must be conditionally flipped.
                         // Achieve this by adding a CNOT gate before the mz call.
                         self.used_cx = true;
@@ -199,8 +203,8 @@ impl ReindexQubitPass {
 
                     // If the call was to mresetz, replace with mz.
                     let call_id = if Some(call_id) == self.mresetz_id {
-                        self.used_mz = true;
-                        self.mz_id
+                        self.used_m = true;
+                        self.m_id
                     } else {
                         call_id
                     };
@@ -263,8 +267,8 @@ fn find_callable(program: &Program, name: &str) -> Option<CallableId> {
     None
 }
 
-fn add_mz(program: &mut Program) -> CallableId {
-    let mz_id = CallableId(
+fn add_m(program: &mut Program) -> CallableId {
+    let m_id = CallableId(
         program
             .callables
             .iter()
@@ -273,8 +277,8 @@ fn add_mz(program: &mut Program) -> CallableId {
             .expect("should be at least one callable")
             + 1,
     );
-    program.callables.insert(mz_id, builder::mz_decl());
-    mz_id
+    program.callables.insert(m_id, builder::m_decl());
+    m_id
 }
 
 fn add_cx(program: &mut Program) -> CallableId {

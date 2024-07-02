@@ -76,7 +76,7 @@ pub(crate) trait AstLintPass {
 macro_rules! declare_ast_lints {
     ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr) ),* $(,)?) => {
         // Declare the structs representing each lint.
-        use crate::{Lint, LintLevel, linter::ast::AstLintPass};
+        use crate::{Lint, LintKind, LintLevel, linter::ast::AstLintPass};
         $(declare_ast_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help})*
 
         // This is a silly wrapper module to avoid contaminating the environment
@@ -108,24 +108,34 @@ macro_rules! declare_ast_lints {
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
         pub(crate) struct $lint_name {
             level: LintLevel,
-            message: &'static str,
-            help: &'static str,
         }
 
         impl Default for $lint_name {
             fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help }
+                Self { level: Self::DEFAULT_LEVEL }
             }
         }
 
         impl From<LintLevel> for $lint_name {
             fn from(value: LintLevel) -> Self {
-                Self { level: value, message: $msg, help: $help }
+                Self { level: value }
             }
         }
 
         impl $lint_name {
             const DEFAULT_LEVEL: LintLevel = $default_level;
+
+            const fn lint_kind(&self) -> LintKind {
+                LintKind::Ast(AstLint::$lint_name)
+            }
+
+            const fn message(&self) -> &'static str {
+                $msg
+            }
+
+            const fn help(&self) -> &'static str {
+                $help
+            }
         }
     };
 
@@ -133,10 +143,14 @@ macro_rules! declare_ast_lints {
     (@CONFIG_ENUM $($lint_name:ident),*) => {
         use serde::{Deserialize, Serialize};
 
-        #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+        /// An enum listing all existing AST lints.
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
         #[serde(rename_all = "camelCase")]
         pub enum AstLint {
-            $($lint_name),*
+            $(
+                #[doc = stringify!($lint_name)]
+                $lint_name
+            ),*
         }
     };
 

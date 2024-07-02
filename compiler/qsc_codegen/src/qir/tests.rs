@@ -29,8 +29,8 @@ fn single_qubit_rotation_decl_works() {
 
 #[test]
 fn measurement_decl_works() {
-    let decl = builder::mz_decl();
-    expect!["declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1"]
+    let decl = builder::m_decl();
+    expect!["declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
@@ -135,7 +135,7 @@ fn bell_program() {
 
         declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
 
-        declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
         declare void @__quantum__rt__array_record_output(i64, i8*)
 
@@ -145,8 +145,8 @@ fn bell_program() {
         block_0:
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
           call void @__quantum__rt__array_record_output(i64 2, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)

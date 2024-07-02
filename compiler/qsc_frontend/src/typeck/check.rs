@@ -243,6 +243,34 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
                 self.checker.globals.insert(item, cons);
             }
+            ast::ItemKind::Struct(decl) => {
+                let span = item.span;
+                let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
+                    panic!("type should have item ID");
+                };
+
+                let def = convert::ast_struct_decl_as_ty_def(decl);
+
+                let (cons, cons_errors) =
+                    convert::ast_ty_def_cons(self.names, &decl.name.name, item, &def);
+                let (udt_def, def_errors) = convert::ast_ty_def(self.names, &def);
+                self.checker.errors.extend(
+                    cons_errors
+                        .into_iter()
+                        .chain(def_errors)
+                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
+                );
+
+                self.checker.table.udts.insert(
+                    item,
+                    Udt {
+                        name: decl.name.name.clone(),
+                        span,
+                        definition: udt_def,
+                    },
+                );
+                self.checker.globals.insert(item, cons);
+            }
             _ => {}
         }
 

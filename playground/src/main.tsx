@@ -6,20 +6,25 @@ import "modern-normalize/modern-normalize.css";
 import "./main.css";
 
 import { render } from "preact";
-import {
+
+import type {
   CompilerState,
+  VSDiagnostic,
+  LogLevel,
+  ILanguageService,
+} from "qsharp-lang";
+
+import {
   QscEventTarget,
   getCompilerWorker,
   loadWasmModule,
-  getAllKatas,
-  Kata,
-  VSDiagnostic,
   log,
-  LogLevel,
   samples,
   getLanguageServiceWorker,
-  ILanguageService,
 } from "qsharp-lang";
+
+// The playground Katas viewer uses the Markdown version of the katas
+import { Kata, getAllKatas } from "qsharp-lang/katas-md";
 
 import { Nav } from "./nav.js";
 import { Editor, getProfile } from "./editor.js";
@@ -34,7 +39,9 @@ import {
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
+  lsToMonacoWorkspaceEdit,
   monacoPositionToLsPosition,
+  monacoRangetoLsRange,
 } from "./utils.js";
 
 // Set up the Markdown renderer with KaTeX support
@@ -220,7 +227,7 @@ async function loaded() {
 
   await loadWasmModule(modulePath);
 
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
@@ -422,20 +429,7 @@ function registerMonacoLanguageServiceProviders(
         newName,
       );
       if (!rename) return null;
-
-      const edits = rename.changes.flatMap(([uri, edits]) => {
-        return edits.map((edit) => {
-          const textEdit: monaco.languages.TextEdit = {
-            range: lsRangeToMonacoRange(edit.range),
-            text: edit.newText,
-          };
-          return {
-            resource: monaco.Uri.parse(uri),
-            textEdit: textEdit,
-          } as monaco.languages.IWorkspaceTextEdit;
-        });
-      });
-      return { edits: edits } as monaco.languages.WorkspaceEdit;
+      return lsToMonacoWorkspaceEdit(rename);
     },
     resolveRenameLocation: async (
       model: monaco.editor.ITextModel,
@@ -492,6 +486,37 @@ function registerMonacoLanguageServiceProviders(
       range: monaco.Range,
     ) => {
       return getFormatChanges(model, range);
+    },
+  });
+
+  monaco.languages.registerCodeActionProvider("qsharp", {
+    provideCodeActions: async (
+      model: monaco.editor.ITextModel,
+      range: monaco.Range,
+    ) => {
+      const lsCodeActions = await languageService.getCodeActions(
+        model.uri.toString(),
+        monacoRangetoLsRange(range),
+      );
+
+      const codeActions = lsCodeActions.map((lsCodeAction) => {
+        let edit;
+        if (lsCodeAction.edit) {
+          edit = lsToMonacoWorkspaceEdit(lsCodeAction.edit);
+        }
+
+        return {
+          title: lsCodeAction.title,
+          edit: edit,
+          kind: lsCodeAction.kind,
+          isPreferred: lsCodeAction.isPreferred,
+        } as monaco.languages.CodeAction;
+      });
+
+      return {
+        actions: codeActions,
+        dispose: () => {},
+      } as monaco.languages.CodeActionList;
     },
   });
 }

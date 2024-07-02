@@ -43,7 +43,7 @@ fn one_callable() {
                             output: Type 7 [35-39]: Path: Path 8 [35-39] (Ident 9 [35-39] "Unit")
                             body: Block: Block 10 [40-42]: <empty>
             names:
-            node_id:2,node_id:5,node_id:8,
+            node_id:1,node_id:5,node_id:8,
             terms:
             node_id:6,node_id:10,
             locals:
@@ -67,9 +67,23 @@ fn one_callable() {
                             hi: 44,
                         },
                         kind: Namespace(
-                            "Foo",
+                            NamespaceId(
+                                9,
+                            ),
                         ),
-                        opens: {},
+                        opens: {
+                            []: [
+                                Open {
+                                    namespace: NamespaceId(
+                                        9,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 13,
+                                    },
+                                },
+                            ],
+                        },
                         tys: {},
                         terms: {},
                         vars: {},

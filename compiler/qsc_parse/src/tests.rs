@@ -7,6 +7,8 @@ use expect_test::Expect;
 use qsc_data_structures::language_features::LanguageFeatures;
 use std::fmt::Display;
 
+mod implicit_namespace;
+
 pub(super) fn check<T: Display>(parser: impl Parser<T>, input: &str, expect: &Expect) {
     check_map(parser, input, expect, ToString::to_string);
 }

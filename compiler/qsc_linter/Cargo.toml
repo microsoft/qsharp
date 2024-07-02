@@ -14,11 +14,13 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_frontend = { path = "../qsc_frontend" }
+qsc_doc_gen = { path = "../qsc_doc_gen" }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+indoc = { workspace = true }
 qsc_parse = { path = "../qsc_parse" }
 serde_json = { workspace = true }
 qsc = { path = "../qsc" }

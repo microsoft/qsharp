@@ -16,7 +16,7 @@ fn test_switch_to_non_comparable_code_distance_indexes_basic() {
         &left,
         &right,
         3
-    ),);
+    ));
     assert_eq!(current, [1, 4, 4]);
 }
 
@@ -31,7 +31,7 @@ fn test_switch_to_non_comparable_code_distance_indexes_overflow() {
         &left,
         &right,
         3
-    ),);
+    ));
     assert_eq!(current, [2, 2, 3]);
 }
 
@@ -45,7 +45,7 @@ fn test_switch_to_non_comparable_code_distance_indexes_finding_left() {
         &left,
         &right,
         5
-    ),);
+    ));
     assert_eq!(current, [2, 2, 3, 3, 3]);
 }
 
@@ -59,7 +59,7 @@ fn test_switch_to_non_comparable_code_distance_indexes_all_max() {
         &left,
         &right,
         3
-    ),);
+    ));
 }
 
 #[test]

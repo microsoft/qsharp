@@ -13,6 +13,7 @@ use qsc_hir::{
 };
 
 use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
+use crate::CORE_NAMESPACE;
 
 #[cfg(test)]
 mod tests;
@@ -31,7 +32,6 @@ impl LoopUni<'_> {
         span: Span,
     ) -> Expr {
         let cond_span = cond.span;
-
         let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(Prim::Bool), cond_span);
         let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
@@ -117,6 +117,7 @@ impl LoopUni<'_> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn visit_for_array(
         &mut self,
         iter: Pat,
@@ -132,9 +133,13 @@ impl LoopUni<'_> {
         let Ty::Array(item_ty) = &array_id.ty else {
             panic!("iterator should have array type");
         };
+        let ns = self
+            .core
+            .find_namespace(CORE_NAMESPACE.iter().copied())
+            .expect("prelude namespaces should exist");
         let mut len_callee = create_gen_core_ref(
             self.core,
-            "Microsoft.Quantum.Core",
+            ns,
             "Length",
             vec![GenericArg::Ty((**item_ty).clone())],
             array_id.span,

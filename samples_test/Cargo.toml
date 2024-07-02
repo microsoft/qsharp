@@ -1,0 +1,15 @@
+[package]
+name = "samples_test"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dev-dependencies]
+expect-test = { workspace = true }
+qsc = { path = "../compiler/qsc" }
+
+[lints]
+workspace = true

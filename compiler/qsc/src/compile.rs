@@ -29,10 +29,11 @@ pub enum ErrorKind {
     Pass(#[from] qsc_passes::Error),
 
     /// `Lint` variant represents lints generated during the linting stage. These diagnostics are
-    /// typically emited from the language server and happens after all other compilation passes.
+    /// typically emitted from the language server and happens after all other compilation passes.
     Lint(#[from] qsc_linter::Lint),
 }
 
+/// Compiles a package from its AST representation.
 #[must_use]
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
@@ -51,9 +52,10 @@ pub fn compile_ast(
         capabilities,
         vec![],
     );
-    process_compile_unit(store, package_type, capabilities, unit)
+    process_compile_unit(store, package_type, unit)
 }
 
+/// Compiles a package from its source representation.
 #[must_use]
 pub fn compile(
     store: &PackageStore,
@@ -70,7 +72,7 @@ pub fn compile(
         capabilities,
         language_features,
     );
-    process_compile_unit(store, package_type, capabilities, unit)
+    process_compile_unit(store, package_type, unit)
 }
 
 #[must_use]
@@ -78,7 +80,6 @@ pub fn compile(
 fn process_compile_unit(
     store: &PackageStore,
     package_type: PackageType,
-    capabilities: TargetCapabilityFlags,
     mut unit: CompileUnit,
 ) -> (CompileUnit, Vec<Error>) {
     let mut errors = Vec::new();
@@ -87,7 +88,7 @@ fn process_compile_unit(
     }
 
     if errors.is_empty() {
-        for error in run_default_passes(store.core(), &mut unit, package_type, capabilities) {
+        for error in run_default_passes(store.core(), &mut unit, package_type) {
             errors.push(WithSource::from_map(&unit.sources, error.into()));
         }
     }
@@ -124,7 +125,7 @@ pub fn core() -> CompileUnit {
 #[must_use]
 pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store, capabilities);
-    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, capabilities);
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     if pass_errors.is_empty() {
         unit
     } else {

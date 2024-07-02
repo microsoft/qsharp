@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod code_action;
 pub mod code_lens;
 mod compilation;
 pub mod completion;
@@ -8,7 +9,6 @@ pub mod definition;
 pub mod format;
 pub mod hover;
 mod name_locator;
-mod project_system;
 pub mod protocol;
 mod qsc_utils;
 pub mod references;
@@ -25,16 +25,16 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp, TextEdit,
-    WorkspaceConfigurationUpdate,
+    CodeAction, CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
+    TextEdit, WorkspaceConfigurationUpdate,
 };
 use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
 };
-use qsc_project::JSFileEntry;
+use qsc_project::JSProjectHost;
 use state::{CompilationState, CompilationStateUpdater};
-use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 pub struct LanguageService {
     /// All [`Position`]s and [`Range`]s will be mapped using this encoding.
@@ -67,10 +67,7 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
-        read_file: impl Fn(String) -> Pin<Box<dyn Future<Output = (Arc<str>, Arc<str>)>>> + 'a,
-        list_directory: impl Fn(String) -> Pin<Box<dyn Future<Output = Vec<JSFileEntry>>>> + 'a,
-        get_manifest: impl Fn(String) -> Pin<Box<dyn Future<Output = Option<qsc_project::ManifestDescriptor>>>>
-            + 'a,
+        project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
         let (send, recv) = unbounded();
@@ -78,9 +75,7 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
-                read_file,
-                list_directory,
-                get_manifest,
+                project_host,
             ),
             recv,
         };
@@ -176,6 +171,16 @@ impl LanguageService {
         self.send_update(Update::CloseNotebookDocument {
             notebook_uri: notebook_uri.into(),
         });
+    }
+
+    #[must_use]
+    pub fn get_code_actions(&self, uri: &str, range: Range) -> Vec<CodeAction> {
+        self.document_op(
+            code_action::get_code_actions,
+            "get_code_actions",
+            uri,
+            range,
+        )
     }
 
     /// LSP: textDocument/completion

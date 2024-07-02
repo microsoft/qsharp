@@ -64,9 +64,9 @@ pub fn rx_decl() -> Callable {
 }
 
 #[must_use]
-pub fn mz_decl() -> Callable {
+pub fn m_decl() -> Callable {
     Callable {
-        name: "__quantum__qis__mz__body".to_string(),
+        name: "__quantum__qis__m__body".to_string(),
         input_type: vec![Ty::Qubit, Ty::Result],
         output_type: None,
         body: None,
@@ -121,7 +121,7 @@ pub fn result_record_decl() -> Callable {
 #[must_use]
 pub fn int_record_decl() -> Callable {
     Callable {
-        name: "__quantum__rt__integer_record_output".to_string(),
+        name: "__quantum__rt__int_record_output".to_string(),
         input_type: vec![Ty::Integer, Ty::Pointer],
         output_type: None,
         body: None,
@@ -185,7 +185,7 @@ pub fn bell_program() -> Program {
     let mut program = Program::default();
     program.callables.insert(CallableId(0), h_decl());
     program.callables.insert(CallableId(1), cx_decl());
-    program.callables.insert(CallableId(2), mz_decl());
+    program.callables.insert(CallableId(2), m_decl());
     program.callables.insert(CallableId(3), array_record_decl());
     program
         .callables

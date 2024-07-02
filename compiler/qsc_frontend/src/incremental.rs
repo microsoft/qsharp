@@ -255,6 +255,7 @@ impl Compiler {
         self.resolver
             .extend_dropped_names(cond_compile.into_names());
         self.resolver.bind_fragments(ast, &mut unit.assigner);
+        self.resolver.bind_and_resolve_imports_and_exports(ast);
         self.resolver.with(&mut unit.assigner).visit_package(ast);
 
         self.checker.check_package(self.resolver.names(), ast);

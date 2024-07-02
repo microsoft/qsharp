@@ -3,7 +3,9 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, SourceMap};
+use qsc::{interpret, LanguageFeatures, SourceMap, TargetCapabilityFlags};
+
+use crate::_get_qir;
 
 use super::run_internal_with_features;
 
@@ -11,7 +13,13 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
-    run_internal_with_features(sources, event_cb, shots, LanguageFeatures::default())
+    run_internal_with_features(
+        sources,
+        event_cb,
+        shots,
+        LanguageFeatures::default(),
+        TargetCapabilityFlags::all(),
+    )
 }
 
 #[test]
@@ -39,9 +47,10 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(
+    let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
+        TargetCapabilityFlags::empty(),
     );
     assert!(result.is_ok());
 }
@@ -184,7 +193,7 @@ fn test_entrypoint() {
 #[test]
 fn test_missing_entrypoint() {
     let code = "namespace Sample {
-        operation main() : Result[] {
+        operation test() : Result[] {
             use q1 = Qubit();
             let m1 = M(q1);
             return [m1];
@@ -194,7 +203,7 @@ fn test_missing_entrypoint() {
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
         },
         1,
     );
@@ -440,13 +449,13 @@ fn test_runtime_error_default_span() {
         1,
     )
     .expect("code should compile and run");
-    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
+    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"qsharp-library-source:core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
 #[test]
 fn test_doc_gen() {
-    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    let docs = qsc_doc_gen::generate_docs::generate_docs(None, None, None);
     assert!(docs.len() > 100);
     for (name, metadata, contents) in docs {
         // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
@@ -462,4 +471,25 @@ fn test_doc_gen() {
             assert!(text.starts_with("---\n"));
         }
     }
+}
+
+#[test]
+fn code_with_errors_returns_errors() {
+    let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit()
+                let pi_over_two = 4.0 / 2.0;
+            }
+        }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+
+    expect![[r#"
+        Err(
+            "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
+        )
+    "#]]
+    .assert_debug_eq(&_get_qir(sources, language_features, capabilities));
 }

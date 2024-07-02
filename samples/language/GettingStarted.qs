@@ -6,8 +6,7 @@
 namespace MyQuantumProgram {
 
     @EntryPoint()
-    operation Main() : Result[] {
+    operation Main() : Unit {
         // TODO: Write your Q# code here.
-        return [];
     }
 }

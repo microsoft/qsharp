@@ -11,11 +11,11 @@ use super::tests_common::{
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
-    USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
-    USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE, USE_ENTRY_POINT_STATIC_BIG_INT,
-    USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE, USE_ENTRY_POINT_STATIC_INT,
-    USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
+    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP, USE_DYNAMIC_OPERATION,
+    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_RHS_EXP_BINOP,
+    USE_DYNAMIC_STRING, USE_DYNAMIC_UDT, USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
+    USE_ENTRY_POINT_STATIC_BIG_INT, USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE,
+    USE_ENTRY_POINT_STATIC_INT, USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
     USE_ENTRY_POINT_STATIC_RANGE, USE_ENTRY_POINT_STATIC_STRING,
 };
 use expect_test::{expect, Expect};
@@ -428,24 +428,11 @@ fn call_to_dynamic_operation_yields_errors() {
 }
 
 #[test]
-fn call_to_unresolved_yields_errors() {
+fn call_to_unresolved_allowed() {
     check_profile(
         CALL_UNRESOLVED_FUNCTION,
         &expect![[r#"
-            [
-                UseOfDynamicDouble(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-                CallToUnresolvedCallee(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }
@@ -482,6 +469,58 @@ fn use_of_dynamic_index_yields_errors() {
                     Span {
                         lo: 319,
                         hi: 323,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_lhs_exp_binop_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_LHS_EXP_BINOP,
+        &expect![[r#"
+            [
+                UseOfDynamicInt(
+                    Span {
+                        lo: 104,
+                        hi: 124,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 138,
+                        hi: 143,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_rhs_exp_binop_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_RHS_EXP_BINOP,
+        &expect![[r#"
+            [
+                UseOfDynamicInt(
+                    Span {
+                        lo: 104,
+                        hi: 124,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 138,
+                        hi: 143,
+                    },
+                ),
+                UseOfDynamicExponent(
+                    Span {
+                        lo: 138,
+                        hi: 143,
                     },
                 ),
             ]
@@ -547,18 +586,11 @@ fn loop_with_dynamic_condition_yields_errors() {
 }
 
 #[test]
-fn use_closure_yields_errors() {
+fn use_closure_allowed() {
     check_profile(
         USE_CLOSURE_FUNCTION,
         &expect![[r#"
-            [
-                UseOfClosure(
-                    Span {
-                        lo: 149,
-                        hi: 168,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }
@@ -681,12 +713,6 @@ fn use_of_static_int_in_tuple_return_from_entry_point_errors() {
         USE_ENTRY_POINT_STATIC_INT_IN_TUPLE,
         &expect![[r#"
             [
-                UseOfDynamicInt(
-                    Span {
-                        lo: 63,
-                        hi: 66,
-                    },
-                ),
                 UseOfIntOutput(
                     Span {
                         lo: 63,
@@ -704,12 +730,6 @@ fn use_of_static_sized_array_in_tuple_error() {
         USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
         &expect![[r#"
             [
-                UseOfDynamicInt(
-                    Span {
-                        lo: 63,
-                        hi: 66,
-                    },
-                ),
                 UseOfIntOutput(
                     Span {
                         lo: 63,

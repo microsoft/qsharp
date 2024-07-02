@@ -20,6 +20,8 @@
     "./compiler-worker": "./dist/compiler/worker-browser.js",
     "./language-service-worker": "./dist/language-service/worker-browser.js",
     "./debug-service-worker": "./dist/debug-service/worker-browser.js",
+    "./katas": "./dist/katas.js",
+    "./katas-md": "./dist/katas-md.js",
     "./ux": "./ux/index.ts"
   },
   "scripts": {

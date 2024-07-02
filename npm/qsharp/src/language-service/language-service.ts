@@ -2,12 +2,14 @@
 // Licensed under the MIT License.
 
 import type {
+  ICodeAction,
   ICodeLens,
   ICompletionList,
   IHover,
   ILocation,
   INotebookMetadata,
   IPosition,
+  IRange,
   ISignatureHelp,
   ITextEdit,
   IWorkspaceConfiguration,
@@ -15,6 +17,7 @@ import type {
   LanguageService,
   VSDiagnostic,
 } from "../../lib/web/qsc_wasm.js";
+import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
 import {
   IServiceEventTarget,
@@ -50,6 +53,7 @@ export interface ILanguageService {
   ): Promise<void>;
   closeDocument(uri: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
+  getCodeActions(documentUri: string, range: IRange): Promise<ICodeAction[]>;
   getCompletions(
     documentUri: string,
     position: IPosition,
@@ -97,6 +101,7 @@ export interface ILanguageService {
 }
 
 export const qsharpLibraryUriScheme = "qsharp-library-source";
+export const qsharpGithubUriScheme = "qsharp-github-source";
 
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
@@ -105,31 +110,25 @@ export class QSharpLanguageService implements ILanguageService {
   private eventHandler =
     new EventTarget() as IServiceEventTarget<LanguageServiceEvent>;
 
-  private readFile: (uri: string) => Promise<string | null>;
-
   private backgroundWork: Promise<void>;
 
   constructor(
-    wasm: QscWasm,
-    readFile: (uri: string) => Promise<string | null> = () =>
-      Promise.resolve(null),
-    listDir: (uri: string) => Promise<[string, number][]> = () =>
-      Promise.resolve([]),
-    getManifest: (uri: string) => Promise<{
-      manifestDirectory: string;
-    } | null> = () => Promise.resolve(null),
+    private wasm: QscWasm,
+    host: IProjectHost = {
+      readFile: async () => null,
+      listDirectory: async () => [],
+      resolvePath: async () => null,
+      fetchGithub: async () => "",
+      findManifestDirectory: async () => null,
+    },
   ) {
     log.info("Constructing a QSharpLanguageService instance");
     this.languageService = new wasm.LanguageService();
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
-      readFile,
-      listDir,
-      getManifest,
+      host,
     );
-
-    this.readFile = readFile;
   }
 
   async updateConfiguration(config: IWorkspaceConfiguration): Promise<void> {
@@ -159,6 +158,13 @@ export class QSharpLanguageService implements ILanguageService {
 
   async closeNotebookDocument(documentUri: string): Promise<void> {
     this.languageService.close_notebook_document(documentUri);
+  }
+
+  async getCodeActions(
+    documentUri: string,
+    range: IRange,
+  ): Promise<ICodeAction[]> {
+    return this.languageService.get_code_actions(documentUri, range);
   }
 
   async getCompletions(
@@ -279,6 +285,7 @@ export const languageServiceProtocol: ServiceProtocol<
     updateNotebookDocument: "request",
     closeDocument: "request",
     closeNotebookDocument: "request",
+    getCodeActions: "request",
     getCompletions: "request",
     getFormatChanges: "request",
     getHover: "request",

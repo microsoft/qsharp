@@ -31,8 +31,6 @@ class Config:
     ):
         if target_profile == TargetProfile.Adaptive_RI:
             self._config = {"targetProfile": "adaptive_ri"}
-            warn("The Adaptive_RI target profile is a preview feature.")
-            warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
         elif target_profile == TargetProfile.Unrestricted:
@@ -60,6 +58,7 @@ class Config:
 def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
+    target_name: Optional[str] = None,
     project_root: Optional[str] = None,
     language_features: Optional[List[str]] = None,
 ) -> Config:
@@ -70,15 +69,29 @@ def init(
         interpreter to generate programs that are compatible
         with a specific target. See :py:class: `qsharp.TargetProfile`.
 
+    :param target_name: An optional name of the target machine to use for inferring the compatible
+        target_profile setting.
+
     :param project_root: An optional path to a root directory with a Q# project to include.
         It must contain a qsharp.json project manifest.
     """
-    from ._fs import read_file, list_directory, exists, join
+    from ._fs import read_file, list_directory, exists, join, resolve
+    from ._http import fetch_github
 
     global _interpreter
 
+    if isinstance(target_name, str):
+        target = target_name.split(".")[0].lower()
+        if target == "ionq" or target == "rigetti":
+            target_profile = TargetProfile.Base
+        elif target == "quantinuum":
+            target_profile = TargetProfile.Adaptive_RI
+        else:
+            raise QSharpError(
+                f'target_name "{target_name}" not recognized. Please set target_profile directly.'
+            )
+
     manifest_contents = None
-    manifest_descriptor = None
     if project_root is not None:
         qsharp_json = join(project_root, "qsharp.json")
         if not exists(qsharp_json):
@@ -86,12 +99,8 @@ def init(
                 f"{qsharp_json} not found. qsharp.json should exist at the project root and be a valid JSON file."
             )
 
-        manifest_descriptor = {}
-        manifest_descriptor["manifest_dir"] = project_root
-
         try:
             (_, manifest_contents) = read_file(qsharp_json)
-            manifest_descriptor["manifest"] = manifest_contents
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
@@ -100,9 +109,11 @@ def init(
     _interpreter = Interpreter(
         target_profile,
         language_features,
-        manifest_descriptor,
+        project_root,
         read_file,
         list_directory,
+        resolve,
+        fetch_github,
     )
 
     # Return the configuration information to provide a hint to the

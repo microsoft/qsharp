@@ -77,21 +77,14 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }
 }
 
-/// This function parses a [Path] from the given context
-/// and converts it into a single ident, which contains dots (`.`)
-pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
-    let p = path(s)?;
-    let mut name = String::new();
-    if let Some(namespace) = p.namespace {
-        name.push_str(&namespace.name);
-        name.push('.');
-    }
-    name.push_str(&p.name.name);
-
-    Ok(Box::new(Ident {
-        id: p.id,
-        span: p.span,
-        name: name.into(),
+pub fn single_ident_path(s: &mut ParserContext) -> Result<Box<Path>> {
+    let lo = s.peek().span.lo;
+    let name = ident(s)?;
+    Ok(Box::new(Path {
+        id: NodeId::default(),
+        span: s.span(lo),
+        segments: None,
+        name,
     }))
 }
 
@@ -106,23 +99,26 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     }
 
     let name = parts.pop().expect("path should have at least one part");
-    let namespace = match (parts.first(), parts.last()) {
-        (Some(first), Some(last)) => {
-            let lo = first.span.lo;
-            let hi = last.span.hi;
-            Some(Box::new(Ident {
-                id: NodeId::default(),
-                span: Span { lo, hi },
-                name: join(parts.iter().map(|i| &i.name), ".").into(),
-            }))
-        }
-        _ => None,
+    let namespace = if parts.is_empty() {
+        None
+    } else {
+        Some(
+            parts
+                .iter()
+                .map(|part| Ident {
+                    id: NodeId::default(),
+                    span: part.span,
+                    name: part.name.clone(),
+                })
+                .collect::<Vec<_>>()
+                .into(),
+        )
     };
 
     Ok(Box::new(Path {
         id: NodeId::default(),
         span: s.span(lo),
-        namespace,
+        segments: namespace,
         name,
     }))
 }
@@ -160,6 +156,10 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     }))
 }
 
+/// Optionally parse with the given parser.
+/// Returns Ok(Some(value)) if the parser succeeded,
+/// Ok(None) if the parser failed on the first token,
+/// Err(error) if the parser failed after consuming some tokens.
 pub(super) fn opt<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Option<T>> {
     let offset = s.peek().span.lo;
     match p(s) {
@@ -176,7 +176,8 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
-
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
@@ -258,18 +259,6 @@ pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
 
 fn advanced(s: &ParserContext, from: u32) -> bool {
     s.peek().span.lo > from
-}
-
-fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
-    let mut string = String::new();
-    if let Some(s) = strings.next() {
-        string.push_str(s.as_ref());
-    }
-    for s in strings {
-        string.push_str(sep);
-        string.push_str(s.as_ref());
-    }
-    string
 }
 
 fn map_rule_name(name: &'static str, error: Error) -> Error {

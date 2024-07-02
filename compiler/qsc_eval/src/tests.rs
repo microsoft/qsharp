@@ -51,13 +51,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -70,12 +64,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all(),
-    );
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
@@ -117,13 +106,7 @@ fn check_partial_eval_stmt(
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -136,12 +119,7 @@ fn check_partial_eval_stmt(
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let pass_errors = run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all(),
-    );
+    let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     fir_expect.assert_eq(&unit_fir.to_string());
@@ -2146,6 +2124,39 @@ fn update_array_index_expr() {
 }
 
 #[test]
+fn struct_cons() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+            }
+        "},
+        indoc! {"{
+            open A;
+            new Pair { First = 1, Second = 2}
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = new Pair { First = 1, Second = 2};
+            new Pair { ...p, First = 3 }
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
 fn update_udt_known_field_name() {
     check_expr(
         indoc! {"
@@ -3680,6 +3691,123 @@ fn partial_app_mutable_arg() {
 }
 
 #[test]
+fn controlled_operation_with_duplicate_controls_fails() {
+    check_expr(
+        "",
+        "{
+            use ctl = Qubit();
+            use q = Qubit();
+            Controlled I([ctl, ctl], q);
+        }",
+        &expect![[r#"
+            (
+                QubitUniqueness(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 86,
+                            hi: 101,
+                        },
+                    },
+                ),
+                [
+                    Frame {
+                        span: Span {
+                            lo: 74,
+                            hi: 101,
+                        },
+                        id: StoreItemId {
+                            package: PackageId(
+                                1,
+                            ),
+                            item: LocalItemId(
+                                123,
+                            ),
+                        },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: false,
+                            controlled: 1,
+                        },
+                    },
+                ],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn controlled_operation_with_target_in_controls_fails() {
+    check_expr(
+        "",
+        "{
+            use ctl = Qubit();
+            use q = Qubit();
+            Controlled I([ctl, q], q);
+        }",
+        &expect![[r#"
+            (
+                QubitUniqueness(
+                    PackageSpan {
+                        package: PackageId(
+                            2,
+                        ),
+                        span: Span {
+                            lo: 86,
+                            hi: 99,
+                        },
+                    },
+                ),
+                [
+                    Frame {
+                        span: Span {
+                            lo: 74,
+                            hi: 99,
+                        },
+                        id: StoreItemId {
+                            package: PackageId(
+                                1,
+                            ),
+                            item: LocalItemId(
+                                123,
+                            ),
+                        },
+                        caller: PackageId(
+                            2,
+                        ),
+                        functor: FunctorApp {
+                            adjoint: false,
+                            controlled: 1,
+                        },
+                    },
+                ],
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn controlled_operation_with_unique_controls_duplicate_targets_allowed() {
+    check_expr(
+        "",
+        "{
+            operation DoubleI(q0 : Qubit, q1 : Qubit) : Unit is Ctl {
+                I(q0);
+                I(q1);
+            }
+            use ctl = Qubit();
+            use q = Qubit();
+            Controlled DoubleI([ctl], (q, q));
+        }",
+        &expect!["()"],
+    );
+}
+
+#[test]
 fn partial_eval_simple_stmt() {
     check_partial_eval_stmt(
         "",
@@ -3689,6 +3817,8 @@ fn partial_eval_simple_stmt() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [12-12] (Public):
+                        Namespace (Ident 0 [12-12] "test"): <empty>
                 Blocks:
                     Block 0 [0-11] [Type Unit]:
                         0
@@ -3722,6 +3852,8 @@ fn partial_eval_stmt_with_bound_variable() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [20-20] (Public):
+                        Namespace (Ident 1 [20-20] "test"): <empty>
                 Blocks:
                     Block 0 [0-19] [Type Unit]:
                         0
@@ -3758,6 +3890,8 @@ fn partial_eval_stmt_with_mutable_variable_update() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3807,6 +3941,8 @@ fn partial_eval_stmt_with_mutable_variable_update_out_of_order_works() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3856,6 +3992,8 @@ fn partial_eval_stmt_with_mutable_variable_update_repeat_stmts_works() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [45-45] (Public):
+                        Namespace (Ident 1 [45-45] "test"): <empty>
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
                         0
@@ -3905,6 +4043,8 @@ fn partial_eval_stmt_with_bool_short_circuit() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
                         0
@@ -3945,6 +4085,8 @@ fn partial_eval_stmt_with_bool_no_short_circuit() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
                         0
@@ -3985,6 +4127,8 @@ fn partial_eval_stmt_with_loop() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [53-53] (Public):
+                        Namespace (Ident 1 [53-53] "test"): <empty>
                 Blocks:
                     Block 0 [0-52] [Type Unit]:
                         0
@@ -4111,6 +4255,8 @@ fn partial_eval_stmt_function_calls_from_library() {
             Package:
                 Entry Expression: 0
                 Items:
+                    Item 0 [35-35] (Public):
+                        Namespace (Ident 1 [35-35] "test"): <empty>
                 Blocks:
                     Block 0 [0-34] [Type Int]:
                         0

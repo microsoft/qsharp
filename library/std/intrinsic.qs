@@ -9,6 +9,52 @@ namespace Microsoft.Quantum.Intrinsic {
     open QIR.Intrinsic;
 
     /// # Summary
+    /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
+    /// Note that target qubit must be in |0⟩ state.
+    ///
+    /// # Input
+    /// ## control1
+    /// First control qubit for the AND gate.
+    /// ## control2
+    /// Second control qubit for the AND gate.
+    /// ## target
+    /// Target qubit for the AND gate.
+    ///
+    /// # Remarks
+    /// Use the Adjoint only for uncomputation purposes.
+    @Config(Adaptive)
+    operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        body ... {
+            __quantum__qis__ccx__body(control1, control2, target);
+        }
+        adjoint ... {
+            __quantum__qis__h__body(target);
+            if MResetZ(target) == One {
+                __quantum__qis__cz__body(control1, control2);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
+    /// Note that target qubit must be in |0⟩ state.
+    ///
+    /// # Input
+    /// ## control1
+    /// First control qubit for the AND gate.
+    /// ## control2
+    /// Second control qubit for the AND gate.
+    /// ## target
+    /// Target qubit for the AND gate.
+    ///
+    /// # Remarks
+    /// Use the Adjoint only for uncomputation purposes.
+    @Config(not Adaptive)
+    operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        PhaseCCX(control1, control2, target);
+    }
+
+    /// # Summary
     /// Applies the doubly controlled–NOT (CCNOT) gate to three qubits.
     ///
     /// # Input
@@ -91,7 +137,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
     /// \end{align}
     /// $$
-    /// where $P_i$ is the $i$th element of `paulis`, and where
+    /// where $P_i$ is the $i$-th element of `paulis`, and where
     /// $N = $`Length(paulis)`.
     operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
         body ... {
@@ -218,7 +264,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Adaptive)
+    @Config(QubitReset)
     operation M(qubit : Qubit) : Result {
         __quantum__qis__m__body(qubit)
     }
@@ -249,7 +295,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Base)
+    @Config(not QubitReset)
     operation M(qubit : Qubit) : Result {
         Measure([PauliZ], [qubit])
     }
@@ -257,6 +303,17 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Summary
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
+    ///
+    /// # Description
+    /// The probability of getting `Zero` is
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
+    /// where $P_i$ is the $i$-th element of `bases`, and where
+    /// $N$ is the `Length(bases)`.
+    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
+    /// observed measurement effect is $(-1)^d$.
+    ///
+    /// If the basis array and qubit array are different lengths, then the
+    /// operation will fail.
     ///
     /// # Input
     /// ## bases
@@ -268,29 +325,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Output
     /// `Zero` if the +1 eigenvalue is observed, and `One` if
     /// the -1 eigenvalue is observed.
-    ///
-    /// # Remarks
-    /// The output result is given by the distribution:
-    /// $$
-    /// \begin{align}
-    ///     \Pr(\texttt{Zero} | \ket{\psi}) =
-    ///         \frac12 \braket{
-    ///             \psi \mid|
-    ///             \left(
-    ///                 \boldone + P_0 \otimes P_1 \otimes \cdots \otimes P_{N-1}
-    ///             \right) \mid|
-    ///             \psi
-    ///         },
-    /// \end{align}
-    /// $$
-    /// where $P_i$ is the $i$th element of `bases`, and where
-    /// $N = \texttt{Length}(\texttt{bases})$.
-    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
-    /// observed measurement effect is $(-1)^d$.
-    ///
-    /// If the basis array and qubit array are different lengths, then the
-    /// operation will fail.
-    @Config(Adaptive)
+    @Config(QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";
@@ -350,7 +385,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
-    @Config(Base)
+    @Config(not QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";

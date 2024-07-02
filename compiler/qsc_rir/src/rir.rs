@@ -6,7 +6,7 @@ use qsc_data_structures::{index_map::IndexMap, target::TargetCapabilityFlags};
 use std::fmt::{self, Display, Formatter, Write};
 
 /// The root of the RIR.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Program {
     pub entry: CallableId,
     pub callables: IndexMap<CallableId, Callable>,
@@ -63,7 +63,7 @@ impl Program {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Config {
     pub capabilities: TargetCapabilityFlags,
 }
@@ -129,7 +129,7 @@ impl BlockId {
 }
 
 /// A block is a collection of instructions.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
@@ -156,7 +156,7 @@ impl CallableId {
 }
 
 /// A callable.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Callable {
     /// The name of the callable.
     pub name: String,
@@ -453,6 +453,32 @@ impl Display for Variable {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Variable({}, {})", self.variable_id.0, self.ty)?;
         Ok(())
+    }
+}
+
+impl Variable {
+    #[must_use]
+    pub fn new_boolean(id: VariableId) -> Self {
+        Self {
+            variable_id: id,
+            ty: Ty::Boolean,
+        }
+    }
+
+    #[must_use]
+    pub fn new_integer(id: VariableId) -> Self {
+        Self {
+            variable_id: id,
+            ty: Ty::Integer,
+        }
+    }
+
+    #[must_use]
+    pub fn new_double(id: VariableId) -> Self {
+        Self {
+            variable_id: id,
+            ty: Ty::Double,
+        }
     }
 }
 

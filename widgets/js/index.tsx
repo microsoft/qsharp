@@ -122,6 +122,7 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
         isSimplifiedView={true}
         onRowDeleted={onRowDeleted}
         setEstimate={() => undefined}
+        allowSaveImage={true}
       ></EstimatesOverview>,
       el,
     );
@@ -161,6 +162,7 @@ function renderEstimatesPanel({ model, el }: RenderArgs) {
         renderer={mdRenderer}
         calculating={false}
         onRowDeleted={onRowDeleted}
+        allowSaveImage={true}
       ></EstimatesPanel>,
       el,
     );

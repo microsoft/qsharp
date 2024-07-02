@@ -54,9 +54,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_callable_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         decl: &'a hir::CallableDecl,
     ) {
         self.definition = Some(self.location(
@@ -84,15 +82,28 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         self.definition = Some(self.location(definition.span, self.compilation.user_package_id));
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
+        self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
+    }
+
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
     }
 
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         type_name: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
@@ -102,15 +113,14 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         ));
     }
 
-    fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &'a ast::Ident, _: &'a ast::Ty) {
+    fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &ast::Ident, _: &'a ast::Ty) {
         self.definition = Some(self.location(field_name.span, self.compilation.user_package_id));
     }
 
     fn at_field_ref(
         &mut self,
-        _: &'a ast::Ident,
-        _: &'a ast::NodeId,
-        item_id: &'_ hir::ItemId,
+        _: &ast::Ident,
+        item_id: &hir::ItemId,
         field_def: &'a hir::ty::UdtField,
     ) {
         let span = field_def
@@ -129,8 +139,8 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
     fn at_local_ref(
         &mut self,
         _: &LocatorContext<'a>,
-        _: &'a ast::Path,
-        _: &'a ast::NodeId,
+        _: &ast::Ident,
+        _: ast::NodeId,
         definition: &'a ast::Ident,
     ) {
         self.definition = Some(self.location(definition.span, self.compilation.user_package_id));

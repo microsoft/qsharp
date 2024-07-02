@@ -35,7 +35,7 @@ const buildOptions = {
     join(thisDir, "src/main.tsx"),
     join(thisDir, "src/compiler-worker.ts"),
     join(thisDir, "src/language-service-worker.ts"),
-    join(thisDir, "src/kataViewer.ts"),
+    join(thisDir, "src/kataViewer.tsx"),
   ],
   outdir,
   bundle: true,
@@ -58,7 +58,7 @@ function copyLibs() {
   mkdirSync(monacoDest, { recursive: true });
   cpSync(monacoBase, monacoDest, { recursive: true });
 
-  copyKatex(join(thisDir, "public/libs/katex"), true);
+  copyKatex(join(thisDir, "public/libs/katex"));
 
   copyWasmToPlayground();
 }

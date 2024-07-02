@@ -26,6 +26,7 @@ pub struct Table {
     pub udts: FxHashMap<ItemId, Udt>,
 
     // AST nodes that get mapped to types are Expr, Block, Pat, and QubitInit nodes
+    // AST Ident nodes under Paths that are field accessors are also mapped to types, as they will become expressions in the HIR
     pub terms: IndexMap<NodeId, Ty>,
     pub generics: IndexMap<NodeId, Vec<GenericArg>>,
 }
@@ -69,6 +70,15 @@ enum ErrorKind {
     #[error("type {0} does not have a field `{1}`")]
     #[diagnostic(code("Qsc.TypeCk.MissingClassHasField"))]
     MissingClassHasField(String, String, #[label] Span),
+    #[error("type {0} is not a struct")]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassStruct"))]
+    MissingClassStruct(String, #[label] Span),
+    #[error("duplicate field `{1}` listed in constructor for type {0}")]
+    #[diagnostic(code("Qsc.TypeCk.DuplicateField"))]
+    DuplicateField(String, String, #[label] Span),
+    #[error("incorrect number of field assignments for type {0}")]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassCorrectFieldCount"))]
+    MissingClassCorrectFieldCount(String, #[label] Span),
     #[error("type {0} cannot be indexed by type {1}")]
     #[diagnostic(help(
         "only array types can be indexed, and only Int and Range can be used as the index"

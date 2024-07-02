@@ -56,7 +56,6 @@ impl<'a> CycleDetector<'a> {
                 locals_map.insert(
                     ident.id,
                     Local {
-                        pat: pat_id,
                         var: ident.id,
                         ty: pat.ty.clone(),
                         kind,
@@ -109,7 +108,8 @@ impl<'a> CycleDetector<'a> {
             .specializations_locals
             .get_mut(local_spec_id)
             .expect("node map should exist");
-        let maybe_callee = try_resolve_callee(callee, self.package_id, self.package, locals_map);
+        let (maybe_callee, _) =
+            try_resolve_callee(callee, self.package_id, self.package, locals_map);
         if let Some(callee) = maybe_callee {
             // We are not interested in visiting callables outside this package.
             if callee.item.package != self.package_id {

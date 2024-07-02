@@ -1,4 +1,4 @@
-We will follow the algorithm described in the [Wikipedia article](https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_2_%C3%97_2_matrices) for $2 \times 2$ matrices:
+You can follow the algorithm described in the [Wikipedia article](https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_2_%C3%97_2_matrices) for $2 \times 2$ matrices:
 
 $$ A = \begin{bmatrix} a & b \\ c & d \end{bmatrix} $$
 

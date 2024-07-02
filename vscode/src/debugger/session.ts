@@ -31,7 +31,6 @@ import {
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
 import { basename, isQsharpDocument, toVscodeRange } from "../common";
-import { getTarget } from "../config";
 import {
   DebugEvent,
   EventType,
@@ -43,6 +42,7 @@ import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import { isPanelOpen } from "../webviewPanel";
+import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -73,14 +73,12 @@ export class QscDebugSession extends LoggingDebugSession {
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
-  private targetProfile = getTarget();
   private revealedCircuit = false;
 
   public constructor(
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
-    private sources: [string, string][],
-    private languageFeatures: string[],
+    private program: FullProgramConfig,
   ) {
     super();
 
@@ -94,7 +92,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
 
-    for (const source of sources) {
+    const allKnownSources = getAllSources(program);
+    for (const source of allKnownSources) {
       const uri = vscode.Uri.parse(source[0], true);
 
       // In Debug Protocol requests, the VS Code debug adapter client
@@ -111,14 +110,14 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const failureMessage = await this.debugService.loadSource(
-      this.sources,
-      this.targetProfile,
+    const failureMessage = await this.debugService.loadProgram(
+      this.program,
       this.config.entry,
-      this.languageFeatures,
     );
-    for (const [path, _contents] of this.sources) {
-      if (failureMessage == "") {
+
+    if (failureMessage == "") {
+      for (const [path, _contents] of this.program.packageGraphSources.root
+        .sources) {
         const locations = await this.debugService.getBreakpoints(path);
         log.trace(`init breakpointLocations: %O`, locations);
         const mapped = locations.map((location) => {
@@ -139,10 +138,10 @@ export class QscDebugSession extends LoggingDebugSession {
           } as IBreakpointLocationData;
         });
         this.breakpointLocations.set(path, mapped);
-      } else {
-        log.warn(`compilation failed. ${failureMessage}`);
-        this.failureMessage = failureMessage;
       }
+    } else {
+      log.warn(`compilation failed. ${failureMessage}`);
+      this.failureMessage = failureMessage;
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
@@ -947,8 +946,8 @@ export class QscDebugSession extends LoggingDebugSession {
       const circuit = await this.debugService.getCircuit();
 
       updateCircuitPanel(
-        this.targetProfile,
-        vscode.Uri.parse(this.sources[0][0]).path,
+        this.program.profile,
+        this.program.projectName,
         !this.revealedCircuit,
         {
           circuit,
@@ -962,4 +961,12 @@ export class QscDebugSession extends LoggingDebugSession {
       this.revealedCircuit = true;
     }
   }
+}
+
+function getAllSources(program: FullProgramConfig) {
+  return program.packageGraphSources.root.sources.concat(
+    Object.values(program.packageGraphSources.packages).flatMap(
+      (p) => p.sources,
+    ),
+  );
 }

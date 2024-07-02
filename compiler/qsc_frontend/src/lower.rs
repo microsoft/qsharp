@@ -10,13 +10,13 @@ use crate::{
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast;
+use qsc_ast::ast::{self, Ident};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, Ty},
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
@@ -124,19 +124,19 @@ impl With<'_> {
 
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId { item: id, .. }, _)) =
-            self.names.get(namespace.name.id)
+            self.names.get(namespace.id)
         else {
             panic!("namespace should have item ID");
         };
 
         self.lowerer.parent = Some(id);
-        let items = namespace
+        let items: Vec<LocalItemId> = namespace
             .items
             .iter()
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_ident(&namespace.name);
+        let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -171,7 +171,10 @@ impl With<'_> {
         };
 
         let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Err | ast::ItemKind::Open(..) |
+            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+
+            ast::ItemKind::ImportOrExport(_) => return None,
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
@@ -189,6 +192,19 @@ impl With<'_> {
                     .expect("type item should have lowered UDT");
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+            }
+            ast::ItemKind::Struct(decl) => {
+                let id = resolve_id(decl.name.id);
+                let strct = self
+                    .tys
+                    .udts
+                    .get(&id)
+                    .expect("type item should have lowered struct");
+
+                (
+                    id,
+                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                )
             }
         };
 
@@ -226,17 +242,40 @@ impl With<'_> {
                 }
             },
             Ok(hir::Attr::Config) => {
-                if !matches!(attr.arg.kind.as_ref(), ast::ExprKind::Paren(inner)
-                    if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
-                        if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()))
-                {
-                    self.lowerer.errors.push(Error::InvalidAttrArgs(
-                        "runtime capability".to_string(),
-                        attr.arg.span,
-                    ));
+                match &*attr.arg.kind {
+                    // @Config(Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
+
+                    // @Config(not Capability)
+                    ast::ExprKind::Paren(inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                    if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
+                        {}
+
+                    // Any other form is not valid so generates an error.
+                    _ => {
+                        self.lowerer.errors.push(Error::InvalidAttrArgs(
+                            "runtime capability".to_string(),
+                            attr.arg.span,
+                        ));
+                    }
                 }
                 None
             }
+            Ok(hir::Attr::SimulatableIntrinsic) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => {
+                    Some(hir::Attr::SimulatableIntrinsic)
+                }
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
@@ -510,7 +549,7 @@ impl With<'_> {
                     .generics
                     .get(expr.id)
                     .map_or(Vec::new(), Clone::clone);
-                hir::ExprKind::Var(self.lower_path(path), args)
+                self.lower_path(path, args)
             }
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -523,6 +562,14 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
+            ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
+                self.node_id_to_res(name.id),
+                copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
+                fields
+                    .iter()
+                    .map(|f| Box::new(self.lower_field_assign(&ty, f)))
+                    .collect(),
+            ),
             ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
                 components
                     .iter()
@@ -564,6 +611,15 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_field_assign(&mut self, ty: &Ty, field_assign: &ast::FieldAssign) -> hir::FieldAssign {
+        hir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: self.lower_field(ty, &field_assign.field.name),
+            value: Box::new(self.lower_expr(&field_assign.value)),
         }
     }
 
@@ -712,13 +768,54 @@ impl With<'_> {
         }
     }
 
-    fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.names.get(path.id) {
+    fn node_id_to_res(&mut self, id: ast::NodeId) -> hir::Res {
+        match self.names.get(id) {
             Some(&resolve::Res::Item(item, _)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }
+    }
+
+    fn lower_path(&mut self, path: &ast::Path, generic_args: Vec<GenericArg>) -> hir::ExprKind {
+        match resolve::path_as_field_accessor(self.names, path) {
+            Some((first_id, parts)) => {
+                let res = hir::Res::Local(self.lower_id(first_id));
+                self.path_parts_to_fields(hir::ExprKind::Var(res, Vec::new()), &parts, path.span.lo)
+            }
+            None => hir::ExprKind::Var(self.node_id_to_res(path.id), generic_args),
+        }
+    }
+
+    // Lowers the parts of a field accessor Path into nested Field Accessor nodes.
+    fn path_parts_to_fields(
+        &mut self,
+        init_kind: hir::ExprKind,
+        parts: &[Ident],
+        lo: u32,
+    ) -> hir::ExprKind {
+        let (first, rest) = parts
+            .split_first()
+            .expect("path should have at least one part");
+
+        let mut kind = init_kind;
+        let mut prev = first;
+        for part in rest {
+            let prev_expr = hir::Expr {
+                id: self.assigner.next_node(),
+                span: Span {
+                    lo,
+                    hi: prev.span.hi,
+                },
+                // The ids of the Ident segments are specially mapped in the tys to give us the type of the expressions being created here.
+                ty: self.tys.terms.get(prev.id).map_or(Ty::Err, Clone::clone),
+                kind,
+            };
+            let field = self.lower_field(&prev_expr.ty, &part.name);
+            kind = hir::ExprKind::Field(Box::new(prev_expr), field);
+            prev = part;
+        }
+        kind
     }
 
     fn lower_ident(&mut self, ident: &ast::Ident) -> hir::Ident {
@@ -735,6 +832,10 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+
+    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+        name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }
 

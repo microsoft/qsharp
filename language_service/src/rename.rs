@@ -169,15 +169,32 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         _: &'a hir::CallableDecl,
     ) {
         self.get_spans_for_item_rename(item_id, &path.name);
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
+        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
+            self.get_spans_for_item_rename(
+                &resolve_package(self.compilation.user_package_id, item_id),
+                type_name,
+            );
+        }
+    }
+
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
             self.get_spans_for_item_rename(
                 &resolve_package(self.compilation.user_package_id, item_id),
@@ -212,8 +229,7 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
@@ -223,7 +239,7 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_field_def(
         &mut self,
         context: &LocatorContext<'a>,
-        field_name: &'a ast::Ident,
+        field_name: &ast::Ident,
         _: &'a ast::Ty,
     ) {
         if let Some(item_id) = context.current_udt_id {
@@ -236,9 +252,8 @@ impl<'a> Handler<'a> for Rename<'a> {
 
     fn at_field_ref(
         &mut self,
-        field_ref: &'a ast::Ident,
-        _: &'a ast::NodeId,
-        item_id: &'_ hir::ItemId,
+        field_ref: &ast::Ident,
+        item_id: &hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
         self.get_spans_for_field_rename(item_id, field_ref);
@@ -258,12 +273,12 @@ impl<'a> Handler<'a> for Rename<'a> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        path: &'a ast::Path,
-        node_id: &'a ast::NodeId,
+        name: &ast::Ident,
+        node_id: ast::NodeId,
         _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.get_spans_for_local_rename(*node_id, &path.name, curr);
+            self.get_spans_for_local_rename(node_id, name, curr);
         }
     }
 }

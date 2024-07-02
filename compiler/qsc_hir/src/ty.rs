@@ -19,7 +19,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -522,7 +522,7 @@ impl Display for FunctorSetValue {
     }
 }
 
-/// A user-defined type.
+/// The item for a user-defined type.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Udt {
     /// The span.
@@ -588,7 +588,10 @@ impl Udt {
         }
     }
 
-    fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
+    /// The field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn find_field(&self, path: &FieldPath) -> Option<&UdtField> {
         let mut udt_def = &self.definition;
         for &index in &path.indices {
             let UdtDefKind::Tuple(items) = &udt_def.kind else {
@@ -636,6 +639,26 @@ impl Udt {
     #[must_use]
     pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
         self.find_field_by_name(name).map(|field| &field.ty)
+    }
+
+    /// Returns true if the udt satisfies the conditions for a struct.
+    /// Conditions for a struct are that the udt is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match &self.definition.kind {
+            UdtDefKind::Field(_) => false,
+            UdtDefKind::Tuple(fields) => fields.iter().all(|field| match &field.kind {
+                UdtDefKind::Field(field) => {
+                    if let (Some(name), Some(_)) = (&field.name, &field.name_span) {
+                        !name.is_empty()
+                    } else {
+                        false
+                    }
+                }
+                UdtDefKind::Tuple(_) => false,
+            }),
+        }
     }
 }
 

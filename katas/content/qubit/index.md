@@ -19,8 +19,8 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 
 **What you should know to start working on this kata:**
 
-- Complex arithmetic
-- Linear algebra
+- Basic knowledge of complex arithmetic
+- Basic knowledge of linear algebra
 
 @[section]({
     "id": "qubit__concept",
@@ -29,7 +29,7 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
 
-> A common misconception about quantum computing is that a qubit is always in state $1$ or state $0$, we just don't know which one until we "measure" it. That is not the case. A qubit in a superposition is in a linear combination of the states 0 and 1. When a qubit is measured, it is forced to collapse into one state or the other - in other words, measuring a qubit is an irreversible process that changes its initial state.
+> A common misconception about quantum computing is that a qubit is always in state $1$ or state $0$, and we just don't know which one until we "measure" it. That's not the case. A qubit in a superposition is in a linear combination of the states 0 and 1. When a qubit is measured, it's forced to collapse into one state or the other - in other words, measuring a qubit is an irreversible process that changes its initial state.
 
 ## Matrix Representation
 
@@ -58,21 +58,21 @@ $$
 \alpha \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\ 1 \end{bmatrix}
 $$
 
-Because of this, qubit states $0$ and $1$ are known as basis states. These two vectors have two properties.
+Because of this, qubit states $0$ and $1$ are known as **basis states**. These two vectors have two properties.
 
 1. They are normalized.
 
-$$
-\langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle =
-\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle = 1
-$$
+    $$
+    \langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle =
+    \langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle = 1
+    $$
 
 2. They are orthogonal to each other.
 
-$$
-\langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle =
-\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle = 0
-$$
+    $$
+    \langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle =
+    \langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle = 0
+    $$
 
 > As a reminder, $\langle V , W \rangle$ is the inner product of $V$ and $W$.
 
@@ -106,15 +106,15 @@ Dirac notation is a shorthand notation that eases writing quantum states and com
     </tr>
 </table>
 
-These two kets represent basis states, so they can be used to represent any other state:
+The kets $\ket{0}$ and $\ket{1}$ represent basis states, so they can be used to represent any other state:
 
 $$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha\ket{0} + \beta\ket{1}$$
 
-Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, similar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
+Dirac notation isn't restricted to vectors $0$ and $1$; it can be used to represent any vector, similar to how variable names are used in algebra. For example, you can call the above state "$\psi$" and write it as:
 
 $$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$$
 
-Several ket symbols have a generally accepted use, so you will see them often:
+Several ket symbols have a generally accepted use, so you will see them often. For example, the following kets are commonly used:
 
 <table>
     <tr>
@@ -127,7 +127,7 @@ Several ket symbols have a generally accepted use, so you will see them often:
     </tr>
 </table>
 
-We will learn more about Dirac notation in the next katas, as we introduce quantum gates and multi-qubit systems.
+You will learn more about Dirac notation in the next katas, as you get introduced to quantum gates and multi-qubit systems.
 
 @[section]({
     "id": "qubit__relative_and_global_phase",
@@ -155,9 +155,9 @@ In Q#, qubits are represented by the `Qubit` data type. On a physical quantum co
 
 That being said, when you run Q# code on a quantum simulator instead of a physical quantum computer, you can use diagnostic functions that allow you to peek at the state of the quantum system. This is very useful both for learning and for debugging small Q# programs.
 
-The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently. The `use` statement allocates a qubit (or multiple) that can be used until the end of the scope in which the statement was used: `use q = Qubit();` allocates a qubit and binds it to the variable `q`.
+Qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently. The `use` statement allocates a qubit (or multiple) that can be used until the end of the scope in which the statement was used: `use q = Qubit();` allocates a qubit and binds it to the variable `q`.
 
-Freshly allocated qubits start out in state $\ket{0}$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $\ket{0}$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
+Freshly allocated qubits start out in state $\ket{0}$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $\ket{0}$, it will result in a runtime error. You will see why it is important later, when you look at multi-qubit systems.
 
 ## Visualizing Quantum State
 
@@ -170,7 +170,7 @@ The state of the quantum system used by this program can be represented as a com
 
 $$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha\ket{0} + \beta\ket{1}$$
 
-If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation.
+If this program runs on a physical quantum system, there's no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation.
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
 
 However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state.
@@ -182,11 +182,11 @@ The `DumpMachine` function from the `Microsoft.Quantum.Diagnostics` namespace al
 
 The following demo shows how to allocate a qubit and examine its state in Q#. You'll use `DumpMachine` to output the state of the system at any point in the program without affecting the state.
 
-> Note that the Q# code doesn't have access to the output of `DumpMachine`, so you cannot write any non-physical code in Q#!
+> Note that the Q# code doesn't have access to the output of `DumpMachine`, so you can't write any non-physical code in Q#!
 
 @[example]({"id": "qubit__single_qubit_dump_machine_demo", "codePath": "./examples/SingleQubitDumpMachineDemo.qs"})
 
-The exact behavior of this operation called `RunExample` depends on the quantum simulator or processor you are using.
+The exact behavior of the `RunExample` operation depends on the quantum simulator or processor you're using.
 
 On the simulator used in these demos, this function prints the information on each basis state that has a non-zero amplitude, one basis state per row.
 This includes information about the amplitude of the state, the probability of measuring that state, and the phase of the state.
@@ -216,15 +216,12 @@ For example, the state $\ket{0}$ would be represented as follows:
     </tbody>
 </table>
 
-> It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see <a href="https://learn.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states" target="_blank">Q# documentation on quantum states</a>.
+> It's important to note that although we talk about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see <a href="https://learn.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states" target="_blank">Q# documentation on quantum states</a>.
 
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
     "title": "Learn the State of a Single Qubit Using DumpMachine",
-    "path": "./learn_single_qubit_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./learn_single_qubit_state/"
 })
 
 @[section]({

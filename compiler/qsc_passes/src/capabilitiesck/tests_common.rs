@@ -327,6 +327,24 @@ pub const USE_DYNAMIC_INDEX: &str = r#"
         }
     }"#;
 
+pub const USE_DYNAMIC_LHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            i ^ 1;
+        }
+    }"#;
+
+pub const USE_DYNAMIC_RHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            1 ^ i;
+        }
+    }"#;
+
 pub const RETURN_WITHIN_DYNAMIC_SCOPE: &str = r#"
     namespace Test {
         operation Foo() : Int {

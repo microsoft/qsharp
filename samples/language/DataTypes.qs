@@ -9,7 +9,7 @@
 /// and operation types.
 namespace MyQuantumApp {
 
-    /// In the below code, all varibles have type annotations to showcase their type.
+    /// In the below code, all variables have type annotations to showcase their type.
     @EntryPoint()
     operation MeasureOneQubit() : Unit {
         // Notably, Qubits are allocated with the `use` keyword instead of declared with the `let`
@@ -27,9 +27,16 @@ namespace MyQuantumApp {
         // BigInt literals are always suffixed with an L, and can be declared in
         // binary, octal, decimal, or hexadecimal.
         let binaryBigInt : BigInt = 0b101010L;
+        Message($"Binary BigInt: {binaryBigInt}");
+
         let octalBigInt = 0o52L;
+        Message($"Octal BigInt: {octalBigInt}");
+
         let decimalBigInt = 42L;
+        Message($"Decimal BigInt: {decimalBigInt}");
+
         let hexadecimalBigInt = 0x2aL;
+        Message($"Hexadecimal BigInt: {hexadecimalBigInt}");
 
         // A double-precision 64-bit floating-point number.
         let double = 42.0;
@@ -63,11 +70,12 @@ namespace MyQuantumApp {
         newtype ComplexBool = (Real : Double, Imaginary : Double, Bool);
         // Instantiation of the above UDT.
         let complex = ComplexBool(42.0, 0.0, false);
+        let (real, imaginary, anonymous) = complex!;
+        Message($"Complex Bool: (real: {real}, imaginary: {imaginary}, anonymous: {anonymous})");
 
         // A function that takes an integer and returns a boolean. This variable declaration
         // uses a Lambda function as its right hand side.
         // The function signature is provided as an annotation here, for clarity.
         let functionType : Int => Bool = (int) => int == 0;
     }
-
 }

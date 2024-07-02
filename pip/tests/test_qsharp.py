@@ -265,6 +265,19 @@ def test_compile_qir_str() -> None:
     assert "define void @ENTRYPOINT__main()" in qir
 
 
+def test_init_from_provider_name() -> None:
+    config = qsharp.init(target_name="ionq.simulator")
+    assert config._config["targetProfile"] == "base"
+    config = qsharp.init(target_name="rigetti.sim.qvm")
+    assert config._config["targetProfile"] == "base"
+    config = qsharp.init(target_name="quantinuum.sim")
+    assert config._config["targetProfile"] == "adaptive_ri"
+    config = qsharp.init(target_name="Quantinuum")
+    assert config._config["targetProfile"] == "adaptive_ri"
+    config = qsharp.init(target_name="IonQ")
+    assert config._config["targetProfile"] == "base"
+
+
 def test_run_with_result(capsys) -> None:
     qsharp.init()
     qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')

@@ -22,6 +22,15 @@ pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
     hir::PackageId::from(Into::<usize>::into(package))
 }
 
+#[derive(Debug, Default)]
+struct FirIncrement {
+    blocks: Vec<BlockId>,
+    exprs: Vec<ExprId>,
+    pats: Vec<PatId>,
+    stmts: Vec<StmtId>,
+    items: Vec<LocalItemId>,
+}
+
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
     locals: IndexMap<hir::NodeId, fir::LocalVarId>,
@@ -32,6 +41,8 @@ pub struct Lowerer {
     assigner: Assigner,
     exec_graph: Vec<ExecGraphNode>,
     enable_debug: bool,
+    ret_node: ExecGraphNode,
+    fir_increment: FirIncrement,
 }
 
 impl Default for Lowerer {
@@ -53,19 +64,26 @@ impl Lowerer {
             assigner: Assigner::new(),
             exec_graph: Vec::new(),
             enable_debug: false,
+            ret_node: ExecGraphNode::Ret,
+            fir_increment: FirIncrement::default(),
         }
     }
 
     #[must_use]
     pub fn with_debug(mut self, dbg: bool) -> Self {
         self.enable_debug = dbg;
+        if dbg {
+            self.ret_node = ExecGraphNode::RetFrame;
+        } else {
+            self.ret_node = ExecGraphNode::Ret;
+        }
         self
     }
 
     pub fn take_exec_graph(&mut self) -> Vec<ExecGraphNode> {
         self.exec_graph
             .drain(..)
-            .chain(once(ExecGraphNode::Ret))
+            .chain(once(self.ret_node))
             .collect()
     }
 
@@ -111,6 +129,9 @@ impl Lowerer {
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
     ) {
+        // Clear the previous increment since we are about to take a new one.
+        self.fir_increment = FirIncrement::default();
+
         let items: IndexMap<LocalItemId, fir::Item> = hir_package
             .items
             .values()
@@ -128,6 +149,7 @@ impl Lowerer {
 
         for (k, v) in items {
             fir_package.items.insert(k, v);
+            self.fir_increment.items.push(k);
         }
 
         fir_package.entry = entry;
@@ -135,33 +157,64 @@ impl Lowerer {
         qsc_fir::validate::validate(fir_package);
     }
 
+    pub fn revert_last_increment(&mut self, package: &mut fir::Package) {
+        for id in self.fir_increment.blocks.drain(..) {
+            package.blocks.remove(id);
+        }
+        for id in self.fir_increment.exprs.drain(..) {
+            package.exprs.remove(id);
+        }
+        for id in self.fir_increment.pats.drain(..) {
+            package.pats.remove(id);
+        }
+        for id in self.fir_increment.stmts.drain(..) {
+            package.stmts.remove(id);
+        }
+        for id in self.fir_increment.items.drain(..) {
+            package.items.remove(id);
+        }
+    }
+
     fn update_package(&mut self, package: &mut fir::Package) {
         for (id, value) in self.blocks.drain() {
             package.blocks.insert(id, value);
+            self.fir_increment.blocks.push(id);
         }
 
         for (id, value) in self.exprs.drain() {
             package.exprs.insert(id, value);
+            self.fir_increment.exprs.push(id);
         }
 
         for (id, value) in self.pats.drain() {
             package.pats.insert(id, value);
+            self.fir_increment.pats.push(id);
         }
 
         for (id, value) in self.stmts.drain() {
             package.stmts.insert(id, value);
+            self.fir_increment.stmts.push(id);
         }
     }
 
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = self.lower_ident(name);
+                let name = fir::Ident {
+                    id: self.lower_local_id(
+                        name.0
+                            .last()
+                            .expect("should have at least one ident in name")
+                            .id,
+                    ),
+                    span: name.span(),
+                    name: name.name(),
+                };
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }
             hir::ItemKind::Callable(callable) => {
-                let callable = self.lower_callable_decl(callable);
+                let callable = self.lower_callable_decl(callable, &item.attrs);
 
                 fir::ItemKind::Callable(callable)
             }
@@ -184,7 +237,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+    fn lower_callable_decl(
+        &mut self,
+        decl: &hir::CallableDecl,
+        attrs: &[hir::Attr],
+    ) -> fir::CallableDecl {
         self.assigner.stash_local();
         let locals = self.locals.drain().collect::<Vec<_>>();
 
@@ -201,6 +258,9 @@ impl Lowerer {
                 "intrinsic callables should not have specializations"
             );
             CallableImpl::Intrinsic
+        } else if attrs.contains(&hir::Attr::SimulatableIntrinsic) {
+            let body = self.lower_spec_decl(&decl.body);
+            CallableImpl::SimulatableIntrinsic(body)
         } else {
             let body = self.lower_spec_decl(&decl.body);
             let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
@@ -248,7 +308,7 @@ impl Lowerer {
             exec_graph: self
                 .exec_graph
                 .drain(..)
-                .chain(once(ExecGraphNode::Ret))
+                .chain(once(self.ret_node))
                 .collect(),
         }
     }
@@ -546,8 +606,25 @@ impl Lowerer {
             }
             hir::ExprKind::Return(expr) => {
                 let expr = self.lower_expr(expr);
-                self.exec_graph.push(ExecGraphNode::Ret);
+                self.exec_graph.push(self.ret_node);
                 fir::ExprKind::Return(expr)
+            }
+            hir::ExprKind::Struct(name, copy, fields) => {
+                let res = self.lower_res(name);
+                let copy = copy.as_ref().map(|c| {
+                    let id = self.lower_expr(c);
+                    self.exec_graph.push(ExecGraphNode::Store);
+                    id
+                });
+                let fields = fields
+                    .iter()
+                    .map(|f| {
+                        let f = self.lower_field_assign(f);
+                        self.exec_graph.push(ExecGraphNode::Store);
+                        f
+                    })
+                    .collect();
+                fir::ExprKind::Struct(res, copy, fields)
             }
             hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(
                 items
@@ -642,6 +719,15 @@ impl Lowerer {
         };
         self.exprs.insert(id, expr);
         id
+    }
+
+    fn lower_field_assign(&mut self, field_assign: &hir::FieldAssign) -> fir::FieldAssign {
+        fir::FieldAssign {
+            id: self.lower_id(field_assign.id),
+            span: field_assign.span,
+            field: lower_field(&field_assign.field),
+            value: self.lower_expr(&field_assign.value),
+        }
     }
 
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {
@@ -789,7 +875,13 @@ fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::Ge
 }
 
 fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
-    attrs.iter().map(|_| fir::Attr::EntryPoint).collect()
+    attrs
+        .iter()
+        .filter_map(|attr| match attr {
+            hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
+        })
+        .collect()
 }
 
 fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::FunctorSetValue {

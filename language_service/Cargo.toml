@@ -23,8 +23,9 @@ log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 qsc_linter = { path = "../compiler/qsc_linter" }
-qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
+qsc_project = { path = "../compiler/qsc_project" }
 rustc-hash = { workspace = true }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true

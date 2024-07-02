@@ -67,9 +67,7 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_callable_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Item,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         _: &'a hir::CallableDecl,
     ) {
         self.references = self.reference_finder.for_item(item_id);
@@ -98,7 +96,25 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         }
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
+    fn at_new_type_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::TyDef,
+    ) {
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.reference_finder.compilation.get_res(type_name.id)
+        {
+            self.references = self.reference_finder.for_item(item_id);
+        }
+    }
+
+    fn at_struct_def(
+        &mut self,
+        _: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        _: &'a ast::StructDecl,
+    ) {
         if let Some(resolve::Res::Item(item_id, _)) =
             self.reference_finder.compilation.get_res(type_name.id)
         {
@@ -109,8 +125,7 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_new_type_ref(
         &mut self,
         _: &'a ast::Path,
-        item_id: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
@@ -120,7 +135,7 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_field_def(
         &mut self,
         context: &LocatorContext<'a>,
-        field_name: &'a ast::Ident,
+        field_name: &ast::Ident,
         _: &'a ast::Ty,
     ) {
         if let Some(ty_item_id) = context.current_udt_id {
@@ -132,9 +147,8 @@ impl<'a> Handler<'a> for NameHandler<'a> {
 
     fn at_field_ref(
         &mut self,
-        field_ref: &'a ast::Ident,
-        _: &'a ast::NodeId,
-        item_id: &'_ hir::ItemId,
+        field_ref: &ast::Ident,
+        item_id: &hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
         self.references = self
@@ -156,8 +170,8 @@ impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        _: &'a ast::Path,
-        _: &'a ast::NodeId,
+        _: &ast::Ident,
+        _: ast::NodeId,
         definition: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
@@ -188,7 +202,8 @@ impl<'a> ReferenceFinder<'a> {
         if self.include_declaration {
             let def_span = match &def.kind {
                 hir::ItemKind::Callable(decl) => decl.name.span,
-                hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
+                hir::ItemKind::Namespace(name, _) => name.span(),
+                hir::ItemKind::Ty(name, _) => name.span,
             };
             locations.push(
                 self.location(
@@ -313,7 +328,7 @@ struct FindItemRefs<'a> {
 }
 
 impl<'a> Visitor<'_> for FindItemRefs<'a> {
-    fn visit_path(&mut self, path: &'_ ast::Path) {
+    fn visit_path(&mut self, path: &ast::Path) {
         let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Item(item_id, _)) = res {
             if self.eq(item_id) {
@@ -322,7 +337,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
         }
     }
 
-    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
+    fn visit_ty(&mut self, ty: &ast::Ty) {
         if let ast::TyKind::Path(ty_path) = &*ty.kind {
             let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id, _)) = res {
@@ -352,18 +367,57 @@ struct FindFieldRefs<'a> {
 }
 
 impl<'a> Visitor<'_> for FindFieldRefs<'a> {
-    fn visit_expr(&mut self, expr: &'_ ast::Expr) {
-        if let ast::ExprKind::Field(qualifier, field_name) = &*expr.kind {
-            self.visit_expr(qualifier);
-            if field_name.name == self.field_name {
-                if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
-                    if self.eq(id) {
-                        self.locations.push(field_name.span);
+    fn visit_path(&mut self, path: &ast::Path) {
+        if let Some((_, parts)) =
+            resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path)
+        {
+            let (first, rest) = parts
+                .split_first()
+                .expect("paths should have at least one part");
+            let mut prev_id = first.id;
+            // Loop through the parts of the path to find references
+            for part in rest {
+                if part.name == self.field_name {
+                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(prev_id) {
+                        if self.eq(id) {
+                            self.locations.push(part.span);
+                        }
+                    }
+                }
+                prev_id = part.id;
+            }
+        }
+    }
+
+    fn visit_expr(&mut self, expr: &ast::Expr) {
+        match &*expr.kind {
+            ast::ExprKind::Field(qualifier, field_name) => {
+                self.visit_expr(qualifier);
+                if field_name.name == self.field_name {
+                    if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
+                        if self.eq(id) {
+                            self.locations.push(field_name.span);
+                        }
                     }
                 }
             }
-        } else {
-            walk_expr(self, expr);
+            ast::ExprKind::Struct(struct_name, copy, fields) => {
+                self.visit_path(struct_name);
+                if let Some(copy) = copy {
+                    self.visit_expr(copy);
+                }
+                for field in fields.iter() {
+                    if field.field.name == self.field_name {
+                        if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(expr.id) {
+                            if self.eq(id) {
+                                self.locations.push(field.field.span);
+                            }
+                        }
+                    }
+                    self.visit_expr(&field.value);
+                }
+            }
+            _ => walk_expr(self, expr),
         }
     }
 }
@@ -387,7 +441,7 @@ struct FindLocalLocations<'a> {
 }
 
 impl<'a> Visitor<'_> for FindLocalLocations<'a> {
-    fn visit_pat(&mut self, pat: &'_ ast::Pat) {
+    fn visit_pat(&mut self, pat: &ast::Pat) {
         if self.include_declaration {
             match &*pat.kind {
                 ast::PatKind::Bind(ident, _) => {
@@ -400,11 +454,20 @@ impl<'a> Visitor<'_> for FindLocalLocations<'a> {
         }
     }
 
-    fn visit_path(&mut self, path: &'_ ast::Path) {
-        let res = self.compilation.get_res(path.id);
-        if let Some(resolve::Res::Local(node_id)) = res {
-            if *node_id == self.node_id {
-                self.locations.push(path.name.span);
+    fn visit_path(&mut self, path: &ast::Path) {
+        match resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path) {
+            Some((node_id, parts)) => {
+                let first = parts.first().expect("paths should have at least one part");
+                if node_id == self.node_id {
+                    self.locations.push(first.span);
+                }
+            }
+            None => {
+                if let Some(resolve::Res::Local(node_id)) = self.compilation.get_res(path.id) {
+                    if *node_id == self.node_id {
+                        self.locations.push(path.name.span);
+                    }
+                }
             }
         }
     }
@@ -418,7 +481,7 @@ struct FindTyParamLocations<'a> {
 }
 
 impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
-    fn visit_callable_decl(&mut self, decl: &'_ ast::CallableDecl) {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         if self.include_declaration {
             decl.generics.iter().for_each(|p| {
                 let res = self.compilation.get_res(p.id);
@@ -432,7 +495,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
         walk_callable_decl(self, decl);
     }
 
-    fn visit_ty(&mut self, ty: &'_ ast::Ty) {
+    fn visit_ty(&mut self, ty: &ast::Ty) {
         if let ast::TyKind::Param(param) = &*ty.kind {
             let res = self.compilation.get_res(param.id);
             if let Some(resolve::Res::Param(param_id)) = res {

@@ -7,10 +7,12 @@ import {
   getLibrarySourceContent,
   loadWasmModule,
   log,
+  qsharpGithubUriScheme,
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
+import { createCodeActionsProvider } from "./codeActions.js";
 import { createCodeLensProvider } from "./codeLens.js";
 import {
   isQsharpDocument,
@@ -18,10 +20,12 @@ import {
   qsharpLanguageId,
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
-import { getEnableFormating, getTarget } from "./config";
+import { getTarget } from "./config";
+import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
+import { createFormattingProvider } from "./format.js";
 import { createHoverProvider } from "./hover";
 import {
   Logging,
@@ -34,12 +38,19 @@ import {
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
-import { getManifest, listDir, readFile } from "./projectSystem.js";
+import {
+  fetchGithubRaw,
+  findManifestDirectory,
+  getGithubSourceContent,
+  listDirectory,
+  readFile,
+  resolvePath,
+  setGithubEndpoint,
+} from "./projectSystem.js";
 import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
-import { createFormattingProvider } from "./format.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
@@ -48,12 +59,11 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { initProjectCreator } from "./createProject.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<ExtensionApi> {
-  const api: ExtensionApi = {};
+  const api: ExtensionApi = { setGithubEndpoint };
 
   if (context.extensionMode === vscode.ExtensionMode.Test) {
     // Don't log to the output window in tests, forward to a listener instead
@@ -72,6 +82,17 @@ export async function activate(
     vscode.workspace.registerTextDocumentContentProvider(
       qsharpLibraryUriScheme,
       new QsTextDocumentContentProvider(),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      qsharpGithubUriScheme,
+      {
+        provideTextDocumentContent(uri) {
+          return getGithubSourceContent(uri);
+        },
+      },
     ),
   );
 
@@ -99,6 +120,7 @@ export async function activate(
 export interface ExtensionApi {
   // Only available in test mode. Allows listening to extension log events.
   logging?: Logging;
+  setGithubEndpoint: (endpoint: string) => void;
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
@@ -221,29 +243,23 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     ...registerQSharpNotebookCellUpdateHandlers(languageService),
   );
 
-  // format document
-  const isFormattingEnabled = getEnableFormating();
-  const formatterHandle = {
-    DocumentFormattingHandle: undefined as vscode.Disposable | undefined,
-    DocumentRangeFormattingHandle: undefined as vscode.Disposable | undefined,
-  };
-  log.debug("Enable formatting set to: " + isFormattingEnabled);
-  if (isFormattingEnabled) {
-    formatterHandle.DocumentFormattingHandle =
-      vscode.languages.registerDocumentFormattingEditProvider(
-        qsharpLanguageId,
-        createFormattingProvider(languageService),
-      );
-    formatterHandle.DocumentRangeFormattingHandle =
-      vscode.languages.registerDocumentRangeFormattingEditProvider(
-        qsharpLanguageId,
-        createFormattingProvider(languageService),
-      );
-  }
-
   // synchronize configuration
+  subscriptions.push(registerConfigurationChangeHandlers(languageService));
+
+  // format document
   subscriptions.push(
-    registerConfigurationChangeHandlers(languageService, formatterHandle),
+    vscode.languages.registerDocumentFormattingEditProvider(
+      qsharpLanguageId,
+      createFormattingProvider(languageService),
+    ),
+  );
+
+  // format range
+  subscriptions.push(
+    vscode.languages.registerDocumentRangeFormattingEditProvider(
+      qsharpLanguageId,
+      createFormattingProvider(languageService),
+    ),
   );
 
   // completions
@@ -305,6 +321,13 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     ),
   );
 
+  subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      qsharpLanguageId,
+      createCodeActionsProvider(languageService),
+    ),
+  );
+
   // add the language service dispose handler as well
   subscriptions.push(languageService);
 
@@ -326,32 +349,8 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 
   languageService.updateConfiguration({
     targetProfile: targetProfile,
+    lints: [{ lint: "needlessOperation", level: "warn" }],
   });
-}
-
-async function updateLanguageServiceEnableFormatting(
-  languageService: ILanguageService,
-  formatterHandle: any,
-) {
-  const isFormattingEnabled = getEnableFormating();
-  log.debug("Enable formatting set to: " + isFormattingEnabled);
-  if (isFormattingEnabled) {
-    formatterHandle.DocumentFormattingHandle =
-      vscode.languages.registerDocumentFormattingEditProvider(
-        qsharpLanguageId,
-        createFormattingProvider(languageService),
-      );
-    formatterHandle.DocumentRangeFormattingHandle =
-      vscode.languages.registerDocumentRangeFormattingEditProvider(
-        qsharpLanguageId,
-        createFormattingProvider(languageService),
-      );
-  } else {
-    formatterHandle.DocumentFormattingHandle?.dispose();
-    formatterHandle.DocumentFormattingHandle = undefined;
-    formatterHandle.DocumentRangeFormattingHandle?.dispose();
-    formatterHandle.DocumentRangeFormattingHandle = undefined;
-  }
 }
 
 async function loadLanguageService(baseUri: vscode.Uri) {
@@ -359,11 +358,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const languageService = await getLanguageService(
+  const languageService = await getLanguageService({
+    findManifestDirectory,
     readFile,
-    listDir,
-    getManifest,
-  );
+    listDirectory,
+    resolvePath: async (a, b) => resolvePath(a, b),
+    fetchGithub: fetchGithubRaw,
+  });
   await updateLanguageServiceProfile(languageService);
   const end = performance.now();
   sendTelemetryEvent(
@@ -376,13 +377,10 @@ async function loadLanguageService(baseUri: vscode.Uri) {
 
 function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
-  formatterHandle: any,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration("Q#.targetProfile")) {
+    if (event.affectsConfiguration("Q#.qir.targetProfile")) {
       updateLanguageServiceProfile(languageService);
-    } else if (event.affectsConfiguration("Q#.enableFormatting")) {
-      updateLanguageServiceEnableFormatting(languageService, formatterHandle);
     }
   });
 }
@@ -391,12 +389,8 @@ export class QsTextDocumentContentProvider
   implements vscode.TextDocumentContentProvider
 {
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
-  provideTextDocumentContent(
-    uri: vscode.Uri,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken,
-  ): vscode.ProviderResult<string> {
-    return getLibrarySourceContent(uri.path);
+  provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
+    return getLibrarySourceContent(uri.toString());
   }
 }
 

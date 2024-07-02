@@ -91,6 +91,134 @@ fn newtype() {
 }
 
 #[test]
+fn struct_decl() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A {}
+            struct B { Only : Int }
+            struct C { First : Int, Second : Double, Third : Bool }
+            struct D { First : Int, Second: B }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {}
+                struct B {
+                    Only : Int
+                }
+                struct C {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                struct D {
+                    First : Int,
+                    Second : B
+                }
+            }"#]],
+    );
+}
+
+#[test]
+fn struct_cons() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A {}
+            struct B { Only : Int }
+            struct C { First : Int, Second : Double, Third : Bool }
+            struct D { First : Int, Second: B }
+            function Foo() : Unit {
+                let a = new A {};
+                let b = new B { Only = 1 };
+                let c = new C { Third = true, First = 1, Second = 2.0 };
+                let d = new D { First = 1, Second = new B { Only = 2 } };
+            }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {}
+                struct B {
+                    Only : Int
+                }
+                struct C {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                struct D {
+                    First : Int,
+                    Second : B
+                }
+                function Foo() : Unit {
+                    let a = new A {};
+                    let b = new B {
+                        Only = 1
+                    };
+                    let c = new C {
+                        Third = true,
+                        First = 1,
+                        Second = 2.
+                    };
+                    let d = new D {
+                        First = 1,
+                        Second = new B {
+                            Only = 2
+                        }
+
+                    };
+                }
+            }"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A { First : Int, Second : Double, Third : Bool }
+            function Foo() : Unit {
+                let a = new A { First = 1, Second = 2.0, Third = true };
+                let b = new A { ...a };
+                let c = new A { ...a, Second = 3.0 };
+                let d = new A { ...a, Second = 3.0, Third = false };
+            }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                function Foo() : Unit {
+                    let a = new A {
+                        First = 1,
+                        Second = 2.,
+                        Third = true
+                    };
+                    let b = new A {
+                        ...a
+                    };
+                    let c = new A {
+                        ...a,
+                        Second = 3.
+                    };
+                    let d = new A {
+                        ...a,
+                        Second = 3.,
+                        Third = false
+                    };
+                }
+            }"#]],
+    );
+}
+
+#[test]
 fn statements() {
     check(
         indoc! {r#"
@@ -494,10 +622,10 @@ fn field_access_and_string_interning() {
             namespace A {
                 open Microsoft.Quantum.Math;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0.0 {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0.0 {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#},
@@ -506,10 +634,10 @@ fn field_access_and_string_interning() {
             namespace A {
                 open Microsoft.Quantum.Math;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0. {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0. {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#]],
@@ -815,7 +943,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1.0, 2.0, 3.0);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }
@@ -828,7 +956,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1., 2., 3.);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }

@@ -3,18 +3,17 @@
 
 use log::trace;
 use qsc::{
-    ast,
-    compile::{self, Error},
+    ast, compile,
     display::Lookup,
     error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
-    line_column::{Encoding, Position},
-    resolve,
+    line_column::{Encoding, Position, Range},
+    project, resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::LintConfig;
+use qsc_linter::{LintConfig, LintLevel};
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -26,7 +25,8 @@ pub(crate) struct Compilation {
     /// The `PackageId` of the user package. User code
     /// is non-library code, i.e. all code except the std and core libs.
     pub user_package_id: PackageId,
-    pub errors: Vec<Error>,
+    pub project_errors: Vec<project::Error>,
+    pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
 }
 
@@ -50,6 +50,7 @@ impl Compilation {
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
+        project_errors: Vec<project::Error>,
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -63,7 +64,7 @@ impl Compilation {
         let std_package_id =
             package_store.insert(compile::std(&package_store, target_profile.into()));
 
-        let (unit, mut errors) = compile::compile(
+        let (unit, mut compile_errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
@@ -78,20 +79,21 @@ impl Compilation {
             .expect("expected to find user package");
 
         run_fir_passes(
-            &mut errors,
+            &mut compile_errors,
             target_profile,
             &package_store,
             package_id,
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(&mut compile_errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
+            compile_errors,
             kind: CompilationKind::OpenProject,
+            project_errors,
         }
     }
 
@@ -141,13 +143,14 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(lints_config, &mut errors, unit);
+        run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
         Self {
             package_store,
             user_package_id: package_id,
-            errors,
+            compile_errors: errors,
             kind: CompilationKind::Notebook,
+            project_errors: Vec::new(),
         }
     }
 
@@ -191,6 +194,25 @@ impl Compilation {
         source.offset + offset
     }
 
+    pub(crate) fn source_range_to_package_span(
+        &self,
+        source_name: &str,
+        source_range: Range,
+        position_encoding: Encoding,
+    ) -> Span {
+        let lo = self.source_position_to_package_offset(
+            source_name,
+            source_range.start,
+            position_encoding,
+        );
+        let hi = self.source_position_to_package_offset(
+            source_name,
+            source_range.end,
+            position_encoding,
+        );
+        Span { lo, hi }
+    }
+
     /// Gets the span of the whole source file.
     pub(crate) fn package_span_of_source(&self, source_name: &str) -> Span {
         let unit = self.user_unit();
@@ -229,14 +251,16 @@ impl Compilation {
                 target_profile,
                 language_features,
                 lints_config,
+                Vec::new(), // project errors will stay the same
             ),
             CompilationKind::Notebook => {
                 Self::new_notebook(sources, target_profile, language_features, lints_config)
             }
         };
+
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
-        self.errors = new.errors;
+        self.compile_errors = new.compile_errors;
     }
 }
 
@@ -257,11 +281,6 @@ fn run_fir_passes(
         return;
     }
 
-    if target_profile == Profile::Base {
-        // baseprofchk will handle the case where the target profile is Base
-        return;
-    }
-
     if target_profile == Profile::Unrestricted {
         // no point in running passes on unrestricted profile
         return;
@@ -279,18 +298,20 @@ fn run_fir_passes(
 }
 
 /// Compute new lints and append them to the errors Vec.
-/// Lints are only computed if the erros vector is empty. For performance
+/// Lints are only computed if the errors vector is empty. For performance
 /// reasons we don't want to waste time running lints every few keystrokes,
 /// if the user is in the middle of typing a statement, for example.
 fn run_linter_passes(
-    config: &[LintConfig],
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
+    package_store: &PackageStore,
     unit: &CompileUnit,
+    config: &[LintConfig],
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(unit, Some(config));
+        let lints = qsc::linter::run_lints(package_store, unit, Some(config));
         let lints = lints
             .into_iter()
+            .filter(|lint| !matches!(lint.level, LintLevel::Allow))
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
         errors.extend(lints);
     }

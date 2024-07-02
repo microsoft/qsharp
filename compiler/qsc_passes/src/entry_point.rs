@@ -21,7 +21,7 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("duplicate entry point callable `{0}`")]
-    #[diagnostic(help("only one callable should be annotated with the entry point attribute"))]
+    #[diagnostic(help("only one callable named `Main` or one callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
     #[diagnostic(code("Qsc.EntryPoint.Duplicate"))]
     Duplicate(String, #[label] Span),
 
@@ -34,7 +34,7 @@ pub enum Error {
     BodyMissing(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
-    #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
+    #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present"))]
     #[diagnostic(code("Qsc.EntryPoint.NotFound"))]
     NotFound,
 }
@@ -81,7 +81,7 @@ fn create_entry_from_callables(
                     qsc_hir::hir::SpecBody::Impl(_, block) => {
                         let arg = Expr {
                             id: assigner.next_node(),
-                            span: ep.span,
+                            span: ep.input.span,
                             ty: Ty::UNIT,
                             kind: ExprKind::Tuple(Vec::new()),
                         };
@@ -92,13 +92,13 @@ fn create_entry_from_callables(
                         };
                         let callee = Expr {
                             id: assigner.next_node(),
-                            span: ep.span,
+                            span: ep.name.span,
                             ty: block.ty.clone(),
                             kind: ExprKind::Var(Res::Item(item_id), Vec::new()),
                         };
                         let call = Expr {
                             id: assigner.next_node(),
-                            span: ep.name.span,
+                            span: Span::default(),
                             ty: block.ty.clone(),
                             kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
                         };
@@ -124,13 +124,19 @@ fn create_entry_from_callables(
 fn get_callables(package: &Package) -> Vec<(&CallableDecl, LocalItemId)> {
     let mut finder = EntryPointFinder {
         callables: Vec::new(),
+        main: Vec::new(),
     };
     finder.visit_package(package);
-    finder.callables
+    if finder.callables.is_empty() {
+        finder.main
+    } else {
+        finder.callables
+    }
 }
 
 struct EntryPointFinder<'a> {
     callables: Vec<(&'a CallableDecl, LocalItemId)>,
+    main: Vec<(&'a CallableDecl, LocalItemId)>,
 }
 
 impl<'a> Visitor<'a> for EntryPointFinder<'a> {
@@ -138,6 +144,9 @@ impl<'a> Visitor<'a> for EntryPointFinder<'a> {
         if let ItemKind::Callable(callable) = &item.kind {
             if item.attrs.iter().any(|a| a == &Attr::EntryPoint) {
                 self.callables.push((callable, item.id));
+            }
+            if callable.name.name.as_ref() == "Main" {
+                self.main.push((callable, item.id));
             }
         }
     }

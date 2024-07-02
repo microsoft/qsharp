@@ -72,6 +72,8 @@ pub fn build_predecessors_map(program: &Program) -> IndexMap<BlockId, Vec<BlockI
 #[must_use]
 pub fn get_variable_assignments(program: &Program) -> IndexMap<VariableId, (BlockId, usize)> {
     let mut assignments = IndexMap::default();
+    let mut has_store = false;
+    let mut has_phi = false;
     for (block_id, block) in program.blocks.iter() {
         for (idx, instr) in block.0.iter().enumerate() {
             match instr {
@@ -97,18 +99,24 @@ pub fn get_variable_assignments(program: &Program) -> IndexMap<VariableId, (Bloc
                         "Duplicate assignment to {:?} in {block_id:?}, instruction {idx}",
                         var.variable_id
                     );
+                    has_phi |= matches!(instr, Instruction::Phi(_, _));
                     assignments.insert(var.variable_id, (block_id, idx));
                 }
+                Instruction::Store(_, var) => {
+                    has_store = true;
+                    assignments.insert(var.variable_id, (block_id, idx));
+                }
+
                 Instruction::Call(_, _, None)
                 | Instruction::Jump(..)
                 | Instruction::Branch(..)
                 | Instruction::Return => {}
-
-                Instruction::Store(..) => {
-                    panic!("Unexpected Store at {block_id:?}, instruction {idx}")
-                }
             }
         }
     }
+    assert!(
+        !(has_store && has_phi),
+        "Program has both store and phi instructions."
+    );
     assignments
 }

@@ -25,6 +25,7 @@ members = [
     "library",
     "pip",
     "resource_estimator",
+    "samples_test",
     "wasm",
 ]
 resolver = "2"
@@ -69,7 +70,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.20"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "5ceea4ff0d53cf7bb26d722dae91efe5586bd7ec", default-features = false }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "2fac7354f4e98c3efc05f8fd4180a02d0b712907" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
 
@@ -82,8 +83,8 @@ missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 
 [profile.release]
-debug = 1
-strip = true
+debug = "limited"
+strip = "symbols"
 lto = "fat"
 codegen-units = 1
 

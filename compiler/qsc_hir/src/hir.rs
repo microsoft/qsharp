@@ -4,7 +4,6 @@
 //! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
-
 use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
@@ -333,7 +332,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Ident, Vec<LocalItemId>),
+    Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -629,7 +628,7 @@ pub enum ExprKind {
     Conjugate(Block, Block),
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F`.
+    /// A field accessor: `a::F` or `a.F`.
     Field(Box<Expr>, Field),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
@@ -651,6 +650,8 @@ pub enum ExprKind {
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(Res, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A string.
     String(Vec<StringComponent>),
     /// Update array index: `a w/ b <- c`.
@@ -700,6 +701,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::UpdateIndex(expr1, expr2, expr3) => {
                 display_update_index(indent, expr1, expr2, expr3)?;
@@ -917,6 +919,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Res,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent]) -> fmt::Result {
     write!(indent, "String:")?;
     indent = set_indentation(indent, 1);
@@ -1000,6 +1023,29 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Field,
+    /// The value to assign to the field.
+    pub value: Box<Expr>,
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// A string component.
@@ -1135,6 +1181,116 @@ impl Display for QubitInitKind {
     }
 }
 
+/// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
+/// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
+/// dot-separated paths.
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+pub struct Idents(pub Box<[Ident]>);
+
+impl<'a> IntoIterator for &'a Idents {
+    type IntoIter = std::slice::Iter<'a, Ident>;
+    type Item = &'a Ident;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl From<Idents> for Vec<Rc<str>> {
+    fn from(v: Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<&Idents> for Vec<Rc<str>> {
+    fn from(v: &Idents) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<Vec<Ident>> for Idents {
+    fn from(v: Vec<Ident>) -> Self {
+        Idents(v.into_boxed_slice())
+    }
+}
+
+impl From<Idents> for Vec<Ident> {
+    fn from(v: Idents) -> Self {
+        v.0.into_vec()
+    }
+}
+
+impl FromIterator<Ident> for Idents {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        Idents(iter.into_iter().collect())
+    }
+}
+
+impl Display for Idents {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut buf = Vec::with_capacity(self.0.len());
+
+        for ident in self.0.iter() {
+            buf.push(format!("{ident}"));
+        }
+        if buf.len() > 1 {
+            // use square brackets only if there are more than one ident
+            write!(f, "[{}]", buf.join(", "))
+        } else {
+            write!(f, "{}", buf[0])
+        }
+    }
+}
+impl Idents {
+    /// constructs an iter over the [Ident]s that this contains.
+    pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
+        self.0.iter()
+    }
+
+    /// the conjoined span of all idents in the `Idents`
+    #[must_use]
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
+    }
+
+    /// Whether or not the first ident in this [`Idents`] matches `arg`
+    #[must_use]
+    pub fn starts_with(&self, arg: &str) -> bool {
+        self.0.first().is_some_and(|i| &*i.name == arg)
+    }
+
+    /// Whether or not the first `n` idents in this [`Idents`] match `arg`
+    #[must_use]
+    pub fn starts_with_sequence(&self, arg: &[&str]) -> bool {
+        if arg.len() > self.0.len() {
+            return false;
+        }
+        for (i, s) in arg.iter().enumerate() {
+            if &*self.0[i].name != *s {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// The stringified dot-separated path of the idents in this [`Idents`]
+    /// E.g. `a.b.c`
+    #[must_use]
+    pub fn name(&self) -> Rc<str> {
+        if self.0.len() == 1 {
+            return self.0[0].name.clone();
+        }
+        let mut buf = String::new();
+        for ident in self.0.iter() {
+            if !buf.is_empty() {
+                buf.push('.');
+            }
+            buf.push_str(&ident.name);
+        }
+        Rc::from(buf)
+    }
+}
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
@@ -1161,6 +1317,9 @@ pub enum Attr {
     EntryPoint,
     /// Indicates that an item does not have an implementation available for use.
     Unimplemented,
+    /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
+    /// and any implementation should be ignored.
+    SimulatableIntrinsic,
 }
 
 impl FromStr for Attr {
@@ -1171,6 +1330,7 @@ impl FromStr for Attr {
             "Config" => Ok(Self::Config),
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
+            "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             _ => Err(()),
         }
     }
@@ -1429,4 +1589,13 @@ pub enum BinOp {
     Sub,
     /// Bitwise XOR: `^^^`.
     XorB,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Represents an export declaration.
+pub struct ExportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Vec<Idents>,
 }

@@ -1,22 +1,59 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use miette::Diagnostic;
 use qsc::line_column::Range;
-use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
-use qsc_project::Manifest;
+use qsc::{compile, project};
+use qsc::{linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures, PackageType};
+use thiserror::Error;
 
 /// A change to the workspace configuration
-#[derive(Clone, Debug, Default, Copy)]
+#[derive(Clone, Debug, Default)]
 pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
+    pub language_features: Option<LanguageFeatures>,
+    pub lints_config: Option<Vec<LintConfig>>,
+}
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum ErrorKind {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Compile(#[from] compile::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Project(#[from] project::Error),
 }
 
 #[derive(Debug)]
 pub struct DiagnosticUpdate {
     pub uri: String,
     pub version: Option<u32>,
-    pub errors: Vec<Error>,
+    pub errors: Vec<ErrorKind>,
+}
+
+#[derive(Debug)]
+pub enum CodeActionKind {
+    Empty,
+    QuickFix,
+    Refactor,
+    RefactorExtract,
+    RefactorInline,
+    RefactorMove,
+    RefactorRewrite,
+    Source,
+    SourceOrganizeImports,
+    SourceFixAll,
+    Notebook,
+}
+
+#[derive(Debug)]
+pub struct CodeAction {
+    pub title: String,
+    pub edit: Option<WorkspaceEdit>,
+    pub kind: Option<CodeActionKind>,
+    pub is_preferred: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -88,6 +125,11 @@ impl Hash for CompletionItem {
 pub struct Hover {
     pub contents: String,
     pub span: Range,
+}
+
+#[derive(Debug)]
+pub struct WorkspaceEdit {
+    pub changes: Vec<(String, Vec<TextEdit>)>,
 }
 
 #[derive(Debug, PartialEq)]

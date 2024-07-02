@@ -15,6 +15,12 @@ pub fn split_state(
     state: &[(BigUint, Complex64)],
     qubit_count: usize,
 ) -> Result<Vec<(BigUint, Complex64)>, ()> {
+    // For an empty state, return an empty state.
+    // This handles cases where the underlying simulator doesn't track any quantum state.
+    if state.is_empty() {
+        return Ok(vec![]);
+    }
+
     let mut dump_state = FxHashMap::default();
     let mut other_state = FxHashMap::default();
 
@@ -114,7 +120,7 @@ fn collect_split_state(
             // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
             // state, and vice-versa below.
             let amplitude = curr_val / other_val;
-            let norm = amplitude.norm();
+            let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
                 dump_norm += norm;
@@ -122,7 +128,7 @@ fn collect_split_state(
         }
         if let Entry::Vacant(entry) = other_state.entry(other_label) {
             let amplitude = curr_val / dump_val;
-            let norm = amplitude.norm();
+            let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
             }

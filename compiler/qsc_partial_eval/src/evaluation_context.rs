@@ -8,7 +8,7 @@ use qsc_eval::{
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
-use qsc_rir::rir::BlockId;
+use qsc_rir::rir::{BlockId, Literal, VariableId};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 
@@ -96,8 +96,12 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
+    // Consider optimizing `hybrid_vars` and `mutable_vars` by removing them and enlightening the evaluator on how to
+    // properly handle `Value::Var`, which could be either `static` or `dynamic`.
     /// Map that holds the values of local variables.
-    pub hybrid_vars: FxHashMap<LocalVarId, Value>,
+    hybrid_vars: FxHashMap<LocalVarId, Value>,
+    /// Maps variable IDs to mutable variables, which contain their current kind.
+    mutable_vars: FxHashMap<VariableId, MutableKind>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
 }
@@ -157,7 +161,18 @@ impl Scope {
             env,
             active_block_count: 1,
             hybrid_vars,
+            mutable_vars: FxHashMap::default(),
         }
+    }
+
+    /// Gets a mutable variable.
+    pub fn find_mutable_kind(&self, var_id: VariableId) -> Option<&MutableKind> {
+        self.mutable_vars.get(&var_id)
+    }
+
+    /// Gets a mutable mutable variable.
+    pub fn find_mutable_var_mut(&mut self, var_id: VariableId) -> Option<&mut MutableKind> {
+        self.mutable_vars.get_mut(&var_id)
     }
 
     /// Gets the value of a hybrid local variable.
@@ -174,6 +189,19 @@ impl Scope {
         self.hybrid_vars
             .get(&local_var_id)
             .expect("local hybrid variable value does not exist")
+    }
+
+    // Inserts a value in the hybrid vars map.
+    pub fn insert_hybrid_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+        self.hybrid_vars.insert(local_var_id, value);
+    }
+
+    // Insert a variable into the mutable variables map.
+    pub fn insert_mutable_var(&mut self, var_id: VariableId, mutable_kind: MutableKind) {
+        let Entry::Vacant(vacant) = self.mutable_vars.entry(var_id) else {
+            panic!("mutable variable should not already exist");
+        };
+        vacant.insert(mutable_kind);
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -288,4 +316,10 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Result(Result::Val(_))
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum MutableKind {
+    Static(Literal),
+    Dynamic,
 }

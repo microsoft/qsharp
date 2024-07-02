@@ -154,13 +154,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
@@ -173,13 +167,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
+    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
 
@@ -505,6 +493,46 @@ fn dump_register_target_in_minus_with_other_in_one() {
 }
 
 #[test]
+fn dump_register_all_qubits_normalized_is_same_as_dump_machine() {
+    check_intrinsic_output(
+        "",
+        indoc! {
+        "{
+            open Microsoft.Quantum.Diagnostics;
+            use qs = Qubit[2];
+
+            let alpha = -4.20025;
+            let beta = 2.04776;
+            let gamma = -5.47097;
+
+            within{
+                Ry(alpha, qs[0]);
+                Ry(beta, qs[1]);
+                CNOT(qs[0], qs[1]);
+                Ry(gamma, qs[1]);
+            }
+            apply{
+                DumpRegister(qs);
+                DumpMachine();
+            }
+        }"
+        },
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
 fn message() {
     check_intrinsic_output(
         "",
@@ -649,6 +677,20 @@ fn draw_random_double() {
         "",
         "Microsoft.Quantum.Random.DrawRandomDouble(5.0,5.0)",
         &Value::Double(5.0),
+    );
+}
+
+#[test]
+fn draw_random_bool() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomBool(0.0)",
+        &Value::Bool(false),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomBool(1.0)",
+        &Value::Bool(true),
     );
 }
 

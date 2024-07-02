@@ -18,12 +18,16 @@ pub(crate) fn file_system(
     py: Python,
     read_file: PyObject,
     list_directory: PyObject,
+    resolve_path: PyObject,
+    fetch_github: PyObject,
 ) -> impl FileSystem + '_ {
     Py {
         py,
         fs_hooks: FsHooks {
             read_file,
             list_directory,
+            resolve_path,
+            fetch_github,
         },
     }
 }
@@ -31,6 +35,8 @@ pub(crate) fn file_system(
 struct FsHooks {
     read_file: PyObject,
     list_directory: PyObject,
+    resolve_path: PyObject,
+    fetch_github: PyObject,
 }
 
 #[derive(Debug)]
@@ -72,6 +78,29 @@ impl FileSystem for Py<'_> {
         list_directory(self.py, &self.fs_hooks.list_directory, path)
             .map_err(|e| diagnostic_from(self.py, &e))
     }
+
+    fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
+        resolve_path(self.py, &self.fs_hooks.resolve_path, base, path)
+            .map_err(|e| diagnostic_from(self.py, &e))
+    }
+
+    fn fetch_github(
+        &self,
+        owner: &str,
+        repo: &str,
+        r#ref: &str,
+        path: &str,
+    ) -> miette::Result<Arc<str>> {
+        fetch_github(
+            self.py,
+            &self.fs_hooks.fetch_github,
+            owner,
+            repo,
+            r#ref,
+            path,
+        )
+        .map_err(|e| diagnostic_from(self.py, &e))
+    }
 }
 
 fn read_file(py: Python, read_file: &PyObject, path: &Path) -> PyResult<(Arc<str>, Arc<str>)> {
@@ -107,6 +136,39 @@ fn list_directory(py: Python, list_directory: &PyObject, path: &Path) -> PyResul
             })
         })
         .collect() // Returns all values if all Ok, or first Err
+}
+
+fn resolve_path(
+    py: Python,
+    resolve_path: &PyObject,
+    base: &Path,
+    path: &Path,
+) -> PyResult<PathBuf> {
+    let resolve_path_result = resolve_path.call1(
+        py,
+        PyTuple::new(py, &[base.to_string_lossy(), path.to_string_lossy()]),
+    )?;
+
+    Ok(PathBuf::from(
+        resolve_path_result.downcast::<PyString>(py)?.to_str()?,
+    ))
+}
+
+fn fetch_github(
+    py: Python,
+    fetch_github: &PyObject,
+    owner: &str,
+    repo: &str,
+    r#ref: &str,
+    path: &str,
+) -> PyResult<Arc<str>> {
+    let fetch_github_result =
+        fetch_github.call1(py, PyTuple::new(py, [owner, repo, r#ref, path]))?;
+
+    Ok(fetch_github_result
+        .downcast::<PyString>(py)?
+        .to_string()
+        .into())
 }
 
 fn get_tuple_string(tuple: &PyTuple, index: usize) -> PyResult<Arc<str>> {

@@ -25,22 +25,25 @@ pub mod output;
 pub mod state;
 pub mod val;
 
-use crate::val::Value;
+use crate::val::{
+    index_array, make_range, slice_array, update_index_range, update_index_single, Value,
+};
 use backend::Backend;
 use debug::{CallStack, Frame};
-use error::PackageSpan;
+pub use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
-    LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
-    StoreItemId, StringComponent, UnOp,
+    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, FieldAssign, Global,
+    Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
+    StmtId, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
 use rand::{rngs::StdRng, SeedableRng};
+use rustc_hash::FxHashSet;
 use std::ops;
 use std::{
     cell::RefCell,
@@ -50,6 +53,7 @@ use std::{
     rc::Rc,
 };
 use thiserror::Error;
+use val::update_functor_app;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -288,7 +292,7 @@ pub struct VariableInfo {
     pub span: Span,
 }
 
-struct Range {
+pub struct Range {
     step: i64,
     end: i64,
     curr: i64,
@@ -357,6 +361,19 @@ impl Env {
                 .pop()
                 .expect("scope should have more than one entry.");
         }
+    }
+
+    pub fn leave_current_frame(&mut self) {
+        let current_frame_id = self
+            .0
+            .last()
+            .expect("should be at least one scope")
+            .frame_id;
+        if current_frame_id == 0 {
+            // Do not remove the global scope.
+            return;
+        }
+        self.0.retain(|scope| scope.frame_id != current_frame_id);
     }
 
     pub fn bind_variable_in_top_frame(&mut self, local_var_id: LocalVarId, var: Variable) {
@@ -611,6 +628,11 @@ impl State {
                     env.leave_scope();
                     continue;
                 }
+                Some(ExecGraphNode::RetFrame) => {
+                    self.leave_frame();
+                    env.leave_current_frame();
+                    continue;
+                }
                 Some(ExecGraphNode::PushScope) => {
                     self.push_scope(env);
                     self.idx += 1;
@@ -767,6 +789,7 @@ impl State {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
             ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
+            ExprKind::Struct(_, copy, fields) => self.eval_struct(*copy, fields),
             ExprKind::String(components) => self.collect_string(components),
             ExprKind::UpdateIndex(_, mid, _) => {
                 let mid_span = globals.get_expr((self.package, *mid).into()).span;
@@ -991,9 +1014,26 @@ impl State {
                     callee.input,
                     spec_decl.input,
                     arg,
+                    arg_span,
                     functor.controlled,
                     fixed_args,
-                );
+                )?;
+                Ok(())
+            }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
+                self.push_scope(env);
+
+                self.bind_args_for_spec(
+                    env,
+                    globals,
+                    callee.input,
+                    spec_decl.input,
+                    arg,
+                    arg_span,
+                    functor.controlled,
+                    fixed_args,
+                )?;
                 Ok(())
             }
         }
@@ -1061,6 +1101,45 @@ impl State {
         self.set_val_register(Value::Range(val::Range { start, step, end }.into()));
     }
 
+    fn eval_struct(&mut self, copy: Option<ExprId>, fields: &[FieldAssign]) {
+        // Extract a flat list of field indexes.
+        let field_indexes = fields
+            .iter()
+            .map(|f| match &f.field {
+                Field::Path(path) => match path.indices.as_slice() {
+                    &[i] => i,
+                    _ => panic!("field path for struct should have a single index"),
+                },
+                _ => panic!("invalid field for struct"),
+            })
+            .collect::<Vec<_>>();
+
+        let len = fields.len();
+
+        let (field_vals, mut strct) = if copy.is_some() {
+            // Get the field values and the copy struct value.
+            let field_vals = self.pop_vals(len + 1);
+            let (copy, field_vals) = field_vals.split_first().expect("copy value is expected");
+
+            // Make a clone of the copy struct value.
+            (field_vals.to_vec(), copy.clone().unwrap_tuple().to_vec())
+        } else {
+            // Make an empty struct of the appropriate size.
+            (self.pop_vals(len), vec![Value::Int(0); len])
+        };
+
+        // Insert the field values into the new struct.
+        assert!(
+            field_vals.len() == field_indexes.len(),
+            "number of given field values should match the number of given struct fields"
+        );
+        for (i, val) in field_indexes.iter().zip(field_vals.into_iter()) {
+            strct[*i] = val;
+        }
+
+        self.set_val_register(Value::Tuple(strct.into()));
+    }
+
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
         let values = self.take_val_register().unwrap_array();
         let update = self.pop_val();
@@ -1087,18 +1166,8 @@ impl State {
         update: Value,
         span: PackageSpan,
     ) -> Result<(), Error> {
-        if index < 0 {
-            return Err(Error::InvalidNegativeInt(index, span));
-        }
-        let i = index.as_index(span)?;
-        let mut values = values.to_vec();
-        match values.get_mut(i) {
-            Some(value) => {
-                *value = update;
-            }
-            None => return Err(Error::IndexOutOfRange(index, span)),
-        }
-        self.set_val_register(Value::Array(values.into()));
+        let updated_array = update_index_single(values, index, update, span)?;
+        self.set_val_register(updated_array);
         Ok(())
     }
 
@@ -1111,19 +1180,8 @@ impl State {
         update: Value,
         span: PackageSpan,
     ) -> Result<(), Error> {
-        let range = make_range(values, start, step, end, span)?;
-        let mut values = values.to_vec();
-        let update = update.unwrap_array();
-        for (idx, update) in range.into_iter().zip(update.iter()) {
-            let i = idx.as_index(span)?;
-            match values.get_mut(i) {
-                Some(value) => {
-                    *value = update.clone();
-                }
-                None => return Err(Error::IndexOutOfRange(idx, span)),
-            }
-        }
-        self.set_val_register(Value::Array(values.into()));
+        let updated_array = update_index_range(values, start, step, end, update, span)?;
+        self.set_val_register(updated_array);
         Ok(())
     }
 
@@ -1346,9 +1404,10 @@ impl State {
         decl_pat: PatId,
         spec_pat: Option<PatId>,
         args_val: Value,
+        args_span: PackageSpan,
         ctl_count: u8,
         fixed_args: Option<Rc<[Value]>>,
-    ) {
+    ) -> Result<(), Error> {
         match spec_pat {
             Some(spec_pat) => {
                 assert!(
@@ -1366,6 +1425,10 @@ impl State {
                     tup = rest.clone();
                 }
 
+                if !are_ctls_unique(&ctls, &tup) {
+                    return Err(Error::QubitUniqueness(args_span));
+                }
+
                 self.bind_value(env, globals, spec_pat, Value::Array(ctls.into()));
                 self.bind_value(env, globals, decl_pat, merge_fixed_args(fixed_args, tup));
             }
@@ -1376,6 +1439,7 @@ impl State {
                 merge_fixed_args(fixed_args, args_val),
             ),
         }
+        Ok(())
     }
 
     fn to_global_span(&self, span: Span) -> PackageSpan {
@@ -1384,6 +1448,21 @@ impl State {
             span,
         }
     }
+}
+
+pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
+    let mut qubits = FxHashSet::default();
+    for ctl in ctls.iter().flat_map(Value::qubits) {
+        if !qubits.insert(ctl) {
+            return false;
+        }
+    }
+    for qubit in tup.qubits() {
+        if qubits.contains(&qubit) {
+            return false;
+        }
+    }
+    true
 }
 
 fn merge_fixed_args(fixed_args: Option<Rc<[Value]>>, arg: Value) -> Value {
@@ -1462,53 +1541,6 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Pauli(v) => Value::Pauli(*v),
         Lit::Result(fir::Result::Zero) => Value::RESULT_ZERO,
         Lit::Result(fir::Result::One) => Value::RESULT_ONE,
-    }
-}
-
-fn index_array(arr: &[Value], index: i64, span: PackageSpan) -> Result<Value, Error> {
-    let i = index.as_index(span)?;
-    match arr.get(i) {
-        Some(v) => Ok(v.clone()),
-        None => Err(Error::IndexOutOfRange(index, span)),
-    }
-}
-
-fn slice_array(
-    arr: &[Value],
-    start: Option<i64>,
-    step: i64,
-    end: Option<i64>,
-    span: PackageSpan,
-) -> Result<Value, Error> {
-    let range = make_range(arr, start, step, end, span)?;
-    let mut slice = vec![];
-    for i in range {
-        slice.push(index_array(arr, i, span)?);
-    }
-
-    Ok(Value::Array(slice.into()))
-}
-
-fn make_range(
-    arr: &[Value],
-    start: Option<i64>,
-    step: i64,
-    end: Option<i64>,
-    span: PackageSpan,
-) -> Result<Range, Error> {
-    if step == 0 {
-        Err(Error::RangeStepZero(span))
-    } else {
-        let len: i64 = match arr.len().try_into() {
-            Ok(len) => Ok(len),
-            Err(_) => Err(Error::ArrayTooLarge(span)),
-        }?;
-        let (start, end) = if step > 0 {
-            (start.unwrap_or(0), end.unwrap_or(len - 1))
-        } else {
-            (start.unwrap_or(len - 1), end.unwrap_or(0))
-        };
-        Ok(Range::new(start, step, end))
     }
 }
 
@@ -1861,19 +1893,6 @@ fn eval_binop_xorb(lhs_val: Value, rhs_val: Value) -> Value {
             Value::Int(val ^ rhs)
         }
         _ => panic!("value type does not support xorb"),
-    }
-}
-
-fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
-    match functor {
-        Functor::Adj => FunctorApp {
-            adjoint: !app.adjoint,
-            controlled: app.controlled,
-        },
-        Functor::Ctl => FunctorApp {
-            adjoint: app.adjoint,
-            controlled: app.controlled + 1,
-        },
     }
 }
 

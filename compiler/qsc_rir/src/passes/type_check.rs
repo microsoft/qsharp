@@ -31,10 +31,14 @@ fn check_instr_types(program: &Program, instr: &Instruction) {
         | Instruction::LogicalOr(opr1, opr2, var)
         | Instruction::BitwiseAnd(opr1, opr2, var)
         | Instruction::BitwiseOr(opr1, opr2, var)
-        | Instruction::BitwiseXor(opr1, opr2, var)
-        | Instruction::Icmp(_, opr1, opr2, var) => {
+        | Instruction::BitwiseXor(opr1, opr2, var) => {
             assert_eq!(opr1.get_type(), opr2.get_type());
             assert_eq!(opr1.get_type(), var.ty);
+        }
+
+        Instruction::Icmp(_, opr1, opr2, var) => {
+            assert_eq!(opr1.get_type(), opr2.get_type());
+            assert_eq!(Ty::Boolean, var.ty);
         }
 
         Instruction::Store(opr, var)

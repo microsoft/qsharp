@@ -6,14 +6,6 @@ use qsc::line_column::{Encoding, Range};
 use qsc::location::Location;
 use qsc::{ast, hir::PackageId, SourceMap, Span};
 
-pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
-    offset >= span.lo && offset < span.hi
-}
-
-pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
-    offset >= span.lo && offset <= span.hi
-}
-
 pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap) -> Range {
     let lo_source = source_map
         .find_by_offset(span.lo)
@@ -42,15 +34,14 @@ pub(crate) fn into_location(
         span,
         package_id,
         &compilation.package_store,
-        compilation.user_package_id,
         position_encoding,
     )
 }
 
-pub(crate) fn find_ident<'a>(
-    node_id: &'a ast::NodeId,
-    callable: &'a ast::CallableDecl,
-) -> Option<&'a ast::Ident> {
+pub(crate) fn find_ident(
+    node_id: ast::NodeId,
+    callable: &ast::CallableDecl,
+) -> Option<&ast::Ident> {
     let mut finder = AstIdentFinder {
         node_id,
         ident: None,
@@ -63,7 +54,7 @@ pub(crate) fn find_ident<'a>(
 }
 
 struct AstIdentFinder<'a> {
-    pub node_id: &'a ast::NodeId,
+    pub node_id: ast::NodeId,
     pub ident: Option<&'a ast::Ident>,
 }
 
@@ -71,7 +62,7 @@ impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
     fn visit_pat(&mut self, pat: &'a ast::Pat) {
         match &*pat.kind {
             ast::PatKind::Bind(ident, _) => {
-                if ident.id == *self.node_id {
+                if ident.id == self.node_id {
                     self.ident = Some(ident);
                 }
             }

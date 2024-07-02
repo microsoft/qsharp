@@ -30,7 +30,7 @@ use qsc_data_structures::{
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    global,
+    global::{self},
     hir::{self, PackageId},
     validate::Validator as HirValidator,
     visit::Visitor as _,
@@ -59,6 +59,10 @@ pub struct AstPackage {
 #[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
+    /// The common prefix of the sources
+    /// e.g. if the sources all start with `/Users/microsoft/code/qsharp/src`, then this value is
+    /// `/Users/microsoft/code/qsharp/src`.
+    common_prefix: Option<Arc<str>>,
     entry: Option<Source>,
 }
 
@@ -86,8 +90,26 @@ impl SourceMap {
             offset_sources.push(source);
         }
 
+        // Each source has a name, which is a string. The project root dir is calculated as the
+        // common prefix of all of the sources.
+        // Calculate the common prefix.
+        let common_prefix: String = longest_common_prefix(
+            &offset_sources
+                .iter()
+                .map(|source| source.name.as_ref())
+                .collect::<Vec<_>>(),
+        )
+        .to_string();
+
+        let common_prefix: Arc<str> = Arc::from(common_prefix);
+
         Self {
             sources: offset_sources,
+            common_prefix: if common_prefix.is_empty() {
+                None
+            } else {
+                Some(common_prefix)
+            },
             entry: entry_source,
         }
     }
@@ -120,6 +142,25 @@ impl SourceMap {
 
     pub fn iter(&self) -> impl Iterator<Item = &Source> {
         self.sources.iter()
+    }
+
+    /// Returns the sources as an iter, but with the project root directory subtracted
+    /// from the individual source names.
+    pub(crate) fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
+        self.sources.iter().map(move |source| {
+            let name = source.name.as_ref();
+            let relative_name = if let Some(common_prefix) = &self.common_prefix {
+                name.strip_prefix(common_prefix.as_ref()).unwrap_or(name)
+            } else {
+                name
+            };
+
+            Source {
+                name: relative_name.into(),
+                contents: source.contents.clone(),
+                offset: source.offset,
+            }
+        })
     }
 }
 
@@ -421,8 +462,9 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
+    for source in sources.relative_sources() {
+        let (source_namespaces, source_errors) =
+            qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));
@@ -472,10 +514,16 @@ fn resolve_all(
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
+    // bind all symbols in `add_local_package`
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
+
+    // bind all exported symbols in a follow-on step
+    resolver.bind_and_resolve_imports_and_exports(package);
+
+    // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
     (names, locals, errors)
 }
@@ -529,4 +577,39 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 
         panic!("could not compile package");
     }
+}
+
+#[must_use]
+pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    if strs.len() == 1 {
+        return truncate_to_path_separator(strs[0]);
+    }
+
+    let Some(common_prefix_so_far) = strs.first() else {
+        return "";
+    };
+
+    for (i, character) in common_prefix_so_far.chars().enumerate() {
+        for string in strs {
+            if string.chars().nth(i) != Some(character) {
+                let prefix = &common_prefix_so_far[0..i];
+                // Find the last occurrence of the path separator in the prefix
+                return truncate_to_path_separator(prefix);
+            }
+        }
+    }
+    common_prefix_so_far
+}
+
+fn truncate_to_path_separator(prefix: &str) -> &str {
+    let last_separator_index = prefix
+        .rfind('/')
+        .or_else(|| prefix.rfind('\\'))
+        .or_else(|| prefix.rfind(':'));
+    if let Some(last_separator_index) = last_separator_index {
+        // Return the prefix up to and including the last path separator
+        return &prefix[0..=last_separator_index];
+    }
+    // If there's no path separator in the prefix, return an empty string
+    ""
 }

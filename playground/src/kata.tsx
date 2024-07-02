@@ -2,20 +2,24 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import {
-  CompilerState,
-  ExplainedSolution,
-  ICompilerWorker,
-  ILanguageServiceWorker,
-  type Kata,
-  QscEventTarget,
-  Question,
-  VSDiagnostic,
-  KataSection,
-} from "qsharp-lang";
+import { QscEventTarget } from "qsharp-lang";
 import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { Markdown } from "qsharp-lang/ux";
+
+import type {
+  CompilerState,
+  ICompilerWorker,
+  ILanguageServiceWorker,
+  VSDiagnostic,
+} from "qsharp-lang";
+
+import type {
+  ExplainedSolution,
+  Kata,
+  Question,
+  KataSection,
+} from "qsharp-lang/katas";
 
 type Props = {
   kata: Kata;
@@ -40,7 +44,7 @@ function ExplainedSolutionElem(props: { solution: ExplainedSolution }) {
               </pre>
             );
           case "text-content":
-            return <Markdown markdown={item.asMarkdown}></Markdown>;
+            return <Markdown markdown={item.content}></Markdown>;
         }
       })}
     </details>
@@ -51,7 +55,7 @@ function QuestionElem(props: { question: Question }) {
   return (
     <>
       <h2>{"❓ Question:"}</h2>
-      <Markdown markdown={props.question.description.asMarkdown}></Markdown>
+      <Markdown markdown={props.question.description.content}></Markdown>
       <details>
         <summary>
           <strong>{"💡 Answer"}</strong>
@@ -65,7 +69,7 @@ function QuestionElem(props: { question: Question }) {
                 </pre>
               );
             case "text-content":
-              return <Markdown markdown={item.asMarkdown}></Markdown>;
+              return <Markdown markdown={item.content}></Markdown>;
           }
         })}
       </details>
@@ -95,7 +99,7 @@ function LessonElem(props: Props & { section: KataSection }) {
                 </pre>
               );
             case "text-content":
-              return <Markdown markdown={item.asMarkdown}></Markdown>;
+              return <Markdown markdown={item.content}></Markdown>;
             case "question":
               return <QuestionElem question={item}></QuestionElem>;
           }
@@ -122,7 +126,7 @@ function ExerciseElem(props: Props & { section: KataSection }) {
       </div>
       <Markdown
         className="excercise-description"
-        markdown={exercise.description.asMarkdown}
+        markdown={exercise.description.content}
       />
       <div>
         <Editor
