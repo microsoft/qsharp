@@ -150,15 +150,17 @@ memfs = {
 
 
 def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    match (owner, repo, ref, path):
-        case ("test-owner", "test-repo", "12345", "/qsharp.json"):
-            return """{ "files" : ["src/test.qs"] }"""
-        case ("test-owner", "test-repo", "12345", "/src/test.qs"):
-            return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
-        case _:
-            raise Exception(
-                f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}"
-            )
+    if (owner, repo, ref, path) == ("test-owner", "test-repo", "12345", "/qsharp.json"):
+        return """{ "files" : ["src/test.qs"] }"""
+    elif (owner, repo, ref, path) == (
+        "test-owner",
+        "test-repo",
+        "12345",
+        "/src/test.qs",
+    ):
+        return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
+    else:
+        raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
 
 
 def read_file_memfs(path):
