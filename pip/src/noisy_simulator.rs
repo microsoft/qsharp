@@ -188,7 +188,7 @@ impl DensityMatrixSimulator {
             .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
-    /// For debugging and testing purposes.
+    /// Returns the `DensityMatrix` if the simulator is in a valid state.
     pub fn get_state(&self) -> PyResult<DensityMatrix> {
         match self.0.state() {
             Ok(dm) => Ok(dm.into()),
@@ -196,14 +196,14 @@ impl DensityMatrixSimulator {
         }
     }
 
-    /// For debugging and testing purposes.
+    /// Set state of the quantum system.
     pub fn set_state(&mut self, state: DensityMatrix) -> PyResult<()> {
         self.0
             .set_state(state.try_into()?)
             .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
-    /// For debugging and testing purposes.
+    /// Set the trace of the quantum system.
     pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
         self.0
             .set_trace(trace)
@@ -296,7 +296,7 @@ impl StateVectorSimulator {
             .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
-    /// For debugging and testing purposes.
+    /// Returns the `StateVector` if the simulator is in a valid state.
     pub fn get_state(&self) -> PyResult<StateVector> {
         match self.0.state() {
             Ok(dm) => Ok(dm.into()),
@@ -304,14 +304,14 @@ impl StateVectorSimulator {
         }
     }
 
-    /// For debugging and testing purposes.
+    /// Set state of the quantum system.
     pub fn set_state(&mut self, state: StateVector) -> PyResult<()> {
         self.0
             .set_state(state.try_into()?)
             .map_err(|e| SimulationError::new_err(e.to_string()))
     }
 
-    /// For debugging and testing purposes.
+    /// Set the trace of the quantum system.
     pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
         self.0
             .set_trace(trace)
