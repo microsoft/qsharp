@@ -470,9 +470,6 @@ impl<'a> Formatter<'a> {
                 (_, Keyword(Keyword::Is)) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
-                (_, Keyword(Keyword::Export | Keyword::Import)) => {
-                    effect_single_space(left, whitespace, right, &mut edits);
-                }
                 (_, Keyword(keyword)) if is_starter_keyword(keyword) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
