@@ -582,8 +582,5 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             ApplyAndAssuming0Target(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
         }
     }
-    export ApplyActionIfGreaterThanOrEqualConstant,
-    ApplyActionIfSumOverflows,
-    ApplyAsSinglyControlled,
-    PhaseGradient;
+    export ApplyActionIfGreaterThanOrEqualConstant, ApplyActionIfSumOverflows, ApplyAsSinglyControlled, PhaseGradient;
 }

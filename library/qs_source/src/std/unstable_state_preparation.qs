@@ -384,6 +384,5 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         Any(coefficient -> AbsD(coefficient) >= tolerance, coefficients)
     }
 
-export PreparePureStateD,
-    ApproximatelyPreparePureStateCP;
+    export PreparePureStateD, ApproximatelyPreparePureStateCP;
 }
