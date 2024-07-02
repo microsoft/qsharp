@@ -186,6 +186,7 @@ jobs:
         run: python ./build.py --no-check --no-test --wasm --npm --vscode --pip --widgets --integration-tests
 
   runBenchmark:
+    if: ${{ !github.event.pull_request.draft }}
     name: run benchmark
     runs-on: ubuntu-latest
     permissions:
@@ -200,6 +201,7 @@ jobs:
         if: ${{ github.base_ref != null }}
 
   runMemoryProfile:
+    if: ${{ !github.event.pull_request.draft }}
     name: run memory profile
     runs-on: ubuntu-latest
     permissions:
