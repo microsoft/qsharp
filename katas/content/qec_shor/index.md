@@ -50,8 +50,8 @@ The main idea of quantum error correction is the same as that for classical erro
 Dealing with the noise in quantum systems is more challenging than in classical systems, though, due to the limitations imposed by their nature:
 
 - **No cloning**: It's not possible to replicate the repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
-- **Observing the system damages information**: Even if you could produce several copies of a quantum state you want to transmit, you wouldn't be able to compare them afterwards without damaging their state.
-- **Errors are continuous**: You need to recover from arbitrary errors that are much more complicated than the bit flip error in classical systems.
+- **Observing the system damages information**: Even if the no-cloning theorem didn't prohibit producing several copies of a quantum state, it wouldn't be possible to compare the state of the copies afterwards without damaging their state.
+- **Errors are continuous**: Errors in quantum computing are much more complicated than bit flip errors in classical systems.
 
 The simplest model used to analyze quantum noise is *quantum depolarizing channel*. 
 This model assumes that the channel transmits the qubit unchanged with probability $1-p$, and applies one of the Pauli gates $X$, $Y$, and $Z$ with probability $\frac{p}{3}$ each. The effects of the noise on each qubit transmitted are independent.
@@ -134,7 +134,7 @@ Can we reuse the ideas of a classical repetition code for a quantum error correc
 
 The naive approach to it would be to try and encode a quantum state $\ket{\psi}$ as several copies of itself: 
 $\ket{\psi} \rightarrow \ket{\psi} \otimes \ket{\psi} \otimes \ket{\psi}$.
-Unfortunately, the no-cloning theorem and the inability to reconstruct a state accurately after measuring it prevent you from doing that.
+Unfortunately, the no-cloning theorem and the inability to reconstruct a state accurately after measuring it make this approach impossible.
 
 You can, however, take a slightly different approach: encode the *basis states* $\ket{0}$ and $\ket{1}$ in repetition code using a unitary transformation, and deduce the effects of this transformation on superposition states based on its linearity:
 
