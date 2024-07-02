@@ -6,7 +6,7 @@ and its effect on the quantum state as
 
 $$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{x_0} \ket{x} = (-1)^{x_0} \ket{x_{0} } \otimes \ket{x_1} \otimes \cdots \otimes \ket{x_{N-1}}$$
 
-As you've seen in the previous oracle, this can be achieved by applying a $Z$ gate to the first qubit.
+As you've seen in the previous exercise, this can be achieved by applying a $Z$ gate to the first qubit.
 
 @[solution]({
     "id": "deutsch_jozsa__msb_oracle_solution",
