@@ -1,0 +1,14 @@
+{
+    "dependencies": {
+        "Foo": {
+            "path": "../DependencyA"
+        },
+        "GitHub": {
+            "github": {
+                "owner": "sezna",
+                "repo": "qsharp-project-template",
+                "ref": "b4575725349f01183c98858c6ce8342cf490c436"
+            }
+        }
+    }
+}

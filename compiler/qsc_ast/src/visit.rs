@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
     FunctorExprKind, Ident, Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -24,8 +24,6 @@ pub trait Visitor<'a>: Sized {
     fn visit_attr(&mut self, attr: &'a Attr) {
         walk_attr(self, attr);
     }
-
-    fn visit_visibility(&mut self, _: &'a Visibility) {}
 
     fn visit_ty_def(&mut self, def: &'a TyDef) {
         walk_ty_def(self, def);
@@ -105,7 +103,6 @@ pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) 
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
-    item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &*item.kind {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),

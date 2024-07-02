@@ -5,8 +5,9 @@
 
 use expect_test::{expect, Expect};
 use qsc::{
+    compile,
     interpret::{GenericReceiver, Interpreter},
-    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
+    LanguageFeatures, PackageStore, PackageType, SourceMap, TargetCapabilityFlags,
 };
 
 fn compile_and_run(sources: SourceMap) -> String {
@@ -18,16 +19,21 @@ fn compile_and_run_debug(sources: SourceMap) -> String {
 }
 
 fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
+    // when we load the project, need to set these
+    let mut store = PackageStore::new(compile::core());
+    let std_id = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
+
     let mut interpreter = match (if debug {
         Interpreter::new_with_debug
     } else {
         Interpreter::new
     })(
-        true,
         sources,
         PackageType::Exe,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

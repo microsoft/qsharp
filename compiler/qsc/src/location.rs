@@ -226,7 +226,7 @@ mod tests {
         let std = compile::std(&store, capabilities);
         let std_package_id = store.insert(std);
 
-        dependencies.push(std_package_id);
+        dependencies.push((std_package_id, None));
         let sources = SourceMap::new(
             [
                 ("foo.qs".into(), "namespace Foo { }".into()),

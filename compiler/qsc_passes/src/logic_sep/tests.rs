@@ -33,7 +33,7 @@ fn check(block_str: &str, expect: &Expect) {
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         SourceMap::new([], Some(block_str.into())),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),

@@ -10,7 +10,7 @@
 namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);
 

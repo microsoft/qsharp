@@ -24,4 +24,5 @@ __pycache__/
 /target/
 /vscode/out/
 /vscode/test/out/
+/vscode/test/**/test-workspace/
 /wasm/

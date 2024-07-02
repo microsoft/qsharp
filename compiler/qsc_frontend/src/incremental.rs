@@ -5,7 +5,9 @@
 mod tests;
 
 use crate::{
-    compile::{self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap},
+    compile::{
+        self, preprocess, AstPackage, CompileUnit, Dependencies, Offsetter, PackageStore, SourceMap,
+    },
     error::WithSource,
     lower::Lowerer,
     resolve::{self, Resolver},
@@ -54,7 +56,7 @@ impl Compiler {
     /// Creates a new compiler.
     pub fn new(
         store: &PackageStore,
-        dependencies: impl IntoIterator<Item = PackageId>,
+        dependencies: &Dependencies,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Self {
@@ -62,17 +64,17 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals.add_external_package(PackageId::CORE, &unit.package);
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package, &None);
             typeck_globals.add_external_package(PackageId::CORE, &unit.package);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
-        for id in dependencies {
+        for (id, alias) in dependencies {
             let unit = store
-                .get(id)
+                .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.add_external_package(id, &unit.package);
-            typeck_globals.add_external_package(id, &unit.package);
+            resolve_globals.add_external_package(*id, &unit.package, alias);
+            typeck_globals.add_external_package(*id, &unit.package);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 

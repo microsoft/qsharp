@@ -55,7 +55,7 @@ fn conjugate_invert() {
             Package:
                 Item 0 [0-218] (Public):
                     Namespace (Ident 31 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58] (Public):
+                Item 1 [21-58] (Internal):
                     Parent: 0
                     Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
@@ -67,7 +67,7 @@ fn conjugate_invert() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [63-216] (Public):
+                Item 2 [63-216] (Internal):
                     Parent: 0
                     Callable 6 [63-216] (operation):
                         name: Ident 7 [73-74] "A"
@@ -133,7 +133,7 @@ fn conjugate_invert_with_output() {
             Package:
                 Item 0 [0-254] (Public):
                     Namespace (Ident 37 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58] (Public):
+                Item 1 [21-58] (Internal):
                     Parent: 0
                     Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
@@ -145,7 +145,7 @@ fn conjugate_invert_with_output() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [63-252] (Public):
+                Item 2 [63-252] (Internal):
                     Parent: 0
                     Callable 6 [63-252] (operation):
                         name: Ident 7 [73-74] "A"
@@ -220,7 +220,7 @@ fn nested_conjugate_invert() {
             Package:
                 Item 0 [0-357] (Public):
                     Namespace (Ident 47 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58] (Public):
+                Item 1 [21-58] (Internal):
                     Parent: 0
                     Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
@@ -232,7 +232,7 @@ fn nested_conjugate_invert() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [63-355] (Public):
+                Item 2 [63-355] (Internal):
                     Parent: 0
                     Callable 6 [63-355] (operation):
                         name: Ident 7 [73-74] "A"
@@ -489,7 +489,7 @@ fn conjugate_mutable_correct_use_succeeds() {
             Package:
                 Item 0 [0-337] (Public):
                     Namespace (Ident 51 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58] (Public):
+                Item 1 [21-58] (Internal):
                     Parent: 0
                     Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
@@ -501,7 +501,7 @@ fn conjugate_mutable_correct_use_succeeds() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [63-335] (Public):
+                Item 2 [63-335] (Internal):
                     Parent: 0
                     Callable 6 [63-335] (operation):
                         name: Ident 7 [73-74] "A"

@@ -163,7 +163,7 @@ async fn document_in_project() {
     check_errors_and_no_compilation(
         &ls,
         &mut received_errors.borrow_mut(),
-        "this_file.qs",
+        "project/src/this_file.qs",
         &(expect![[r#"
             []
         "#]]),

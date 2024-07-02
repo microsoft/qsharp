@@ -1848,8 +1848,8 @@ async fn error_from_dependency_reported() {
                                     ExpectedItem(
                                         Ident,
                                         Span {
-                                            lo: 26,
-                                            hi: 26,
+                                            lo: 0,
+                                            hi: 0,
                                         },
                                     ),
                                 ),

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, core, std};
+use crate::compile::{self, compile};
 use miette::Diagnostic;
 
 use qsc_ast::ast;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, SourceMap},
+    compile::{Dependencies, OpenPackageStore, PackageStore, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -37,24 +37,16 @@ impl Compiler {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        include_std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        mut store: PackageStore,
+        dependencies: &Dependencies,
     ) -> Result<Self, Errors> {
-        let core = core();
-        let mut store = PackageStore::new(core);
-        let mut dependencies = Vec::new();
-        if include_std {
-            let std = std(&store, capabilities);
-            let id = store.insert(std);
-            dependencies.push(id);
-        }
-
-        let (unit, errors) = compile(
+        let (mut unit, errors) = compile(
             &store,
-            &dependencies,
+            dependencies,
             sources,
             package_type,
             capabilities,
@@ -64,12 +56,17 @@ impl Compiler {
             return Err(errors);
         }
 
+        // make the user code fully public, so increments on top of this can access them
+        unit.expose();
+
+        let mut dependencies = dependencies.iter().map(Clone::clone).collect::<Vec<_>>();
+
         let source_package_id = store.insert(unit);
-        dependencies.push(source_package_id);
+        dependencies.push((source_package_id, None));
 
         let frontend = qsc_frontend::incremental::Compiler::new(
             &store,
-            dependencies,
+            &dependencies[..],
             capabilities,
             language_features,
         );
@@ -90,7 +87,7 @@ impl Compiler {
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let frontend =
-            qsc_frontend::incremental::Compiler::new(&store, [], capabilities, language_features);
+            qsc_frontend::incremental::Compiler::new(&store, &[], capabilities, language_features);
         let store = store.open();
 
         Ok(Self {

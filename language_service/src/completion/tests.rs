@@ -547,9 +547,11 @@ fn in_block_from_other_namespace() {
         operation Bar() : Unit {
             ↘
         }
+        export Bar;
     }
     namespace Other {
         operation Foo() : Unit {}
+        export Foo;
     }"#},
         &["Foo"],
         &expect![[r#"
@@ -594,12 +596,12 @@ fn auto_open_multiple_files() {
         &[
             (
                 "foo.qs",
-                indoc! {r#"namespace Foo { operation FooOperation() : Unit {} }
+                indoc! {r#"namespace Foo { operation FooOperation() : Unit {} export FooOperation; }
                 "#},
             ),
             (
                 "bar.qs",
-                indoc! {r#"namespace Bar { operation BarOperation() : Unit { ↘ } }
+                indoc! {r#"namespace Bar { operation BarOperation() : Unit { ↘ } export BarOperation; }
                 "#},
             ),
         ],
