@@ -130,7 +130,7 @@ The `Measure` operation takes two parameters: the array of `Pauli` constants (`P
     "title": "Bit Flip Code"
 })
 
-Can you reuse the ideas of a classical repetition code for a quantum error correction code? 
+Can we reuse the ideas of a classical repetition code for a quantum error correction code? 
 
 The naive approach to it would be to try and encode a quantum state $\ket{\psi}$ as several copies of itself: 
 $\ket{\psi} \rightarrow \ket{\psi} \otimes \ket{\psi} \otimes \ket{\psi}$.
@@ -267,7 +267,7 @@ However, if an $X$ error happens on any one of these qubits, you won't be able t
     "title": "Shor Code"
 })
 
-Can you combine the lessons learned from the bit flip and phase flip error correction codes to be able to detect and correct both $X$ and $Z$ errors? In that case, you'd also be able to handle $Y$ errors as a combination of $X$ and $Z$ errors happening at the same time, and, as a result, you'll be able to detect and correct any arbitrary **single-qubit** error.
+Can we combine the lessons learned from the bit flip and phase flip error correction codes to be able to detect and correct both $X$ and $Z$ errors? In that case, we'd also be able to handle $Y$ errors as a combination of $X$ and $Z$ errors happening at the same time, and, as a result, we'll be able to detect and correct any arbitrary **single-qubit** error.
 
 The Shor code, published in 1995, combines the approaches of the bit flip and phase flip codes.
 It uses the following 9-qubit encoding for logical states:
