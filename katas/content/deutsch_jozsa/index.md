@@ -292,7 +292,7 @@ Overall the amplitude of $\ket{s}$ is
 
 $$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} 1 = \frac{1}{\sqrt{2^N}} 2^N = 1$$
 
-This means that your state after applying the Hadamard gates is just $\ket{s}$, and measuring it gives you the bit string $s$!
+This means that the state after applying the Hadamard gates is just $\ket{s}$, and measuring it gives you the bit string $s$!
 And, same as Deutsch-Jozsa algorithm, Bernstein-Vazirani algorithm takes only one oracle call.
 
 @[exercise]({
