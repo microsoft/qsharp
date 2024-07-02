@@ -49,7 +49,7 @@ Majority vote allows for one error on any of the three bits to happen without af
 The main idea of quantum error correction is the same as that for classical error correction: encode information with enough redundancy that we can recover the message even from the noisy transmission results.
 Dealing with the noise in quantum systems is more challenging than in classical systems, though, due to the limitations imposed by their nature:
 
-- **No cloning**: You can't replicate the repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
+- **No cloning**: It's not possible to replicate the repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
 - **Observing the system damages information**: Even if you could produce several copies of a quantum state you want to transmit, you wouldn't be able to compare them afterwards without damaging their state.
 - **Errors are continuous**: You need to recover from arbitrary errors that are much more complicated than the bit flip error in classical systems.
 
