@@ -130,7 +130,7 @@ Overall, the algorithm is very straightforward:
 4. Apply the $H$ gate to the qubit again.
 5. Measure the qubit: if it's in the $\ket{0}$ state, the function is constant, otherwise it's variable.
 
-Note that this algorithm requires only **1** oracle call, and always produces the correct result (it's deterministic).
+Note that this algorithm requires only **1** oracle call, and always produces the correct result (the algorithm is deterministic).
 
 @[section]({
     "id": "deutsch_algo__visualization",
