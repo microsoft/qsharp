@@ -74,6 +74,33 @@ fn one_gate() {
 }
 
 #[test]
+fn toffoli() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit[3];
+                    CCNOT(q[0], q[1], q[2]);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── ● ──
+        q_1    ── ● ──
+        q_2    ── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn rotation_gate() {
     let mut interpreter = interpreter(
         r"
