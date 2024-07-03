@@ -27,8 +27,5 @@ namespace QIR.Runtime {
         }
     }
 
-    export __quantum__rt__qubit_allocate,
-    __quantum__rt__qubit_release,
-    AllocateQubitArray,
-    ReleaseQubitArray;
+    export __quantum__rt__qubit_allocate, __quantum__rt__qubit_release, AllocateQubitArray, ReleaseQubitArray;
 }
