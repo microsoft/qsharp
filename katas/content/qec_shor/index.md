@@ -50,7 +50,7 @@ The main idea of quantum error correction is the same as that for classical erro
 Dealing with the noise in quantum systems is more challenging than in classical systems, though, due to the limitations imposed by their nature:
 
 - **No cloning**: It's not possible to replicate the repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
-- **Observing the system damages information**: Even if the no-cloning theorem didn't prohibit producing several copies of a quantum state, it wouldn't be possible to compare the state of the copies afterwards without damaging their state.
+- **Observing the system damages information**: Even if the no-cloning theorem didn't prohibit producing several copies of a quantum state, it wouldn't be possible to compare the states of the copies afterwards without damaging their state.
 - **Errors are continuous**: Errors in quantum computing are much more complicated than bit flip errors in classical systems.
 
 The simplest model used to analyze quantum noise is *quantum depolarizing channel*. 
