@@ -22,6 +22,7 @@ pub struct BuildableProgram {
 }
 
 impl BuildableProgram {
+    /// Compiles all dependencies, populates the `PackageStore`, and prepares a `BuildableProgram` for the user code.
     #[must_use]
     pub fn new(
         capabilities: TargetCapabilityFlags,

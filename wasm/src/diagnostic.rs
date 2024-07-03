@@ -51,9 +51,9 @@ serializable_type! {
     /// in the editor or to populate the Problems view in VS Code.
     QSharpError,
     {
-        pub document: String,
-        pub diagnostic: VSDiagnostic,
-        pub stack: Option<String>,
+        document: String,
+        diagnostic: VSDiagnostic,
+        stack: Option<String>,
     },
     r#"export interface IQSharpError {
         /** Source URI or name */

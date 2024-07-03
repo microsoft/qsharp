@@ -3765,13 +3765,12 @@ fn multiple_exports() {
             namespace Foo {
                 operation ApplyX() : Unit {}
                 operation ApplyY() : Unit {}
-                export ApplyX, ApplyY;
             }
             namespace Main {
-                open Foo;
+                import Foo.ApplyX as X, Foo.ApplyY as Y;
                 operation Main() : Unit {
-                    ApplyX();
-                    ApplyY();
+                    X();
+                    Y();
                 }
             }
         "},
@@ -3779,10 +3778,9 @@ fn multiple_exports() {
             namespace namespace7 {
                 operation item1() : Unit {}
                 operation item2() : Unit {}
-                export item1, item2;
             }
             namespace namespace8 {
-                open namespace7;
+                import item1, item2;
                 operation item4() : Unit {
                     item1();
                     item2();

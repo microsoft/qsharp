@@ -259,7 +259,6 @@ suite("Q# Language Service Tests", function suite() {
 
   test("Web package dependencies", async () => {
     const doc = await vscode.workspace.openTextDocument(mainPackageMainQs);
-    vscode.commands.executeCommand("workbench.action.problems.focus");
 
     // Sanity check the test setup - is this the correct position?
     const text = doc.getText(

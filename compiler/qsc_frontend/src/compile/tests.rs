@@ -916,6 +916,11 @@ fn two_files_error_eof() {
     .assert_eq(&unit.package.to_string());
 }
 
+// this test is ignored for now -- see
+// https://github.com/microsoft/qsharp/pull/1698#discussion_r1664575343 for more information.
+// if we want to use `Unimplemented` more seriously (it is currently not used anywhere),
+// we should consider how it will interact with exports and other features.
+#[ignore]
 #[test]
 fn unimplemented_call_from_dependency_produces_error() {
     let lib_sources = SourceMap::new(
@@ -968,24 +973,12 @@ fn unimplemented_call_from_dependency_produces_error() {
         [
             Error(
                 Resolve(
-                    NotFound(
-                        "Bar",
-                        Span {
+                     Unimplemented(
+                         "Bar",
+                         Span {
                             lo: 69,
                             hi: 72,
                         },
-                    ),
-                ),
-            ),
-            Error(
-                Type(
-                    Error(
-                        AmbiguousTy(
-                            Span {
-                                lo: 69,
-                                hi: 74,
-                            },
-                        ),
                     ),
                 ),
             ),

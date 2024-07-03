@@ -29,7 +29,6 @@ impl LanguageService {
         LanguageService(qsls::LanguageService::new(Encoding::Utf16))
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
