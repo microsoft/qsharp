@@ -122,12 +122,15 @@ struct CompilationContext {
 impl CompilationContext {
     fn new(source: &str, capabilities: TargetCapabilityFlags) -> Self {
         let source_map = SourceMap::new([("test".into(), source.into())], Some("".into()));
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, capabilities));
         let compiler = Compiler::new(
-            true,
             source_map,
             PackageType::Exe,
             capabilities,
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.source_package_id());

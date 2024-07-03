@@ -7,30 +7,28 @@ mod tests;
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::{
-    compile::{PackageStore, SourceMap},
+    compile::{Dependencies, PackageStore, SourceMap},
     error::WithSource,
 };
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
-use crate::{compile, interpret::Error};
+use crate::interpret::Error;
 
 pub fn get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
+    mut package_store: PackageStore,
+    dependencies: &Dependencies,
 ) -> Result<String, Vec<Error>> {
     if capabilities == TargetCapabilityFlags::all() {
         return Err(vec![Error::UnsupportedRuntimeCapabilities]);
     }
-    let core = compile::core();
-    let mut package_store = PackageStore::new(core);
-    let std = compile::std(&package_store, capabilities);
-    let std = package_store.insert(std);
 
     let (unit, errors) = crate::compile::compile(
         &package_store,
-        &[std],
+        dependencies,
         sources,
         PackageType::Exe,
         capabilities,

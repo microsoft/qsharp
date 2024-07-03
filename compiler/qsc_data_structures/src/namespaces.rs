@@ -179,6 +179,21 @@ impl NamespaceTreeRoot {
             .children
             .insert(Rc::from(alias), existing_ns);
     }
+
+    /// Inserts (or finds) a new namespace as a child of an existing namespace.
+    /// Primarily used for appending namespaces to a parent namespace which represents a module/external package..
+    pub fn insert_or_find_namespace_from_root(
+        &mut self,
+        ns: impl Into<Vec<Rc<str>>>,
+        root: NamespaceId,
+    ) -> NamespaceId {
+        let (_root_name, root_contents) = self.find_namespace_by_id(&root);
+        let id = root_contents
+            .borrow_mut()
+            .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
+
+        id.expect("empty name should not be passed into namespace insertion")
+    }
 }
 
 impl Default for NamespaceTreeRoot {

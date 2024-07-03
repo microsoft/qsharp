@@ -8,7 +8,7 @@ use crate::{
 use qsc_ast::{
     ast::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
-        QubitInit, SpecDecl, Stmt, TopLevelNode, Ty, TyDef, Visibility,
+        QubitInit, SpecDecl, Stmt, TopLevelNode, Ty, TyDef,
     },
     visit::Visitor,
 };
@@ -62,7 +62,6 @@ pub(crate) trait AstLintPass {
     fn check_stmt(&self, _stmt: &Stmt, _buffer: &mut Vec<Lint>) {}
     fn check_ty(&self, _ty: &Ty, _buffer: &mut Vec<Lint>) {}
     fn check_ty_def(&self, _ty_def: &TyDef, _buffer: &mut Vec<Lint>) {}
-    fn check_visibility(&self, _visibility: &Visibility, _buffer: &mut Vec<Lint>) {}
 }
 
 /// This macro allow us to declare lints while avoiding boilerplate. It does three things:
@@ -86,7 +85,7 @@ macro_rules! declare_ast_lints {
             use qsc_ast::{
                 ast::{
                     Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
-                    QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
+                    QubitInit, SpecDecl, Stmt, Ty, TyDef,
                 },
                 visit::{self, Visitor},
             };
@@ -194,7 +193,6 @@ macro_rules! declare_ast_lints {
             fn check_namespace(&mut self, namespace: &Namespace) { $(self.$lint_name.check_namespace(namespace, &mut self.buffer));*; }
             fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer));*; }
             fn check_attr(&mut self, attr: &Attr) { $(self.$lint_name.check_attr(attr, &mut self.buffer));*; }
-            fn check_visibility(&mut self, visibility: &Visibility) { $(self.$lint_name.check_visibility(visibility, &mut self.buffer));*; }
             fn check_ty_def(&mut self, def: &TyDef) { $(self.$lint_name.check_ty_def(def, &mut self.buffer));*; }
             fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer));*; }
             fn check_spec_decl(&mut self, decl: &SpecDecl) { $(self.$lint_name.check_spec_decl(decl, &mut self.buffer));*; }
@@ -228,10 +226,6 @@ macro_rules! declare_ast_lints {
             fn visit_attr(&mut self, attr: &'a Attr) {
                 self.check_attr(attr);
                 visit::walk_attr(self, attr);
-            }
-
-            fn visit_visibility(&mut self, visibility: &'a Visibility) {
-                self.check_visibility(visibility);
             }
 
             fn visit_ty_def(&mut self, def: &'a TyDef) {

@@ -18,7 +18,7 @@ use qsc_ast::ast::{
     FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item, ItemKind, Lit,
     Mutability, Pat, PatKind, Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody,
     SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind, UnOp, Visibility, VisibilityKind,
+    TyKind, UnOp,
 };
 use qsc_ast::ast::{Namespace, Package};
 use qsc_ast::visit::Visitor;
@@ -114,9 +114,6 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
-        item.visibility
-            .iter()
-            .for_each(|v| self.visit_visibility(v));
         match &*item.kind {
             ItemKind::Err => {
                 unreachable!()
@@ -174,13 +171,6 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         self.visit_ident(&attr.name);
         self.visit_expr(&attr.arg);
         self.writeln("");
-    }
-
-    fn visit_visibility(&mut self, vis: &'_ Visibility) {
-        match vis.kind {
-            VisibilityKind::Public => {}
-            VisibilityKind::Internal => self.write("internal "),
-        }
     }
 
     fn visit_ty_def(&mut self, def: &'_ TyDef) {

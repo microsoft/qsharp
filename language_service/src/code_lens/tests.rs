@@ -148,6 +148,7 @@ fn qubit_operation_circuit() {
         namespace Test {
             ◉operation Foo(q: Qubit) : Unit {
             }◉
+            export Foo;
         }"#,
         &expect![[r#"
             [
@@ -176,6 +177,7 @@ fn qubit_arrays_operation_circuit() {
         namespace Test {
             ◉operation Foo(q: Qubit, q1: Qubit[], q2: Qubit[][]) : Unit {
             }◉
+            export Foo;
         }"#,
         &expect![[r#"
             [

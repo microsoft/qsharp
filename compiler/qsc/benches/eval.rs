@@ -18,12 +18,15 @@ const ARRAY_LITERAL: &str = include_str!("./array_literal");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
         b.iter(move || {
@@ -37,12 +40,15 @@ pub fn teleport(c: &mut Criterion) {
 pub fn deutsch_jozsa(c: &mut Criterion) {
     c.bench_function("Deutsch-Jozsa evaluation", |b| {
         let sources = SourceMap::new([("DeutschJozsa.qs".into(), DEUTSCHJOZSA.into())], None);
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
         b.iter(move || {
@@ -56,14 +62,18 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large file parity evaluation", |b| {
         let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
+
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -87,14 +97,18 @@ pub fn array_append(c: &mut Criterion) {
                 .into(),
             ),
         );
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
+
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -118,14 +132,18 @@ pub fn array_update(c: &mut Criterion) {
                 .into(),
             ),
         );
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
+
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -137,14 +155,18 @@ pub fn array_update(c: &mut Criterion) {
 pub fn array_literal(c: &mut Criterion) {
     c.bench_function("Array literal evaluation", |b| {
         let sources = SourceMap::new([("none".into(), "".into())], Some(ARRAY_LITERAL.into()));
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
+
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
@@ -173,14 +195,18 @@ pub fn large_nested_iteration(c: &mut Criterion) {
                 .into(),
             ),
         );
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(
-            true,
             sources,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("code should compile");
+
         b.iter(move || {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
