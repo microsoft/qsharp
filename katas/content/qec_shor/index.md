@@ -35,7 +35,7 @@ Before diving into how to deal with noise in quantum systems, let's take a quick
 The model used for analyzing classical noise is called a *binary symmetric channel*. In this model, the classical bits sent through the channel are transmitted correctly with probability $1-p$ and flipped with probability $p$. The error introduced if the bit is flipped is called a *bit flip error*.
 In this scenario, the information sent through the channel can be protected against the effects of the noise, that is, bit flip errors, using the *repetition code*:
 
-- On the sender side, for each bit you create and send three copies of itself:
+- On the sender side, for each bit you want to send, you create and send three copies of it:
 $$0 \rightarrow 000, 1 \rightarrow 111$$
 - On the receiver side, you decode the original bit by majority vote:
 $$000, 100, 010, 001 \rightarrow 0$$
