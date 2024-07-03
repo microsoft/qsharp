@@ -33,6 +33,7 @@ macro_rules! operation {
     };
 }
 
+/// This struct represents a quantum operation.
 /// A quantum operation is a linear transformation that maps a valid density
 /// matrix to another valid density matrices.
 #[derive(Clone)]
@@ -47,7 +48,7 @@ pub struct Operation {
 impl Operation {
     /// Construct an operation from a list of Kraus operators.
     /// Matrices must be of dimension 2^k x 2^k, where k is an integer.
-    /// Returns `None` if the
+    /// Returns `None` if the kraus matrices are ill formed.
     pub fn new(kraus_operators: Vec<SquareMatrix>) -> Self {
         let (dim, _) = kraus_operators
             .first()
@@ -93,7 +94,7 @@ impl Operation {
         &self.operation_matrix
     }
 
-    /// Return effect matrix:
+    /// Returns effect matrix:
     /// $$ (\sum_i K_i^{\dagger} K_i) $$
     pub fn effect_matrix(&self) -> &SquareMatrix {
         &self.effect_matrix

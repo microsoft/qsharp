@@ -8,13 +8,14 @@ use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
-pub(crate) fn register_noisy_sim_submodule(py: Python, parent_module: &PyModule) -> PyResult<()> {
-    let m = PyModule::new(py, "noisy_sim")?;
+#[pymodule]
+#[pyo3(name = "noisy_simulator")]
+fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> PyResult<()> {
+    m.add("NoisySimulatorError", py.get_type::<NoisySimulatorError>())?;
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;
     m.add_class::<StateVectorSimulator>()?;
-    parent_module.add_submodule(m)?;
     Ok(())
 }
 
@@ -55,7 +56,7 @@ fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
     list
 }
 
-pyo3::create_exception!(qsharp.noisy_sim, SimulationError, PyException);
+pyo3::create_exception!(qsharp.noisy_sim, NoisySimulatorError, PyException);
 
 #[pyclass]
 #[derive(Clone)]
@@ -114,6 +115,24 @@ pub(crate) struct DensityMatrix {
     data: Vec<Complex<f64>>,
 }
 
+#[pymethods]
+impl DensityMatrix {
+    /// Returns a copy of the matrix data.
+    fn data(&self) -> Vec<Complex<f64>> {
+        self.data.clone()
+    }
+
+    /// Returns the dimension of the matrix.
+    fn dimension(&self) -> usize {
+        self.dim
+    }
+
+    /// Returns the number of qubits in the system.
+    fn number_of_qubits(&self) -> usize {
+        self.number_of_qubits
+    }
+}
+
 impl From<&noisy_simulator::DensityMatrix> for DensityMatrix {
     fn from(dm: &noisy_simulator::DensityMatrix) -> Self {
         Self {
@@ -135,7 +154,7 @@ impl TryInto<noisy_simulator::DensityMatrix> for DensityMatrix {
             self.trace_change,
             ComplexVector::from_vec(self.data),
         )
-        .ok_or(SimulationError::new_err("invalid density matrix"))
+        .ok_or(NoisySimulatorError::new_err("invalid density matrix"))
     }
 }
 
@@ -145,9 +164,7 @@ pub(crate) struct DensityMatrixSimulator(noisy_simulator::DensityMatrixSimulator
 #[pymethods]
 impl DensityMatrixSimulator {
     #[new]
-    #[pyo3(signature = (number_of_qubits, seed=42))]
-    #[allow(unused_variables)]
-    pub fn new(number_of_qubits: usize, seed: usize) -> Self {
+    pub fn new(number_of_qubits: usize) -> Self {
         Self(noisy_simulator::DensityMatrixSimulator::new(
             number_of_qubits,
         ))
@@ -158,7 +175,7 @@ impl DensityMatrixSimulator {
     pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) -> PyResult<()> {
         self.0
             .apply_operation(&operation.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Apply non selective evolution.
@@ -170,7 +187,7 @@ impl DensityMatrixSimulator {
     ) -> PyResult<()> {
         self.0
             .apply_instrument(&instrument.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Performs selective evolution under the given instrument.
@@ -185,14 +202,14 @@ impl DensityMatrixSimulator {
     ) -> PyResult<usize> {
         self.0
             .sample_instrument(&instrument.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Returns the `DensityMatrix` if the simulator is in a valid state.
-    pub fn get_state(&self) -> PyResult<DensityMatrix> {
+    pub fn get_state(&self) -> Option<DensityMatrix> {
         match self.0.state() {
-            Ok(dm) => Ok(dm.into()),
-            Err(err) => Err(SimulationError::new_err(err.to_string())),
+            Ok(dm) => Some(dm.into()),
+            Err(_) => None,
         }
     }
 
@@ -200,14 +217,14 @@ impl DensityMatrixSimulator {
     pub fn set_state(&mut self, state: DensityMatrix) -> PyResult<()> {
         self.0
             .set_state(state.try_into()?)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Set the trace of the quantum system.
     pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
         self.0
             .set_trace(trace)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 }
 
@@ -222,6 +239,24 @@ pub(crate) struct StateVector {
     trace_change: f64,
     /// Vector storing the entries of the density matrix.
     data: Vec<Complex<f64>>,
+}
+
+#[pymethods]
+impl StateVector {
+    /// Returns a copy of the matrix data.
+    fn data(&self) -> Vec<Complex<f64>> {
+        self.data.clone()
+    }
+
+    /// Returns the dimension of the matrix.
+    fn dimension(&self) -> usize {
+        self.dim
+    }
+
+    /// Returns the number of qubits in the system.
+    fn number_of_qubits(&self) -> usize {
+        self.number_of_qubits
+    }
 }
 
 impl From<&noisy_simulator::StateVector> for StateVector {
@@ -245,7 +280,7 @@ impl TryInto<noisy_simulator::StateVector> for StateVector {
             self.trace_change,
             ComplexVector::from_vec(self.data),
         )
-        .ok_or(SimulationError::new_err("invalid density matrix"))
+        .ok_or(NoisySimulatorError::new_err("invalid density matrix"))
     }
 }
 
@@ -255,9 +290,7 @@ pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 #[pymethods]
 impl StateVectorSimulator {
     #[new]
-    #[pyo3(signature = (number_of_qubits, seed=42))]
-    #[allow(unused_variables)]
-    pub fn new(number_of_qubits: usize, seed: usize) -> Self {
+    pub fn new(number_of_qubits: usize) -> Self {
         Self(noisy_simulator::StateVectorSimulator::new(number_of_qubits))
     }
 
@@ -266,7 +299,7 @@ impl StateVectorSimulator {
     pub fn apply_operation(&mut self, operation: &Operation, qubits: Vec<usize>) -> PyResult<()> {
         self.0
             .apply_operation(&operation.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Apply non selective evolution.
@@ -278,7 +311,7 @@ impl StateVectorSimulator {
     ) -> PyResult<()> {
         self.0
             .apply_instrument(&instrument.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Performs selective evolution under the given instrument.
@@ -293,14 +326,14 @@ impl StateVectorSimulator {
     ) -> PyResult<usize> {
         self.0
             .sample_instrument(&instrument.0, &qubits)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Returns the `StateVector` if the simulator is in a valid state.
-    pub fn get_state(&self) -> PyResult<StateVector> {
+    pub fn get_state(&self) -> Option<StateVector> {
         match self.0.state() {
-            Ok(dm) => Ok(dm.into()),
-            Err(err) => Err(SimulationError::new_err(err.to_string())),
+            Ok(dm) => Some(dm.into()),
+            Err(_) => None,
         }
     }
 
@@ -308,13 +341,13 @@ impl StateVectorSimulator {
     pub fn set_state(&mut self, state: StateVector) -> PyResult<()> {
         self.0
             .set_state(state.try_into()?)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 
     /// Set the trace of the quantum system.
     pub fn set_trace(&mut self, trace: f64) -> PyResult<()> {
         self.0
             .set_trace(trace)
-            .map_err(|e| SimulationError::new_err(e.to_string()))
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 }

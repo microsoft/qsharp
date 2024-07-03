@@ -177,7 +177,7 @@ impl DensityMatrixSimulator {
         }
     }
 
-    /// Apply an operation to given qubit ids.
+    /// Apply an operation to the given qubit ids.
     pub fn apply_operation(
         &mut self,
         operation: &Operation,
@@ -192,7 +192,7 @@ impl DensityMatrixSimulator {
         Ok(())
     }
 
-    /// Apply non selective evolution.
+    /// Apply non selective evolution to the given qubit ids.
     pub fn apply_instrument(
         &mut self,
         instrument: &Instrument,

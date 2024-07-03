@@ -4,7 +4,6 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
-    noisy_simulator::register_noisy_sim_submodule,
 };
 use miette::Report;
 use num_bigint::BigUint;
@@ -41,8 +40,6 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
-    register_noisy_sim_submodule(py, m)?;
-
     Ok(())
 }
 
