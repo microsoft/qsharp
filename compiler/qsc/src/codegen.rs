@@ -25,8 +25,6 @@ pub fn get_qir(
     if capabilities == TargetCapabilityFlags::all() {
         return Err(vec![Error::UnsupportedRuntimeCapabilities]);
     }
-    // let core = compile::core();
-    // let mut package_store = PackageStore::new(core);
 
     let (unit, errors) = crate::compile::compile(
         &package_store,

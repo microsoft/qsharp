@@ -273,18 +273,6 @@ serializable_type! {
         dependencies: Record<string,string>;
     }"#
 }
-// impl From<qsc_project::PackageGraphSources> for PackageGraphSources {
-//     fn from(value: qsc_project::PackageGraphSources) -> Self {
-//         Self {
-//             root: value.root.into(),
-//             packages: value
-//                 .packages
-//                 .into_iter()
-//                 .map(|(pkg_key, pkg_info)| (pkg_key.to_string(), pkg_info.into()))
-//                 .collect(),
-//         }
-//     }
-// }
 
 impl TryFrom<qsc_project::Project> for IProjectConfig {
     type Error = String;

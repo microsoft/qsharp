@@ -646,7 +646,7 @@ impl PackageGraphSources {
                 .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
         });
 
-        log::info!("build plan: {:#?}", sorted_keys);
+        log::debug!("build plan: {:#?}", sorted_keys);
 
         Ok((sorted_packages, self.root))
     }
