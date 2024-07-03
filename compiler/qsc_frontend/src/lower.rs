@@ -179,9 +179,7 @@ impl With<'_> {
             ast::ItemKind::Err | ast::ItemKind::Open(..) |
             // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
 
-            ast::ItemKind::ImportOrExport(_) => {
-                return None;
-            },
+            ast::ItemKind::ImportOrExport(_) => return None,
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;

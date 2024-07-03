@@ -123,6 +123,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
+        ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
         ItemKind::ImportOrExport(export) => {
             vis.visit_span(&mut export.span);
             for item in export.items.iter_mut() {
@@ -132,7 +133,6 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
                 }
             }
         }
-        ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
     }
 }
 

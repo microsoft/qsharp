@@ -64,7 +64,7 @@ pub struct AstPackage {
     pub locals: Locals,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
     /// The common prefix of the sources
@@ -183,7 +183,7 @@ pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
 
-// this is only `None` for the legacy stdlib and core
+// the arc<str> is only `None` for the legacy stdlib, core, and an interpreter special case
 pub type Dependencies = [(PackageId, Option<Arc<str>>)];
 
 #[derive(Clone, Debug, Diagnostic, Error)]
