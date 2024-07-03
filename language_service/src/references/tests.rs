@@ -245,7 +245,6 @@ fn std_udt_ref() {
         namespace Test {
             open FakeStdLib;
             operation Foo(x : U↘dt) : Unit {}
-            export Foo;
         }
     "#},
         &expect![[r#"

@@ -378,7 +378,8 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
-    // This builds all the dependencies
+    // this function call builds all dependencies as a part of preparing the package store
+    // for building the user code.
     let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
 
     if !buildable_program.dependency_errors.is_empty() {
