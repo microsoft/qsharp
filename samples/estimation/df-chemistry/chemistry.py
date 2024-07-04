@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from scipy import linalg as LA
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
+from qsharp_widgets import EstimatesPanel
 
 
 @dataclass
@@ -488,11 +489,13 @@ qsharp_string = (
 
 # Collect resource estimation parameters
 if args.paramsfile is None:
-    params = {
-        "errorBudget": 0.01,
-        "qubitParams": {"name": "qubit_maj_ns_e6"},
-        "qecScheme": {"name": "floquet_code"},
-    }
+    params = [
+        {
+            "errorBudget": 0.01,
+            "qubitParams": {"name": "qubit_maj_ns_e6"},
+            "qecScheme": {"name": "floquet_code"},
+        }
+    ]
 else:
     params = []
     for paramsfile in args.paramsfile:
@@ -512,6 +515,9 @@ res = qsharp.estimate(
 # Store estimates in json file
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
+
+# This would display the summary of the data
+EstimatesPanel(res)
 
 # Print high-level resource estimation results
 if "physicalCountsFormatted" in res:
