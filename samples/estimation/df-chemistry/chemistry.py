@@ -516,13 +516,68 @@ res = qsharp.estimate(
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
+if isinstance(res,dict):
+    result = [res]
+else:
+    result = res
+
 # This would display the summary of the data
-EstimatesPanel(res)
+data = []
+for item in result:
+    data_item = []
+    
+    # Run name
+    data_item.append(item["jobParams"]["qubitParams"]["name"])
+    
+    # T factory fraction and Runtime
+    if "physicalCountsFormatted" in item:
+        data_item.append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["physicalCountsFormatted"]["runtime"])
+    elif "frontierEntries" in item:
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+    else:
+        data_item.append("-")
+        data_item.append("-")
+    
+    # Physical qubits and rQOPS
+    if "physicalCounts" in item:
+        data_item.append(item["physicalCounts"]["physicalQubits"])
+        data_item.append(item["physicalCounts"]["rqops"])
+    elif "frontierEntries" in item:
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
+    else:
+        data_item.append("-")
+        data_item.append("-")
+        
+    data.append(data_item)
+    
+# Define the table headers
+headers = ["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"]
+
+# Determine the width of each column
+col_widths = [max(len(str(item)) for item in column) for column in zip(headers, *data)]
+
+# Function to format a row
+def format_row(row):
+    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, col_widths))
+
+# Create the table
+header_row = format_row(headers)
+separator_row = "-+-".join("-" * width for width in col_widths)
+data_rows = [format_row(row) for row in data]
+
+# Print the table
+print(header_row)
+print(separator_row)
+for row in data_rows:
+    print(row)
 
 # Print high-level resource estimation results
-if "physicalCountsFormatted" in res:
-    print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
-    print(
-        f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
-    )
+# if "physicalCountsFormatted" in res:
+#     print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
+#     print(
+#         f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
+#     )
 print("For more detailed resource counts, see file resource_estimate.json")
