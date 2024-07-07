@@ -274,7 +274,7 @@ namespace Microsoft.Quantum.Convert {
     /// Number of decimal digits.
     /// # Example
     /// ```qsharp
-    /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35 rather than 0.354
+    /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
     /// ```
     function DoubleAsStringWithPrecision(input : Double, precision : Int) : String {
         body intrinsic;

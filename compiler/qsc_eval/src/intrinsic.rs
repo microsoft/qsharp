@@ -44,12 +44,7 @@ pub(crate) fn call(
                 Err(Error::InvalidNegativeInt(prec_int, arg_span))
             } else {
                 let precision = usize::try_from(prec_int).expect("integer value");
-                let is_zero;
-                if precision == 0 {
-                    is_zero = ".";
-                } else {
-                    is_zero = "";
-                }
+                let is_zero = if precision == 0 { "." } else { "" };
                 Ok(Value::String(Rc::from(format!(
                     "{:.*}{}",
                     precision,

@@ -245,7 +245,7 @@ fn double_as_string_with_precision() {
         "",
         "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8414709848078965, 4)",
         &expect!["0.8415"],
-    )
+    );
 }
 
 #[test]
@@ -254,7 +254,7 @@ fn double_as_string_with_precision_extend() {
         "",
         "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, 5)",
         &expect!["0.80000"],
-    )
+    );
 }
 
 #[test]
@@ -263,7 +263,17 @@ fn double_as_string_with_precision_negative_error() {
         "",
         "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, -5)",
         &expect!["negative integers cannot be used here: -5"],
-    )
+    );
+}
+
+#[test]
+fn double_as_string_with_zero_precision() {
+    check_intrinsic_result("", "DoubleAsStringWithPrecision(0.47, 0)", &expect!["0."]);
+}
+
+#[test]
+fn double_as_string_with_zero_precision_rounding() {
+    check_intrinsic_result("", "DoubleAsStringWithPrecision(0.913, 0)", &expect!["1."]);
 }
 
 #[test]
