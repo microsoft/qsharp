@@ -27,61 +27,37 @@ We split the teleportation protocol into several steps:
 @[exercise]({
     "id": "teleportation__entangled_pair",
     "title": "Entangled Pair",
-    "path": "./entangled_pair/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./entangled_pair/"
 })
 
 @[exercise]({
     "id": "teleportation__send_message",
     "title": "Send Message (Alice's Task)",
-    "path": "./send_message/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./send_message/"
 })
 
 @[exercise]({
     "id": "teleportation__reconstruct_message",
     "title": "Reconstruct Message (Bob's Task)",
-    "path": "./reconstruct_message/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_message/"
 })
 
 @[exercise]({
     "id": "teleportation__standard_teleportation_protocol",
     "title": "Standard Teleportation Protocol",
-    "path": "./standard_teleportation_protocol/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./standard_teleportation_protocol/"
 })
 
 @[exercise]({
     "id": "teleportation__prepare_and_send_message",
     "title": "Prepare Message and Send It",
-    "path": "./prepare_and_send_message/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./prepare_and_send_message/"
 })
 
 @[exercise]({
     "id": "teleportation__reconstruct_and_measure_message",
     "title": "Reconstruct Message and Measure It",
-    "path": "./reconstruct_and_measure_message/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_and_measure_message/"
 })
 
 @[section]({
@@ -118,31 +94,19 @@ The goal is to transform Bob's qubit `qBob` into the state in which the message 
 @[exercise]({
     "id": "teleportation__reconstruct_message_phi_minus",
     "title": "Reconstruct Message with |Φ⁻⟩",
-    "path": "./reconstruct_message_phi_minus",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_message_phi_minus"
 })
 
 @[exercise]({
     "id": "teleportation__reconstruct_message_psi_plus",
     "title": "Reconstruct Message with |Ψ⁺⟩",
-    "path": "./reconstruct_message_psi_plus",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_message_psi_plus"
 })
 
 @[exercise]({
     "id": "teleportation__reconstruct_message_psi_minus",
     "title": "Reconstruct Message with |Ψ⁻⟩",
-    "path": "./reconstruct_message_psi_minus",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_message_psi_minus"
 })
 
 
@@ -159,31 +123,19 @@ There are multiple variants of teleportation protocol that involve more than two
 @[exercise]({
     "id": "teleportation__entanglement_swapping",
     "title": "Entanglement Swapping",
-    "path": "./entanglement_swapping/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./entanglement_swapping/"
 })
 
 @[exercise]({
     "id": "teleportation__entangled_trio",
     "title": "Entangled Trio",
-    "path": "./entangled_trio",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./entangled_trio"
 })
 
 @[exercise]({
     "id": "teleportation__reconstruct_message_charlie",
     "title": "Reconstruct Message (Charlie's Task)",
-    "path": "./reconstruct_message_charlie",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./reconstruct_message_charlie"
 })
 
 @[section]({
@@ -200,11 +152,7 @@ However, teleportation protocol makes for a nice simple example of applying the 
 @[exercise]({
     "id": "teleportation__measurement_free_teleportation",
     "title": "Measurement-Free Teleportation",
-    "path": "./measurement_free_teleportation",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./measurement_free_teleportation"
 })
 
 @[section]({

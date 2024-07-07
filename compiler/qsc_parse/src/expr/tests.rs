@@ -344,7 +344,24 @@ fn lit_double_trailing_exp_dot() {
 
 #[test]
 fn lit_int_hexadecimal_dot() {
-    check(expr, "0x123.45", &expect!["Expr _id_ [0-5]: Lit: Int(291)"]);
+    check(
+        expr,
+        "0x123.45",
+        &expect![[r#"
+        Error(
+            Rule(
+                "identifier",
+                Int(
+                    Decimal,
+                ),
+                Span {
+                    lo: 6,
+                    hi: 8,
+                },
+            ),
+        )
+    "#]],
+    );
 }
 
 #[test]
@@ -520,9 +537,24 @@ fn double_path() {
     check(
         expr,
         "foo.bar",
-        &expect![[
-            r#"Expr _id_ [0-7]: Path: Path _id_ [0-7] (Ident _id_ [0-3] "foo") (Ident _id_ [4-7] "bar")"#
-        ]],
+        &expect![[r#"
+            Expr _id_ [0-7]: Path: Path _id_ [0-7]:
+                Ident _id_ [0-3] "foo"
+                Ident _id_ [4-7] "bar""#]],
+    );
+}
+
+#[test]
+fn leading_expr_path() {
+    check(
+        expr,
+        "foo().bar",
+        &expect![[r#"
+            Expr _id_ [0-9]: Field:
+                Expr _id_ [0-5]: Call:
+                    Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "foo")
+                    Expr _id_ [3-5]: Unit
+                Ident _id_ [6-9] "bar""#]],
     );
 }
 

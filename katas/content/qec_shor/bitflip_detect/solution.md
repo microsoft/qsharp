@@ -1,4 +1,4 @@
-To identify the qubit on which the error happened, we need to do two parity measurements in the $ZZ$ basis on any two different pairs of qubits and analyze their outcomes: 
+To identify the qubit on which the error happened, you need to do two parity measurements in the $ZZ$ basis on any two different pairs of qubits and analyze their outcomes: 
 
 - If both parity measurements yield $0$, no error occurred.
 - If both parity measurements yield $1$, the error occurred on the qubit that is shared between the measured pairs of qubits.

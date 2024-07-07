@@ -10,8 +10,6 @@ use qsc_data_structures::{
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir::PackageId;
 
-pub const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
-
 /// Describes a location in source code in terms of a source name and [`Range`].
 #[derive(Debug, PartialEq, Clone)]
 pub struct Location {
@@ -31,7 +29,6 @@ impl Location {
         span: Span,
         package_id: PackageId,
         package_store: &PackageStore,
-        user_package_id: PackageId,
         position_encoding: Encoding,
     ) -> Self {
         let source = package_store
@@ -41,16 +38,8 @@ impl Location {
             .find_by_offset(span.lo)
             .expect("source should exist for offset");
 
-        let source_name = if package_id == user_package_id {
-            source.name.clone()
-        } else {
-            // Currently the only supported external packages are our library packages,
-            // URI's to which need to include our custom library scheme.
-            format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name).into()
-        };
-
         Location {
-            source: source_name,
+            source: source.name.clone(),
             range: Range::from_span(position_encoding, &source.contents, &(span - source.offset)),
         }
     }
@@ -72,13 +61,12 @@ mod tests {
 
     #[test]
     fn from_std_span() {
-        let (store, std_package_id, user_package_id) = compile_package();
+        let (store, std_package_id, _) = compile_package();
 
         let location = Location::from(
             Span { lo: 0, hi: 1 },
             std_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -102,13 +90,12 @@ mod tests {
 
     #[test]
     fn from_core_span() {
-        let (store, _, user_package_id) = compile_package();
+        let (store, _, _) = compile_package();
 
         let location = Location::from(
             Span { lo: 0, hi: 1 },
             PackageId::CORE,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -149,7 +136,6 @@ mod tests {
             },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -179,7 +165,6 @@ mod tests {
             Span { lo: 1000, hi: 2000 },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 
@@ -210,7 +195,6 @@ mod tests {
             Span { lo: 0, hi: 2000 },
             user_package_id,
             &store,
-            user_package_id,
             Encoding::Utf8,
         );
 

@@ -101,7 +101,7 @@ pub struct Scope {
     /// Map that holds the values of local variables.
     hybrid_vars: FxHashMap<LocalVarId, Value>,
     /// Maps variable IDs to mutable variables, which contain their current kind.
-    mutable_vars: FxHashMap<VariableId, MutableVar>,
+    mutable_vars: FxHashMap<VariableId, MutableKind>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
 }
@@ -166,12 +166,12 @@ impl Scope {
     }
 
     /// Gets a mutable variable.
-    pub fn find_mutable_var(&self, var_id: VariableId) -> Option<&MutableVar> {
+    pub fn find_mutable_kind(&self, var_id: VariableId) -> Option<&MutableKind> {
         self.mutable_vars.get(&var_id)
     }
 
     /// Gets a mutable mutable variable.
-    pub fn find_mutable_var_mut(&mut self, var_id: VariableId) -> Option<&mut MutableVar> {
+    pub fn find_mutable_var_mut(&mut self, var_id: VariableId) -> Option<&mut MutableKind> {
         self.mutable_vars.get_mut(&var_id)
     }
 
@@ -197,11 +197,11 @@ impl Scope {
     }
 
     // Insert a variable into the mutable variables map.
-    pub fn insert_mutable_var(&mut self, var_id: VariableId, mutable_var: MutableVar) {
+    pub fn insert_mutable_var(&mut self, var_id: VariableId, mutable_kind: MutableKind) {
         let Entry::Vacant(vacant) = self.mutable_vars.entry(var_id) else {
             panic!("mutable variable should not already exist");
         };
-        vacant.insert(mutable_var);
+        vacant.insert(mutable_kind);
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -318,11 +318,7 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
     }
 }
 
-pub struct MutableVar {
-    pub id: LocalVarId,
-    pub kind: MutableKind,
-}
-
+#[derive(Clone, Copy, Debug)]
 pub enum MutableKind {
     Static(Literal),
     Dynamic,

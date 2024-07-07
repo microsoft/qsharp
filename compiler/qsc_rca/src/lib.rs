@@ -6,6 +6,9 @@
 //! execution on a quantum kernel and does not consider these elements when determining the capabilities. Additionally,
 //! this implementation also provides details on why the program requires each capability.
 
+#[cfg(test)]
+mod tests;
+
 mod analyzer;
 mod applications;
 mod common;
@@ -311,6 +314,15 @@ pub struct ApplicationGeneratorSet {
     /// Each element in the vector represents the compute kind(s) of a call application when the parameter associated to
     /// the vector index is bound to a dynamic value.
     pub(crate) dynamic_param_applications: Vec<ParamApplication>,
+}
+
+impl Default for ApplicationGeneratorSet {
+    fn default() -> Self {
+        Self {
+            inherent: ComputeKind::Classical,
+            dynamic_param_applications: Vec::new(),
+        }
+    }
 }
 
 impl Display for ApplicationGeneratorSet {

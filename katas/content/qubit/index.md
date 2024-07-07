@@ -221,10 +221,7 @@ For example, the state $\ket{0}$ would be represented as follows:
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
     "title": "Learn the State of a Single Qubit Using DumpMachine",
-    "path": "./learn_single_qubit_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./learn_single_qubit_state/"
 })
 
 @[section]({

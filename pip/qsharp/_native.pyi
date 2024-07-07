@@ -42,17 +42,19 @@ class Interpreter:
         self,
         target_profile: TargetProfile,
         language_features: Optional[List[str]],
-        manifest_descriptor: Optional[Dict[str, str]],
+        project_root: Optional[str],
         read_file: Callable[[str], str],
         list_directory: Callable[[str], str],
+        resolve_path: Callable[[str, str], str],
     ) -> None:
         """
         Initializes the Q# interpreter.
 
         :param target_profile: The target profile to use for the interpreter.
-        :param manifest_descriptor: A dictionary that represents the manifest descriptor
+        :param project_root: A directory that contains a `qsharp.json` manifest.
         :param read_file: A function that reads a file from the file system.
         :param list_directory: A function that lists the contents of a directory.
+        :param resolve_path: A function that joins path segments and normalizes the resulting path.
         """
         ...
 

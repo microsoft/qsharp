@@ -41,32 +41,6 @@ namespace Kata.Verification{
         }
     }
 
-    // Helper function to convert a boolean array to its ket state representation
-    function BoolArrayAsKetState (bits : Bool[]) : String {
-        mutable stateName = "|";
-        for i in 0 .. Length(bits) - 1 {
-            set stateName += (bits[i] ? "1" | "0");
-        }
-
-        return stateName + "⟩";
-    }
-
-    // Helper function to convert an array of bit strings to its ket state representation
-    function IntArrayAsStateName (
-        qubits : Int,
-        bitStrings : Bool[][]
-    ) : String {
-        mutable statename = "";
-        for i in 0 .. Length(bitStrings) - 1 {
-            if i > 0 {
-                set statename += " + ";
-            }
-            set statename += BoolArrayAsKetState(bitStrings[i]);
-        }
-
-        return statename;
-    }
-
     function StatePrep_FindFirstDiff (
         bits1 : Bool[],
         bits2 : Bool[]

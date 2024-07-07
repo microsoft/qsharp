@@ -104,8 +104,10 @@
 ///
 #[macro_export]
 macro_rules! serializable_type {
-    ($struct_ident: ident, $struct: tt, $typescript: literal) => {
+    ($(#[$($attrss:meta)*])* $struct_ident: ident, $struct: tt, $typescript: literal) => {
         #[derive(Debug, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        $(#[$($attrss)*])*
         pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.
@@ -115,8 +117,10 @@ macro_rules! serializable_type {
         const TYPESCRIPT_CUSTOM_SECTION: &'static str = $typescript;
     };
 
-    ($struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
+    ($(#[$($attrss:meta)*])* $struct_ident: ident, $struct: tt, $typescript: literal, $typescript_type_ident:ident) => {
         #[derive(Debug, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        $(#[$($attrss)*])*
         pub(crate) struct $struct_ident $struct
 
         // TypeScript type definition that will be included in the generated .d.ts file.

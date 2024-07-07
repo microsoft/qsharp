@@ -26,9 +26,9 @@ qsls = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
 qsc_codegen = { path = "../compiler/qsc_codegen" }
 qsc_doc_gen = { path = "../compiler/qsc_doc_gen" }
-qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
+qsc_project = { path = "../compiler/qsc_project" }
 resource_estimator = { path = "../resource_estimator" }
-serde = { workspace = true, features = ["derive"]}
+serde = { workspace = true, features = ["derive"] }
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
 wasm-bindgen-futures = { workspace = true}

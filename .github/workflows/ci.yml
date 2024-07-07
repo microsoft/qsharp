@@ -116,7 +116,40 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py --no-check
+        run: python ./build.py --no-check --wasm --npm --vscode --play --pip --widgets --jupyterlab
+
+  unit-tests:
+    name: Rust Unit and Samples tests
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-14]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Add additional Rust targets
+        run: |
+          rustup target add x86_64-apple-darwin
+        if: matrix.os == 'macos-14'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Prereqs
+        run: python ./prereqs.py --install
+      - name: Build and Test
+        run: python ./build.py --no-check --cli --samples
 
   integration-tests:
     name: Integration tests
@@ -152,77 +185,9 @@ jobs:
       - name: Run integration tests
         run: python ./build.py --no-check --no-test --wasm --npm --vscode --pip --widgets --integration-tests
 
-  runBenchmark:
-    name: run benchmark
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: boa-dev/criterion-compare-action@v3
-        with:
-          branchName: ${{ github.base_ref }}
-          cwd: "compiler/qsc"
-        if: ${{ github.base_ref != null }}
-
-  runMemoryProfile:
-    name: run memory profile
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: main
-      - uses: Swatinem/rust-cache@v2
-      - run: |
-          MAIN_MEASUREMENT=$(cargo run --bin memtest)
-          echo "MAIN_MEASUREMENT<<EOF" >> $GITHUB_ENV
-          echo "$MAIN_MEASUREMENT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      - run: |
-          echo "${{env.MAIN_MEASUREMENT}}"
-          echo $MAIN_MEASUREMENT
-
-      - uses: actions/checkout@v2
-      - run: |
-          BRANCH_MEASUREMENT=$(cargo run --bin memtest)
-          echo "BRANCH_MEASUREMENT<<EOF" >> $GITHUB_ENV
-          echo "$BRANCH_MEASUREMENT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      - run: |
-          echo "${{env.BRANCH_MEASUREMENT}}"
-          echo $BRANCH_MEASUREMENT
-      - uses: actions/github-script@v6
-        with:
-          script: |
-            if (${{ env.BRANCH_MEASUREMENT }} !== ${{ env.MAIN_MEASUREMENT }}) {
-              const difference = ${{ env.BRANCH_MEASUREMENT }} - ${{ env.MAIN_MEASUREMENT }};
-              try {
-                await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: `_Change in memory usage detected by benchmark._
-            ## Memory Report for ${{ github.sha }}
-
-            | Test                        | This Branch | On Main  | Difference |
-            |-----------------------------|-------------|----------| ---------- |
-            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes | ${difference} bytes`
-                })
-              } catch (err) {
-                core.warning(`Failed writing comment on GitHub issue: ${err}`)
-              }
-            } else {
-              console.log("no change in memory usage detected by benchmark");
-            }
-        if: ${{ github.base_ref != null }}
-
   status-check:
     name: Status Check
-    needs: [format, clippy, web-check, build, format-qsc, integration-tests, runBenchmark, runMemoryProfile]
+    needs: [format, clippy, web-check, build, unit-tests, format-qsc, integration-tests]
     runs-on: ubuntu-latest
     if: failure()
     steps:

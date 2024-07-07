@@ -18,11 +18,10 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
-/// A represenation of a local symbol.
+/// A representation of a local symbol.
 #[derive(Clone, Debug)]
 pub struct Local {
     pub var: LocalVarId,
-    pub pat: PatId,
     pub ty: Ty,
     pub kind: LocalKind,
 }
@@ -58,7 +57,6 @@ pub fn initialize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalV
                 id,
                 Local {
                     var: id,
-                    pat: param.pat,
                     ty: param.ty.clone(),
                     kind: LocalKind::InputParam(param.index),
                 },

@@ -14,7 +14,7 @@ pub use qsc_formatter::formatter;
 pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res};
+    pub use qsc_frontend::resolve::{path_as_field_accessor, Local, LocalKind, Locals, Res};
 }
 
 pub mod fir {
@@ -30,7 +30,9 @@ pub mod ast {
 }
 
 pub mod project {
-    pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
+    pub use qsc_project::{
+        DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
+    };
 }
 
 pub use qsc_data_structures::{

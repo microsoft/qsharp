@@ -21,7 +21,7 @@ use qsc_fir::{
         SpecImpl, Stmt, StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
-    visit::Visitor,
+    visit::{walk_stmt, Visitor},
 };
 
 pub struct Analyzer<'a> {
@@ -1243,7 +1243,9 @@ impl<'a> Analyzer<'a> {
 
         // Continue with the analysis differently depending on whether the callable is an intrinsic or not.
         match &callable_decl.implementation {
-            CallableImpl::Intrinsic => self.analyze_intrinsic_callable(),
+            CallableImpl::Intrinsic | CallableImpl::SimulatableIntrinsic(_) => {
+                self.analyze_intrinsic_callable();
+            }
             CallableImpl::Spec(spec_impl) => {
                 // Only analyze the specialization that corresponds to the provided ID. Otherwise, we can get into an
                 // infinite analysis loop.
@@ -1311,7 +1313,6 @@ impl<'a> Analyzer<'a> {
         let application_instance = self.get_current_application_instance_mut();
         let local = Local {
             var: ident.id,
-            pat: pat.id,
             ty: pat.ty.clone(),
             kind: local_kind,
         };
@@ -1643,6 +1644,52 @@ impl<'a> Analyzer<'a> {
             _ => panic!("expected a local variable or a tuple"),
         }
     }
+
+    /// Sets the application generator set for all statements in a block (including nested statements)
+    /// to the default without analyzing them. This is done to prevent the statements from being
+    /// treated as top-level statements by later analysis assumptions.
+    fn set_all_stmts_in_block_to_default(&mut self, block_id: BlockId) {
+        struct StmtCollector<'a> {
+            package: &'a Package,
+            stmts: Vec<StmtId>,
+        }
+        impl<'a> StmtCollector<'a> {
+            fn new(package: &'a Package) -> Self {
+                Self {
+                    package,
+                    stmts: Vec::new(),
+                }
+            }
+        }
+        impl<'a> Visitor<'a> for StmtCollector<'a> {
+            fn get_block(&self, id: BlockId) -> &'a Block {
+                self.package.get_block(id)
+            }
+            fn get_expr(&self, id: ExprId) -> &'a Expr {
+                self.package.get_expr(id)
+            }
+            fn get_pat(&self, id: PatId) -> &'a Pat {
+                self.package.get_pat(id)
+            }
+            fn get_stmt(&self, id: StmtId) -> &'a Stmt {
+                self.package.get_stmt(id)
+            }
+            fn visit_stmt(&mut self, stmt_id: StmtId) {
+                self.stmts.push(stmt_id);
+                walk_stmt(self, stmt_id);
+            }
+        }
+
+        let current_package = self.package_store.get(self.get_current_package_id());
+        let mut stmt_collector = StmtCollector::new(current_package);
+        stmt_collector.visit_block(block_id);
+        for stmt_id in stmt_collector.stmts {
+            self.package_store_compute_properties.insert_stmt(
+                (self.get_current_package_id(), stmt_id).into(),
+                ApplicationGeneratorSet::default(),
+            );
+        }
+    }
 }
 
 fn update_features_for_type(
@@ -1750,7 +1797,15 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
 
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
         match callable_impl {
-            CallableImpl::Intrinsic => self.analyze_intrinsic_callable(),
+            CallableImpl::Intrinsic => {
+                self.analyze_intrinsic_callable();
+            }
+            CallableImpl::SimulatableIntrinsic(spec_decl) => {
+                // Treat this as an intrinsic callable.
+                self.analyze_intrinsic_callable();
+                // Additionally, mark all the statements so that they appear visited.
+                self.set_all_stmts_in_block_to_default(spec_decl.block);
+            }
             CallableImpl::Spec(spec_impl) => {
                 self.visit_spec_impl(spec_impl);
             }
@@ -2423,7 +2478,6 @@ fn derive_specialization_controls(
         match &pat.kind {
             PatKind::Bind(ident) => Some(Local {
                 var: ident.id,
-                pat: pat_id,
                 ty: pat.ty.clone(),
                 kind: LocalKind::SpecInput,
             }),

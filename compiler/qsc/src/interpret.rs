@@ -811,7 +811,6 @@ impl Debugger {
                         frame.span,
                         map_fir_package_to_hir(frame.id.package),
                         self.interpreter.compiler.package_store(),
-                        map_fir_package_to_hir(self.interpreter.source_package),
                         self.position_encoding,
                     ),
                 }

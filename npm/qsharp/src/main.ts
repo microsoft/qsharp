@@ -27,6 +27,7 @@ import {
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
 import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
+import { IProjectHost } from "./browser.js";
 
 export { qsharpLibraryUriScheme };
 
@@ -60,15 +61,9 @@ export function getCompiler(): ICompiler {
   return new Compiler(wasm!);
 }
 
-export function getProjectLoader(
-  readFile: (path: string) => Promise<string | null>,
-  loadDirectory: (path: string) => Promise<[string, number][]>,
-  getManifest: (path: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
-): ProjectLoader {
+export function getProjectLoader(host: IProjectHost): ProjectLoader {
   ensureWasm();
-  return new wasm!.ProjectLoader(readFile, loadDirectory, getManifest);
+  return new wasm!.ProjectLoader(host);
 }
 
 export function getCompilerWorker(): ICompilerWorker {
@@ -84,15 +79,9 @@ export function getDebugServiceWorker(): IDebugServiceWorker {
   return createProxy("../debug-service/worker-node.js", debugServiceProtocol);
 }
 
-export function getLanguageService(
-  readFile?: (uri: string) => Promise<string | null>,
-  listDir?: (uri: string) => Promise<[string, number][]>,
-  getManifest?: (uri: string) => Promise<{
-    manifestDirectory: string;
-  } | null>,
-): ILanguageService {
+export function getLanguageService(host?: IProjectHost): ILanguageService {
   ensureWasm();
-  return new QSharpLanguageService(wasm!, readFile, listDir, getManifest);
+  return new QSharpLanguageService(wasm!, host);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {
