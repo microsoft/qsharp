@@ -244,7 +244,7 @@ fn double_as_string_with_precision() {
     check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8414709848078965, 4)",
-        &expect!["0.8415"]
+        &expect!["0.8415"],
     )
 }
 
@@ -253,7 +253,7 @@ fn double_as_string_with_precision_extend() {
     check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, 5)",
-        &expect!["0.80000"]
+        &expect!["0.80000"],
     )
 }
 
