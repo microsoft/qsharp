@@ -228,6 +228,12 @@ impl<'a> CompilationStateUpdater<'a> {
                     loaded_project.package_graph_sources.root.language_features,
                 ),
                 lints_config: loaded_project.lints,
+                package_type: loaded_project.package_graph_sources.root.package_type.map(
+                    |x| match x {
+                        qsc_project::PackageType::Exe => qsc::PackageType::Exe,
+                        qsc_project::PackageType::Lib => qsc::PackageType::Lib,
+                    },
+                ),
                 ..PartialConfiguration::default()
             };
 

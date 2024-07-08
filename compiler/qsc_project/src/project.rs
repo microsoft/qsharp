@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{manifest::GitHubRef, Manifest, ManifestDescriptor, PackageRef};
+use crate::{
+    manifest::{GitHubRef, PackageType},
+    Manifest, ManifestDescriptor, PackageRef,
+};
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
@@ -48,6 +51,7 @@ impl Project {
                     sources: vec![(name.clone(), contents)],
                     language_features: LanguageFeatures::default(),
                     dependencies: FxHashMap::default(),
+                    package_type: None,
                 },
                 packages: FxHashMap::default(),
             },
@@ -380,6 +384,7 @@ pub trait FileSystemAsync {
             sources,
             language_features: LanguageFeatures::from_iter(&manifest.manifest.language_features),
             dependencies,
+            package_type: manifest.manifest.package_type,
         })
     }
 
@@ -448,6 +453,7 @@ pub trait FileSystemAsync {
                 .into_iter()
                 .map(|(k, v)| (k.into(), key_for_package_ref(&v)))
                 .collect(),
+            package_type: manifest.package_type,
         })
     }
 
@@ -585,6 +591,7 @@ pub struct PackageInfo {
     pub sources: Sources,
     pub language_features: LanguageFeatures,
     pub dependencies: FxHashMap<PackageAlias, PackageKey>,
+    pub package_type: Option<PackageType>,
 }
 
 #[derive(Clone, Debug)]
@@ -655,12 +662,14 @@ impl PackageGraphSources {
     pub fn with_no_dependencies(
         sources: Vec<(Arc<str>, Arc<str>)>,
         language_features: LanguageFeatures,
+        package_type: Option<PackageType>,
     ) -> Self {
         Self {
             root: PackageInfo {
                 sources,
                 language_features,
                 dependencies: FxHashMap::default(),
+                package_type,
             },
             packages: FxHashMap::default(),
         }

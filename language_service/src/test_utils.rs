@@ -92,6 +92,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
                         sources,
                         language_features: LanguageFeatures::default(),
                         dependencies: FxHashMap::default(),
+                        package_type: None,
                     },
                     packages: FxHashMap::default(),
                 },

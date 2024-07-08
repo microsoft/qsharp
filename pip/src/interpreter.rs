@@ -125,6 +125,7 @@ impl Interpreter {
             let graph = PackageGraphSources::with_no_dependencies(
                 Vec::default(),
                 LanguageFeatures::from_iter(language_features),
+                None,
             );
             BuildableProgram::new(target.into(), graph)
         };
