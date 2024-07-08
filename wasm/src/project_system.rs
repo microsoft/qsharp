@@ -227,6 +227,13 @@ impl From<qsc_project::PackageInfo> for PackageInfo {
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
+            package_type: value.package_type.map(|x| {
+                match x {
+                    qsc_project::PackageType::Exe => "exe",
+                    qsc_project::PackageType::Lib => "lib",
+                }
+                .into()
+            }),
         }
     }
 }
@@ -266,11 +273,15 @@ serializable_type! {
         pub sources: Vec<(String, String)>,
         pub language_features: Vec<String>,
         pub dependencies: FxHashMap<PackageAlias,PackageKey>,
+        pub package_type: Option<String>,
     },
-    r#"export interface IPackageInfo {
+    r#"
+    
+    export interface IPackageInfo {
         sources: [string, string][];
         languageFeatures: string[];
         dependencies: Record<string,string>;
+        packageType?: "exe" | "lib";
     }"#
 }
 
@@ -351,6 +362,13 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
                 .into_iter()
                 .map(|(k, v)| (Arc::from(k), Arc::from(v)))
                 .collect(),
+            package_type: value.package_type.map(|x| match x.as_str() {
+                "exe" => qsc_project::PackageType::Exe,
+                "lib" => qsc_project::PackageType::Lib,
+                _ => unreachable!(
+                    "expected one of 'exe' or 'lib' -- should be guaranteed by TS types"
+                ),
+            }),
         }
     }
 }

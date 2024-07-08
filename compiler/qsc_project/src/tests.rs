@@ -38,6 +38,7 @@ fn basic_manifest() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -75,6 +76,7 @@ fn circular_imports() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -112,6 +114,7 @@ fn different_files_same_manifest() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -141,6 +144,7 @@ fn empty_manifest() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -182,6 +186,7 @@ fn folder_structure() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -218,6 +223,7 @@ fn hidden_files() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -258,6 +264,7 @@ fn peer_file() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -287,6 +294,7 @@ fn language_feature() {
                             1,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -318,6 +326,7 @@ fn with_local_dep() {
                         dependencies: {
                             "MyDep": "{\"path\":\"local_dep\"}",
                         },
+                        package_type: None,
                     },
                     packages: {
                         "{\"path\":\"local_dep\"}": PackageInfo {
@@ -331,6 +340,7 @@ fn with_local_dep() {
                                 0,
                             ),
                             dependencies: {},
+                            package_type: None,
                         },
                     },
                 },
@@ -362,6 +372,7 @@ fn transitive_dep() {
                         dependencies: {
                             "MyDep": "{\"path\":\"with_local_dep\"}",
                         },
+                        package_type: None,
                     },
                     packages: {
                         "{\"path\":\"local_dep\"}": PackageInfo {
@@ -375,6 +386,7 @@ fn transitive_dep() {
                                 0,
                             ),
                             dependencies: {},
+                            package_type: None,
                         },
                         "{\"path\":\"with_local_dep\"}": PackageInfo {
                             sources: [
@@ -389,6 +401,7 @@ fn transitive_dep() {
                             dependencies: {
                                 "MyDep": "{\"path\":\"local_dep\"}",
                             },
+                            package_type: None,
                         },
                     },
                 },
@@ -418,6 +431,7 @@ fn explicit_files_list() {
                             0,
                         ),
                         dependencies: {},
+                        package_type: None,
                     },
                     packages: {},
                 },
@@ -449,6 +463,7 @@ fn circular_dep() {
                         dependencies: {
                             "MyCircularDep": "{\"path\":\"circular_dep\"}",
                         },
+                        package_type: None,
                     },
                     packages: {},
                 },
