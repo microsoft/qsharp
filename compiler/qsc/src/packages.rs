@@ -38,11 +38,8 @@ pub fn prepare_package_store(
     capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
 ) -> BuildableProgram {
-    let core = compile::core();
-    let mut package_store = PackageStore::new(core);
-    let std = compile::std(&package_store, capabilities);
-    let std_id = package_store.insert(std);
-
+    let (std_id, mut package_store) = crate::compile::package_store_with_stdlib(capabilities);
+    
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
     let (ordered_packages, user_code) = package_graph_sources

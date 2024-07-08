@@ -20,8 +20,7 @@ fn compile_and_run_debug(sources: SourceMap) -> String {
 
 fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
     // when we load the project, need to set these
-    let mut store = PackageStore::new(compile::core());
-    let std_id = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
+    let (std_id, mut store) = compile::package_store_with_stdlib(TargetCapabilityFlags::all());
 
     let mut interpreter = match (if debug {
         Interpreter::new_with_debug

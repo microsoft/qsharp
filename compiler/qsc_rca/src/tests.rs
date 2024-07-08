@@ -39,8 +39,7 @@ pub struct CompilationContext {
 impl CompilationContext {
     #[must_use]
     pub fn new(capabilities: TargetCapabilityFlags) -> Self {
-        let mut store = qsc::PackageStore::new(qsc::compile::core());
-        let std_id = store.insert(qsc::compile::std(&store, capabilities));
+        let (std_id, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
         let compiler = Compiler::new(
             SourceMap::default(),
             PackageType::Lib,

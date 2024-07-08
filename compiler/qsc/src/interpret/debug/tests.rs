@@ -67,8 +67,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         None,
     );
 
-    let mut store = crate::PackageStore::new(crate::compile::core());
-    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
         source_map,
         PackageType::Lib,
@@ -146,8 +145,7 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         Some("Adjoint Test2.A(0)".into()),
     );
 
-    let mut store = crate::PackageStore::new(crate::compile::core());
-    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
         source_map,
         PackageType::Exe,

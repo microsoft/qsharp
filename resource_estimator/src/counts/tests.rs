@@ -17,8 +17,7 @@ use super::LogicalCounter;
 
 fn verify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
     let source_map = SourceMap::new([("test".into(), source.into())], entry.map(Into::into));
-    let mut store = qsc::PackageStore::new(qsc::compile::core());
-    let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+    let (std_id, mut store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
         source_map,
         PackageType::Exe,

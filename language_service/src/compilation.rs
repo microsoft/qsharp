@@ -117,8 +117,7 @@ impl Compilation {
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
-        let mut store = PackageStore::new(compile::core());
-        let std_id = store.insert(compile::std(&store, target_profile.into()));
+        let (std_id, mut store) = qsc::compile::package_store_with_stdlib(target_profile.into());
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
             SourceMap::default(),
