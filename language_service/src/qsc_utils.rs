@@ -5,6 +5,10 @@ use crate::compilation::Compilation;
 use qsc::line_column::{Encoding, Range};
 use qsc::location::Location;
 use qsc::{ast, hir::PackageId, SourceMap, Span};
+use qsc::{
+    compile::{self},
+    completion::Prediction,
+};
 
 pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap) -> Range {
     let lo_source = source_map
@@ -76,3 +80,22 @@ impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
         }
     }
 }
+
+pub(crate) fn whats_next(source: &str, cursor_offset: u32, notebook: bool) -> Vec<Prediction> {
+    compile::whats_next(source, cursor_offset, notebook)
+}
+
+// pub(crate) fn find_item<'a>(
+//     compilation: &'a Compilation,
+//     id: &ItemId,
+// ) -> (Option<&'a Item>, Option<&'a Package>) {
+//     let package = if let Some(package_id) = id.package {
+//         match compilation.package_store.get(package_id) {
+//             Some(compilation) => &compilation.package,
+//             None => return (None, None),
+//         }
+//     } else {
+//         &compilation.unit.package
+//     };
+//     (package.items.get(id.item), Some(package))
+// }

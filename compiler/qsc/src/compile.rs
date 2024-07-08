@@ -6,6 +6,7 @@ use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCap
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
+    Prediction,
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
@@ -56,6 +57,11 @@ pub fn compile_ast(
 }
 
 /// Compiles a package from its source representation.
+#[must_use]
+pub fn whats_next(source: &str, cursor_offset: u32, notebook: bool) -> Vec<Prediction> {
+    qsc_frontend::compile::whats_next(source, cursor_offset, notebook)
+}
+
 #[must_use]
 pub fn compile(
     store: &PackageStore,

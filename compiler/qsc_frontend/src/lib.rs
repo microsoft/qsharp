@@ -11,3 +11,4 @@ pub mod typeck;
 
 pub use qsc_parse::keyword;
 pub use qsc_parse::lex;
+pub use qsc_parse::Prediction;

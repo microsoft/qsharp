@@ -114,7 +114,7 @@ fn ignore_unstable_namespace() {
                         label: "FakeStdLib",
                         kind: Module,
                         sort_text: Some(
-                            "1101FakeStdLib",
+                            "0201FakeStdLib",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -144,7 +144,7 @@ fn ignore_unstable_callable() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -196,7 +196,7 @@ fn ignore_internal_callable() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -225,7 +225,7 @@ fn ignore_internal_callable() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0600Foo",
+                            "3100Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -238,7 +238,7 @@ fn ignore_internal_callable() {
                         label: "Baz",
                         kind: Function,
                         sort_text: Some(
-                            "0600Baz",
+                            "3100Baz",
                         ),
                         detail: Some(
                             "operation Baz() : Unit",
@@ -270,7 +270,7 @@ fn in_block_contains_std_functions_from_open_namespace() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -283,7 +283,7 @@ fn in_block_contains_std_functions_from_open_namespace() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0700FakeWithParam",
+                            "3200FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -296,7 +296,7 @@ fn in_block_contains_std_functions_from_open_namespace() {
                         label: "FakeCtlAdj",
                         kind: Function,
                         sort_text: Some(
-                            "0700FakeCtlAdj",
+                            "3200FakeCtlAdj",
                         ),
                         detail: Some(
                             "operation FakeCtlAdj() : Unit is Adj + Ctl",
@@ -327,7 +327,7 @@ fn in_block_contains_std_functions() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -356,7 +356,7 @@ fn in_block_contains_std_functions() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0700FakeWithParam",
+                            "3200FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -385,7 +385,7 @@ fn in_block_contains_std_functions() {
                         label: "FakeCtlAdj",
                         kind: Function,
                         sort_text: Some(
-                            "0700FakeCtlAdj",
+                            "3200FakeCtlAdj",
                         ),
                         detail: Some(
                             "operation FakeCtlAdj() : Unit is Adj + Ctl",
@@ -495,7 +495,7 @@ fn in_block_no_auto_open() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -526,7 +526,7 @@ fn in_block_with_alias() {
                         label: "Alias.Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Alias.Fake",
+                            "3200Alias.Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -559,7 +559,7 @@ fn in_block_from_other_namespace() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0600Foo",
+                            "3100Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -611,7 +611,7 @@ fn auto_open_multiple_files() {
                         label: "FooOperation",
                         kind: Function,
                         sort_text: Some(
-                            "0600FooOperation",
+                            "3100FooOperation",
                         ),
                         detail: Some(
                             "operation FooOperation() : Unit",
@@ -658,7 +658,7 @@ fn in_block_nested_op() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0100Foo",
+                            "2700Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -709,7 +709,7 @@ fn in_namespace_contains_open() {
                         label: "open",
                         kind: Keyword,
                         sort_text: Some(
-                            "0102open",
+                            "0201open",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -751,18 +751,18 @@ fn attributes() {
     check(
         indoc! {r#"
         namespace Test {
-            ↘
+            @↘
         }
         "#},
-        &["@EntryPoint()"],
+        &["EntryPoint"],
         &expect![[r#"
             [
                 Some(
                     CompletionItem {
-                        label: "@EntryPoint()",
-                        kind: Property,
+                        label: "EntryPoint",
+                        kind: Interface,
                         sort_text: Some(
-                            "0201@EntryPoint()",
+                            "0101EntryPoint",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -790,7 +790,7 @@ fn stdlib_udt() {
                         label: "TakesUdt",
                         kind: Function,
                         sort_text: Some(
-                            "0700TakesUdt",
+                            "3200TakesUdt",
                         ),
                         detail: Some(
                             "function TakesUdt(input : Udt) : Udt",
@@ -836,7 +836,7 @@ fn notebook_top_level() {
                         label: "operation",
                         kind: Keyword,
                         sort_text: Some(
-                            "0201operation",
+                            "0601operation",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -847,7 +847,7 @@ fn notebook_top_level() {
                         label: "namespace",
                         kind: Keyword,
                         sort_text: Some(
-                            "1301namespace",
+                            "0101namespace",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -858,7 +858,7 @@ fn notebook_top_level() {
                         label: "let",
                         kind: Keyword,
                         sort_text: Some(
-                            "0301let",
+                            "0701let",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -869,7 +869,7 @@ fn notebook_top_level() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0800Fake",
+                            "3000Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -915,7 +915,7 @@ fn notebook_top_level_global() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0800Fake",
+                            "3000Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -963,7 +963,7 @@ fn notebook_top_level_namespace_already_open_for_global() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0800Fake",
+                            "3000Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -994,7 +994,7 @@ fn notebook_block() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0700Fake",
+                            "3200Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -1023,7 +1023,7 @@ fn notebook_block() {
                         label: "let",
                         kind: Keyword,
                         sort_text: Some(
-                            "0201let",
+                            "0901let",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -1061,7 +1061,7 @@ fn notebook_auto_open_start_of_cell_empty() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0800Fake",
+                            "3000Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -1118,7 +1118,7 @@ fn notebook_auto_open_start_of_cell() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0800Fake",
+                            "3000Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -1167,7 +1167,7 @@ fn local_vars() {
                         label: "bar",
                         kind: Variable,
                         sort_text: Some(
-                            "0100bar",
+                            "2700bar",
                         ),
                         detail: Some(
                             "bar : Int",
@@ -1200,7 +1200,7 @@ fn local_items() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0100Foo",
+                            "2700Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -1213,7 +1213,7 @@ fn local_items() {
                         label: "Bar",
                         kind: Function,
                         sort_text: Some(
-                            "0100Bar",
+                            "2700Bar",
                         ),
                         detail: Some(
                             "operation Bar() : Unit",
@@ -1226,7 +1226,7 @@ fn local_items() {
                         label: "Custom",
                         kind: Interface,
                         sort_text: Some(
-                            "0100Custom",
+                            "2700Custom",
                         ),
                         detail: Some(
                             "newtype Custom = String",
@@ -1245,7 +1245,7 @@ fn type_params() {
         r#"
     namespace Test {
         operation Foo<'T>() : Unit {
-            ↘
+            let x: ↘
         }
     }"#,
         &["'T", "Bar"],
@@ -1256,7 +1256,7 @@ fn type_params() {
                         label: "'T",
                         kind: TypeParameter,
                         sort_text: Some(
-                            "0100'T",
+                            "0200'T",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -1309,7 +1309,7 @@ fn callable_params() {
                         label: "foo",
                         kind: Variable,
                         sort_text: Some(
-                            "0100foo",
+                            "2700foo",
                         ),
                         detail: Some(
                             "foo : Int",
@@ -1322,7 +1322,7 @@ fn callable_params() {
                         label: "bar",
                         kind: Variable,
                         sort_text: Some(
-                            "0100bar",
+                            "2700bar",
                         ),
                         detail: Some(
                             "bar : Custom",
@@ -1358,7 +1358,7 @@ fn local_var_in_callable_parent_scope() {
                         label: "baz",
                         kind: Variable,
                         sort_text: Some(
-                            "0100baz",
+                            "2700baz",
                         ),
                         detail: Some(
                             "baz : Int",
