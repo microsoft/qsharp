@@ -110,16 +110,27 @@ Typically, the search space is defined as all $n$-bit bit strings, so this super
 of all $N = 2^n$ basis states on $n$ qubits:
 $$\ket{\psi_\text{all}} = \frac{1}{\sqrt{N}}\sum_{x=0}^{N-1}{\ket{x}} $$
 
-When we're looking at this superposition in the context of the equation $f(x) = 1$, 
-we can split all the basis states in two groups:  "good" (solutions) and "bad" (non-solutions).
-If we denote the number of states for which $f(x)=1$ (the number of equation solutions) as $M$, 
-we can define two uniform superpositions of "good" and "bad" states as follows:
+When this superposition is considered in the context of the equation $f(x) = 1$, 
+all the basis states can be split in two groups:  "good" (solutions) and "bad" (non-solutions).
+If the number of states for which $f(x)=1$ (the number of equation solutions) is $M$, 
+two uniform superpositions of "good" and "bad" states can be defined as follows:
 
 $$\ket{\psi_\text{good}} = \frac{1}{\sqrt{M}}\sum_{x,f(x)=1}{\ket{x}}$$
 $$\ket{\psi_\text{bad}} = \frac{1}{\sqrt{N-M}}\sum_{x,f(x)=0}{\ket{x}}$$
 
-Now, we can rewrite the even superposition of all basis states as follows:
+Now, the even superposition of all basis states can be rewritten as follows:
 $$\ket{\psi_\text{all}} = \sqrt{\frac{M}{N}}\ket{\psi_\text{good}} + \sqrt{\frac{N-M}{N}}\ket{\psi_\text{bad}}$$
+
+The amplutudes $\sqrt{\frac{M}{N}}$ and $\sqrt{\frac{N-M}{N}}$ can then be written in a trigonometric representation,
+as a sine and cosine of the angle $\theta$:
+
+$$\sin \theta = \sqrt{\frac{M}{N}}, \cos \theta = \sqrt{\frac{N-M}{N}}$$
+
+With this replacement, the initial state can be written as 
+
+$$\ket{\psi_\text{all}} = \sin \theta \ket{\psi_\text{good}} + \cos \theta \ket{\psi_\text{bad}}$$
+
+The states involved in the algorithm can be represented on a plane on which $\ket{\psi_\text{good}}$ and $\ket{\psi_\text{bad}}$ vectors correspond to vertical and horizontal axes, respectively.
 
 TODO: visual
 
@@ -131,29 +142,29 @@ Each Grover's iteration consists of two operations.
 2. An operation called "reflection about the mean".
 
 Applying the phase oracle to the state will flip the sign of all basis states in $\ket{\psi_\text{good}}$ 
-and leave all basis states in $\ket{\psi_\text{bad}} unchanged.
+and leave all basis states in $\ket{\psi_\text{bad}}$ unchanged:
 
-The first application of the phase oracle will modify the state of the system to 
+$$U_f\ket{\psi_\text{good}} = -\ket{\psi_\text{good}}$$
+$$U_f\ket{\psi_\text{bad}} = \ket{\psi_\text{bad}}$$
 
-$$-\sqrt{\frac{M}{N}}\ket{\psi_\text{good}} + \sqrt{\frac{N-M}{N}}\ket{\psi_\text{bad}}$$
+On the circle plot, this transformation leaves the horizontal component of the state vector unchanged and reverses its vertical component. In other words, this operation is a reflection along the horizontal axis.
 
 TODO: visual
 
-"Reflection about the mean" is an operation for which its visual definition is much more intuitive than the mathematical one.
+"Reflection about the mean" is an operation for which the visual definition is much more intuitive than the mathematical one.
 It is literally a reflection about the state $\ket{\psi_\text{all}}$ - the uniform superposition of all basis states in the search space.
 
-The first application of reflection about the mean will modify the state of the system to
-
 TODO: visual
 
-As we can see, 
+As we can see, the pair of these reflections combined amount to a counterclockwise rotation by an angle $2\theta$. 
+If we repeat the Grover's iteration, reflecting the new state first along the horizontal axis and then along the $\ket{\psi_\text{all}}$ vector, it performs a rotation by $2\theta$ again. The angle of this rotation depends only on the angle between the reflection axes and not on the state we reflect!
 
-Each iteration of Grover's search adds $2\theta$ to the current angle in the expression of the system state as a superposition of $\psi_\text{good}$ and $\psi_\text{bad}$.
+Each iteration of Grover's search adds $2\theta$ to the current angle in the expression of the system state as a superposition of $\ket{\psi_\text{good}}$ and $\ket{\psi_\text{bad}}$.
 After applying $R$ iterations of Grover's search the state of the system will become
 
-$$\sin{(2R+1)\theta}\psi_\text{good} + \cos{(2R+1)\theta}\psi_\text{bad}$$
+$$\sin{(2R+1)\theta}\ket{\psi_\text{good}} + \cos{(2R+1)\theta}\ket{\psi_\text{bad}}$$
 
-
+At firat, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\psi_\text{good}}$ - the states that are solutions to the problem.
 
 Exercises:
 - conditional phase flip
@@ -166,12 +177,46 @@ Exercises:
     "title": "Optimal Number of Iterations"
 })
 
-What is the optimal number of iterations to use in Grover's search algorithm?
+The optimal number of iterations to use in Grover's search algorithm is typically defined as the number of iterations 
+after which the success probability of the algorithm - the probability of measuring one of the "good" states - is maximized.
 
-There are two ways to derive this number: 
+Geometrically, this means that the state vector should be rotated to be as close to the vertical axis as possible.
+Mathematically, this means maximizing the ampitude $\sin{(2R+1)\theta}$ of the state $\ket{\psi_\text{good}}$ 
+in the superposition.
+With either definition, the goal is to have the angle $(2R+1)\theta$ that describes the system after $R$ rotations
+as close to $\frac{\pi}{2}$ as possible:
 
-- derive optimal number of iterations
+$$(2R+1)\theta \approx \frac{\pi}{2}$$
+
+TODO: visual
+
+Now, recall that $\theta = \arcsin \sqrt{\frac{M}{N}}$. When $M$ is much smaller than $N$, $\frac{M}{N}$ is close to 0, and $\theta$ is a small angle that can approximated as $\theta \approx \sqrt{\frac{M}{N}}$. This gives the following equation for $R_{opt}$
+
+$$ 2R_{opt}+1 \approx \frac{\pi}{2\theta} = \frac{\pi}{2}\sqrt{\frac{N}{M}}$$
+Since $\theta$ is small, $R_{opt}$ is large, and the $+1$ term next to $2R_{opt}$ can be ignored, giving the final formula:
+$$ R_{opt} \approx \frac{\pi}{4}\sqrt{\frac{N}{M}}$$
+
 - demo: how success probability changes for different numbers of iterations
+
+### Verifying that algorithm output is correct
+
+Notice that even when using the optimal number of iterations, you are not guaranteed a $100\%$ success probability.
+Grover's search is a probabilistic algorithm, which means that even in the best case it has a non-zero failure probability.
+When you use it to solve a problem, you need to check that the output is correct before using it for any purpose.
+
+This can be done classically, if you have access to the classical description of the problem
+(in the example used in this kata, you would check that the prefix of the returned state matches the given one.)
+
+In general, the algorithm only gets the marking oracle as an input and doesn't have the information about the classical problem structure. 
+However, all information necessary to verify the output is already contained in the oracle itself!  
+The effect of the marking oracle on an input, encoded as a basis states of the qubit register, is defined as 
+$$U_f \ket{x} \ket{y} = \ket{x} \ket{y \oplus f(x)}$$
+
+This means that if you encode the return of the algorithm $x_0$ as a basis state of the qubit register, 
+allocate an extra qubit in the $\ket{0}$ state, and apply the oracle $U_f$ to these qubits, you'll get 
+$$U_f \ket{x} \ket{0} = \ket{x} \ket{f(x)}$$
+
+If you measure the last qubit now, you'll get exactly $f(x)$: if it is 1, the algorithm produced a correct answer, otherwise it didn't. If the algorithm failed, you can re-run it from scratch and hopefully get a correct answer on the next attempt!
 
 
 ### Special cases
@@ -212,6 +257,13 @@ The last two scenarios are a lot easier to handle classically.
 Indeed, a randomly selected classical value has a probability of being a problem solution $p = \frac{M}{N} > \frac{1}{2}$! 
 If we repeat the random selection of the variable $k$ times, the probability of success grows to $1-(1-p)^k$, thus by increasing $k$ we can get this probabilty as close to $1$ as we need.
 For example, For $p=0.5$ and $k=10$ the probality of success is about $99.9\%$.
+
+#### Unknown number of solutions
+
+In practical applications you don't usually know how many solutions your problem has before you start solving it. 
+In this case, you can pick the number of iterations as a random number between 1 and $\frac{\pi}{4} \sqrt{N}$, 
+and if the search did not yield the result on the first run, re-run it with a different number of iterations. 
+Since Grover's algorithm is probabilistic, you don't nee to get the exact number of iterations to get a correct answer!
 
 
 @[section]({
