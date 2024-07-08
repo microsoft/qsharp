@@ -8,16 +8,10 @@ use crate::{
 };
 use num_complex::Complex;
 
-macro_rules! assert_approx_eq {
-    ($left:expr, $right:expr $(,)?) => {
-        if !approx_eq($left, $right) {
-            panic!("aprox_equal failed, left = {}, right = {}", $left, $right);
-        }
-    };
-}
-
-fn approx_eq(a: f64, b: f64) -> bool {
-    (a - b).abs() <= TOLERANCE
+fn assert_approx_eq(left: f64, right: f64) {
+    if (left - right).abs() > TOLERANCE {
+        panic!("aprox_equal failed, left = {left}, right = {right}");
+    }
 }
 
 fn h() -> Operation {
@@ -94,10 +88,10 @@ pub fn bell_pair_projection<NS: NoisySimulator>(outcome: usize) -> Result<(), Er
 
     if outcome == 0 || outcome == 3 {
         sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
-        assert_approx_eq!(0.5, sim.trace_change()?);
+        assert_approx_eq(0.5, sim.trace_change()?);
         sim.apply_operation(mz.operation(outcome & 1), &[0])?;
         sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
-        assert_approx_eq!(0.5, sim.trace_change()?);
+        assert_approx_eq(0.5, sim.trace_change()?);
     } else {
         sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
     }
@@ -138,14 +132,14 @@ pub fn two_qubit_gate<NS: NoisySimulator>(outcome: usize) -> Result<(), Error> {
         sim.apply_operation(if b1 { &m1 } else { &m0 }, &[0])?;
 
         if b1 {
-            assert_approx_eq!(0.5, sim.trace_change()?);
+            assert_approx_eq(0.5, sim.trace_change()?);
             sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
-            assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
+            assert_approx_eq(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
             sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
-            assert_approx_eq!(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
+            assert_approx_eq(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
         } else {
             assert_eq!(0, sim.sample_instrument(&mz, &[1])?);
-            assert_approx_eq!(0.5, sim.trace_change()?);
+            assert_approx_eq(0.5, sim.trace_change()?);
             sim.apply_operation(&m1, &[1])?;
         }
     }
@@ -193,10 +187,10 @@ pub fn alternating_mz_and_mx<NS: NoisySimulator>() {
         sim.sample_instrument(&mz, &[0])
             .expect("measurement should succeed");
         prob *= 0.5;
-        assert_approx_eq!(prob, sim.trace_change().expect("state should be valid"));
+        assert_approx_eq(prob, sim.trace_change().expect("state should be valid"));
         sim.sample_instrument(&mx, &[0])
             .expect("measurement should succeed");
         prob *= 0.5;
-        assert_approx_eq!(prob, sim.trace_change().expect("state should be valid"));
+        assert_approx_eq(prob, sim.trace_change().expect("state should be valid"));
     }
 }
