@@ -270,6 +270,17 @@ impl PackageStore {
     pub fn is_empty(&self) -> bool {
         self.units.is_empty()
     }
+
+    /// Constructs a package store with stdlib and core already included.
+    /// Returns the ID of the stdlib package and the store.
+    /// The ID of the stdlib package is returned because, while for all practical purposes
+    /// it will be `1`, it is not guaranteed to be so.
+    #[must_use]
+    pub fn with_stdlib(capabilities: TargetCapabilityFlags) -> (PackageId, Self) {
+        let mut store = Self::new(core());
+        let std_id = store.insert(std(&store, capabilities));
+        (std_id, store)
+    }
 }
 
 impl<'a> IntoIterator for &'a PackageStore {

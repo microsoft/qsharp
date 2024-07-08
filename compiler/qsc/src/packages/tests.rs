@@ -111,8 +111,11 @@ fn test_prepare_package_store() {
     .assert_debug_eq(&errors);
 }
 
+// if there are inconsequential errors in the dependency compilation process, we don't want to
+// abort compilation. This way, we can still show the user some diagnostics.
+
 #[test]
-fn missing_dependency() {
+fn missing_dependency_doesnt_force_failure() {
     let mut program = mock_program();
     program
         .package_graph_sources

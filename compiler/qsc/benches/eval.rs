@@ -18,8 +18,7 @@ const ARRAY_LITERAL: &str = include_str!("./array_literal");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
-        let mut store = qsc::PackageStore::new(qsc::compile::core());
-        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -40,6 +39,7 @@ pub fn teleport(c: &mut Criterion) {
 pub fn deutsch_jozsa(c: &mut Criterion) {
     c.bench_function("Deutsch-Jozsa evaluation", |b| {
         let sources = SourceMap::new([("DeutschJozsa.qs".into(), DEUTSCHJOZSA.into())], None);
+        let 
         let mut store = qsc::PackageStore::new(qsc::compile::core());
         let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut evaluator = Interpreter::new(

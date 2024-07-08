@@ -19,6 +19,7 @@ use qsc_hir::hir::Package;
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, StdFs};
+use std::sync::Arc;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -111,47 +112,10 @@ fn main() -> miette::Result<ExitCode> {
 
     let (mut store, dependencies, source_map) = if let Some(qsharp_json) = cli.qsharp_json {
         if let Some(dir) = qsharp_json.parent() {
-            let fs = StdFs;
-            let project = match fs.load_project(dir, None) {
-                Ok(project) => project,
-                Err(errs) => {
-                    for e in errs {
-                        eprintln!("{e:?}");
-                    }
-                    return Ok(ExitCode::FAILURE);
-                }
-            };
-
-            if !project.errors.is_empty() {
-                for e in project.errors {
-                    eprintln!("{e:?}");
-                }
-                return Ok(ExitCode::FAILURE);
+            match load_project(dir, &mut features) {
+                Ok(items) => items,
+                Err(exit_code) => return Ok(exit_code),
             }
-
-            // This builds all the dependencies
-            let buildable_program =
-                BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
-
-            if !buildable_program.dependency_errors.is_empty() {
-                for e in buildable_program.dependency_errors {
-                    eprintln!("{e:?}");
-                }
-                return Ok(ExitCode::FAILURE);
-            }
-
-            let BuildableProgram {
-                store,
-                user_code,
-                user_code_dependencies,
-                ..
-            } = buildable_program;
-
-            let source_map = qsc::SourceMap::new(user_code.sources, None);
-
-            features.merge(LanguageFeatures::from_iter(user_code.language_features));
-
-            (store, user_code_dependencies, source_map)
         } else {
             eprintln!("{} must have a parent directory", qsharp_json.display());
             return Ok(ExitCode::FAILURE);
@@ -307,4 +271,55 @@ fn emit_qir(
             ))])
         }
     }
+}
+
+/// Loads a project from the given directory and returns the package store, the list of
+/// dependencies, and the source map.
+/// Pre-populates the package store with all of the compiled dependencies.
+#[allow(clippy::type_complexity)]
+fn load_project(
+    dir: impl AsRef<Path>,
+    features: &mut LanguageFeatures,
+) -> Result<(PackageStore, Vec<(PackageId, Option<Arc<str>>)>, SourceMap), ExitCode> {
+    let fs = StdFs;
+    let project = match fs.load_project(dir.as_ref(), None) {
+        Ok(project) => project,
+        Err(errs) => {
+            for e in errs {
+                eprintln!("{e:?}");
+            }
+            return Err(ExitCode::FAILURE);
+        }
+    };
+
+    if !project.errors.is_empty() {
+        for e in project.errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    // This builds all the dependencies
+    let buildable_program =
+        BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+
+    if !buildable_program.dependency_errors.is_empty() {
+        for e in buildable_program.dependency_errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+        ..
+    } = buildable_program;
+
+    let source_map = qsc::SourceMap::new(user_code.sources, None);
+
+    features.merge(LanguageFeatures::from_iter(user_code.language_features));
+
+    Ok((store, user_code_dependencies, source_map))
 }
