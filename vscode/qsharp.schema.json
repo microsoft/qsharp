@@ -18,7 +18,7 @@
       }
     },
     "packageType": {
-      "title": "Package Type",
+      "title": "Package type",
       "type": "string",
       "enum": ["exe", "lib"]
     },
