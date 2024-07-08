@@ -9,7 +9,7 @@ mod tests;
 
 use crate::{
     handle_error, instrument::Instrument, kernel::apply_kernel, operation::Operation,
-    ComplexVector, Error, SquareMatrix, TOLERANCE,
+    ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE,
 };
 
 /// A vector representing the state of a quantum system.
@@ -168,9 +168,11 @@ pub struct StateVectorSimulator {
     dimension: usize,
 }
 
-impl StateVectorSimulator {
+impl NoisySimulator for StateVectorSimulator {
+    type State = StateVector;
+
     /// Creates a new `TrajectorySimulator`.
-    pub fn new(number_of_qubits: usize) -> Self {
+    fn new(number_of_qubits: usize) -> Self {
         let state_vector = StateVector::new(number_of_qubits);
         let dimension = state_vector.dimension();
         Self {
@@ -180,11 +182,7 @@ impl StateVectorSimulator {
     }
 
     /// Apply an operation to given qubit ids.
-    pub fn apply_operation(
-        &mut self,
-        operation: &Operation,
-        qubits: &[usize],
-    ) -> Result<(), Error> {
+    fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) -> Result<(), Error> {
         let renormalization_factor = self
             .state
             .as_mut()?
@@ -202,11 +200,7 @@ impl StateVectorSimulator {
     }
 
     /// Apply non selective evolution.
-    pub fn apply_instrument(
-        &mut self,
-        instrument: &Instrument,
-        qubits: &[usize],
-    ) -> Result<(), Error> {
+    fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> Result<(), Error> {
         let renormalization_factor = self
             .state
             .as_mut()?
@@ -227,7 +221,7 @@ impl StateVectorSimulator {
     /// Returns the index of the observed outcome.
     ///
     /// Use this method to perform measurements on the quantum system.
-    pub fn sample_instrument(
+    fn sample_instrument(
         &mut self,
         instrument: &Instrument,
         qubits: &[usize],
@@ -237,7 +231,7 @@ impl StateVectorSimulator {
 
     /// Performs selective evolution under the given instrument.
     /// Returns the index of the observed outcome.
-    pub fn sample_instrument_with_distribution(
+    fn sample_instrument_with_distribution(
         &mut self,
         instrument: &Instrument,
         qubits: &[usize],
@@ -292,12 +286,12 @@ impl StateVectorSimulator {
     }
 
     /// Returns the `StateVector` if the simulator is in a valid state.
-    pub fn state(&self) -> Result<&StateVector, &Error> {
+    fn state(&self) -> Result<&StateVector, &Error> {
         self.state.as_ref()
     }
 
     /// Set state of the quantum system.
-    pub fn set_state(&mut self, new_state: StateVector) -> Result<(), Error> {
+    fn set_state(&mut self, new_state: StateVector) -> Result<(), Error> {
         if self.dimension != new_state.dimension() {
             return Err(Error::InvalidState(format!(
                 "the provided state should have the same dimensions as the quantum system's state, {} != {}",
@@ -318,12 +312,12 @@ impl StateVectorSimulator {
     /// Return theoretical change in trace due to operations that have been applied so far
     /// In reality, the density matrix is always renormalized after instruments/operations
     /// have been applied.
-    pub fn trace_change(&self) -> Result<f64, Error> {
+    fn trace_change(&self) -> Result<f64, Error> {
         Ok(self.state.as_ref()?.trace_change())
     }
 
     /// Set the trace of the quantum system.
-    pub fn set_trace(&mut self, trace: f64) -> Result<(), Error> {
+    fn set_trace(&mut self, trace: f64) -> Result<(), Error> {
         if trace < TOLERANCE || (trace - 1.) > TOLERANCE {
             return Err(Error::NotNormalized(trace));
         }

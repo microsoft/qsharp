@@ -3,7 +3,7 @@
 
 //! This module is a thin `PyO3` wrapper around the rust `noisy_simulator` crate.
 
-use noisy_simulator::{ComplexVector, SquareMatrix};
+use noisy_simulator::{ComplexVector, NoisySimulator, SquareMatrix};
 use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;

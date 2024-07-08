@@ -41,6 +41,8 @@ pub(crate) mod instrument;
 pub(crate) mod kernel;
 pub(crate) mod operation;
 pub(crate) mod state_vector_simulator;
+#[cfg(test)]
+pub(crate) mod tests;
 
 /// A square matrix of `Complex<f64>`.
 pub type SquareMatrix = DMatrix<Complex<f64>>;
@@ -48,6 +50,55 @@ pub type SquareMatrix = DMatrix<Complex<f64>>;
 pub type ComplexVector = DVector<Complex<f64>>;
 /// Error tolerance used in the simulators.
 pub(crate) const TOLERANCE: f64 = 1e-12;
+
+/// A trait representing a noisy quantum circuit simulator.
+pub trait NoisySimulator {
+    /// State of the noisy simulator. Depending on the simulation method the state will be
+    /// a `DensityMatrix` or a `StateVector`.
+    type State;
+
+    /// Creates a new `NoisySimulator`.
+    fn new(number_of_qubits: usize) -> Self;
+
+    /// Apply an operation to the given qubit ids.
+    fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) -> Result<(), Error>;
+
+    /// Apply non selective evolution to the given qubit ids.
+    fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> Result<(), Error>;
+
+    /// Performs selective evolution under the given instrument.
+    /// Returns the index of the observed outcome.
+    ///
+    /// Use this method to perform measurements on the quantum system.
+    fn sample_instrument(
+        &mut self,
+        instrument: &Instrument,
+        qubits: &[usize],
+    ) -> Result<usize, Error>;
+
+    /// Performs selective evolution under the given instrument.
+    /// Returns the index of the observed outcome.
+    fn sample_instrument_with_distribution(
+        &mut self,
+        instrument: &Instrument,
+        qubits: &[usize],
+        random_sample: f64,
+    ) -> Result<usize, Error>;
+
+    /// Returns the `State` if the simulator is in a valid state.
+    fn state(&self) -> Result<&Self::State, &Error>;
+
+    /// Set state of the quantum system.
+    fn set_state(&mut self, new_state: Self::State) -> Result<(), Error>;
+
+    /// Return theoretical change in trace due to operations that have been applied so far
+    /// In reality, the density matrix is always renormalized after instruments/operations
+    /// have been applied.
+    fn trace_change(&self) -> Result<f64, Error>;
+
+    /// Set the trace of the quantum system.
+    fn set_trace(&mut self, trace: f64) -> Result<(), Error>;
+}
 
 /// A noisy simulation error.
 #[derive(Clone, Debug, Error, PartialEq)]
