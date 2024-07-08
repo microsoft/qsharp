@@ -18,7 +18,7 @@ const ARRAY_LITERAL: &str = include_str!("./array_literal");
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
         let sources = SourceMap::new([("Teleportation.qs".into(), TELEPORT.into())], None);
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -60,7 +60,7 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large file parity evaluation", |b| {
         let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -94,7 +94,7 @@ pub fn array_append(c: &mut Criterion) {
                 .into(),
             ),
         );
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -128,7 +128,7 @@ pub fn array_update(c: &mut Criterion) {
                 .into(),
             ),
         );
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -150,7 +150,7 @@ pub fn array_update(c: &mut Criterion) {
 pub fn array_literal(c: &mut Criterion) {
     c.bench_function("Array literal evaluation", |b| {
         let sources = SourceMap::new([("none".into(), "".into())], Some(ARRAY_LITERAL.into()));
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
@@ -189,7 +189,7 @@ pub fn large_nested_iteration(c: &mut Criterion) {
                 .into(),
             ),
         );
-        let (std_id, store) = qsc::PackageStore::with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut evaluator = Interpreter::new(
             sources,
             PackageType::Exe,
