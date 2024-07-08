@@ -275,6 +275,7 @@ impl PackageStore {
     /// Returns the ID of the stdlib package and the store.
     /// The ID of the stdlib package is returned because, while for all practical purposes
     /// it will be `1`, it is not guaranteed to be so.
+    /// This function does NOT run passes on the stdlib.
     #[must_use]
     pub fn with_stdlib(capabilities: TargetCapabilityFlags) -> (PackageId, Self) {
         let mut store = Self::new(core());

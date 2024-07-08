@@ -417,16 +417,16 @@ fn block_qubit_use_array_invalid_count_expr() {
                             0,
                         ),
                         span: Span {
-                            lo: 2068,
-                            hi: 2125,
+                            lo: 2064,
+                            hi: 2121,
                         },
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 2068,
-                            hi: 2125,
+                            lo: 2064,
+                            hi: 2121,
                         },
                         id: StoreItemId {
                             package: PackageId(
