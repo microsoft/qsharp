@@ -16,8 +16,8 @@ This kata introduces you to Deutsch algorithm - the single-qubit variant of Deut
 
 **What you should know to start working on this kata:**
 
-- Basic single-qubit gates
-- Quantum measurements
+- Basic knowledge of single-qubit gates
+- Basic knowledge of quantum measurements
 
 @[section]({
     "id": "deutsch_algo__problem",
@@ -36,10 +36,10 @@ The task is to figure out whether the function is constant or variable. In other
 - $f(x) \equiv 0$ or $f(x) \equiv 1$ are constant functions (and they are actually the only constant functions in existence).
 - $f(x) = x$ and $f(x) = 1 - x$ are the only variable functions (and they are the only variable functions for single-bit functions).
 
-If we solve this problem classically, how many calls to the given function will we need? 
+If you solve this problem classically, how many calls to the given function will you need? 
 
-The first function call will give us no information - regardless of whether it returns $0$ or $1$, the function could still be constant or variable.
-We'll need to call the function a second time to evaluate its return values for both possible inputs to be able to check whether these values are equal.
+The first function call will give you no information - regardless of whether it returns $0$ or $1$, the function could still be constant or variable.
+You'll need to call the function a second time to evaluate its return values for both possible inputs to be able to check whether these values are equal.
 This means that the classical solution requires **2** function calls.
 
 What about the quantum scenario?
@@ -50,7 +50,7 @@ What about the quantum scenario?
     "title": "Single-Qubit Oracles"
 })
 
-In the quantum scenario, the classical function we're working with is implemented as a quantum oracle - a "black box" operation used as input to another algorithm. This operation is implemented in a way which allows to perform calculations not only on individual inputs, but also on superpositions of inputs. 
+In the quantum scenario, the classical function you're working with is implemented as a quantum oracle - a "black box" operation used as input to another algorithm. This operation is implemented in a way which allows to perform calculations not only on individual inputs, but also on superpositions of inputs. 
 
 The oracle has to act on quantum states instead of classical values. 
 To enable this, integer input $x$ is represented as a qubit state $\ket{x}$.
@@ -61,10 +61,10 @@ $$U_f \ket{x} = (-1)^{f(x)} \ket{x}$$
 
 In our case $f$ can return only two values, 0 or 1, which result in no phase change or multiplication by a relative phase $-1$, respectively.
 
-The effect of such an oracle on any single basis state is not particularly interesting: it just adds a global phase which is not something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable. 
+The effect of such an oracle on any single basis state isn't particularly interesting: it just adds a global phase which isn't something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable. 
 Remember that quantum operations are linear: if you define the effect of an operation on the basis states, you'll be able to deduce its effect on superposition states (which are just linear combinations of the basis states) using its linearity.
 
-There are only four single-bit functions, so we can see how to implement them all as phase oracles in Q#.
+There are only four single-bit functions, so you can see how to implement them all as phase oracles in Q#.
 
 1. $f(x) \equiv 0$
 
@@ -80,18 +80,18 @@ The second constant function is slightly trickier: if $f(x) \equiv 1$
 
 $$U_f \ket{x} \equiv (-1)^1 \ket{x} = - \ket{x}$$
 
-Now $U_f$ is a negative identity, i.e., a transformation which applies a global phase of $-1$ to the state. 
-A lot of algorithms just ignore the global phase accumulated in them, since it is not observable. 
-However, if we want to be really meticulous, we can use the $R$ gate which performs a given rotation around the given axis. 
+Now $U_f$ is a negative identity, that is, a transformation which applies a global phase of $-1$ to the state. 
+A lot of algorithms just ignore the global phase accumulated in them, since it isn't observable. 
+However, if you want to be really meticulous, you can use the $R$ gate which performs a given rotation around the given axis. 
 When called with `PauliI` axis, this operation applies a global phase to the given qubit.
 
 3. $f(x) = x$
 
 $$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{x} \ket{x}$$
 
-This means that we need to do nothing if the qubit is in the $\ket{0}$ state, and apply a phase of $-1$ if it is in the $\ket{1}$ state. This is exactly the effect of the $Z$ gate!
+This means that you don't need to do anything if the qubit is in the $\ket{0}$ state, and apply a phase of $-1$ if it is in the $\ket{1}$ state. This is exactly the effect of the $Z$ gate!
 
-In this demo we will see how to implement the first three one-bit functions as quantum oracles, and their effect on a qubit state.
+In the following demo, you'll see how to implement the first three one-bit functions as quantum oracles, and their effect on a qubit state.
 After that, you'll try to implement the oracle for the fourth function on your own!
 
 @[example]({"id": "deutsch_algo__oracle_implementations", "codePath": "./examples/OracleImplementationDemo.qs"})
@@ -99,10 +99,7 @@ After that, you'll try to implement the oracle for the fourth function on your o
 @[exercise]({
     "id": "deutsch_algo__one_minus_x_oracle",
     "title": "Oracle for f(x) = 1 - x",
-    "path": "./one_minus_x_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./one_minus_x_oracle/"
 })
 
 
@@ -114,7 +111,7 @@ After that, you'll try to implement the oracle for the fourth function on your o
 Now let's return to the problem of figuring out whether the given function is constant or variable for single-bit functions.
 What can we do if we are given a quantum oracle $U_f$ implementing the function $f(x)$?
 
-There are two possible inputs to the function, $\ket{0}$ and $\ket{1}$. Let's see what happens if we apply the oracle to their superposition:
+There are two possible inputs to the function, $\ket{0}$ and $\ket{1}$. Let's see what happens if you apply the oracle to their superposition:
 
 $$U_f \left( \frac{1}{\sqrt2} \big( \ket{0} + \ket{1} \big) \right) 
 = \frac{1}{\sqrt2} \big( U_f \ket{0} + U_f \ket{1} \big) 
@@ -123,24 +120,24 @@ $$U_f \left( \frac{1}{\sqrt2} \big( \ket{0} + \ket{1} \big) \right)
 - If $f(0) = f(1)$, the relative phases of the two basis states are the same, and the resulting state is $\ket{+} = \frac{1}{\sqrt2} \big( \ket{0} + \ket{1} \big)$ (up to a global phase). 
 - If $f(0) \neq f(1)$, the relative phases of the two basis states differ by a factor of $-1$, and the resulting state is $\ket{-} = \frac{1}{\sqrt2} \big( \ket{0} - \ket{1} \big)$ (up to a global phase). 
 
-Now, the states $\ket{+}$ and $\ket{-}$ can be distinguished using measurement: if you apply the H gate to each of them, you'll get $H\ket{+} = \ket{0}$ if $f(0) = f(1)$, or $H\ket{-} = \ket{1}$ if $f(0) \neq f(1)$. This means that one oracle call does not let you calculate both $f(0)$ and $f(1)$, but it allows you to figure out whether $f(0) = f(1)$!
+Now, the states $\ket{+}$ and $\ket{-}$ can be distinguished using measurement: if you apply the H gate to each of them, you'll get $H\ket{+} = \ket{0}$ if $f(0) = f(1)$, or $H\ket{-} = \ket{1}$ if $f(0) \neq f(1)$. This means that one oracle call doesn't let you calculate both $f(0)$ and $f(1)$, but it allows you to figure out whether $f(0) = f(1)$!
 
-Overll, the algorithm is very straightforward:
+Overall, the algorithm is very straightforward:
 
 1. Start with a qubit in the $\ket{0}$ state.
 2. Apply the $H$ gate to the qubit.
 3. Apply the oracle.
 4. Apply the $H$ gate to the qubit again.
-5. Measure the qubit: if it is in the $\ket{0}$ state, the function is constant, otherwise it is variable.
+5. Measure the qubit: if it's in the $\ket{0}$ state, the function is constant, otherwise it's variable.
 
-Note that this algorithm requires only **1** oracle call, and always produces the correct result (is deterministic).
+Note that this algorithm requires only **1** oracle call, and always produces the correct result (the algorithm is deterministic).
 
 @[section]({
     "id": "deutsch_algo__visualization",
     "title": "Visualizing Deutsch Algorithm"
 })
 
-We can follow the steps of the algorithm for the constant and the balanced scenarios using a neat visualization. Since Deutsch algorithm deals only with states with real amplitudes, we can map all states on the unit circle, and follow the state evolution through the steps.
+You can follow the steps of the algorithm for the constant and the balanced scenarios using a neat visualization. Since Deutsch algorithm deals only with states with real amplitudes, you can map all states on the unit circle, and follow the state evolution through the steps.
 
 1. Start with a qubit in the $\ket{0}$ state and apply the $H$ gate to the qubit.
    <br/>
@@ -152,7 +149,7 @@ We can follow the steps of the algorithm for the constant and the balanced scena
    @[svg]({"path": "./media/Apply_oracle.svg"})
 
 3. Apply the $H$ gate to the qubit again.
-   Now, we get the $\ket{0}$ state for both constant scenarios and the $\ket{1}$ state for both variable scenarios!
+   Now, you get the $\ket{0}$ state for both constant scenarios and the $\ket{1}$ state for both variable scenarios!
    <br/>
    @[svg]({"path": "./media/Apply_hadamard.svg"})
 
@@ -160,10 +157,7 @@ We can follow the steps of the algorithm for the constant and the balanced scena
 @[exercise]({
     "id": "deutsch_algo__implement_algo",
     "title": "Implement Deutsch Algorithm",
-    "path": "./implement_algo/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./implement_algo/"
 })
 
 
@@ -182,7 +176,7 @@ The last demo in this kata shows you how to combine the oracles you've seen so f
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you have learned Deutsch algorithm.
+Congratulations! In this kata you learned Deutsch algorithm.
 
 - Deutsch algorithm is the smallest example of a quantum algorithm that allows to answer a question about a function in fewer queries than its classical counterpart: one query to a quantum oracle versus two queries to a classical function.
 - Quantum oracles don't allow you to evaluate the function on all inputs at once! Instead, Deutsch algorithm finds a clever way to aggregate information about both function values into a single bit that indicates whether they are equal or not.

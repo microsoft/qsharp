@@ -5,7 +5,7 @@ The return value is a tuple of two elements, describing the detected error as fo
 
 - The first element of the return is an `Int` - the index of the qubit on which the error occurred, or $-1$ if no error occurred.
 - The second element of the return is a `Pauli` indicating the type of the error (`PauliX`, `PauliY`, or `PauliZ`).
-If no error occurred, the second element of the return can be any value, it is not validated.
+If no error occurred, the second element of the return can be any value, it isn't validated.
 - In case of a single $Z$ error, the qubit on which it occurred cannot be identified uniquely. 
 In this case, the return value should be the index of the triplet of qubits in which the error occurred ($0$ for qubits $0 \ldots 2$, $1$ for qubits $3 \ldots 5$, and $2$ for qubits $6 \ldots 8$).
 
@@ -34,4 +34,4 @@ Example return values:
 </tr>
 </table>
 
-The state of the qubits after your operation is applied should not change.
+The state of the qubits after your operation is applied shouldn't change.

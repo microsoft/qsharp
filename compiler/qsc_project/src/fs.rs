@@ -50,7 +50,7 @@ impl DirEntry for PathBuf {
 }
 
 impl DirEntry for StdEntry {
-    type Error = crate::Error;
+    type Error = crate::StdFsError;
     fn entry_type(&self) -> Result<EntryType, Self::Error> {
         Ok(self.file_type()?.into())
     }
@@ -86,10 +86,10 @@ impl FileSystem for StdFs {
     }
 
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<StdEntry>> {
-        let listing = std::fs::read_dir(path).map_err(crate::Error::from)?;
+        let listing = std::fs::read_dir(path).map_err(crate::StdFsError::from)?;
         Ok(listing
             .collect::<Result<_, _>>()
-            .map_err(crate::Error::from)?)
+            .map_err(crate::StdFsError::from)?)
     }
 
     fn resolve_path(&self, base: &Path, path: &Path) -> miette::Result<PathBuf> {
@@ -119,5 +119,18 @@ impl FileSystem for StdFs {
             }
         }
         Ok(normalized)
+    }
+
+    fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        r#ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        let _ = r#ref;
+        Err(miette::Error::msg(
+            "github references not supported for this file system",
+        ))
     }
 }

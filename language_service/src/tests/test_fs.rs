@@ -23,7 +23,7 @@ pub(crate) enum FsError {
 }
 
 impl FsNode {
-    pub fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
+    pub fn read_file(&self, file: String) -> miette::Result<(Arc<str>, Arc<str>)> {
         let mut curr = Some(self);
 
         for part in file.split('/') {
@@ -34,8 +34,8 @@ impl FsNode {
         }
 
         match curr {
-            Some(FsNode::File(contents)) => (file.into(), contents.clone()),
-            Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
+            Some(FsNode::File(contents)) => Ok((file.into(), contents.clone())),
+            Some(FsNode::Dir(_)) | None => Err(miette::Error::msg("file not found")),
         }
     }
 
@@ -152,7 +152,7 @@ impl FileSystem for FsNode {
     type Entry = JSFileEntry;
 
     fn read_file(&self, path: &std::path::Path) -> miette::Result<(Arc<str>, Arc<str>)> {
-        Ok(self.read_file(path.to_string_lossy().into()))
+        self.read_file(path.to_string_lossy().into())
     }
 
     fn list_directory(&self, path: &std::path::Path) -> miette::Result<Vec<Self::Entry>> {
@@ -165,6 +165,18 @@ impl FileSystem for FsNode {
         path: &std::path::Path,
     ) -> miette::Result<std::path::PathBuf> {
         Ok(Self::resolve_path(&base.to_string_lossy(), &path.to_string_lossy()).into())
+    }
+
+    fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        Err(miette::Error::msg(
+            "github references not supported for this file system",
+        ))
     }
 }
 
@@ -185,7 +197,7 @@ pub(crate) struct TestProjectHost {
 
 #[async_trait(?Send)]
 impl JSProjectHost for TestProjectHost {
-    async fn read_file(&self, uri: &str) -> (Arc<str>, Arc<str>) {
+    async fn read_file(&self, uri: &str) -> miette::Result<(Arc<str>, Arc<str>)> {
         self.fs.borrow().read_file(uri.to_string())
     }
 
@@ -206,5 +218,15 @@ impl JSProjectHost for TestProjectHost {
             .borrow()
             .find_manifest_directory(doc_uri)
             .map(|p| p.to_string_lossy().into())
+    }
+
+    async fn fetch_github(
+        &self,
+        _owner: &str,
+        _repo: &str,
+        _ref: &str,
+        _path: &str,
+    ) -> miette::Result<Arc<str>> {
+        unimplemented!()
     }
 }

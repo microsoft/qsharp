@@ -6,11 +6,11 @@
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
-    protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate},
+    protocol::{DiagnosticUpdate, ErrorKind, NotebookMetadata, WorkspaceConfigurationUpdate},
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
-use qsc::{compile::ErrorKind, target::Profile, PackageType};
+use qsc::{compile, project, target::Profile, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
 use std::{cell::RefCell, fmt::Write, rc::Rc};
 
@@ -73,6 +73,7 @@ async fn clear_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -95,6 +96,7 @@ async fn clear_error() {
                     Some(
                         2,
                     ),
+                    [],
                     [],
                 ),
             ]
@@ -183,10 +185,12 @@ async fn close_last_doc_in_project() {
                             ),
                         ),
                     ],
+                    [],
                 ),
                 (
                     "project/src/this_file.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -246,6 +250,7 @@ async fn clear_on_document_close() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -260,6 +265,7 @@ async fn clear_on_document_close() {
                 (
                     "single/foo.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -302,6 +308,7 @@ async fn compile_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -355,6 +362,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -418,6 +426,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -470,6 +479,7 @@ async fn package_type_update_causes_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -516,6 +526,7 @@ async fn target_profile_update_fixes_error() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -535,6 +546,7 @@ async fn target_profile_update_fixes_error() {
                     Some(
                         1,
                     ),
+                    [],
                     [],
                 ),
             ]
@@ -586,6 +598,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -668,6 +681,7 @@ fn notebook_document_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -711,9 +725,19 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     RedundantSemicolons,
                                 ),
+                                code_action_edits: [
+                                    (
+                                        "",
+                                        Span {
+                                            lo: 34,
+                                            hi: 37,
+                                        },
+                                    ),
+                                ],
                             },
                         ),
                     ],
+                    [],
                 ),
                 (
                     "cell2",
@@ -733,9 +757,11 @@ fn notebook_document_lints() {
                                 kind: Ast(
                                     DivisionByZero,
                                 ),
+                                code_action_edits: [],
                             },
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -795,6 +821,7 @@ fn notebook_update_remove_cell_clears_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -813,6 +840,7 @@ fn notebook_update_remove_cell_clears_errors() {
                 (
                     "cell2",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -873,6 +901,7 @@ fn close_notebook_clears_errors() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -887,6 +916,7 @@ fn close_notebook_clears_errors() {
                 (
                     "cell2",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -978,6 +1008,7 @@ async fn update_doc_updates_project() {
                             ),
                         ),
                     ],
+                    [],
                 ),
             ]
         "#]],
@@ -1070,10 +1101,12 @@ async fn close_doc_prioritizes_fs() {
                             ),
                         ),
                     ],
+                    [],
                 ),
                 (
                     "project/src/this_file.qs",
                     None,
+                    [],
                     [],
                 ),
             ]
@@ -1514,13 +1547,13 @@ async fn lints_update_after_manifest_change() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&received_errors, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
 
     // Check generated lints.
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1537,6 +1570,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1551,6 +1600,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1562,13 +1612,13 @@ async fn lints_update_after_manifest_change() {
         .write_file("project/qsharp.json", r#"{ "lints": [{ "lint": "divisionByZero", "level": "warn" }, { "lint": "needlessParens", "level": "warn" }] }"#)
         .expect("qsharp.json should exist");
 
-    // Triger a document update
+    // Trigger a document update
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
 
     // Check lints again
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1585,6 +1635,22 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             NeedlessParens,
                         ),
+                        code_action_edits: [
+                            (
+                                "",
+                                Span {
+                                    lo: 71,
+                                    hi: 72,
+                                },
+                            ),
+                            (
+                                "",
+                                Span {
+                                    lo: 77,
+                                    hi: 78,
+                                },
+                            ),
+                        ],
                     },
                 ),
                 Lint(
@@ -1599,6 +1665,7 @@ async fn lints_update_after_manifest_change() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1626,7 +1693,7 @@ async fn lints_prefer_workspace_over_defaults() {
         .await;
 
     // Check generated lints.
-    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
     check_lints(
         lints,
         &expect![[r#"
@@ -1643,6 +1710,7 @@ async fn lints_prefer_workspace_over_defaults() {
                         kind: Ast(
                             DivisionByZero,
                         ),
+                        code_action_edits: [],
                     },
                 ),
             ]"#]],
@@ -1679,7 +1747,7 @@ async fn lints_prefer_manifest_over_workspace() {
         ..WorkspaceConfigurationUpdate::default()
     });
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
@@ -1688,20 +1756,139 @@ async fn lints_prefer_manifest_over_workspace() {
     assert_eq!(received_errors.borrow().len(), 0);
 }
 
-type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
+#[tokio::test]
+async fn missing_dependency_reported() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "dependencies" : { "MyDep" : { "path" : "../child" } } }"#,
+                ),
+                dir("src", [file("main.qs", "function Main() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
+    updater
+        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .await;
+
+    expect![[r#"
+        [
+            (
+                "parent/qsharp.json",
+                None,
+                [],
+                [
+                    FileSystem {
+                        about_path: "child/qsharp.json",
+                        error: "file not found",
+                    },
+                ],
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&received_errors.borrow());
+}
+
+#[tokio::test]
+async fn error_from_dependency_reported() {
+    let fs = FsNode::Dir(
+        [
+            dir(
+                "parent",
+                [
+                    file(
+                        "qsharp.json",
+                        r#"{ "dependencies" : { "MyDep" : { "path" : "../child" } } }"#,
+                    ),
+                    dir("src", [file("main.qs", "function Main() : Unit {}")]),
+                ],
+            ),
+            dir(
+                "child",
+                [
+                    file("qsharp.json", "{}"),
+                    dir("src", [file("main.qs", "broken_syntax")]),
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
+    updater
+        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .await;
+
+    expect![[r#"
+        [
+            (
+                "child/src/main.qs",
+                None,
+                [
+                    Frontend(
+                        Error(
+                            Parse(
+                                Error(
+                                    ExpectedItem(
+                                        Ident,
+                                        Span {
+                                            lo: 26,
+                                            hi: 26,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+                [],
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&received_errors.borrow());
+}
+
+type ErrorInfo = (
+    String,
+    Option<u32>,
+    Vec<compile::ErrorKind>,
+    Vec<project::Error>,
+);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let project_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Project(error) => Some(error.clone()),
+            ErrorKind::Compile(_) => None,
+        });
+        let compile_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Compile(error) => Some(error.error().clone()),
+            ErrorKind::Project(_) => None,
+        });
+
         let mut v = received_errors.borrow_mut();
 
         v.push((
-            update.uri.to_string(),
+            update.uri,
             update.version,
-            update
-                .errors
-                .iter()
-                .map(|e| e.error().clone())
-                .collect::<Vec<_>>(),
+            compile_errors.collect(),
+            project_errors.collect(),
         ));
     };
 
@@ -1719,16 +1906,22 @@ fn new_updater_with_file_system<'a>(
     fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let project_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Project(error) => Some(error.clone()),
+            ErrorKind::Compile(_) => None,
+        });
+        let compile_errors = update.errors.iter().filter_map(|error| match error {
+            ErrorKind::Compile(error) => Some(error.error().clone()),
+            ErrorKind::Project(_) => None,
+        });
+
         let mut v = received_errors.borrow_mut();
 
         v.push((
-            update.uri.to_string(),
+            update.uri,
             update.version,
-            update
-                .errors
-                .iter()
-                .map(|e| e.error().clone())
-                .collect::<Vec<_>>(),
+            compile_errors.collect(),
+            project_errors.collect(),
         ));
     };
 
@@ -1790,14 +1983,15 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
     let manifest = updater
         .load_manifest(&"project/src/this_file.qs".into())
         .await
+        .expect("manifest should load successfully")
         .expect("manifest should exist");
 
-    let lints_config = manifest.manifest.lints;
+    let lints_config = manifest.lints;
 
     expected_config.assert_eq(&format!("{lints_config:#?}"));
 }
 
-fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
+fn check_lints(lints: &[compile::ErrorKind], expected_lints: &Expect) {
     expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
