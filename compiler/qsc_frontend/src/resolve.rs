@@ -1376,7 +1376,8 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
-            // If the namespace is `Main`, we treat it as the root and skip that.
+            // If the namespace is `Main`, we treat it as the root of the package, so there's no
+            // namespace prefix.
             let global_namespace = if global.namespace.len() == 1 && &*global.namespace[0] == "Main"
             {
                 vec![]
