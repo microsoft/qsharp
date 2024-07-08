@@ -83,7 +83,7 @@ $$U_f \ket{x} \equiv (-1)^1 \ket{x} = - \ket{x}$$
 
 Now $U_f$ is a negative identity, that is, a transformation which applies a global phase of $-1$ to the state. 
 A lot of algorithms just ignore the global phase accumulated in them, since it isn't observable. 
-However, if you want to be really meticulous, you can use the $R$ gate which performs a given rotation around the given axis. 
+However, if you want to be meticulous, you can use the $R$ gate which performs a given rotation around the given axis. 
 When called with `PauliI` axis, this operation applies a global phase to the given qubit. 
 You can use any qubit to apply this gate, for example, `qs[0]`.
 
