@@ -36,5 +36,5 @@
   // for attributes and namespaces, by explicitly invoking completions after typing '@', '@Entr', 'Microsoft.Q', etc.
   //
   // This setting is duplicated for the Monaco setting for the playground: playground/src/main.tsx
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\<\\>\\/\\?\\s]+)"
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\.\\'\\\"\\,\\<\\>\\/\\?\\s]+)"
 }
