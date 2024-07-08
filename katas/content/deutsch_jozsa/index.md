@@ -41,8 +41,8 @@ The task is to figure out whether the function is constant or balanced.
 If you solve this problem classically, how many calls to the given function will you need? 
 
 The first call will give you no information - regardless of whether it returns $0$ or $1$, the function could still be constant or balanced.
-In the best case scenario the second call will return a different value and you'll be able to conclude that the function is balanced in just $2$ calls. 
-However, if you get the same value for the first two calls, you'll have to keep querying the function until either you get a different value or until you do $2^{N-1}+1$ queries that will return the same value - only in this case you'll know for certain that the function is constant.
+In the best case scenario, the second call will return a different value. You'll be able to conclude that the function is balanced in just $2$ calls. 
+However, if you get the same value for the first two calls, you'll have to keep querying the function until either the function returns a different value, or until you perform $2^{N-1}+1$ queries that return the same value - only in this case will you know with certainty that the function is constant.
 
 What about the quantum scenario?
 
