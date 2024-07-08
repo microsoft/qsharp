@@ -1376,9 +1376,17 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
+            // If the namespace is `Main`, we treat it as the root and skip that.
+            let global_namespace = if global.namespace.len() == 1 && &*global.namespace[0] == "Main"
+            {
+                vec![]
+            } else {
+                global.namespace.clone()
+            };
+
             let namespace = self
                 .scope
-                .insert_or_find_namespace_from_root(global.namespace.clone(), root);
+                .insert_or_find_namespace_from_root(global_namespace, root);
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {

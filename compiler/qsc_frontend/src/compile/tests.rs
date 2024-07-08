@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+mod multiple_packages;
+
 use std::sync::Arc;
 
 use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
