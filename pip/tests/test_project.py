@@ -94,13 +94,13 @@ memfs = {
         },
         "compile_error": {
             "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
+                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } export ReturnsFour; }",
             },
             "qsharp.json": "{}",
         },
         "with_deps": {
             "src": {
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } export CallsDependency; }",
             },
             "qsharp.json": """
                 {
@@ -154,7 +154,7 @@ def fetch_github_test(owner: str, repo: str, ref: str, path: str):
         "12345",
         "/src/test.qs",
     ):
-        return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
+        return "namespace Test { operation ReturnsTwelve() : Int { 12 }; export ReturnsTwelve; }"
     else:
         raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
 
