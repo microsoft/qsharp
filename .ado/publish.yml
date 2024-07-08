@@ -7,8 +7,6 @@ trigger:
     include:
     - main
 
-pr: none
-
 # Run the pipeline every day at 6:00 AM to ensure
 # codeql and other governance checks are up-to-date.
 schedules:

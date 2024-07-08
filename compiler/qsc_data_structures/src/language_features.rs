@@ -38,3 +38,13 @@ where
         })
     }
 }
+
+impl From<LanguageFeatures> for Vec<String> {
+    fn from(features: LanguageFeatures) -> Self {
+        let mut result = Vec::new();
+        if features.contains(LanguageFeatures::V2PreviewSyntax) {
+            result.push("v2-preview-syntax".to_string());
+        }
+        result
+    }
+}

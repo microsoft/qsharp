@@ -5,7 +5,7 @@ That is, apply a relative phase $(-1)^{f(x)}$ to each basis state $\ket{x}$.
 
 <details>
 <summary><strong>Need a hint?</strong></summary>
-We can represent the effect of the oracle as
+You can represent the effect of the oracle as
 
 $$U_f \ket{x} = (-1)^{1-x} \ket{x} = (-1) \cdot (-1)^x \ket{x}$$
 

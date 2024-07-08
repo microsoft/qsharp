@@ -5,6 +5,7 @@ import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circu
 import {
   IDocFile,
   IOperationInfo,
+  IPackageGraphSources,
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
@@ -74,11 +75,18 @@ export interface ICompiler {
  * Type definition for the configuration of a program.
  * If adding new properties, make them optional to maintain backward compatibility.
  */
-export type ProgramConfig = {
-  /** An array of source objects, each containing a name and contents. */
-  sources: [string, string][];
-  /** An array of language features to be opted in to in this compilation. */
-  languageFeatures?: string[];
+export type ProgramConfig = (
+  | {
+      /** An array of source objects, each containing a name and contents. */
+      sources: [string, string][];
+      /** An array of language features to be opted in to in this compilation. */
+      languageFeatures?: string[];
+    }
+  | {
+      /** Sources from all resolved dependencies, along with their languageFeatures configuration */
+      packageGraphSources: IPackageGraphSources;
+    }
+) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
 };
@@ -109,6 +117,7 @@ export class Compiler implements ICompiler {
         readFile: async () => null,
         listDirectory: async () => [],
         resolvePath: async () => null,
+        fetchGithub: async () => "",
         findManifestDirectory: async () => null,
       },
     );
@@ -220,11 +229,25 @@ export function toWasmProgramConfig(
   program: ProgramConfig,
   defaultProfile: TargetProfile,
 ): Required<wasmIProgramConfig> {
-  return {
-    sources: program.sources,
-    languageFeatures: program.languageFeatures || [],
-    profile: program.profile || defaultProfile,
-  };
+  let packageGraphSources: IPackageGraphSources;
+
+  if ("sources" in program) {
+    // The simpler type is used, where there are no dependencies and only a list
+    // of sources is passed in.
+    packageGraphSources = {
+      root: {
+        sources: program.sources,
+        languageFeatures: program.languageFeatures || [],
+        dependencies: {},
+      },
+      packages: {},
+    };
+  } else {
+    // A full package graph is passed in.
+    packageGraphSources = program.packageGraphSources;
+  }
+
+  return { packageGraphSources, profile: program.profile || defaultProfile };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {

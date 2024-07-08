@@ -111,19 +111,13 @@ After that, you'll try to implement the oracles for two more functions on your o
 @[exercise]({
     "id": "deutsch_jozsa__msb_oracle",
     "title": "Oracle for f(x) = most significant bit of x",
-    "path": "./msb_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./msb_oracle/"
 })
 
 @[exercise]({
     "id": "deutsch_jozsa__parity_oracle",
     "title": "Oracle for f(x) = parity of the number of 1 bits in x",
-    "path": "./parity_oracle/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./parity_oracle/"
 })
 
 
@@ -212,10 +206,7 @@ Note that this algorithm requires only $1$ oracle call, and always produces the 
 @[exercise]({
     "id": "deutsch_jozsa__implement_dj",
     "title": "Implement Deutsch-Jozsa Algorithm",
-    "path": "./implement_dj/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./implement_dj/"
 })
 
 
@@ -307,10 +298,7 @@ And, same as Deutsch-Jozsa algorithm, Bernstein-Vazirani algorithm takes only on
 @[exercise]({
     "id": "deutsch_jozsa__implement_bv",
     "title": "Implement Bernstein-Vazirani Algorithm",
-    "path": "./implement_bv/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+    "path": "./implement_bv/"
 })
 
 

@@ -85,7 +85,8 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
             package_store,
             user_package_id: package_id,
             kind: CompilationKind::OpenProject,
-            errors,
+            compile_errors: errors,
+            project_errors: Vec::new(),
         },
         cursor_location,
         target_spans,
@@ -109,7 +110,7 @@ where
 {
     let std_source_map = SourceMap::new(
         [(
-            "<std>".into(),
+            "qsharp-library-source:<std>".into(),
             "namespace FakeStdLib {
                 operation Fake() : Unit {}
                 operation FakeWithParam(x: Int) : Unit {}
@@ -148,8 +149,9 @@ where
     Compilation {
         package_store,
         user_package_id: package_id,
-        errors,
+        compile_errors: errors,
         kind: CompilationKind::Notebook,
+        project_errors: Vec::new(),
     }
 }
 
@@ -157,7 +159,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
     let mut package_store = PackageStore::new(compile::core());
     let std_source_map = SourceMap::new(
         [(
-            "<std>".into(),
+            "qsharp-library-source:<std>".into(),
             r#"namespace FakeStdLib {
                 operation Fake() : Unit {}
                 operation FakeWithParam(x : Int) : Unit {}

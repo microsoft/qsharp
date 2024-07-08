@@ -101,6 +101,7 @@ export interface ILanguageService {
 }
 
 export const qsharpLibraryUriScheme = "qsharp-library-source";
+export const qsharpGithubUriScheme = "qsharp-github-source";
 
 export type ILanguageServiceWorker = ILanguageService & IServiceProxy;
 
@@ -117,6 +118,7 @@ export class QSharpLanguageService implements ILanguageService {
       readFile: async () => null,
       listDirectory: async () => [],
       resolvePath: async () => null,
+      fetchGithub: async () => "",
       findManifestDirectory: async () => null,
     },
   ) {

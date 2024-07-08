@@ -66,35 +66,25 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
 @[exercise]({
     "id": "key_distribution__random_array",
     "title": "Generate Random Array",
-    "path": "./random_array/",
-    "qsDependencies": []
+    "path": "./random_array/"
 })
 
 @[exercise]({
     "id": "key_distribution__prepare_qubits",
     "title": "Prepare Qubits (Alice's Task)",
-    "path": "./prepare_qubits/",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "./prepare_qubits/"
 })
 
 @[exercise]({
     "id": "key_distribution__measure_qubits",
     "title": "Measure Qubits (Bob's Task)",
-    "path": "./measure_qubits/",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "./measure_qubits/"
 })
 
 @[exercise]({
     "id": "key_distribution__shared_key",
     "title": "Generate the Shared Key",
-    "path": "./shared_key/",
-    "qsDependencies": [
-        "./Common.qs"
-    ]
+    "path": "./shared_key/"
 })
 
 
