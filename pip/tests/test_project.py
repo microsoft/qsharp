@@ -94,13 +94,13 @@ memfs = {
         },
         "compile_error": {
             "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } export ReturnsFour; }",
+                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
             },
             "qsharp.json": "{}",
         },
         "with_deps": {
             "src": {
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } export CallsDependency; }",
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
             },
             "qsharp.json": """
                 {
@@ -146,17 +146,15 @@ memfs = {
 
 
 def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    if (owner, repo, ref, path) == ("test-owner", "test-repo", "12345", "/qsharp.json"):
-        return """{ "files" : ["src/test.qs"] }"""
-    elif (owner, repo, ref, path) == (
-        "test-owner",
-        "test-repo",
-        "12345",
-        "/src/test.qs",
-    ):
-        return "namespace Test { operation ReturnsTwelve() : Int { 12 }; export ReturnsTwelve; }"
-    else:
-        raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
+    match (owner, repo, ref, path):
+        case ("test-owner", "test-repo", "12345", "/qsharp.json"):
+            return """{ "files" : ["src/test.qs"] }"""
+        case ("test-owner", "test-repo", "12345", "/src/test.qs"):
+            return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
+        case _:
+            raise Exception(
+                f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}"
+            )
 
 
 def read_file_memfs(path):
