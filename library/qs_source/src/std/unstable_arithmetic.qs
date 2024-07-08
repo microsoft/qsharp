@@ -697,4 +697,5 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
+    export AddLE, ApplyIfEqualLE, ApplyIfEqualL, ApplyIfGreaterLE, ApplyIfGreaterL, ApplyIfGreaterOrEqualLE, ApplyIfGreaterOrEqualL, ApplyIfLessLE, ApplyIfLessL, ApplyIfLessOrEqualLE, ApplyIfLessOrEqualL, IncByI, IncByIUsingIncByLE, IncByL, IncByLUsingIncByLE, IncByLE, IncByLEUsingAddLE, LookAheadDKRSAddLE, MAJ, ReflectAboutInteger, RippleCarryCGAddLE, RippleCarryCGIncByLE, RippleCarryTTKIncByLE, FourierTDIncByLE;
 }

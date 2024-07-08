@@ -48,6 +48,14 @@ pub struct CompileUnit {
     pub dropped_names: Vec<TrackedName>,
 }
 
+impl CompileUnit {
+    pub fn expose(&mut self) {
+        for (_item_id, item) in self.package.items.iter_mut() {
+            item.visibility = hir::Visibility::Public;
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct AstPackage {
     pub package: ast::Package,
@@ -175,6 +183,9 @@ pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
 
+// the arc<str> is only `None` for the legacy stdlib, core, and an interpreter special case
+pub type Dependencies = [(PackageId, Option<Arc<str>>)];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
@@ -254,7 +265,13 @@ impl PackageStore {
             open: id,
         }
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+    }
 }
+
 impl<'a> IntoIterator for &'a PackageStore {
     type IntoIter = Iter<'a>;
     type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
@@ -329,7 +346,7 @@ impl MutVisitor for Offsetter {
 #[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
@@ -349,7 +366,7 @@ pub fn compile(
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     mut ast_package: ast::Package,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
@@ -447,7 +464,7 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
 
     let mut unit = compile(
         store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         sources,
         capabilities,
         LanguageFeatures::default(),
@@ -495,22 +512,22 @@ fn parse_all(
 
 fn resolve_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
 ) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, &None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for &id in dependencies {
+    for (ref id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package, alias);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -530,7 +547,7 @@ fn resolve_all(
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     package: &ast::Package,
     names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
@@ -539,11 +556,15 @@ fn typeck_all(
         globals.add_external_package(PackageId::CORE, &unit.package);
     }
 
-    for &id in dependencies {
+    for (id, _alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be added to package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        // we can ignore the dependency alias here, because the
+        // typechecker doesn't do any name resolution -- it only operates on item ids.
+        // because of this, the typechecker doesn't actually need to care about visibility
+        // or the names of items at all.
+        globals.add_external_package(*id, &unit.package);
     }
 
     let mut checker = Checker::new(globals);

@@ -3,11 +3,11 @@
 
 use miette::{Diagnostic, Report};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+pub use qsc_frontend::compile::Dependencies;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
 };
-use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 use thiserror::Error;
 
@@ -38,7 +38,7 @@ pub enum ErrorKind {
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     ast_package: qsc_ast::ast::Package,
     sources: SourceMap,
     package_type: PackageType,
@@ -59,7 +59,7 @@ pub fn compile_ast(
 #[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
     package_type: PackageType,
     capabilities: TargetCapabilityFlags,
@@ -96,11 +96,20 @@ fn process_compile_unit(
     (unit, errors)
 }
 
+#[must_use]
+pub fn package_store_with_stdlib(
+    capabilities: TargetCapabilityFlags,
+) -> (qsc_hir::hir::PackageId, PackageStore) {
+    let mut store = PackageStore::new(core());
+    let std_id = store.insert(std(&store, capabilities));
+    (std_id, store)
+}
+
 /// Compiles the core library.
 ///
 /// # Panics
 ///
-/// Panics if the core library does not compile without errors.
+/// Panics if the core library compiles with errors.
 #[must_use]
 pub fn core() -> CompileUnit {
     let mut unit = qsc_frontend::compile::core();

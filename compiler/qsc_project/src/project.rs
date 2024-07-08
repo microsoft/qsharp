@@ -593,19 +593,77 @@ pub struct PackageGraphSources {
     pub packages: FxHashMap<PackageKey, PackageInfo>,
 }
 
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
+
 impl PackageGraphSources {
-    /// Temporary implementation which just concatenates all sources.
-    /// This will be replaced soon to build and return all the dependencies
-    /// along with the root package sources.
-    /// TODO(packages): delete this method and use the package graph instead
-    #[must_use]
-    pub fn into_sources_temporary(self) -> (Sources, LanguageFeatures) {
-        let mut sources = self.root.sources;
-        for mut pkg in self.packages.into_values() {
-            sources.append(&mut pkg.sources);
+    /// Produces an ordered vector over the packages in the order they should be compiled
+    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        for (key, package_info) in &self.packages {
+            in_degree.entry(key).or_insert(0);
+            for dep in package_info.dependencies.values() {
+                graph.entry(dep).or_default().push(key);
+                *in_degree.entry(key).or_insert(0) += 1;
+            }
         }
 
-        (sources, self.root.language_features)
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree
+                        .get_mut(neighbor)
+                        .expect("graph pre-calculated this");
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        sorted_packages.sort_by_key(|(a_key, _pkg)| {
+            sorted_keys
+                .iter()
+                .position(|key| key.as_str() == &**a_key)
+                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
+        });
+
+        log::debug!("build plan: {:#?}", sorted_keys);
+
+        Ok((sorted_packages, self.root))
+    }
+
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        language_features: LanguageFeatures,
+    ) -> Self {
+        Self {
+            root: PackageInfo {
+                sources,
+                language_features,
+                dependencies: FxHashMap::default(),
+            },
+            packages: FxHashMap::default(),
+        }
     }
 }
 

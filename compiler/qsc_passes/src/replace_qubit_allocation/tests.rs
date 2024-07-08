@@ -37,7 +37,7 @@ fn test_single_qubit() {
             Package:
                 Item 0 [0-98] (Public):
                     Namespace (Ident 13 [10-15] "input"): Item 1
-                Item 1 [22-96] (Public):
+                Item 1 [22-96] (Internal):
                     Parent: 0
                     Callable 0 [22-96] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -76,7 +76,7 @@ fn test_qubit_array() {
             Package:
                 Item 0 [0-99] (Public):
                     Namespace (Ident 14 [10-15] "input"): Item 1
-                Item 1 [22-97] (Public):
+                Item 1 [22-97] (Internal):
                     Parent: 0
                     Callable 0 [22-97] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -115,7 +115,7 @@ fn test_qubit_tuple() {
             Package:
                 Item 0 [0-109] (Public):
                     Namespace (Ident 15 [10-15] "input"): Item 1
-                Item 1 [22-107] (Public):
+                Item 1 [22-107] (Internal):
                     Parent: 0
                     Callable 0 [22-107] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -167,7 +167,7 @@ fn test_multiple_qubits_tuple() {
             Package:
                 Item 0 [0-115] (Public):
                     Namespace (Ident 19 [10-15] "input"): Item 1
-                Item 1 [22-113] (Public):
+                Item 1 [22-113] (Internal):
                     Parent: 0
                     Callable 0 [22-113] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -226,7 +226,7 @@ fn test_multiple_callables() {
             Package:
                 Item 0 [0-210] (Public):
                     Namespace (Ident 36 [10-15] "input"): Item 1, Item 2
-                Item 1 [22-112] (Public):
+                Item 1 [22-112] (Internal):
                     Parent: 0
                     Callable 0 [22-112] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -264,7 +264,7 @@ fn test_multiple_callables() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [118-208] (Public):
+                Item 2 [118-208] (Internal):
                     Parent: 0
                     Callable 18 [118-208] (operation):
                         name: Ident 19 [128-131] "Bar"
@@ -322,7 +322,7 @@ fn test_qubit_block() {
             Package:
                 Item 0 [0-200] (Public):
                     Namespace (Ident 31 [10-15] "input"): Item 1
-                Item 1 [22-198] (Public):
+                Item 1 [22-198] (Internal):
                     Parent: 0
                     Callable 0 [22-198] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -394,7 +394,7 @@ fn test_qubit_nested_block() {
             Package:
                 Item 0 [0-157] (Public):
                     Namespace (Ident 22 [10-15] "input"): Item 1
-                Item 1 [22-155] (Public):
+                Item 1 [22-155] (Internal):
                     Parent: 0
                     Callable 0 [22-155] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -458,7 +458,7 @@ fn test_qubit_multiple_nested_blocks() {
             Package:
                 Item 0 [0-353] (Public):
                     Namespace (Ident 55 [10-15] "input"): Item 1
-                Item 1 [22-351] (Public):
+                Item 1 [22-351] (Internal):
                     Parent: 0
                     Callable 0 [22-351] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -544,7 +544,7 @@ fn test_early_returns() {
             Package:
                 Item 0 [0-241] (Public):
                     Namespace (Ident 33 [10-15] "input"): Item 1
-                Item 1 [22-239] (Public):
+                Item 1 [22-239] (Internal):
                     Parent: 0
                     Callable 0 [22-239] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -631,7 +631,7 @@ fn test_end_exprs() {
             Package:
                 Item 0 [0-172] (Public):
                     Namespace (Ident 27 [10-15] "input"): Item 1
-                Item 1 [22-170] (Public):
+                Item 1 [22-170] (Internal):
                     Parent: 0
                     Callable 0 [22-170] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -689,7 +689,7 @@ fn test_array_expr() {
             Package:
                 Item 0 [0-152] (Public):
                     Namespace (Ident 21 [10-15] "input"): Item 1
-                Item 1 [22-150] (Public):
+                Item 1 [22-150] (Internal):
                     Parent: 0
                     Callable 0 [22-150] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -743,7 +743,7 @@ fn test_rtrn_expr() {
             Package:
                 Item 0 [0-149] (Public):
                     Namespace (Ident 19 [10-15] "input"): Item 1
-                Item 1 [22-147] (Public):
+                Item 1 [22-147] (Internal):
                     Parent: 0
                     Callable 0 [22-147] (operation):
                         name: Ident 1 [32-35] "Foo"
@@ -805,7 +805,7 @@ fn test_unrelated_unaffected() {
             Package:
                 Item 0 [0-161] (Public):
                     Namespace (Ident 22 [10-15] "input"): Item 1
-                Item 1 [22-159] (Public):
+                Item 1 [22-159] (Internal):
                     Parent: 0
                     Callable 0 [22-159] (operation):
                         name: Ident 1 [32-35] "Foo"

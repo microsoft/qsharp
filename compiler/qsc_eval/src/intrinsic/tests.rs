@@ -161,7 +161,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(
         &store,
-        &[std_id],
+        &[(std_id, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),

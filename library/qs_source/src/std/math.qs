@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignL(a : BigInt) : Int {
-        if (a < 0L) { 
+        if (a < 0L) {
             -1
         } elif (a > 0L) {
             + 1
@@ -1454,4 +1454,5 @@ namespace Microsoft.Quantum.Math {
         2.0^IntAsDouble(integerBits - 1) - 2.0^(-IntAsDouble(fractionalBits))
     }
 
+    export PI, E, LogOf2, IsNaN, IsInfinite, SignI, SignD, SignL, AbsI, AbsD, AbsL, MaxI, MaxD, MaxL, MinI, MinD, MinL, Max, Min, ArcCos, ArcSin, ArcTan, ArcTan2, Cos, Cosh, Sin, Sinh, Tan, Tanh, ArcCosh, ArcSinh, ArcTanh, Sqrt, Log, Log10, Lg, Truncate, ExtendedTruncation, Ceiling, Floor, Round, DivRemI, DivRemL, ModulusI, ModulusL, ExpModI, ExpModL, InverseModI, InverseModL, GreatestCommonDivisorI, GreatestCommonDivisorL, ExtendedGreatestCommonDivisorI, ExtendedGreatestCommonDivisorL, IsCoprimeI, IsCoprimeL, ContinuedFractionConvergentI, ContinuedFractionConvergentL, RealMod, BitSizeI, BitSizeL, TrailingZeroCountI, TrailingZeroCountL, HammingWeightI, FactorialI, FactorialL, ApproximateFactorial, LogGammaD, LogFactorialD, Binom, SquaredNorm, PNorm, PNormalized, Complex, ComplexPolar, AbsSquaredComplex, AbsComplex, ArgComplex, AbsSquaredComplexPolar, AbsComplexPolar, ArgComplexPolar, NegationC, NegationCP, PlusC, PlusCP, MinusC, MinusCP, TimesC, TimesCP, PowCAsCP, PowC, PowCP, DividedByC, DividedByCP, SmallestFixedPoint, LargestFixedPoint;
 }

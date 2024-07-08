@@ -72,4 +72,6 @@ namespace Microsoft.Quantum.Random {
     operation DrawRandomBool(successProbability : Double) : Bool {
         body intrinsic;
     }
+
+    export DrawRandomInt, DrawRandomDouble, DrawRandomBool;
 }

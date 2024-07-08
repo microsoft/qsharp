@@ -264,4 +264,5 @@ namespace Microsoft.Quantum.Convert {
         );
     }
 
+    export IntAsDouble, IntAsBigInt, ResultAsBool, BoolAsResult, BoolArrayAsInt, IntAsBoolArray, BoolArrayAsBigInt, BigIntAsBoolArray, ResultArrayAsInt, ResultArrayAsBoolArray, BoolArrayAsResultArray, ComplexAsComplexPolar, ComplexPolarAsComplex;
 }
