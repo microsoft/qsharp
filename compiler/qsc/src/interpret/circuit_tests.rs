@@ -888,7 +888,7 @@ mod debugger_stepping {
     /// circuit representation at each step.
     fn generate_circuit_steps(code: &str, profile: Profile) -> String {
         let sources = SourceMap::new([("test.qs".into(), code.into())], None);
-        let (std_id, mut store)  = crate::compile::package_store_with_stdlib(profile.into());
+        let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
         let mut debugger = Debugger::new(
             sources,
             profile.into(),

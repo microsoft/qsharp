@@ -58,7 +58,7 @@ pub fn test_expression_with_lib_and_profile_and_sim(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let (std_id, mut store) = qsc::compile::package_store_with_stdlib(profile.into());
+    let (std_id, store) = qsc::compile::package_store_with_stdlib(profile.into());
 
     let mut interpreter = Interpreter::new(
         sources,

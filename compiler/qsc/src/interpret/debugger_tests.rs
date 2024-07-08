@@ -131,7 +131,9 @@ mod given_debugger {
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             use qsc_data_structures::language_features::LanguageFeatures;
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());            let mut debugger = Debugger::new(
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
@@ -156,7 +158,9 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
         #[test]
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());            let mut debugger = Debugger::new(
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
@@ -177,7 +181,9 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
         #[test]
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());            let mut debugger = Debugger::new(
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
@@ -205,7 +211,9 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
         #[test]
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());            let mut debugger = Debugger::new(
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,

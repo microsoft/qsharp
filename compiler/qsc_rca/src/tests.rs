@@ -39,7 +39,7 @@ pub struct CompilationContext {
 impl CompilationContext {
     #[must_use]
     pub fn new(capabilities: TargetCapabilityFlags) -> Self {
-        let (std_id, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(capabilities);
         let compiler = Compiler::new(
             SourceMap::default(),
             PackageType::Lib,

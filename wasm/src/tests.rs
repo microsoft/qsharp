@@ -13,8 +13,8 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
-    let (std_id, mut store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
-        run_internal_with_features(
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    run_internal_with_features(
         sources,
         event_cb,
         shots,
@@ -50,7 +50,7 @@ fn test_compile() {
     M(q)
     }}";
 
-    let (std_id, mut store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
 
     let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),

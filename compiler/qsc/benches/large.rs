@@ -37,7 +37,8 @@ pub fn large_file_interpreter(c: &mut Criterion) {
     c.bench_function("Large input file compilation (interpreter)", |b| {
         b.iter(|| {
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
-            let (std_id, mut store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let (std_id, store) =
+                qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
 
             let _evaluator = qsc::interpret::Interpreter::new(
                 sources,

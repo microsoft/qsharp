@@ -19,7 +19,7 @@ fn code_with_errors_returns_errors() {
     let sources = SourceMap::new([("test.qs".into(), source.into())], None);
     let language_features = LanguageFeatures::default();
     let capabilities = TargetCapabilityFlags::empty();
-    let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+    let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
 
     expect![[r#"
         Err(
@@ -62,7 +62,7 @@ fn code_with_errors_returns_errors() {
 mod base_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-    use qsc_frontend::compile::{ SourceMap};
+    use qsc_frontend::compile::SourceMap;
 
     use crate::codegen::get_qir;
 
@@ -87,7 +87,7 @@ mod base_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -144,7 +144,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -204,7 +204,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::empty();
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -255,7 +255,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
 mod adaptive_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-    use qsc_frontend::compile::{PackageStore, SourceMap};
+    use qsc_frontend::compile::SourceMap;
 
     use crate::codegen::get_qir;
 
@@ -280,7 +280,7 @@ mod adaptive_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -344,7 +344,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -411,7 +411,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -467,7 +467,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
 }
 
 mod adaptive_ri_profile {
-    use crate::PackageStore;
+
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
@@ -497,7 +497,7 @@ mod adaptive_ri_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -563,7 +563,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -632,7 +632,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,
@@ -702,7 +702,7 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let qir = get_qir(
             sources,
             language_features,

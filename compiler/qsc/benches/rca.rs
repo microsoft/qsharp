@@ -126,7 +126,7 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
-        let (std_id, mut store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let compiler = Compiler::new(
             SourceMap::default(),
             PackageType::Lib,

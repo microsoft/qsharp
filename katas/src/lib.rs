@@ -28,7 +28,7 @@ pub fn check_solution(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
-    let (std_id, mut store) = qsc::compile::package_store_with_stdlib(Profile::Unrestricted.into());
+    let (std_id, store) = qsc::compile::package_store_with_stdlib(Profile::Unrestricted.into());
 
     let mut interpreter: Interpreter = Interpreter::new(
         source_map,

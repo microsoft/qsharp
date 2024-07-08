@@ -122,7 +122,7 @@ struct CompilationContext {
 impl CompilationContext {
     fn new(source: &str, capabilities: TargetCapabilityFlags) -> Self {
         let source_map = SourceMap::new([("test".into(), source.into())], Some("".into()));
-        let (std_id, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(capabilities);
         let compiler = Compiler::new(
             source_map,
             PackageType::Exe,

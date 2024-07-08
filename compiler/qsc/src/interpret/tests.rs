@@ -1250,7 +1250,8 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        let (std_id,  store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let (std_id, store) =
+            crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let dependencies = &[(std_id, None)];
         Interpreter::new(
             SourceMap::default(),
@@ -1264,7 +1265,7 @@ mod given_interpreter {
     }
 
     fn get_interpreter_with_capabilities(capabilities: TargetCapabilityFlags) -> Interpreter {
-        let (std_id, mut store) = crate::compile::package_store_with_stdlib(capabilities);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
         let dependencies = &[(std_id, None)];
         Interpreter::new(
             SourceMap::default(),
@@ -1378,7 +1379,8 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
                 sources,
                 PackageType::Exe,
@@ -1399,7 +1401,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
             namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let result = Interpreter::new(
                 sources,
                 PackageType::Exe,
@@ -1439,7 +1442,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let dependencies = &[(std_id, None)];
             let mut interpreter = Interpreter::new(
                 sources,
@@ -1546,7 +1550,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
@@ -1572,7 +1577,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
@@ -1606,7 +1612,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
@@ -1783,7 +1790,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
                 )],
                 None,
             );
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
                 sources,
                 PackageType::Lib,
@@ -1818,7 +1826,8 @@ let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapab
                 )],
                 None,
             );
-let (std_id, mut store) = crate::compile::package_store_with_stdlib( TargetCapabilityFlags::all());
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
                 sources,
                 PackageType::Lib,

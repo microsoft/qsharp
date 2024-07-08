@@ -97,7 +97,9 @@ fn process_compile_unit(
 }
 
 #[must_use]
-pub fn package_store_with_stdlib(capabilities: TargetCapabilityFlags) -> (qsc_hir::hir::PackageId, PackageStore) {
+pub fn package_store_with_stdlib(
+    capabilities: TargetCapabilityFlags,
+) -> (qsc_hir::hir::PackageId, PackageStore) {
     let mut store = PackageStore::new(core());
     let std_id = store.insert(std(&store, capabilities));
     (std_id, store)
