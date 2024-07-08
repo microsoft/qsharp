@@ -16,8 +16,8 @@ use num_complex::Complex;
 /// A vectorized density matrix.
 #[derive(Debug, Clone)]
 pub struct DensityMatrix {
-    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
-    dim: usize,
+    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    dimension: usize,
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
@@ -28,11 +28,11 @@ pub struct DensityMatrix {
 
 impl DensityMatrix {
     fn new(number_of_qubits: usize) -> Self {
-        let dim = 1 << number_of_qubits;
-        let mut data = ComplexVector::zeros(dim * dim);
+        let dimension = 1 << number_of_qubits;
+        let mut data = ComplexVector::zeros(dimension * dimension);
         data[0].re = 1.0;
         Self {
-            dim,
+            dimension,
             number_of_qubits,
             trace_change: 1.0,
             data,
@@ -44,16 +44,16 @@ impl DensityMatrix {
     ///
     /// This method is to be used from the PyO3 wrapper.
     pub fn try_from(
-        dim: usize,
+        dimension: usize,
         number_of_qubits: usize,
         trace_change: f64,
         data: ComplexVector,
     ) -> Option<Self> {
-        if 1 << number_of_qubits != dim || data.len() != dim * dim {
+        if 1 << number_of_qubits != dimension || data.len() != dimension * dimension {
             None
         } else {
             Some(Self {
-                dim,
+                dimension,
                 number_of_qubits,
                 trace_change,
                 data,
@@ -66,9 +66,9 @@ impl DensityMatrix {
         &self.data
     }
 
-    /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
-    pub fn dim(&self) -> usize {
-        self.dim
+    /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    pub fn dimension(&self) -> usize {
+        self.dimension
     }
 
     /// Returns the number of qubits in the system.
@@ -78,10 +78,10 @@ impl DensityMatrix {
 
     /// Returns `true` if the matrix is Hermitian.
     fn is_hermitian(&self) -> bool {
-        for row in 0..self.dim {
-            for col in 0..self.dim {
-                let elt = self.data[self.dim * row + col];
-                let mirror_elt = self.data[self.dim * col + row];
+        for row in 0..self.dimension {
+            for col in 0..self.dimension {
+                let elt = self.data[self.dimension * row + col];
+                let mirror_elt = self.data[self.dimension * col + row];
                 if (elt.re - mirror_elt.re).abs() > TOLERANCE
                     || (elt.im + mirror_elt.im).abs() > TOLERANCE
                 {
@@ -100,8 +100,8 @@ impl DensityMatrix {
     /// Returns the trace of the matrix. The trace is the sum of the diagonal entries of a matrix.
     fn trace(&self) -> f64 {
         let mut trace: Complex<f64> = Complex::ZERO;
-        for idx in 0..self.dim {
-            trace += self.data[(self.dim + 1) * idx];
+        for idx in 0..self.dimension {
+            trace += self.data[(self.dimension + 1) * idx];
         }
         assert!(
             trace.im <= TOLERANCE,
@@ -163,17 +163,17 @@ pub struct DensityMatrixSimulator {
     state: Result<DensityMatrix, Error>,
     /// Dimension of the density matrix. We need this field to verify the size of the
     /// quantum system in the `set_state` method in the case that `self.state == Err(...)`.
-    dim: usize,
+    dimension: usize,
 }
 
 impl DensityMatrixSimulator {
     /// Creates a new `DensityMatrixSimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
         let density_matrix = DensityMatrix::new(number_of_qubits);
-        let dim = density_matrix.dim();
+        let dimension = density_matrix.dimension();
         Self {
             state: Ok(density_matrix),
-            dim,
+            dimension,
         }
     }
 
@@ -288,11 +288,11 @@ impl DensityMatrixSimulator {
 
     /// Set state of the quantum system.
     pub fn set_state(&mut self, new_state: DensityMatrix) -> Result<(), Error> {
-        if self.dim != new_state.dim() {
+        if self.dimension != new_state.dimension() {
             return Err(Error::InvalidState(format!(
                 "the provided state should have the same dimensions as the quantum system's state, {} != {}",
-                self.dim,
-                new_state.dim(),
+                self.dimension,
+                new_state.dimension(),
             )));
         }
         if !new_state.is_normalized() {

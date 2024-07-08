@@ -105,8 +105,8 @@ impl Instrument {
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct DensityMatrix {
-    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
-    dim: usize,
+    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    dimension: usize,
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
@@ -124,7 +124,7 @@ impl DensityMatrix {
 
     /// Returns the dimension of the matrix.
     fn dimension(&self) -> usize {
-        self.dim
+        self.dimension
     }
 
     /// Returns the number of qubits in the system.
@@ -136,7 +136,7 @@ impl DensityMatrix {
 impl From<&noisy_simulator::DensityMatrix> for DensityMatrix {
     fn from(dm: &noisy_simulator::DensityMatrix) -> Self {
         Self {
-            dim: dm.dim(),
+            dimension: dm.dimension(),
             number_of_qubits: dm.number_of_qubits(),
             trace_change: dm.trace_change(),
             data: dm.data().iter().copied().collect::<Vec<_>>(),
@@ -149,7 +149,7 @@ impl TryInto<noisy_simulator::DensityMatrix> for DensityMatrix {
 
     fn try_into(self) -> PyResult<noisy_simulator::DensityMatrix> {
         noisy_simulator::DensityMatrix::try_from(
-            self.dim,
+            self.dimension,
             self.number_of_qubits,
             self.trace_change,
             ComplexVector::from_vec(self.data),
@@ -231,8 +231,8 @@ impl DensityMatrixSimulator {
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct StateVector {
-    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
-    dim: usize,
+    /// Dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    dimension: usize,
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
@@ -250,7 +250,7 @@ impl StateVector {
 
     /// Returns the dimension of the matrix.
     fn dimension(&self) -> usize {
-        self.dim
+        self.dimension
     }
 
     /// Returns the number of qubits in the system.
@@ -262,7 +262,7 @@ impl StateVector {
 impl From<&noisy_simulator::StateVector> for StateVector {
     fn from(dm: &noisy_simulator::StateVector) -> Self {
         Self {
-            dim: dm.dim(),
+            dimension: dm.dimension(),
             number_of_qubits: dm.number_of_qubits(),
             trace_change: dm.trace_change(),
             data: dm.data().iter().copied().collect::<Vec<_>>(),
@@ -275,7 +275,7 @@ impl TryInto<noisy_simulator::StateVector> for StateVector {
 
     fn try_into(self) -> PyResult<noisy_simulator::StateVector> {
         noisy_simulator::StateVector::try_from(
-            self.dim,
+            self.dimension,
             self.number_of_qubits,
             self.trace_change,
             ComplexVector::from_vec(self.data),

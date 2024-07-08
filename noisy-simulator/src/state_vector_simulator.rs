@@ -15,7 +15,7 @@ use crate::{
 /// A vector representing the state of a quantum system.
 pub struct StateVector {
     /// Dimension of the vector.
-    dim: usize,
+    dimension: usize,
     /// Number of qubits in the system.
     number_of_qubits: usize,
     /// Theoretical change in trace due to operations that have been applied so far.
@@ -26,11 +26,11 @@ pub struct StateVector {
 
 impl StateVector {
     fn new(number_of_qubits: usize) -> Self {
-        let dim = 1 << number_of_qubits;
-        let mut state_vector = ComplexVector::zeros(dim);
+        let dimension = 1 << number_of_qubits;
+        let mut state_vector = ComplexVector::zeros(dimension);
         state_vector[0].re = 1.0;
         Self {
-            dim,
+            dimension,
             number_of_qubits,
             trace_change: 1.0,
             data: state_vector,
@@ -42,16 +42,16 @@ impl StateVector {
     ///
     /// This method is to be used from the PyO3 wrapper.
     pub fn try_from(
-        dim: usize,
+        dimension: usize,
         number_of_qubits: usize,
         trace_change: f64,
         data: ComplexVector,
     ) -> Option<Self> {
-        if 1 << number_of_qubits != dim || data.len() != dim * dim {
+        if 1 << number_of_qubits != dimension || data.len() != dimension * dimension {
             None
         } else {
             Some(Self {
-                dim,
+                dimension,
                 number_of_qubits,
                 trace_change,
                 data,
@@ -64,9 +64,9 @@ impl StateVector {
         &self.data
     }
 
-    /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dim is 5.
-    pub fn dim(&self) -> usize {
-        self.dim
+    /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    pub fn dimension(&self) -> usize {
+        self.dimension
     }
 
     /// Returns the number of qubits in the system.
@@ -165,17 +165,17 @@ pub struct StateVectorSimulator {
     state: Result<StateVector, Error>,
     /// Dimension of the density matrix. We need this field to verify the size of the
     /// quantum system in the `set_state` method in the case that `self.state == Err(...)`.
-    dim: usize,
+    dimension: usize,
 }
 
 impl StateVectorSimulator {
     /// Creates a new `TrajectorySimulator`.
     pub fn new(number_of_qubits: usize) -> Self {
         let state_vector = StateVector::new(number_of_qubits);
-        let dim = state_vector.dim();
+        let dimension = state_vector.dimension();
         Self {
             state: Ok(state_vector),
-            dim,
+            dimension,
         }
     }
 
@@ -298,11 +298,11 @@ impl StateVectorSimulator {
 
     /// Set state of the quantum system.
     pub fn set_state(&mut self, new_state: StateVector) -> Result<(), Error> {
-        if self.dim != new_state.dim() {
+        if self.dimension != new_state.dimension() {
             return Err(Error::InvalidState(format!(
                 "the provided state should have the same dimensions as the quantum system's state, {} != {}",
-                self.dim,
-                new_state.dim(),
+                self.dimension,
+                new_state.dimension(),
             )));
         }
         if !new_state.is_normalized() {
