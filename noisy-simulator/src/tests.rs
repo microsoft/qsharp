@@ -67,7 +67,6 @@ pub fn measure_1<NS: NoisySimulator>() {
 
 pub fn bell_pair_sampling<NS: NoisySimulator>() {
     let (h, cnot, mz) = (h(), cnot(), mz());
-
     let mut sim = NS::new(2);
     sim.apply_operation(&h, &[0])
         .expect("operation should succeed");
