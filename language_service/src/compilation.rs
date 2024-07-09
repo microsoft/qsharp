@@ -15,7 +15,7 @@ use qsc::{
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::{LintConfig, LintLevel};
-use qsc_project::PackageGraphSources;
+use qsc_project::{PackageGraphSources, Project};
 use std::mem::take;
 use std::sync::Arc;
 
@@ -44,7 +44,7 @@ pub(crate) enum CompilationKind {
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
-    Notebook,
+    Notebook { project: Option<Project> },
 }
 
 impl Compilation {
@@ -113,21 +113,73 @@ impl Compilation {
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
+        project: Option<Project>,
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
-        let (std_id, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
+        trace!("compiling dependencies");
+
+        let (sources, dependencies, store) = match &project {
+            Some(project) if project.errors.is_empty() => {
+                trace!("using buildable program from project");
+                let buildable_program = prepare_package_store(
+                    target_profile.into(),
+                    project.package_graph_sources.clone(),
+                );
+
+                (
+                    SourceMap::new(buildable_program.user_code.sources, None),
+                    buildable_program.user_code_dependencies,
+                    buildable_program.store,
+                )
+            }
+            Some(p) => {
+                trace!("compilation failure for project: {:?}", p.errors);
+                let (_, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
+                return Self {
+                    package_store: store,
+                    user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
+                    compile_errors: Vec::new(),
+                    project_errors: p.errors.clone(),
+                    kind: CompilationKind::Notebook { project },
+                };
+            }
+            None => {
+                trace!("compiling stdlib only");
+                let (std_id, store) =
+                    qsc::compile::package_store_with_stdlib(target_profile.into());
+                (SourceMap::default(), vec![(std_id, None)], store)
+            }
+        };
+
         trace!("compiling notebook");
-        let mut compiler = Compiler::new(
-            SourceMap::default(),
+        let mut compiler = match Compiler::new(
+            sources,
             PackageType::Lib,
             target_profile.into(),
             language_features,
             store,
-            &[(std_id, None)],
-        )
-        .expect("expected incremental compiler creation to succeed");
+            &dependencies,
+        ) {
+            Ok(compiler) => compiler,
+            Err(errors) => match &project {
+                Some(p) => {
+                    trace!("compilation failure for sources: {:?}", errors);
+                    let (_, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
+                    return Self {
+                        package_store: store,
+                        user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
+                        compile_errors: errors,
+                        project_errors: p.errors.clone(),
+                        kind: CompilationKind::Notebook { project },
+                    };
+                }
+                None => {
+                    panic!("compilation failure for standard library: {errors:?}");
+                }
+            },
+        };
 
         let mut errors = Vec::new();
         for (name, contents) in cells {
@@ -161,7 +213,7 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
-            kind: CompilationKind::Notebook,
+            kind: CompilationKind::Notebook { project },
             project_errors: Vec::new(),
         }
     }
@@ -268,11 +320,12 @@ impl Compilation {
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
             ),
-            CompilationKind::Notebook => Self::new_notebook(
+            CompilationKind::Notebook { ref project } => Self::new_notebook(
                 sources.into_iter(),
                 target_profile,
                 language_features,
                 lints_config,
+                project.clone(),
             ),
         };
 

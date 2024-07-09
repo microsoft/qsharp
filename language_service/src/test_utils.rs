@@ -165,7 +165,7 @@ where
         package_store,
         user_package_id: package_id,
         compile_errors: errors,
-        kind: CompilationKind::Notebook,
+        kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
     }
 }

@@ -605,20 +605,22 @@ async fn target_profile_update_causes_error_in_stdlib() {
     );
 }
 
-#[test]
-fn notebook_document_no_errors() {
+#[tokio::test]
+async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Main()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Main()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -628,20 +630,22 @@ fn notebook_document_no_errors() {
     );
 }
 
-#[test]
-fn notebook_document_errors() {
+#[tokio::test]
+async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -688,20 +692,22 @@ fn notebook_document_errors() {
     );
 }
 
-#[test]
-fn notebook_document_lints() {
+#[tokio::test]
+async fn notebook_document_lints() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
-            ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
+                ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -768,20 +774,22 @@ fn notebook_document_lints() {
     );
 }
 
-#[test]
-fn notebook_update_remove_cell_clears_errors() {
+#[tokio::test]
+async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -827,11 +835,13 @@ fn notebook_update_remove_cell_clears_errors() {
         "#]],
     );
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -848,20 +858,22 @@ fn notebook_update_remove_cell_clears_errors() {
     );
 }
 
-#[test]
-fn close_notebook_clears_errors() {
+#[tokio::test]
+async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,

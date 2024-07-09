@@ -42,6 +42,7 @@ class Config:
         target_profile: TargetProfile,
         language_features: Optional[List[str]],
         manifest: Optional[str],
+        project_root: Optional[str],
     ):
         if target_profile == TargetProfile.Adaptive_RI:
             self._config = {"targetProfile": "adaptive_ri"}
@@ -52,6 +53,7 @@ class Config:
 
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
+        self._config["projectRoot"] = "file://" + project_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -132,7 +134,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features, manifest_contents)
+    return Config(target_profile, language_features, manifest_contents, project_root)
 
 
 def get_interpreter() -> Interpreter:
