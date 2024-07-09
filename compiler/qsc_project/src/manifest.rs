@@ -30,6 +30,16 @@ pub struct Manifest {
     pub dependencies: FxHashMap<String, PackageRef>,
     #[serde(default)]
     pub files: Vec<String>,
+    #[serde(default)]
+    pub package_type: Option<PackageType>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Copy)]
+pub enum PackageType {
+    #[serde(rename = "exe")]
+    Exe,
+    #[serde(rename = "lib")]
+    Lib,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

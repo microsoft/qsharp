@@ -22,6 +22,7 @@ fn mock_program() -> Project {
                     Arc::from("SomeLibraryAlias"),
                     Arc::from("SomeLibraryKey"),
                 )]),
+                package_type: Some(qsc_project::PackageType::Exe),
             },
             packages: FxHashMap::from_iter(vec![(
                 Arc::from("SomeLibraryKey"),
@@ -32,6 +33,7 @@ fn mock_program() -> Project {
                     )],
                     language_features: LanguageFeatures::default(),
                     dependencies: FxHashMap::default(),
+                    package_type: Some(qsc_project::PackageType::Lib),
                 },
             )]),
         },
