@@ -45,8 +45,10 @@ pub fn measure_0<NS: NoisySimulator>() {
     let mut sim = NS::new(1);
     sim.apply_operation(&h, &[0])
         .expect("operation should succeed");
+
+    // Random samples less than 0.5 should yield a 0-measurement.
     let measurement = sim
-        .sample_instrument_with_distribution(&mz, &[0], 0.3)
+        .sample_instrument_with_distribution(&mz, &[0], 0.49999)
         .expect("measurement should succeed");
     assert_eq!(measurement, 0);
 }
@@ -57,8 +59,10 @@ pub fn measure_1<NS: NoisySimulator>() {
     let mut sim = NS::new(1);
     sim.apply_operation(&h, &[0])
         .expect("operation should succeed");
+
+    // Random samples greater than 0.5 should yield a 1-measurement.
     let measurement = sim
-        .sample_instrument_with_distribution(&mz, &[0], 0.7)
+        .sample_instrument_with_distribution(&mz, &[0], 0.50001)
         .expect("measurement should succeed");
     assert_eq!(measurement, 1);
 }
