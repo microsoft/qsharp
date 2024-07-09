@@ -229,7 +229,6 @@ $$\ket{\xi} = \Big[\frac{1}{\sqrt{2}}\big(\ket{110} - \ket{111}\big)\Big] \otime
 
 We can see that these two equations are identical, except for the $-1$ phase that appeared on the $\ket{111}$ basis state - our marked state.  This is a specific example of the phase kickback effect, as the phase from $\ket{-}$ has been *kicked back* into $\ket{x}$.
 
-
 @[exercise]({
     "id": "oracles__marking_oracle_as_phase",
     "title": "Apply the Marking Oracle as a Phase Oracle",
@@ -257,7 +256,7 @@ This converter provides a way to implement the function of interest as a marking
 
 In this section you will implement a few more complicated quantum oracles.
 Some of them - both phase and marking - can take extra "classical" parameters.
-A useful tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation. 
+A useful tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation.
 You will practice that in some of the exercises below.
 
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
@@ -320,7 +319,7 @@ Here we will compare the reference implementation of `Meeting_Oracle` to the cla
 
 Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
 
-- A quantum oracle is an "opaque box" operation that implements a classical computation. 
+- A quantum oracle is an "opaque box" operation that implements a classical computation.
 - Quantum oracles are used to convert classical problems into inputs to quantum algorithms, such as Grover's search algorithm.
 - Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$, it multiplies the phase of the basis state $\ket{x}$ by $-1$.
 - Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, the oracle doesn't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$, it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.
