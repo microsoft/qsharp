@@ -9,9 +9,6 @@ namespace MyQuantumApp {
 
     @EntryPoint()
     function ExplicitReturn() : Unit {
-        // Question: It's worth having something that only returns Unit explicitly
-        // as function, or should we support this as a valis operation?
-        // Explicitly return `Unit`.
         return ();
     }
     operation NoReturn() : Unit {

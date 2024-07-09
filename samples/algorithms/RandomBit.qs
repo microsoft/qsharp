@@ -5,10 +5,6 @@
 /// This Q# program generates a random bit by setting a qubit in a superposition
 /// of the computational basis states |0〉 and |1〉, and returning the measurement
 /// result.
-
-// QUESTION: Is this needed when code is very similar to superposition sample?
-// Currently, this is in samples list and might be okay to have this duplicate to reiterate
-// that random number can be generated using superposition.
 namespace Sample {
 
     @EntryPoint()
