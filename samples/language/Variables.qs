@@ -25,19 +25,14 @@ namespace MyQuantumApp {
         let immutableInt = 0;
         Message($"Shadowed Immutable Int: {immutableInt}");
 
-        // UDTs can also be updated with copy-and-update expressions (`w/`)
-        // or evaluate-and-reassign expressions (`w/=`).
-        newtype Point3d = (X : Double, Y : Double, Z : Double);
+        // Structs can also be updated with a copy constructor and reassigned.
+        struct Point3d { X : Double, Y : Double, Z : Double }
 
-        mutable point = Point3d(0.0, 0.0, 0.0);
+        mutable point = new Point3d { X = 0.0, Y = 0.0, Z = 0.0 };
 
-        // The below line mutates `point`, moving the X coordinate by +1.0,
-        // using evaluate-and-reassign.
-        set point w/= X <- point::X + 1.0;
-
-        // The below line also mutates `point`, moving the X coordinate by -1.0,
-        // using copy-and-update.
-        set point = point w/ X <- point::X + 1.0;
+        // The below line copies `point`, moves the X coordinate by +1.0,
+        // and reassign the new `Point3d` to `point`.
+        set point = new Point3d { ...point, X = point.X + 1.0 };
 
     }
 
