@@ -19,5 +19,6 @@
   "marking_oracles",
   "deutsch_algo",
   "deutsch_jozsa",
+  "nonlocal_games",
   "qec_shor"
 ]
