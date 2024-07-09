@@ -24,41 +24,28 @@ fn bell_pair_sampling() {
 
 #[test]
 fn bell_pair_projection_mz0() {
-    tests::bell_pair_projection_mz0::<DensityMatrixSimulator>().expect("test should pass");
+    tests::bell_pair_projection_mz0::<DensityMatrixSimulator>();
 }
 
 #[test]
 fn bell_pair_projection_mz1() {
-    tests::bell_pair_projection_mz1::<DensityMatrixSimulator>().expect("test should pass");
+    tests::bell_pair_projection_mz1::<DensityMatrixSimulator>();
 }
 
 #[test]
-#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
+#[should_panic(expected = "operation should fail: ProbabilityZeroEvent")]
 fn bell_pair_projection_oposite_directions() {
-    tests::bell_pair_projection_oposite_directions::<DensityMatrixSimulator>()
-        .expect("test should fail");
+    tests::bell_pair_projection_oposite_directions::<DensityMatrixSimulator>();
 }
 
 #[test]
-#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
-fn two_qubit_gate_outcome_0() {
-    tests::two_qubit_gate::<DensityMatrixSimulator>(0).expect("test should fail");
+fn crx_gate_projection_mz0() {
+    tests::crx_gate_projection_mz0::<DensityMatrixSimulator>();
 }
 
 #[test]
-fn two_qubit_gate_outcome_1() {
-    tests::two_qubit_gate::<DensityMatrixSimulator>(1).expect("test should pass");
-}
-
-#[test]
-#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
-fn two_qubit_gate_outcome_2() {
-    tests::two_qubit_gate::<DensityMatrixSimulator>(2).expect("test should fail");
-}
-
-#[test]
-fn two_qubit_gate_outcome_3() {
-    tests::two_qubit_gate::<DensityMatrixSimulator>(3).expect("test should pass");
+fn crx_gate_projection_mz1() {
+    tests::crx_gate_projection_mz1::<DensityMatrixSimulator>();
 }
 
 #[test]
