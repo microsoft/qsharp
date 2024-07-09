@@ -53,7 +53,8 @@ class Config:
 
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
-        self._config["projectRoot"] = "file://" + project_root
+        if project_root:
+            self._config["projectRoot"] = "file://" + project_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
