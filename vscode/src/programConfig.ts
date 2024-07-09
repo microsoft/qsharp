@@ -3,7 +3,6 @@
 
 import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
-import { Utils } from "vscode-uri";
 import { isQsharpDocument } from "./common";
 import { getTarget } from "./config";
 import { loadProject } from "./projectSystem";
@@ -76,10 +75,6 @@ export function getActiveQSharpDocumentUri(): vscode.Uri | undefined {
 export async function getProgramForDocument(
   docUri: vscode.Uri,
 ): Promise<FullProgramConfigOrError> {
-  if (Utils.extname(docUri) !== ".qs") {
-    return { success: false, errorMsg: `${docUri.fsPath} is not a Q# file` };
-  }
-
   // Target profile comes from settings
   const profile = getTarget();
 

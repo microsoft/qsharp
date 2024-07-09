@@ -93,16 +93,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(def_name.name.clone());
-        let callable_name = &context
-            .current_callable
-            .expect("type params should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
             &def_name.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -119,16 +115,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'a ast::Ident,
     ) {
         let code = markdown_fenced_block(reference.name.clone());
-        let callable_name = &context
-            .current_callable
-            .expect("type params should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
             &reference.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -245,16 +237,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         } else {
             LocalKind::Local
         };
-        let callable_name = &context
-            .current_callable
-            .expect("locals should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &kind,
             &code,
             &ident.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -271,11 +259,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         definition: &'a ast::Ident,
     ) {
         let local_name = &definition.name;
-        let callable_name = &context
-            .current_callable
-            .expect("locals should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let code = markdown_fenced_block(self.display.name_ty_id(local_name, node_id));
         let kind = if is_param(&curr_callable_to_params(context.current_callable), node_id) {
             LocalKind::Param
@@ -288,7 +272,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             local_name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -357,12 +341,15 @@ fn display_local(
     param_kind: &LocalKind,
     markdown: &String,
     local_name: &str,
-    callable_name: &str,
+    callable_name: &Option<Rc<str>>,
     callable_doc: &str,
 ) -> String {
     match param_kind {
         LocalKind::Param => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
+            let callable_name = callable_name
+                .as_ref()
+                .expect("param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
@@ -370,6 +357,9 @@ fn display_local(
         }
         LocalKind::TypeParam => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
+            let callable_name = callable_name
+                .as_ref()
+                .expect("type param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("type parameter of `{callable_name}`\n{markdown}",),
