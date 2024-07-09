@@ -3,14 +3,14 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore},
+    compile::{self, CompileUnit, PackageStore, SourceMap},
     incremental::Error,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 
 #[allow(clippy::too_many_lines)]
 #[test]
@@ -273,8 +273,9 @@ fn conditional_compilation_not_available() {
 
 #[test]
 fn errors_across_multiple_lines() {
-    let mut store = PackageStore::new(crate::compile::core());
-    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
+    let mut store = PackageStore::new(compile::core());
+    let std = compile::std(&store, TargetCapabilityFlags::all());
+    let std_id = store.insert(std);
     let mut compiler = Compiler::new(
         &store,
         &[(std_id, None)],
@@ -467,6 +468,176 @@ fn continue_after_lower_error() {
             },
         ]
     "#]].assert_debug_eq(&errors);
+}
+
+#[test]
+fn reexports_complex() {
+    let mut store = PackageStore::new(compile::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile::compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo;
+                import A.PackageA.Foo as Foo2;
+                export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile::compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+
+    let package_b = store.insert(package_b);
+
+    let mut compiler = Compiler::new(
+        &store,
+        &[(package_b, Some(Arc::from("B")))],
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    let mut unit = CompileUnit::default();
+
+    let mut errors = Vec::new();
+
+    compiler
+        .compile_fragments(
+            &mut unit,
+            "UserCode",
+            "
+            import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
+            @EntryPoint()
+            function Main() : Unit {
+                Foo(10, true);
+                Foo2(10, true);
+                Bar(10, true);
+                Bar2(10, true);
+            }
+",
+            |e| -> Result<(), ()> {
+                errors = e;
+                Ok(())
+            },
+        )
+        .expect("compile_fragments should succeed");
+
+    expect!["[]"].assert_eq(&format!("{errors:#?}"));
+}
+
+#[test]
+fn reexports() {
+    let mut store = PackageStore::new(compile::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile::compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo;
+
+                export Foo as Bar;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile::compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+
+    let package_b = store.insert(package_b);
+
+    let mut compiler = Compiler::new(
+        &store,
+        &[(package_b, Some(Arc::from("B")))],
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    let mut unit = CompileUnit::default();
+
+    let mut errors = Vec::new();
+
+    compiler
+        .compile_fragments(
+            &mut unit,
+            "UserCode",
+            "
+            import B.PackageB.Bar;
+            @EntryPoint()
+            function Main() : Unit {
+                Bar(10, true);
+            }",
+            |e| -> Result<(), ()> {
+                errors = e;
+                Ok(())
+            },
+        )
+        .expect("compile_fragments should succeed");
+
+    expect!["[]"].assert_eq(&format!("{errors:#?}"));
 }
 
 fn check_unit(expect: &Expect, actual: &Increment) {

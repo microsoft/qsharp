@@ -314,6 +314,6 @@ pub fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }

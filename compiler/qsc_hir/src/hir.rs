@@ -25,7 +25,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -335,6 +335,8 @@ pub enum ItemKind {
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export of an item.
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -355,6 +357,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(_, export) => write!(f, "Export: {export}"),
         }
     }
 }
@@ -628,7 +631,7 @@ pub enum ExprKind {
     Conjugate(Block, Block),
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F` or `a.F`.
+    /// A field accessor: `a::F`.
     Field(Box<Expr>, Field),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),

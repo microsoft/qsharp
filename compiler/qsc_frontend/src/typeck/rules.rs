@@ -114,7 +114,11 @@ impl<'a> Context<'a> {
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+                // A path can also never resolve to an export, because in typeck/check,
+                // we resolve exports to their original definition.
+                Some(
+                    resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_),
+                ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
@@ -582,6 +586,12 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
+                Some(Res::ExportedItem(_)) => {
+                    // we don't need to invidiually type check exports
+                    // when they are referred to, the "chain" of exports is
+                    // resolved to the original definition
+                    self.diverge()
+                }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression should not resolve to type reference")
                 }
