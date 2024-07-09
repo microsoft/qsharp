@@ -81,10 +81,10 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
             } else {
                 use andChainTarget = Qubit();
                 let andChain = MakeAndChain(ctls, andChainTarget);
-                use helper = Qubit[andChain::NGarbageQubits];
+                use helper = Qubit[andChain.NGarbageQubits];
 
                 within {
-                    andChain::Apply(helper);
+                    andChain.Apply(helper);
                 } apply {
                     SinglyControlledSelect(andChainTarget, data, address, target);
                 }
@@ -274,5 +274,9 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
-    export Select, WriteMemoryContents, Unlookup, MustBeFixed, EncodeUnary;
+    export Select,
+    WriteMemoryContents,
+    Unlookup,
+    MustBeFixed,
+    EncodeUnary;
 }

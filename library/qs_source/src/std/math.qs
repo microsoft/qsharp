@@ -1104,7 +1104,7 @@ namespace Microsoft.Quantum.Math {
     /// ```qsharp
     /// let imagUnit = Complex(0.0, 1.0);
     /// ```
-    newtype Complex = (Real : Double, Imag : Double);
+    struct Complex { Real : Double, Imag : Double }
 
     /// # Summary
     /// Represents a complex number in polar form.
@@ -1115,7 +1115,7 @@ namespace Microsoft.Quantum.Math {
     /// The absolute value r>0 of c.
     /// ## Argument
     /// The phase t ∈ ℝ of c.
-    newtype ComplexPolar = (Magnitude : Double, Argument : Double);
+    struct ComplexPolar { Magnitude : Double, Argument : Double }
 
     /// # Summary
     /// Returns the squared absolute value of a complex number of type
@@ -1128,7 +1128,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// Squared absolute value |c|² = x² + y².
     function AbsSquaredComplex(input : Complex) : Double {
-        input::Real * input::Real + input::Imag * input::Imag
+        input.Real * input.Real + input.Imag * input.Imag
     }
 
     /// # Summary
@@ -1156,7 +1156,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// Phase Arg(c) = ArcTan(y,x) ∈ (-𝜋,𝜋].
     function ArgComplex(input : Complex) : Double {
-        ArcTan2(input::Imag, input::Real)
+        ArcTan2(input.Imag, input.Real)
     }
 
     /// # Summary
@@ -1170,7 +1170,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// Squared absolute value |c|² = r².
     function AbsSquaredComplexPolar(input : ComplexPolar) : Double {
-        input::Magnitude * input::Magnitude
+        input.Magnitude * input.Magnitude
     }
 
     /// # Summary
@@ -1183,9 +1183,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// Absolute value |c| = r.
-    function AbsComplexPolar(input : ComplexPolar) : Double {
-        input::Magnitude
-    }
+    function AbsComplexPolar(input : ComplexPolar) : Double { input.Magnitude }
 
     /// # Summary
     /// Returns the phase of a complex number of type `ComplexPolar`.
@@ -1196,9 +1194,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// Phase Arg(c) = t.
-    function ArgComplexPolar(input : ComplexPolar) : Double {
-        input::Argument
-    }
+    function ArgComplexPolar(input : ComplexPolar) : Double { input.Argument }
 
     /// # Summary
     /// Returns the unary negation of an input of type `Complex`.
@@ -1210,7 +1206,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The unary negation of `input`.
     function NegationC(input : Complex) : Complex {
-        Complex(-input::Real, -input::Imag)
+        Complex(-input.Real, -input.Imag)
     }
 
     /// # Summary
@@ -1223,7 +1219,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The unary negation of `input`.
     function NegationCP(input : ComplexPolar) : ComplexPolar {
-        ComplexPolar(input::Magnitude, input::Argument + PI())
+        ComplexPolar(input.Magnitude, input.Argument + PI())
     }
 
     /// # Summary
@@ -1238,7 +1234,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The sum a + b.
     function PlusC(a : Complex, b : Complex) : Complex {
-        Complex(a::Real + b::Real, a::Imag + b::Imag)
+        Complex(a.Real + b.Real, a.Imag + b.Imag)
     }
 
     /// # Summary
@@ -1273,7 +1269,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The difference a - b.
     function MinusC(a : Complex, b : Complex) : Complex {
-        Complex(a::Real - b::Real, a::Imag - b::Imag)
+        Complex(a.Real - b.Real, a.Imag - b.Imag)
     }
 
     /// # Summary
@@ -1304,8 +1300,8 @@ namespace Microsoft.Quantum.Math {
     /// The product a⋅b.
     function TimesC(a : Complex, b : Complex) : Complex {
         Complex(
-            a::Real * b::Real - a::Imag * b::Imag,
-            a::Real * b::Imag + a::Imag * b::Real
+            a.Real * b.Real - a.Imag * b.Imag,
+            a.Real * b.Imag + a.Imag * b.Real
         )
     }
 
@@ -1322,8 +1318,8 @@ namespace Microsoft.Quantum.Math {
     /// The product a⋅b.
     function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
         ComplexPolar(
-            a::Magnitude * b::Magnitude,
-            a::Argument + b::Argument
+            a.Magnitude * b.Magnitude,
+            a.Argument + b.Argument
         )
     }
 
@@ -1333,7 +1329,8 @@ namespace Microsoft.Quantum.Math {
     /// convert as needed.
     /// Note that this is a multi-valued function, but only one value is returned.
     internal function PowCAsCP(base : Complex, power : Complex) : ComplexPolar {
-        let ((a, b), (c, d)) = (base!, power!);
+        let (a, b) = (base.Real, base.Imag);
+        let (c, d) = (power.Real, power.Imag);
         let baseSqNorm = a * a + b * b;
         let baseNorm = Sqrt(baseSqNorm);
         let baseArg = ArgComplex(base);
@@ -1397,10 +1394,10 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The quotient a / b.
     function DividedByC(a : Complex, b : Complex) : Complex {
-        let sqNorm = b::Real * b::Real + b::Imag * b::Imag;
+        let sqNorm = b.Real * b.Real + b.Imag * b.Imag;
         Complex(
-            (a::Real * b::Real + a::Imag * b::Imag) / sqNorm,
-            (a::Imag * b::Real - a::Real * b::Imag) / sqNorm
+            (a.Real * b.Real + a.Imag * b.Imag) / sqNorm,
+            (a.Imag * b.Real - a.Real * b.Imag) / sqNorm
         )
     }
 
@@ -1416,7 +1413,7 @@ namespace Microsoft.Quantum.Math {
     /// # Output
     /// The quotient a / b.
     function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
-        ComplexPolar(a::Magnitude / b::Magnitude, a::Argument - b::Argument)
+        ComplexPolar(a.Magnitude / b.Magnitude, a.Argument - b.Argument)
     }
 
     //
