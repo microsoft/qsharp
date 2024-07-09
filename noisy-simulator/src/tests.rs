@@ -30,13 +30,21 @@ fn cnot() -> Operation {
                 0., 0., 1., 0.;])
 }
 
+/// Returns the 0-projection of an MZ measurement.
+fn mz0() -> Operation {
+    operation!([1., 0.;
+                0., 0.;])
+}
+
+/// Returns the 1-projection of an MZ measurement.
+fn mz1() -> Operation {
+    operation!([0., 0.;
+                0., 1.;])
+}
+
 /// Returns an MZ measurement.
 fn mz() -> Instrument {
-    let m0 = operation!([1., 0.;
-                         0., 0.;]);
-    let m1 = operation!([0., 0.;
-                         0., 1.;]);
-    Instrument::new(vec![m0, m1])
+    Instrument::new(vec![mz0(), mz1()])
 }
 
 pub fn measure_0<NS: NoisySimulator>() {
@@ -86,12 +94,58 @@ pub fn bell_pair_sampling<NS: NoisySimulator>() {
         .sample_instrument(&mz, &[1])
         .expect("measurement should succeed");
 
+    // Check that both measurements yield the same result.
     assert_eq!(m1, m2);
 }
 
-pub fn bell_pair_projection<NS: NoisySimulator>(outcome: usize) -> Result<(), Error> {
-    assert!((0..4).contains(&outcome));
-    let (h, cnot, mz) = (h(), cnot(), mz());
+/// Project both qubits of a Bell Pair in the mz0 direction.
+pub fn bell_pair_projection_mz0<NS: NoisySimulator>() -> Result<(), Error> {
+    let (h, cnot, mz0) = (h(), cnot(), mz0());
+    let mut sim = NS::new(2);
+
+    // Make a Bell Pair.
+    sim.apply_operation(&h, &[0])?;
+    sim.apply_operation(&cnot, &[1, 0])?;
+
+    // Project both qubits in the mz0 direction.
+    sim.apply_operation(&mz0, &[0])?;
+    sim.apply_operation(&mz0, &[1])?;
+    assert_approx_eq(0.5, sim.trace_change()?);
+
+    // Repeating the projection twice should yield the same result.
+    sim.apply_operation(&mz0, &[0])?;
+    sim.apply_operation(&mz0, &[1])?;
+    assert_approx_eq(0.5, sim.trace_change()?);
+
+    Ok(())
+}
+
+/// Project both qubits of a Bell Pair in the mz1 direction.
+pub fn bell_pair_projection_mz1<NS: NoisySimulator>() -> Result<(), Error> {
+    let (h, cnot, mz1) = (h(), cnot(), mz1());
+    let mut sim = NS::new(2);
+
+    // Make a Bell Pair.
+    sim.apply_operation(&h, &[0])?;
+    sim.apply_operation(&cnot, &[1, 0])?;
+
+    // Project both qubits in the mz1 direction.
+    sim.apply_operation(&mz1, &[0])?;
+    sim.apply_operation(&mz1, &[1])?;
+    assert_approx_eq(0.5, sim.trace_change()?);
+
+    // Repeating the projection twice should yield the same result.
+    sim.apply_operation(&mz1, &[0])?;
+    sim.apply_operation(&mz1, &[1])?;
+    assert_approx_eq(0.5, sim.trace_change()?);
+
+    Ok(())
+}
+
+/// Project one qubit in a Bell Pair in the mz0 direction and the other in the mz1 direction.
+/// This should yield a 0-probability error.
+pub fn bell_pair_projection_oposite_directions<NS: NoisySimulator>() -> Result<(), Error> {
+    let (h, cnot, mz0, mz1) = (h(), cnot(), mz0(), mz1());
     let mut sim = NS::new(2);
 
     // Make a Bell Pair.
@@ -99,31 +153,24 @@ pub fn bell_pair_projection<NS: NoisySimulator>(outcome: usize) -> Result<(), Er
         .expect("operation should succeed");
     sim.apply_operation(&cnot, &[1, 0])
         .expect("operation should succeed");
-    sim.apply_operation(mz.operation(outcome & 1), &[0])
+
+    // Project first qubit in the mz0 direction.
+    sim.apply_operation(&mz0, &[0])
         .expect("operation should succeed");
 
-    if outcome == 0 || outcome == 3 {
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
-        assert_approx_eq(0.5, sim.trace_change()?);
-        sim.apply_operation(mz.operation(outcome & 1), &[0])?;
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
-        assert_approx_eq(0.5, sim.trace_change()?);
-    } else {
-        sim.apply_operation(mz.operation((outcome >> 1) & 1), &[1])?;
-    }
-
-    Ok(())
+    // Project second qubit in the mz1 direction.
+    sim.apply_operation(&mz1, &[1])
 }
 
 pub fn two_qubit_gate<NS: NoisySimulator>(outcome: usize) -> Result<(), Error> {
     assert!((0..4).contains(&outcome));
     let h = h();
-    let m0 = operation!([1., 0.;
-                         0., 0.;]);
-    let m1 = operation!([0., 0.;
-                         0., 1.;]);
+    let mz0 = mz0();
+    let mz1 = mz1();
     let mz = mz();
     let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];
+
+    // A CRX gate (Controlled Rotation around X axis).
     let crx = |t: f64| {
         let c = t.cos();
         let s = t.sin() * Complex::I;
@@ -142,18 +189,18 @@ pub fn two_qubit_gate<NS: NoisySimulator>(outcome: usize) -> Result<(), Error> {
         sim.apply_operation(&h, &[0])?;
         sim.apply_operation(&crx(0.3 * t), &[1, 0])?;
         sim.apply_operation(&crx(0.7 * t), &[1, 0])?;
-        sim.apply_operation(if b1 { &m1 } else { &m0 }, &[0])?;
+        sim.apply_operation(if b1 { &mz1 } else { &mz0 }, &[0])?;
 
         if b1 {
             assert_approx_eq(0.5, sim.trace_change()?);
-            sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
+            sim.apply_operation(if b2 { &mz1 } else { &mz0 }, &[1])?;
             assert_approx_eq(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
-            sim.apply_operation(if b2 { &m1 } else { &m0 }, &[1])?;
+            sim.apply_operation(if b2 { &mz1 } else { &mz0 }, &[1])?;
             assert_approx_eq(0.5 * if b2 { 1. - p } else { *p }, sim.trace_change()?);
         } else {
             assert_eq!(0, sim.sample_instrument(&mz, &[1])?);
             assert_approx_eq(0.5, sim.trace_change()?);
-            sim.apply_operation(&m1, &[1])?;
+            sim.apply_operation(&mz1, &[1])?;
         }
     }
 

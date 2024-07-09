@@ -16,29 +16,27 @@ fn measure_1() {
 
 #[test]
 fn bell_pair_sampling() {
-    tests::bell_pair_sampling::<StateVectorSimulator>();
+    // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
+    for _ in 0..100 {
+        tests::bell_pair_sampling::<StateVectorSimulator>();
+    }
 }
 
 #[test]
-fn bell_pair_projection_outcome_0() {
-    tests::bell_pair_projection::<StateVectorSimulator>(0).expect("test should pass");
+fn bell_pair_projection_mz0() {
+    tests::bell_pair_projection_mz0::<StateVectorSimulator>().expect("test should pass");
+}
+
+#[test]
+fn bell_pair_projection_mz1() {
+    tests::bell_pair_projection_mz1::<StateVectorSimulator>().expect("test should pass");
 }
 
 #[test]
 #[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
-fn bell_pair_projection_outcome_1() {
-    tests::bell_pair_projection::<StateVectorSimulator>(1).expect("test should fail");
-}
-
-#[test]
-#[should_panic(expected = "test should fail: ProbabilityZeroEvent")]
-fn bell_pair_projection_outcome_2() {
-    tests::bell_pair_projection::<StateVectorSimulator>(1).expect("test should fail");
-}
-
-#[test]
-fn bell_pair_projection_outcome_3() {
-    tests::bell_pair_projection::<StateVectorSimulator>(3).expect("test should pass");
+fn bell_pair_projection_oposite_directions() {
+    tests::bell_pair_projection_oposite_directions::<StateVectorSimulator>()
+        .expect("test should fail");
 }
 
 #[test]
@@ -65,7 +63,10 @@ fn two_qubit_gate_outcome_3() {
 
 #[test]
 fn repeated_mz() {
-    tests::repeated_mz::<StateVectorSimulator>();
+    // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
+    for _ in 0..100 {
+        tests::repeated_mz::<StateVectorSimulator>();
+    }
 }
 
 #[test]
