@@ -152,7 +152,9 @@ On the circle plot, this transformation leaves the horizontal component of the s
 TODO: visual
 
 "Reflection about the mean" is an operation for which the visual definition is much more intuitive than the mathematical one.
-It is literally a reflection about the state $\ket{\psi_\text{all}}$ - the uniform superposition of all basis states in the search space.
+It is literally a reflection about the state $\ket{\psi_\text{all}}$ - the uniform superposition of all basis states in the search space. 
+
+Mathematically, this operation is described as $2\ket{\psi_\text{all}}\bra{\psi_\text{all}} - I$: it leaves the component of the input state parallel to the state $\ket{\psi_\text{all}}$ unchanged and multiplies the component orthogonal to it by $-1$.
 
 TODO: visual
 
@@ -166,10 +168,23 @@ $$\sin{(2R+1)\theta}\ket{\psi_\text{good}} + \cos{(2R+1)\theta}\ket{\psi_\text{b
 
 At firat, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\psi_\text{good}}$ - the states that are solutions to the problem.
 
-Exercises:
-- conditional phase flip
-- reflection about the quantum state (general case from assignment)
-- convert marking oracle to phase oracle
+@[exercise]({
+    "id": "grovers_search__phase_oracle",
+    "title": "Phase Oracle from Marking Oracle",
+    "path": "./phase_oracle/"
+})
+
+@[exercise]({
+    "id": "grovers_search__conditional_phase_flip",
+    "title": "Conditional Phase Flip",
+    "path": "./conditional_phase_flip/"
+})
+
+@[exercise]({
+    "id": "grovers_search__reflection_about_state",
+    "title": "Reflection about Arbitrary State",
+    "path": "./reflection_about_state/"
+})
 
 
 @[section]({
