@@ -33,7 +33,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("indentation level not supported"),
+        _ => unimplemented!("intentation level not supported"),
     }
 }
 
@@ -633,6 +633,7 @@ impl PackageLookup for Package {
             ItemKind::Callable(callable) => Some(Global::Callable(callable)),
             ItemKind::Namespace(..) => None,
             ItemKind::Ty(..) => Some(Global::Udt),
+            ItemKind::Export(_name, _id) => None,
         }
     }
 
@@ -707,6 +708,8 @@ pub enum ItemKind {
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export referring to another item
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -727,6 +730,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(name, item) => write!(f, "Export ({name}): {item}"),
         }
     }
 }
@@ -1057,7 +1061,7 @@ pub enum ExprKind {
     Closure(Vec<LocalVarId>, LocalItemId),
     /// A failure: `fail "message"`.
     Fail(ExprId),
-    /// A field accessor: `a::F` or `a.F`.
+    /// A field accessor: `a::F`.
     Field(ExprId, Field),
     /// An unspecified expression, _, which may indicate partial application or discards
     Hole,

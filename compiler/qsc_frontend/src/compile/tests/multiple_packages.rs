@@ -17,7 +17,7 @@ fn multiple_package_check(packages: Vec<(&str, &str)>) {
 }
 
 fn multiple_package_check_expect_err(packages: Vec<(&str, &str)>, expect: &Expect) {
-    multiple_package_check_inner(packages, Some(&expect));
+    multiple_package_check_inner(packages, Some(expect));
 }
 
 fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Expect>) {
@@ -25,7 +25,6 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     let mut prev_id_and_name: Option<(PackageId, &str)> = None;
     let num_packages = packages.len();
     for (ix, (package_name, package_source)) in packages.into_iter().enumerate() {
-        println!("___compiling {package_name}_____");
         let is_last = ix == num_packages - 1;
         let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
             vec![(prev_id, Some(Arc::from(prev_name)))]

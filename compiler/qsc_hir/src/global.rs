@@ -143,7 +143,6 @@ impl PackageIter<'_> {
                 None,
             ),
         };
-        //        todo!("The problem is that Length is coming out of this as a Term with visibility internal, when it should be either a public term or an export");
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
         match (&item.kind, &parent) {

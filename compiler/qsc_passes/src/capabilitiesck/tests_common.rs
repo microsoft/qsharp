@@ -16,14 +16,24 @@ use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties}
 pub fn check(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
     let compilation_context = CompilationContext::new(source);
     let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
-    let errors = check_supported_capabilities(package, compute_properties, capabilities);
+    let errors = check_supported_capabilities(
+        package,
+        compute_properties,
+        capabilities,
+        &compilation_context.fir_store,
+    );
     expect.assert_debug_eq(&errors);
 }
 
 pub fn check_for_exe(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
     let compilation_context = CompilationContext::new_for_exe(source);
     let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
-    let errors = check_supported_capabilities(package, compute_properties, capabilities);
+    let errors = check_supported_capabilities(
+        package,
+        compute_properties,
+        capabilities,
+        &compilation_context.fir_store,
+    );
     expect.assert_debug_eq(&errors);
 }
 
@@ -33,10 +43,8 @@ fn lower_hir_package_store(
 ) -> PackageStore {
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
-        fir_store.insert(
-            map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
-        );
+        let pkg = lowerer.lower_package(&unit.package, &fir_store);
+        fir_store.insert(map_hir_package_to_fir(id), pkg);
     }
     fir_store
 }
@@ -49,7 +57,8 @@ struct CompilationContext {
 
 impl CompilationContext {
     fn new(source: &str) -> Self {
-        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut compiler = Compiler::new(
             SourceMap::default(),
             PackageType::Lib,
@@ -76,7 +85,8 @@ impl CompilationContext {
     }
 
     fn new_for_exe(source: &str) -> Self {
-        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let compiler = Compiler::new(
             SourceMap::new([("test".into(), source.into())], Some("".into())),
             PackageType::Exe,

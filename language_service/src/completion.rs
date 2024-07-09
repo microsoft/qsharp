@@ -591,6 +591,8 @@ fn local_completion(
                         CompletionItemKind::Interface,
                     )
                 }
+                // We don't want completions for items exported from the local scope
+                ItemKind::Export(_, _) => return None,
             };
             (kind, detail)
         }

@@ -586,11 +586,12 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
-                Some(Res::ExportedItem(_)) => {
-                    // we don't need to invidiually type check exports
-                    // when they are referred to, the "chain" of exports is
-                    // resolved to the original definition
-                    self.diverge()
+                Some(Res::ExportedItem(item)) => {
+                    // get the underlying item this refers to
+                    let item_scheme = self.globals.get(item).expect("item should have scheme");
+                    let (ty, args) = self.inferrer.instantiate(item_scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
                 }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression should not resolve to type reference")

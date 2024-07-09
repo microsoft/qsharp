@@ -519,7 +519,7 @@ fn resolve_all(
 ) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package, &None);
+        globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -527,7 +527,7 @@ fn resolve_all(
         let unit = store
             .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(*id, &unit.package, alias);
+        globals.add_external_package(*id, &unit.package, store, alias);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -553,7 +553,7 @@ fn typeck_all(
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, store);
     }
 
     for (id, _alias) in dependencies {
@@ -564,7 +564,7 @@ fn typeck_all(
         // typechecker doesn't do any name resolution -- it only operates on item ids.
         // because of this, the typechecker doesn't actually need to care about visibility
         // or the names of items at all.
-        globals.add_external_package(*id, &unit.package);
+        globals.add_external_package(*id, &unit.package, store);
     }
 
     let mut checker = Checker::new(globals);

@@ -393,11 +393,38 @@ impl Lookup for Compilation {
             .get(package_id)
             .expect("package should exist in store")
             .package;
-        (
-            package
+
+        let mut item: &hir::Item = package
+            .items
+            .get(item_id.item)
+            .expect("item id should exist");
+
+        // follow chain of exports, if it is an aexport
+        while let hir::ItemKind::Export(
+            _,
+            hir::ItemId {
+                package: package_id,
+                item: local_item_id,
+            },
+        ) = &item.kind
+        {
+            let package: &hir::Package = if let Some(id) = package_id {
+                &self
+                    .package_store
+                    .get(*id)
+                    .expect("package should exist in store")
+                    .package
+            } else {
+                package
+            };
+
+            item = package
                 .items
-                .get(item_id.item)
-                .expect("item id should exist"),
+                .get(*local_item_id)
+                .expect("exported item should exist");
+        }
+        (
+            item,
             package,
             hir::ItemId {
                 package: Some(package_id),

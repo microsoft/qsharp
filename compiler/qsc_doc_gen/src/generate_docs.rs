@@ -255,6 +255,7 @@ impl Display for Metadata {
             MetadataKind::Function => "function",
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "udt",
+            MetadataKind::Export => "export",
         };
         write!(
             f,
@@ -277,6 +278,7 @@ enum MetadataKind {
     Function,
     Operation,
     Udt,
+    Export,
 }
 
 fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
@@ -295,6 +297,12 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Udt,
         )),
         ItemKind::Namespace(_, _) => None,
+        ItemKind::Export(name, _) => Some((
+            name.name.clone(),
+            // TODO decide what signature info we want to show for exports, if any
+            String::new(),
+            MetadataKind::Export,
+        )),
     }?;
 
     let summary = parse_doc_for_summary(&item.doc)
@@ -307,6 +315,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Function => format!("{name} function"),
             MetadataKind::Operation => format!("{name} operation"),
             MetadataKind::Udt => format!("{name} user defined type"),
+            MetadataKind::Export => format!("{name} exported item"),
         },
         topic: "managed-reference".to_string(),
         kind,

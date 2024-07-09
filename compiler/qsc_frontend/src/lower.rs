@@ -147,7 +147,7 @@ impl With<'_> {
         let items = namespace
             .items
             .iter()
-            .flat_map(|i| self.lower_item(i, &exported_hir_ids[..]))
+            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
             .collect::<Vec<_>>();
 
         let name = self.lower_idents(&namespace.name);
