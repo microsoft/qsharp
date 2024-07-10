@@ -973,9 +973,12 @@ async fn update_notebook_with_valid_dependencies() {
         )
         .await;
 
-    expect_errors(&errors, &expect![[r#"
+    expect_errors(
+        &errors,
+        &expect![[r#"
         []
-    "#]]);
+    "#]],
+    );
 }
 
 #[tokio::test]
@@ -1015,7 +1018,9 @@ async fn update_notebook_reports_errors_from_dependencies() {
         )
         .await;
 
-    expect_errors(&errors, &expect![[r#"
+    expect_errors(
+        &errors,
+        &expect![[r#"
         [
             (
                 "project/src/file.qs",
@@ -1041,38 +1046,44 @@ async fn update_notebook_reports_errors_from_dependencies() {
                 [],
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[tokio::test]
 async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
     let fs = FsNode::Dir(
-        [dir(
-            "project",
-            [
-                file("qsharp.json", r#"{ "dependencies" : { "MyDep" : { "path" : "../project2" } } }"#),
-                dir(
-                    "src",
-                    [file(
-                        "file.qs",
-                        r#"namespace Foo { function Bar() : Unit { } }"#,
-                    )],
-                ),
-            ],
-        ),
-        dir(
-            "project2",
-            [
-                file("qsharp.json", r#"{ }"#),
-                dir(
-                    "src",
-                    [file(
-                        "file.qs",
-                        r#"namespace Foo { function Baz() : Int { } }"#,
-                    )],
-                ),
-            ],
-        )]
+        [
+            dir(
+                "project",
+                [
+                    file(
+                        "qsharp.json",
+                        r#"{ "dependencies" : { "MyDep" : { "path" : "../project2" } } }"#,
+                    ),
+                    dir(
+                        "src",
+                        [file(
+                            "file.qs",
+                            r#"namespace Foo { function Bar() : Unit { } }"#,
+                        )],
+                    ),
+                ],
+            ),
+            dir(
+                "project2",
+                [
+                    file("qsharp.json", r#"{ }"#),
+                    dir(
+                        "src",
+                        [file(
+                            "file.qs",
+                            r#"namespace Foo { function Baz() : Int { } }"#,
+                        )],
+                    ),
+                ],
+            ),
+        ]
         .into_iter()
         .collect(),
     );
@@ -1094,7 +1105,9 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
         )
         .await;
 
-    expect_errors(&errors, &expect![[r#"
+    expect_errors(
+        &errors,
+        &expect![[r#"
         [
             (
                 "project2/src/file.qs",
@@ -1120,7 +1133,8 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
                 [],
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[tokio::test]
