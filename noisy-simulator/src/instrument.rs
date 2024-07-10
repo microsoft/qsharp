@@ -77,6 +77,7 @@ fn summed_kraus_operators(operations: &[Operation]) -> Vec<SquareMatrix> {
             op.kraus_operators()
                 .iter()
                 .map(|m| {
+                    // This code is doing the equivalent to:
                     // choi_matrix += vec(K) * vec(K)^dagger
                     let dim = m.shape().0.pow(2);
                     let mut choi = SquareMatrix::zeros(dim, dim);
