@@ -5,6 +5,8 @@ from typing import Optional, List
 
 class NoisySimulatorError(BaseException):
     """
+    EXPERIMENTAL:
+
     An error returned from the Q# noisy simulator.
     """
 
@@ -12,6 +14,8 @@ class NoisySimulatorError(BaseException):
 
 class Operation:
     """
+    EXPERIMENTAL:
+
     This struct represents a quantum operation. A quantum operation is a linear
     transformation that maps a valid density matrix to another valid density matrices.
     """
@@ -53,6 +57,8 @@ class Operation:
 
 class Instrument:
     """
+    EXPERIMENTAL:
+
     An instrument is the means by which we make measurements on a quantum system.
     """
 
@@ -64,6 +70,8 @@ class Instrument:
 
 class DensityMatrix:
     """
+    EXPERIMENTAL:
+
     A square complex matrix of size 2^k x 2^k representing the state
     of a quantum system. The data is stored in a linear vector for
     performance reasons.
@@ -90,6 +98,8 @@ class DensityMatrix:
 
 class DensityMatrixSimulator:
     """
+    EXPERIMENTAL:
+
     A quantum circuit simulator using a density matrix.
 
     If the simulator reaches an invalid state due to a numerical
@@ -146,6 +156,8 @@ class DensityMatrixSimulator:
 
 class StateVector:
     """
+    EXPERIMENTAL:
+
     A vector representing a pure state of a quantum system.
     """
 
@@ -169,6 +181,8 @@ class StateVector:
 
 class StateVectorSimulator:
     """
+    EXPERIMENTAL:
+
     A quantum circuit simulator using a density matrix.
 
     If the simulator reaches an invalid state due to a numerical
