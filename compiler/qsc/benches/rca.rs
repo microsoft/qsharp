@@ -126,12 +126,14 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let fir_store = lower_hir_package_store(compiler.package_store());

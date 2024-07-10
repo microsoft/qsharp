@@ -66,12 +66,15 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         ],
         None,
     );
+
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
-        true,
         source_map,
         PackageType::Lib,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("Failed to compile base environment.");
 
@@ -141,12 +144,15 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         ],
         Some("Adjoint Test2.A(0)".into()),
     );
+
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("Failed to compile base environment.");
 

@@ -9,11 +9,14 @@ use qsc::{
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
+    packages::{prepare_package_store, BuildableProgram},
     project, resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::{LintConfig, LintLevel};
+use qsc_project::PackageGraphSources;
+use std::mem::take;
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -35,7 +38,9 @@ pub(crate) enum CompilationKind {
     /// An open Q# project.
     /// In an `OpenProject` compilation, the user package contains
     /// one or more sources, and a target profile.
-    OpenProject,
+    OpenProject {
+        package_graph_sources: PackageGraphSources,
+    },
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
@@ -45,33 +50,36 @@ pub(crate) enum CompilationKind {
 impl Compilation {
     /// Creates a new `Compilation` by compiling sources.
     pub(crate) fn new(
-        sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
+        package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
     ) -> Self {
-        if sources.len() == 1 {
-            trace!("compiling single-file document {}", sources[0].0);
-        } else {
-            trace!("compiling package with {} sources", sources.len());
-        }
+        let mut buildable_program =
+            prepare_package_store(target_profile.into(), package_graph_sources.clone());
 
-        let source_map = SourceMap::new(sources.iter().map(|(x, y)| (x.clone(), y.clone())), None);
+        let mut compile_errors = take(&mut buildable_program.dependency_errors);
 
-        let mut package_store = PackageStore::new(compile::core());
-        let std_package_id =
-            package_store.insert(compile::std(&package_store, target_profile.into()));
+        let BuildableProgram {
+            store: mut package_store,
+            user_code,
+            user_code_dependencies,
+            ..
+        } = buildable_program;
+        let user_code = SourceMap::new(user_code.sources, None);
 
-        let (unit, mut compile_errors) = compile::compile(
+        let (unit, mut this_errors) = compile::compile(
             &package_store,
-            &[std_package_id],
-            source_map,
+            &user_code_dependencies,
+            user_code,
             package_type,
             target_profile.into(),
             language_features,
         );
+
+        compile_errors.append(&mut this_errors);
 
         let package_id = package_store.insert(unit);
         let unit = package_store
@@ -91,8 +99,10 @@ impl Compilation {
         Self {
             package_store,
             user_package_id: package_id,
+            kind: CompilationKind::OpenProject {
+                package_graph_sources,
+            },
             compile_errors,
-            kind: CompilationKind::OpenProject,
             project_errors,
         }
     }
@@ -107,13 +117,15 @@ impl Compilation {
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
         trace!("compiling notebook");
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
             language_features,
+            store,
+            &[(std_id, None)],
         )
         .expect("expected incremental compiler creation to succeed");
 
@@ -242,20 +254,26 @@ impl Compilation {
             .user_unit()
             .sources
             .iter()
-            .map(|source| (source.name.clone(), source.contents.clone()));
+            .map(|source| (source.name.clone(), source.contents.clone()))
+            .collect::<Vec<_>>();
 
         let new = match self.kind {
-            CompilationKind::OpenProject => Self::new(
-                &sources.collect::<Vec<_>>(),
+            CompilationKind::OpenProject {
+                ref package_graph_sources,
+            } => Self::new(
                 package_type,
                 target_profile,
                 language_features,
                 lints_config,
+                package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
             ),
-            CompilationKind::Notebook => {
-                Self::new_notebook(sources, target_profile, language_features, lints_config)
-            }
+            CompilationKind::Notebook => Self::new_notebook(
+                sources.into_iter(),
+                target_profile,
+                language_features,
+                lints_config,
+            ),
         };
 
         self.package_store = new.package_store;

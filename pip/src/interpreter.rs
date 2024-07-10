@@ -22,7 +22,8 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, PackageCache},
+    packages::BuildableProgram,
+    project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -99,12 +100,11 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
         };
 
-        let mut language_features =
-            LanguageFeatures::from_iter(language_features.unwrap_or_default());
+        let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
 
         let package_cache = PACKAGE_CACHE.with(Clone::clone);
 
-        let sources = if let Some(project_root) = project_root {
+        let buildable_program = if let Some(project_root) = project_root {
             if let (Some(read_file), Some(list_directory), Some(resolve_path), Some(fetch_github)) =
                 (read_file, list_directory, resolve_path, fetch_github)
             {
@@ -117,25 +117,26 @@ impl Interpreter {
                     return Err(project.errors.into_py_err());
                 }
 
-                let (sources, project_features) =
-                    project.package_graph_sources.into_sources_temporary();
-
-                language_features.merge(LanguageFeatures::from_iter(project_features));
-
-                SourceMap::new(sources, None)
+                BuildableProgram::new(target.into(), project.package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
         } else {
-            SourceMap::default()
+            let graph = PackageGraphSources::with_no_dependencies(
+                Vec::default(),
+                LanguageFeatures::from_iter(language_features),
+                None,
+            );
+            BuildableProgram::new(target.into(), graph)
         };
 
         match interpret::Interpreter::new(
-            true,
-            sources,
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
             target.into(),
-            language_features,
+            buildable_program.user_code.language_features,
+            buildable_program.store,
+            &buildable_program.user_code_dependencies,
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -296,8 +297,9 @@ fn format_errors(errors: Vec<interpret::Error>) -> String {
                 write!(message, "{stack_trace}").unwrap();
             }
             let additional_help = python_help(&e);
-            let report = Report::new(e);
-            write!(message, "{report:?}").unwrap();
+            let report = Report::new(e.clone());
+            write!(message, "{report:?}")
+                .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
             if let Some(additional_help) = additional_help {
                 writeln!(message, "{additional_help}").unwrap();
             }

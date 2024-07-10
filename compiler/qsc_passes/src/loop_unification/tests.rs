@@ -47,7 +47,7 @@ fn convert_for_array() {
             Package:
                 Item 0 [0-133] (Public):
                     Namespace (Ident 16 [10-14] "test"): Item 1
-                Item 1 [21-131] (Public):
+                Item 1 [21-131] (Internal):
                     Parent: 0
                     Callable 0 [21-131] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -110,7 +110,7 @@ fn convert_for_array_deconstruct() {
             Package:
                 Item 0 [0-148] (Public):
                     Namespace (Ident 19 [10-14] "test"): Item 1
-                Item 1 [21-146] (Public):
+                Item 1 [21-146] (Internal):
                     Parent: 0
                     Callable 0 [21-146] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -175,7 +175,7 @@ fn convert_for_slice() {
             Package:
                 Item 0 [0-143] (Public):
                     Namespace (Ident 22 [10-14] "test"): Item 1
-                Item 1 [21-141] (Public):
+                Item 1 [21-141] (Internal):
                     Parent: 0
                     Callable 0 [21-141] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -244,7 +244,7 @@ fn convert_for_range() {
             Package:
                 Item 0 [0-123] (Public):
                     Namespace (Ident 17 [10-14] "test"): Item 1
-                Item 1 [21-121] (Public):
+                Item 1 [21-121] (Internal):
                     Parent: 0
                     Callable 0 [21-121] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -324,7 +324,7 @@ fn convert_for_reverse_range() {
             Package:
                 Item 0 [0-127] (Public):
                     Namespace (Ident 19 [10-14] "test"): Item 1
-                Item 1 [21-125] (Public):
+                Item 1 [21-125] (Internal):
                     Parent: 0
                     Callable 0 [21-125] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -405,7 +405,7 @@ fn convert_repeat() {
             Package:
                 Item 0 [0-128] (Public):
                     Namespace (Ident 13 [10-14] "test"): Item 1
-                Item 1 [21-126] (Public):
+                Item 1 [21-126] (Internal):
                     Parent: 0
                     Callable 0 [21-126] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -454,7 +454,7 @@ fn convert_repeat_fixup() {
             Package:
                 Item 0 [0-182] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-180] (Public):
+                Item 1 [21-180] (Internal):
                     Parent: 0
                     Callable 0 [21-180] (operation):
                         name: Ident 1 [31-35] "Main"
@@ -520,7 +520,7 @@ fn convert_repeat_nested() {
             Package:
                 Item 0 [0-403] (Public):
                     Namespace (Ident 43 [10-14] "test"): Item 1
-                Item 1 [21-401] (Public):
+                Item 1 [21-401] (Internal):
                     Parent: 0
                     Callable 0 [21-401] (operation):
                         name: Ident 1 [31-35] "Main"

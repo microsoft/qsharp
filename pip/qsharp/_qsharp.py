@@ -17,6 +17,20 @@ import json
 _interpreter = None
 
 
+# Reporting execution time during IPython cells requires that IPython
+# gets pinged to ensure it understands the cell is active. This is done by
+# requesting a display id without displaying any content, avoiding any UI changes
+# that would be visible to the user.
+def ipython_helper():
+    try:
+        if __IPYTHON__:  # type: ignore
+            from IPython.display import display
+
+            display(display_id=True)
+    except NameError:
+        pass
+
+
 class Config:
     _config: Dict[str, str]
     """
@@ -144,9 +158,10 @@ def eval(source: str) -> Any:
     :returns value: The value returned by the last statement in the source code.
     :raises QSharpError: If there is an error evaluating the source code.
     """
+    ipython_helper()
 
     def callback(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
 
@@ -181,11 +196,12 @@ def run(
 
     :raises QSharpError: If there is an error interpreting the input.
     """
+    ipython_helper()
 
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
@@ -248,6 +264,8 @@ def compile(entry_expr: str) -> QirInputData:
         with open('myfile.ll', 'w') as file:
             file.write(str(program))
     """
+    ipython_helper()
+
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
@@ -267,6 +285,7 @@ def circuit(
 
     :raises QSharpError: If there is an error synthesizing the circuit.
     """
+    ipython_helper()
     return get_interpreter().circuit(entry_expr, operation)
 
 
@@ -281,6 +300,8 @@ def estimate(
 
     :returns resources: The estimated resources.
     """
+    ipython_helper()
+
     if params is None:
         params = [{}]
     elif isinstance(params, EstimatorParams):
@@ -397,6 +418,7 @@ def dump_machine() -> StateDump:
 
     :returns: The state of the simulator.
     """
+    ipython_helper()
     return StateDump(get_interpreter().dump_machine())
 
 
@@ -407,4 +429,5 @@ def dump_circuit() -> Circuit:
     This circuit will contain the gates that have been applied
     in the simulator up to the current point.
     """
+    ipython_helper()
     return get_interpreter().dump_circuit()

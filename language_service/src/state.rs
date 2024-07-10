@@ -223,33 +223,34 @@ impl<'a> CompilationStateUpdater<'a> {
                 }
             }
 
-            let (sources, language_features) = loaded_project
-                .package_graph_sources
-                .into_sources_temporary();
-            let compilation_uri = loaded_project.path;
-            let lints_config = loaded_project.lints;
-
             let compilation_overrides = PartialConfiguration {
-                language_features: Some(language_features),
-                lints_config,
+                language_features: Some(
+                    loaded_project.package_graph_sources.root.language_features,
+                ),
+                lints_config: loaded_project.lints,
+                package_type: loaded_project.package_graph_sources.root.package_type.map(
+                    |x| match x {
+                        qsc_project::PackageType::Exe => qsc::PackageType::Exe,
+                        qsc_project::PackageType::Lib => qsc::PackageType::Lib,
+                    },
+                ),
                 ..PartialConfiguration::default()
             };
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
             let compilation = Compilation::new(
-                &sources,
                 configuration.package_type,
                 configuration.target_profile,
                 configuration.language_features,
                 &configuration.lints_config,
+                loaded_project.package_graph_sources,
                 loaded_project.errors,
             );
 
-            state.compilations.insert(
-                compilation_uri.clone(),
-                (compilation, compilation_overrides),
-            );
+            state
+                .compilations
+                .insert(loaded_project.path, (compilation, compilation_overrides));
         });
     }
 
