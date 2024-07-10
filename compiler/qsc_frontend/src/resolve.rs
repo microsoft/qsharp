@@ -71,8 +71,6 @@ pub enum Res {
     UnitTy,
     /// An export, which could be from another package.
     ExportedItem(ItemId),
-    /// A reference to a namespace
-    Namespace(NamespaceId),
 }
 
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
@@ -377,7 +375,7 @@ impl GlobalScope {
         base_id: NamespaceId,
     ) {
         self.namespaces
-            .insert_or_find_namespace_from_root_with_id(name, root, base_id)
+            .insert_or_find_namespace_from_root_with_id(name, root, base_id);
     }
 }
 
@@ -1057,16 +1055,6 @@ impl Resolver {
         self.locals.get_scope_mut(scope_id)
     }
 
-    /// Returns the innermost scope in the current scope chain.
-    fn current_scope(&mut self) -> &Scope {
-        let scope_id = *self
-            .curr_scope_chain
-            .last()
-            .expect("there should be at least one scope at location");
-
-        self.locals.get_scope(scope_id)
-    }
-
     fn handle_namespace_import_or_export(
         &mut self,
         is_export: bool,
@@ -1089,28 +1077,6 @@ impl Resolver {
                 self.globals
                     .namespaces
                     .insert_with_id(current_namespace, ns, &alias.name);
-                // now we have to get each item in this namespace and also export that
-                let (_, namespace) = self.globals.namespaces.find_namespace_by_id(&ns);
-
-                let namespace_children: Vec<(Rc<str>, NamespaceId)> = {
-                    namespace
-                        .borrow()
-                        .children()
-                        .iter()
-                        .map(|(name, node)| (Rc::clone(name), node.borrow().id))
-                        .collect()
-                };
-                for (child_ns_name, child_ns) in namespace_children {
-                    let term_items = self.globals.terms.get_mut_or_default(child_ns);
-                    //                    for item in term_items {
-                    // insert the new namespace
-                    self.globals
-                        .namespaces
-                        .insert_with_id(Some(ns), child_ns, &child_ns_name);
-                    for term in term_items {}
-
-                    //                   }
-                }
             } else {
                 // for imports, we just bind the namespace as an open
                 self.bind_open(&items, &alias, ns);
@@ -1455,7 +1421,7 @@ impl GlobalTable {
         };
 
         // iterate over the tree from the package and recreate it here
-        for names_for_same_namespace in package.namespaces.iter() {
+        for names_for_same_namespace in &package.namespaces {
             let mut names_iter = names_for_same_namespace.into_iter();
             let base_id = self.scope.insert_or_find_namespace_from_root(
                 names_iter
@@ -1469,11 +1435,6 @@ impl GlobalTable {
                     .insert_or_find_namespace_from_root_with_id(name, root, base_id);
             }
         }
-
-        println!(
-            "After adding external package: {:#?}",
-            self.scope.namespaces
-        );
 
         for global in global::iter_package(Some(id), package).filter(|global| {
             global.visibility == hir::Visibility::Public
@@ -1559,8 +1520,6 @@ fn bind_global_items(
     assigner: &mut Assigner,
     errors: &mut Vec<Error>,
 ) {
-    // TODO(alex): does this function bind namespaces to items? Should we grab chilren namespaces
-    // and insert them as items?
     names.insert(
         namespace.id,
         Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
@@ -1579,18 +1538,6 @@ fn bind_global_items(
             Ok(()) => {}
             Err(mut e) => errors.append(&mut e),
         }
-    }
-    let namespace_children = {
-        // bind child items
-        let (name, namespace_cell) = scope.namespaces.find_namespace_by_id(&namespace_id);
-
-        let cell = namespace_cell.borrow();
-        cell.children().clone()
-    };
-
-    for (name, child) in namespace_children {
-        let id = child.borrow().id;
-        let (name, id) = scope.namespaces.find_namespace_by_id(&id);
     }
 }
 
@@ -2125,7 +2072,7 @@ fn find_symbol_in_namespace<O>(
     O: Clone + std::fmt::Debug,
 {
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
-    let (name, candidate_namespace) = globals
+    let (_, candidate_namespace) = globals
         .namespaces
         .find_namespace_by_id(&candidate_namespace_id);
 

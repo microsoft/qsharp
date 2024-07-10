@@ -117,10 +117,7 @@ impl<'a> Context<'a> {
                 // A path can also never resolve to an export, because in typeck/check,
                 // we resolve exports to their original definition.
                 Some(
-                    resolve::Res::Local(_)
-                    | resolve::Res::Param(_)
-                    | resolve::Res::ExportedItem(_)
-                    | resolve::Res::Namespace(_),
+                    resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_),
                 ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
@@ -596,7 +593,7 @@ impl<'a> Context<'a> {
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_) | Res::Namespace(_)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression should not resolve to type reference")
                 }
             },

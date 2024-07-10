@@ -839,7 +839,6 @@ impl With<'_> {
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
-            Some(&resolve::Res::Namespace(ns_id)) => hir::Res::Namespace(ns_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }

@@ -345,135 +345,174 @@ fn test_tree_iter() {
     let result = root.iter().collect::<Vec<_>>();
     expect![[r#"
         [
-            [],
             [
-                "ns2",
+                [],
             ],
             [
-                "ns2",
-                "nsa",
+                [
+                    "Microsoft",
+                ],
             ],
             [
-                "ns2",
-                "nsa",
+                [
+                    "Microsoft",
+                    "Quantum",
+                ],
             ],
             [
-                "ns2",
-                "nsb",
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Canon",
+                ],
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Canon",
+                ],
             ],
             [
-                "ns2",
-                "nsb",
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Core",
+                ],
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Core",
+                ],
             ],
             [
-                "ns2",
-                "nsc",
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Intrinsic",
+                ],
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Intrinsic",
+                ],
             ],
             [
-                "ns2",
-                "nsc",
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Measurement",
+                ],
+                [
+                    "Microsoft",
+                    "Quantum",
+                    "Measurement",
+                ],
             ],
             [
-                "Microsoft",
+                [
+                    "ns0",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
+                [
+                    "ns0",
+                    "nsa",
+                ],
+                [
+                    "ns0",
+                    "nsa",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Intrinsic",
+                [
+                    "ns0",
+                    "nsb",
+                ],
+                [
+                    "ns0",
+                    "nsb",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Intrinsic",
+                [
+                    "ns0",
+                    "nsc",
+                ],
+                [
+                    "ns0",
+                    "nsc",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Core",
+                [
+                    "ns1",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Core",
+                [
+                    "ns1",
+                    "nsa",
+                ],
+                [
+                    "ns1",
+                    "nsa",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Measurement",
+                [
+                    "ns1",
+                    "nsb",
+                ],
+                [
+                    "ns1",
+                    "nsb",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Measurement",
+                [
+                    "ns1",
+                    "nsc",
+                ],
+                [
+                    "ns1",
+                    "nsc",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Canon",
+                [
+                    "ns2",
+                ],
             ],
             [
-                "Microsoft",
-                "Quantum",
-                "Canon",
+                [
+                    "ns2",
+                    "nsa",
+                ],
+                [
+                    "ns2",
+                    "nsa",
+                ],
             ],
             [
-                "ns0",
+                [
+                    "ns2",
+                    "nsb",
+                ],
+                [
+                    "ns2",
+                    "nsb",
+                ],
             ],
             [
-                "ns0",
-                "nsa",
-            ],
-            [
-                "ns0",
-                "nsa",
-            ],
-            [
-                "ns0",
-                "nsb",
-            ],
-            [
-                "ns0",
-                "nsb",
-            ],
-            [
-                "ns0",
-                "nsc",
-            ],
-            [
-                "ns0",
-                "nsc",
-            ],
-            [
-                "ns1",
-            ],
-            [
-                "ns1",
-                "nsa",
-            ],
-            [
-                "ns1",
-                "nsa",
-            ],
-            [
-                "ns1",
-                "nsb",
-            ],
-            [
-                "ns1",
-                "nsb",
-            ],
-            [
-                "ns1",
-                "nsc",
-            ],
-            [
-                "ns1",
-                "nsc",
+                [
+                    "ns2",
+                    "nsc",
+                ],
+                [
+                    "ns2",
+                    "nsc",
+                ],
             ],
         ]
-    "#]].assert_debug_eq(&result);
+    "#]]
+    .assert_debug_eq(&result);
 }

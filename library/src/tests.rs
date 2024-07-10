@@ -213,7 +213,7 @@ fn stdlib_reexport_single_case() {
         r#" {
     import Std.TestFunc;
     import Std.Arrays.*;
-//    import Std.Arrays.Count;
+    import Std.Arrays.Count;
     }"#,
         &Value::Tuple(vec![].into()),
     );

@@ -222,8 +222,6 @@ pub enum Res {
     Item(ItemId),
     /// A local variable.
     Local(NodeId),
-    /// TODO(remove)
-    Namespace(qsc_data_structures::namespaces::NamespaceId),
 }
 
 impl Res {
@@ -246,7 +244,6 @@ impl Display for Res {
             Res::Err => f.write_str("Err"),
             Res::Item(item) => Display::fmt(item, f),
             Res::Local(node) => write!(f, "Local {node}"),
-            Res::Namespace(ns) => write!(f, "Namespace {ns}"),
         }
     }
 }

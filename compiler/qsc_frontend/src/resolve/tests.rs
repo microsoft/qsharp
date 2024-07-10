@@ -84,7 +84,6 @@ impl<'a> Renamer<'a> {
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
             Res::Param(id) => format!("param{id}"),
-            Res::Namespace(id) => format!("namespace{id}"),
             Res::ExportedItem(item) => match item.package {
                 None => format!("exported_item{}", item.item),
                 Some(package) => format!("reexport_from_{package}:{}", item.item),

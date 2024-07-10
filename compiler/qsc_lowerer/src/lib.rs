@@ -794,8 +794,6 @@ impl Lowerer {
         match res {
             hir::Res::Item(item) => fir::Res::Item(lower_item_id(item)),
             hir::Res::Local(node) => fir::Res::Local(self.lower_local_id(*node)),
-            // TODO(alex)
-            hir::Res::Namespace(id) => todo!(),
             hir::Res::Err => fir::Res::Err,
         }
     }
