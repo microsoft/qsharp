@@ -89,7 +89,7 @@ def test_state_vector_simulator():
     assert outcome_0 == outcome_1
 
 
-def test_state_vector_out_of_bounds_qubit():
+def test_state_vector_simulator_out_of_bounds_qubit():
     f = 0.5**0.5
     h = Operation([[[f, f], [f, -f]]])
     sim = StateVectorSimulator(1)
