@@ -108,18 +108,18 @@ Let's take a closer look at the algorithm.
 Grover's search algorithm begins with a uniform superposition of all the states in the search space.
 Typically, the search space is defined as all $n$-bit bit strings, so this superposition is just an even superposition 
 of all $N = 2^n$ basis states on $n$ qubits:
-$$\ket{\psi_\text{all}} = \frac{1}{\sqrt{N}}\sum_{x=0}^{N-1}{\ket{x}} $$
+$$\ket{\text{all}} = \frac{1}{\sqrt{N}}\sum_{x=0}^{N-1}{\ket{x}} $$
 
 When this superposition is considered in the context of the equation $f(x) = 1$, 
 all the basis states can be split in two groups:  "good" (solutions) and "bad" (non-solutions).
 If the number of states for which $f(x)=1$ (the number of equation solutions) is $M$, 
 two uniform superpositions of "good" and "bad" states can be defined as follows:
 
-$$\ket{\psi_\text{good}} = \frac{1}{\sqrt{M}}\sum_{x,f(x)=1}{\ket{x}}$$
-$$\ket{\psi_\text{bad}} = \frac{1}{\sqrt{N-M}}\sum_{x,f(x)=0}{\ket{x}}$$
+$$\ket{\text{good}} = \frac{1}{\sqrt{M}}\sum_{x,f(x)=1}{\ket{x}}$$
+$$\ket{\text{bad}} = \frac{1}{\sqrt{N-M}}\sum_{x,f(x)=0}{\ket{x}}$$
 
 Now, the even superposition of all basis states can be rewritten as follows:
-$$\ket{\psi_\text{all}} = \sqrt{\frac{M}{N}}\ket{\psi_\text{good}} + \sqrt{\frac{N-M}{N}}\ket{\psi_\text{bad}}$$
+$$\ket{\text{all}} = \sqrt{\frac{M}{N}}\ket{\text{good}} + \sqrt{\frac{N-M}{N}}\ket{\text{bad}}$$
 
 The amplutudes $\sqrt{\frac{M}{N}}$ and $\sqrt{\frac{N-M}{N}}$ can then be written in a trigonometric representation,
 as a sine and cosine of the angle $\theta$:
@@ -128,11 +128,12 @@ $$\sin \theta = \sqrt{\frac{M}{N}}, \cos \theta = \sqrt{\frac{N-M}{N}}$$
 
 With this replacement, the initial state can be written as 
 
-$$\ket{\psi_\text{all}} = \sin \theta \ket{\psi_\text{good}} + \cos \theta \ket{\psi_\text{bad}}$$
+$$\ket{\text{all}} = \sin \theta \ket{\text{good}} + \cos \theta \ket{\text{bad}}$$
 
-The states involved in the algorithm can be represented on a plane on which $\ket{\psi_\text{good}}$ and $\ket{\psi_\text{bad}}$ vectors correspond to vertical and horizontal axes, respectively.
+The states involved in the algorithm can be represented on a plane on which $\ket{\text{good}}$ and $\ket{\text{bad}}$ vectors correspond to vertical and horizontal axes, respectively.
 
-TODO: visual
+@[svg]({"path": "./media/1_equal_superposition.svg"})
+
 
 ### Grover's iteration
 
@@ -141,32 +142,32 @@ Each Grover's iteration consists of two operations.
 1. The phase oracle $U_f$.
 2. An operation called "reflection about the mean".
 
-Applying the phase oracle to the state will flip the sign of all basis states in $\ket{\psi_\text{good}}$ 
-and leave all basis states in $\ket{\psi_\text{bad}}$ unchanged:
+Applying the phase oracle to the state will flip the sign of all basis states in $\ket{\text{good}}$ 
+and leave all basis states in $\ket{\text{bad}}$ unchanged:
 
-$$U_f\ket{\psi_\text{good}} = -\ket{\psi_\text{good}}$$
-$$U_f\ket{\psi_\text{bad}} = \ket{\psi_\text{bad}}$$
+$$U_f\ket{\text{good}} = -\ket{\text{good}}$$
+$$U_f\ket{\text{bad}} = \ket{\text{bad}}$$
 
 On the circle plot, this transformation leaves the horizontal component of the state vector unchanged and reverses its vertical component. In other words, this operation is a reflection along the horizontal axis.
 
-TODO: visual
+@[svg]({"path": "./media/2_first_reflection.svg"})
 
 "Reflection about the mean" is an operation for which the visual definition is much more intuitive than the mathematical one.
-It is literally a reflection about the state $\ket{\psi_\text{all}}$ - the uniform superposition of all basis states in the search space. 
+It is literally a reflection about the state $\ket{\text{all}}$ - the uniform superposition of all basis states in the search space. 
 
-Mathematically, this operation is described as $2\ket{\psi_\text{all}}\bra{\psi_\text{all}} - I$: it leaves the component of the input state parallel to the state $\ket{\psi_\text{all}}$ unchanged and multiplies the component orthogonal to it by $-1$.
+Mathematically, this operation is described as $2\ket{\text{all}}\bra{\text{all}} - I$: it leaves the component of the input state parallel to the state $\ket{\text{all}}$ unchanged and multiplies the component orthogonal to it by $-1$.
 
-TODO: visual
+@[svg]({"path": "./media/3_second_reflection.svg"})
 
 As we can see, the pair of these reflections combined amount to a counterclockwise rotation by an angle $2\theta$. 
-If we repeat the Grover's iteration, reflecting the new state first along the horizontal axis and then along the $\ket{\psi_\text{all}}$ vector, it performs a rotation by $2\theta$ again. The angle of this rotation depends only on the angle between the reflection axes and not on the state we reflect!
+If we repeat the Grover's iteration, reflecting the new state first along the horizontal axis and then along the $\ket{\text{all}}$ vector, it performs a rotation by $2\theta$ again. The angle of this rotation depends only on the angle between the reflection axes and not on the state we reflect!
 
-Each iteration of Grover's search adds $2\theta$ to the current angle in the expression of the system state as a superposition of $\ket{\psi_\text{good}}$ and $\ket{\psi_\text{bad}}$.
+Each iteration of Grover's search adds $2\theta$ to the current angle in the expression of the system state as a superposition of $\ket{\text{good}}$ and $\ket{\text{bad}}$.
 After applying $R$ iterations of Grover's search the state of the system will become
 
-$$\sin{(2R+1)\theta}\ket{\psi_\text{good}} + \cos{(2R+1)\theta}\ket{\psi_\text{bad}}$$
+$$\sin{(2R+1)\theta}\ket{\text{good}} + \cos{(2R+1)\theta}\ket{\text{bad}}$$
 
-At firat, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\psi_\text{good}}$ - the states that are solutions to the problem.
+At firat, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\text{good}}$ - the states that are solutions to the problem.
 
 @[exercise]({
     "id": "grovers_search__phase_oracle",
@@ -196,14 +197,14 @@ The optimal number of iterations to use in Grover's search algorithm is typicall
 after which the success probability of the algorithm - the probability of measuring one of the "good" states - is maximized.
 
 Geometrically, this means that the state vector should be rotated to be as close to the vertical axis as possible.
-Mathematically, this means maximizing the ampitude $\sin{(2R+1)\theta}$ of the state $\ket{\psi_\text{good}}$ 
+Mathematically, this means maximizing the ampitude $\sin{(2R+1)\theta}$ of the state $\ket{\text{good}}$ 
 in the superposition.
 With either definition, the goal is to have the angle $(2R+1)\theta$ that describes the system after $R$ rotations
 as close to $\frac{\pi}{2}$ as possible:
 
 $$(2R+1)\theta \approx \frac{\pi}{2}$$
 
-TODO: visual
+@[svg]({"path": "./media/4_measurement.svg"})
 
 Now, recall that $\theta = \arcsin \sqrt{\frac{M}{N}}$. When $M$ is much smaller than $N$, $\frac{M}{N}$ is close to 0, and $\theta$ is a small angle that can approximated as $\theta \approx \sqrt{\frac{M}{N}}$. This gives the following equation for $R_{opt}$
 
@@ -211,7 +212,14 @@ $$ 2R_{opt}+1 \approx \frac{\pi}{2\theta} = \frac{\pi}{2}\sqrt{\frac{N}{M}}$$
 Since $\theta$ is small, $R_{opt}$ is large, and the $+1$ term next to $2R_{opt}$ can be ignored, giving the final formula:
 $$ R_{opt} \approx \frac{\pi}{4}\sqrt{\frac{N}{M}}$$
 
-- demo: how success probability changes for different numbers of iterations
+What happens if you use more iterations than is optimal? Each iteration will keep rotating the state $2\theta$ counterclockwise,
+getting it further away from the vertical axis and thus reducing the probability of measuring the correct answer.
+
+In this demo you will see how success probability of Grover's algorithm changes when it uses different numbers of iterations
+before the final measurements.
+
+@[example]({"id": "grovers_search__e2edemo", "codePath": "./examples/GroversSearchAlgorithmDemo.qs"})
+
 
 ### Verifying that algorithm output is correct
 
@@ -242,7 +250,7 @@ What happens if these assumptions are not valid?
 
 #### No solutions ($M = 0$)
 
-In this case the starting system state  $\ket{\psi} = \ket{\psi_\text{bad}}$, and $\theta = \arcsin \sqrt{\frac{M}{N}} = 0$.
+In this case the starting system state  $\ket{\psi} = \ket{\text{bad}}$, and $\theta = \arcsin \sqrt{\frac{M}{N}} = 0$.
 No matter how many iterations we do, the probability of our measurement yielding a marked state is $0$.
 
 In practice this means that Grover's search will yield a random non-solution every time. 
@@ -251,18 +259,18 @@ To detect that this is the case, we need to run the algorithm multiple times and
 #### Solutions make up half of the search space
 
 If $M = \frac{N}{2}$, then $\theta = \arcsin \sqrt\frac{N/2}{N}  = \arcsin \sqrt\frac{1}{2} = \frac{\pi}{4}$.   
-This means that after an arbitrary number of iterations $R$ the amplitude of the basis state $\ket{\psi_\text{good}}$ in the  system will be:
+This means that after an arbitrary number of iterations $R$ the amplitude of the basis state $\ket{\text{good}}$ in the  system will be:
 
 $$\sin{(2R+1)\theta} = \sin\frac{(2R+1)\pi}{4} = \pm \frac{1}{\sqrt{2}}$$
 
-The probability of the measurement yielding a solution is then $P(\ket{\psi_\text{good}}) = \sin^2\frac{(2R+1)\theta}{2} = (\pm \frac{1}{\sqrt{2}})^2 = \frac{1}{2}$
+The probability of the measurement yielding a solution is then $P(\ket{\text{good}}) = \sin^2\frac{(2R+1)\theta}{2} = (\pm \frac{1}{\sqrt{2}})^2 = \frac{1}{2}$
 
 You can see that the probability of measuring a state that is a solution remains constant regardless of the number of iterations.
 
 #### Solutions make up more than half of the search space
 
 If $\frac{N}{2} < M \leq N$, then $\frac{\pi}{4} < \theta \leq \frac{\pi}{4}$. 
-Now using even one iteration doesn't always increase $P(\ket{\psi_\text{good}}) = \sin^2{(2R+1)\theta}$.
+Now using even one iteration doesn't always increase $P(\ket{\text{good}}) = \sin^2{(2R+1)\theta}$.
 In fact, the first iteration is likely to decrease the probability of success!
 
 > Have you ever wondered why all tutorials on Grover's search start with two-bit functions? 
