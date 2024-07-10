@@ -9,8 +9,6 @@ repository.workspace = true
 edition.workspace = true
 license.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 nalgebra = { workspace = true }
 num-complex = { workspace = true }
