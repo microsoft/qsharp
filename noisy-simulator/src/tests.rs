@@ -82,8 +82,7 @@ pub fn measure_1<NS: NoisySimulator>() {
 /// Check that both measurements in a Bell Pair yield the same result.
 pub fn bell_pair_sampling<NS: NoisySimulator>(seed: u64) {
     let (h, cnot, mz) = (h(), cnot(), mz());
-    let mut sim = NS::new(2);
-    sim.set_rng_seed(seed);
+    let mut sim = NS::new_with_seed(2, seed);
 
     // Make a Bell Pair.
     sim.apply_operation(&h, &[0])
@@ -281,8 +280,7 @@ pub fn crx_gate_projection_mz1<NS: NoisySimulator>() {
 pub fn repeated_mz<NS: NoisySimulator>(seed: u64) {
     let h = h();
     let mz = mz();
-    let mut sim = NS::new(1);
-    sim.set_rng_seed(seed);
+    let mut sim = NS::new_with_seed(1, seed);
 
     sim.apply_operation(&h, &[0])
         .expect("operation should succeed");

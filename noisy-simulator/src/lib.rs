@@ -60,8 +60,8 @@ pub trait NoisySimulator {
     /// Creates a new `NoisySimulator`.
     fn new(number_of_qubits: usize) -> Self;
 
-    /// Sets the seed for the random number generator used for probabilistic operations.
-    fn set_rng_seed(&mut self, seed: u64);
+    /// Creates a new `NoisySimulator` with a given seed for its random number generator.
+    fn new_with_seed(number_of_qubits: usize, seed: u64) -> Self;
 
     /// Apply an operation to the given qubit ids.
     fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) -> Result<(), Error>;

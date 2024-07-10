@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! This module contains two structs: the `TrajectorySimulator` and its
+//! This module contains two structs: the `StateVectorSimulator` and its
 //! internal `StateVector` state.
 
 #[cfg(test)]
@@ -198,7 +198,7 @@ impl StateVectorSimulator {
 impl NoisySimulator for StateVectorSimulator {
     type State = StateVector;
 
-    /// Creates a new `TrajectorySimulator`.
+    /// Creates a new `StateVectorSimulator`.
     fn new(number_of_qubits: usize) -> Self {
         let state_vector = StateVector::new(number_of_qubits);
         let dimension = state_vector.dimension();
@@ -209,8 +209,15 @@ impl NoisySimulator for StateVectorSimulator {
         }
     }
 
-    fn set_rng_seed(&mut self, seed: u64) {
-        self.rng = StdRng::seed_from_u64(seed);
+    /// Creates a new `StateVectorSimulator` with a given seed for its random number generator.
+    fn new_with_seed(number_of_qubits: usize, seed: u64) -> Self {
+        let state_vector = StateVector::new(number_of_qubits);
+        let dimension = state_vector.dimension();
+        Self {
+            state: Ok(state_vector),
+            dimension,
+            rng: StdRng::seed_from_u64(seed),
+        }
     }
 
     /// Apply an operation to given qubit ids.

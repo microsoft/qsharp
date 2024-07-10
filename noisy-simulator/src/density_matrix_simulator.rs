@@ -207,8 +207,15 @@ impl NoisySimulator for DensityMatrixSimulator {
         }
     }
 
-    fn set_rng_seed(&mut self, seed: u64) {
-        self.rng = StdRng::seed_from_u64(seed);
+    /// Creates a new `DensityMatrixSimulator` with a given seed for its random number generator.
+    fn new_with_seed(number_of_qubits: usize, seed: u64) -> Self {
+        let density_matrix = DensityMatrix::new(number_of_qubits);
+        let dimension = density_matrix.dimension();
+        Self {
+            state: Ok(density_matrix),
+            dimension,
+            rng: StdRng::seed_from_u64(seed),
+        }
     }
 
     /// Apply an operation to the given qubit ids.
