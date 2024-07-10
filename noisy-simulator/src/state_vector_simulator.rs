@@ -168,6 +168,17 @@ pub struct StateVectorSimulator {
     dimension: usize,
 }
 
+impl StateVectorSimulator {
+    fn check_out_of_bounds_qubits(&self, qubits: &[usize]) -> Result<(), Error> {
+        let number_of_qubits = self.state.as_ref()?.number_of_qubits;
+        if let Some(id) = qubits.iter().find(|id| **id >= number_of_qubits) {
+            Err(Error::QubitIdOutOfBounds(*id))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 impl NoisySimulator for StateVectorSimulator {
     type State = StateVector;
 
@@ -183,11 +194,14 @@ impl NoisySimulator for StateVectorSimulator {
 
     /// Apply an operation to given qubit ids.
     fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) -> Result<(), Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         let renormalization_factor = self
             .state
             .as_mut()?
             .effect_probability(operation.effect_matrix(), qubits)?;
         self.state.as_mut()?.trace_change *= renormalization_factor;
+
         if let Err(err) = self.state.as_mut()?.sample_kraus_operators(
             operation.kraus_operators(),
             qubits,
@@ -196,16 +210,20 @@ impl NoisySimulator for StateVectorSimulator {
         ) {
             handle_error!(self, err);
         };
+
         Ok(())
     }
 
     /// Apply non selective evolution.
     fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> Result<(), Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         let renormalization_factor = self
             .state
             .as_mut()?
             .effect_probability(instrument.total_effect(), qubits)?;
         self.state.as_mut()?.trace_change *= renormalization_factor;
+
         if let Err(err) = self.state.as_mut()?.sample_kraus_operators(
             instrument.non_selective_kraus_operators(),
             qubits,
@@ -214,6 +232,7 @@ impl NoisySimulator for StateVectorSimulator {
         ) {
             handle_error!(self, err);
         };
+
         Ok(())
     }
 
@@ -237,6 +256,8 @@ impl NoisySimulator for StateVectorSimulator {
         qubits: &[usize],
         random_sample: f64,
     ) -> Result<usize, Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         let renormalization_factor = self
             .state
             .as_mut()?
@@ -244,6 +265,7 @@ impl NoisySimulator for StateVectorSimulator {
         let mut last_non_zero_norm_squared = 0.0;
         let mut summed_probability = 0.0;
         let mut last_non_zero_outcome = 0;
+
         for outcome in 0..instrument.num_operations() {
             let norm_squared = self
                 .state

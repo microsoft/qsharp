@@ -166,6 +166,17 @@ pub struct DensityMatrixSimulator {
     dimension: usize,
 }
 
+impl DensityMatrixSimulator {
+    fn check_out_of_bounds_qubits(&self, qubits: &[usize]) -> Result<(), Error> {
+        let number_of_qubits = self.state.as_ref()?.number_of_qubits;
+        if let Some(id) = qubits.iter().find(|id| **id >= number_of_qubits) {
+            Err(Error::QubitIdOutOfBounds(*id))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 impl NoisySimulator for DensityMatrixSimulator {
     type State = DensityMatrix;
 
@@ -181,6 +192,8 @@ impl NoisySimulator for DensityMatrixSimulator {
 
     /// Apply an operation to the given qubit ids.
     fn apply_operation(&mut self, operation: &Operation, qubits: &[usize]) -> Result<(), Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         self.state
             .as_mut()?
             .apply_operation_matrix(operation.matrix(), qubits)?;
@@ -192,6 +205,8 @@ impl NoisySimulator for DensityMatrixSimulator {
 
     /// Apply non selective evolution to the given qubit ids.
     fn apply_instrument(&mut self, instrument: &Instrument, qubits: &[usize]) -> Result<(), Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         self.state
             .as_mut()?
             .apply_operation_matrix(instrument.non_selective_operation_matrix(), qubits)?;
@@ -221,6 +236,8 @@ impl NoisySimulator for DensityMatrixSimulator {
         qubits: &[usize],
         random_sample: f64,
     ) -> Result<usize, Error> {
+        self.check_out_of_bounds_qubits(qubits)?;
+
         let mut tmp_state = self.state.clone()?;
         apply_kernel(
             &mut tmp_state.data,
