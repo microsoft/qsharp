@@ -65,12 +65,14 @@ pub(crate) struct Operation(noisy_simulator::Operation);
 #[pymethods]
 impl Operation {
     #[new]
-    pub fn new(kraus_operators: Vec<PythonMatrix>) -> Self {
+    pub fn new(kraus_operators: Vec<PythonMatrix>) -> PyResult<Self> {
         let kraus_operators: Vec<SquareMatrix> = kraus_operators
             .into_iter()
             .map(python_to_nalgebra_matrix)
             .collect();
-        Self(noisy_simulator::Operation::new(kraus_operators))
+        noisy_simulator::Operation::new(kraus_operators)
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
+            .map(Self)
     }
 
     pub fn get_effect_matrix(&self) -> Vec<Complex<f64>> {

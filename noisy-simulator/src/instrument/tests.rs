@@ -19,8 +19,8 @@ fn constructor() {
     let mut rng = StdRng::seed_from_u64(SEED);
     let mut rng = || rng.gen::<f64>();
 
-    let op0 = operation!([rng(), rng(); rng(), rng();]);
-    let op1 = operation!([rng(), rng(); rng(), rng();]);
+    let op0 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
+    let op1 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
     let instrument = Instrument::new(vec![op0, op1]);
     let sum = instrument.non_selective_operation_matrix();
     let op0 = instrument.operation(0);
@@ -46,10 +46,10 @@ fn non_selective_evolution_operator() {
     let kraus_operators: Vec<SquareMatrix> = (0..dim * dim)
         .map(|_| SquareMatrix::from_fn(dim, dim, |_, _| (0.5 - rng()).into()))
         .collect();
-    let op0 = Operation::new(kraus_operators);
+    let op0 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_0 = Instrument::new(vec![op0]);
     let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().to_vec();
-    let op1 = Operation::new(kraus_operators);
+    let op1 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_1 = Instrument::new(vec![op1]);
     let m0 = instrument_0.non_selective_operation_matrix();
     let m1 = instrument_1.non_selective_operation_matrix();

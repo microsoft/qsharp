@@ -29,7 +29,8 @@ fn constructor() {
             1. + 0.50 * I, 1.,     3., 5.;
             3. + 0.25 * I, 1.,     1., 2.;
         ]
-    );
+    )
+    .expect("operation should be valid");
 
     // Check that the effect matrix is the sum of the individual effect matrices
     // of each kraus operator.

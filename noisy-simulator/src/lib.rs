@@ -106,6 +106,9 @@ pub trait NoisySimulator {
 /// A noisy simulation error.
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum Error {
+    /// Failure when building an operation.
+    #[error("error when building operation: {0}")]
+    FailedToConstructOperation(String),
     /// Failure when sampling instrument outcome.
     #[error("numerical error: no outcome found when sampling instrument")]
     FailedToSampleInstrumentOutcome,

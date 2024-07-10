@@ -20,6 +20,7 @@ fn h() -> Operation {
     let f = 0.5_f64.sqrt();
     operation!([f,  f;
                 f, -f;])
+    .expect("operation should be valid")
 }
 
 /// Returns a CNOT gate.
@@ -28,18 +29,21 @@ fn cnot() -> Operation {
                 0., 1., 0., 0.;
                 0., 0., 0., 1.;
                 0., 0., 1., 0.;])
+    .expect("operation should be valid")
 }
 
 /// Returns the 0-projection of an MZ measurement.
 fn mz0() -> Operation {
     operation!([1., 0.;
                 0., 0.;])
+    .expect("operation should be valid")
 }
 
 /// Returns the 1-projection of an MZ measurement.
 fn mz1() -> Operation {
     operation!([0., 0.;
                 0., 1.;])
+    .expect("operation should be valid")
 }
 
 /// Returns an MZ measurement.
@@ -190,6 +194,7 @@ pub fn crx_gate_projection_mz0<NS: NoisySimulator>() {
                     0., 1., 0., 0.;
                     0., 0., c,  s;
                     0., 0., s,  c;])
+        .expect("operation should be valid")
     };
 
     for p in &probabilities {
@@ -234,6 +239,7 @@ pub fn crx_gate_projection_mz1<NS: NoisySimulator>() {
                     0., 1., 0., 0.;
                     0., 0., c,  s;
                     0., 0., s,  c;])
+        .expect("operation should be valid")
     };
 
     for p in &probabilities {
@@ -294,9 +300,11 @@ pub fn alternating_mz_and_mx<NS: NoisySimulator>() {
     let mz = mz();
     let mx = Instrument::new(vec![
         operation!([0.5, 0.5;
-                    0.5, 0.5;]),
+                    0.5, 0.5;])
+        .expect("operation should be valid"),
         operation!([ 0.5, -0.5;
-                    -0.5,  0.5;]),
+                    -0.5,  0.5;])
+        .expect("operation should be valid"),
     ]);
 
     let mut sim = NS::new(1);

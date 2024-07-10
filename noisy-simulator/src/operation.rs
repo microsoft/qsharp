@@ -6,7 +6,7 @@
 
 #[cfg(test)]
 mod tests;
-use crate::SquareMatrix;
+use crate::{Error, SquareMatrix};
 
 /// A helper macro to write operations more conveniently.
 ///
@@ -20,7 +20,7 @@ use crate::SquareMatrix;
 ///      0., 0.;],
 ///     [0., 0.;
 ///      0., 0.;]
-/// );
+/// ).expect("operation should be valid");
 /// ```
 #[macro_export]
 macro_rules! operation {
@@ -49,24 +49,29 @@ impl Operation {
     /// Construct an operation from a list of Kraus operators.
     /// Matrices must be of dimension 2^k x 2^k, where k is an integer.
     /// Returns `None` if the kraus matrices are ill formed.
-    pub fn new(kraus_operators: Vec<SquareMatrix>) -> Self {
+    pub fn new(kraus_operators: Vec<SquareMatrix>) -> Result<Self, Error> {
         let (dim, _) = kraus_operators
             .first()
-            .expect("there should be at least one Kraus Operator")
+            .ok_or(Error::FailedToConstructOperation(
+                "there should be at least one Kraus Operator".to_string(),
+            ))?
             .shape();
 
         let number_of_qubits = (dim as f64).log2() as usize;
-        assert!(
-            1 << number_of_qubits == dim,
-            "kraus operators should have dimensions 2^k x 2^k"
-        );
+        if 1 << number_of_qubits != dim {
+            return Err(Error::FailedToConstructOperation(
+                "kraus operators should have dimensions 2^k x 2^k".to_string(),
+            ));
+        }
 
         for kraus_operator in kraus_operators.iter() {
             let (rows, cols) = kraus_operator.shape();
-            assert!(
-                rows == dim && cols == dim,
-                "kraus operators should be square matrices and have the same dimensions"
-            );
+            if rows != dim || cols != dim {
+                return Err(Error::FailedToConstructOperation(
+                    "kraus operators should be square matrices and have the same dimensions"
+                        .to_string(),
+                ));
+            }
         }
 
         let effect_matrix: SquareMatrix = kraus_operators.iter().map(|k| k.adjoint() * k).sum();
@@ -78,13 +83,13 @@ impl Operation {
 
         let effect_matrix_transpose = effect_matrix.transpose();
 
-        Self {
+        Ok(Self {
             number_of_qubits,
             kraus_operators,
             operation_matrix,
             effect_matrix,
             effect_matrix_transpose,
-        }
+        })
     }
 
     /// Return matrix representation:
