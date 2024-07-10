@@ -33,6 +33,9 @@ macro_rules! operation {
     };
 }
 
+#[cfg(test)]
+pub(crate) use operation;
+
 /// This struct represents a quantum operation.
 /// A quantum operation is a linear transformation that maps a valid density
 /// matrix to another valid density matrices.
@@ -121,6 +124,3 @@ impl Operation {
         self.number_of_qubits
     }
 }
-
-#[cfg(test)]
-pub(crate) use operation;
