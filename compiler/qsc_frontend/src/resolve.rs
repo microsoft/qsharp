@@ -71,6 +71,8 @@ pub enum Res {
     UnitTy,
     /// An export, which could be from another package.
     ExportedItem(ItemId),
+    /// A reference to a namespace
+    Namespace(NamespaceId),
 }
 
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
@@ -1041,6 +1043,16 @@ impl Resolver {
         self.locals.get_scope_mut(scope_id)
     }
 
+    /// Returns the innermost scope in the current scope chain.
+    fn current_scope(&mut self) -> &Scope {
+        let scope_id = *self
+            .curr_scope_chain
+            .last()
+            .expect("there should be at least one scope at location");
+
+        self.locals.get_scope(scope_id)
+    }
+
     fn handle_namespace_import_or_export(
         &mut self,
         is_export: bool,
@@ -1063,6 +1075,29 @@ impl Resolver {
                 self.globals
                     .namespaces
                     .insert_with_id(current_namespace, ns, &alias.name);
+                // now we have to get each item in this namespace and also export that
+                let (_, namespace) = self.globals.namespaces.find_namespace_by_id(&ns);
+
+                let namespace_children: Vec<(Rc<str>, NamespaceId)> = {
+                    namespace
+                        .borrow()
+                        .children()
+                        .iter()
+                        .map(|(name, node)| (Rc::clone(name), node.borrow().id))
+                        .collect()
+                };
+                for (child_ns_name, child_ns) in namespace_children {
+                    let term_items = self.globals.terms.get_mut_or_default(child_ns);
+                    //                    for item in term_items {
+                    // insert the new namespace
+                    self.globals
+                        .namespaces
+                        .insert_with_id(Some(ns), child_ns, &child_ns_name);
+                    println!("Namespaces are now {:#?}", self.globals.namespaces);
+                    for term in term_items {}
+
+                    //                   }
+                }
             } else {
                 // for imports, we just bind the namespace as an open
                 self.bind_open(&items, &alias, ns);
@@ -1396,10 +1431,13 @@ impl GlobalTable {
         store: &crate::compile::PackageStore,
         alias: &Option<Arc<str>>,
     ) {
+        // if there is a package-level alias defined, use that for the root namespace.
         let root = match alias {
             Some(alias) => self
                 .scope
                 .insert_or_find_namespace(vec![Rc::from(&**alias)]),
+            // otherwise, these namespaces will be inserted into the root of the local package
+            // without any alias.
             None => self.scope.namespaces.root_id(),
         };
 
@@ -1487,6 +1525,8 @@ fn bind_global_items(
     assigner: &mut Assigner,
     errors: &mut Vec<Error>,
 ) {
+    // TODO(alex): does this function bind namespaces to items? Should we grab chilren namespaces
+    // and insert them as items?
     names.insert(
         namespace.id,
         Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
@@ -1505,6 +1545,18 @@ fn bind_global_items(
             Ok(()) => {}
             Err(mut e) => errors.append(&mut e),
         }
+    }
+    let namespace_children = {
+        // bind child items
+        let (name, namespace_cell) = scope.namespaces.find_namespace_by_id(&namespace_id);
+
+        let cell = namespace_cell.borrow();
+        cell.children().clone()
+    };
+
+    for (name, child) in namespace_children {
+        let id = child.borrow().id;
+        let (name, id) = scope.namespaces.find_namespace_by_id(&id);
     }
 }
 
@@ -1554,7 +1606,7 @@ fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
     namespace: NamespaceId,
-    next_id: impl FnOnce() -> ItemId,
+    mut next_id: impl FnMut() -> ItemId,
     item: &ast::Item,
 ) -> Result<(), Vec<Error>> {
     match &*item.kind {
@@ -1563,7 +1615,53 @@ fn bind_global_item(
         }
         ast::ItemKind::Ty(name, _) => bind_ty(name, namespace, next_id, item, names, scope),
         ast::ItemKind::Struct(decl) => bind_ty(&decl.name, namespace, next_id, item, names, scope),
-        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::ImportOrExport(..) => Ok(()),
+        ast::ItemKind::ImportOrExport(decl) => {
+            if decl.is_import() {
+                Ok(())
+            } else {
+                for decl_item in decl.items.iter() {
+                    // if the item is a namespace, bind it here as an item
+                    let Some(ns) = scope
+                        .namespaces
+                        .get_namespace_id(Into::<Idents>::into(decl_item.path.clone()).str_iter())
+                    else {
+                        continue;
+                    };
+                    //                    bind_global_item(names, scope, namespace, next_id, item)?;
+                    let item_id = next_id();
+                    let res = Res::Item(item_id, ItemStatus::Available);
+                    names.insert(decl_item.name().id, res);
+                    match scope
+                        .terms
+                        .get_mut_or_default(namespace)
+                        .entry(Rc::clone(&decl_item.name().name))
+                    {
+                        Entry::Occupied(_) => {
+                            let namespace_name = scope
+                                .namespaces
+                                .find_namespace_by_id(&namespace)
+                                .0
+                                .join(".");
+                            return Err(vec![Error::Duplicate(
+                                decl_item.name().name.to_string(),
+                                namespace_name,
+                                decl_item.name().span,
+                            )]);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(res);
+                        }
+                    }
+
+                    // and update the namespace tree
+                    scope
+                        .namespaces
+                        .insert_with_id(Some(namespace), ns, &decl_item.name().name);
+                }
+                Ok(())
+            }
+        }
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
     }
 }
 
@@ -1845,6 +1943,15 @@ fn check_scoped_resolutions(
         })
         .collect::<FxHashMap<_, _>>();
 
+    /*
+    if provided_symbol_name.name.to_string().as_str() == "Count" {
+        println!(
+            "looking for {kind:?} {:#?} in ns {:#?}",
+            provided_symbol_name.name, provided_namespace_name
+        );
+    }
+    */
+
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,
@@ -1933,6 +2040,13 @@ where
         ),
     };
 
+    /*
+    if provided_symbol_name.name.to_string().as_str() == "Count" {
+        println!("opens is {opens:?}");
+        println!("Aliases is {aliases:?}");
+    }
+    */
+
     let mut candidates = FxHashMap::default();
     if let Some(opens) = opens {
         for open in opens {
@@ -1959,6 +2073,11 @@ where
     }
 
     for (candidate_namespace_id, open) in namespaces_to_search {
+        /*
+        if provided_symbol_name.name.to_string().as_str() == "Count" {
+            println!("ns to search is: {:#?}", candidate_namespace_id);
+        }
+        */
         find_symbol_in_namespace(
             kind,
             globals,
@@ -1993,9 +2112,13 @@ fn find_symbol_in_namespace<O>(
     O: Clone + std::fmt::Debug,
 {
     // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
-    let (_, candidate_namespace) = globals
+    let (name, candidate_namespace) = globals
         .namespaces
         .find_namespace_by_id(&candidate_namespace_id);
+    if provided_symbol_name.name.to_string().as_str() == "Count" {
+        println!("candidate namespace is {name:?} ({candidate_namespace_id:#?})");
+        println!("Namespaces are: {:#?}", globals.namespaces);
+    }
 
     // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
     let namespace = provided_namespace_name.as_ref().and_then(|name| {

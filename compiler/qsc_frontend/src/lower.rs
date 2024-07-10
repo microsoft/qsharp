@@ -130,11 +130,15 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
+                println!("looking for name {:?}", item.path);
+
                 self.names
                     .get(item.path.id)
                     .map(|x| (x, item.alias.clone()))
             })
             .collect::<Vec<_>>();
+
+        dbg!(&exports);
 
         let exported_hir_ids = exports
             .iter()
@@ -834,6 +838,7 @@ impl With<'_> {
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
+            Some(&resolve::Res::Namespace(ns_id)) => hir::Res::Namespace(ns_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }

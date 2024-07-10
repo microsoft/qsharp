@@ -127,10 +127,10 @@ impl PackageIter<'_> {
         });
         let (id, visibility, alias) = match &item.kind {
             ItemKind::Export(name, item_id) => (
-                ItemId {
+                dbg!(ItemId {
                     package: item_id.package.or(self.id),
                     item: item_id.item,
-                },
+                }),
                 hir::Visibility::Public,
                 Some(name),
             ),
@@ -188,21 +188,13 @@ impl PackageIter<'_> {
             (
                 ItemKind::Export(name, ItemId { package, .. }),
                 Some(ItemKind::Namespace(namespace, _)),
-            ) => {
-                if package.is_none() && alias.is_none() {
-                    // if there is no package, then this was declared in this package
-                    // and this is a noop -- it will be marked as public on export
-                    None
-                } else {
-                    Some(Global {
-                        namespace: namespace.into(),
-                        name: name.name.clone(),
-                        visibility,
-                        status,
-                        kind: Kind::Export(id),
-                    })
-                }
-            }
+            ) => Some(Global {
+                namespace: namespace.into(),
+                name: name.name.clone(),
+                visibility,
+                status,
+                kind: Kind::Export(id),
+            }),
             _ => None,
         }
     }

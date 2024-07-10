@@ -204,3 +204,17 @@ fn check_base_profile_measure_resets_aux_qubits() {
         &Value::RESULT_ONE,
     );
 }
+
+// just tests a single case of the stdlib reexports for the modern api,
+// to ensure that reexporting functionality doesn't break
+#[test]
+fn stdlib_reexport_single_case() {
+    test_expression(
+        r#" {
+    import Std.TestFunc;
+    import Std.Quantum.Arrays;
+    import Std.Quantum.Arrays.Count;
+    }"#,
+        &Value::RESULT_ONE,
+    );
+}

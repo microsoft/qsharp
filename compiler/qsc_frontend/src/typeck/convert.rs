@@ -76,7 +76,12 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
         // So realistically, by construction, `Param` here is unreachable.
         // A path can also never resolve to an export, because in typeck/check,
         // we resolve exports to their original definition.
-        Some(resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_)) => {
+        Some(
+            resolve::Res::Local(_)
+            | resolve::Res::Param(_)
+            | resolve::Res::ExportedItem(_)
+            | resolve::Res::Namespace(_),
+        ) => {
             unreachable!(
                 "A path should never resolve \
             to a local or a parameter, as there is syntactic differentiation."
