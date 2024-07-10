@@ -211,8 +211,6 @@ fn check_base_profile_measure_resets_aux_qubits() {
 fn stdlib_reexport_single_case() {
     test_expression(
         r#" {
-    import Std.TestFunc;
-    import Std.Arrays.*;
     import Std.Arrays.Count;
     }"#,
         &Value::Tuple(vec![].into()),
