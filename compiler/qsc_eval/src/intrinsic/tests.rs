@@ -268,12 +268,12 @@ fn double_as_string_with_precision_negative_error() {
 
 #[test]
 fn double_as_string_with_zero_precision() {
-    check_intrinsic_result("", "DoubleAsStringWithPrecision(0.47, 0)", &expect!["0."]);
+    check_intrinsic_result("", "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.47, 0)", &expect!["0."]);
 }
 
 #[test]
 fn double_as_string_with_zero_precision_rounding() {
-    check_intrinsic_result("", "DoubleAsStringWithPrecision(0.913, 0)", &expect!["1."]);
+    check_intrinsic_result("", "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.913, 0)", &expect!["1."]);
 }
 
 #[test]
