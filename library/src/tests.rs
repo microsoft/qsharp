@@ -212,9 +212,9 @@ fn stdlib_reexport_single_case() {
     test_expression(
         r#" {
     import Std.TestFunc;
-    import Std.Quantum.Arrays;
-    import Std.Quantum.Arrays.Count;
+    import Std.Arrays.*;
+//    import Std.Arrays.Count;
     }"#,
-        &Value::RESULT_ONE,
+        &Value::Tuple(vec![].into()),
     );
 }

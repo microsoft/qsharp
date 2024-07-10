@@ -187,12 +187,74 @@ impl NamespaceTreeRoot {
         ns: impl Into<Vec<Rc<str>>>,
         root: NamespaceId,
     ) -> NamespaceId {
+        let ns = ns.into();
+        if ns.is_empty() {
+            return root;
+        }
         let (_root_name, root_contents) = self.find_namespace_by_id(&root);
         let id = root_contents
             .borrow_mut()
-            .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
+            .insert_or_find_namespace(ns.into_iter().peekable(), &mut self.assigner);
 
-        id.expect("empty name should not be passed into namespace insertion")
+        id.expect("empty name checked for above")
+    }
+
+    pub fn insert_or_find_namespace_from_root_with_id(
+        &mut self,
+        ns: Vec<Rc<str>>,
+        root: NamespaceId,
+        base_id: NamespaceId,
+    ) {
+        let mut ns: Vec<_> = ns.into();
+        if ns.is_empty() {
+            return;
+        }
+        let (_root_name, root_contents) = self.find_namespace_by_id(&root);
+        // split `ns` into [0..len - 1] and [len - 1]
+        let suffix = ns.split_off(ns.len() - 1)[0].clone();
+        let prefix = ns;
+
+        // if the prefix is empty, we are inserting into the root
+        if prefix.is_empty() {
+            self.insert_with_id(Some(root), base_id, &suffix);
+            return;
+        } else {
+            let prefix_id = root_contents
+                .borrow_mut()
+                .insert_or_find_namespace(prefix.into_iter().peekable(), &mut self.assigner)
+                .expect("empty name checked for above");
+
+            self.insert_with_id(Some(prefix_id), base_id, &suffix);
+        }
+    }
+
+    /// Each item in this iterator is one namespace. The reason there are multiple paths for it,
+    /// each represented by a `Vec<Rc<str>>`, is because there may be multiple paths to the same
+    /// namespace, through aliasing or re-exports.
+    pub fn iter(&self) -> std::collections::hash_map::IntoValues<NamespaceId, Vec<Vec<Rc<str>>>> {
+        let mut stack = vec![(vec![], self.tree.clone())];
+        let mut result: Vec<(NamespaceId, Vec<Rc<str>>)> = vec![];
+        while let Some((names, node)) = stack.pop() {
+            result.push((node.borrow().id, names.clone()));
+            for (name, child) in node.borrow().children() {
+                let mut new_names = names.clone();
+                new_names.push(name.clone());
+                stack.push((new_names, child.clone()));
+            }
+            if node.borrow().children().is_empty() {
+                result.push((node.borrow().id, names));
+            }
+        }
+
+        // flatten the result into a list of paths
+
+        let mut flattened_result = FxHashMap::default();
+        for (id, names) in result {
+            let entry = flattened_result.entry(id).or_insert_with(Vec::new);
+            entry.push(names);
+        }
+
+        flattened_result.into_values()
     }
 }
 

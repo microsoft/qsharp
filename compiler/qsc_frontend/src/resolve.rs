@@ -369,6 +369,16 @@ impl GlobalScope {
     ) -> NamespaceId {
         self.namespaces.insert_or_find_namespace_from_root(ns, root)
     }
+
+    fn insert_or_find_namespace_from_root_with_id(
+        &mut self,
+        name: Vec<Rc<str>>,
+        root: NamespaceId,
+        base_id: NamespaceId,
+    ) {
+        self.namespaces
+            .insert_or_find_namespace_from_root_with_id(name, root, base_id)
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -538,6 +548,10 @@ impl Resolver {
 
     pub(super) fn names(&self) -> &Names {
         &self.names
+    }
+
+    pub(crate) fn namespaces(&self) -> &qsc_data_structures::namespaces::NamespaceTreeRoot {
+        &self.globals.namespaces
     }
 
     pub(super) fn locals(&self) -> &Locals {
@@ -1093,7 +1107,6 @@ impl Resolver {
                     self.globals
                         .namespaces
                         .insert_with_id(Some(ns), child_ns, &child_ns_name);
-                    println!("Namespaces are now {:#?}", self.globals.namespaces);
                     for term in term_items {}
 
                     //                   }
@@ -1440,6 +1453,27 @@ impl GlobalTable {
             // without any alias.
             None => self.scope.namespaces.root_id(),
         };
+
+        // iterate over the tree from the package and recreate it here
+        for names_for_same_namespace in package.namespaces.iter() {
+            let mut names_iter = names_for_same_namespace.into_iter();
+            let base_id = self.scope.insert_or_find_namespace_from_root(
+                names_iter
+                    .next()
+                    .expect("should always be at least one name"),
+                root,
+            );
+
+            for name in names_iter {
+                self.scope
+                    .insert_or_find_namespace_from_root_with_id(name, root, base_id);
+            }
+        }
+
+        println!(
+            "After adding external package: {:#?}",
+            self.scope.namespaces
+        );
 
         for global in global::iter_package(Some(id), package).filter(|global| {
             global.visibility == hir::Visibility::Public
@@ -1943,15 +1977,6 @@ fn check_scoped_resolutions(
         })
         .collect::<FxHashMap<_, _>>();
 
-    /*
-    if provided_symbol_name.name.to_string().as_str() == "Count" {
-        println!(
-            "looking for {kind:?} {:#?} in ns {:#?}",
-            provided_symbol_name.name, provided_namespace_name
-        );
-    }
-    */
-
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,
@@ -2040,13 +2065,6 @@ where
         ),
     };
 
-    /*
-    if provided_symbol_name.name.to_string().as_str() == "Count" {
-        println!("opens is {opens:?}");
-        println!("Aliases is {aliases:?}");
-    }
-    */
-
     let mut candidates = FxHashMap::default();
     if let Some(opens) = opens {
         for open in opens {
@@ -2073,11 +2091,6 @@ where
     }
 
     for (candidate_namespace_id, open) in namespaces_to_search {
-        /*
-        if provided_symbol_name.name.to_string().as_str() == "Count" {
-            println!("ns to search is: {:#?}", candidate_namespace_id);
-        }
-        */
         find_symbol_in_namespace(
             kind,
             globals,
@@ -2115,10 +2128,6 @@ fn find_symbol_in_namespace<O>(
     let (name, candidate_namespace) = globals
         .namespaces
         .find_namespace_by_id(&candidate_namespace_id);
-    if provided_symbol_name.name.to_string().as_str() == "Count" {
-        println!("candidate namespace is {name:?} ({candidate_namespace_id:#?})");
-        println!("Namespaces are: {:#?}", globals.namespaces);
-    }
 
     // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
     let namespace = provided_namespace_name.as_ref().and_then(|name| {

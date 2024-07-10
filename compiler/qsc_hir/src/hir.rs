@@ -222,6 +222,7 @@ pub enum Res {
     Item(ItemId),
     /// A local variable.
     Local(NodeId),
+    /// TODO(remove)
     Namespace(qsc_data_structures::namespaces::NamespaceId),
 }
 
@@ -255,6 +256,8 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The namespace tree defined by this package
+    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     /// The top-level statements in the package.
     pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.

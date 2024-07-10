@@ -380,7 +380,7 @@ pub fn compile_ast(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, locals, name_errors) = resolve_all(
+    let (names, locals, name_errors, namespaces) = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -391,7 +391,7 @@ pub fn compile_ast(
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package);
+        .lower_package(&ast_package, namespaces);
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
@@ -516,7 +516,12 @@ fn resolve_all(
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Locals, Vec<resolve::Error>) {
+) -> (
+    Names,
+    Locals,
+    Vec<resolve::Error>,
+    qsc_data_structures::namespaces::NamespaceTreeRoot,
+) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
@@ -540,9 +545,9 @@ fn resolve_all(
 
     // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
+    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, locals, errors)
+    (names, locals, errors, namespaces)
 }
 
 fn typeck_all(

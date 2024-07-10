@@ -94,7 +94,11 @@ pub(super) struct With<'a> {
 }
 
 impl With<'_> {
-    pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
+    pub(super) fn lower_package(
+        &mut self,
+        package: &ast::Package,
+        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    ) -> hir::Package {
         let mut stmts = Vec::new();
         for node in &*package.nodes {
             match node {
@@ -111,6 +115,7 @@ impl With<'_> {
         let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         hir::Package {
             items,
+            namespaces,
             stmts,
             entry,
         }
@@ -130,15 +135,11 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                println!("looking for name {:?}", item.path);
-
                 self.names
                     .get(item.path.id)
                     .map(|x| (x, item.alias.clone()))
             })
             .collect::<Vec<_>>();
-
-        dbg!(&exports);
 
         let exported_hir_ids = exports
             .iter()

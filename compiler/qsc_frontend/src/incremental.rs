@@ -263,7 +263,13 @@ impl Compiler {
         self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
-        let package = self.lower(&mut unit.assigner, &*ast);
+        let package = self.lower(
+            &mut unit.assigner,
+            &*ast,
+            // not an ideal clone, but it is once per fragment, and the namespace tree is
+            // relatively lightweight
+            self.resolver.namespaces().clone(),
+        );
 
         let errors = self
             .resolver
@@ -370,10 +376,15 @@ impl Compiler {
         (package, with_source(errors, sources, offset))
     }
 
-    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
+    fn lower(
+        &mut self,
+        hir_assigner: &mut HirAssigner,
+        package: &ast::Package,
+        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    ) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package)
+            .lower_package(package, namespaces)
     }
 }
 
