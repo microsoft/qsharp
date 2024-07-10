@@ -1,7 +1,13 @@
 [package]
 name = "noisy-simulator"
-version = "0.1.0"
-edition = "2021"
+description = "Q# noisy simulator"
+
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
