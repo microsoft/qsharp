@@ -106,6 +106,9 @@ pub trait NoisySimulator {
 /// A noisy simulation error.
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum Error {
+    /// Failure when building a `DensityMatrix` from raw data.
+    #[error("error when building `DensityMatrix` from raw_data: {0}")]
+    DensityMatrixTryFromError(String),
     /// Failure when building an operation.
     #[error("error when building operation: {0}")]
     FailedToConstructOperation(String),
@@ -137,6 +140,9 @@ pub enum Error {
     /// A qubit-id is greater than the number of qubits the simulation supports.
     #[error("qubit id out of bounds: {0}")]
     QubitIdOutOfBounds(usize),
+    /// Failure when building a `StateVector` from raw data.
+    #[error("error when building `StateVector` from raw_data: {0}")]
+    StateVectorTryFromError(String),
     /// Trace is not real
     #[error("state trace should be real since it represents a probability, but its imaginary part is: {0}")]
     TraceIsNotReal(f64),

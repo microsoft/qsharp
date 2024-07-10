@@ -160,7 +160,7 @@ impl TryInto<noisy_simulator::DensityMatrix> for DensityMatrix {
             self.trace_change,
             ComplexVector::from_vec(self.data),
         )
-        .ok_or(NoisySimulatorError::new_err("invalid density matrix"))
+        .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 }
 
@@ -290,7 +290,7 @@ impl TryInto<noisy_simulator::StateVector> for StateVector {
             self.trace_change,
             ComplexVector::from_vec(self.data),
         )
-        .ok_or(NoisySimulatorError::new_err("invalid density matrix"))
+        .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
     }
 }
 

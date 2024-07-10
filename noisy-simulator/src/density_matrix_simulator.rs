@@ -49,17 +49,30 @@ impl DensityMatrix {
         number_of_qubits: usize,
         trace_change: f64,
         data: ComplexVector,
-    ) -> Option<Self> {
-        if 1 << number_of_qubits != dimension || data.len() != dimension * dimension {
-            None
-        } else {
-            Some(Self {
-                dimension,
-                number_of_qubits,
-                trace_change,
-                data,
-            })
+    ) -> Result<Self, Error> {
+        if 1 << number_of_qubits != dimension {
+            return Err(Error::DensityMatrixTryFromError(format!(
+                "the system has {number_of_qubits} qubits and density matrix has dimension {dimension} but 2 ^ {number_of_qubits} != {dimension}"
+            )));
         }
+
+        if data.len() != dimension * dimension {
+            return Err(Error::DensityMatrixTryFromError(format!(
+                "matrix dimension is {} but data has {} entries, {} x {} != {}",
+                dimension,
+                data.len(),
+                dimension,
+                dimension,
+                data.len()
+            )));
+        }
+
+        Ok(Self {
+            dimension,
+            number_of_qubits,
+            trace_change,
+            data,
+        })
     }
 
     /// Returns a reference to the vector containing the density matrix's data.
