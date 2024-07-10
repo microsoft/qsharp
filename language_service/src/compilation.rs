@@ -120,44 +120,31 @@ impl Compilation {
     {
         trace!("compiling dependencies");
 
-        let (sources, dependencies, store) = match &project {
+        let (sources, dependencies, store, mut errors) = match &project {
             Some(p) if p.errors.is_empty() => {
                 trace!("using buildable program from project");
                 let buildable_program =
                     prepare_package_store(target_profile.into(), p.package_graph_sources.clone());
 
-                if !buildable_program.dependency_errors.is_empty() {
-                    return Self {
-                        package_store: buildable_program.store,
-                        user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
-                        compile_errors: buildable_program.dependency_errors,
-                        project_errors: p.errors.clone(),
-                        kind: CompilationKind::Notebook { project },
-                    };
-                }
-
                 (
                     SourceMap::new(buildable_program.user_code.sources, None),
                     buildable_program.user_code_dependencies,
                     buildable_program.store,
+                    buildable_program.dependency_errors,
                 )
             }
-            Some(p) => {
-                trace!("compilation failure for project: {:?}", p.errors);
-                let (_, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
-                return Self {
-                    package_store: store,
-                    user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
-                    compile_errors: Vec::new(),
-                    project_errors: p.errors.clone(),
-                    kind: CompilationKind::Notebook { project },
-                };
-            }
-            None => {
+            _ => {
+                // If no project is specified, or if the project has errors, compile stdlib only.
+                // Any project errors will be handled below.
                 trace!("compiling stdlib only");
                 let (std_id, store) =
                     qsc::compile::package_store_with_stdlib(target_profile.into());
-                (SourceMap::default(), vec![(std_id, None)], store)
+                (
+                    SourceMap::default(),
+                    vec![(std_id, None)],
+                    store,
+                    Vec::new(),
+                )
             }
         };
 
@@ -171,25 +158,26 @@ impl Compilation {
             &dependencies,
         ) {
             Ok(compiler) => compiler,
-            Err(errors) => match &project {
-                Some(p) => {
-                    trace!("compilation failure for sources: {:?}", errors);
-                    let (_, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
-                    return Self {
-                        package_store: store,
-                        user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
-                        compile_errors: errors,
-                        project_errors: p.errors.clone(),
-                        kind: CompilationKind::Notebook { project },
-                    };
-                }
-                None => {
-                    panic!("compilation failure for standard library: {errors:?}");
-                }
-            },
+            Err(user_errors) => {
+                errors.extend(user_errors);
+                // Because there were errors in the leaf project, we need to create a new compiler with no sources
+                // to do a best effort compilation of the cells.
+                trace!("falling back stdlib only only after leaf project errors");
+                let (std_id, store) =
+                    qsc::compile::package_store_with_stdlib(target_profile.into());
+
+                Compiler::new(
+                    SourceMap::default(),
+                    PackageType::Lib,
+                    target_profile.into(),
+                    language_features,
+                    store,
+                    &[(std_id, None)],
+                )
+                .expect("standard library should compile without errors")
+            }
         };
 
-        let mut errors = Vec::new();
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
@@ -221,8 +209,8 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
+            project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
-            project_errors: Vec::new(),
         }
     }
 

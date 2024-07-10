@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 // expect-test updates these strings automatically
-#![allow(clippy::needless_raw_string_hashes)]
+#![allow(clippy::needless_raw_string_hashes, clippy::too_many_lines)]
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
@@ -1021,32 +1021,94 @@ async fn update_notebook_reports_errors_from_dependencies() {
     expect_errors(
         &errors,
         &expect![[r#"
-        [
-            (
-                "project/src/file.qs",
-                None,
-                [
-                    Frontend(
-                        Error(
-                            Type(
-                                Error(
-                                    TyMismatch(
-                                        "Unit",
-                                        "Int",
+            [
+                (
+                    "cell1",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
                                         Span {
-                                            lo: 33,
-                                            hi: 36,
+                                            lo: 5,
+                                            hi: 8,
                                         },
                                     ),
                                 ),
                             ),
                         ),
-                    ),
-                ],
-                [],
-            ),
-        ]
-    "#]],
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 5,
+                                            hi: 8,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Bar",
+                                        Span {
+                                            lo: 9,
+                                            hi: 12,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        AmbiguousTy(
+                                            Span {
+                                                lo: 9,
+                                                hi: 14,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                    [],
+                ),
+                (
+                    "project/src/file.qs",
+                    None,
+                    [
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        TyMismatch(
+                                            "Unit",
+                                            "Int",
+                                            Span {
+                                                lo: 33,
+                                                hi: 36,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                    [],
+                ),
+            ]
+        "#]],
     );
 }
 
