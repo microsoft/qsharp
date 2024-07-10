@@ -265,7 +265,7 @@ namespace Microsoft.Quantum.Convert {
     }
 
     /// # Summary
-    /// Produces string representation of given double with desired precision (performs rounding).
+    /// Converts a given double-precision floating-point number to a string representation with desired precision, rounding if required.
     ///
     /// # Input
     /// ## input
