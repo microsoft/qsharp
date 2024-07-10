@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from scipy import linalg as LA
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
-from qsharp_widgets import EstimatesPanel
+import pandas as pd
 
 
 @dataclass
@@ -521,58 +521,49 @@ if isinstance(res,dict):
 else:
     result = res
 
-# This would display the summary of the data
-data = []
+data = {
+    'Run name': [],
+    'T factory fraction': [],
+    'Runtime': [],
+    'Physical qubits': [],
+    'rQOPS': []
+}
+
 for item in result:
-    data_item = []
-    
     # Run name
-    data_item.append(item["jobParams"]["qubitParams"]["name"])
-    
+    data['Run name'].append(item["jobParams"]["qubitParams"]["name"])
     # T factory fraction and Runtime
     if "physicalCountsFormatted" in item:
-        data_item.append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
-        data_item.append(item["physicalCountsFormatted"]["runtime"])
+        data['T factory fraction'].append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data['Runtime'].append(item["physicalCountsFormatted"]["runtime"])
     elif "frontierEntries" in item:
-        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
-        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+        data['T factory fraction'].append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data['Runtime'].item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
     else:
-        data_item.append("-")
-        data_item.append("-")
-    
+        data['T factory fraction'].append("-")
+        data['Runtime'].append("-")
     # Physical qubits and rQOPS
     if "physicalCounts" in item:
-        data_item.append(item["physicalCounts"]["physicalQubits"])
-        data_item.append(item["physicalCounts"]["rqops"])
+        data['Physical qubits'].append(item["physicalCounts"]["physicalQubits"])
+        data['rQOPS'].append(item["physicalCounts"]["rqops"])
     elif "frontierEntries" in item:
-        data_item.append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
-        data_item.append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
+        data['Physical qubits'].append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
+        data['rQOPS'].append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
     else:
-        data_item.append("-")
-        data_item.append("-")
-        
-    data.append(data_item)
-    
-# Define the table headers
-headers = ["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"]
-
-# Determine the width of each column
-col_widths = [max(len(str(item)) for item in column) for column in zip(headers, *data)]
-
-# Function to format a row
-def format_row(row):
-    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, col_widths))
-
-# Create the table
-header_row = format_row(headers)
-separator_row = "-+-".join("-" * width for width in col_widths)
-data_rows = [format_row(row) for row in data]
-
-# Print the table
-print(header_row)
-print(separator_row)
-for row in data_rows:
-    print(row)
+        data['Physical qubits'].append("-")
+        data['rQOPS'].append("-")
+       
+data = {
+    'Run name': ['qubit_maj_ns_e6'],
+    'T factory fraction': ['15.26 %'],
+    'Runtime': ['19 mins'],
+    'Physical qubits': [207604],
+    'rQOPS': [343333334]
+}
+ 
+df = pd.DataFrame(data)
+pd.set_option('display.colheader_justify', 'center')
+print(df.to_string(index=False, justify='center'))
 
 # Print high-level resource estimation results
 # if "physicalCountsFormatted" in res:
