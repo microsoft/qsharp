@@ -265,13 +265,13 @@ namespace Microsoft.Quantum.Convert {
     }
 
     /// # Summary
-    /// Produces string representation of given double with desired precision (performs rounding).
+    /// Converts a given double-precision floating-point number to a string representation with desired precision, rounding if required.
     ///
     /// # Input
     /// ## input
     /// Double to be converted.
     /// ## precision
-    /// Number of decimal digits.
+    /// Non-negative number of digits after the decimal point.
     /// # Example
     /// ```qsharp
     /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
