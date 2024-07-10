@@ -103,6 +103,12 @@ pub trait NoisySimulator {
 /// A noisy simulation error.
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum Error {
+    /// Failure when sampling instrument outcome.
+    #[error("numerical error: no outcome found when sampling instrument")]
+    FailedToSampleInstrumentOutcome,
+    /// Failure when sampling Kraus operators.
+    #[error("numerical error: no outcome found when sampling Kraus operators")]
+    FailedToSampleKrausOperators,
     /// Provided an invalid state when creating or setting the state of the simulator.
     #[error("provided an invalid state when creating or setting the state of the simulator: {0}")]
     InvalidState(String),
@@ -116,18 +122,15 @@ pub enum Error {
         /// Number of elements in the vector.
         vec_dim: usize,
     },
-    /// Failure when sampling instrument outcome.
-    #[error("numerical error: no outcome found when sampling instrument")]
-    FailedToSampleInstrumentOutcome,
-    /// Failure when sampling Kraus operators.
-    #[error("numerical error: no outcome found when sampling Kraus operators")]
-    FailedToSampleKrausOperators,
     /// State is not normalized.
     #[error("numerical error: trace should be between 0 and 1, but it is {0}")]
     NotNormalized(f64),
     /// A numerical error, such as a probability-0 event.
     #[error("numerical error: probability-0 event")]
     ProbabilityZeroEvent,
+    /// A qubit-id is greater than the number of qubits the simulation supports.
+    #[error("qubit id out of bounds: {0}")]
+    QubitIdOutOfBounds(usize),
 }
 
 impl Error {
