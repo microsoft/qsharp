@@ -3,7 +3,7 @@
 ///
 /// # Description
 /// User-defined struct types are supported in Q#.
-// They are immutable but support a copy-constructor syntax.
+/// They are immutable but support a copy-constructor syntax.
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {
