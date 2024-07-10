@@ -6,25 +6,16 @@ use num_complex::{Complex, ComplexFloat};
 
 use crate::{
     operation::{operation, Operation},
-    SquareMatrix, TOLERANCE,
+    tests::assert_approx_eq,
+    SquareMatrix,
 };
 
-macro_rules! assert_approx_eq {
-    ($left:expr, $right:expr $(,)?) => {
-        if !approx_eq($left, $right) {
-            panic!("aprox_equal failed, left = {}, right = {}", $left, $right);
-        }
-    };
-}
-
-fn approx_eq(a: f64, b: f64) -> bool {
-    (a - b).abs() <= TOLERANCE
-}
-
+/// Check that the inner matrices of the instrument are constructed correctly.
 #[test]
 fn constructor() {
     const I: Complex<f64> = Complex::I;
 
+    // Construct an operation from two kraus matrices.
     let op = operation!(
         [
             0., 1., 2., 4.;
@@ -40,6 +31,8 @@ fn constructor() {
         ]
     );
 
+    // Check that the effect matrix is the sum of the individual effect matrices
+    // of each kraus operator.
     let eff0 = dmatrix![
         11.,  6.,  9., 15.;
          6.,  7., 12., 19.;
@@ -58,9 +51,11 @@ fn constructor() {
     let eff = eff0 + eff1;
 
     for (x0, x1) in eff.iter().zip(op.effect_matrix_transpose().iter()) {
-        assert_approx_eq!(0., (x0 - x1.conj()).abs());
+        assert_approx_eq(0., (x0 - x1.conj()).abs());
     }
 
+    // Check that the operation matrix is the sum of the individual operation matrices
+    // of each kraus operator.
     let op0: SquareMatrix = dmatrix![
         0.,  0.,  0.,  0. ,  0.,  1.,  2.,  4. ,  0.,  2.,  4.,  8. ,  0. ,  4. ,  8. ,  16.;
         0.,  0.,  0.,  0. ,  1.,  2.,  3.,  4. ,  2.,  4.,  6.,  8. ,  4. ,  8. ,  12.,  16.;
@@ -101,6 +96,6 @@ fn constructor() {
     ];
 
     for ((x, x0), x1) in op.matrix().iter().zip(op0.iter()).zip(op1.iter()) {
-        assert_approx_eq!(0., (x0 + x1 - x).abs());
+        assert_approx_eq(0., (x0 + x1 - x).abs());
     }
 }

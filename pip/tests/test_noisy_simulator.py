@@ -53,7 +53,7 @@ def test_density_matrix_simulator():
     mz1 = Operation([[[0, 0], [0, 1]]])
     mz = Instrument([mz0, mz1])
 
-    sim = DensityMatrixSimulator(1)
+    sim = DensityMatrixSimulator(1, seed=42)
     sim.apply_operation(h, [0])
 
     # Applying MZ twice should yield the same result
@@ -80,7 +80,7 @@ def test_state_vector_simulator():
     mz1 = Operation([[[0, 0], [0, 1]]])
     mz = Instrument([mz0, mz1])
 
-    sim = StateVectorSimulator(1)
+    sim = StateVectorSimulator(1, seed=42)
     sim.apply_operation(h, [0])
 
     # Applying MZ twice should yield the same result

@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod tests;
 
+use rand::{rngs::StdRng, Rng, SeedableRng};
+
 use crate::{
     handle_error, instrument::Instrument, kernel::apply_kernel, operation::Operation,
     ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE,
@@ -166,6 +168,8 @@ pub struct StateVectorSimulator {
     /// Dimension of the density matrix. We need this field to verify the size of the
     /// quantum system in the `set_state` method in the case that `self.state == Err(...)`.
     dimension: usize,
+    /// Random number generator used for probabilistic operations.
+    rng: StdRng,
 }
 
 impl StateVectorSimulator {
@@ -189,7 +193,12 @@ impl NoisySimulator for StateVectorSimulator {
         Self {
             state: Ok(state_vector),
             dimension,
+            rng: StdRng::from_entropy(),
         }
+    }
+
+    fn set_rng_seed(&mut self, seed: u64) {
+        self.rng = StdRng::seed_from_u64(seed);
     }
 
     /// Apply an operation to given qubit ids.
@@ -206,7 +215,7 @@ impl NoisySimulator for StateVectorSimulator {
             operation.kraus_operators(),
             qubits,
             renormalization_factor,
-            rand::random(),
+            self.rng.gen(),
         ) {
             handle_error!(self, err);
         };
@@ -228,7 +237,7 @@ impl NoisySimulator for StateVectorSimulator {
             instrument.non_selective_kraus_operators(),
             qubits,
             renormalization_factor,
-            rand::random(),
+            self.rng.gen(),
         ) {
             handle_error!(self, err);
         };
@@ -245,7 +254,8 @@ impl NoisySimulator for StateVectorSimulator {
         instrument: &Instrument,
         qubits: &[usize],
     ) -> Result<usize, Error> {
-        self.sample_instrument_with_distribution(instrument, qubits, rand::random())
+        let sample = self.rng.gen();
+        self.sample_instrument_with_distribution(instrument, qubits, sample)
     }
 
     /// Performs selective evolution under the given instrument.

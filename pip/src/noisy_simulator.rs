@@ -168,10 +168,14 @@ pub(crate) struct DensityMatrixSimulator(noisy_simulator::DensityMatrixSimulator
 #[pymethods]
 impl DensityMatrixSimulator {
     #[new]
-    pub fn new(number_of_qubits: usize) -> Self {
-        Self(noisy_simulator::DensityMatrixSimulator::new(
-            number_of_qubits,
-        ))
+    pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
+        let mut simulator = noisy_simulator::DensityMatrixSimulator::new(number_of_qubits);
+
+        if let Some(seed) = seed {
+            simulator.set_rng_seed(seed);
+        }
+
+        Self(simulator)
     }
 
     /// Apply an arbitrary operation to given qubit ids.
@@ -294,8 +298,14 @@ pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 #[pymethods]
 impl StateVectorSimulator {
     #[new]
-    pub fn new(number_of_qubits: usize) -> Self {
-        Self(noisy_simulator::StateVectorSimulator::new(number_of_qubits))
+    pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
+        let mut simulator = noisy_simulator::StateVectorSimulator::new(number_of_qubits);
+
+        if let Some(seed) = seed {
+            simulator.set_rng_seed(seed);
+        }
+
+        Self(simulator)
     }
 
     /// Apply an arbitrary operation to given qubit ids.

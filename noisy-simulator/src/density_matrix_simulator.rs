@@ -12,6 +12,7 @@ use crate::{
     ComplexVector, Error, NoisySimulator, SquareMatrix, TOLERANCE,
 };
 use num_complex::Complex;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 /// A vectorized density matrix.
 #[derive(Debug, Clone)]
@@ -164,6 +165,8 @@ pub struct DensityMatrixSimulator {
     /// Dimension of the density matrix. We need this field to verify the size of the
     /// quantum system in the `set_state` method in the case that `self.state == Err(...)`.
     dimension: usize,
+    /// Random number generator used for probabilistic operations.
+    rng: StdRng,
 }
 
 impl DensityMatrixSimulator {
@@ -187,7 +190,12 @@ impl NoisySimulator for DensityMatrixSimulator {
         Self {
             state: Ok(density_matrix),
             dimension,
+            rng: StdRng::from_entropy(),
         }
+    }
+
+    fn set_rng_seed(&mut self, seed: u64) {
+        self.rng = StdRng::seed_from_u64(seed);
     }
 
     /// Apply an operation to the given qubit ids.
@@ -225,7 +233,8 @@ impl NoisySimulator for DensityMatrixSimulator {
         instrument: &Instrument,
         qubits: &[usize],
     ) -> Result<usize, Error> {
-        self.sample_instrument_with_distribution(instrument, qubits, rand::random())
+        let sample = self.rng.gen();
+        self.sample_instrument_with_distribution(instrument, qubits, sample)
     }
 
     /// Performs selective evolution under the given instrument.

@@ -96,7 +96,7 @@ class DensityMatrixSimulator:
     error, it will raise a `SimulatorException`.
     """
 
-    def __init__(self, number_of_qubits: int) -> None:
+    def __init__(self, number_of_qubits: int, seed: Optional[int]) -> None:
         """
         Creates a new `DensityMatrixSimulator`.
         """
@@ -175,7 +175,7 @@ class StateVectorSimulator:
     error, it will raise a `SimulatorException`.
     """
 
-    def __init__(self, number_of_qubits: int) -> None:
+    def __init__(self, number_of_qubits: int, seed: Optional[int]) -> None:
         """
         Creates a new `DensityMatrixSimulator`.
         """

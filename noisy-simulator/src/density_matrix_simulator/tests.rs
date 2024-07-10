@@ -17,8 +17,8 @@ fn measure_1() {
 #[test]
 fn bell_pair_sampling() {
     // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
-    for _ in 0..100 {
-        tests::bell_pair_sampling::<DensityMatrixSimulator>();
+    for seed in 0..100 {
+        tests::bell_pair_sampling::<DensityMatrixSimulator>(seed);
     }
 }
 
@@ -51,8 +51,8 @@ fn crx_gate_projection_mz1() {
 #[test]
 fn repeated_mz() {
     // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
-    for _ in 0..100 {
-        tests::repeated_mz::<DensityMatrixSimulator>();
+    for seed in 0..100 {
+        tests::repeated_mz::<DensityMatrixSimulator>(seed);
     }
 }
 

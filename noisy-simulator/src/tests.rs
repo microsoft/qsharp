@@ -9,7 +9,7 @@ use crate::{
 use num_complex::Complex;
 
 /// Assert that two f64 are equal up to a `TOLERANCE`.
-fn assert_approx_eq(left: f64, right: f64) {
+pub fn assert_approx_eq(left: f64, right: f64) {
     if (left - right).abs() > TOLERANCE {
         panic!("aprox_equal failed, left = {left}, right = {right}");
     }
@@ -76,9 +76,10 @@ pub fn measure_1<NS: NoisySimulator>() {
 }
 
 /// Check that both measurements in a Bell Pair yield the same result.
-pub fn bell_pair_sampling<NS: NoisySimulator>() {
+pub fn bell_pair_sampling<NS: NoisySimulator>(seed: u64) {
     let (h, cnot, mz) = (h(), cnot(), mz());
     let mut sim = NS::new(2);
+    sim.set_rng_seed(seed);
 
     // Make a Bell Pair.
     sim.apply_operation(&h, &[0])
@@ -271,10 +272,11 @@ pub fn crx_gate_projection_mz1<NS: NoisySimulator>() {
 }
 
 /// Check that two consecutive MZ on the same qubit yield the same outcome.
-pub fn repeated_mz<NS: NoisySimulator>() {
+pub fn repeated_mz<NS: NoisySimulator>(seed: u64) {
     let h = h();
     let mz = mz();
     let mut sim = NS::new(1);
+    sim.set_rng_seed(seed);
 
     sim.apply_operation(&h, &[0])
         .expect("operation should succeed");
