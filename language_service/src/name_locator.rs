@@ -148,7 +148,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
         None
     }
 
-    pub fn find_ident(&self, node_id: ast::NodeId) -> Option<&'package ast::Ident> {
+    fn find_ident(&self, node_id: ast::NodeId) -> Option<&'package ast::Ident> {
         let mut finder = AstIdentFinder {
             node_id,
             ident: None,
