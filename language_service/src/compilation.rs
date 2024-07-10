@@ -121,12 +121,20 @@ impl Compilation {
         trace!("compiling dependencies");
 
         let (sources, dependencies, store) = match &project {
-            Some(project) if project.errors.is_empty() => {
+            Some(p) if p.errors.is_empty() => {
                 trace!("using buildable program from project");
-                let buildable_program = prepare_package_store(
-                    target_profile.into(),
-                    project.package_graph_sources.clone(),
-                );
+                let buildable_program =
+                    prepare_package_store(target_profile.into(), p.package_graph_sources.clone());
+
+                if !buildable_program.dependency_errors.is_empty() {
+                    return Self {
+                        package_store: buildable_program.store,
+                        user_package_id: 2.into(), // We don't have a legitimate user package id here, so fall back to a guess.
+                        compile_errors: buildable_program.dependency_errors,
+                        project_errors: p.errors.clone(),
+                        kind: CompilationKind::Notebook { project },
+                    };
+                }
 
                 (
                     SourceMap::new(buildable_program.user_code.sources, None),
