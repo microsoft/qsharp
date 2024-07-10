@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from textwrap import dedent
 from qsharp.noisy_simulator import (
     NoisySimulatorError,
     Operation,
