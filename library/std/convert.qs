@@ -271,7 +271,7 @@ namespace Microsoft.Quantum.Convert {
     /// ## input
     /// Double to be converted.
     /// ## precision
-    /// Number of decimal digits.
+    /// Non-negative number of digits after the decimal point.
     /// # Example
     /// ```qsharp
     /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
