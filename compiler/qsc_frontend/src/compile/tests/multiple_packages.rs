@@ -62,6 +62,92 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
 }
 
 #[test]
+fn namespace_named_main_doesnt_create_main_namespace() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "Main",
+                "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;",
+            ),
+            (
+                "C",
+                r#"
+            // this fails because `Main` is considered the "root"
+            import Main.Main.Foo;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Foo(10, true);
+                    }"#,
+            ),
+        ],
+        &expect!([r#"
+            [
+                Error(
+                    Resolve(
+                        NotFound(
+                            "Main.Main.Foo",
+                            Span {
+                                lo: 86,
+                                hi: 99,
+                            },
+                        ),
+                    ),
+                ),
+                Error(
+                    Resolve(
+                        NotFound(
+                            "Foo",
+                            Span {
+                                lo: 205,
+                                hi: 208,
+                            },
+                        ),
+                    ),
+                ),
+                Error(
+                    Type(
+                        Error(
+                            AmbiguousTy(
+                                Span {
+                                    lo: 205,
+                                    hi: 218,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            ]"#]),
+    );
+}
+
+#[test]
+fn namespaces_named_main_treated_as_root() {
+    multiple_package_check(vec![
+        (
+            "Main",
+            "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;",
+        ),
+        (
+            "C",
+            "
+            // note that this is not Main.Main
+            // and that  the namespace `Main` is omitted here
+            import Main.Foo;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Foo(10, true);
+                    }",
+        ),
+    ]);
+}
+
+#[test]
 fn multiple_packages_reference_exports() {
     multiple_package_check(vec![
         (
@@ -357,4 +443,26 @@ fn reexports_still_type_check() {
                 ),
             ]"#]],
     );
+}
+
+#[test]
+fn namespaces_named_lowercase_main_not_treated_as_root() {
+    multiple_package_check(vec![
+        (
+            "main",
+            "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;",
+        ),
+        (
+            "C",
+            "
+            import main.main.Foo;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Foo(10, true);
+                    }",
+        ),
+    ]);
 }

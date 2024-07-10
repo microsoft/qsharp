@@ -113,19 +113,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     config: vscode.DebugConfiguration,
     _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    // if launch.json is missing or empty
-    if (!config.type && !config.request && !config.name) {
-      const docUri = getActiveQSharpDocumentUri();
-      if (docUri) {
-        config.type = "qsharp";
-        config.name = "Launch";
-        config.request = "launch";
-        config.programUri = docUri.toString();
-        config.shots = 1;
-        config.noDebug = "noDebug" in config ? config.noDebug : false;
-        config.stopOnEntry = !config.noDebug;
-      }
-    } else if (config.program && folder) {
+    if (config.program && folder) {
       // A program is specified in launch.json.
       //
       // Variable substitution is a bit odd in VS Code. Variables such as
@@ -148,6 +136,18 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
           path: fileUri.path,
         })
         .toString();
+    } else {
+      // if launch.json is missing or empty, try to launch the active Q# document
+      const docUri = getActiveQSharpDocumentUri();
+      if (docUri) {
+        config.type = "qsharp";
+        config.name = "Launch";
+        config.request = "launch";
+        config.programUri = docUri.toString();
+        config.shots = 1;
+        config.noDebug = "noDebug" in config ? config.noDebug : false;
+        config.stopOnEntry = !config.noDebug;
+      }
     }
 
     log.trace(

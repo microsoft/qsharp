@@ -4746,11 +4746,11 @@ fn export_namespace() {
                 operation item2() : Unit {}
             }
             namespace namespace8 {
-                export namespace7;
+                export item4;
             }
             namespace namespace9 {
                 open namespace7;
-                operation item5() : Unit {
+                operation item6() : Unit {
                     item1();
                     item2();
                 }
@@ -4781,11 +4781,11 @@ fn export_namespace_contains_children() {
                 operation item1() : Unit {}
             }
             namespace namespace9 {
-                export namespace7;
+                export item3;
             }
             namespace namespace10 {
                 open namespace8;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                 }
             }
@@ -4814,12 +4814,12 @@ fn export_namespace_cyclic() {
                 export namespace8;
             }
             namespace namespace8 {
-                export namespace7;
-                operation item2() : Unit {}
+                export item2;
+                operation item3() : Unit {}
             }
             namespace namespace9 {
                 open namespace8;
-                operation item4() : Unit { item2(); }
+                operation item5() : Unit { item3(); }
             }
         "#]],
     );
@@ -4840,12 +4840,12 @@ fn export_direct_cycle() {
         "},
         &expect![[r#"
             namespace namespace7 {
-                export namespace7;
+                export item1;
             }
 
             namespace namespace8 {
                 open namespace7;
-                operation item2() : Unit { }
+                operation item3() : Unit { }
             }
         "#]],
     );
@@ -4878,7 +4878,7 @@ fn export_namespace_with_alias() {
             }
             namespace namespace10 {
                 open namespace8;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                     item1();
                 }
