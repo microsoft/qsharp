@@ -88,6 +88,10 @@ impl Operation {
         }
         kraus_operators
     }
+
+    pub fn get_number_of_qubits(&self) -> usize {
+        self.0.number_of_qubits()
+    }
 }
 
 #[pyclass]

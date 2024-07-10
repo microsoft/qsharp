@@ -3,14 +3,12 @@
 
 from typing import Any, Callable, ClassVar, Optional, Dict, List
 
-
 class NoisySimulatorError(BaseException):
     """
     An error returned from the Q# noisy simulator.
     """
 
     ...
-
 
 class Operation:
     """
@@ -48,6 +46,10 @@ class Operation:
         """
         ...
 
+    def get_number_of_qubits(self) -> int:
+        """
+        Return the number of qubits that the operation acts on.
+        """
 
 class Instrument:
     """
@@ -59,7 +61,6 @@ class Instrument:
         Constructs an instrument from a list of operations.
         """
         ...
-
 
 class DensityMatrix:
     """
@@ -86,7 +87,6 @@ class DensityMatrix:
         Returns the number of qubits in the system.
         """
         ...
-
 
 class DensityMatrixSimulator:
     """
@@ -144,7 +144,6 @@ class DensityMatrixSimulator:
         """
         ...
 
-
 class StateVector:
     """
     A vector representing a pure state of a quantum system.
@@ -167,7 +166,6 @@ class StateVector:
         Returns the number of qubits in the system.
         """
         ...
-
 
 class StateVectorSimulator:
     """
