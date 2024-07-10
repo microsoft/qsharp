@@ -449,7 +449,7 @@ struct FindLocalLocations<'a> {
 }
 
 impl Visitor<'_> for FindLocalLocations<'_> {
-    // Locals don't cross namespace boundaries, so don't visit namespace.
+    // Locals don't cross namespace boundaries, so don't visit namespaces.
     fn visit_package(&mut self, package: &ast::Package) {
         package.nodes.iter().for_each(|n| {
             if let ast::TopLevelNode::Stmt(stmt) = n {

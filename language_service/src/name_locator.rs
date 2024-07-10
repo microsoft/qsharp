@@ -466,15 +466,15 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     }
 }
 
-/// Call `visit_callable_decl` if the ident is local to a callable,
-/// otherwise call `visit_package`.
+/// Call `visit_callable_decl` if the ident is local to a callable.
+/// Otherwise call `visit_package`.
 struct AstIdentFinder<'a> {
     pub node_id: ast::NodeId,
     pub ident: Option<&'a ast::Ident>,
 }
 
 impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
-    // Locals don't cross namespace boundaries, so don't visit namespace.
+    // Locals don't cross namespace boundaries, so don't visit namespaces.
     fn visit_package(&mut self, package: &'a ast::Package) {
         package.nodes.iter().for_each(|n| {
             if let ast::TopLevelNode::Stmt(stmt) = n {
