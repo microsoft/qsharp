@@ -137,6 +137,9 @@ pub enum Error {
     /// A qubit-id is greater than the number of qubits the simulation supports.
     #[error("qubit id out of bounds: {0}")]
     QubitIdOutOfBounds(usize),
+    /// Trace is not real
+    #[error("state trace should be real since it represents a probability, but its imaginary part is: {0}")]
+    TraceIsNotReal(f64),
 }
 
 impl Error {

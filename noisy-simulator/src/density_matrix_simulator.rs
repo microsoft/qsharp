@@ -94,22 +94,22 @@ impl DensityMatrix {
     }
 
     /// Returns `true` if the trace of the matrix is 1.
-    fn is_normalized(&self) -> bool {
-        (self.trace() - 1.0).abs() <= TOLERANCE
+    fn is_normalized(&self) -> Result<bool, Error> {
+        Ok((self.trace()? - 1.0).abs() <= TOLERANCE)
     }
 
     /// Returns the trace of the matrix. The trace is the sum of the diagonal entries of a matrix.
-    fn trace(&self) -> f64 {
+    fn trace(&self) -> Result<f64, Error> {
         let mut trace: Complex<f64> = Complex::ZERO;
         for idx in 0..self.dimension {
             trace += self.data[(self.dimension + 1) * idx];
         }
-        assert!(
-            trace.im <= TOLERANCE,
-            "state trace is not real, imaginary part is {}",
-            trace.im
-        );
-        trace.re
+
+        if trace.im > TOLERANCE {
+            Err(Error::TraceIsNotReal(trace.im))
+        } else {
+            Ok(trace.re)
+        }
     }
 
     /// Return theoretical change in trace due to operations that have been applied so far.
@@ -121,7 +121,7 @@ impl DensityMatrix {
 
     /// Renormalizes the matrix such that the trace is 1.
     fn renormalize(&mut self) -> Result<(), Error> {
-        self.renormalize_with_trace(self.trace())
+        self.renormalize_with_trace(self.trace()?)
     }
 
     /// Renormalizes the matrix such that the trace is 1. Uses a precomputed `trace`.
@@ -253,7 +253,7 @@ impl NoisySimulator for DensityMatrixSimulator {
             instrument.total_effect_transposed(),
             qubits,
         )?;
-        let total_effect_trace = tmp_state.trace();
+        let total_effect_trace = tmp_state.trace()?;
         if total_effect_trace < TOLERANCE {
             let err = Error::ProbabilityZeroEvent;
             handle_error!(self, err);
@@ -272,7 +272,7 @@ impl NoisySimulator for DensityMatrixSimulator {
                 instrument.operation(outcome).effect_matrix_transpose(),
                 qubits,
             )?;
-            let outcome_trace = tmp_state.trace();
+            let outcome_trace = tmp_state.trace()?;
             summed_probability += outcome_trace / total_effect_trace;
             if outcome_trace >= TOLERANCE {
                 last_non_zero_trace_outcome = outcome;
@@ -315,10 +315,10 @@ impl NoisySimulator for DensityMatrixSimulator {
                 new_state.dimension(),
             )));
         }
-        if !new_state.is_normalized() {
+        if !new_state.is_normalized()? {
             return Err(Error::InvalidState(format!(
                 "`state` is not normalized, trace is {}",
-                new_state.trace()
+                new_state.trace()?
             )));
         }
         if !new_state.is_hermitian() {
