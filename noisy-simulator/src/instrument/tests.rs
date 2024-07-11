@@ -15,7 +15,7 @@ const SEED: u64 = 42;
 
 /// Check that the inner matrices of the instrument are constructed correctly.
 #[test]
-fn check_non_slective_operation_matrix_is_computed_correctly() {
+fn check_non_selective_operation_matrix_is_computed_correctly() {
     let mut rng = StdRng::seed_from_u64(SEED);
     let mut rng = || rng.gen::<f64>();
 
