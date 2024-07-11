@@ -81,6 +81,8 @@ pub trait NoisySimulator {
 
     /// Performs selective evolution under the given instrument using a custom random distribution.
     /// Returns the index of the observed outcome.
+    ///
+    /// This method is used for testing and debugging purposes.
     fn sample_instrument_with_distribution(
         &mut self,
         instrument: &Instrument,
