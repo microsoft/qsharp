@@ -1,18 +1,37 @@
-### Copyright (c) Microsoft Corporation. All rights reserved.
-### Licensed under the MIT License.
+**Copyright (c) Microsoft Corporation. All rights reserved.**
+**Licensed under the MIT License.**
 
-# Various examples to test operations using `dump_operation` python API
+# Testing Operations in Modern QDK
+This sample project demonstrates different approaches to testing operations in Modern QDK, which unlike Classic QDK, doesn't support native Q# tests.
 
-Testing operations in Q# can be done in Python using `dump_operation` API.
-Modern QDK doesn't support native Q# tests unlike classic QDK, so we need a Python wrapper.
+## Testing Methods
 
-This sample outlines a multi-file Q# project that can be tested using Q#. This is organised as follows:
+There are two primary ways to test operations in Modern QDK:
+
+1. **Dumping Operation Output:**
+   - Use the `dump_operation` Python API to retrieve the operation's representation and compare it against the expected output.
+
+2. **Q# `Fact` Assertions:**
+   - Define a `Fact` function in your Q# code that uses the `CheckOperationsAreEqual` operation to verify if two operations are identical. The `Fact` function asserts that the check returns `true`.
+
+## Project Structure
+This sample project is a multi-file Q# project that showcases both testing methods. The project structure is as follows:
+
 - src
-    - BellState.qs
-    - SWAP.qs
-- qsharp.json
-- README.md
-- test_dump_operation.py
+    - "BellState.qs": Q# file containing the `AllBellStates` operation to be tested
+    - "SWAP.qs": Q# file containing the `ApplySWAP` operation to be tested
+    - "OperationEquivalence.qs": Q# file containing the `TestEquivalence` operation to be called in python wrapper
+- "qsharp.json": Q# project configuration file
+- test_dump_operation.py: "Python wrapper containing tests"
 
-Reference Links:
-- [Q# Testing guide](https://learn.microsoft.com/en-us/azure/quantum/user-guide/testing-debugging)
+## Installation
+- Install the `qsharp` python package by following the instructions mentioned [here](https://learn.microsoft.com/azure/quantum/install-overview-qdk#add-support-for-python-and-jupyter-notebooks).
+- Install `pytest` python package.
+
+## Running the sample
+Open the `samples/testing/dump_operation` directory, and run `pytest` command.
+
+## Reference Links:
+- [Q# Testing guide](https://learn.microsoft.com/azure/quantum/user-guide/testing-debugging).
+- [Getting started with modern QDK](https://learn.microsoft.com/azure/quantum/install-overview-qdk)
+- [Getting started with Pytest](https://docs.pytest.org/en/stable/getting-started.html)
