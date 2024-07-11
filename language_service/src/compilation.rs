@@ -167,9 +167,9 @@ impl Compilation {
             Ok(compiler) => compiler,
             Err(user_errors) => {
                 errors.extend(user_errors);
-                // Because there were errors in the leaf project, we need to create a new compiler with no sources
+                // Because there were errors in the user code project, we need to create a new compiler with no sources
                 // to do a best effort compilation of the cells.
-                trace!("falling back stdlib only only after leaf project errors");
+                trace!("falling back stdlib only only after user code project errors");
                 let (std_id, store) =
                     qsc::compile::package_store_with_stdlib(target_profile.into());
 
