@@ -5,58 +5,69 @@ use super::DensityMatrixSimulator;
 use crate::tests;
 
 #[test]
-fn measure_0() {
-    tests::measure_0::<DensityMatrixSimulator>();
+fn check_measuring_plus_state_yields_zero_with_50_percent_probability() {
+    tests::check_measuring_plus_state_yields_zero_with_50_percent_probability::<
+        DensityMatrixSimulator,
+    >();
 }
 
 #[test]
-fn measure_1() {
-    tests::measure_1::<DensityMatrixSimulator>();
+fn check_measuring_plus_state_yields_one_with_50_percent_probability() {
+    tests::check_measuring_plus_state_yields_one_with_50_percent_probability::<
+        DensityMatrixSimulator,
+    >();
 }
 
 #[test]
-fn bell_pair_sampling() {
+fn check_bell_pair_sampling_yields_same_outcome_for_both_qubits() {
     // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
     for seed in 0..100 {
-        tests::bell_pair_sampling::<DensityMatrixSimulator>(seed);
+        tests::check_bell_pair_sampling_yields_same_outcome_for_both_qubits::<DensityMatrixSimulator>(
+            seed,
+        );
     }
 }
 
 #[test]
-fn bell_pair_projection_mz0() {
-    tests::bell_pair_projection_mz0::<DensityMatrixSimulator>();
+fn check_bell_pair_projection_on_mz0_yields_50_percent_probability_trace() {
+    tests::check_bell_pair_projection_on_mz0_yields_50_percent_probability_trace::<
+        DensityMatrixSimulator,
+    >();
 }
 
 #[test]
-fn bell_pair_projection_mz1() {
-    tests::bell_pair_projection_mz1::<DensityMatrixSimulator>();
+fn check_bell_pair_projection_on_mz1_yields_50_percent_probability_trace() {
+    tests::check_bell_pair_projection_on_mz1_yields_50_percent_probability_trace::<
+        DensityMatrixSimulator,
+    >();
 }
 
 #[test]
 #[should_panic(expected = "operation should fail: ProbabilityZeroEvent")]
-fn bell_pair_projection_oposite_directions() {
-    tests::bell_pair_projection_oposite_directions::<DensityMatrixSimulator>();
+fn check_bell_pair_projection_on_oposite_directions_yields_an_error() {
+    tests::check_bell_pair_projection_on_oposite_directions_yields_an_error::<DensityMatrixSimulator>(
+    );
 }
 
 #[test]
-fn crx_gate_projection_mz0() {
-    tests::crx_gate_projection_mz0::<DensityMatrixSimulator>();
+fn check_crx_gate_projection_on_mz0_yields_right_probabilities() {
+    tests::check_crx_gate_projection_on_mz0_yields_right_probabilities::<DensityMatrixSimulator>();
 }
 
 #[test]
-fn crx_gate_projection_mz1() {
-    tests::crx_gate_projection_mz1::<DensityMatrixSimulator>();
+fn check_crx_gate_projection_on_mz1_yields_right_probabilities() {
+    tests::check_crx_gate_projection_on_mz1_yields_right_probabilities::<DensityMatrixSimulator>();
 }
 
 #[test]
-fn repeated_mz() {
+fn check_two_consecutive_mz_yield_same_outcome() {
     // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
     for seed in 0..100 {
-        tests::repeated_mz::<DensityMatrixSimulator>(seed);
+        tests::check_two_consecutive_mz_yield_same_outcome::<DensityMatrixSimulator>(seed);
     }
 }
 
 #[test]
-fn alternating_mz_and_mx() {
-    tests::alternating_mz_and_mx::<DensityMatrixSimulator>();
+fn check_alternating_mz_and_mx_yield_right_probabilities() {
+    tests::check_alternating_mz_and_mx_yield_right_probabilities::<DensityMatrixSimulator>();
 }

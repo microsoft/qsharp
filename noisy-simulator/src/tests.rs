@@ -51,7 +51,7 @@ fn mz() -> Instrument {
     Instrument::new(vec![mz0(), mz1()]).expect("instrument should be valid")
 }
 
-pub fn measure_0<NS: NoisySimulator>() {
+pub fn check_measuring_plus_state_yields_zero_with_50_percent_probability<NS: NoisySimulator>() {
     let h = h();
     let mz = mz();
     let mut sim = NS::new(1);
@@ -65,7 +65,7 @@ pub fn measure_0<NS: NoisySimulator>() {
     assert_eq!(measurement, 0);
 }
 
-pub fn measure_1<NS: NoisySimulator>() {
+pub fn check_measuring_plus_state_yields_one_with_50_percent_probability<NS: NoisySimulator>() {
     let h = h();
     let mz = mz();
     let mut sim = NS::new(1);
@@ -80,7 +80,7 @@ pub fn measure_1<NS: NoisySimulator>() {
 }
 
 /// Check that both measurements in a Bell Pair yield the same result.
-pub fn bell_pair_sampling<NS: NoisySimulator>(seed: u64) {
+pub fn check_bell_pair_sampling_yields_same_outcome_for_both_qubits<NS: NoisySimulator>(seed: u64) {
     let (h, cnot, mz) = (h(), cnot(), mz());
     let mut sim = NS::new_with_seed(2, seed);
 
@@ -105,7 +105,7 @@ pub fn bell_pair_sampling<NS: NoisySimulator>(seed: u64) {
 /// Project both qubits of a Bell Pair on the mz0 direction.
 /// The trace of the system (i.e. the probability of finding
 /// the quantum system in this state) should be 0.5.
-pub fn bell_pair_projection_mz0<NS: NoisySimulator>() {
+pub fn check_bell_pair_projection_on_mz0_yields_50_percent_probability_trace<NS: NoisySimulator>() {
     let (h, cnot, mz0) = (h(), cnot(), mz0());
     let mut sim = NS::new(2);
 
@@ -133,7 +133,7 @@ pub fn bell_pair_projection_mz0<NS: NoisySimulator>() {
 /// Project both qubits of a Bell Pair on the mz1 direction.
 /// The trace of the system (i.e. the probability of finding
 /// the quantum system in this state) should be 0.5.
-pub fn bell_pair_projection_mz1<NS: NoisySimulator>() {
+pub fn check_bell_pair_projection_on_mz1_yields_50_percent_probability_trace<NS: NoisySimulator>() {
     let (h, cnot, mz1) = (h(), cnot(), mz1());
     let mut sim = NS::new(2);
 
@@ -160,7 +160,7 @@ pub fn bell_pair_projection_mz1<NS: NoisySimulator>() {
 
 /// Project one qubit of a Bell Pair on the mz0 direction and the other on the mz1 direction.
 /// This should yield a 0-probability error.
-pub fn bell_pair_projection_oposite_directions<NS: NoisySimulator>() {
+pub fn check_bell_pair_projection_on_oposite_directions_yields_an_error<NS: NoisySimulator>() {
     let (h, cnot, mz0, mz1) = (h(), cnot(), mz0(), mz1());
     let mut sim = NS::new(2);
 
@@ -181,7 +181,7 @@ pub fn bell_pair_projection_oposite_directions<NS: NoisySimulator>() {
 }
 
 /// Check that projecting the target qubit in a CRX gate on the mz0 direction yields the right probabilities.
-pub fn crx_gate_projection_mz0<NS: NoisySimulator>() {
+pub fn check_crx_gate_projection_on_mz0_yields_right_probabilities<NS: NoisySimulator>() {
     let (h, mz0, mz1) = (h(), mz0(), mz1());
     let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];
 
@@ -226,7 +226,7 @@ pub fn crx_gate_projection_mz0<NS: NoisySimulator>() {
 }
 
 /// Check that projecting the target qubit in a CRX gate on the mz1 direction yields the right probabilities.
-pub fn crx_gate_projection_mz1<NS: NoisySimulator>() {
+pub fn check_crx_gate_projection_on_mz1_yields_right_probabilities<NS: NoisySimulator>() {
     let (h, mz1) = (h(), mz1());
     let probabilities: Vec<f64> = vec![0.05, 0.1, 0.3, 0.7, 0.8, 0.9, 0.99];
 
@@ -277,7 +277,7 @@ pub fn crx_gate_projection_mz1<NS: NoisySimulator>() {
 }
 
 /// Check that two consecutive MZ on the same qubit yield the same outcome.
-pub fn repeated_mz<NS: NoisySimulator>(seed: u64) {
+pub fn check_two_consecutive_mz_yield_same_outcome<NS: NoisySimulator>(seed: u64) {
     let h = h();
     let mz = mz();
     let mut sim = NS::new_with_seed(1, seed);
@@ -293,7 +293,7 @@ pub fn repeated_mz<NS: NoisySimulator>(seed: u64) {
     assert_eq!(outcome_0, outcome_1);
 }
 
-pub fn alternating_mz_and_mx<NS: NoisySimulator>() {
+pub fn check_alternating_mz_and_mx_yield_right_probabilities<NS: NoisySimulator>() {
     let h = h();
     let mz = mz();
     let mx = Instrument::new(vec![
