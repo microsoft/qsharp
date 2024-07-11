@@ -25,8 +25,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for _ in 1 .. 3 {
-            for nVar in 2 .. 6 {
+        for nVar in 2 .. 6 {
+            for _ in 1 .. 3 {
                 let formula = GenerateSATInstance(nVar, nVar - 1, -1);
                 
                 if not CheckOracleImplementsFunction(nVar, Kata.Oracle_SATFormula(_, _, formula), F_SATFormula(_, formula)) {

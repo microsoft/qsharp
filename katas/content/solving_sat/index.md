@@ -75,6 +75,32 @@ In this lesson, you will learn to implement marking oracles for SAT problems giv
     "title": "Exactly-1 3-SAT Problem"
 })
 
+Exactly-1 3-SAT problem (also known as "one-in-three 3-SAT") is a variant of a general SAT problem.
+The structure of the formula that describes an instance of an exactly-1 3-SAT problem is exactly the same as that of the canonical SAT problem, with each clause consisting of exactly three literals.
+However, the problem is to find an assignment of the variables that makes each clause have *exactly one* true literal, 
+while in a normal SAT problem each clause can have one or more true literal to satisfy the formula.
+
+Formally, the clauses of exactly-1 3-SAT problem can be defined via the use of a ternary operator that is `true` if and only if exactly one of the arguments is `true`. However, this kata uses the same formula notation for these clauses as the canonical SAT problem.
+
+@[exercise]({
+    "id": "solving_sat__exactly_one_one",
+    "title": "Evaluate \"Exactly 1 One\" Operator",
+    "path": "./exactly_one_one/"
+})
+
+@[exercise]({
+    "id": "solving_sat__exactly_one_one_formula",
+    "title": "Evaluate Exactly-1 3-SAT Formula",
+    "path": "./exactly_one_one_formula/"
+})
+
+
+@[section]({
+    "id": "solving_sat__using_grover",
+    "title": "Using Grover's Algorithm to Solve SAT Problems"
+})
+
+
 @[section]({
     "id": "solving_sat__conclusion",
     "title": "Conclusion"

@@ -49,7 +49,7 @@ namespace Kata.Verification {
     operation GenerateSATInstance (nVar : Int, nClause : Int, nTerms : Int) : (Int, Bool)[][] {
         mutable problem = [[(0, false), size = 0], size = nClause];
 
-        for j in 0..nClause-1 {
+        for j in 0 .. nClause - 1 {
             set problem w/= j <- Generate_SAT_Clause(nVar, nTerms);
         }
         return problem;
