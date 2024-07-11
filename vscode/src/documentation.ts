@@ -27,6 +27,10 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const docFiles = await worker.getDocumentation(program.programConfig);
 
+  const packageNameRegex = new RegExp("^qsharp.package: (.+)$", "m");
+  const namespaceRegex = new RegExp("^qsharp.namespace: (.+)$", "m");
+  const itemNameRegex = new RegExp("^qsharp.name: (.+)$", "m");
+
   const documentation: string[] = [];
   for (const file of docFiles) {
     // Some files may contain information other than documentation
@@ -34,7 +38,16 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     // We check presence of qsharp.name in metadata to make sure we take
     // only files that contain documentation from some qsharp object.
     if (file.metadata.indexOf("qsharp.name:") >= 0) {
+      const packageNameMatch = packageNameRegex.exec(file.metadata);
+      const namespaceMatch = namespaceRegex.exec(file.metadata);
+      const itemNameMatch = itemNameRegex.exec(file.metadata);
+
+      const namespace = namespaceMatch != null ? namespaceMatch[1] : "";
+      const packageName = packageNameMatch != null ? packageNameMatch[1] : "";
+      const itemName = itemNameMatch != null ? itemNameMatch[1] : "";
+
       documentation.push(file.contents);
+      documentation.push("[" + namespace + ", " + packageName + ", " + itemName + "]");
     }
   }
 

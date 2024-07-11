@@ -25,6 +25,8 @@ type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
 struct Compilation {
     /// Package store, containing the current package and all its dependencies.
     package_store: PackageStore,
+    /// Current package id when provided.
+    current_package_id: Option<PackageId>,
 }
 
 impl Compilation {
@@ -38,6 +40,7 @@ impl Compilation {
         let actual_capabilities = capabilities.unwrap_or_default();
         let actual_language_features = language_features.unwrap_or_default();
 
+        let mut current_package_id: Option<PackageId> = None;
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
                 let unit = compile(
@@ -51,7 +54,7 @@ impl Compilation {
                 // documentation we can produce. In future we may consider
                 // displaying the fact of error presence on documentation page.
 
-                package_store.insert(unit);
+                current_package_id = Some(package_store.insert(unit));
                 package_store
             } else {
                 let mut package_store = PackageStore::new(compile::core());
@@ -60,7 +63,10 @@ impl Compilation {
                 package_store
             };
 
-        Self { package_store }
+        Self {
+            package_store,
+            current_package_id,
+        }
     }
 }
 
@@ -147,10 +153,17 @@ pub fn generate_docs(
     };
 
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
-    for (_, unit) in &compilation.package_store {
+    for (package_id, unit) in &compilation.package_store {
         let package = &unit.package;
         for (_, item) in &package.items {
-            if let Some((ns, line)) = generate_doc_for_item(package, item, display, &mut files) {
+            if let Some((ns, line)) = generate_doc_for_item(
+                package,
+                &package_id.to_string(),
+                compilation.current_package_id == Some(package_id),
+                item,
+                display,
+                &mut files,
+            ) {
                 toc.entry(ns).or_default().push(line);
             }
         }
@@ -163,12 +176,17 @@ pub fn generate_docs(
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
+    package_name: &String,
+    include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
     files: &mut Files,
 ) -> Option<(Rc<str>, String)> {
     // Filter items
-    if item.visibility == Visibility::Internal || matches!(item.kind, ItemKind::Namespace(_, _)) {
+    if !include_internals && (item.visibility == Visibility::Internal) {
+        return None;
+    }
+    if matches!(item.kind, ItemKind::Namespace(_, _)) {
         return None;
     }
 
@@ -176,7 +194,7 @@ fn generate_doc_for_item<'a>(
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (metadata, content) = generate_file(&ns, item, display)?;
+    let (metadata, content) = generate_file(package_name, &ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
@@ -211,8 +229,13 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(ns.clone(), item, display)?;
+fn generate_file(
+    package_name: &String,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(Metadata, String)> {
+    let metadata = get_metadata(package_name, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -221,7 +244,8 @@ fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Me
     let content = format!(
         "# {title}
 
-Namespace: {ns}
+* **Package:** {package_name}
+* **Namespace:** {ns}
 
 ```qsharp
 {sig}
@@ -243,6 +267,7 @@ struct Metadata {
     title: String,
     topic: String,
     kind: MetadataKind,
+    package: String,
     namespace: Rc<str>,
     name: Rc<str>,
     summary: String,
@@ -264,11 +289,19 @@ title: {}
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
+qsharp.package: {}
 qsharp.namespace: {}
 qsharp.name: {}
 qsharp.summary: \"{}\"
 ---",
-            self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
+            self.uid,
+            self.title,
+            self.topic,
+            kind,
+            self.package,
+            self.namespace,
+            self.name,
+            self.summary
         )
     }
 }
@@ -279,7 +312,12 @@ enum MetadataKind {
     Udt,
 }
 
-fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
+fn get_metadata(
+    package_name: &String,
+    ns: Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<Metadata> {
     let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
             decl.name.name.clone(),
@@ -310,6 +348,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         },
         topic: "managed-reference".to_string(),
         kind,
+        package: package_name.clone(),
         namespace: ns,
         name,
         summary,
