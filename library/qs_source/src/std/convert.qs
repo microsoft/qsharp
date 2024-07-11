@@ -275,6 +275,9 @@ namespace Microsoft.Quantum.Convert {
     /// # Example
     /// ```qsharp
     /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
+    /// Message($"{DoubleAsStringWithPrecision(0.485, 1)}"); // Prints 0.5
+    /// Message($"{DoubleAsStringWithPrecision(5.6, 4)}"); // Prints 5.6000
+    /// Message($"{DoubleAsStringWithPrecision(2.268, 0)}"); // Prints 2.  
     /// ```
     function DoubleAsStringWithPrecision(input : Double, precision : Int) : String {
         body intrinsic;
