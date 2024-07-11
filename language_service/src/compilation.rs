@@ -16,9 +16,14 @@ use qsc::{
 };
 use qsc_linter::{LintConfig, LintLevel};
 use qsc_project::{PackageGraphSources, Project};
+use rustc_hash::FxHashMap;
 use std::mem::take;
 use std::sync::Arc;
 
+/// The alias that a project gives a dependency in its qsharp.json.
+/// In other words, this is the name that a given project uses to reference
+/// a given package.
+pub type PackageAlias = std::sync::Arc<str>;
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 #[derive(Debug)]
@@ -31,6 +36,7 @@ pub(crate) struct Compilation {
     pub project_errors: Vec<project::Error>,
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
+    pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
 }
 
 #[derive(Debug)]
@@ -104,6 +110,7 @@ impl Compilation {
             },
             compile_errors,
             project_errors,
+            dependencies: user_code_dependencies.into_iter().collect(),
         }
     }
 
@@ -211,6 +218,7 @@ impl Compilation {
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
+            dependencies: FxHashMap::default(),
         }
     }
 

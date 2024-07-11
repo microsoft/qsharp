@@ -8,6 +8,7 @@ use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
 use crate::qsc_utils::into_range;
 
+use log::{log_enabled, trace, Level::Trace};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
@@ -19,10 +20,12 @@ use qsc::{
 };
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
+use std::sync::Arc;
 
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -32,6 +35,22 @@ pub(crate) fn get_completions(
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
+
+    if log_enabled!(Trace) {
+        let last_char = compilation
+            .user_unit()
+            .sources
+            .find_by_offset(offset)
+            .map(|s| {
+                let offset = offset - s.offset;
+                if offset > 0 {
+                    s.contents[(offset as usize - 1)..].chars().next()
+                } else {
+                    None
+                }
+            });
+        trace!("the character before the cursor is: {last_char:?}");
+    }
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
@@ -312,11 +331,12 @@ impl CompletionListBuilder {
 
         self.push_sorted_completions(Self::get_core_callables(compilation, core));
 
-        for (_, unit) in &all_except_core {
-            self.push_completions(Self::get_namespaces(&unit.package));
+        for (id, unit) in &all_except_core {
+            let alias = compilation.dependencies.get(id).cloned().flatten();
+            self.push_completions(Self::get_namespaces(&unit.package, alias));
         }
 
-        self.push_completions(Self::get_namespaces(core));
+        self.push_completions(Self::get_namespaces(core, None));
     }
 
     fn push_locals(
@@ -398,6 +418,7 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
+    #[allow(clippy::too_many_lines)]
     /// Get all callables in a package
     fn get_callables<'a>(
         compilation: &'a Compilation,
@@ -415,6 +436,12 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
+
+        // if an alias exists for this dependency from the manifest,
+        // this is used to prefix any access to items from this package with the alias
+        let package_alias_from_manifest =
+            compilation.dependencies.get(&package_id).cloned().flatten();
+
         let display = CodeDisplay { compilation };
 
         let is_user_package = compilation.user_package_id == package_id;
@@ -473,7 +500,15 @@ impl CompletionListBuilder {
                                                 Some(start) => {
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {};{indent}",
+                                                            "open {}{};{indent}",
+                                                            // insert the package alias, if there is one
+                                                            if let Some(ref alias) =
+                                                                package_alias_from_manifest
+                                                            {
+                                                                format!("{alias}.")
+                                                            } else {
+                                                                String::new()
+                                                            },
                                                             namespace.name()
                                                         ),
                                                         range: start,
@@ -493,7 +528,16 @@ impl CompletionListBuilder {
                                 };
 
                                 let label = if let Some(qualification) = qualification {
-                                    format!("{}.{name}", qualification.join("."))
+                                    format!(
+                                        "{}{}.{name}",
+                                        // insert the package alias, if there is one
+                                        if let Some(ref alias) = package_alias_from_manifest {
+                                            format!("{alias}.")
+                                        } else {
+                                            String::new()
+                                        },
+                                        qualification.join(".")
+                                    )
                                 } else {
                                     name.to_owned()
                                 };
@@ -545,15 +589,24 @@ impl CompletionListBuilder {
         })
     }
 
-    fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
-        package.items.values().filter_map(|i| match &i.kind {
+    fn get_namespaces(
+        package: &'_ Package,
+        package_alias: Option<Arc<str>>,
+    ) -> impl Iterator<Item = CompletionItem> + '_ {
+        package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Namespace(namespace, _)
                 if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
-                Some(CompletionItem::new(
-                    namespace.name().to_string(),
-                    CompletionItemKind::Module,
-                ))
+                let label = format!(
+                    "{}{}",
+                    if let Some(ref alias) = package_alias {
+                        format!("{alias}.")
+                    } else {
+                        String::new()
+                    },
+                    namespace.name()
+                );
+                Some(CompletionItem::new(label, CompletionItemKind::Module))
             }
             _ => None,
         })
