@@ -299,7 +299,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         ItemKind::Namespace(_, _) => None,
         ItemKind::Export(name, _) => Some((
             name.name.clone(),
-            // TODO decide what signature info we want to show for exports, if any
+            // If we want to show docs for exports, we could do that here.
             String::new(),
             MetadataKind::Export,
         )),
