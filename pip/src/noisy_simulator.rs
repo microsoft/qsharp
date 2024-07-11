@@ -15,7 +15,6 @@ pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> Py
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;
     m.add_class::<StateVectorSimulator>()?;
-    // parent_module.add_submodule(m)?;
     Ok(())
 }
 
@@ -23,22 +22,23 @@ pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> Py
 ///  nalgebra stores its matrices in column major order, and we want to send it
 ///  to Python in row major order, this means that there will be lots of
 ///  cache-misses in the convertion from one format to another.
-fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> SquareMatrix {
+fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> PyResult<SquareMatrix> {
     let nrows = matrix.len();
     let ncols = matrix[0].len();
     // Check that matrix is well formed.
     for row in &matrix {
-        assert!(
-            ncols == row.len(),
-            "ill formed matrix, all rows should be the same length"
-        );
+        if ncols != row.len() {
+            return Err(NoisySimulatorError::new_err(
+                "ill formed matrix, all rows should be the same length".to_string(),
+            ));
+        }
     }
     // Move matrix into a linear container.
     let mut data = Vec::with_capacity(nrows * ncols);
     for mut row in matrix {
         data.append(&mut row);
     }
-    SquareMatrix::from_row_iterator(nrows, ncols, data)
+    Ok(SquareMatrix::from_row_iterator(nrows, ncols, data))
 }
 
 /// Performance Warning:
@@ -66,11 +66,11 @@ pub(crate) struct Operation(noisy_simulator::Operation);
 impl Operation {
     #[new]
     pub fn new(kraus_operators: Vec<PythonMatrix>) -> PyResult<Self> {
-        let kraus_operators: Vec<SquareMatrix> = kraus_operators
+        let kraus_operators: PyResult<Vec<SquareMatrix>> = kraus_operators
             .into_iter()
             .map(python_to_nalgebra_matrix)
             .collect();
-        noisy_simulator::Operation::new(kraus_operators)
+        noisy_simulator::Operation::new(kraus_operators?)
             .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
             .map(Self)
     }
