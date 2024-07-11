@@ -20,7 +20,7 @@ namespace SWAP {
     /// ## qs
     /// Input qubit register
     operation ApplySWAP1(qs : Qubit[]) : Unit is Ctl + Adj {
-         SWAP(qs[0], qs[1]);
+        SWAP(qs[0], qs[1]);
     }
 
     // # Summary
@@ -30,6 +30,6 @@ namespace SWAP {
     /// ## qs
     /// Input qubit register
     operation ApplySWAP2(qs : Qubit[]) : Unit is Ctl + Adj {
-         SWAP(qs[0], qs[1]);
+        SWAP(qs[0], qs[1]);
     }
 }

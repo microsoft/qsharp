@@ -30,8 +30,8 @@ namespace BellState {
     /// 2: |Ψ+〉(PsiPlus)
     /// 3: |Ψ-〉(PsiMinus)
 
-    operation AllBellStates(qs : Qubit[], choice: Int) : Unit is Ctl + Adj {
-       open Microsoft.Quantum.Convert;
+    operation AllBellStates(qs : Qubit[], choice : Int) : Unit is Ctl + Adj {
+        open Microsoft.Quantum.Convert;
 
         H(qs[0]);
         CNOT(qs[0], qs[1]);
