@@ -1,4 +1,4 @@
-# A simple Q# program to generate an array of N random bits and Python program to count the number of 1s returned in the result array
+# Passing arguments from Python to Q# and processing measurement results in Python
 
 ## Description
 

@@ -2,7 +2,7 @@ import qsharp
 
 qsharp.init(project_root=".")
 
-max = input("Enter the max number: ")
+max = input("Enter the number of random bits to be generated: ")
 (results, number) = qsharp.eval(f"GenerateRandom.GenerateRandomNumbers(0, {max})")
 
 count = 0
