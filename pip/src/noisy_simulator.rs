@@ -102,9 +102,11 @@ pub(crate) struct Instrument(noisy_simulator::Instrument);
 #[pymethods]
 impl Instrument {
     #[new]
-    pub fn new(operations: Vec<Operation>) -> Self {
+    pub fn new(operations: Vec<Operation>) -> PyResult<Self> {
         let operations = operations.into_iter().map(|op| op.0).collect();
-        Self(noisy_simulator::Instrument::new(operations))
+        noisy_simulator::Instrument::new(operations)
+            .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
+            .map(Self)
     }
 }
 

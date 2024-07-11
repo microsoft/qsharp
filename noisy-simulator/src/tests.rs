@@ -48,7 +48,7 @@ fn mz1() -> Operation {
 
 /// Returns an MZ measurement.
 fn mz() -> Instrument {
-    Instrument::new(vec![mz0(), mz1()])
+    Instrument::new(vec![mz0(), mz1()]).expect("instrument should be valid")
 }
 
 pub fn measure_0<NS: NoisySimulator>() {
@@ -303,7 +303,8 @@ pub fn alternating_mz_and_mx<NS: NoisySimulator>() {
         operation!([ 0.5, -0.5;
                     -0.5,  0.5;])
         .expect("operation should be valid"),
-    ]);
+    ])
+    .expect("instrument should be valid");
 
     let mut sim = NS::new(1);
     sim.apply_operation(&h, &[0])

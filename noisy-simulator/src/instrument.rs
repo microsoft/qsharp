@@ -7,7 +7,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{operation::Operation, SquareMatrix, TOLERANCE};
+use crate::{operation::Operation, Error, SquareMatrix, TOLERANCE};
 
 /// An instrument is the means by which we make measurements on a quantum system.
 pub struct Instrument {
@@ -20,19 +20,19 @@ pub struct Instrument {
 
 impl Instrument {
     /// Creates a new instrument.
-    pub fn new(operations: Vec<Operation>) -> Self {
+    pub fn new(operations: Vec<Operation>) -> Result<Self, Error> {
         let summed_operation: SquareMatrix = operations.iter().map(|op| op.matrix()).sum();
         let summed_effect: SquareMatrix = operations.iter().map(|op| op.effect_matrix()).sum();
         let summed_effect_transpose = summed_effect.transpose();
-        let summed_kraus_operators = summed_kraus_operators(&operations);
+        let summed_kraus_operators = summed_kraus_operators(&operations)?;
 
-        Self {
+        Ok(Self {
             operations,
             summed_operation,
             summed_effect,
             summed_effect_transpose,
             summed_kraus_operators,
-        }
+        })
     }
 
     /// Return operation corresponding to the i-th outcome.
@@ -70,7 +70,7 @@ impl Instrument {
     }
 }
 
-fn summed_kraus_operators(operations: &[Operation]) -> Vec<SquareMatrix> {
+fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>, Error> {
     let choi_matrix: SquareMatrix = operations
         .iter()
         .map(|op| {
@@ -110,9 +110,11 @@ fn summed_kraus_operators(operations: &[Operation]) -> Vec<SquareMatrix> {
             }
             summed_kraus_operators.push(kraus_operator);
         } else if *eigenvalue < -TOLERANCE {
-            panic!("failed to decompose Choi matrix, lambda_i = {eigenvalue}");
+            return Err(Error::FailedToConstructInstrument(format!(
+                "failed to decompose Choi matrix, lambda_i = {eigenvalue}"
+            )));
         }
     }
 
-    summed_kraus_operators
+    Ok(summed_kraus_operators)
 }

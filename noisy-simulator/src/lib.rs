@@ -109,6 +109,9 @@ pub enum Error {
     /// Failure when building a `DensityMatrix` from raw data.
     #[error("error when building `DensityMatrix` from raw_data: {0}")]
     DensityMatrixTryFromError(String),
+    /// Failure when buidling an instrument.
+    #[error("error when building instrument: {0}")]
+    FailedToConstructInstrument(String),
     /// Failure when building an operation.
     #[error("error when building operation: {0}")]
     FailedToConstructOperation(String),

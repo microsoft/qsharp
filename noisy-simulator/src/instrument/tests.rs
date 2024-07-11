@@ -21,7 +21,7 @@ fn constructor() {
 
     let op0 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
     let op1 = operation!([rng(), rng(); rng(), rng();]).expect("operation should be valid");
-    let instrument = Instrument::new(vec![op0, op1]);
+    let instrument = Instrument::new(vec![op0, op1]).expect("instrument should be valid");
     let sum = instrument.non_selective_operation_matrix();
     let op0 = instrument.operation(0);
     let op1 = instrument.operation(1);
@@ -47,10 +47,10 @@ fn non_selective_evolution_operator() {
         .map(|_| SquareMatrix::from_fn(dim, dim, |_, _| (0.5 - rng()).into()))
         .collect();
     let op0 = Operation::new(kraus_operators).expect("operation should be valid");
-    let instrument_0 = Instrument::new(vec![op0]);
+    let instrument_0 = Instrument::new(vec![op0]).expect("instrument should be valid");
     let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().to_vec();
     let op1 = Operation::new(kraus_operators).expect("operation should be valid");
-    let instrument_1 = Instrument::new(vec![op1]);
+    let instrument_1 = Instrument::new(vec![op1]).expect("instrument should be valid");
     let m0 = instrument_0.non_selective_operation_matrix();
     let m1 = instrument_1.non_selective_operation_matrix();
 
