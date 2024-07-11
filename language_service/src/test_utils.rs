@@ -99,6 +99,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
             },
             compile_errors: errors,
             project_errors: Vec::new(),
+            dependencies: FxHashMap::default(),
         },
         cursor_location,
         target_spans,
@@ -167,6 +168,7 @@ where
         compile_errors: errors,
         kind: CompilationKind::Notebook,
         project_errors: Vec::new(),
+        dependencies: FxHashMap::default(),
     }
 }
 
