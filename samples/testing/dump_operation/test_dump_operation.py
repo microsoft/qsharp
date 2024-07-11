@@ -98,3 +98,8 @@ def test_operation_with_args_in_qsharp_file() -> None:
         [complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
         [complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
     ]
+
+def test_operation_equivalence_using_fact() -> None:
+    qsharp.eval(
+        "OperationEquivalence.TestEquivalence()"
+    )
