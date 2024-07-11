@@ -10,13 +10,13 @@ use crate::{
     SquareMatrix,
 };
 
-/// Check that the inner matrices of the instrument are constructed correctly.
-#[test]
-fn constructor() {
+/// Constructs an operation using dense kraus matrices, to allow an exhaustive
+/// testing of the inner linear operations used to construct the `Operator`.
+fn dense_operation() -> Operation {
     const I: Complex<f64> = Complex::I;
 
     // Construct an operation from two kraus matrices.
-    let op = operation!(
+    operation!(
         [
             0., 1., 2., 4.;
             1., 2., 3., 4.;
@@ -30,7 +30,14 @@ fn constructor() {
             3. + 0.25 * I, 1.,     1., 2.;
         ]
     )
-    .expect("operation should be valid");
+    .expect("operation should be valid")
+}
+
+/// Check that the inner matrices of the instrument are constructed correctly.
+#[test]
+fn check_effect_matrix_is_computed_correctly() {
+    const I: Complex<f64> = Complex::I;
+    let op = dense_operation();
 
     // Check that the effect matrix is the sum of the individual effect matrices
     // of each kraus operator.
@@ -54,6 +61,12 @@ fn constructor() {
     for (x0, x1) in eff.iter().zip(op.effect_matrix_transpose().iter()) {
         assert_approx_eq(0., (x0 - x1.conj()).abs());
     }
+}
+
+#[test]
+fn check_operation_matrix_is_computed_correctly() {
+    const I: Complex<f64> = Complex::I;
+    let op = dense_operation();
 
     // Check that the operation matrix is the sum of the individual operation matrices
     // of each kraus operator.
