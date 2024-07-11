@@ -15,10 +15,15 @@ use qsc::{
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::{LintConfig, LintLevel};
-use qsc_project::PackageGraphSources;
+use qsc_project::{PackageGraphSources, Project};
+use rustc_hash::FxHashMap;
 use std::mem::take;
 use std::sync::Arc;
 
+/// The alias that a project gives a dependency in its qsharp.json.
+/// In other words, this is the name that a given project uses to reference
+/// a given package.
+pub type PackageAlias = std::sync::Arc<str>;
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
 #[derive(Debug)]
@@ -31,6 +36,7 @@ pub(crate) struct Compilation {
     pub project_errors: Vec<project::Error>,
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
+    pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
 }
 
 #[derive(Debug)]
@@ -44,7 +50,7 @@ pub(crate) enum CompilationKind {
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
-    Notebook,
+    Notebook { project: Option<Project> },
 }
 
 impl Compilation {
@@ -104,6 +110,7 @@ impl Compilation {
             },
             compile_errors,
             project_errors,
+            dependencies: user_code_dependencies.into_iter().collect(),
         }
     }
 
@@ -113,23 +120,71 @@ impl Compilation {
         target_profile: Profile,
         language_features: LanguageFeatures,
         lints_config: &[LintConfig],
+        project: Option<Project>,
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
-        let (std_id, store) = qsc::compile::package_store_with_stdlib(target_profile.into());
+        trace!("compiling dependencies");
+
+        let (sources, dependencies, store, mut errors) = match &project {
+            Some(p) if p.errors.is_empty() => {
+                trace!("using buildable program from project");
+                let buildable_program =
+                    prepare_package_store(target_profile.into(), p.package_graph_sources.clone());
+
+                (
+                    SourceMap::new(buildable_program.user_code.sources, None),
+                    buildable_program.user_code_dependencies,
+                    buildable_program.store,
+                    buildable_program.dependency_errors,
+                )
+            }
+            _ => {
+                // If no project is specified, or if the project has errors, compile stdlib only.
+                // Any project errors will be handled below.
+                trace!("compiling stdlib only");
+                let (std_id, store) =
+                    qsc::compile::package_store_with_stdlib(target_profile.into());
+                (
+                    SourceMap::default(),
+                    vec![(std_id, None)],
+                    store,
+                    Vec::new(),
+                )
+            }
+        };
+
         trace!("compiling notebook");
-        let mut compiler = Compiler::new(
-            SourceMap::default(),
+        let mut compiler = match Compiler::new(
+            sources,
             PackageType::Lib,
             target_profile.into(),
             language_features,
             store,
-            &[(std_id, None)],
-        )
-        .expect("expected incremental compiler creation to succeed");
+            &dependencies,
+        ) {
+            Ok(compiler) => compiler,
+            Err(user_errors) => {
+                errors.extend(user_errors);
+                // Because there were errors in the user code project, we need to create a new compiler with no sources
+                // to do a best effort compilation of the cells.
+                trace!("falling back stdlib only only after user code project errors");
+                let (std_id, store) =
+                    qsc::compile::package_store_with_stdlib(target_profile.into());
 
-        let mut errors = Vec::new();
+                Compiler::new(
+                    SourceMap::default(),
+                    PackageType::Lib,
+                    target_profile.into(),
+                    language_features,
+                    store,
+                    &[(std_id, None)],
+                )
+                .expect("standard library should compile without errors")
+            }
+        };
+
         for (name, contents) in cells {
             trace!("compiling cell {name}");
             let increment = compiler
@@ -161,8 +216,9 @@ impl Compilation {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
-            kind: CompilationKind::Notebook,
-            project_errors: Vec::new(),
+            project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
+            kind: CompilationKind::Notebook { project },
+            dependencies: FxHashMap::default(),
         }
     }
 
@@ -268,11 +324,12 @@ impl Compilation {
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
             ),
-            CompilationKind::Notebook => Self::new_notebook(
+            CompilationKind::Notebook { ref project } => Self::new_notebook(
                 sources.into_iter(),
                 target_profile,
                 language_features,
                 lints_config,
+                project.clone(),
             ),
         };
 
