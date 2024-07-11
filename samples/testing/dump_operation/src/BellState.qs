@@ -2,17 +2,34 @@
 // Licensed under the MIT License.
 
 /// # Sample
-/// Multi File Testing Project
+/// Multi File Testing Project (Refer to README for Project Overview)
 ///
 /// # Description
-/// Organizing code into multiple Q# source files is an important part of
-/// writing readable and maintainable code. In this project, we have `SWAP.qs`,
-/// and `BellState.qs`, which contain the operation to be tested.
-/// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
-/// to include all Q# files under `src/`.
-/// These will be tested by Python wrapper, `test_dump_operation.py`
+/// This code builds upon the concepts explained in the README file,
+/// demonstrating how to organize Q# code into multiple files for testing.
+/// Here, we have separate files (`BellState.qs`, `SWAP.qs`, and `OperationEquivalence.qs`)
+/// containing individual operations under test.
+
+/// The presence of a Q# manifest file (`qsharp.json`) instructs the compiler
+/// to include all Q# files within the `src` directory. These operations are tested
+/// by the Python wrapper script, `test_dump_operation.py`.
+
 
 namespace BellState {
+    /// # Summary
+    /// Operation that generates all bell states for testing with `dump_operation.py`.
+    ///
+    /// # Input
+    /// ## qs
+    /// Input qubit register
+    ///
+    /// ## choice
+    /// Bell state to construct.
+    /// 0: |Φ+〉(PhiPlus)
+    /// 1: |Φ-〉(PhiMinus)
+    /// 2: |Ψ+〉(PsiPlus)
+    /// 3: |Ψ-〉(PsiMinus)
+
     operation AllBellStates(qs : Qubit[], choice: Int) : Unit is Ctl + Adj {
        open Microsoft.Quantum.Convert;
 

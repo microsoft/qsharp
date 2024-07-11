@@ -6,16 +6,29 @@
 ///
 /// # Description
 /// Organizing code into multiple Q# source files is an important part of
-/// writing readable and maintainable code. In this project, we have `SWAP.qs`,
-/// and `BellState.qs`, which contain the operation to be tested.
+/// writing readable and maintainable code. In this project, we have `BellState.qs`, `SWAP.qs`,
+/// and `OperationEquivalence.qs`, which contain the operation to be tested.
 /// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
 /// to include all Q# files under `src/`.
 /// These will be tested by Python wrapper, `test_dump_operation.py`
 
 namespace SWAP {
+    /// # Summary
+    /// Operation for testing with `dump_operation.py` and `TestEquivalence` operation.
+    ///
+    /// # Input
+    /// ## qs
+    /// Input qubit register
     operation ApplySWAP1(qs : Qubit[]) : Unit is Ctl + Adj {
          SWAP(qs[0], qs[1]);
     }
+
+    // # Summary
+    /// Operation for testing with `TestEquivalence` operation.
+    ///
+    /// # Input
+    /// ## qs
+    /// Input qubit register
     operation ApplySWAP2(qs : Qubit[]) : Unit is Ctl + Adj {
          SWAP(qs[0], qs[1]);
     }
