@@ -429,13 +429,17 @@ async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update)
             notebook_uri,
             notebook_metadata,
             cells,
-        } => updater.update_notebook_document(
-            &notebook_uri,
-            &notebook_metadata,
-            cells
-                .iter()
-                .map(|(uri, version, contents)| (uri.as_ref(), *version, contents.as_ref())),
-        ),
+        } => {
+            updater
+                .update_notebook_document(
+                    &notebook_uri,
+                    &notebook_metadata,
+                    cells.iter().map(|(uri, version, contents)| {
+                        (uri.as_ref(), *version, contents.as_ref())
+                    }),
+                )
+                .await;
+        }
         Update::CloseNotebookDocument { notebook_uri } => {
             updater.close_notebook_document(&notebook_uri);
         }

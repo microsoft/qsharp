@@ -19,7 +19,7 @@ use std::{
 use thiserror::Error;
 
 /// Describes a Q# project with all its sources and dependencies resolved.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
     /// Not guaranteed to be unique. Don't use as a key.
@@ -414,8 +414,15 @@ pub trait FileSystemAsync {
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             Error::GitHubManifestParse {
                 path: format!(
-                    "qsharp-github-source:{}/{}/{}/{path_trimmed_seps}/qsharp.json",
-                    dep.owner, dep.repo, dep.r#ref
+                    "qsharp-github-source:{}/{}/{}{}/qsharp.json",
+                    dep.owner,
+                    dep.repo,
+                    dep.r#ref,
+                    if path_trimmed_seps.is_empty() {
+                        String::new()
+                    } else {
+                        format!("/{path_trimmed_seps}")
+                    }
                 ),
                 owner: dep.owner.clone(),
                 repo: dep.repo.clone(),
@@ -426,7 +433,11 @@ pub trait FileSystemAsync {
         // Look at the files field in the manifest to find the sources.
         let mut sources = vec![];
         for file in &manifest.files {
-            let path = format!("{path_trimmed_seps}/{file}");
+            let path = if path_trimmed_seps.is_empty() {
+                format!("/{file}")
+            } else {
+                format!("/{path_trimmed_seps}/{file}")
+            };
             let contents = self
                 .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
                 .await

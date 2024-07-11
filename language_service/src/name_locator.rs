@@ -5,7 +5,6 @@ use std::mem::replace;
 use std::rc::Rc;
 
 use crate::compilation::Compilation;
-use crate::qsc_utils::find_ident;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
@@ -134,7 +133,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
     }
 
     fn get_field_def<'other>(
-        &mut self,
+        &self,
         udt_res: &'package hir::Res,
         field_ref: &'other ast::Ident,
     ) -> Option<(hir::ItemId, &'package hir::ty::UdtField)> {
@@ -147,6 +146,21 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
             }
         }
         None
+    }
+
+    fn find_ident(&self, node_id: ast::NodeId) -> Option<&'package ast::Ident> {
+        let mut finder = AstIdentFinder {
+            node_id,
+            ident: None,
+        };
+        {
+            if let Some(callable) = self.context.current_callable {
+                finder.visit_callable_decl(callable);
+            } else {
+                finder.visit_package(&self.compilation.user_unit().ast.package);
+            }
+        }
+        finder.ident
     }
 }
 
@@ -389,11 +403,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         .split_first()
                         .expect("paths should have at least one part");
                     if first.span.touches(self.offset) {
-                        if let Some(curr) = self.context.current_callable {
-                            if let Some(definition) = find_ident(node_id, curr) {
-                                self.inner
-                                    .at_local_ref(&self.context, first, node_id, definition);
-                            }
+                        if let Some(definition) = self.find_ident(node_id) {
+                            self.inner
+                                .at_local_ref(&self.context, first, node_id, definition);
                         }
                     } else {
                         // Loop through the parts of the path to find the first part that touches the offset
@@ -438,20 +450,62 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
                     }
                     Some(resolve::Res::Local(node_id)) => {
-                        if let Some(curr) = self.context.current_callable {
-                            if let Some(definition) = find_ident(*node_id, curr) {
-                                self.inner.at_local_ref(
-                                    &self.context,
-                                    &path.name,
-                                    *node_id,
-                                    definition,
-                                );
-                            }
+                        if let Some(definition) = self.find_ident(*node_id) {
+                            self.inner.at_local_ref(
+                                &self.context,
+                                &path.name,
+                                *node_id,
+                                definition,
+                            );
                         }
                     }
                     _ => {}
                 },
             }
+        }
+    }
+}
+
+/// Call `visit_callable_decl` if the ident is local to a callable.
+/// Otherwise call `visit_package`.
+struct AstIdentFinder<'a> {
+    pub node_id: ast::NodeId,
+    pub ident: Option<&'a ast::Ident>,
+}
+
+impl<'a> ast::visit::Visitor<'a> for AstIdentFinder<'a> {
+    // Locals don't cross namespace boundaries, so don't visit namespaces.
+    fn visit_package(&mut self, package: &'a ast::Package) {
+        package.nodes.iter().for_each(|n| {
+            if let ast::TopLevelNode::Stmt(stmt) = n {
+                self.visit_stmt(stmt);
+            }
+        });
+        package.entry.iter().for_each(|e| self.visit_expr(e));
+    }
+
+    // Locals don't cross item boundaries, so don't visit items.
+    fn visit_stmt(&mut self, stmt: &'a ast::Stmt) {
+        match &*stmt.kind {
+            ast::StmtKind::Item(_) => {}
+            _ => ast::visit::walk_stmt(self, stmt),
+        }
+    }
+
+    fn visit_pat(&mut self, pat: &'a ast::Pat) {
+        match &*pat.kind {
+            ast::PatKind::Bind(ident, _) => {
+                if ident.id == self.node_id {
+                    self.ident = Some(ident);
+                }
+            }
+            _ => ast::visit::walk_pat(self, pat),
+        }
+    }
+
+    fn visit_expr(&mut self, expr: &'a ast::Expr) {
+        if self.ident.is_none() {
+            ast::visit::walk_expr(self, expr);
         }
     }
 }

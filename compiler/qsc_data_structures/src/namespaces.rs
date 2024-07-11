@@ -187,10 +187,14 @@ impl NamespaceTreeRoot {
         ns: impl Into<Vec<Rc<str>>>,
         root: NamespaceId,
     ) -> NamespaceId {
+        let ns = ns.into();
+        if ns.is_empty() {
+            return root;
+        }
         let (_root_name, root_contents) = self.find_namespace_by_id(&root);
         let id = root_contents
             .borrow_mut()
-            .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
+            .insert_or_find_namespace(ns.into_iter().peekable(), &mut self.assigner);
 
         id.expect("empty name should not be passed into namespace insertion")
     }

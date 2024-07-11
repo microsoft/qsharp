@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
 
         // `-`, when applied to a single value on its right, negates the value.
 
