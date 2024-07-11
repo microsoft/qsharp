@@ -51,7 +51,7 @@ def test_custom_operation() -> None:
 
 def test_operation_no_args_in_qsharp_file() -> None:
     qsharp.init(project_root='.')
-    res = dump_operation("SWAP.ApplySWAP", 2)
+    res = dump_operation("SWAP.ApplySWAP1", 2)
 
     assert res == [
         [complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],

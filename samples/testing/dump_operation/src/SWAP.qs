@@ -13,7 +13,10 @@
 /// These will be tested by Python wrapper, `test_dump_operation.py`
 
 namespace SWAP {
-    operation ApplySWAP(qs : Qubit[]) : Unit is Ctl + Adj {
+    operation ApplySWAP1(qs : Qubit[]) : Unit is Ctl + Adj {
+         SWAP(qs[0], qs[1]);
+    }
+    operation ApplySWAP2(qs : Qubit[]) : Unit is Ctl + Adj {
          SWAP(qs[0], qs[1]);
     }
 }
