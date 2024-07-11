@@ -71,20 +71,24 @@ impl Instrument {
 }
 
 fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>, Error> {
+    // Since all the Kraus operators are square matrices of the same dimension
+    // we can cache the `vector_to_matrix_index` computation beforehand.
+    let vector_to_matrix_index = cache_vector_to_matrix_index(operations);
+
     let choi_matrix: SquareMatrix = operations
         .iter()
         .map(|op| {
             op.kraus_operators()
                 .iter()
-                .map(|m| {
+                .map(|k| {
                     // This code is doing the equivalent to:
                     // choi_matrix += vec(K) * vec(K)^dagger
-                    let dim = m.shape().0.pow(2);
+                    let dim = k.shape().0.pow(2);
                     let mut choi = SquareMatrix::zeros(dim, dim);
                     for row in 0..dim {
                         for col in 0..dim {
-                            choi[(row, col)] += m[m.vector_to_matrix_index(col)]
-                                * m[m.vector_to_matrix_index(row)].conj();
+                            choi[(row, col)] += k[vector_to_matrix_index[col]]
+                                * k[vector_to_matrix_index[row]].conj();
                         }
                     }
                     choi
@@ -117,4 +121,21 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
     }
 
     Ok(summed_kraus_operators)
+}
+
+/// Caches `vector_to_matrix_index` into a vector.
+fn cache_vector_to_matrix_index(operations: &[Operation]) -> Vec<(usize, usize)> {
+    operations
+        .first()
+        .map(|op| {
+            if let Some(k) = op.kraus_operators().first() {
+                let num_elements = k.shape().0.pow(2);
+                (0..num_elements)
+                    .map(|idx| k.vector_to_matrix_index(idx))
+                    .collect()
+            } else {
+                Vec::default()
+            }
+        })
+        .unwrap_or_default()
 }
