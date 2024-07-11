@@ -160,15 +160,18 @@ impl StateVector {
                 }
             }
         }
+
         if summed_probability + TOLERANCE > random_sample && last_non_zero_probability >= TOLERANCE
         {
             return Err(Error::FailedToSampleKrausOperators);
         }
+
         apply_kernel(
             &mut self.data,
             &kraus_operators[last_non_zero_probability_index],
             qubits,
         )?;
+
         self.renormalize()
     }
 }
@@ -277,7 +280,7 @@ impl NoisySimulator for StateVectorSimulator {
         self.sample_instrument_with_distribution(instrument, qubits, sample)
     }
 
-    /// Performs selective evolution under the given instrument.
+    /// Performs selective evolution under the given instrument using a custom random distribution.
     /// Returns the index of the observed outcome.
     fn sample_instrument_with_distribution(
         &mut self,
