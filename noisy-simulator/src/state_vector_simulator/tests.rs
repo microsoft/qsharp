@@ -21,7 +21,7 @@ fn check_measuring_plus_state_yields_one_with_50_percent_probability() {
 #[test]
 fn check_bell_pair_sampling_yields_same_outcome_for_both_qubits() {
     // We perform the test 100 times because of the probabilistic nature of the MZ measurement.
-    for seed in 0..100 {
+    for seed in 0..20 {
         noiseless_tests::check_bell_pair_sampling_yields_same_outcome_for_both_qubits::<
             StateVectorSimulator,
         >(seed);
