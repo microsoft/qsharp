@@ -1609,3 +1609,16 @@ fn notebook_local_definition() {
         "#]],
     );
 }
+
+#[test]
+fn notebook_local_reference() {
+    check_notebook(
+        &[("cell1", "let x = 3;"), ("cell2", "let y = ◉↘x◉ + 1;")],
+        &expect![[r#"
+            local
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}
