@@ -100,6 +100,13 @@ Formally, the clauses of exactly-1 3-SAT problem can be defined via the use of a
     "title": "Using Grover's Algorithm to Solve SAT Problems"
 })
 
+In this lesson, you will experiment with using Grover's algorithm to solve SAT problems.
+
+Notice that in this case, it's not as easy to know the number of solutions to the problem upfront as it was for the prefix function used in the "Grover's Search Algorithm" kata.
+Experiment with choosing the number of iterations at random. How does this affect the success probability?
+
+@[example]({"id": "solving_sat__e2edemo", "codePath": "./examples/SolvingSATWithGroverDemo.qs"})
+
 
 @[section]({
     "id": "solving_sat__conclusion",
