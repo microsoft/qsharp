@@ -30,7 +30,7 @@ The problem solved by Grover's search algorithm is called the *search problem* a
 You are given a classical function that takes an $n$-bit input and returns a one-bit output $f(x): \{0, 1\}^n \to \{0, 1\}$. 
 The task is to find an input $x_0$ for which $f(x_0) = 1$.
 
-Importantly, you don't have any information about the internal structure of the function $f$! It is given to you as a "black box" that allows you to evaluate the value of the function for any output you want, but not to learn anything about how it works.
+Importantly, you don't have any information about the internal structure of the function $f$! It is given to you as a "black box" that allows you to evaluate the value of the function for any input you want, but not to learn anything about how it works.
 
 > This problem is sometimes described as *function inversion*, since it tries to evaluate the inverse of the function $f$.
 
