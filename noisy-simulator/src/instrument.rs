@@ -21,6 +21,12 @@ pub struct Instrument {
 impl Instrument {
     /// Creates a new instrument.
     pub fn new(operations: Vec<Operation>) -> Result<Self, Error> {
+        if operations.is_empty() {
+            return Err(Error::FailedToConstructInstrument(
+                "there should be at least one Operation".to_string(),
+            ));
+        }
+
         let summed_operation: SquareMatrix = operations.iter().map(|op| op.matrix()).sum();
         let summed_effect: SquareMatrix = operations.iter().map(|op| op.effect_matrix()).sum();
         let summed_effect_transpose = summed_effect.transpose();

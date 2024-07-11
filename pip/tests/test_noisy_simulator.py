@@ -14,7 +14,7 @@ import pytest
 # Tests for the Q# noisy simulator.
 
 
-def test_operation_api():
+def test_operation_construction():
     op = Operation([[[1, 0], [0, 0]]])
     assert op.get_number_of_qubits() == 1
     assert op.get_kraus_operators() == [[(1 + 0j), 0j, 0j, 0j]]
@@ -39,10 +39,34 @@ def test_operation_api():
     ]
 
 
-def test_instrument_api():
+def test_empty_operation_error():
+    with pytest.raises(NoisySimulatorError) as excinfo:
+        _ = Operation([])
+    assert (
+        str(excinfo.value)
+        == "error when building operation: there should be at least one Kraus Operator"
+    )
+
+
+def test_ill_formed_operation_error():
+    with pytest.raises(NoisySimulatorError) as excinfo:
+        op = Operation([[[1, 0], [0, 0, 0]]])
+    assert str(excinfo.value) == "ill formed matrix, all rows should be the same length"
+
+
+def test_instrument_construction():
     mz0 = Operation([[[1, 0], [0, 0]]])
     mz1 = Operation([[[0, 0], [0, 1]]])
     mz = Instrument([mz0, mz1])
+
+
+def test_empty_instrument_error():
+    with pytest.raises(NoisySimulatorError) as excinfo:
+        inst = Instrument([])
+    assert (
+        str(excinfo.value)
+        == "error when building instrument: there should be at least one Operation"
+    )
 
 
 def test_density_matrix_simulator():
