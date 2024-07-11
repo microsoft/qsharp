@@ -63,6 +63,12 @@ In this lesson, you will learn to implement marking oracles for SAT problems giv
     "path": "./sat_clause/"
 })
 
+@[exercise]({
+    "id": "solving_sat__sat_formula",
+    "title": "Evaluate SAT Formula",
+    "path": "./sat_formula/"
+})
+
 
 @[section]({
     "id": "solving_sat__exactly_one_3sat",

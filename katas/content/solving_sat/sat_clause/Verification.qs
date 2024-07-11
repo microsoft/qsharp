@@ -15,7 +15,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 1..6 {
+        for i in 1 .. 6 {
             let nVar = DrawRandomInt(3, 7);
             let clause = Generate_SAT_Clause(nVar, i);
             
