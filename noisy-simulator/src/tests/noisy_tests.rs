@@ -55,7 +55,7 @@ pub fn check_noisy_identity_yields_same_qubit_with_right_probability<NS: NoisySi
 
     let mut total_outcome: f64 = 0.0;
 
-    // Run 1000 simulations, on average we should measure the wrong outcome, i.e. 1
+    // Run 1000 simulations, on average we should measure the wrong outcome, i.e. 1,
     // 5% of the times (𝜆 / 2).
     const SHOTS: u64 = 500_000;
 
