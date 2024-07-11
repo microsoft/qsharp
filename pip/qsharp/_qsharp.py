@@ -54,6 +54,9 @@ class Config:
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
         if project_root:
+            # For now, we only support local project roots, so use a file schema in the URI.
+            # In the future, we may support other schemes, such as github, if/when
+            # we have VS Code Web + Jupyter support.
             self._config["projectRoot"] = "file://" + project_root
 
     def __repr__(self) -> str:
