@@ -9,9 +9,21 @@
 /// to include all Q# files under `src/`.
 
 namespace BellState {
-    operation PrepareBellState(qs : Qubit[]) : Unit is Ctl + Adj {
+    operation AllBellStates(qs : Qubit[], choice: Int) : Unit is Ctl + Adj {
+       open Microsoft.Quantum.Convert;
+
         H(qs[0]);
         CNOT(qs[0], qs[1]);
+
+        let bitmask = IntAsBoolArray(choice, 2);
+        if bitmask[1] {
+            X(qs[1]);
+        }
+
+        if bitmask[0] {
+            Z(qs[0]);
+        }
+
     }
 }
 

@@ -46,7 +46,7 @@ def test_custom_operation() -> None:
         [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
     ]
 
-def test_swap_operation_in_qsharp_file() -> None:
+def test_operation_no_args_in_qsharp_file() -> None:
     qsharp.init(project_root='.')
     res = dump_operation("SWAP.ApplySWAP", 2)
 
@@ -57,13 +57,41 @@ def test_swap_operation_in_qsharp_file() -> None:
         [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
     ]
 
-def test_bell_state_operation_in_qsharp_file() -> None:
+def test_operation_with_args_in_qsharp_file() -> None:
     qsharp.init(project_root='.')
-    res = dump_operation("BellState.PrepareBellState", 2)
 
-    assert res == [
-        [(0.707107+0j), 0j, (0.707107+0j), 0j],
-        [0j, (0.707107+0j), 0j, (0.707107+0j)],
-        [0j, (0.707107+0j), 0j, (-0.707107-0j)],
-        [(0.707107+0j), 0j, (-0.707107-0j), 0j],
-    ], f"Got {res}"
+    res0 = dump_operation("BellState.AllBellStates(_, 0)", 2)
+
+    assert res0 == [
+        [complex(0.707107, 0.0), complex(0.0,0.0), complex(0.707107, 0.0), complex(0.0,0.0)],
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0)],
+        [complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0)],
+    ]
+
+    res1 = dump_operation("BellState.AllBellStates(_, 1)", 2)
+
+    assert res1 == [
+        [complex(0.707107, 0.0), complex(0.0,0.0), complex(0.707107, 0.0), complex(0.0,0.0)],
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+        [complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+        [complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
+    ]
+
+    res2 = dump_operation("BellState.AllBellStates(_, 2)", 2)
+
+    assert res2 == [
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+        [complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
+        [complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0)],
+    ],  f"got {res2}"
+
+    res3 = dump_operation("BellState.AllBellStates(_, 3)", 2)
+
+    assert res3 == [
+        [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+        [complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
+        [complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
+    ]
