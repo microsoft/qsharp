@@ -84,7 +84,7 @@ impl<'a> Renamer<'a> {
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
             Res::Param(id) => format!("param{id}"),
-            Res::ExportedItem(item) => match item.package {
+            Res::ExportedItem(item, _) => match item.package {
                 None => format!("exported_item{}", item.item),
                 Some(package) => format!("reexport_from_{package}:{}", item.item),
             },
@@ -94,16 +94,16 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.names.get(path.id) {
-            self.changes.push((path.span, id.into()));
+        if let Some(res) = self.names.get(path.id) {
+            self.changes.push((path.span, res.clone().into()));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.names.get(ident.id) {
-            self.changes.push((ident.span, id.into()));
+        if let Some(res) = self.names.get(ident.id) {
+            self.changes.push((ident.span, res.clone().into()));
         }
     }
 
@@ -117,8 +117,8 @@ impl Visitor<'_> for Renamer<'_> {
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
-                    if let Some(resolved_id) = self.names.get(item.path.id) {
-                        self.changes.push((item.span(), (*resolved_id).into()));
+                    if let Some(res) = self.names.get(item.path.id) {
+                        self.changes.push((item.span(), (res.clone()).into()));
                     } else if let Some(namespace_id) = self
                         .namespaces
                         .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
@@ -136,8 +136,8 @@ impl Visitor<'_> for Renamer<'_> {
     fn visit_idents(&mut self, vec_ident: &Idents) {
         let parts: Vec<Ident> = vec_ident.clone().into();
         let first = parts.first().expect("should contain at least one item");
-        if let Some(&id) = self.names.get(first.id) {
-            self.changes.push((first.span, id.into()));
+        if let Some(res) = self.names.get(first.id) {
+            self.changes.push((first.span, res.clone().into()));
             return;
         }
 

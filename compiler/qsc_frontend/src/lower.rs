@@ -135,16 +135,21 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                self.names
+                println!("Export is: {:?}", item);
+                dbg!(self
+                    .names
                     .get(item.path.id)
-                    .map(|x| (x, item.alias.clone()))
+                    .map(|x| (x, item.alias.clone())))
             })
             .collect::<Vec<_>>();
 
         let exported_hir_ids = exports
             .iter()
             .filter_map(|(res, alias)| match res {
-                resolve::Res::ExportedItem(id) | resolve::Res::Item(id, _) => Some((*id, alias)),
+                resolve::Res::ExportedItem(id, hir_alias) => {
+                    Some((*id, hir_alias.clone().or(alias.clone())))
+                }
+                resolve::Res::Item(id, _) => Some((*id, alias.clone())),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -174,7 +179,7 @@ impl With<'_> {
         &mut self,
         item: &ast::Item,
         // the optional ident is the export alias, if any
-        exported_ids: &[(hir::ItemId, &Option<ast::Ident>)],
+        exported_ids: &[(hir::ItemId, Option<ast::Ident>)],
     ) -> Option<LocalItemId> {
         let attrs: Vec<_> = item
             .attrs
@@ -183,7 +188,10 @@ impl With<'_> {
             .collect();
 
         let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::ExportedItem(item) | &resolve::Res::Item(item, _)) => Some(item),
+            Some(&resolve::Res::ExportedItem(item, ref hir_alias)) => {
+                Some((item, hir_alias.clone()))
+            }
+            Some(&resolve::Res::Item(item, _)) => Some((item, None)),
             _otherwise => None,
         };
 
@@ -195,12 +203,13 @@ impl With<'_> {
                     return None;
                 }
                 for item in item.items.iter() {
-                    let Some(id) = resolve_id(item.name().id) else {
+                    let Some((id, alias)) = resolve_id(item.name().id) else {
                         continue;
                     };
-                    // if the package is some, then this is a re-export and we
+                    let is_reexport = id.package.is_some() || alias.is_some();
+                    // if the package is Some, then this is a re-export and we
                     // need to preserve the reference to the original `ItemId`
-                    if id.package.is_some() {
+                    if is_reexport {
                         let name = self.lower_ident(item.name());
                         let kind = hir::ItemKind::Export(name, id);
                         self.lowerer.items.push(hir::Item {
@@ -218,7 +227,7 @@ impl With<'_> {
                 return None;
             }
             ast::ItemKind::Callable(callable) => {
-                let id = resolve_id(callable.name.id)?;
+                let (id, _) = resolve_id(callable.name.id)?;
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
                 let callable = self.lower_callable_decl(callable);
@@ -226,7 +235,7 @@ impl With<'_> {
                 (id, hir::ItemKind::Callable(callable))
             }
             ast::ItemKind::Ty(name, _) => {
-                let id = resolve_id(name.id)?;
+                let (id, _) = resolve_id(name.id)?;
                 let udt = self
                     .tys
                     .udts
@@ -236,7 +245,7 @@ impl With<'_> {
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
             ast::ItemKind::Struct(decl) => {
-                let id = resolve_id(decl.name.id)?;
+                let (id, _) = resolve_id(decl.name.id)?;
                 let strct = self
                     .tys
                     .udts
@@ -838,7 +847,7 @@ impl With<'_> {
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
-            Some(&resolve::Res::ExportedItem(item_id)) => hir::Res::Item(item_id),
+            Some(&resolve::Res::ExportedItem(item_id, _)) => hir::Res::Item(item_id),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
             | None => hir::Res::Err,
         }

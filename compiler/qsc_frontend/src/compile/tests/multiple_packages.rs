@@ -25,6 +25,7 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     let mut prev_id_and_name: Option<(PackageId, &str)> = None;
     let num_packages = packages.len();
     for (ix, (package_name, package_source)) in packages.into_iter().enumerate() {
+        println!("Compiling package {package_name}");
         let is_last = ix == num_packages - 1;
         let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
             vec![(prev_id, Some(Arc::from(prev_name)))]
@@ -463,6 +464,49 @@ fn namespaces_named_lowercase_main_not_treated_as_root() {
                     operation Main() : Unit {
                         Foo(10, true);
                     }",
+        ),
+    ]);
+}
+
+#[test]
+fn bug_repro() {
+    multiple_package_check(vec![
+        (
+            "MyGithubLibrary",
+            r#"
+        namespace TestPackage {
+
+            import Subpackage.Subpackage.Hello as SubHello;
+
+            export HelloFromGithub;
+            export SubHello;
+
+            /// This is a Doc String!
+            function HelloFromGithub() : Unit {
+                SubHello();
+            }
+        }
+
+        namespace Subpackage.Subpackage {
+            function Hello() : Unit {}
+            export Hello;
+        }
+
+        "#,
+        ),
+        (
+            "UserCode",
+            r#"
+           import MyGithubLibrary.TestPackage.SubHello;
+           import MyGithubLibrary.TestPackage.HelloFromGithub;
+           import MyGithubLibrary.Subpackage.Subpackage as P;
+
+            function Main() : Unit {
+                HelloFromGithub();
+                SubHello();
+                P.Hello();
+            }
+         "#,
         ),
     ]);
 }
