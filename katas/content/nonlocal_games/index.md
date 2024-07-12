@@ -14,7 +14,7 @@ Another characteristics of these games is that they are "refereed", which means 
 **This kata covers the following topics:**
  - Clauser, Horne, Shimony, and Hold thought experiment (often abbreviated as CHSH game)
  - Greenberger-Horne-Zeilinger game (often abbreviated as GHZ game)
- - The Mermin-Peres Magic Square (entanglement) game
+ - The Mermin-Peres Magic Square game
 
 **What you should know to start working on this kata:**
  - Basic linear algebra
