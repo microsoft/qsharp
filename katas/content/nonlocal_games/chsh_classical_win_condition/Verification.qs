@@ -13,8 +13,8 @@ namespace Kata.Verification {
             let expected = Kata.WinCondition(bits[0], bits[1], bits[2], bits[3]);
 
             if actual != expected {
-                Message("Win condition is wrong for " + $"X = {bits[0]}, " + $"Y = {bits[1]}, " + 
-		                $"A = {bits[2]}, " +  $"B = {bits[3]}");
+                Message($"Win condition is wrong for X = {bits[0]}, Y = {bits[1]}, " + 
+		        $"A = {bits[2]}, B = {bits[3]}");
                 return false;
             }
         }
