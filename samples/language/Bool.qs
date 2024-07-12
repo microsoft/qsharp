@@ -7,7 +7,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Bool {
+    function Main() : Bool {
         // `Bool`s can be operated upon with boolean operators:
         let andOp = true and true;
         Message($"AND operation: {andOp}");

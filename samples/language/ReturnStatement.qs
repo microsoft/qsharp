@@ -6,7 +6,7 @@
 /// return control flow to the callee's scope with a given value.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // After the execution of the function `Returns42`, control flow
         // will return to this scope.
         let number42 = Returns42();
