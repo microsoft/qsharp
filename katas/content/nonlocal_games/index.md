@@ -25,10 +25,7 @@ Another characteristics of these games is that they are "refereed", which means 
     "title": "CHSH Game"
 })
 
-The **CHSH Game** quantum kata is a series of exercises designed
-to get you familiar with the CHSH game.
-
-In it, two players (Alice and Bob) try to win the following game:
+In **CHSH Game**, two players (Alice and Bob) try to win the following game:
 
 Each of them is given a bit (Alice gets X and Bob gets Y), and
 they have to return new bits (Alice returns A and Bob returns B)
