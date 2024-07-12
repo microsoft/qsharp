@@ -135,11 +135,9 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                println!("Export is: {:?}", item);
-                dbg!(self
-                    .names
+                self.names
                     .get(item.path.id)
-                    .map(|x| (x, item.alias.clone())))
+                    .map(|x| (x, item.alias.clone()))
             })
             .collect::<Vec<_>>();
 

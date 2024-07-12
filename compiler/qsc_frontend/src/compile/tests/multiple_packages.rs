@@ -25,7 +25,6 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     let mut prev_id_and_name: Option<(PackageId, &str)> = None;
     let num_packages = packages.len();
     for (ix, (package_name, package_source)) in packages.into_iter().enumerate() {
-        println!("Compiling package {package_name}");
         let is_last = ix == num_packages - 1;
         let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
             vec![(prev_id, Some(Arc::from(prev_name)))]
@@ -469,7 +468,7 @@ fn namespaces_named_lowercase_main_not_treated_as_root() {
 }
 
 #[test]
-fn bug_repro() {
+fn aliased_export_via_aliased_import() {
     multiple_package_check(vec![
         (
             "MyGithubLibrary",

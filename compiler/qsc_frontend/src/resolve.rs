@@ -602,7 +602,7 @@ impl Resolver {
         }
     }
 
-    fn check_item_status(&mut self, res: Res, name: String, span: Span) {
+    fn check_item_status(&mut self, res: &Res, name: String, span: Span) {
         if let Res::Item(_, ItemStatus::Unimplemented) = res {
             self.errors.push(Error::Unimplemented(name, span));
         }
@@ -617,7 +617,7 @@ impl Resolver {
             &None,
         ) {
             Ok(res) => {
-                self.check_item_status(res.clone(), name.name.to_string(), name.span);
+                self.check_item_status(&res, name.name.to_string(), name.span);
                 self.names.insert(name.id, res);
             }
             Err(err) => self.errors.push(err),
@@ -663,7 +663,7 @@ impl Resolver {
             segments,
         ) {
             Ok(res) => {
-                self.check_item_status(res.clone(), path.name.name.to_string(), path.span);
+                self.check_item_status(&res, path.name.name.to_string(), path.span);
                 self.names.insert(path.id, res.clone());
                 Ok(res)
             }
@@ -923,10 +923,7 @@ impl Resolver {
                     // we treat it as an aliased export of the original underlying item
                     (true, Some(entry), _) | (true, _, Some(entry)) => {
                         if let ItemSource::Imported(Some(ref alias)) = entry.source {
-                            println!("___SPECIAL CASE HIT");
-                            println!("decl_item before {decl_alias:?}");
                             decl_alias = decl_alias.or(Some(alias.clone()));
-                            println!("decl_item after {decl_alias:?}");
                         }
                     }
                     _ => (),
@@ -1474,7 +1471,6 @@ impl GlobalTable {
             let namespace = self
                 .scope
                 .insert_or_find_namespace_from_root(global_namespace, root);
-            dbg!(&global);
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
