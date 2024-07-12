@@ -71,6 +71,28 @@ def test_constructing_an_instrument_with_a_valid_operation_succeeds():
     _ = Instrument([op])
 
 
+def test_constructing_an_ill_formed_instrument_throws_exception():
+    op0 = Operation([[[1, 0], [0, 0]]])
+    op1 = Operation(
+        [
+            [
+                [1, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ]
+        ]
+    )
+
+    with pytest.raises(NoisySimulatorError) as excinfo:
+        _ = Instrument([op0, op1])
+
+    assert (
+        str(excinfo.value)
+        == "error when building instrument: all Operations should target the same number of qubits"
+    )
+
+
 def test_empty_instrument_error():
     with pytest.raises(NoisySimulatorError) as excinfo:
         inst = Instrument([])
