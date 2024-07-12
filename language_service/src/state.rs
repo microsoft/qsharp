@@ -69,7 +69,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             target_profile: Profile::Unrestricted,
-            package_type: PackageType::Exe,
+            package_type: PackageType::Lib,
             language_features: LanguageFeatures::default(),
             lints_config: Vec::default(),
         }
