@@ -22,7 +22,7 @@ Another characteristics of these games is that they are "refereed", which means 
 
 @[section]({
     "id": "nonlocal_games__chsh_game",
-    "title": "CHSH game"
+    "title": "CHSH Game"
 })
 
 The **CHSH Game** quantum kata is a series of exercises designed
