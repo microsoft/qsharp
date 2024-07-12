@@ -32,10 +32,6 @@
 
 #![deny(missing_docs)]
 
-use nalgebra::{DMatrix, DVector};
-use num_complex::Complex;
-use thiserror::Error;
-
 pub(crate) mod density_matrix_simulator;
 pub(crate) mod instrument;
 pub(crate) mod kernel;
@@ -43,6 +39,18 @@ pub(crate) mod operation;
 pub(crate) mod state_vector_simulator;
 #[cfg(test)]
 pub(crate) mod tests;
+
+use nalgebra::{DMatrix, DVector};
+use num_complex::Complex;
+use thiserror::Error;
+
+// Re-exports.
+pub use {
+    density_matrix_simulator::{DensityMatrix, DensityMatrixSimulator},
+    instrument::Instrument,
+    operation::Operation,
+    state_vector_simulator::{StateVector, StateVectorSimulator},
+};
 
 /// A square matrix of `Complex<f64>`.
 pub type SquareMatrix = DMatrix<Complex<f64>>;
@@ -189,10 +197,3 @@ macro_rules! handle_error {
 }
 
 pub(crate) use handle_error;
-
-pub use {
-    density_matrix_simulator::{DensityMatrix, DensityMatrixSimulator},
-    instrument::Instrument,
-    operation::Operation,
-    state_vector_simulator::{StateVector, StateVectorSimulator},
-};
