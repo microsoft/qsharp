@@ -5,10 +5,10 @@
     "title": "Overview"
 })
 
-For our context, "nonlocal" means that the playing parties are separated by a great distance,
-so they cannot communicate with each other during the game.
-In a new kata, we discuss three quantum nonlocal games that display "quantum pseudo-telepathy" -
+This kata introduces three quantum nonlocal games that display "quantum pseudo-telepathy" -
 the use of quantum entanglement to eliminate the need for classical communication.
+In this context, "nonlocal" means that the playing parties are separated by a great distance,
+so they cannot communicate with each other during the game.
 Another characteristics of these games is that they are "refereed", which means the players try to win against the referee.
 
 **This kata covers the following topics:**
