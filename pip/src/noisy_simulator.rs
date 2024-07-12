@@ -9,7 +9,6 @@ use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
 pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> PyResult<()> {
-    // let m = PyModule::new(py, "noisy_simulator")?;
     m.add("NoisySimulatorError", py.get_type::<NoisySimulatorError>())?;
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
