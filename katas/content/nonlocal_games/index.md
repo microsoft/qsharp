@@ -60,4 +60,4 @@ so that X ∧ Y = A ⊕ B. The trick is, they can not communicate during the gam
     "title": "Conclusion" 
 })
 
-Congratulations! In this kata you learned how to communicate using quantum entanglement in nonlocal quantum games.
+Congratulations! In this kata you learned how to use quantum entanglement in nonlocal quantum games to get results that are better than any classical strategy can offer.
