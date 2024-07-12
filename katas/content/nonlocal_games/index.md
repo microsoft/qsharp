@@ -18,9 +18,7 @@ Another characteristics of these games is that they are "refereed", which means 
 
 **What you should know to start working on this kata:**
  - Basic linear algebra
- - Single and multi-qubit systems
- - Single and multi-qubit gates
- - Single-qubit system measurements
+ - Basic knowledge of quantum gates and measurements
 
 @[section]({
     "id": "nonlocal_games__chsh_game",
