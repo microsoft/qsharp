@@ -52,6 +52,12 @@ pub struct Increment {
     pub hir: hir::Package,
 }
 
+impl Increment {
+    pub fn clear_entry(&mut self) {
+        self.hir.entry = None;
+    }
+}
+
 impl Compiler {
     /// Creates a new compiler.
     pub fn new(
