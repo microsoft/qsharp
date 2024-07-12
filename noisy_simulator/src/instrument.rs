@@ -27,6 +27,20 @@ impl Instrument {
             ));
         }
 
+        let number_of_qubits = operations
+            .first()
+            .expect("there should be at least an element")
+            .number_of_qubits();
+
+        if !operations
+            .iter()
+            .all(|op| number_of_qubits == op.number_of_qubits())
+        {
+            return Err(Error::FailedToConstructInstrument(
+                "all Operations should target the same number of qubits".to_string(),
+            ));
+        }
+
         let summed_operation: SquareMatrix = operations.iter().map(|op| op.matrix()).sum();
         let summed_effect: SquareMatrix = operations.iter().map(|op| op.effect_matrix()).sum();
         let summed_effect_transpose = summed_effect.transpose();

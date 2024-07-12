@@ -33,6 +33,19 @@ fn dense_operation() -> Operation {
     .expect("operation should be valid")
 }
 
+#[test]
+fn check_operation_number_of_qubits_is_computed_correctly() {
+    let op = operation!(
+        [
+            0., 0.;
+            0., 0.;
+        ]
+    )
+    .expect("operation should be valid");
+
+    assert_eq!(1, op.number_of_qubits());
+}
+
 /// Check that the inner matrices of the instrument are constructed correctly.
 #[test]
 fn check_effect_matrix_is_computed_correctly() {
