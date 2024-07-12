@@ -51,7 +51,7 @@ so that X ∧ Y = A ⊕ B. The trick is, they can not communicate during the gam
 
 @[exercise]({
     "id": "nonlocal_games__chsh_classical_strategy",
-    "title": "Alice and Bob's classical strategy",
+    "title": "Alice and Bob's Classical Strategy",
     "path": "./chsh_classical_strategy/"
 })
 
