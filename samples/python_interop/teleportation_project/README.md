@@ -1,7 +1,5 @@
 # An example multi-file Q# project with Python classical host
 
-## Description
-
 The example project demonstrates a Q# quantum teleportation program implemented as a multi-file project, designed to be executed from Python classical code. 
 
 The `src` directory includes a `qsharp.json` manifest and Q# source files organized into subfolders. The main file, `RunTeleport.qs`, contains the entry point and references operations defined in other files. The teleportation logic is implemented in `Teleport.qs`, which uses a standard operation from `PrepareState.qs` to create a Bell pair. 
