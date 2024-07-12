@@ -28,7 +28,7 @@ and using these oracles to solve these problems with Grover's search.
     "title": "Canonical Satisfiability Problem"
 })
 
-Boolean satisfiability problem is the problem of determining whether there exists an assignment of Boolean variables $x_j$
+The Boolean satisfiability problem is the problem of determining whether there exists an assignment of Boolean variables $x_j$
 for which the given Boolean formula evaluates to true.
 
 The canonical representation for SAT problems is based on the conjunctive normal form of Boolean formulas.
