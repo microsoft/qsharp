@@ -754,7 +754,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "noisy-simulator"
+name = "noisy_simulator"
 version = "0.0.0"
 dependencies = [
  "nalgebra",
@@ -1335,7 +1335,7 @@ version = "0.0.0"
 dependencies = [
  "allocator",
  "miette",
- "noisy-simulator",
+ "noisy_simulator",
  "num-bigint",
  "num-complex",
  "pyo3",

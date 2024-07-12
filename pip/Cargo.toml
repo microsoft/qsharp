@@ -10,7 +10,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-noisy-simulator = { path = "../noisy-simulator" }
+noisy_simulator = { path = "../noisy_simulator" }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc = { path = "../compiler/qsc" }

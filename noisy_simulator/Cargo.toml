@@ -1,5 +1,5 @@
 [package]
-name = "noisy-simulator"
+name = "noisy_simulator"
 description = "Q# noisy simulator"
 
 version.workspace = true
