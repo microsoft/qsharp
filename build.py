@@ -410,6 +410,26 @@ if build_samples:
         )
     step_end()
 
+    step_start("Running qsharp testing samples")
+
+    test_projects_directories = [ dir
+        for dir, _, _ in project_directories
+        if dir.find("testing") != -1
+    ]
+
+    interpreter = use_python_env(pip_src)
+
+    command_args = [interpreter, "-m", "pytest"]
+
+    for test_project_dir in test_projects_directories:
+        subprocess.run(
+            command_args,
+            check=True,
+            text=True,
+            cwd=test_project_dir,
+        )
+    step_end()
+
 if build_npm:
     step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
