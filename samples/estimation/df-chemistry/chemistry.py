@@ -516,11 +516,6 @@ res = qsharp.estimate(
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
-if isinstance(res,dict):
-    result = [res]
-else:
-    result = res
-
 data = {
     'Run name': [],
     'T factory fraction': [],
@@ -529,7 +524,12 @@ data = {
     'rQOPS': []
 }
 
-for item in result:
+result_obj = json.loads(res.json)
+
+if isinstance(result_obj,dict):
+    result_obj = [ result_obj ]
+
+for item in result_obj:
     # Run name
     data['Run name'].append(item["jobParams"]["qubitParams"]["name"])
     # T factory fraction and Runtime
@@ -552,18 +552,9 @@ for item in result:
     else:
         data['Physical qubits'].append("-")
         data['rQOPS'].append("-")
-       
-data = {
-    'Run name': ['qubit_maj_ns_e6'],
-    'T factory fraction': ['15.26 %'],
-    'Runtime': ['19 mins'],
-    'Physical qubits': [207604],
-    'rQOPS': [343333334]
-}
  
 df = pd.DataFrame(data)
-pd.set_option('display.colheader_justify', 'center')
-print(df.to_string(index=False, justify='center'))
+print(df.to_markdown(index=False))
 
 # Print high-level resource estimation results
 # if "physicalCountsFormatted" in res:
