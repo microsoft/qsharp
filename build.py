@@ -394,7 +394,7 @@ if build_samples:
         os.path.join(dp, f)
         for dp, _, filenames in project_directories
         for f in filenames
-        if f == "qsharp.json"
+        if f == "qsharp.json" and dp.find("testing") == -1
     ]
     cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
