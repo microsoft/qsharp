@@ -14,8 +14,6 @@
 /// to include all Q# files within the `src` directory. These operations are tested
 /// by the Python wrapper script, `test_dump_operation.py`.
 
-
-
 namespace OperationEquivalence {
     open Microsoft.Quantum.Diagnostics;
     open SWAP;
