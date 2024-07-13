@@ -49,7 +49,7 @@ To start with, let's take a look at how you would play the classical variant of 
 
 @[exercise]({
     "id": "nonlocal_games__chsh_classical_strategy",
-    "title": "Alice and Bob's classical strategy",
+    "title": "Alice and Bob's Classical Strategy",
     "path": "./chsh_classical_strategy/"
 })
 
@@ -58,4 +58,4 @@ To start with, let's take a look at how you would play the classical variant of 
     "title": "Conclusion" 
 })
 
-Congratulations! In this kata you learned how to communicate using quantum entanglement in nonlocal quantum games.
+Congratulations! In this kata you learned how to use quantum entanglement in nonlocal quantum games to get results that are better than any classical strategy can offer.

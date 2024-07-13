@@ -18,9 +18,7 @@ namespace Kata.Verification {
             Message("Alice and Bob's classical strategy is not optimal");
             return false;
         }
-        else {
-            Message("Correct!");
-        }
+        Message("Correct!");
         true
     }
 
