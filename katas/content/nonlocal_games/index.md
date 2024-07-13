@@ -34,9 +34,6 @@ so that X ∧ Y = A ⊕ B. The trick is, they can not communicate during the gam
 > * ∧ is the standard bitwise AND operator.
 > * ⊕ is the exclusive or, or XOR operator, so (P ⊕ Q) is true if exactly one of P and Q is true.
 
-* You can read more about CHSH game in the [lecture notes](https://cs.uwaterloo.ca/~watrous/QC-notes/QC-notes.20.pdf) by
-  John Watrous.
-* At the end of the section you can find an implementation of the CHSH game that includes an explanation of the history and theory behind the game. 
 
 @[section]({
     "id": "nonlocal_games__chsh_game_classical",
