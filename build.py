@@ -412,22 +412,18 @@ if build_samples:
 
     step_start("Running qsharp testing samples")
 
+    python_bin = use_python_env(pip_src)
+
+    install_python_test_requirements(pip_src, python_bin)
+    install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+
     test_projects_directories = [ dir
         for dir, _, _ in project_directories
         if dir.find("testing") != -1
     ]
 
-    interpreter = use_python_env(pip_src)
-
-    command_args = [interpreter, "-m", "pytest"]
-
     for test_project_dir in test_projects_directories:
-        subprocess.run(
-            command_args,
-            check=True,
-            text=True,
-            cwd=test_project_dir,
-        )
+        run_python_tests(test_project_dir, python_bin)
     step_end()
 
 if build_npm:
