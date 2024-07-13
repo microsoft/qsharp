@@ -88,7 +88,7 @@ def test_operation_with_args_in_qsharp_file() -> None:
         [complex(0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
         [complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0)],
         [complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0), complex(-0.707107, 0.0)],
-    ],  f"got {res2}"
+    ]
 
     res3 = dump_operation("BellState.AllBellStates(_, 3)", 2)
 
