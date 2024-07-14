@@ -410,22 +410,6 @@ if build_samples:
         )
     step_end()
 
-    step_start("Running qsharp testing samples")
-
-    python_bin = use_python_env(pip_src)
-
-    install_python_test_requirements(pip_src, python_bin)
-    install_qsharp_python_package(pip_src, wheels_dir, python_bin)
-
-    test_projects_directories = [ dir
-        for dir, _, _ in project_directories
-        if dir.find("testing") != -1
-    ]
-
-    for test_project_dir in test_projects_directories:
-        run_python_tests(test_project_dir, python_bin)
-    step_end()
-
 if build_npm:
     step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
@@ -576,4 +560,18 @@ if build_pip and build_widgets and args.integration_tests:
             print(result.stdout)
             raise Exception(f"Error running {notebook}")
 
+    step_end()
+
+    step_start("Running qsharp testing samples")
+        project_directories = [
+            dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
+        ]
+
+        test_projects_directories = [ dir
+            for dir, _, _ in project_directories
+            if dir.find("testing") != -1
+        ]
+
+        for test_project_dir in test_projects_directories:
+            run_python_tests(test_project_dir, python_bin)
     step_end()
