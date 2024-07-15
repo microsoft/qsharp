@@ -597,6 +597,10 @@ test("language service diagnostics - web worker", async () => {
 
 test("language service configuration update", async () => {
   const languageService = getLanguageServiceWorker();
+
+  // Set the configuration to expect an entry point.
+  await languageService.updateConfiguration({ packageType: "exe" });
+
   let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
     actualMessages.push({

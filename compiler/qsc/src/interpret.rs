@@ -359,10 +359,13 @@ impl Interpreter {
     ) -> InterpretResult {
         let label = self.next_line_label();
 
-        let increment = self
+        let mut increment = self
             .compiler
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
+        // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
+        // should not change what gets executed.
+        increment.clear_entry();
 
         self.eval_increment(receiver, increment)
     }
