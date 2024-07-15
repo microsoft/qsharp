@@ -19,6 +19,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
+type FilesWithMetadata = Vec<(Arc<Metadata>, Arc<str>, Arc<str>, Arc<str>)>;
 
 /// Represents an immutable compilation state.
 #[derive(Debug)]
@@ -146,7 +147,7 @@ pub fn generate_docs(
     language_features: Option<LanguageFeatures>,
 ) -> Files {
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
-    let mut files: Files = vec![];
+    let mut files: FilesWithMetadata = vec![];
 
     let display = &CodeDisplay {
         compilation: &compilation,
@@ -169,9 +170,36 @@ pub fn generate_docs(
         }
     }
 
-    generate_toc(&mut toc, &mut files);
+    // We want to sort documentation files in a meaningful way.
+    // First, we want to put files for the current project, if it exists
+    // Then we want to put explicit dependencies of the current project, if they exist
+    // Then we want to add built-in std package. And finally built-in core package.
+    // Namespaces within packages should be sorted alphabetically and
+    // items with a namespace should be also sorted alphabetically.
+    // Also, items without any metadata should come last
+    // TODO: Implement properly
+    files.sort_unstable_by(|a, b| {
+        let package_compare = a.0.package.cmp(&b.0.package);
+        if package_compare == std::cmp::Ordering::Equal {
+            let namespace_compare = a.0.namespace.cmp(&b.0.namespace);
+            if namespace_compare == std::cmp::Ordering::Equal {
+                a.0.name.cmp(&b.0.name)
+            } else {
+                namespace_compare
+            }
+        } else {
+            package_compare.reverse()
+        }
+    });
 
-    files
+    let mut result: Files = files
+        .into_iter()
+        .map(|(_, name, metadata, content)| (name, metadata, content))
+        .collect();
+
+    generate_toc(&mut toc, &mut result);
+
+    result
 }
 
 fn generate_doc_for_item<'a>(
@@ -180,7 +208,7 @@ fn generate_doc_for_item<'a>(
     include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
-    files: &mut Files,
+    files: &mut FilesWithMetadata,
 ) -> Option<(Rc<str>, String)> {
     // Filter items
     if !include_internals && (item.visibility == Visibility::Internal) {
@@ -198,10 +226,12 @@ fn generate_doc_for_item<'a>(
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
-    files.push((file_name, file_metadata, file_content));
 
     // Create toc line
     let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
+
+    let met: Arc<Metadata> = Arc::from(metadata);
+    files.push((met, file_name, file_metadata, file_content));
 
     // Return (ns, line)
     Some((ns.clone(), line))
@@ -244,8 +274,7 @@ fn generate_file(
     let content = format!(
         "# {title}
 
-* **Package:** {package_name}
-* **Namespace:** {ns}
+**Namespace:** {ns}
 
 ```qsharp
 {sig}
@@ -313,7 +342,7 @@ enum MetadataKind {
 }
 
 fn get_metadata(
-    package_name: &String,
+    package_name: &str,
     ns: Rc<str>,
     item: &Item,
     display: &CodeDisplay,
@@ -348,7 +377,7 @@ fn get_metadata(
         },
         topic: "managed-reference".to_string(),
         kind,
-        package: package_name.clone(),
+        package: String::from(package_name),
         namespace: ns,
         name,
         summary,

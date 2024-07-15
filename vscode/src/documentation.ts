@@ -28,8 +28,9 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   const docFiles = await worker.getDocumentation(program.programConfig);
 
   const packageNameRegex = new RegExp("^qsharp.package: (.+)$", "m");
+  let currentPackage = "";
   const namespaceRegex = new RegExp("^qsharp.namespace: (.+)$", "m");
-  const itemNameRegex = new RegExp("^qsharp.name: (.+)$", "m");
+  let currentNamespace = "";
 
   const documentation: string[] = [];
   for (const file of docFiles) {
@@ -39,15 +40,27 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     // only files that contain documentation from some qsharp object.
     if (file.metadata.indexOf("qsharp.name:") >= 0) {
       const packageNameMatch = packageNameRegex.exec(file.metadata);
-      const namespaceMatch = namespaceRegex.exec(file.metadata);
-      const itemNameMatch = itemNameRegex.exec(file.metadata);
-
-      const namespace = namespaceMatch != null ? namespaceMatch[1] : "";
       const packageName = packageNameMatch != null ? packageNameMatch[1] : "";
-      const itemName = itemNameMatch != null ? itemNameMatch[1] : "";
+      const namespaceMatch = namespaceRegex.exec(file.metadata);
+      const namespace = namespaceMatch != null ? namespaceMatch[1] : "";
 
-      documentation.push(file.contents);
-      documentation.push("[" + namespace + ", " + packageName + ", " + itemName + "]");
+      let packageHeader = "";
+      if (packageName != currentPackage) {
+        currentPackage = packageName;
+        packageHeader = `## Package ${packageName}\n`;
+      }
+
+      let namespaceHeader = "";
+      if (namespace != currentNamespace) {
+        currentNamespace = namespace;
+        namespaceHeader = `## Namespace ${namespace}\n`;
+      }
+
+      if (packageHeader == "" && namespaceHeader == "") {
+        documentation.push(file.contents);
+      } else {
+        documentation.push(packageHeader + namespaceHeader + file.contents);
+      }
     }
   }
 
