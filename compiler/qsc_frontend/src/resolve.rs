@@ -57,7 +57,7 @@ pub fn path_as_field_accessor(
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// A global or local item.
     Item(ItemId, ItemStatus),
@@ -70,7 +70,7 @@ pub enum Res {
     /// The unit type.
     UnitTy,
     /// An export, which could be from another package.
-    ExportedItem(ItemId),
+    ExportedItem(ItemId, Option<Ident>),
 }
 
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
@@ -201,10 +201,11 @@ impl ScopeItemEntry {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Default, Copy)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub enum ItemSource {
     Exported,
-    Imported,
+    // if the item was imported with an alias, the alias is stored here
+    Imported(Option<Ident>),
     #[default]
     Declared,
 }
@@ -601,7 +602,7 @@ impl Resolver {
         }
     }
 
-    fn check_item_status(&mut self, res: Res, name: String, span: Span) {
+    fn check_item_status(&mut self, res: &Res, name: String, span: Span) {
         if let Res::Item(_, ItemStatus::Unimplemented) = res {
             self.errors.push(Error::Unimplemented(name, span));
         }
@@ -616,7 +617,7 @@ impl Resolver {
             &None,
         ) {
             Ok(res) => {
-                self.check_item_status(res, name.name.to_string(), name.span);
+                self.check_item_status(&res, name.name.to_string(), name.span);
                 self.names.insert(name.id, res);
             }
             Err(err) => self.errors.push(err),
@@ -643,7 +644,7 @@ impl Resolver {
             ) {
                 Ok(res) if matches!(res, Res::Local(_)) => {
                     // The path is a field accessor.
-                    self.names.insert(first.id, res);
+                    self.names.insert(first.id, res.clone());
                     return Ok(res);
                 }
                 Err(err) if !matches!(err, Error::NotFound(_, _)) => return Err(err), // Local was found but has issues.
@@ -662,8 +663,8 @@ impl Resolver {
             segments,
         ) {
             Ok(res) => {
-                self.check_item_status(res, path.name.name.to_string(), path.span);
-                self.names.insert(path.id, res);
+                self.check_item_status(&res, path.name.name.to_string(), path.span);
+                self.names.insert(path.id, res.clone());
                 Ok(res)
             }
             Err(err) => {
@@ -870,6 +871,7 @@ impl Resolver {
             })
             .collect::<Vec<_>>()
         {
+            let mut decl_alias = decl_item.alias.clone();
             if decl_item.is_glob {
                 self.bind_glob_import_or_export(decl_item, decl.is_export());
                 continue;
@@ -909,24 +911,37 @@ impl Resolver {
                         continue;
                     }
                     (false, Some(entry), _) | (true, _, Some(entry))
-                        if entry.source == ItemSource::Imported =>
+                        if matches!(entry.source, ItemSource::Imported(..)) =>
                     {
                         let err =
                             Error::ImportedDuplicate(local_name.to_string(), decl_item.name().span);
                         self.errors.push(err);
                         continue;
                     }
+                    // special case:
+                    // if this is an export of an import with an alias,
+                    // we treat it as an aliased export of the original underlying item
+                    (true, Some(entry), _) | (true, _, Some(entry)) => {
+                        if let ItemSource::Imported(Some(ref alias)) = entry.source {
+                            decl_alias = decl_alias.or(Some(alias.clone()));
+                        }
+                    }
                     _ => (),
                 }
             }
 
+            let local_name = decl_alias
+                .as_ref()
+                .map(|x| x.name.clone())
+                .unwrap_or(local_name);
+
             let item_source = if is_export {
                 ItemSource::Exported
             } else {
-                ItemSource::Imported
+                ItemSource::Imported(decl_item.alias.clone())
             };
 
-            if let Ok(Res::Item(id, _) | Res::ExportedItem(id)) = term_result {
+            if let Ok(Res::Item(id, _) | Res::ExportedItem(id, _)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
                         self.globals
@@ -936,12 +951,13 @@ impl Resolver {
                     }
                 }
                 let scope = self.current_scope_mut();
-                scope
-                    .terms
-                    .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
+                scope.terms.insert(
+                    local_name.clone(),
+                    ScopeItemEntry::new(id, item_source.clone()),
+                );
             }
 
-            if let Ok(Res::Item(id, _) | Res::ExportedItem(id)) = ty_result {
+            if let Ok(Res::Item(id, _) | Res::ExportedItem(id, _)) = ty_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
                         self.globals
@@ -951,9 +967,10 @@ impl Resolver {
                     }
                 }
                 let scope = self.current_scope_mut();
-                scope
-                    .tys
-                    .insert(local_name.clone(), ScopeItemEntry::new(id, item_source));
+                scope.tys.insert(
+                    local_name.clone(),
+                    ScopeItemEntry::new(id, item_source.clone()),
+                );
             }
 
             let res = match (term_result, ty_result) {
@@ -989,12 +1006,14 @@ impl Resolver {
                 // the definition comes from.
                 Res::Item(item_id, _) if item_id.package.is_some() && is_export => {
                     self.names
-                        .insert(decl_item.name().id, Res::ExportedItem(item_id));
+                        .insert(decl_item.name().id, Res::ExportedItem(item_id, decl_alias));
                 }
-                Res::Item(underlying_item_id, _) if decl_item.alias.is_some() && is_export => {
+                Res::Item(underlying_item_id, _) if decl_alias.is_some() && is_export => {
                     // insert the export's alias
-                    self.names
-                        .insert(decl_item.name().id, Res::ExportedItem(underlying_item_id));
+                    self.names.insert(
+                        decl_item.name().id,
+                        Res::ExportedItem(underlying_item_id, decl_alias),
+                    );
                 }
                 _ => self.names.insert(decl_item.name().id, res),
             }
@@ -1483,7 +1502,7 @@ impl GlobalTable {
                             self.scope
                                 .terms
                                 .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id));
+                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
                         }
                         hir::ItemKind::Namespace(ns, _items) => {
                             self.scope.insert_or_find_namespace(ns);
@@ -1492,7 +1511,7 @@ impl GlobalTable {
                             self.scope
                                 .tys
                                 .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id));
+                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")
@@ -1620,7 +1639,7 @@ fn bind_global_item(
                     //                    bind_global_item(names, scope, namespace, next_id, item)?;
                     let item_id = next_id();
                     let res = Res::Item(item_id, ItemStatus::Available);
-                    names.insert(decl_item.name().id, res);
+                    names.insert(decl_item.name().id, res.clone());
                     match scope
                         .terms
                         .get_mut_or_default(namespace)
@@ -1666,7 +1685,7 @@ fn bind_callable(
     let item_id = next_id();
     let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
     let res = Res::Item(item_id, status);
-    names.insert(decl.name.id, res);
+    names.insert(decl.name.id, res.clone());
     let mut errors = Vec::new();
     match scope
         .terms
@@ -1716,7 +1735,7 @@ fn bind_ty(
 
     let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
     let res = Res::Item(item_id, status);
-    names.insert(name.id, res);
+    names.insert(name.id, res.clone());
     match (
         scope
             .terms
@@ -1740,7 +1759,7 @@ fn bind_ty(
             )])
         }
         (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
-            term_entry.insert(res);
+            term_entry.insert(res.clone());
             ty_entry.insert(res);
             Ok(())
         }
@@ -2041,7 +2060,7 @@ where
             candidates.extend(&mut opens.iter().filter_map(|(ns_id, open)| {
                 globals
                     .get(kind, *ns_id, &provided_symbol_name.name)
-                    .map(|res| (*res, open.clone()))
+                    .map(|res| (res.clone(), open.clone()))
             }));
         }
     }
@@ -2062,7 +2081,7 @@ where
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
         // succeed in cases where both an older, unimplemented API and newer, implemented API with the
         // same name are both in scope without forcing the user to fully qualify the name.
-        candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented)));
+        candidates.retain(|res, _| !matches!(res, &Res::Item(_, ItemStatus::Unimplemented)));
     }
     candidates
 }
@@ -2104,7 +2123,7 @@ fn find_symbol_in_namespace<O>(
 
     // If a symbol was found, insert it into the candidates map
     if let Some(res) = res {
-        candidates.insert(*res, open);
+        candidates.insert(res.clone(), open);
     }
 }
 
@@ -2159,8 +2178,8 @@ fn resolve_scope_locals(
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
-        if let Some(&res) = globals.get(kind, *namespace, name) {
-            return Some(res);
+        if let Some(res) = globals.get(kind, *namespace, name) {
+            return Some(res.clone());
         }
     }
 

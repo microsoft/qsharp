@@ -466,3 +466,46 @@ fn namespaces_named_lowercase_main_not_treated_as_root() {
         ),
     ]);
 }
+
+#[test]
+fn aliased_export_via_aliased_import() {
+    multiple_package_check(vec![
+        (
+            "MyGithubLibrary",
+            r#"
+        namespace TestPackage {
+
+            import Subpackage.Subpackage.Hello as SubHello;
+
+            export HelloFromGithub;
+            export SubHello;
+
+            /// This is a Doc String!
+            function HelloFromGithub() : Unit {
+                SubHello();
+            }
+        }
+
+        namespace Subpackage.Subpackage {
+            function Hello() : Unit {}
+            export Hello;
+        }
+
+        "#,
+        ),
+        (
+            "UserCode",
+            r#"
+           import MyGithubLibrary.TestPackage.SubHello;
+           import MyGithubLibrary.TestPackage.HelloFromGithub;
+           import MyGithubLibrary.Subpackage.Subpackage as P;
+
+            function Main() : Unit {
+                HelloFromGithub();
+                SubHello();
+                P.Hello();
+            }
+         "#,
+        ),
+    ]);
+}
