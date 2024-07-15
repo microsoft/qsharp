@@ -63,7 +63,7 @@ fn check_non_selective_evolution_operator_is_computed_correctly() {
         .collect();
     let op0 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_0 = Instrument::new(vec![op0]).expect("instrument should be valid");
-    let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().to_vec();
+    let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().clone();
     let op1 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_1 = Instrument::new(vec![op1]).expect("instrument should be valid");
     let m0 = instrument_0.non_selective_operation_matrix();

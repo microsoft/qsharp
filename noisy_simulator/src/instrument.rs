@@ -41,8 +41,8 @@ impl Instrument {
             ));
         }
 
-        let summed_operation: SquareMatrix = operations.iter().map(|op| op.matrix()).sum();
-        let summed_effect: SquareMatrix = operations.iter().map(|op| op.effect_matrix()).sum();
+        let summed_operation: SquareMatrix = operations.iter().map(Operation::matrix).sum();
+        let summed_effect: SquareMatrix = operations.iter().map(Operation::effect_matrix).sum();
         let summed_effect_transpose = summed_effect.transpose();
         let summed_kraus_operators = summed_kraus_operators(&operations)?;
 
@@ -56,35 +56,41 @@ impl Instrument {
     }
 
     /// Return operation corresponding to the i-th outcome.
+    #[must_use]
     pub fn operation(&self, i: usize) -> &Operation {
         &self.operations[i]
     }
 
     /// Return the matrix corresponding to the sum over all
     /// operations in this instrument:
-    /// $$ \sum_i \sum_k K_{ik} \otimes (K_{ik})* $$
-    /// where \otimes denotes the Kronecker product
+    /// Σᵢ Σₖ (Kᵢₖ ⊗ Kᵢₖ*)
+    /// where ⊗ denotes the Kronecker product
     /// and * denotes the complex conjugate (entry-wise).
+    #[must_use]
     pub fn non_selective_operation_matrix(&self) -> &SquareMatrix {
         &self.summed_operation
     }
 
     /// Return Kraus operators of the operation corresponding to non selective evolution.
+    #[must_use]
     pub fn non_selective_kraus_operators(&self) -> &Vec<SquareMatrix> {
         &self.summed_kraus_operators
     }
 
-    /// Return total effect $(\sum_i \sum_k K_{ik}^\dagger K_{ik})$.
+    /// Return total effect Σᵢ Σₖ (Kᵢₖ† Kᵢₖ), where † denotes the adjoint.
+    #[must_use]
     pub fn total_effect(&self) -> &SquareMatrix {
         &self.summed_effect
     }
 
-    /// Return transposed total effect $(\sum_i \sum_k K_{ik}^\dagger K_{ik})^T$.
+    /// Return transposed total effect Σᵢ Σₖ (Kᵢₖ† Kᵢₖ)^T, where † denotes the adjoint.
+    #[must_use]
     pub fn total_effect_transposed(&self) -> &SquareMatrix {
         &self.summed_effect_transpose
     }
 
     /// Return number of operations/outcomes in this instrument.
+    #[must_use]
     pub fn num_operations(&self) -> usize {
         self.operations.len()
     }
@@ -102,7 +108,8 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
                 .iter()
                 .map(|k| {
                     // This code is doing the equivalent to:
-                    // choi_matrix += vec(K) * vec(K)^dagger
+                    // choi_matrix += vec(K) * vec(K*)
+                    // where * denotes the complex conjugate
                     let dim = k.shape().0.pow(2);
                     let mut choi = SquareMatrix::zeros(dim, dim);
                     for row in 0..dim {
