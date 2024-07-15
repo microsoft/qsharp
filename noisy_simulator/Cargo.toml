@@ -14,3 +14,12 @@ nalgebra = { workspace = true }
 num-complex = { workspace = true }
 rand = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["cargo_bench_support"]}
+
+[lints]
+workspace = true
+
+[lib]
+bench = false

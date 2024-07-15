@@ -757,6 +757,7 @@ dependencies = [
 name = "noisy_simulator"
 version = "0.0.0"
 dependencies = [
+ "criterion",
  "nalgebra",
  "num-complex",
  "rand",
