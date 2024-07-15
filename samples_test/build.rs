@@ -156,7 +156,7 @@ fn create_tests_for_projects() {
             #[allow(non_snake_case)]
             #[test]
             fn compile_{file_stem_cleaned}() {{
-                compile_project("{full_path}");
+                compile_project(r"{full_path}");
             }}
             "#,
             full_path = path.to_str().expect("should have a valid path"),
