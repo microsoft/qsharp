@@ -145,9 +145,9 @@ impl With<'_> {
             .iter()
             .filter_map(|(res, alias)| match res {
                 resolve::Res::ExportedItem(id, hir_alias) => {
-                    Some((*id, hir_alias.clone().or(alias.clone())))
+                    Some((*id, hir_alias.as_ref().or(alias.as_ref())))
                 }
-                resolve::Res::Item(id, _) => Some((*id, alias.clone())),
+                resolve::Res::Item(id, _) => Some((*id, alias.as_ref())),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -177,7 +177,7 @@ impl With<'_> {
         &mut self,
         item: &ast::Item,
         // the optional ident is the export alias, if any
-        exported_ids: &[(hir::ItemId, Option<ast::Ident>)],
+        exported_ids: &[(hir::ItemId, Option<&ast::Ident>)],
     ) -> Option<LocalItemId> {
         let attrs: Vec<_> = item
             .attrs
