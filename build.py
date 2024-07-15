@@ -31,7 +31,6 @@ parser.add_argument("--widgets", action="store_true", help="Build the Python wid
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
-parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -80,7 +79,6 @@ build_all = (
     and not args.pip
     and not args.widgets
     and not args.wasm
-    and not args.samples
     and not args.npm
     and not args.play
     and not args.vscode
@@ -90,7 +88,6 @@ build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
-build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -194,7 +191,7 @@ if args.check:
             cwd=root_dir,
         )
 
-    if build_cli or build_samples:
+    if build_cli:
         print("Running Q# format check")
         subprocess.run(
             [
@@ -224,13 +221,6 @@ if build_cli:
             cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
         step_end()
-
-    step_start("Building the command line compiler")
-    cargo_build_args = ["cargo", "build", "--bin", "qsc"]
-    if build_type == "release":
-        cargo_build_args.append("--release")
-    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
-    step_end()
 
 
 def install_qsharp_python_package(cwd, wheelhouse, interpreter):
@@ -371,43 +361,6 @@ if build_wasm:
     subprocess.run(
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
-    step_end()
-
-if build_samples:
-    step_start("Building qsharp samples")
-    project_directories = [
-        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
-    ]
-    single_file_directories = [
-        candidate
-        for candidate in os.walk(samples_src)
-        if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])
-    ]
-
-    files = [
-        os.path.join(dp, f)
-        for dp, _, filenames in single_file_directories
-        for f in filenames
-        if os.path.splitext(f)[1] == ".qs"
-    ]
-    projects = [
-        os.path.join(dp, f)
-        for dp, _, filenames in project_directories
-        for f in filenames
-        if f == "qsharp.json"
-    ]
-    cargo_args = ["cargo", "run", "--bin", "qsc"]
-    if build_type == "release":
-        cargo_args.append("--release")
-    for file in files:
-        subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
-    for project in projects:
-        subprocess.run(
-            (cargo_args + ["--", "--qsharp-json", project]),
-            check=True,
-            text=True,
-            cwd=root_dir,
-        )
     step_end()
 
 if build_npm:

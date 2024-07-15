@@ -3,22 +3,33 @@
 
 use std::{
     env,
+    ffi::OsStr,
     fs::{read_dir, File},
     io::Write,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 fn main() {
-    println!("cargo::rerun-if-changed=../samples/algorithms/");
-    // Iterate through the samples folder and create a test for each file
+    create_tests_for_files("algorithms");
+    create_tests_for_files("language");
+    create_tests_for_files_compile_only("estimation");
+    create_tests_for_projects();
+}
+
+fn create_tests_for_files(folder: &str) {
+    println!("cargo::rerun-if-changed=../samples/{folder}/");
+    // Iterate through the folder and create a test for each qs file
     let mut paths =
-        read_dir("../samples/algorithms/").expect("folder should exist and be readable");
+        read_dir(format!("../samples/{folder}")).expect("folder should exist and be readable");
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
-    let dest_path = Path::new(&out_dir).join("test_cases.rs");
+    let dest_path = Path::new(&out_dir).join(format!("{folder}_test_cases.rs"));
     let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
 
     while let Some(Ok(dir_entry)) = paths.next() {
         let path = &dir_entry.path();
+        if Some("qs") != path.extension().and_then(OsStr::to_str) {
+            continue;
+        }
         let file_name = path
             .file_name()
             .expect("file name should be separable")
@@ -41,7 +52,7 @@ fn main() {
             #[allow(non_snake_case)]
             fn {file_stem}_src() -> SourceMap {{
                 SourceMap::new(
-                    vec![("{file_name}".into(), include_str!("../../../../../samples/algorithms/{file_name}").into())],
+                    vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
                     None,
                 )
             }}
@@ -50,7 +61,7 @@ fn main() {
             #[test]
             fn run_{file_stem}() {{
                 let output = compile_and_run({file_stem}_src());
-                // This constant must be defined in `samples_test/src/tests.rs` and
+                // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
                 // must contain the output of the sample {file_name}
                 {file_stem_upper}_EXPECT.assert_eq(&output);
             }}
@@ -59,7 +70,7 @@ fn main() {
             #[test]
             fn debug_{file_stem}() {{
                 let output = compile_and_run_debug({file_stem}_src());
-                // This constant must be defined in `samples_test/src/tests.rs` and
+                // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
                 // must contain the output of the sample {file_name}
                 {file_stem_upper}_EXPECT_DEBUG.assert_eq(&output);
             }}
@@ -67,4 +78,108 @@ fn main() {
         )
         .expect("writing to file should succeed");
     }
+}
+
+fn create_tests_for_files_compile_only(folder: &str) {
+    println!("cargo::rerun-if-changed=../samples/{folder}/");
+    // Iterate through the folder and create a test for each qs file
+    let mut paths =
+        read_dir(format!("../samples/{folder}")).expect("folder should exist and be readable");
+    let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
+    let dest_path = Path::new(&out_dir).join(format!("{folder}_test_cases.rs"));
+    let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
+
+    while let Some(Ok(dir_entry)) = paths.next() {
+        let path = &dir_entry.path();
+        if Some("qs") != path.extension().and_then(OsStr::to_str) {
+            continue;
+        }
+        let file_name = path
+            .file_name()
+            .expect("file name should be separable")
+            .to_str()
+            .expect("file name should be valid");
+        let file_stem = path
+            .file_stem()
+            .expect("file name should be separable")
+            .to_str()
+            .expect("file name should be valid");
+        assert!(
+            !file_stem.contains(' '),
+            "file name `{file_name}` should not contain spaces"
+        );
+
+        writeln!(
+            f,
+            r#"
+            #[allow(non_snake_case)]
+            #[test]
+            fn compile_{file_stem}() {{
+                compile(
+                    SourceMap::new(
+                        vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
+                        None,
+                    )
+                );
+            }}
+            "#
+        )
+        .expect("writing to file should succeed");
+    }
+}
+
+fn create_tests_for_projects() {
+    let paths = collect_qsharp_project_folders(Path::new("../samples"));
+    let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
+    let dest_path = Path::new(&out_dir).join("project_test_cases.rs");
+    let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
+
+    for path in paths {
+        println!(
+            "cargo::rerun-if-changed={}",
+            path.to_str().expect("should have a valid path")
+        );
+        let file_stem = path
+            .file_stem()
+            .expect("file name should be separable")
+            .to_str()
+            .expect("file name should be valid");
+        assert!(
+            !file_stem.contains(' '),
+            "folder name `{file_stem}` should not contain spaces"
+        );
+        let file_stem_cleaned = file_stem.replace('-', "_");
+
+        writeln!(
+            f,
+            r#"
+            #[allow(non_snake_case)]
+            #[test]
+            fn compile_{file_stem_cleaned}() {{
+                compile_project("{full_path}");
+            }}
+            "#,
+            full_path = path.to_str().expect("should have a valid path"),
+        )
+        .expect("writing to file should succeed");
+    }
+}
+
+fn collect_qsharp_project_folders(path: &Path) -> Vec<PathBuf> {
+    // Recursively search for all qsharp.json projects in the samples directory and return
+    // a list of their containing folders
+    let mut projects = Vec::new();
+    let mut paths = read_dir(path).expect("folder should exist and be readable");
+    while let Some(Ok(dir_entry)) = paths.next() {
+        let entry = &dir_entry.path();
+        if entry.is_dir() {
+            projects.append(&mut collect_qsharp_project_folders(entry));
+        } else if Some("qsharp.json") == entry.file_name().and_then(OsStr::to_str) {
+            projects.push(
+                path.canonicalize()
+                    .expect("path should resolve to a canonical path"),
+            );
+        }
+    }
+    projects
 }
