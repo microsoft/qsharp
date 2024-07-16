@@ -3,13 +3,13 @@
 
 use std::str::FromStr;
 
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_data_structures::target::TargetCapabilityFlags;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Profile {
     Unrestricted,
     Base,
-    Adaptive,
+    AdaptiveRI,
 }
 
 impl Profile {
@@ -18,17 +18,17 @@ impl Profile {
         match self {
             Self::Unrestricted => "Unrestricted",
             Self::Base => "Base",
-            Self::Adaptive => "Adaptive",
+            Self::AdaptiveRI => "Adaptive_RI",
         }
     }
 }
 
-impl From<Profile> for RuntimeCapabilityFlags {
+impl From<Profile> for TargetCapabilityFlags {
     fn from(value: Profile) -> Self {
         match value {
             Profile::Unrestricted => Self::all(),
             Profile::Base => Self::empty(),
-            Profile::Adaptive => Self::ForwardBranching,
+            Profile::AdaptiveRI => Self::Adaptive | Self::QubitReset | Self::IntegerComputations,
         }
     }
 }
@@ -38,7 +38,7 @@ impl FromStr for Profile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Adaptive" | "adaptive" => Ok(Self::Adaptive),
+            "Adaptive_RI" | "adaptive_ri" => Ok(Self::AdaptiveRI),
             "Base" | "base" => Ok(Self::Base),
             "Unrestricted" | "unrestricted" => Ok(Self::Unrestricted),
             _ => Err(()),

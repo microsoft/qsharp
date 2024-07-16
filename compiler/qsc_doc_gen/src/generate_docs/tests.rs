@@ -8,7 +8,7 @@ use expect_test::expect;
 
 #[test]
 fn docs_generation() {
-    let files = generate_docs();
+    let files = generate_docs(None, None, None);
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Microsoft.Quantum.Core/Length.md")
@@ -24,7 +24,7 @@ fn docs_generation() {
         qsharp.kind: function
         qsharp.namespace: Microsoft.Quantum.Core
         qsharp.name: Length
-        qsharp.summary: "Returns the number of elements in an array."
+        qsharp.summary: "Returns the number of elements in the input array `a`."
         ---
 
         # Length function
@@ -36,14 +36,19 @@ fn docs_generation() {
         ```
 
         ## Summary
-        Returns the number of elements in an array.
+        Returns the number of elements in the input array `a`.
 
         ## Input
         ### a
         Input array.
 
         ## Output
-        The total count of elements in an array.
+        The total number of elements in the input array `a`.
+
+        ## Example
+        ```qsharp
+        Message($"{ Length([0, 0, 0]) }"); // Prints 3
+        ```
     "#]]
     .assert_eq(full_contents.as_str());
 }

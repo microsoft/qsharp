@@ -10,19 +10,21 @@ use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter},
     target::Profile,
-    LanguageFeatures, PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 
 use super::LogicalCounter;
 
 fn verify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
     let source_map = SourceMap::new([("test".into(), source.into())], entry.map(Into::into));
+    let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
     let mut interpreter = Interpreter::new(
-        true,
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("compilation should succeed");
     let mut counter = LogicalCounter::default();
@@ -206,5 +208,33 @@ fn account_for_estimates_works() {
                 measurement_count: 6,
             }
         "]],
+    );
+}
+
+#[test]
+fn pauli_i_rotation_for_global_phase_is_noop() {
+    verify_logical_counts(
+        indoc! {"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    T(q);
+                    R(PauliI, 1.0, q);
+                }
+            }
+        "},
+        None,
+        &expect![[r#"
+            LogicalResourceCounts {
+                num_qubits: 1,
+                t_count: 1,
+                rotation_count: 0,
+                rotation_depth: 0,
+                ccz_count: 0,
+                ccix_count: 0,
+                measurement_count: 0,
+            }
+        "#]],
     );
 }

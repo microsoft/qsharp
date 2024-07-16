@@ -109,7 +109,7 @@ pub enum Error {
     /// Handles various types of invalid input
     ///
     /// ✅ This does not contain user data and can be logged
-    /// (mostly user error, but check InvalidInput for more details)
+    /// (mostly user error, but check `InvalidInput` for more details)
     #[error(transparent)]
     #[diagnostic(transparent)]
     InvalidInput(InvalidInput),

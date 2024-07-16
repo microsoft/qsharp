@@ -1,3 +1,3 @@
-**Input**: A qubit in state $|\psi\rangle = \alpha |0\rangle + \beta |1\rangle$.
+**Input**: A qubit in state $\ket{\psi} = \alpha \ket{0} + \beta \ket{1}$.
 
-**Goal** : Change the qubit state to $\alpha |0\rangle - \beta |1\rangle$ (i.e., flip the sign of the $|1\rangle$ component of the superposition).
+**Goal** : Change the qubit state to $\alpha \ket{0} - \beta \ket{1}$ (i.e., flip the sign of the $\ket{1}$ component of the superposition).

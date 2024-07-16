@@ -17,3 +17,4 @@ __pycache__/
 /fuzz/Cargo.lock
 .mypy_cache/
 .pytest_cache/
+.idea/

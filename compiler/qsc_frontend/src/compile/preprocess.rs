@@ -3,13 +3,16 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
+    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind, UnOp},
     mut_visit::MutVisitor,
 };
 use qsc_hir::hir;
 use std::rc::Rc;
 
-use super::{ConfigAttr, RuntimeCapabilityFlags};
+use super::TargetCapabilityFlags;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(PartialEq, Hash, Clone, Debug)]
 pub struct TrackedName {
@@ -18,13 +21,13 @@ pub struct TrackedName {
 }
 
 pub(crate) struct Conditional {
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     dropped_names: Vec<TrackedName>,
     included_names: Vec<TrackedName>,
 }
 
 impl Conditional {
-    pub(crate) fn new(capabilities: RuntimeCapabilityFlags) -> Self {
+    pub(crate) fn new(capabilities: TargetCapabilityFlags) -> Self {
         Self {
             capabilities,
             dropped_names: Vec::new(),
@@ -51,12 +54,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.name(),
                         }),
                         _ => {}
                     }
@@ -66,12 +69,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.name(),
                         }),
                         _ => {}
                     }
@@ -118,34 +121,75 @@ impl MutVisitor for Conditional {
     }
 }
 
-fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> bool {
+fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> bool {
+    let attrs: Vec<_> = attrs
+        .iter()
+        .filter(|attr| hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config))
+        .collect();
+
     if attrs.is_empty() {
         return true;
     }
-    attrs.iter().any(|attr| {
-        if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
-            if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
-                match inner.kind.as_ref() {
-                    // If there is no config attribute, then we assume that the item matches
-                    // the target. We can't do membership tests on the capabilities because
-                    // Base is not a subset of any capabilities, it is a lack of capabilities.
-                    ExprKind::Path(path) => match ConfigAttr::from_str(path.name.name.as_ref()) {
-                        Ok(ConfigAttr::Unrestricted) => capabilities.is_all(),
-                        Ok(ConfigAttr::Base) => capabilities.is_empty(),
-                        Ok(ConfigAttr::Adaptive) => {
-                            capabilities == RuntimeCapabilityFlags::ForwardBranching
+    let mut found_capabilities = TargetCapabilityFlags::empty();
+    let mut disallowed_capabilities = TargetCapabilityFlags::empty();
+    let mut base = false;
+    let mut not_base = false;
+
+    // When checking attributes, anything we don't recognize (invalid form or invalid capability) gets
+    // left in the compilation by returning true. This ensures that later compilation steps, specifically lowering
+    // from AST to HIR, can check the attributes and return errors as appropriate.
+    for attr in attrs {
+        if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
+            match inner.kind.as_ref() {
+                ExprKind::Path(path) => {
+                    if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
+                    {
+                        if capability.is_empty() {
+                            base = true;
                         }
-                        _ => true,
-                    },
-                    _ => true, // Unknown config attribute, so we assume it matches
+                        found_capabilities |= capability;
+                    } else {
+                        return true; // Unknown capability, so we assume it matches
+                    }
                 }
-            } else {
-                // Something other than a parenthesized expression, so we assume it matches
-                true
+                ExprKind::UnOp(UnOp::NotL, inner) => {
+                    if let ExprKind::Path(path) = inner.kind.as_ref() {
+                        if let Ok(capability) =
+                            TargetCapabilityFlags::from_str(path.name.name.as_ref())
+                        {
+                            if capability.is_empty() {
+                                not_base = true;
+                            }
+                            disallowed_capabilities |= capability;
+                        } else {
+                            return true; // Unknown capability, so we assume it matches
+                        }
+                    } else {
+                        return true; // Unknown config attribute, so we assume it matches
+                    }
+                }
+                _ => return true, // Unknown config attribute, so we assume it matches
             }
         } else {
-            // Unknown attribute, so we assume it matches
-            true
+            // Something other than a parenthesized expression, so we assume it matches
+            return true;
         }
-    })
+    }
+    if found_capabilities.is_empty() && disallowed_capabilities.is_empty() {
+        if not_base && !base {
+            // There was at least one config attribute, but it was "not Base" so
+            // ensure that the capabilities are not empty.
+            return capabilities != TargetCapabilityFlags::empty();
+        } else if base && !not_base {
+            // There was at least one config attribute, but it was Base
+            // Therefore, we only match if there are no capabilities
+            return capabilities == TargetCapabilityFlags::empty();
+        }
+
+        // The config specified both "Base" and "not Base" which is a contradiction, but we
+        // drop the item in this case.
+        return false;
+    }
+    capabilities.contains(found_capabilities)
+        && (disallowed_capabilities.is_empty() || !capabilities.contains(disallowed_capabilities))
 }

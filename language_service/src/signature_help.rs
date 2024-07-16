@@ -7,7 +7,6 @@ mod tests;
 use crate::{
     compilation::Compilation,
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
-    qsc_utils::{span_contains, span_touches},
     Encoding,
 };
 use qsc::{
@@ -76,15 +75,15 @@ struct SignatureHelpFinder<'a> {
 
 impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
     fn visit_item(&mut self, item: &'a ast::Item) {
-        if span_contains(item.span, self.offset) {
+        if item.span.contains(self.offset) {
             walk_item(self, item);
         }
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_touches(expr.span, self.offset) {
+        if expr.span.touches(self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Call(callee, args) if span_touches(args.span, self.offset) => {
+                ast::ExprKind::Call(callee, args) if args.span.touches(self.offset) => {
                     walk_expr(self, args);
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);

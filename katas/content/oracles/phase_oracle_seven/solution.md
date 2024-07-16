@@ -1,4 +1,4 @@
-You can flip the phase of the basis state $|111\rangle$ using a controlled $Z$ gate, with any two of the qubits as controls and the third one as the target.
+You can flip the phase of the basis state $\ket{111}$ using a controlled $Z$ gate, with any two of the qubits as controls and the third one as the target.
 
 @[solution]({
     "id": "oracles__phase_oracle_seven_solution",
@@ -6,34 +6,34 @@ You can flip the phase of the basis state $|111\rangle$ using a controlled $Z$ g
 })
 
 Consider how this oracle acts on two basis states:
-$$U_{7,phase} |111\rangle = -|111\rangle$$
-$$U_{7,phase} |110\rangle = |110\rangle$$
+$$U_{7,phase} \ket{111} = -\ket{111}$$
+$$U_{7,phase} \ket{110} = \ket{110}$$
 
 You can see that $U_{7,phase}$ does not change the input if it's a basis state (other than adding a global phase), and $U_{7,phase}$ does not change the norm of the state ($U_{7,phase}$ is a unitary operator).  
 
 However, if we applied this oracle to a superposition state instead, what will that look like?
 
-Suppose that $|\beta\rangle$ is an equal superposition of the states  $|110\rangle$ and $|111\rangle$: 
-$$|\beta\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big) = |11\rangle \otimes |+\rangle = |11+\rangle$$
+Suppose that $\ket{\beta}$ is an equal superposition of the states  $\ket{110}$ and $\ket{111}$: 
+$$\ket{\beta} = \frac{1}{\sqrt{2}} \big(\ket{110} + \ket{111}\big) = \ket{11} \otimes \frac{1}{\sqrt{2}} \big(\ket{0} + \ket{1}\big) = \ket{11} \otimes \ket{+} = \ket{11+}$$
 
 Let's consider how our operator $U_{7,phase}$ acts on this state:
 
-$$U_{7,phase} |\beta\rangle = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big)\Big] =$$
+$$U_{7,phase} \ket{\beta} = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(\ket{110} + \ket{111}\big)\Big] =$$
 
-$$= \frac{1}{\sqrt{2}} \big(U_{7,phase} |110\rangle + U_{7,phase} |111\rangle\big) =$$
+$$= \frac{1}{\sqrt{2}} \big(U_{7,phase} \ket{110} + U_{7,phase} \ket{111}\big) =$$
 
-$$= \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) := |\gamma\rangle$$
+$$= \frac{1}{\sqrt{2}} \big(\ket{110} - \ket{111}\big) := \ket{\gamma}$$
 
-Was our input state modified during this operation? Let's simplify $|\gamma\rangle$:
+Was our input state modified during this operation? Let's simplify $\ket{\gamma}$:
 
-$$|\gamma\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) =$$
+$$\ket{\gamma} = \frac{1}{\sqrt{2}} \big(\ket{110} - \ket{111}\big) =$$
 
-$$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big) =$$
+$$= \ket{11} \otimes \frac{1}{\sqrt{2}} \big(\ket{0} - \ket{1}\big) =$$
 
-$$= |11\rangle \otimes |-\rangle = |11-\rangle \neq |\beta\rangle$$
+$$= \ket{11} \otimes \ket{-} = \ket{11-} \neq \ket{\beta}$$
 
 Here we see that the oracle modifies the input, if the input state was a *superposition* of the basis states, as a phase oracle will only modify the sign of the basis states.  Thus when a superposition state is provided as input to an oracle, the input state can be modified via the application of the quantum oracle.
 
-> It is also worth noting that while the oracle modified the input when provided a superposition state, it did *not* modify the norm of that state.  As an exercise, you can verify this yourself by taking the norm of $|\beta\rangle$ and $|\gamma\rangle$, which both will result in a value of $1$.
+> It is also worth noting that while the oracle modified the input when provided a superposition state, it did *not* modify the norm of that state.  As an exercise, you can verify this yourself by taking the norm of $\ket{\beta}$ and $\ket{\gamma}$, which both will result in a value of $1$.
 >
-> As another exercise, consider how you could distinguish between the input and output state programmatically?  Is there an operation that you could apply to the initial state $|\beta\rangle$ and the final state $|\gamma\rangle$ to show that the two states are not equivalent through measurement?  As a hint, think about how you could convert the superposition states $|\beta\rangle$ and $|\gamma\rangle$ into the basis states.
+> As another exercise, consider how you could distinguish between the input and output state programmatically?  Is there an operation that you could apply to the initial state $\ket{\beta}$ and the final state $\ket{\gamma}$ to show that the two states are not equivalent through measurement?  As a hint, think about how you could convert the superposition states $\ket{\beta}$ and $\ket{\gamma}$ into the basis states.

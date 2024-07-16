@@ -4,8 +4,9 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
+    noisy_simulator::register_noisy_simulator_submodule,
 };
-use miette::Report;
+use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
@@ -13,7 +14,7 @@ use pyo3::{
     exceptions::PyException,
     prelude::*,
     pyclass::CompareOp,
-    types::{PyComplex, PyDict, PyList, PyString, PyTuple},
+    types::{PyComplex, PyDict, PyList, PyTuple},
 };
 use qsc::{
     fir,
@@ -22,12 +23,13 @@ use qsc::{
         output::{Error, Receiver},
         CircuitEntryPoint, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor},
+    packages::BuildableProgram,
+    project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use std::fmt::Write;
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -40,25 +42,29 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
-
+    register_noisy_simulator_submodule(py, m)?;
     Ok(())
 }
 
+// This ordering must match the _native.pyi file.
 #[derive(Clone, Copy)]
 #[pyclass(unsendable)]
+#[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
 /// A target profile describes the capabilities of the hardware or simulator
 /// which will be used to run the Q# program.
 pub(crate) enum TargetProfile {
-    /// Target supports the core set of adaptive.
-    ///
-    /// This option maps to the Adaptive Profile as defined by the QIR specification without any extensions.
-    Adaptive,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
+    /// Target supports the Adaptive profile with integer computation and qubit reset capabilities.
+    ///
+    /// This profile includes all of the required Adaptive Profile
+    /// capabilities, as well as the optional integer computation and qubit
+    /// reset capabilities, as defined by the QIR specification.
+    Adaptive_RI,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
@@ -70,38 +76,12 @@ pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
 }
 
-pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
-
-impl FromPyObject<'_> for PyManifestDescriptor {
-    fn extract(ob: &PyAny) -> PyResult<Self> {
-        let dict = ob.downcast::<PyDict>()?;
-        let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
-            PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
-        )?;
-        let manifest = dict
-            .get_item("manifest")?
-            .ok_or(PyException::new_err(
-                "missing key `manifest` in manifest descriptor",
-            ))?
-            .downcast::<PyDict>()?;
-
-        let language_features = get_dict_opt_list_string(manifest, "features")?;
-
-        Ok(Self(ManifestDescriptor {
-            manifest: Manifest {
-                author: get_dict_opt_string(manifest, "author")?,
-                license: get_dict_opt_string(manifest, "license")?,
-                language_features,
-                lints: vec![],
-            },
-            manifest_dir: manifest_dir.into(),
-        }))
-    }
-}
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
 
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
@@ -109,42 +89,55 @@ impl Interpreter {
         py: Python,
         target: TargetProfile,
         language_features: Option<Vec<String>>,
-        manifest_descriptor: Option<PyManifestDescriptor>,
+        project_root: Option<String>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Adaptive => Profile::Adaptive,
+            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
             TargetProfile::Base => Profile::Base,
             TargetProfile::Unrestricted => Profile::Unrestricted,
         };
-        let language_features = language_features.unwrap_or_default();
 
-        let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            let project = file_system(
-                py,
-                read_file.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                list_directory.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-            )
-            .load_project(&manifest_descriptor.0)
-            .map_py_err()?;
-            SourceMap::new(project.sources, None)
+        let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
+
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
+        let buildable_program = if let Some(project_root) = project_root {
+            if let (Some(read_file), Some(list_directory), Some(resolve_path), Some(fetch_github)) =
+                (read_file, list_directory, resolve_path, fetch_github)
+            {
+                let project =
+                    file_system(py, read_file, list_directory, resolve_path, fetch_github)
+                        .load_project(&PathBuf::from(project_root), Some(&package_cache))
+                        .map_err(IntoPyErr::into_py_err)?;
+
+                if !project.errors.is_empty() {
+                    return Err(project.errors.into_py_err());
+                }
+
+                BuildableProgram::new(target.into(), project.package_graph_sources)
+            } else {
+                panic!("file system hooks should have been passed in with a manifest descriptor")
+            }
         } else {
-            SourceMap::default()
+            let graph = PackageGraphSources::with_no_dependencies(
+                Vec::default(),
+                LanguageFeatures::from_iter(language_features),
+                None,
+            );
+            BuildableProgram::new(target.into(), graph)
         };
 
-        let language_features = LanguageFeatures::from_iter(language_features);
-
         match interpret::Interpreter::new(
-            true,
-            sources,
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
             target.into(),
-            language_features,
+            buildable_program.user_code.language_features,
+            buildable_program.store,
+            &buildable_program.user_code_dependencies,
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -247,7 +240,7 @@ impl Interpreter {
             }
         };
 
-        match self.interpreter.circuit(entrypoint) {
+        match self.interpreter.circuit(entrypoint, false) {
             Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -305,8 +298,9 @@ fn format_errors(errors: Vec<interpret::Error>) -> String {
                 write!(message, "{stack_trace}").unwrap();
             }
             let additional_help = python_help(&e);
-            let report = Report::new(e);
-            write!(message, "{report:?}").unwrap();
+            let report = Report::new(e.clone());
+            write!(message, "{report:?}")
+                .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
             if let Some(additional_help) = additional_help {
                 writeln!(message, "{additional_help}").unwrap();
             }
@@ -346,6 +340,13 @@ impl Output {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_html(),
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
+        }
+    }
+
+    fn _repr_latex_(&self) -> Option<String> {
+        match &self.0 {
+            DisplayableOutput::State(state) => state.to_latex(),
+            DisplayableOutput::Message(_) => None,
         }
     }
 
@@ -406,6 +407,10 @@ impl StateDumpData {
 
     fn _repr_html_(&self) -> String {
         self.0.to_html()
+    }
+
+    fn _repr_latex_(&self) -> Option<String> {
+        self.0.to_latex()
     }
 }
 
@@ -561,22 +566,6 @@ impl Circuit {
     }
 }
 
-trait MapPyErr<T, E> {
-    fn map_py_err(self) -> core::result::Result<T, PyErr>;
-}
-
-impl<T, E> MapPyErr<T, E> for core::result::Result<T, E>
-where
-    E: IntoPyErr,
-{
-    fn map_py_err(self) -> core::result::Result<T, PyErr>
-    where
-        E: IntoPyErr,
-    {
-        self.map_err(IntoPyErr::into_py_err)
-    }
-}
-
 trait IntoPyErr {
     fn into_py_err(self) -> PyErr;
 }
@@ -587,38 +576,16 @@ impl IntoPyErr for Report {
     }
 }
 
-impl IntoPyErr for Vec<interpret::Error> {
+impl<E> IntoPyErr for Vec<E>
+where
+    E: Diagnostic + Send + Sync + 'static,
+{
     fn into_py_err(self) -> PyErr {
         let mut message = String::new();
-        for error in self {
-            writeln!(message, "{error}").expect("string should be writable");
+        for diag in self {
+            let report = Report::new(diag);
+            writeln!(message, "{report:?}").expect("string should be writable");
         }
         PyException::new_err(message)
-    }
-}
-
-fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
-    let value = dict.get_item(key)?;
-    Ok(match value {
-        Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
-        None => None,
-    })
-}
-fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
-    let value = dict.get_item(key)?;
-    let list: &PyList = match value {
-        Some(item) => item.downcast::<PyList>()?,
-        None => return Ok(vec![]),
-    };
-    match list
-        .iter()
-        .map(|item| {
-            item.downcast::<PyString>()
-                .map(|s| s.to_string_lossy().into())
-        })
-        .collect::<std::result::Result<Vec<String>, _>>()
-    {
-        Ok(list) => Ok(list),
-        Err(e) => Err(e.into()),
     }
 }

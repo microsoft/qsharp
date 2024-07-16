@@ -242,6 +242,246 @@ fn udt_field_complex_ref() {
 }
 
 #[test]
+fn struct_def() {
+    check(
+        r#"
+        namespace Test {
+            struct ◉F↘oo◉ { fst : Int, snd : Int }
+            operation Bar(x : ◉Foo◉) : Unit {
+                let temp = ◉Foo◉(1, 2);
+                let temp = new ◉Foo◉ { fst = 1, snd = 2 };
+                Bar(temp);
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_fn_constructor_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct ◉Foo◉ { fst : Int, snd : Int }
+            operation Bar(x : ◉Foo◉) : Unit {
+                let temp = ◉F↘oo◉(1, 2);
+                let temp = new ◉Foo◉ { fst = 1, snd = 2 };
+                Bar(temp);
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_constructor_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct ◉Foo◉ { fst : Int, snd : Int }
+            operation Bar(x : ◉Foo◉) : Unit {
+                let temp = ◉Foo◉(1, 2);
+                let temp = new ◉F↘oo◉ { fst = 1, snd = 2 };
+                Bar(temp);
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct ◉Foo◉ { fst : Int, snd : Int }
+            operation Bar(x : ◉F↘oo◉) : Unit {
+                let temp = ◉Foo◉(1, 2);
+                let temp = new ◉F↘oo◉ { fst = 1, snd = 2 };
+                Bar(temp);
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_def() {
+    check(
+        r#"
+        namespace Test {
+            struct Foo { ◉f↘st◉ : Int, snd : Int }
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let temp = new Foo { ◉fst◉ = 1, snd = 2 };
+                let a = temp::◉fst◉;
+                let b = Zip()::◉fst◉;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_cons_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct Foo { ◉fst◉ : Int, snd : Int }
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let temp = new Foo { ◉f↘st◉ = 1, snd = 2 };
+                let a = temp::◉fst◉;
+                let b = Zip()::◉fst◉;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct Foo { ◉fst◉ : Int, snd : Int }
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let temp = new Foo { ◉fst◉ = 1, snd = 2 };
+                let a = temp::◉f↘st◉;
+                let b = Zip()::◉fst◉;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_complex_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct Foo { ◉fst◉ : Int, snd : Int }
+            operation Bar(x : Foo) : Unit {
+                let temp = Foo(1, 2);
+                let temp = new Foo { ◉fst◉ = 1, snd = 2 };
+                let a = temp::◉fst◉;
+                let b = Zip()::◉f↘st◉;
+            }
+            operation Zip() : Foo {
+                Foo(1, 2)
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉↘c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_first_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(◉↘a◉ : A) : Unit {
+                let x = ◉a◉.b.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_first_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(◉a◉ : A) : Unit {
+                let x = ◉↘a◉.b.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_def() {
+    check(
+        r#"
+        namespace Test {
+            struct A { ◉↘b◉ : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉b◉ }.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_ref() {
+    check(
+        r#"
+        namespace Test {
+            struct A { ◉b◉ : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉↘b◉ }.c.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
 fn no_rename_namespace() {
     assert_no_rename(
         r#"
@@ -340,6 +580,18 @@ fn no_rename_std_udt_return_type() {
         open FakeStdLib;
         operation Foo() : U↘dt {
         }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn no_rename_std_struct_return_type() {
+    assert_no_rename(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : FakeS↘truct {}
     }
     "#,
     );

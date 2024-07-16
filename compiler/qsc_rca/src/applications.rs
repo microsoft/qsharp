@@ -384,6 +384,16 @@ impl GeneratorSetsBuilder {
                 .exprs
                 .insert(expr_id, application_generator_set);
         }
+
+        // Save the unresolved callee expressions.
+        for unresolved_callee_expr_id in inherent_application_compute_properties
+            .unresolved_callee_exprs
+            .drain(..)
+        {
+            package_compute_properties
+                .unresolved_callee_exprs
+                .push(unresolved_callee_expr_id);
+        }
     }
 }
 
@@ -406,6 +416,7 @@ pub struct ApplicationInstance {
     stmts: FxHashMap<StmtId, ComputeKind>,
     /// The compute kind of the expressions related to the application instance.
     exprs: FxHashMap<ExprId, ComputeKind>,
+    pub unresolved_callee_exprs: Vec<ExprId>,
 }
 
 impl ApplicationInstance {
@@ -505,6 +516,7 @@ impl ApplicationInstance {
             blocks: FxHashMap::default(),
             stmts: FxHashMap::default(),
             exprs: FxHashMap::default(),
+            unresolved_callee_exprs: Vec::new(),
         }
     }
 
@@ -562,6 +574,7 @@ impl ApplicationInstance {
             blocks: self.blocks,
             stmts: self.stmts,
             exprs: self.exprs,
+            unresolved_callee_exprs: self.unresolved_callee_exprs,
             value_kind,
         }
     }
@@ -619,6 +632,7 @@ struct ApplicationInstanceComputeProperties {
     stmts: FxHashMap<StmtId, ComputeKind>,
     exprs: FxHashMap<ExprId, ComputeKind>,
     value_kind: Option<ValueKind>,
+    unresolved_callee_exprs: Vec<ExprId>,
 }
 
 impl ApplicationInstanceComputeProperties {

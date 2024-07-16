@@ -3,46 +3,24 @@
 
 namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
 
     /// # Summary
-    /// Given two operations, checks whether they act identically for all input states.
-    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    operation CheckOperationsEquivalence(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
-        within {
-            EntangleRegisters(control, target);
-        }
-        apply {
-            op(target);
-            Adjoint reference(target);
-        }
-
-        let areEquivalent = CheckAllZero(control + target);
-        ResetAll(control + target);
-        areEquivalent
-    }
-
-    /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
     /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
     /// into a relative phase that can be detected.
-    operation CheckOperationsEquivalenceStrict(
+    operation CheckOperationsAreEqualStrict(
+        inputSize : Int,
         op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
+        reference : (Qubit[] => Unit is Adj + Ctl))
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
-        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
+        let areEquivalent = CheckOperationsAreEqual(inputSize + 1, controlledOp, controlledReference);
         areEquivalent
     }
 
@@ -63,21 +41,22 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
+
     /// # Summary
-    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
-    /// `inputSize` qubits.
-    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
-    /// it.
-    operation CheckOperationsEquivalenceOnZeroStateStrict(
+    /// Given two operations, checks whether they act identically on the given initial state composed of `inputSize` qubits.
+    /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
+    /// `initialState` operation should be deterministic.
+    operation CheckOperationsEquivalenceOnInitialStateStrict(
+        initialState : Qubit[] => Unit is Adj,
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use control = Qubit();
-        use target = Qubit[inputSize];
+        inputSize : Int
+    ) : Bool {
+        use (control, target) = (Qubit(), Qubit[inputSize]);
         within {
             H(control);
+            initialState(target);
         }
         apply {
             Controlled op([control], target);
@@ -89,48 +68,62 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
-    /// # Summary
-    /// Shows the effect a quantum operation has on the quantum state.
-    operation ShowEffectOnQuantumState(targetRegister : Qubit[], op : (Qubit[] => Unit is Adj + Ctl)) : Unit {
-        Message("Quantum state before applying the operation:");
-        DumpMachine();
 
-        // Apply the operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        Message("Quantum state after applying the operation:");
-        op(targetRegister);
-        DumpMachine();
-        Adjoint op(targetRegister);
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
+    /// it.
+    operation CheckOperationsEquivalenceOnZeroStateStrict(
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize : Int)
+    : Bool {
+        Fact(inputSize > 0, "`inputSize` must be positive");
+        CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
     }
 
+
     /// # Summary
-    /// Shows the comparison of the quantum state between a specific operation and a reference operation.
+    /// Shows the comparison of the quantum states produced by a specific operation and a reference operation
+    /// when applied to the state prepared using deterministic operation `initialState`.
     operation ShowQuantumStateComparison(
-        targetRegister : Qubit[],
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl))
+        registerSize : Int,
+        initialState : Qubit[] => Unit,
+        op : Qubit[] => Unit,
+        reference : Qubit[] => Unit)
     : Unit {
-        Message("Initial quantum state:");
-        DumpMachine();
+        {
+            use register = Qubit[registerSize];
+            initialState(register);
 
-        // Apply the reference operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        reference(targetRegister);
-        Message("Expected quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint reference(targetRegister);
+            Message("Initial quantum state:");
+            DumpMachine();
 
-        // Apply the specific operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        op(targetRegister);
-        Message("Actual quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint op(targetRegister);
+            // Apply the reference operation and dump the simulator state
+            reference(register);
+            Message("Expected quantum state after applying the operation:");
+            DumpMachine();
+            ResetAll(register);
+        }
+
+        {
+            use register = Qubit[registerSize];
+            initialState(register);
+            // Apply the comparison operation and dump the simulator state
+            op(register);
+            Message("Actual quantum state after applying the operation:");
+            DumpMachine();
+            ResetAll(register);
+        }
     }
 
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits. If they don't, prints user feedback.
     operation CheckOperationsEquivalenceOnZeroStateWithFeedback(
-        testImpl : (Qubit[] => Unit is Adj + Ctl),
-        refImpl : (Qubit[] => Unit is Adj + Ctl),
+        testImpl : (Qubit[] => Unit),
+        refImpl : (Qubit[] => Unit is Adj),
         inputSize : Int
     ) : Bool {
 
@@ -141,9 +134,7 @@ namespace Microsoft.Quantum.Katas {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            use target = Qubit[inputSize];
-            ShowQuantumStateComparison(target, testImpl, refImpl);
-            ResetAll(target);
+            ShowQuantumStateComparison(inputSize, (qs => ()), testImpl, refImpl);
         }
         isCorrect
     }
@@ -165,9 +156,11 @@ namespace Microsoft.Quantum.Katas {
 
     /// # Summary
     /// Prepare a random uneven superposition state on the given qubit array.
-    operation PrepRandomState(qs : Qubit[]) : Unit {
-        for q in qs {
-            Ry(DrawRandomDouble(0.01, 0.99) * 2.0, q);
+    operation PrepDemoState(qs : Qubit[]) : Unit {
+        Fact(Length(qs) <= 4, "States with 5 qubits or more are not supported.");
+        let probs = [0.36, 0.25, 1. / 3., 1. / 5.][... Length(qs) - 1];
+        for (q, prob) in Zipped(qs, probs) {
+            Ry(ArcCos(Sqrt(prob)) * 2.0, q);
         }
     }
 
@@ -295,4 +288,74 @@ namespace Microsoft.Quantum.Katas {
         totalMisclassifications == 0
     }
 
+    // Helper function to convert a boolean array to its ket state representation
+    function BoolArrayAsKetState (bits : Bool[]) : String {
+        mutable stateName = "|";
+        for i in 0 .. Length(bits) - 1 {
+            set stateName += (bits[i] ? "1" | "0");
+        }
+
+        return stateName + "⟩";
+    }
+
+    // Helper function to convert an array of bit strings to its ket state representation
+    function IntArrayAsStateName (
+        qubits : Int,
+        bitStrings : Bool[][]
+    ) : String {
+        mutable statename = "";
+        for i in 0 .. Length(bitStrings) - 1 {
+            if i > 0 {
+                set statename += " + ";
+            }
+            set statename += BoolArrayAsKetState(bitStrings[i]);
+        }
+
+        return statename;
+    }
+
+    /// # Summary
+    /// Given a marking oracle acting on N inputs, and a classical function acting on N bits, 
+    /// checks whether the oracle effect matches that of the function on every classical input.
+    operation CheckOracleImplementsFunction (
+        N : Int, 
+        oracle : (Qubit[], Qubit) => Unit, 
+        f : Bool[] -> Bool
+    ) : Bool {
+        let size = 1 <<< N;
+        use (input, target) = (Qubit[N], Qubit());
+        for k in 0 .. size - 1 {
+            // Prepare k-th bit vector
+            let binaryLE = IntAsBoolArray(k, N);
+            
+            // "binary" is little-endian notation, so the second vector tried has qubit 0 in state 1 and the rest in state 0
+            ApplyPauliFromBitString(PauliX, true, binaryLE, input);
+            
+            // Apply the operation
+            oracle(input, target);
+            
+            // Calculate the expected classical result
+            let val = f(binaryLE);
+
+            // Apply operations that will revert the qubits to the 0 state if the oracle acted correctly.
+            if val {
+                X(target);
+            }
+            ApplyPauliFromBitString(PauliX, true, binaryLE, input);
+
+            if not CheckAllZero(input + [target]) {
+                Message($"Unexpected result on input {BoolArrayAsKetState(binaryLE)}.");
+                if not CheckAllZero(input) {
+                    Message("The state of the input qubits changed, or they ended up entangled with the target qubit.");
+                    Message("The state of the system after oracle application:");
+                    DumpMachine();
+                } else {
+                    Message($"Expected result `{val}`, got `{not val}`.");
+                }
+                ResetAll(input + [target]);
+                return false;
+            }
+        }
+        return true;
+    } 
 }

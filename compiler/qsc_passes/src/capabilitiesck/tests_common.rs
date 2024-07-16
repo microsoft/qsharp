@@ -7,14 +7,21 @@ use expect_test::Expect;
 
 use crate::capabilitiesck::check_supported_capabilities;
 use qsc::{incremental::Compiler, PackageType};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{Package, PackageId, PackageStore};
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
 
-pub fn check(source: &str, expect: &Expect, capabilities: RuntimeCapabilityFlags) {
+pub fn check(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
     let compilation_context = CompilationContext::new(source);
+    let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
+    let errors = check_supported_capabilities(package, compute_properties, capabilities);
+    expect.assert_debug_eq(&errors);
+}
+
+pub fn check_for_exe(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
+    let compilation_context = CompilationContext::new_for_exe(source);
     let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
     let errors = check_supported_capabilities(package, compute_properties, capabilities);
     expect.assert_debug_eq(&errors);
@@ -42,12 +49,14 @@ struct CompilationContext {
 
 impl CompilationContext {
     fn new(source: &str) -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.package_id());
@@ -55,6 +64,29 @@ impl CompilationContext {
             .compile_fragments_fail_fast("test", source)
             .expect("code should compile");
         compiler.update(increment);
+        let mut lowerer = Lowerer::new();
+        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
+        let analyzer = Analyzer::init(&fir_store);
+        let compute_properties = analyzer.analyze_all();
+        Self {
+            fir_store,
+            compute_properties,
+            package_id,
+        }
+    }
+
+    fn new_for_exe(source: &str) -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let compiler = Compiler::new(
+            SourceMap::new([("test".into(), source.into())], Some("".into())),
+            PackageType::Exe,
+            TargetCapabilityFlags::all(),
+            LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
+        )
+        .expect("should be able to create a new compiler");
+        let package_id = map_hir_package_to_fir(compiler.source_package_id());
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
@@ -299,6 +331,24 @@ pub const USE_DYNAMIC_INDEX: &str = r#"
         }
     }"#;
 
+pub const USE_DYNAMIC_LHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            i ^ 1;
+        }
+    }"#;
+
+pub const USE_DYNAMIC_RHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            1 ^ i;
+        }
+    }"#;
+
 pub const RETURN_WITHIN_DYNAMIC_SCOPE: &str = r#"
     namespace Test {
         operation Foo() : Int {
@@ -325,5 +375,79 @@ pub const USE_CLOSURE_FUNCTION: &str = r#"
         operation Foo() : Unit {
             let theta = PI();
             let lambdaFn = theta -> Sin(theta);
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_INT: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Int {
+            42
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_DOUBLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Double {
+            42.0
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_STRING: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : String {
+            "Hello, World!"
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_BOOL: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Bool {
+            true
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_BIG_INT: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : BigInt {
+            42L
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_PAULI: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Pauli {
+            PauliX
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_RANGE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Range {
+            1..10
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_INT_IN_TUPLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : (Result, Int) {
+            use q = Qubit();
+            (M(q), 42)
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : (Result, Int[]) {
+            use q = Qubit();
+            (M(q), [1, 2, 3])
         }
     }"#;

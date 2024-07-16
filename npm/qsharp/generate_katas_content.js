@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// <reference lib="es2022"/>
+// @ts-check
+
 /**
  * Katas Taxonomy
  *
@@ -12,13 +15,34 @@
  * Each Kata is organized in a directory where an index.md file provides a description on how the kata must be composed.
  */
 
-// @ts-check
-
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+} from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { marked } from "marked";
+import mdit from "markdown-it";
+import { plugin } from "./markdown_latex_plugin.js";
+const md = mdit("commonmark");
+md.use(plugin);
+
+// Set up the Markdown renderer with KaTeX support for validation
+import mk from "@vscode/markdown-it-katex";
+const mdValidator = mdit("commonmark");
+const katexOpts = {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+  throwOnError: true,
+};
+// @ts-expect-error: This isn't typed correctly for some reason
+mdValidator.use(mk.default, katexOpts);
+
+const validate = true; // Consider making this a command-line option
+let emitHtml = true;
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
@@ -117,6 +141,15 @@ function resolveSvgSegment(properties, baseFolderPath) {
     `Could not read the contents of the SVG file at ${svgPath}`,
   );
 
+  // An SVG file is basically an HTML file. If it includes blank lines, this will
+  // cause issues when including in Markdown, as blank lines indicate the end of
+  // HTML content. Check for blank lines within the document.
+  if (/\n\s*\r?\n/.test(svg)) {
+    throw new Error(
+      `SVG file ${svgPath} includes blank lines, which will break the Markdown`,
+    );
+  }
+
   properties["svg"] = svg;
 }
 
@@ -185,7 +218,7 @@ function preProcessSegments(segments, baseFolderPath) {
 
 function parseMarkdown(markdown) {
   const segments = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)((\r?\n)|$)/gs;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);
@@ -248,8 +281,18 @@ function createExample(baseFolderPath, properties) {
 }
 
 function createTextContent(markdown) {
-  const html = marked(markdown);
-  return { type: "text-content", asHtml: html, asMarkdown: markdown };
+  if (validate) {
+    try {
+      mdValidator.render(markdown);
+    } catch (e) {
+      console.log("LaTeX validation error: ", e);
+    }
+  }
+
+  return {
+    type: "text-content",
+    content: emitHtml ? md.render(markdown) : markdown,
+  };
 }
 
 function createSolution(baseFolderPath, properties) {
@@ -368,7 +411,7 @@ function createQuestion(kataPath, properties) {
 
 function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
-  const requiredProperties = ["id", "title", "path", "qsDependencies"];
+  const requiredProperties = ["id", "title", "path"];
   const missingProperties = identifyMissingProperties(
     properties,
     requiredProperties,
@@ -391,10 +434,18 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
   );
   const description = createTextContent(descriptionMarkdown);
 
-  // Aggregate the exercise sources. The verification source file is Verification.qs and additional dependecies are
-  // explicitly listed as source code file paths in the qsDependencies property.
+  // Aggregate the exercise sources. The verification source file is Verification.qs.
   let resolvedVerificationFile = join(exercisePath, "Verification.qs");
-  const resolvedDependencies = properties.qsDependencies.map((path) =>
+
+  // Implicit dependencies to simplify dependency handling:
+  // ../KatasLibrary.qs must be included
+  // ./Common.qs must be included if present in current kata
+  const implicitDependencies = ["../KatasLibrary.qs"];
+  if (existsSync(join(kataPath, "./Common.qs"))) {
+    implicitDependencies.push("./Common.qs");
+  }
+
+  const resolvedDependencies = implicitDependencies.map((path) =>
     join(kataPath, path),
   );
   const resolvedSources = [resolvedVerificationFile].concat(
@@ -500,7 +551,14 @@ function tryCreateMarkdownSegment(text) {
   return null;
 }
 
-function createKata(kataPath, id, title, segments, globalCodeSources) {
+function createKata(
+  kataPath,
+  id,
+  title,
+  segments,
+  globalCodeSources,
+  published,
+) {
   // Validate that the kata has at least one segment.
   if (segments.length === 0) {
     throw new Error(`Kata '${id}' does not have any segments`);
@@ -544,10 +602,11 @@ function createKata(kataPath, id, title, segments, globalCodeSources) {
     id,
     title,
     sections,
+    published,
   };
 }
 
-function generateKataContent(path, globalCodeSources) {
+function generateKataContent(path, globalCodeSources, published) {
   console.log(`- Creating content for kata at: ${path}`);
   const markdownPath = join(path, contentFileNames.kataMarkdown);
   const markdown = tryReadFile(
@@ -567,8 +626,17 @@ function generateKataContent(path, globalCodeSources) {
 
   // Do not use the first segment since it was already processed to get the kata's title.
   const segments = preProcessSegments(rawSegments.slice(1), path);
-  const kata = createKata(path, kataId, title, segments, globalCodeSources);
-  console.log(`-- '${kata.id}' kata was successfully created`);
+  const kata = createKata(
+    path,
+    kataId,
+    title,
+    segments,
+    globalCodeSources,
+    published,
+  );
+  console.log(
+    `-- '${kata.id}' kata ${kata.published ? "" : "(unpublished)"} was successfully created`,
+  );
   return kata;
 }
 
@@ -615,10 +683,17 @@ function generateKatasContent(katasPath, outputPath) {
     indexPath,
     "Could not read the contents of the katas index file",
   );
-  const katasDirs = tryParseJSON(
+  const publishedKatasDirs = tryParseJSON(
     indexJson,
     `Invalid katas index at ${indexPath}`,
   );
+  const unpublishedKatasDirs = readdirSync(katasPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name)
+    .filter((dir) => !publishedKatasDirs.includes(dir));
+
+  // Unpublished katas are listed after published in alphabetical order
+  const allKatasDirs = publishedKatasDirs.concat(unpublishedKatasDirs);
 
   // Initialize an object where all the global code sources will be aggregated.
   const globalCodeSourcesContainer = {
@@ -628,9 +703,14 @@ function generateKatasContent(katasPath, outputPath) {
 
   // Generate an object for each kata and update the global code sources with the code they reference.
   var katas = [];
-  for (const kataDir of katasDirs) {
+  for (const kataDir of allKatasDirs) {
     const kataPath = join(katasPath, kataDir);
-    const kata = generateKataContent(kataPath, globalCodeSourcesContainer);
+    const published = publishedKatasDirs.includes(kataDir);
+    const kata = generateKataContent(
+      kataPath,
+      globalCodeSourcesContainer,
+      published,
+    );
     katas.push(kata);
   }
 
@@ -656,7 +736,10 @@ function generateKatasContent(katasPath, outputPath) {
     mkdirSync(outputPath);
   }
 
-  const contentJsPath = join(outputPath, "katas-content.generated.ts");
+  const contentJsPath = join(
+    outputPath,
+    emitHtml ? "katas-content.generated.ts" : "katas-content.generated.md.ts",
+  );
   writeFileSync(
     contentJsPath,
     `export default ${JSON.stringify(katasContent, undefined, 2)}`,
@@ -664,4 +747,8 @@ function generateKatasContent(katasPath, outputPath) {
   );
 }
 
+// Generate HTML and Markdown versions of the katas bundle
+emitHtml = true;
+generateKatasContent(katasContentPath, katasGeneratedContentPath);
+emitHtml = false;
 generateKatasContent(katasContentPath, katasGeneratedContentPath);

@@ -14,12 +14,14 @@ use qsc_passes::PackageType;
 
 fn interpreter(code: &str, profile: Profile) -> Interpreter {
     let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+    let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
     Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("interpreter creation should succeed")
 }
@@ -39,7 +41,7 @@ fn empty() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![].assert_eq(&circ.to_string());
@@ -61,11 +63,38 @@ fn one_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
         q_0    ── H ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn toffoli() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit[3];
+                    CCNOT(q[0], q[1], q[2]);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── ● ──
+        q_1    ── ● ──
+        q_2    ── X ──
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -86,7 +115,7 @@ fn rotation_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // The wire isn't visible here since the gate label is longer
@@ -115,7 +144,7 @@ fn classical_for_loop() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -142,7 +171,7 @@ fn m_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -171,7 +200,7 @@ fn m_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -199,7 +228,7 @@ fn mresetz_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -227,7 +256,7 @@ fn mresetz_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -265,7 +294,7 @@ fn unrestricted_profile_result_comparison() {
     interpreter.set_quantum_seed(Some(2));
 
     let circuit_err = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect_err("circuit should return error")
         .pop()
         .expect("error should exist");
@@ -283,9 +312,23 @@ fn unrestricted_profile_result_comparison() {
     let mut out = std::io::sink();
     let mut r = GenericReceiver::new(&mut out);
 
-    // Counterintuitive but expected: result comparisons
-    // are okay if calling get_circuit() after incremental
-    // evaluation, because we're using the current simulator
+    // Result comparisons are okay when tracing
+    // circuit with the simulator.
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, true)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──── M ──── X ─── |0〉 ─
+                         ╘═════════════════
+        q_1    ── H ──── M ─── |0〉 ────────
+                         ╘═════════════════
+    "]]
+    .assert_eq(&circ.to_string());
+
+    // Result comparisons are also okay if calling
+    // get_circuit() after incremental evaluation,
+    // because we're using the current simulator
     // state.
     interpreter
         .eval_fragments(&mut r, "Test.Main();")
@@ -320,7 +363,7 @@ fn custom_intrinsic() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -349,7 +392,7 @@ fn custom_intrinsic_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -380,7 +423,7 @@ fn custom_intrinsic_one_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -418,7 +461,7 @@ fn custom_intrinsic_mixed_args() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // This is one gate that spans ten target wires, even though the
@@ -453,12 +496,13 @@ fn operation_with_qubits() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Unrestricted,
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -483,12 +527,13 @@ fn operation_with_qubits_base_profile() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Base,
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -535,7 +580,7 @@ fn operation_with_qubit_arrays() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -582,12 +627,16 @@ fn adjoint_operation() {
                 controlled (cs, ...) {
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Adjoint Test.Foo".into()))
+        .circuit(
+            CircuitEntryPoint::Operation("Adjoint Test.Foo".into()),
+            false,
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -608,7 +657,7 @@ fn lambda() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()))
+        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -644,12 +693,16 @@ fn controlled_operation() {
                     CNOT(q1, q2);
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Controlled Test.SWAP".into()))
+        .circuit(
+            CircuitEntryPoint::Operation("Controlled Test.SWAP".into()),
+            false,
+        )
         .expect_err("circuit generation should fail");
 
     // Controlled operations are not supported at the moment.
@@ -665,6 +718,7 @@ fn controlled_operation() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn internal_operation() {
     let mut interpreter = interpreter(
         r"
@@ -682,36 +736,110 @@ fn internal_operation() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
-        .expect_err("circuit generation should fail");
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
+        .expect("circuit generation should not fail");
 
     expect![[r#"
-        [
-            Compile(
-                WithSource {
-                    sources: [
-                        Source {
-                            name: "line_0",
-                            contents: "Test.Test",
-                            offset: 0,
+        Circuit {
+            operations: [
+                Operation {
+                    gate: "H",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
                         },
                     ],
-                    error: Frontend(
-                        Error(
-                            Resolve(
-                                NotFound(
-                                    "Test",
-                                    Span {
-                                        lo: 5,
-                                        hi: 9,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ),
+                    children: [],
                 },
-            ),
-        ]
+                Operation {
+                    gate: "X",
+                    display_args: None,
+                    is_controlled: true,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+            ],
+            qubits: [
+                Qubit {
+                    id: 0,
+                    num_children: 1,
+                },
+                Qubit {
+                    id: 1,
+                    num_children: 1,
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&circ_err);
 }
@@ -726,12 +854,13 @@ fn operation_with_non_qubit_args() {
 
             operation Test(q1: Qubit, q2: Qubit, i: Int) : Unit {
             }
+
         }",
         Profile::Unrestricted,
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect_err("circuit generation should fail");
 
     expect![[r"
@@ -759,11 +888,14 @@ mod debugger_stepping {
     /// circuit representation at each step.
     fn generate_circuit_steps(code: &str, profile: Profile) -> String {
         let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
         let mut debugger = Debugger::new(
             sources,
             profile.into(),
             Encoding::Utf8,
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("debugger creation should succeed");
 

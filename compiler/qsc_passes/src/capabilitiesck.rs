@@ -13,8 +13,7 @@ mod tests_adaptive_plus_integers;
 #[cfg(test)]
 pub mod tests_common;
 
-use miette::Diagnostic;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{span::Span, target::TargetCapabilityFlags};
 
 use qsc_fir::{
     fir::{
@@ -25,153 +24,14 @@ use qsc_fir::{
     ty::FunctorSetValue,
     visit::Visitor,
 };
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{
+    errors::{generate_errors_from_runtime_features, get_missing_runtime_features, Error},
     Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,
     PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
 use rustc_hash::FxHashMap;
-use thiserror::Error;
-
-#[derive(Clone, Debug, Diagnostic, Error)]
-pub enum Error {
-    #[error("cannot use a dynamic bool value")]
-    #[diagnostic(help(
-        "using a bool value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicBool"))]
-    UseOfDynamicBool(#[label] Span),
-
-    #[error("cannot use a dynamic integer value")]
-    #[diagnostic(help(
-        "using an integer value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicInt"))]
-    UseOfDynamicInt(#[label] Span),
-
-    #[error("cannot use a dynamic Pauli value")]
-    #[diagnostic(help(
-        "using a Pauli value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicPauli"))]
-    UseOfDynamicPauli(#[label] Span),
-
-    #[error("cannot use a dynamic Range value")]
-    #[diagnostic(help(
-        "using a Range value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicRange"))]
-    UseOfDynamicRange(#[label] Span),
-
-    #[error("cannot use a dynamic double value")]
-    #[diagnostic(help(
-        "using a double value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicDouble"))]
-    UseOfDynamicDouble(#[label] Span),
-
-    #[error("cannot use a dynamic qubit")]
-    #[diagnostic(help(
-        "using a qubit whose allocation depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicQubit"))]
-    UseOfDynamicQubit(#[label] Span),
-
-    #[error("cannot use a dynamic big integer value")]
-    #[diagnostic(help(
-        "using a big integer value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicBigInt"))]
-    UseOfDynamicBigInt(#[label] Span),
-
-    #[error("cannot use a dynamic string value")]
-    #[diagnostic(help(
-        "using a string value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicString"))]
-    UseOfDynamicString(#[label] Span),
-
-    #[error("cannot use a dynamically-sized array")]
-    #[diagnostic(help(
-        "using an array whose size depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicallySizedArray"))]
-    UseOfDynamicallySizedArray(#[label] Span),
-
-    #[error("cannot use a dynamic user-defined type")]
-    #[diagnostic(help(
-        "using a user-defined type in which one or more of its members depend on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicUdt"))]
-    UseOfDynamicUdt(#[label] Span),
-
-    #[error("cannot use a dynamic function")]
-    #[diagnostic(help(
-        "using a function whose resolution depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowFunction"))]
-    UseOfDynamicArrowFunction(#[label] Span),
-
-    #[error("cannot use a dynamic operation")]
-    #[diagnostic(help(
-        "using an operation whose resolution depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowOperation"))]
-    UseOfDynamicArrowOperation(#[label] Span),
-
-    #[error("cannot call a cyclic function with a dynamic value as argument")]
-    #[diagnostic(help(
-        "calling a cyclic function with an argument value that depends on a measurement result is not supported by the current target"
-    ))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicFunctionWithDynamicArg"))]
-    CallToCyclicFunctionWithDynamicArg(#[label] Span),
-
-    #[error("cannot define a cyclic operation specialization")]
-    #[diagnostic(help("operation specializations that contain call cycles are not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CyclicOperationSpec"))]
-    CyclicOperationSpec(#[label] Span),
-
-    #[error("cannot call a cyclic operation")]
-    #[diagnostic(help("calling an operation specialization that contains call cycles is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicOperation"))]
-    CallToCyclicOperation(#[label] Span),
-
-    #[error("cannot call a function or operation whose resolution is dynamic")]
-    #[diagnostic(help("calling a function or operation whose resolution depends on a measurement result is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CallToDynamicCallee"))]
-    CallToDynamicCallee(#[label] Span),
-
-    #[error("cannot call a function or operation that can only be resolved at runtime")]
-    #[diagnostic(help("calling a function or operation that can only be resolved at runtime is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CallToUnresolvedCallee"))]
-    CallToUnresolvedCallee(#[label] Span),
-
-    #[error("cannot perform a measurement within a dynamic scope")]
-    #[diagnostic(help("performing a measurement within a scope that depends on a measurement result is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
-    MeasurementWithinDynamicScope(#[label] Span),
-
-    #[error("cannot access an array using a dynamic index")]
-    #[diagnostic(help("accessing an array using an index that depends on a measurement result is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicIndex"))]
-    UseOfDynamicIndex(#[label] Span),
-
-    #[error("cannot use a return within a dynamic scope")]
-    #[diagnostic(help("using a return within a scope that depends on a measurement result is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.ReturnWithinDynamicScope"))]
-    ReturnWithinDynamicScope(#[label] Span),
-
-    #[error("cannot have a loop with a dynamic condition")]
-    #[diagnostic(help("using a loop with a condition that depends on a measurement result is not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.LoopWithDynamicCondition"))]
-    LoopWithDynamicCondition(#[label] Span),
-
-    #[error("cannot use a closure")]
-    #[diagnostic(help("closures are not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
-    UseOfClosure(#[label] Span),
-}
 
 /// Lower a package store from `qsc_frontend` HIR store to a `qsc_fir` FIR store.
 pub fn lower_store(
@@ -188,7 +48,7 @@ pub fn lower_store(
 pub fn run_rca_pass(
     fir_store: &qsc_fir::fir::PackageStore,
     package_id: qsc_fir::fir::PackageId,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<PackageStoreComputeProperties, Vec<crate::Error>> {
     let analyzer = Analyzer::init(fir_store);
     let compute_properties = analyzer.analyze_all();
@@ -213,7 +73,7 @@ pub fn run_rca_pass(
 pub fn check_supported_capabilities(
     package: &Package,
     compute_properties: &PackageComputeProperties,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Vec<Error> {
     let checker = Checker {
         package,
@@ -229,7 +89,7 @@ pub fn check_supported_capabilities(
 struct Checker<'a> {
     package: &'a Package,
     compute_properties: &'a PackageComputeProperties,
-    target_capabilities: RuntimeCapabilityFlags,
+    target_capabilities: TargetCapabilityFlags,
     current_callable: Option<LocalItemId>,
     missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
 }
@@ -251,9 +111,21 @@ impl<'a> Visitor<'a> for Checker<'a> {
         self.package.get_stmt(id)
     }
 
+    fn visit_package(&mut self, package: &'a Package) {
+        package
+            .items
+            .iter()
+            .for_each(|(_, item)| self.visit_item(item));
+        package.entry.iter().for_each(|entry_expr_id| {
+            self.check_entry_expr(*entry_expr_id);
+        });
+    }
+
     fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
         match callable_impl {
-            CallableImpl::Intrinsic => self.check_spec_decl(FunctorSetValue::Empty, None),
+            CallableImpl::Intrinsic | CallableImpl::SimulatableIntrinsic(_) => {
+                self.check_spec_decl(FunctorSetValue::Empty, None);
+            }
             CallableImpl::Spec(spec_impl) => {
                 self.check_spec_decl(FunctorSetValue::Empty, Some(&spec_impl.body));
                 spec_impl.adj.iter().for_each(|spec_decl| {
@@ -322,6 +194,16 @@ impl<'a> Checker<'a> {
     pub fn check_all(mut self) -> Vec<Error> {
         self.visit_package(self.package);
         self.generate_errors()
+    }
+
+    fn check_entry_expr(&mut self, expr_id: ExprId) {
+        let expr = self.get_expr(expr_id);
+        if expr.span == Span::default() {
+            // This is an auto-generated entry expression, so we only need to verify the output recording flags.
+            self.check_output_recording(expr);
+        } else {
+            self.visit_expr(expr_id);
+        }
     }
 
     fn check_expr(&mut self, expr_id: ExprId) {
@@ -447,6 +329,33 @@ impl<'a> Checker<'a> {
         }
     }
 
+    fn check_output_recording(&mut self, expr: &Expr) {
+        let compute_kind = self.compute_properties.get_expr(expr.id).inherent;
+        let ComputeKind::Quantum(quantum_properties) = compute_kind else {
+            return;
+        };
+
+        let output_reporting_span = match &expr.kind {
+            ExprKind::Call(callee_expr, _) if expr.span == Span::default() => {
+                // Since this is auto-generated, use the callee expression span.
+                self.get_expr(*callee_expr).span
+            }
+            _ => expr.span,
+        };
+
+        // Calculate the missing features but only consider the output recording flags.
+        let missing_features = get_missing_runtime_features(
+            quantum_properties.runtime_features,
+            self.target_capabilities,
+        ) & RuntimeFeatureFlags::output_recording_flags();
+        if !missing_features.is_empty() {
+            self.missing_features_map
+                .entry(output_reporting_span)
+                .and_modify(|f| *f |= missing_features)
+                .or_insert(missing_features);
+        }
+    }
+
     fn clear_current_callable(&mut self) -> LocalItemId {
         self.current_callable
             .take()
@@ -505,88 +414,6 @@ impl<'a> Checker<'a> {
         assert!(self.current_callable.is_none());
         self.current_callable = Some(id);
     }
-}
-
-fn generate_errors_from_runtime_features(
-    runtime_features: RuntimeFeatureFlags,
-    span: Span,
-) -> Vec<Error> {
-    let mut errors = Vec::<Error>::new();
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
-        errors.push(Error::UseOfDynamicBool(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicInt) {
-        errors.push(Error::UseOfDynamicInt(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicPauli) {
-        errors.push(Error::UseOfDynamicPauli(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
-        errors.push(Error::UseOfDynamicRange(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
-        errors.push(Error::UseOfDynamicDouble(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
-        errors.push(Error::UseOfDynamicQubit(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
-        errors.push(Error::UseOfDynamicBigInt(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicString) {
-        errors.push(Error::UseOfDynamicString(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
-        errors.push(Error::UseOfDynamicallySizedArray(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
-        errors.push(Error::UseOfDynamicUdt(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
-        errors.push(Error::UseOfDynamicArrowFunction(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-        errors.push(Error::UseOfDynamicArrowOperation(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
-        errors.push(Error::CallToCyclicFunctionWithDynamicArg(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
-        errors.push(Error::CyclicOperationSpec(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
-        errors.push(Error::CallToCyclicOperation(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
-        errors.push(Error::CallToDynamicCallee(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-        errors.push(Error::CallToUnresolvedCallee(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
-        errors.push(Error::MeasurementWithinDynamicScope(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
-        errors.push(Error::UseOfDynamicIndex(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
-        errors.push(Error::ReturnWithinDynamicScope(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
-        errors.push(Error::LoopWithDynamicCondition(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfClosure) {
-        errors.push(Error::UseOfClosure(span));
-    }
-    errors
-}
-
-fn get_missing_runtime_features(
-    runtime_features: RuntimeFeatureFlags,
-    target_capabilities: RuntimeCapabilityFlags,
-) -> RuntimeFeatureFlags {
-    let missing_capabilities = !target_capabilities & runtime_features.runtime_capabilities();
-    runtime_features.contributing_features(missing_capabilities)
 }
 
 fn get_spec_level_runtime_features(runtime_features: RuntimeFeatureFlags) -> RuntimeFeatureFlags {

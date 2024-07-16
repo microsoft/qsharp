@@ -6,7 +6,7 @@ use crate::{
     serializable_type,
 };
 use miette::{Diagnostic, LabeledSpan, Severity};
-use qsc::{self, error::WithSource, interpret, SourceName, Span};
+use qsc::{self, error::WithSource, interpret, project, SourceName, Span};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -19,6 +19,8 @@ serializable_type! {
         pub severity: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub code: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub uri: Option<String>,
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub related: Vec<Related>
     },
@@ -27,6 +29,7 @@ serializable_type! {
         message: string;
         severity: "error" | "warning" | "info"
         code?: string;
+        uri?: string;
         related?: IRelatedInformation[];
     }"#
 }
@@ -41,6 +44,24 @@ serializable_type! {
         location: ILocation,
         message: string;
     }"#
+}
+
+serializable_type! {
+    /// Representation of an error that can be used to display a squiggle
+    /// in the editor or to populate the Problems view in VS Code.
+    QSharpError,
+    {
+        document: String,
+        diagnostic: VSDiagnostic,
+        stack: Option<String>,
+    },
+    r#"export interface IQSharpError {
+        /** Source URI or name */
+        document: string;
+        diagnostic: VSDiagnostic;
+        stack?: string;
+    }"#,
+    IQSharpError
 }
 
 impl VSDiagnostic {
@@ -60,6 +81,14 @@ impl VSDiagnostic {
         let labels = error_labels(err);
 
         Self::new(labels, source_name, err)
+    }
+
+    /// Creates a [`VSDiagnostic`] from a language service error.
+    pub(crate) fn from_ls_error(source_name: &str, err: &qsls::protocol::ErrorKind) -> Self {
+        match err {
+            qsls::protocol::ErrorKind::Compile(e) => Self::from_compile_error(source_name, e),
+            qsls::protocol::ErrorKind::Project(e) => Self::new(Vec::new(), source_name, e),
+        }
     }
 
     /// Creates a [`VSDiagnostic`] using the information from a [`miette::Diagnostic`].
@@ -126,6 +155,9 @@ impl VSDiagnostic {
         // e.g. Qsc.Eval.ReleasedQubitNotZero
         let code = err.code().map(|c| c.to_string());
 
+        // e.g. https://aka.ms/qdk.qir
+        let uri = err.url().map(|u| u.to_string());
+
         Self {
             range: range.into(),
             severity: (match err.severity().unwrap_or(Severity::Error) {
@@ -136,6 +168,7 @@ impl VSDiagnostic {
             .to_string(),
             message,
             code,
+            uri,
             related,
         }
     }
@@ -181,13 +214,9 @@ where
     }
 }
 
-/// Returns an array of tuples where:
-/// - the first element of the tuple is the document URI, or <project> if the error doesn't have a span
-/// - the second element of the tuple is a [`VSDiagnostic`] that represents the error
-/// - the third element is the stack trace
-pub fn interpret_errors_into_vs_diagnostics(
-    errs: &[interpret::Error],
-) -> Vec<(String, VSDiagnostic, Option<String>)> {
+/// Converts interpreter errors into the error type that is suitable for
+/// display as squiggles in the editor, and in the Problems view in VS Code
+pub fn interpret_errors_into_qsharp_errors(errs: &[interpret::Error]) -> Vec<QSharpError> {
     let default_uri = "<project>";
     errs.iter()
         .map(|err| {
@@ -205,7 +234,30 @@ pub fn interpret_errors_into_vs_diagnostics(
                 None
             };
 
-            (doc, vsdiagnostic, stack_trace)
+            QSharpError {
+                document: doc,
+                diagnostic: vsdiagnostic,
+                stack: stack_trace,
+            }
+        })
+        .collect()
+}
+
+pub fn project_errors_into_qsharp_errors(
+    project_dir: &str,
+    errs: &[project::Error],
+) -> Vec<QSharpError> {
+    errs.iter()
+        .map(|err| {
+            let doc_uri = err.path().map_or(project_dir, |p| p.as_str());
+
+            let vsdiagnostic = VSDiagnostic::new(Vec::default(), doc_uri, err);
+
+            QSharpError {
+                document: doc_uri.to_string(),
+                diagnostic: vsdiagnostic,
+                stack: None,
+            }
         })
         .collect()
 }
@@ -215,6 +267,7 @@ fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
         interpret::Error::Eval(e) => error_labels(e.error()),
         interpret::Error::Compile(e) => error_labels(e),
         interpret::Error::Pass(e) => error_labels(e),
+        interpret::Error::PartialEvaluation(e) => error_labels(e),
         interpret::Error::NoEntryPoint
         | interpret::Error::UnsupportedRuntimeCapabilities
         | interpret::Error::Circuit(_)

@@ -303,11 +303,12 @@ async function validateKata(
 }
 
 test("getAllKatas works", async () => {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-const katasList = await getAllKatas();
+// Run tests for all katas, including unpublished
+const katasList = await getAllKatas({ includeUnpublished: true });
 
 katasList.forEach((kataDesc) => {
   test(`${kataDesc.id} kata is valid`, async () => {
@@ -596,6 +597,10 @@ test("language service diagnostics - web worker", async () => {
 
 test("language service configuration update", async () => {
   const languageService = getLanguageServiceWorker();
+
+  // Set the configuration to expect an entry point.
+  await languageService.updateConfiguration({ packageType: "exe" });
+
   let actualMessages = [];
   languageService.addEventListener("diagnostics", (event) => {
     actualMessages.push({
@@ -606,7 +611,7 @@ test("language service configuration update", async () => {
     "test.qs",
     1,
     `namespace Sample {
-    operation main() : Unit {
+    operation Test() : Unit {
     }
 }`,
   );
@@ -628,7 +633,7 @@ test("language service configuration update", async () => {
         messages: [
           "entry point not found\n" +
             "\n" +
-            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided",
+            "help: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present",
         ],
       },
       {
@@ -724,23 +729,24 @@ test("compiler error on run - worker", () => testCompilerError(true));
 test("debug service loading source without entry point attr fails - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [
-        [
-          "test.qs",
-          `namespace Sample {
-    operation main() : Result[] {
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "test.qs",
+            `namespace Sample {
+    operation test() : Result[] {
         use q1 = Qubit();
         Y(q1);
         let m1 = M(q1);
         return [m1];
     }
 }`,
+          ],
         ],
-      ],
-      "base",
+        profile: "base",
+      },
       undefined,
-      [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -751,19 +757,20 @@ test("debug service loading source without entry point attr fails - web worker",
 test("debug service loading source with syntax error fails - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [
-        [
-          "test.qs",
-          `namespace Sample {
-    operation main() : Result[]
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "test.qs",
+            `namespace Sample {
+    operation test() : Result[]
     }
 }`,
+          ],
         ],
-      ],
-      "base",
+        profile: "base",
+      },
       undefined,
-      [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -774,11 +781,35 @@ test("debug service loading source with syntax error fails - web worker", async 
 test("debug service loading source with bad entry expr fails - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
-      "base",
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          ["test.qs", `namespace Sample { operation main() : Unit { } }`],
+        ],
+        profile: "base",
+      },
       "SomeBadExpr()",
-      [],
+    );
+    assert.ok(typeof result === "string" && result.trim().length > 0);
+  } finally {
+    debugService.terminate();
+  }
+});
+
+test("debug service loading source that doesn't match profile fails - web worker", async () => {
+  const debugService = getDebugServiceWorker();
+  try {
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "test.qs",
+            `namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }`,
+          ],
+        ],
+        profile: "adaptive_ri",
+      },
+      "A.Test()",
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -789,11 +820,14 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
 test("debug service loading source with good entry expr succeeds - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [["test.qs", `namespace Sample { operation Main() : Unit { } }`]],
-      "unrestricted",
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          ["test.qs", `namespace Sample { operation Main() : Unit { } }`],
+        ],
+        profile: "unrestricted",
+      },
       "Sample.Main()",
-      [],
     );
     assert.ok(typeof result === "string");
     assert.equal(result.trim(), "");
@@ -805,11 +839,12 @@ test("debug service loading source with good entry expr succeeds - web worker", 
 test("debug service loading source with entry point attr succeeds - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [
-        [
-          "test.qs",
-          `namespace Sample {
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "test.qs",
+            `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -818,11 +853,11 @@ test("debug service loading source with entry point attr succeeds - web worker",
         return [m1];
     }
 }`,
+          ],
         ],
-      ],
-      "base",
+        profile: "base",
+      },
       undefined,
-      [],
     );
     assert.ok(typeof result === "string");
     assert.equal(result.trim(), "");
@@ -834,11 +869,12 @@ test("debug service loading source with entry point attr succeeds - web worker",
 test("debug service getting breakpoints after loaded source succeeds when file names match - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [
-        [
-          "test.qs",
-          `namespace Sample {
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "test.qs",
+            `namespace Sample {
     @EntryPoint()
     operation main() : Result[] {
         use q1 = Qubit();
@@ -847,11 +883,11 @@ test("debug service getting breakpoints after loaded source succeeds when file n
         return [m1];
     }
 }`,
+          ],
         ],
-      ],
-      "base",
+        profile: "base",
+      },
       undefined,
-      [],
     );
     assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
@@ -864,11 +900,12 @@ test("debug service getting breakpoints after loaded source succeeds when file n
 test("debug service compiling multiple sources - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
-    const result = await debugService.loadSource(
-      [
-        [
-          "Foo.qs",
-          `namespace Foo {
+    const result = await debugService.loadProgram(
+      {
+        sources: [
+          [
+            "Foo.qs",
+            `namespace Foo {
     open Bar;
     @EntryPoint()
     operation Main() : Int {
@@ -877,19 +914,19 @@ test("debug service compiling multiple sources - web worker", async () => {
         return HelloFromBar();
     }
 }`,
-        ],
-        [
-          "Bar.qs",
-          `namespace Bar {
+          ],
+          [
+            "Bar.qs",
+            `namespace Bar {
     operation HelloFromBar() : Int {
           return 5;
     }
 }`,
+          ],
         ],
-      ],
-      "unrestricted",
+        profile: "unrestricted",
+      },
       undefined,
-      [],
     );
     assert.equal(result.trim(), "");
     const fooBps = await debugService.getBreakpoints("Foo.qs");

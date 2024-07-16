@@ -3,14 +3,16 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::{protocol::DiagnosticUpdate, Encoding, JSFileEntry, LanguageService, UpdateWorker};
-use expect_test::{expect, Expect};
-use qsc::{
-    compile::{self, ErrorKind},
-    line_column::Position,
+use crate::{
+    protocol::{DiagnosticUpdate, ErrorKind},
+    Encoding, LanguageService, UpdateWorker,
 };
-use qsc_project::{EntryType, Manifest, ManifestDescriptor};
-use std::{cell::RefCell, future::ready, sync::Arc};
+use expect_test::{expect, Expect};
+use qsc::{compile, line_column::Position, project};
+use std::{cell::RefCell, rc::Rc};
+use test_fs::{dir, file, FsNode, TestProjectHost};
+
+pub(crate) mod test_fs;
 
 #[tokio::test]
 async fn single_document() {
@@ -27,21 +29,7 @@ async fn single_document() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -52,6 +40,7 @@ async fn single_document() {
                         offset: 0,
                     },
                 ],
+                common_prefix: None,
                 entry: None,
             }
         "#]]),
@@ -74,21 +63,7 @@ async fn single_document_update() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -99,6 +74,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
+                common_prefix: None,
                 entry: None,
             }
         "#]]),
@@ -118,15 +94,7 @@ async fn single_document_update() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -137,6 +105,7 @@ async fn single_document_update() {
                         offset: 0,
                     },
                 ],
+                common_prefix: None,
                 entry: None,
             }
         "#]]),
@@ -150,12 +119,12 @@ async fn document_in_project() {
     let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors);
 
-    ls.update_document("this_file.qs", 1, "namespace Foo { }");
+    ls.update_document("project/src/this_file.qs", 1, "namespace Foo { }");
 
     check_errors_and_no_compilation(
         &ls,
         &mut received_errors.borrow_mut(),
-        "this_file.qs",
+        "project/src/this_file.qs",
         &(expect![[r#"
             []
         "#]]),
@@ -167,36 +136,27 @@ async fn document_in_project() {
     check_errors_and_compilation(
         &ls,
         &mut received_errors.borrow_mut(),
-        "this_file.qs",
+        "project/src/this_file.qs",
         &expect![[r#"
-            [
-                (
-                    "./qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                ),
-            ]
+            []
         "#]],
         &expect![[r#"
             SourceMap {
                 sources: [
                     Source {
-                        name: "other_file.qs",
+                        name: "project/src/other_file.qs",
                         contents: "namespace OtherFile { operation Other() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "this_file.qs",
+                        name: "project/src/this_file.qs",
                         contents: "namespace Foo { }",
                         offset: 52,
                     },
                 ],
+                common_prefix: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -267,7 +227,7 @@ async fn completions_requested_after_document_load() {
 
 fn check_errors_and_compilation(
     ls: &LanguageService,
-    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    received_errors: &mut Vec<ErrorInfo>,
     uri: &str,
     expected_errors: &Expect,
     expected_compilation: &Expect,
@@ -279,7 +239,7 @@ fn check_errors_and_compilation(
 
 fn check_errors_and_no_compilation(
     ls: &LanguageService,
-    received_errors: &mut Vec<(String, Option<u32>, Vec<ErrorKind>)>,
+    received_errors: &mut Vec<ErrorInfo>,
     uri: &str,
     expected_errors: &Expect,
 ) {
@@ -298,7 +258,12 @@ fn assert_compilation(ls: &LanguageService, uri: &str, expected: &Expect) {
     expected.assert_debug_eq(&compilation.user_unit().sources);
 }
 
-type ErrorInfo = (String, Option<u32>, Vec<compile::ErrorKind>);
+type ErrorInfo = (
+    String,
+    Option<u32>,
+    Vec<compile::ErrorKind>,
+    Vec<project::Error>,
+);
 
 fn create_update_worker<'a>(
     ls: &mut LanguageService,
@@ -306,70 +271,52 @@ fn create_update_worker<'a>(
 ) -> UpdateWorker<'a> {
     let worker = ls.create_update_worker(
         |update: DiagnosticUpdate| {
+            let project_errors = update.errors.iter().filter_map(|error| match error {
+                ErrorKind::Project(error) => Some(error.clone()),
+                ErrorKind::Compile(_) => None,
+            });
+            let compile_errors = update.errors.iter().filter_map(|error| match error {
+                ErrorKind::Compile(error) => Some(error.error().clone()),
+                ErrorKind::Project(_) => None,
+            });
+
             let mut v = received_errors.borrow_mut();
 
             v.push((
-                update.uri.to_string(),
+                update.uri,
                 update.version,
-                update
-                    .errors
-                    .iter()
-                    .map(|e| e.error().clone())
-                    .collect::<Vec<_>>(),
+                compile_errors.collect(),
+                project_errors.collect(),
             ));
         },
-        |file| {
-            Box::pin(async {
-                tokio::spawn(ready(match file.as_str() {
-                    "other_file.qs" => (
-                        Arc::from(file),
-                        Arc::from("namespace OtherFile { operation Other() : Unit {} }"),
-                    ),
-                    "this_file.qs" => (Arc::from(file), Arc::from("namespace Foo { }")),
-                    _ => panic!("unknown file"),
-                }))
-                .await
-                .expect("spawn should not fail")
-            })
-        },
-        |dir_name| {
-            Box::pin(async move {
-                tokio::spawn(ready(vec![
-                    JSFileEntry {
-                        name: "src".into(),
-                        r#type: (if dir_name.as_str() == "src" {
-                            EntryType::File
-                        } else {
-                            EntryType::Folder
-                        }),
-                    },
-                    JSFileEntry {
-                        name: "other_file.qs".into(),
-                        r#type: EntryType::File,
-                    },
-                    JSFileEntry {
-                        name: "this_file.qs".into(),
-                        r#type: EntryType::File,
-                    },
-                ]))
-                .await
-                .expect("spawn should not fail")
-            })
-        },
-        |file| {
-            Box::pin(async move {
-                tokio::spawn(ready(match file.as_str() {
-                    "other_file.qs" | "this_file.qs" => Some(ManifestDescriptor {
-                        manifest: Manifest::default(),
-                        manifest_dir: ".".into(),
-                    }),
-                    "foo.qs" => None,
-                    _ => panic!("unknown file"),
-                }))
-                .await
-                .expect("spawn should not fail")
-            })
+        TestProjectHost {
+            fs: TEST_FS.with(Clone::clone),
         },
     );
     worker
+}
+
+thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs())) }
+
+fn test_fs() -> FsNode {
+    FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file("qsharp.json", "{}"),
+                dir(
+                    "src",
+                    [
+                        file(
+                            "other_file.qs",
+                            "namespace OtherFile { operation Other() : Unit {} }",
+                        ),
+                        file("this_file.qs", "namespace Foo { }"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    )
 }

@@ -3,9 +3,9 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::incremental::Compiler;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::PackageStore;
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
@@ -126,12 +126,14 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let fir_store = lower_hir_package_store(compiler.package_store());

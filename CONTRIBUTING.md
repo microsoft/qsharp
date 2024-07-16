@@ -40,8 +40,7 @@ If no open or closed issue with such a request already exists,
 please file one following the [feature request template](https://github.com/microsoft/qsharp/issues/new?assignees=&labels=feature&template=feature_request.md&title=).
 We will respond to feature requests and follow up with a discussion around its feasibility,
 how one might go about implementing it, and whether that is something we would consider adding to our repo.
-There are several reasons why we might not be able to eventually merge even a great feature for one reason or another.
-Take a look at our general contribution guide for [reasons why this might be the case](https://docs.microsoft.com/azure/quantum/contributing-code#when-a-pull-request-is-rejected).
+We might not be able to eventually merge even a great feature for one reason or another.
 Even if we are not able to incorporate something into the packages and extensions we distribute,
 we encourage you to pursue your passion project in your own fork,
 and share and discuss your thoughts and progress on the corresponding issue.

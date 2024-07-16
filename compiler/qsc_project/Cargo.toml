@@ -15,8 +15,12 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 miette = { workspace = true }
 regex-lite = { workspace = true }
-async-trait = { workspace = true, optional = true }
+async-trait = { workspace = true }
 qsc_linter = { path = "../qsc_linter" }
+qsc_data_structures = { path = "../qsc_data_structures" }
+rustc-hash = { workspace = true }
+futures = { workspace = true }
+log = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
@@ -24,7 +28,6 @@ qsc_project = { path = ".", features = ["fs"] }
 
 [features]
 fs = []
-async = ["async-trait"]
 
 [lints]
 workspace = true

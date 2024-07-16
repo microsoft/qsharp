@@ -12,9 +12,11 @@ license.workspace = true
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 rustc-hash = { workspace = true }
+qsc_ast = { path = "../qsc_ast" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_fir = { path = "../qsc_fir" }
+qsc_formatter = { path = "../qsc_formatter" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_lowerer = { path = "../qsc_lowerer" }
@@ -26,6 +28,7 @@ qsc_rir = { path = "../qsc_rir" }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
+difference = { workspace = true }
 
 [lints]
 workspace = true

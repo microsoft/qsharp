@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-
     operation BernsteinVaziraniAlgorithm (N : Int, oracle : Qubit[] => Unit) : Int[] {
         mutable s = [];
         use x = Qubit[N];

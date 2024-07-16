@@ -10,11 +10,25 @@ from ._native import (
     Circuit,
 )
 from warnings import warn
-from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
+from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 
 _interpreter = None
+
+
+# Reporting execution time during IPython cells requires that IPython
+# gets pinged to ensure it understands the cell is active. This is done by
+# requesting a display id without displaying any content, avoiding any UI changes
+# that would be visible to the user.
+def ipython_helper():
+    try:
+        if __IPYTHON__:  # type: ignore
+            from IPython.display import display
+
+            display(display_id=True)
+    except NameError:
+        pass
 
 
 class Config:
@@ -23,17 +37,27 @@ class Config:
     Configuration hints for the language service.
     """
 
-    def __init__(self, target_profile: TargetProfile, language_features: List[str]):
-        if target_profile == TargetProfile.Adaptive:
-            self._config = {"targetProfile": "adaptive"}
-            warn("The adaptive target profile is a preview feature.")
-            warn("Functionality may be incomplete or incorrect.")
+    def __init__(
+        self,
+        target_profile: TargetProfile,
+        language_features: Optional[List[str]],
+        manifest: Optional[str],
+        project_root: Optional[str],
+    ):
+        if target_profile == TargetProfile.Adaptive_RI:
+            self._config = {"targetProfile": "adaptive_ri"}
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
         elif target_profile == TargetProfile.Unrestricted:
             self._config = {"targetProfile": "unrestricted"}
 
         self._config["languageFeatures"] = language_features
+        self._config["manifest"] = manifest
+        if project_root:
+            # For now, we only support local project roots, so use a file schema in the URI.
+            # In the future, we may support other schemes, such as github, if/when
+            # we have VS Code Web + Jupyter support.
+            self._config["projectRoot"] = "file://" + project_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -54,8 +78,9 @@ class Config:
 def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
+    target_name: Optional[str] = None,
     project_root: Optional[str] = None,
-    language_features: List[str] = [],
+    language_features: Optional[List[str]] = None,
 ) -> Config:
     """
     Initializes the Q# interpreter.
@@ -64,14 +89,29 @@ def init(
         interpreter to generate programs that are compatible
         with a specific target. See :py:class: `qsharp.TargetProfile`.
 
+    :param target_name: An optional name of the target machine to use for inferring the compatible
+        target_profile setting.
+
     :param project_root: An optional path to a root directory with a Q# project to include.
         It must contain a qsharp.json project manifest.
     """
-    from ._fs import read_file, list_directory, exists, join
+    from ._fs import read_file, list_directory, exists, join, resolve
+    from ._http import fetch_github
 
     global _interpreter
 
-    manifest_descriptor = None
+    if isinstance(target_name, str):
+        target = target_name.split(".")[0].lower()
+        if target == "ionq" or target == "rigetti":
+            target_profile = TargetProfile.Base
+        elif target == "quantinuum":
+            target_profile = TargetProfile.Adaptive_RI
+        else:
+            raise QSharpError(
+                f'target_name "{target_name}" not recognized. Please set target_profile directly.'
+            )
+
+    manifest_contents = None
     if project_root is not None:
         qsharp_json = join(project_root, "qsharp.json")
         if not exists(qsharp_json):
@@ -79,41 +119,26 @@ def init(
                 f"{qsharp_json} not found. qsharp.json should exist at the project root and be a valid JSON file."
             )
 
-        manifest_descriptor = {}
-        manifest_descriptor["manifest_dir"] = project_root
-
         try:
-            (_, file_contents) = read_file(qsharp_json)
+            (_, manifest_contents) = read_file(qsharp_json)
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
 
-        try:
-            manifest_descriptor["manifest"] = json.loads(file_contents)
-        except Exception as e:
-            raise QSharpError(
-                f"Error parsing {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
-            ) from e
-
-    # if no features were passed in as an argument, use the features from the manifest.
-    # this way we prefer the features from the argument over those from the manifest.
-    if language_features == [] and manifest_descriptor != None:
-        language_features = (
-            manifest_descriptor["manifest"].get("languageFeatures") or []
-        )
-
     _interpreter = Interpreter(
         target_profile,
         language_features,
-        manifest_descriptor,
+        project_root,
         read_file,
         list_directory,
+        resolve,
+        fetch_github,
     )
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features)
+    return Config(target_profile, language_features, manifest_contents, project_root)
 
 
 def get_interpreter() -> Interpreter:
@@ -139,9 +164,10 @@ def eval(source: str) -> Any:
     :returns value: The value returned by the last statement in the source code.
     :raises QSharpError: If there is an error evaluating the source code.
     """
+    ipython_helper()
 
     def callback(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
 
@@ -176,11 +202,12 @@ def run(
 
     :raises QSharpError: If there is an error interpreting the input.
     """
+    ipython_helper()
 
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
@@ -243,6 +270,8 @@ def compile(entry_expr: str) -> QirInputData:
         with open('myfile.ll', 'w') as file:
             file.write(str(program))
     """
+    ipython_helper()
+
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
@@ -262,6 +291,7 @@ def circuit(
 
     :raises QSharpError: If there is an error synthesizing the circuit.
     """
+    ipython_helper()
     return get_interpreter().circuit(entry_expr, operation)
 
 
@@ -276,6 +306,8 @@ def estimate(
 
     :returns resources: The estimated resources.
     """
+    ipython_helper()
+
     if params is None:
         params = [{}]
     elif isinstance(params, EstimatorParams):
@@ -349,6 +381,42 @@ class StateDump:
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
 
+    def _repr_latex_(self) -> Optional[str]:
+        return self.__data._repr_latex_()
+
+    def check_eq(
+        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
+    ) -> bool:
+        """
+        Checks if the state dump is equal to the given state. This is not mathematical equality,
+        as the check ignores global phase.
+
+        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
+            or as a list of real amplitudes.
+        :param tolerance: The tolerance for the check. Defaults to 1e-10.
+        """
+        phase = None
+        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
+        if isinstance(state, list):
+            state = {i: state[i] for i in range(len(state))}
+        # Filter out zero states from the state dump and the given state based on tolerance
+        state = {k: v for k, v in state.items() if abs(v) > tolerance}
+        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
+        if len(state) != len(inner_state):
+            return False
+        for key in state:
+            if key not in inner_state:
+                return False
+            if phase is None:
+                # Calculate the phase based on the first state pair encountered.
+                # Every pair of states after this must have the same phase for the states to be equivalent.
+                phase = inner_state[key] / state[key]
+            elif abs(phase - inner_state[key] / state[key]) > tolerance:
+                # This pair of states does not have the same phase,
+                # within tolerance, so the equivalence check fails.
+                return False
+        return True
+
 
 def dump_machine() -> StateDump:
     """
@@ -356,6 +424,7 @@ def dump_machine() -> StateDump:
 
     :returns: The state of the simulator.
     """
+    ipython_helper()
     return StateDump(get_interpreter().dump_machine())
 
 
@@ -366,4 +435,5 @@ def dump_circuit() -> Circuit:
     This circuit will contain the gates that have been applied
     in the simulator up to the current point.
     """
+    ipython_helper()
     return get_interpreter().dump_circuit()

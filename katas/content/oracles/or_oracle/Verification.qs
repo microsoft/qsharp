@@ -12,16 +12,13 @@ namespace Kata.Verification {
         for N in 1 .. 3 {
             let sol = ApplyOracle(_, Kata.Or_Oracle);
             let ref = ApplyOracle(_, Or_Oracle_Reference);
-            let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N + 1);
+            let isCorrect = CheckOperationsAreEqualStrict(N + 1, sol, ref);
 
             if not isCorrect {
                 Message("Incorrect.");
                 Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                     $"transformation for the {N}-bit oracle");
-                use initial = Qubit[N + 1];
-                PrepRandomState(initial[...N - 1]);
-                ShowQuantumStateComparison(initial, sol, ref);
-                ResetAll(initial);
+                ShowQuantumStateComparison(N + 1, qs => PrepDemoState(qs[...N - 1]), sol, ref);
                 return false;
             }
         }

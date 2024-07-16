@@ -5,21 +5,25 @@
 /// Variables in Q# are immutable by default and can be shadowed.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // Immutable variables are declared with the `let` keyword:
         let immutableInt = 42;
+        Message($"Immutable Int: {immutableInt}");
 
         // Mutable variables are declared with the `mutable` keyword:
         mutable mutableInt = 43;
+        Message($"Mutable Int: {mutableInt}");
 
         // Mutable variables can be mutated with the `set` keyword:
         set mutableInt -= 1;
+        Message($"Mutable Int after mutation: {mutableInt}");
 
         // All variables can be shadowed by symbols introduced later in scope.
         // This is not mutation, rather, this is declaring a new variable
         // entirely.
         let immutableInt = 43;
         let immutableInt = 0;
+        Message($"Shadowed Immutable Int: {immutableInt}");
 
         // UDTs can also be updated with copy-and-update expressions (`w/`)
         // or evaluate-and-reassign expressions (`w/=`).

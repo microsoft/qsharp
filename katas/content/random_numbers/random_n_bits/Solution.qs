@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
     operation RandomNBits(N : Int) : Int {
         mutable result = 0;
         for i in 0 .. N - 1 {

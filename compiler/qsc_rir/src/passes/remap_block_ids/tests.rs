@@ -54,8 +54,7 @@ fn remap_block_ids_no_changes() {
                 Block 2: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -79,8 +78,7 @@ fn remap_block_ids_no_changes() {
                 Block 2: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -128,8 +126,7 @@ fn remap_block_ids_out_of_order_no_branches() {
                 Block 7: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -153,8 +150,7 @@ fn remap_block_ids_out_of_order_no_branches() {
                 Block 2: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -215,8 +211,7 @@ fn remap_block_ids_out_of_order_with_one_branch() {
                 Block 3: Block:
                     Jump(1)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -243,8 +238,7 @@ fn remap_block_ids_out_of_order_with_one_branch() {
                 Block 3: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -300,8 +294,7 @@ fn remap_block_ids_simple_loop() {
                 Block 6: Block:
                     Jump(4)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -326,8 +319,7 @@ fn remap_block_ids_simple_loop() {
                 Block 2: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -370,8 +362,7 @@ fn remap_block_ids_infinite_loop() {
                 Block 4: Block:
                     Jump(0)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -394,8 +385,7 @@ fn remap_block_ids_infinite_loop() {
                 Block 1: Block:
                     Jump(0)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -459,8 +449,7 @@ fn remap_block_ids_nested_branching_loops() {
                 Block 6: Block:
                     Branch Variable(1, Boolean), 4, 2
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -485,8 +474,7 @@ fn remap_block_ids_nested_branching_loops() {
                 Block 2: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -589,8 +577,7 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Block 8: Block:
                     Jump(7)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -627,8 +614,7 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Block 8: Block:
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());

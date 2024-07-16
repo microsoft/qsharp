@@ -8,7 +8,7 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
+    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
@@ -384,25 +384,7 @@ impl<'a> Context<'a> {
                 Lit::String(_) => converge(Ty::Prim(Prim::String)),
             },
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(path) => match self.names.get(path.id) {
-                None => converge(Ty::Err),
-                Some(Res::Item(item, _)) => {
-                    let scheme = self.globals.get(item).expect("item should have scheme");
-                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
-                    self.table.generics.insert(expr.id, args);
-                    converge(Ty::Arrow(Box::new(ty)))
-                }
-                Some(&Res::Local(node)) => converge(
-                    self.table
-                        .terms
-                        .get(node)
-                        .expect("local should have type")
-                        .clone(),
-                ),
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
-                    panic!("expression resolves to type")
-                }
-            },
+            ExprKind::Path(path) => self.infer_path(expr, path),
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;
                 for expr in start.iter().chain(step).chain(end) {
@@ -443,6 +425,50 @@ impl<'a> Context<'a> {
                     self.inferrer.eq(expr.span, (*return_ty).clone(), ty);
                 }
                 self.diverge()
+            }
+            ExprKind::Struct(name, copy, fields) => {
+                let container = convert::ty_from_path(self.names, name);
+
+                self.inferrer
+                    .class(name.span, Class::Struct(container.clone()));
+
+                // If the container is not a struct type, assign type Err and don't continue to process the fields.
+                match &container {
+                    Ty::Udt(_, hir::Res::Item(item_id)) => match self.table.udts.get(item_id) {
+                        Some(udt) if udt.is_struct() => {}
+                        _ => return converge(Ty::Err),
+                    },
+                    _ => return converge(Ty::Err),
+                }
+
+                self.inferrer.class(
+                    expr.span,
+                    Class::HasStructShape {
+                        record: container.clone(),
+                        is_copy: copy.is_some(),
+                        fields: fields
+                            .iter()
+                            .map(|field| (field.field.name.to_string(), field.span))
+                            .collect(),
+                    },
+                );
+
+                // Ensure that the copy expression has the same type as the given struct.
+                if let Some(copy) = copy {
+                    let copy_ty = self.infer_expr(copy);
+                    self.inferrer.eq(copy.span, container.clone(), copy_ty.ty);
+                }
+
+                for field in fields.iter() {
+                    self.infer_field_assign(
+                        field.span,
+                        container.clone(),
+                        &field.field,
+                        &field.value,
+                    );
+                }
+
+                converge(container)
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
@@ -491,6 +517,76 @@ impl<'a> Context<'a> {
 
         self.record(expr.id, ty.ty.clone());
         ty
+    }
+
+    fn infer_path_parts(
+        &mut self,
+        init_record: Partial<Ty>,
+        rest: &[Ident],
+        lo: u32,
+    ) -> Partial<Ty> {
+        let mut record = init_record;
+        for part in rest {
+            let span = Span {
+                lo,
+                hi: part.span.hi,
+            };
+            let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: record.ty.clone(),
+                    name: part.name.to_string(),
+                    item: item_ty.clone(),
+                },
+            );
+            // The ids of the segments are mapped specially because they will become the
+            // types of the field expressions that these Ident segments will be lowered into.
+            self.record(part.id, item_ty.clone());
+            record = self.diverge_if(record.diverges, converge(item_ty));
+        }
+        record
+    }
+
+    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
+        match resolve::path_as_field_accessor(self.names, path) {
+            // If the path is a field accessor, we infer the type of first segment
+            // as an expr, and the rest as subsequent fields.
+            Some((first_id, parts)) => {
+                let record = converge(
+                    self.table
+                        .terms
+                        .get(first_id)
+                        .expect("local should have type")
+                        .clone(),
+                );
+                let (first, rest) = parts
+                    .split_first()
+                    .expect("path should have at least one part");
+                self.record(first.id, record.ty.clone());
+                self.infer_path_parts(record, rest, expr.span.lo)
+            }
+            // Otherwise we infer the path as a namespace path.
+            None => match self.names.get(path.id) {
+                None => converge(Ty::Err),
+                Some(Res::Item(item, _)) => {
+                    let scheme = self.globals.get(item).expect("item should have scheme");
+                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
+                }
+                Some(&Res::Local(node)) => converge(
+                    self.table
+                        .terms
+                        .get(node)
+                        .expect("local should have type")
+                        .clone(),
+                ),
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                    panic!("expression should not resolve to type reference")
+                }
+            },
+        }
     }
 
     fn infer_hole_tuple<T>(
@@ -669,6 +765,27 @@ impl<'a> Context<'a> {
             );
             self.diverge_if(index.diverges || item.diverges, container)
         }
+    }
+
+    fn infer_field_assign(
+        &mut self,
+        span: Span,
+        container_ty: Ty,
+        field_name: &Ident,
+        value: &Expr,
+    ) -> Partial<Ty> {
+        let value = self.infer_expr(value);
+        let field = field_name.name.to_string();
+        self.inferrer.class(
+            span,
+            Class::HasField {
+                record: container_ty.clone(),
+                name: field,
+                item: value.ty.clone(),
+            },
+        );
+
+        self.diverge_if(value.diverges, converge(container_ty))
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {

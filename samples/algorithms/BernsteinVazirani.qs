@@ -107,7 +107,7 @@ namespace Sample {
 
         // Measure all qubits and reset them to the |0〉 state so that they can
         // be safely deallocated at the end of the block.
-        let resultArray = ForEach(MResetZ, queryRegister);
+        let resultArray = MResetEachZ(queryRegister);
 
         // Finally, the last qubit, which held the y-register, is reset.
         Reset(target);

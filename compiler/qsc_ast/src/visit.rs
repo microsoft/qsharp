@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
-    Visibility,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
+    FunctorExprKind, Ident, Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
+    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -25,14 +25,20 @@ pub trait Visitor<'a>: Sized {
         walk_attr(self, attr);
     }
 
-    fn visit_visibility(&mut self, _: &'a Visibility) {}
-
     fn visit_ty_def(&mut self, def: &'a TyDef) {
         walk_ty_def(self, def);
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         walk_callable_decl(self, decl);
+    }
+
+    fn visit_struct_decl(&mut self, decl: &'a StructDecl) {
+        walk_struct_decl(self, decl);
+    }
+
+    fn visit_field_def(&mut self, def: &'a FieldDef) {
+        walk_field_def(self, def);
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
@@ -59,6 +65,10 @@ pub trait Visitor<'a>: Sized {
         walk_expr(self, expr);
     }
 
+    fn visit_field_assign(&mut self, assign: &'a FieldAssign) {
+        walk_field_assign(self, assign);
+    }
+
     fn visit_pat(&mut self, pat: &'a Pat) {
         walk_pat(self, pat);
     }
@@ -72,6 +82,10 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
+
+    fn visit_idents(&mut self, idents: &'a Idents) {
+        walk_idents(self, idents);
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -83,23 +97,31 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
-    vis.visit_ident(&namespace.name);
+    vis.visit_idents(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
-    item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &*item.kind {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
-            vis.visit_ident(ns);
+            vis.visit_idents(ns);
             alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
+        }
+        ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
+        ItemKind::ImportOrExport(decl) => {
+            for item in decl.items.iter() {
+                vis.visit_path(&item.path);
+                if let Some(ref alias) = item.alias {
+                    vis.visit_ident(alias);
+                }
+            }
         }
     }
 }
@@ -131,6 +153,16 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter().for_each(|s| vis.visit_spec_decl(s)),
     }
+}
+
+pub fn walk_struct_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a StructDecl) {
+    vis.visit_ident(&decl.name);
+    decl.fields.iter().for_each(|f| vis.visit_field_def(f));
+}
+
+pub fn walk_field_def<'a>(vis: &mut impl Visitor<'a>, def: &'a FieldDef) {
+    vis.visit_ident(&def.name);
+    vis.visit_ty(&def.ty);
 }
 
 pub fn walk_spec_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a SpecDecl) {
@@ -263,6 +295,11 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(name, copy, fields) => {
+            vis.visit_path(name);
+            copy.iter().for_each(|c| vis.visit_expr(c));
+            fields.iter().for_each(|f| vis.visit_field_assign(f));
+        }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
             vis.visit_expr(e2);
@@ -275,6 +312,11 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         }
         ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) => {}
     }
+}
+
+pub fn walk_field_assign<'a>(vis: &mut impl Visitor<'a>, assign: &'a FieldAssign) {
+    vis.visit_ident(&assign.field);
+    vis.visit_expr(&assign.value);
 }
 
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
@@ -300,6 +342,12 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
 }
 
 pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
-    path.namespace.iter().for_each(|n| vis.visit_ident(n));
+    if let Some(ref parts) = path.segments {
+        vis.visit_idents(parts);
+    }
     vis.visit_ident(&path.name);
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }

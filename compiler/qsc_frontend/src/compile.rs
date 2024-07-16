@@ -12,7 +12,7 @@ use crate::{
     resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
-use bitflags::bitflags;
+
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -26,73 +26,17 @@ use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    global,
+    global::{self},
     hir::{self, PackageId},
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, str::FromStr, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
-
-bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct RuntimeCapabilityFlags: u32 {
-        const ForwardBranching = 0b0000_0001;
-        const IntegerComputations = 0b0000_0010;
-        const FloatingPointComputations = 0b0000_0100;
-        const BackwardsBranching = 0b0000_1000;
-        const HigherLevelConstructs = 0b0001_0000;
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConfigAttr {
-    Adaptive,
-    Base,
-    Unrestricted,
-}
-
-impl ConfigAttr {
-    #[must_use]
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::Adaptive => "Adaptive",
-            Self::Base => "Base",
-            Self::Unrestricted => "Unrestricted",
-        }
-    }
-
-    #[must_use]
-    pub fn is_target_str(s: &str) -> bool {
-        Self::from_str(s).is_ok()
-    }
-}
-
-impl FromStr for ConfigAttr {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Adaptive" => Ok(ConfigAttr::Adaptive),
-            "Base" => Ok(ConfigAttr::Base),
-            "Unrestricted" => Ok(ConfigAttr::Unrestricted),
-            _ => Err(()),
-        }
-    }
-}
-
-impl From<ConfigAttr> for RuntimeCapabilityFlags {
-    fn from(value: ConfigAttr) -> Self {
-        match value {
-            ConfigAttr::Unrestricted => Self::all(),
-            ConfigAttr::Base => Self::empty(),
-            ConfigAttr::Adaptive => Self::ForwardBranching,
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct CompileUnit {
@@ -102,6 +46,14 @@ pub struct CompileUnit {
     pub sources: SourceMap,
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
+}
+
+impl CompileUnit {
+    pub fn expose(&mut self) {
+        for (_item_id, item) in self.package.items.iter_mut() {
+            item.visibility = hir::Visibility::Public;
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -115,6 +67,10 @@ pub struct AstPackage {
 #[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
+    /// The common prefix of the sources
+    /// e.g. if the sources all start with `/Users/microsoft/code/qsharp/src`, then this value is
+    /// `/Users/microsoft/code/qsharp/src`.
+    common_prefix: Option<Arc<str>>,
     entry: Option<Source>,
 }
 
@@ -142,8 +98,26 @@ impl SourceMap {
             offset_sources.push(source);
         }
 
+        // Each source has a name, which is a string. The project root dir is calculated as the
+        // common prefix of all of the sources.
+        // Calculate the common prefix.
+        let common_prefix: String = longest_common_prefix(
+            &offset_sources
+                .iter()
+                .map(|source| source.name.as_ref())
+                .collect::<Vec<_>>(),
+        )
+        .to_string();
+
+        let common_prefix: Arc<str> = Arc::from(common_prefix);
+
         Self {
             sources: offset_sources,
+            common_prefix: if common_prefix.is_empty() {
+                None
+            } else {
+                Some(common_prefix)
+            },
             entry: entry_source,
         }
     }
@@ -177,6 +151,25 @@ impl SourceMap {
     pub fn iter(&self) -> impl Iterator<Item = &Source> {
         self.sources.iter()
     }
+
+    /// Returns the sources as an iter, but with the project root directory subtracted
+    /// from the individual source names.
+    pub(crate) fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
+        self.sources.iter().map(move |source| {
+            let name = source.name.as_ref();
+            let relative_name = if let Some(common_prefix) = &self.common_prefix {
+                name.strip_prefix(common_prefix.as_ref()).unwrap_or(name)
+            } else {
+                name
+            };
+
+            Source {
+                name: relative_name.into(),
+                contents: source.contents.clone(),
+                offset: source.offset,
+            }
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -189,6 +182,9 @@ pub struct Source {
 pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
+
+// the arc<str> is only `None` for the legacy stdlib, core, and an interpreter special case
+pub type Dependencies = [(PackageId, Option<Arc<str>>)];
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -269,7 +265,13 @@ impl PackageStore {
             open: id,
         }
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+    }
 }
+
 impl<'a> IntoIterator for &'a PackageStore {
     type IntoIter = Iter<'a>;
     type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
@@ -341,15 +343,35 @@ impl MutVisitor for Offsetter {
     }
 }
 
+#[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
+    let (ast_package, parse_errors) = parse_all(&sources, language_features);
 
+    compile_ast(
+        store,
+        dependencies,
+        ast_package,
+        sources,
+        capabilities,
+        parse_errors,
+    )
+}
+
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &Dependencies,
+    mut ast_package: ast::Package,
+    sources: SourceMap,
+    capabilities: TargetCapabilityFlags,
+    parse_errors: Vec<qsc_parse::Error>,
+) -> CompileUnit {
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
@@ -420,7 +442,7 @@ pub fn core() -> CompileUnit {
         &store,
         &[],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
@@ -433,7 +455,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
         .iter()
         .map(|(name, contents)| ((*name).into(), (*contents).into()))
@@ -442,7 +464,7 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
 
     let mut unit = compile(
         store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         sources,
         capabilities,
         LanguageFeatures::default(),
@@ -457,8 +479,9 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
+    for source in sources.relative_sources() {
+        let (source_namespaces, source_errors) =
+            qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));
@@ -489,36 +512,42 @@ fn parse_all(
 
 fn resolve_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
 ) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, &None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for &id in dependencies {
+    for (ref id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package, alias);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
+    // bind all symbols in `add_local_package`
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
+
+    // bind all exported symbols in a follow-on step
+    resolver.bind_and_resolve_imports_and_exports(package);
+
+    // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
     (names, locals, errors)
 }
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     package: &ast::Package,
     names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
@@ -527,11 +556,15 @@ fn typeck_all(
         globals.add_external_package(PackageId::CORE, &unit.package);
     }
 
-    for &id in dependencies {
+    for (id, _alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be added to package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        // we can ignore the dependency alias here, because the
+        // typechecker doesn't do any name resolution -- it only operates on item ids.
+        // because of this, the typechecker doesn't actually need to care about visibility
+        // or the names of items at all.
+        globals.add_external_package(*id, &unit.package);
     }
 
     let mut checker = Checker::new(globals);
@@ -565,4 +598,39 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 
         panic!("could not compile package");
     }
+}
+
+#[must_use]
+pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    if strs.len() == 1 {
+        return truncate_to_path_separator(strs[0]);
+    }
+
+    let Some(common_prefix_so_far) = strs.first() else {
+        return "";
+    };
+
+    for (i, character) in common_prefix_so_far.chars().enumerate() {
+        for string in strs {
+            if string.chars().nth(i) != Some(character) {
+                let prefix = &common_prefix_so_far[0..i];
+                // Find the last occurrence of the path separator in the prefix
+                return truncate_to_path_separator(prefix);
+            }
+        }
+    }
+    common_prefix_so_far
+}
+
+fn truncate_to_path_separator(prefix: &str) -> &str {
+    let last_separator_index = prefix
+        .rfind('/')
+        .or_else(|| prefix.rfind('\\'))
+        .or_else(|| prefix.rfind(':'));
+    if let Some(last_separator_index) = last_separator_index {
+        // Return the prefix up to and including the last path separator
+        return &prefix[0..=last_separator_index];
+    }
+    // If there's no path separator in the prefix, return an empty string
+    ""
 }

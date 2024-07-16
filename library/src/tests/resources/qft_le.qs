@@ -45,7 +45,7 @@ namespace Test {
         Fact(Length(target) == 2, $"`Length(target!)` must be 2");
         let (q1, q2) = ((target)[0], (target)[1]);
         H(q1);
-        Controlled R1Frac([q2], (2, 2, q1));
+        Controlled R1Frac([q1], (1, 1, q2));
         H(q2);
     }
 
@@ -55,10 +55,10 @@ namespace Test {
         Fact(Length(target) == 3, $"`Length(target)` must be 3");
         let (q1, q2, q3) = ((target)[0], (target)[1], (target)[2]);
         H(q1);
-        Controlled R1Frac([q2], (2, 2, q1));
-        Controlled R1Frac([q3], (2, 3, q1));
+        Controlled R1Frac([q1], (1, 1, q2));
+        Controlled R1Frac([q1], (1, 2, q3));
         H(q2);
-        Controlled R1Frac([q3], (2, 2, q2));
+        Controlled R1Frac([q2], (1, 1, q3));
         H(q3);
     }
 
@@ -68,14 +68,14 @@ namespace Test {
         Fact(Length(target) == 4, $"`Length(target!)` must be 4");
         let (q1, q2, q3, q4) = ((target)[0], (target)[1], (target)[2], (target)[3]);
         H(q1);
-        Controlled R1Frac([q2], (2, 2, q1));
-        Controlled R1Frac([q3], (2, 3, q1));
-        Controlled R1Frac([q4], (2, 4, q1));
+        Controlled R1Frac([q1], (1, 1, q2));
+        Controlled R1Frac([q1], (1, 2, q3));
+        Controlled R1Frac([q1], (1, 3, q4));
         H(q2);
-        Controlled R1Frac([q3], (2, 2, q2));
-        Controlled R1Frac([q4], (2, 3, q2));
+        Controlled R1Frac([q2], (1, 1, q3));
+        Controlled R1Frac([q2], (1, 2, q4));
         H(q3);
-        Controlled R1Frac([q4], (2, 2, q3));
+        Controlled R1Frac([q3], (1, 1, q4));
         H(q4);
     }
 

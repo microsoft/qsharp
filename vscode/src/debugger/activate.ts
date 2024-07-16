@@ -4,12 +4,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { IDebugServiceWorker, getDebugServiceWorker, log } from "qsharp-lang";
-import { qsharpExtensionId, isQsharpDocument } from "../common";
-import { QscDebugSession } from "./session";
-import { getRandomGuid } from "../utils";
-
 import * as vscode from "vscode";
-import { loadProject } from "../projectSystem";
+import { qsharpExtensionId } from "../common";
+import { clearCommandDiagnostics } from "../diagnostics";
+import {
+  getActiveQSharpDocumentUri,
+  getProgramForDocument,
+} from "../programConfig";
+import { getRandomGuid } from "../utils";
+import { QscDebugSession } from "./session";
 
 let debugServiceWorkerFactory: () => IDebugServiceWorker;
 
@@ -74,10 +77,14 @@ function registerCommands(context: vscode.ExtensionContext) {
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
-    let targetResource = resource;
-    if (!targetResource && vscode.window.activeTextEditor) {
-      targetResource = vscode.window.activeTextEditor.document.uri;
+    clearCommandDiagnostics();
+
+    if (vscode.debug.activeDebugSession?.type === "qsharp") {
+      // Multiple debug sessions disallowed, to reduce confusion
+      return;
     }
+
+    const targetResource = resource || getActiveQSharpDocumentUri();
 
     if (targetResource) {
       config.programUri = targetResource.toString();
@@ -106,19 +113,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     config: vscode.DebugConfiguration,
     _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
-    // if launch.json is missing or empty
-    if (!config.type && !config.request && !config.name) {
-      const editor = vscode.window.activeTextEditor;
-      if (editor && isQsharpDocument(editor.document)) {
-        config.type = "qsharp";
-        config.name = "Launch";
-        config.request = "launch";
-        config.programUri = editor.document.uri.toString();
-        config.shots = 1;
-        config.noDebug = "noDebug" in config ? config.noDebug : false;
-        config.stopOnEntry = !config.noDebug;
-      }
-    } else if (config.program && folder) {
+    if (config.program && folder) {
       // A program is specified in launch.json.
       //
       // Variable substitution is a bit odd in VS Code. Variables such as
@@ -141,15 +136,17 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
           path: fileUri.path,
         })
         .toString();
-    } else if (!config.programUri) {
-      // We shouldn't hit this in practice
-      log.warn(
-        "Cannot find a Q# program to debug, defaulting to active editor",
-      );
-      // Use the active editor if no program is specified.
-      const editor = vscode.window.activeTextEditor;
-      if (editor && isQsharpDocument(editor.document)) {
-        config.programUri = editor.document.uri.toString();
+    } else {
+      // if launch.json is missing or empty, try to launch the active Q# document
+      const docUri = getActiveQSharpDocumentUri();
+      if (docUri) {
+        config.type = "qsharp";
+        config.name = "Launch";
+        config.request = "launch";
+        config.programUri = docUri.toString();
+        config.shots = 1;
+        config.noDebug = "noDebug" in config ? config.noDebug : false;
+        config.stopOnEntry = !config.noDebug;
       }
     }
 
@@ -204,12 +201,15 @@ class InlineDebugAdapterFactory
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const uri = vscode.Uri.parse(session.configuration.programUri);
-    const project = await loadProject(uri);
+    const program = await getProgramForDocument(uri);
+    if (!program.success) {
+      throw new Error(program.errorMsg);
+    }
+
     const qscSession = new QscDebugSession(
       worker,
       session.configuration,
-      project.sources,
-      project.languageFeatures,
+      program.programConfig,
     );
 
     await qscSession.init(getRandomGuid());

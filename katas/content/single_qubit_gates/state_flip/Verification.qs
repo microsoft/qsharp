@@ -9,7 +9,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.StateFlip(register[0]);
         let reference = register => StateFlip(register[0]);
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
@@ -18,10 +18,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
                 "is expected to have.");
-            use initial = Qubit(); // |0〉
-            Ry(ArcTan2(0.8, 0.6) * 2.0, initial);
-            ShowQuantumStateComparison([initial], solution, reference);
-            Reset(initial);
+            ShowQuantumStateComparison(1, qs => Ry(ArcTan2(0.8, 0.6) * 2.0, qs[0]), solution, reference);
         }
         isCorrect
     }

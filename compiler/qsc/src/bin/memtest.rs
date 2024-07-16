@@ -4,7 +4,8 @@
 //! Records the memory usage of the compiler.
 
 use qsc::{compile, CompileUnit};
-use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags};
+use qsc_data_structures::target::TargetCapabilityFlags;
+use qsc_frontend::compile::PackageStore;
 use std::{
     alloc::{GlobalAlloc, Layout, System},
     sync::atomic::{AtomicU64, Ordering},
@@ -48,7 +49,7 @@ static ALLOCATOR: AllocationCounter<System> = AllocationCounter::new(System);
 #[must_use]
 pub fn compile_stdlib() -> CompileUnit {
     let store = PackageStore::new(compile::core());
-    compile::std(&store, RuntimeCapabilityFlags::all())
+    compile::std(&store, TargetCapabilityFlags::all())
 }
 
 fn main() {

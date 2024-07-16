@@ -342,12 +342,12 @@ fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
 }
 
 /// Get the state represented as a formula in the LaTeX format if possible.
-/// Empty string is returned if the resulting formula is not nice, i.e.
+/// `None` is returned if the resulting formula is not nice, i.e.
 /// if the formula consists of more than 16 terms or if more than two coefficients are not recognized.
 #[must_use]
-pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
+pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Option<String> {
     if state.len() > 16 {
-        return String::new();
+        return None;
     }
 
     let terms: Vec<Term> = get_terms_for_state(state);
@@ -361,7 +361,7 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
                 bad_term_count += 1;
             };
             if bad_term_count > 2 {
-                return String::new();
+                return None;
             }
         }
     }
@@ -378,7 +378,7 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
     latex.push('$');
     latex.shrink_to_fit();
 
-    latex
+    Some(latex)
 }
 
 /// Write latex for one term of quantum state.
@@ -483,7 +483,10 @@ fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_o
 /// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_decimal_number(latex: &mut String, number: &DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
-        write!(latex, "{}", number.value).expect("Expected to write decimal value.");
+        // Using round() instead of neater string formatting({:.4})
+        // because we do not want trailing zeros (we need 0.5 and not 0.5000)
+        write!(latex, "{}", (number.value * 10000.0).round() / 10000.0)
+            .expect("Expected to write decimal value.");
     }
 }
 

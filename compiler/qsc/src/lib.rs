@@ -7,16 +7,15 @@ pub mod error;
 pub mod incremental;
 pub mod interpret;
 pub mod location;
+pub mod packages;
 pub mod target;
 
 pub use qsc_formatter::formatter;
 
-pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
-};
+pub use qsc_frontend::compile::{CompileUnit, PackageStore, SourceContents, SourceMap, SourceName};
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res};
+    pub use qsc_frontend::resolve::{path_as_field_accessor, Local, LocalKind, Locals, Res};
 }
 
 pub mod fir {
@@ -32,12 +31,17 @@ pub mod ast {
 }
 
 pub mod project {
-    pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
+    pub use qsc_project::{
+        DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
+        PackageGraphSources,
+    };
 }
 
-pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+pub use qsc_data_structures::{
+    language_features::LanguageFeatures, namespaces::*, span::Span, target::TargetCapabilityFlags,
+};
 
-pub use qsc_passes::{PackageType, PassContext};
+pub use qsc_passes::{lower_hir_to_fir, PackageType, PassContext};
 
 pub mod line_column {
     pub use qsc_data_structures::line_column::{Encoding, Position, Range};

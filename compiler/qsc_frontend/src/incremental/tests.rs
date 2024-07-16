@@ -3,13 +3,13 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore, RuntimeCapabilityFlags},
+    compile::{self, CompileUnit, PackageStore},
     incremental::Error,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use std::fmt::Write;
 
 #[allow(clippy::too_many_lines)]
@@ -18,8 +18,8 @@ fn one_callable() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &[],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let unit = compiler
@@ -43,7 +43,7 @@ fn one_callable() {
                             output: Type 7 [35-39]: Path: Path 8 [35-39] (Ident 9 [35-39] "Unit")
                             body: Block: Block 10 [40-42]: <empty>
             names:
-            node_id:2,node_id:5,node_id:8,
+            node_id:1,node_id:5,node_id:8,
             terms:
             node_id:6,node_id:10,
             locals:
@@ -67,9 +67,23 @@ fn one_callable() {
                             hi: 44,
                         },
                         kind: Namespace(
-                            "Foo",
+                            NamespaceId(
+                                9,
+                            ),
                         ),
-                        opens: {},
+                        opens: {
+                            []: [
+                                Open {
+                                    namespace: NamespaceId(
+                                        9,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 13,
+                                    },
+                                },
+                            ],
+                        },
                         tys: {},
                         terms: {},
                         vars: {},
@@ -105,7 +119,7 @@ fn one_callable() {
             Package:
                 Item 0 [0-44] (Public):
                     Namespace (Ident 5 [10-13] "Foo"): Item 1
-                Item 1 [16-42] (Public):
+                Item 1 [16-42] (Internal):
                     Parent: 0
                     Callable 0 [16-42] (operation):
                         name: Ident 1 [26-30] "Main"
@@ -126,8 +140,8 @@ fn one_statement() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &[],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let unit = compiler
@@ -189,8 +203,8 @@ fn parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &[],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let errors = compiler
@@ -234,8 +248,8 @@ fn conditional_compilation_not_available() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &[],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let errors = compiler
@@ -259,13 +273,12 @@ fn conditional_compilation_not_available() {
 
 #[test]
 fn errors_across_multiple_lines() {
-    let mut store = PackageStore::new(compile::core());
-    let std = compile::std(&store, RuntimeCapabilityFlags::all());
-    let std_id = store.insert(std);
+    let mut store = PackageStore::new(crate::compile::core());
+    let std_id = store.insert(crate::compile::std(&store, TargetCapabilityFlags::all()));
     let mut compiler = Compiler::new(
         &store,
-        [std_id],
-        RuntimeCapabilityFlags::all(),
+        &[(std_id, None)],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();
@@ -333,8 +346,8 @@ fn continue_after_parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &Vec::new(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut errors = Vec::new();
@@ -409,8 +422,8 @@ fn continue_after_lower_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
-        RuntimeCapabilityFlags::all(),
+        &[],
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();

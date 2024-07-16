@@ -53,7 +53,7 @@ pub(crate) fn call(
                 return Err(Error::QubitUniqueness(arg_span));
             }
             let (state, qubit_count) = sim.capture_quantum_state();
-            let state = utils::split_state(&qubits, state, qubit_count)
+            let state = utils::split_state(&qubits, &state, qubit_count)
                 .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
             match out.state(state, qubits.len()) {
                 Ok(()) => Ok(Value::unit()),
@@ -99,6 +99,10 @@ pub(crate) fn call(
             } else {
                 Ok(Value::Double(rng.gen_range(lo..=hi)))
             }
+        }
+        "DrawRandomBool" => {
+            let p = arg.unwrap_double();
+            Ok(Value::Bool(rng.gen_bool(p)))
         }
         #[allow(clippy::cast_possible_truncation)]
         "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),

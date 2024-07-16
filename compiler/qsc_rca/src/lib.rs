@@ -6,19 +6,26 @@
 //! execution on a quantum kernel and does not consider these elements when determining the capabilities. Additionally,
 //! this implementation also provides details on why the program requires each capability.
 
+#[cfg(test)]
+mod tests;
+
 mod analyzer;
 mod applications;
 mod common;
 mod core;
 mod cycle_detection;
 mod cyclic_callables;
+pub mod errors;
 mod overrider;
 mod scaffolding;
 
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
-use qsc_data_structures::index_map::{IndexMap, Iter};
+use qsc_data_structures::{
+    index_map::{IndexMap, Iter},
+    target::TargetCapabilityFlags,
+};
 use qsc_fir::{
     fir::{
         BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
@@ -26,7 +33,8 @@ use qsc_fir::{
     },
     ty::Ty,
 };
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use rustc_hash::FxHashSet;
+
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -136,6 +144,13 @@ impl PackageStoreComputeProperties {
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
     }
+
+    #[must_use]
+    pub fn is_unresolved_callee_expr(&self, id: StoreExprId) -> bool {
+        self.get(id.package)
+            .unresolved_callee_exprs
+            .contains(&id.expr)
+    }
 }
 
 /// The compute properties of a package.
@@ -149,6 +164,8 @@ pub struct PackageComputeProperties {
     pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
     /// The application generator sets of the package expressions.
     pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
+    /// The expressions that were unresolved callees at analysis time.
+    pub unresolved_callee_exprs: FxHashSet<ExprId>,
 }
 
 impl Default for PackageComputeProperties {
@@ -158,6 +175,7 @@ impl Default for PackageComputeProperties {
             blocks: IndexMap::new(),
             stmts: IndexMap::new(),
             exprs: IndexMap::new(),
+            unresolved_callee_exprs: FxHashSet::default(),
         }
     }
 }
@@ -296,6 +314,15 @@ pub struct ApplicationGeneratorSet {
     /// Each element in the vector represents the compute kind(s) of a call application when the parameter associated to
     /// the vector index is bound to a dynamic value.
     pub(crate) dynamic_param_applications: Vec<ParamApplication>,
+}
+
+impl Default for ApplicationGeneratorSet {
+    fn default() -> Self {
+        Self {
+            inherent: ComputeKind::Classical,
+            dynamic_param_applications: Vec::new(),
+        }
+    }
 }
 
 impl Display for ApplicationGeneratorSet {
@@ -554,7 +581,7 @@ pub struct QuantumProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,
     /// The kind of value of the program element.
-    pub(crate) value_kind: ValueKind,
+    pub value_kind: ValueKind,
 }
 
 impl Display for QuantumProperties {
@@ -596,8 +623,10 @@ impl ValueKind {
             Self::Element(RuntimeKind::Static)
         } else {
             match ty {
-                // For a dynamic array, both contents and size are dynamic.
-                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                // For a dynamic array, the content is dynamic and the size is static.
+                // We assume this because the source of the array produces something with dynamic length,
+                // that source should have already added the runtime feature flag for dynamic arrays.
+                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
                 // For every other dynamic type, we use the element variant with a dynamic runtime value.
                 _ => ValueKind::Element(RuntimeKind::Dynamic),
             }
@@ -635,7 +664,8 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn is_dynamic(self) -> bool {
+    #[must_use]
+    pub fn is_dynamic(self) -> bool {
         match self {
             Self::Array(content_runtime_kind, size_runtime_kind) => {
                 matches!(content_runtime_kind, RuntimeKind::Dynamic)
@@ -655,7 +685,10 @@ impl ValueKind {
                 }
                 ValueKind::Element(self_runtime_kind) => {
                     *content_runtime_kind = self_runtime_kind;
-                    *size_runtime_kind = self_runtime_kind;
+                    // When we project from an element variant to an array variant, we assume the size of the
+                    // array is statically sized because we rely on the dynamically sized arrays runtime feature
+                    // flag to detect such cases.
+                    *size_runtime_kind = RuntimeKind::Static;
                 }
             },
             ValueKind::Element(runtime_kind) => {
@@ -746,21 +779,30 @@ bitflags! {
         const ReturnWithinDynamicScope = 1 << 19;
         /// A loop with a dynamic condition.
         const LoopWithDynamicCondition = 1 << 20;
-        /// Use of a closure.
-        const UseOfClosure = 1 << 21;
+        /// Use of an advanced type as output of a computation.
+        const UseOfAdvancedOutput = 1 << 21;
+        // Use of a `Bool` as output of a computation.
+        const UseOfBoolOutput = 1 << 22;
+        // Use of a `Double` as output of a computation.
+        const UseOfDoubleOutput = 1 << 23;
+        // Use of an `Int` as output of a computation.
+        const UseOfIntOutput = 1 << 24;
+        // Use of a dynamic exponent in a computation.
+        const UseOfDynamicExponent = 1 << 25;
+        // Use of a dynamic `Result` variable in a computation.
+        const UseOfDynamicResult = 1 << 26;
+        // Use of a dynamic tuple variable.
+        const UseOfDynamicTuple = 1 << 27;
     }
 }
 
 impl RuntimeFeatureFlags {
-    /// Determines the runtime features that contribute to the provided runtime capabilities.
+    /// Determines the runtime features that contribute to the provided target capabilities.
     #[must_use]
-    pub fn contributing_features(&self, runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+    pub fn contributing_features(&self, capabilities: TargetCapabilityFlags) -> Self {
         let mut contributing_features = Self::empty();
         for feature in self.iter() {
-            if feature
-                .runtime_capabilities()
-                .intersects(runtime_capabilities)
-            {
+            if feature.target_capabilities().intersects(capabilities) {
                 contributing_features |= feature;
             }
         }
@@ -768,76 +810,99 @@ impl RuntimeFeatureFlags {
         contributing_features
     }
 
-    /// Maps program contructs to runtime capabilities.
+    /// Maps program constructs to target capabilities.
     #[must_use]
-    pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
-        let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
+    pub fn target_capabilities(&self) -> TargetCapabilityFlags {
+        let mut capabilities = TargetCapabilityFlags::empty();
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicInt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicPauli) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
-            runtume_capabilities |= RuntimeCapabilityFlags::FloatingPointComputations;
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicString) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
-        }
-        if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
-            runtume_capabilities |= RuntimeCapabilityFlags::BackwardsBranching;
+            capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
-        if self.contains(RuntimeFeatureFlags::UseOfClosure) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        if self.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
-        runtume_capabilities
+        if self.contains(RuntimeFeatureFlags::UseOfDoubleOutput) {
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfIntOutput) {
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicExponent) {
+            capabilities |= TargetCapabilityFlags::BackwardsBranching;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicResult) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        capabilities
+    }
+
+    #[must_use]
+    pub fn output_recording_flags() -> RuntimeFeatureFlags {
+        RuntimeFeatureFlags::UseOfIntOutput
+            | RuntimeFeatureFlags::UseOfDoubleOutput
+            | RuntimeFeatureFlags::UseOfBoolOutput
+            | RuntimeFeatureFlags::UseOfAdvancedOutput
     }
 }

@@ -5,6 +5,7 @@
     "tstates": 0.0003333333333333333
   },
   "jobParams": {
+    "constraints": { "maxDistillationRounds": 3 },
     "errorBudget": 0.001,
     "estimateType": "singlePoint",
     "qecScheme": {

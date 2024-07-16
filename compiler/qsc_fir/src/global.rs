@@ -40,7 +40,7 @@ pub struct Table {
 impl Table {
     #[must_use]
     pub fn resolve_ty(&self, namespace: &str, name: &str) -> Option<&Ty> {
-        self.tys.get(namespace).and_then(|terms| terms.get(name))
+        self.tys.get(namespace).and_then(|ty| ty.get(name))
     }
 
     #[must_use]

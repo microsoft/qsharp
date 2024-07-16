@@ -23,16 +23,13 @@ namespace Kata.Verification {
 
                 let sol = Kata.ArbitraryBitPattern_Oracle_Challenge(_, pattern);
                 let ref = ArbitraryBitPattern_Oracle_Challenge_Reference(_, pattern);
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");
                     Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                         $"transformation for the {N}-bit oracle for pattern = {pattern}");
-                    use initial = Qubit[N];
-                    PrepRandomState(initial);
-                    ShowQuantumStateComparison(initial, sol, ref);
-                    ResetAll(initial);
+                    ShowQuantumStateComparison(N, PrepDemoState, sol, ref);
                     return false;
                 }
             }

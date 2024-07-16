@@ -28,6 +28,7 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
+qsc_partial_eval = { path = "../qsc_partial_eval" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
 qsc_rca = { path = "../qsc_rca" }
 qsc_circuit = { path = "../qsc_circuit" }
@@ -50,14 +51,17 @@ doctest = false
 [[bin]]
 name = "qsc"
 bench = false
+test = false
 
 [[bin]]
 name = "qsi"
 bench = false
+test = false
 
 [[bin]]
 name = "memtest"
 bench = false
+test = false
 
 [[bench]]
 name = "large"

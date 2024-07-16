@@ -2,22 +2,14 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar, Tuple, Optional, Dict, List
+from typing import Any, Callable, ClassVar, Optional, Dict, List
 
 class TargetProfile:
     """
     A Q# target profile.
 
-    The target is the hardware or simulator which will be used to run the Q# program.
-    The target profile is a description of a target's capabilities.
-    """
-
-    Adaptive: ClassVar[Any]
-    """
-    Target supports the core set of adaptive.
-
-    This option maps to the Adaptive Profile as defined by the QIR specification
-    without any extensions.
+    A target profile describes the capabilities of the hardware or simulator
+    which will be used to run the Q# program.
     """
 
     Base: ClassVar[Any]
@@ -26,6 +18,16 @@ class TargetProfile:
     program.
 
     This option maps to the Base Profile as defined by the QIR specification.
+    """
+
+    Adaptive_RI: ClassVar[Any]
+    """
+    Target supports the Adaptive profile with integer computation and qubit
+    reset capabilities.
+
+    This profile includes all of the required Adaptive Profile
+    capabilities, as well as the optional integer computation and qubit
+    reset capabilities, as defined by the QIR specification.
     """
 
     Unrestricted: ClassVar[Any]
@@ -40,17 +42,19 @@ class Interpreter:
         self,
         target_profile: TargetProfile,
         language_features: Optional[List[str]],
-        manifest_descriptor: Optional[Dict[str, str]],
+        project_root: Optional[str],
         read_file: Callable[[str], str],
         list_directory: Callable[[str], str],
+        resolve_path: Callable[[str, str], str],
     ) -> None:
         """
         Initializes the Q# interpreter.
 
         :param target_profile: The target profile to use for the interpreter.
-        :param manifest_descriptor: A dictionary that represents the manifest descriptor
+        :param project_root: A directory that contains a `qsharp.json` manifest.
         :param read_file: A function that reads a file from the file system.
         :param list_directory: A function that lists the contents of a directory.
+        :param resolve_path: A function that joins path segments and normalizes the resulting path.
         """
         ...
 
@@ -182,6 +186,7 @@ class Output:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
+    def _repr_latex_(self) -> Optional[str]: ...
     def state_dump(self) -> Optional[StateDumpData]: ...
 
 class StateDumpData:
@@ -202,6 +207,7 @@ class StateDumpData:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
+    def _repr_latex_(self) -> Optional[str]: ...
 
 class Circuit:
     def json(self) -> str: ...

@@ -43,7 +43,7 @@
         },
         {
           "name": "keyword.other.qsharp",
-          "match": "\\b(namespace|open|as|internal|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
+          "match": "\\b(namespace|open|import|export|as|internal|newtype|struct|operation|function|new|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
         }
       ]
     },

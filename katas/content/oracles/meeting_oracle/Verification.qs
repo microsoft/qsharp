@@ -34,7 +34,7 @@ namespace Kata.Verification {
         let N = 5;
         let sol = ApplyMeetingOracle(_, Kata.Meeting_Oracle);
         let ref = ApplyMeetingOracle(_, Meeting_Oracle_Reference);
-        let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, 2 * N + 1);
+        let isCorrect = CheckOperationsAreEqualStrict(2 * N + 1, sol, ref);
 
         if not isCorrect {
             Message("Incorrect.");

@@ -6,21 +6,26 @@ mod tests;
 
 use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
-use crate::qsc_utils::{into_range, span_contains};
+use crate::qsc_utils::into_range;
+
+use log::{log_enabled, trace, Level::Trace};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
+
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
-use qsc::resolve::{Local, LocalKind};
+use qsc::{
+    resolve::{Local, LocalKind},
+    PRELUDE,
+};
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
+use std::sync::Arc;
 
-const PRELUDE: [&str; 3] = [
-    "Microsoft.Quantum.Canon",
-    "Microsoft.Quantum.Core",
-    "Microsoft.Quantum.Intrinsic",
-];
+type NamespaceName = Vec<Rc<str>>;
+type NamespaceAlias = Rc<str>;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -30,6 +35,22 @@ pub(crate) fn get_completions(
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
+
+    if log_enabled!(Trace) {
+        let last_char = compilation
+            .user_unit()
+            .sources
+            .find_by_offset(offset)
+            .map(|s| {
+                let offset = offset - s.offset;
+                if offset > 0 {
+                    s.contents[(offset as usize - 1)..].chars().next()
+                } else {
+                    None
+                }
+            });
+        trace!("the character before the cursor is: {last_char:?}");
+    }
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
@@ -48,11 +69,13 @@ pub(crate) fn get_completions(
     context_finder.visit_package(user_ast_package);
 
     let insert_open_at = match compilation.kind {
-        CompilationKind::OpenProject => context_finder.start_of_namespace,
+        CompilationKind::OpenProject { .. } => context_finder.start_of_namespace,
         // Since notebooks don't typically contain namespace declarations,
         // open statements should just get before the first non-whitespace
         // character (i.e. at the top of the cell)
-        CompilationKind::Notebook => Some(get_first_non_whitespace_in_source(compilation, offset)),
+        CompilationKind::Notebook { .. } => {
+            Some(get_first_non_whitespace_in_source(compilation, offset))
+        }
     };
 
     let insert_open_range = insert_open_at.map(|o| {
@@ -68,10 +91,13 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
+    let mut prelude_ns_ids: Vec<_> = PRELUDE
+        .into_iter()
+        .map(|ns| (ns.into_iter().map(Rc::from).collect(), None))
+        .collect();
+
     // The PRELUDE namespaces are always implicitly opened.
-    context_finder
-        .opens
-        .extend(PRELUDE.into_iter().map(|ns| (Rc::from(ns), None)));
+    context_finder.opens.append(&mut prelude_ns_ids);
 
     let mut builder = CompletionListBuilder::new();
 
@@ -118,8 +144,8 @@ pub(crate) fn get_completions(
             builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenProject => builder.push_namespace_keyword(),
-            CompilationKind::Notebook => {
+            CompilationKind::OpenProject { .. } => builder.push_namespace_keyword(),
+            CompilationKind::Notebook { .. } => {
                 // For notebooks, the top-level allows for
                 // more syntax.
 
@@ -152,16 +178,26 @@ pub(crate) fn get_completions(
 }
 
 fn get_first_non_whitespace_in_source(compilation: &Compilation, package_offset: u32) -> u32 {
+    const QSHARP_MAGIC: &str = "//qsharp";
     let source = compilation
         .user_unit()
         .sources
         .find_by_offset(package_offset)
         .expect("source should exist in the user source map");
 
-    let first = source
-        .contents
-        .find(|c: char| !c.is_whitespace())
-        .unwrap_or(source.contents.len());
+    // Skip the //qsharp magic if it exists (notebook cells)
+    let start = if let Some(qsharp_magic_start) = source.contents.find(QSHARP_MAGIC) {
+        qsharp_magic_start + QSHARP_MAGIC.len()
+    } else {
+        0
+    };
+
+    let source_after_magic = &source.contents[start..];
+
+    let first = start
+        + source_after_magic
+            .find(|c: char| !c.is_whitespace())
+            .unwrap_or(source_after_magic.len());
 
     let first = u32::try_from(first).expect("source length should fit into u32");
 
@@ -262,9 +298,9 @@ impl CompletionListBuilder {
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(Rc<str>, Option<Rc<str>>)],
+        opens: &[(NamespaceName, Option<NamespaceAlias>)],
         insert_open_range: Option<Range>,
-        current_namespace_name: &Option<Rc<str>>,
+        current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
     ) {
         let core = &compilation
@@ -295,11 +331,12 @@ impl CompletionListBuilder {
 
         self.push_sorted_completions(Self::get_core_callables(compilation, core));
 
-        for (_, unit) in &all_except_core {
-            self.push_completions(Self::get_namespaces(&unit.package));
+        for (id, unit) in &all_except_core {
+            let alias = compilation.dependencies.get(id).cloned().flatten();
+            self.push_completions(Self::get_namespaces(&unit.package, alias));
         }
 
-        self.push_completions(Self::get_namespaces(core));
+        self.push_completions(Self::get_namespaces(core, None));
     }
 
     fn push_locals(
@@ -381,12 +418,17 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
+    #[allow(clippy::too_many_lines)]
+    /// Get all callables in a package
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
-        opens: &'a [(Rc<str>, Option<Rc<str>>)],
+        // name and alias
+        opens: &'a [(NamespaceName, Option<NamespaceAlias>)],
+        // The range at which to insert an open statement if one is needed
         insert_open_at: Option<Range>,
-        current_namespace_name: Option<Rc<str>>,
+        // The name of the current namespace, if any --
+        current_namespace_name: Option<Vec<Rc<str>>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
@@ -394,6 +436,12 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
+
+        // if an alias exists for this dependency from the manifest,
+        // this is used to prefix any access to items from this package with the alias
+        let package_alias_from_manifest =
+            compilation.dependencies.get(&package_id).cloned().flatten();
+
         let display = CodeDisplay { compilation };
 
         let is_user_package = compilation.user_package_id == package_id;
@@ -403,7 +451,7 @@ impl CompletionListBuilder {
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.name.starts_with("Microsoft.Quantum.Unstable") {
+                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
                             return None;
                         }
                         // If the item's visibility is internal, the item may be ignored
@@ -414,7 +462,7 @@ impl CompletionListBuilder {
                             // ignore item if the user is not in the item's namespace
                             match &current_namespace_name {
                                 Some(curr_ns) => {
-                                    if *curr_ns != namespace.name {
+                                    if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
                                         return None;
                                     }
                                 }
@@ -431,35 +479,43 @@ impl CompletionListBuilder {
                                 // Everything that starts with a __ goes last in the list
                                 let sort_group = u32::from(name.starts_with("__"));
                                 let mut additional_edits = vec![];
-                                let mut qualification: Option<Rc<str>> = None;
+                                let mut qualification: Option<Vec<Rc<str>>> = None;
                                 match &current_namespace_name {
-                                    Some(curr_ns) if *curr_ns == namespace.name => {}
+                                    Some(curr_ns)
+                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
                                         // the second, nested option tells if that open has an alias
                                         let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == namespace.name {
+                                            if *name == Into::<Vec<_>>::into(namespace) {
                                                 Some(alias)
                                             } else {
                                                 None
                                             }
                                         });
                                         qualification = match open {
-                                            Some(alias) => alias.clone(),
+                                            Some(alias) => alias.clone().map(|x| vec![x]),
                                             None => match insert_open_at {
                                                 Some(start) => {
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {};{}",
-                                                            namespace.name.clone(),
-                                                            indent,
+                                                            "open {}{};{indent}",
+                                                            // insert the package alias, if there is one
+                                                            if let Some(ref alias) =
+                                                                package_alias_from_manifest
+                                                            {
+                                                                format!("{alias}.")
+                                                            } else {
+                                                                String::new()
+                                                            },
+                                                            namespace.name()
                                                         ),
                                                         range: start,
                                                     });
                                                     None
                                                 }
-                                                None => Some(namespace.name.clone()),
+                                                None => Some(namespace.into()),
                                             },
                                         }
                                     }
@@ -472,7 +528,16 @@ impl CompletionListBuilder {
                                 };
 
                                 let label = if let Some(qualification) = qualification {
-                                    format!("{qualification}.{name}")
+                                    format!(
+                                        "{}{}.{name}",
+                                        // insert the package alias, if there is one
+                                        if let Some(ref alias) = package_alias_from_manifest {
+                                            format!("{alias}.")
+                                        } else {
+                                            String::new()
+                                        },
+                                        qualification.join(".")
+                                    )
                                 } else {
                                     name.to_owned()
                                 };
@@ -496,6 +561,7 @@ impl CompletionListBuilder {
         })
     }
 
+    /// Get all callables in the core package
     fn get_core_callables<'a>(
         compilation: &'a Compilation,
         package: &'a Package,
@@ -523,21 +589,31 @@ impl CompletionListBuilder {
         })
     }
 
-    fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
-        package.items.values().filter_map(|i| match &i.kind {
+    fn get_namespaces(
+        package: &'_ Package,
+        package_alias: Option<Arc<str>>,
+    ) -> impl Iterator<Item = CompletionItem> + '_ {
+        package.items.values().filter_map(move |i| match &i.kind {
             ItemKind::Namespace(namespace, _)
-                if !namespace.name.starts_with("Microsoft.Quantum.Unstable") =>
+                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
-                Some(CompletionItem::new(
-                    namespace.name.to_string(),
-                    CompletionItemKind::Module,
-                ))
+                let label = format!(
+                    "{}{}",
+                    if let Some(ref alias) = package_alias {
+                        format!("{alias}.")
+                    } else {
+                        String::new()
+                    },
+                    namespace.name()
+                );
+                Some(CompletionItem::new(label, CompletionItemKind::Module))
             }
             _ => None,
         })
     }
 }
 
+/// Convert a local into a completion item
 fn local_completion(
     candidate: &Local,
     compilation: &Compilation,
@@ -600,9 +676,9 @@ fn local_completion(
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(Rc<str>, Option<Rc<str>>)>,
+    opens: Vec<(NamespaceName, Option<NamespaceAlias>)>,
     start_of_namespace: Option<u32>,
-    current_namespace_name: Option<Rc<str>>,
+    current_namespace_name: Option<Vec<Rc<str>>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -616,8 +692,8 @@ enum Context {
 
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
-        if span_contains(namespace.span, self.offset) {
-            self.current_namespace_name = Some(namespace.name.name.clone());
+        if namespace.span.contains(self.offset) {
+            self.current_namespace_name = Some(namespace.name.clone().into());
             self.context = Context::Namespace;
             self.opens = vec![];
             self.start_of_namespace = None;
@@ -631,19 +707,17 @@ impl Visitor<'_> for ContextFinder {
         }
 
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
-            self.opens.push((
-                name.name.clone(),
-                alias.as_ref().map(|alias| alias.name.clone()),
-            ));
+            self.opens
+                .push((name.into(), alias.as_ref().map(|alias| alias.name.clone())));
         }
 
-        if span_contains(item.span, self.offset) {
+        if item.span.contains(self.offset) {
             visit::walk_item(self, item);
         }
     }
 
     fn visit_callable_decl(&mut self, decl: &'_ qsc::ast::CallableDecl) {
-        if span_contains(decl.span, self.offset) {
+        if decl.span.contains(self.offset) {
             // This span covers the body too, but the
             // context will get overwritten by visit_block
             // if the offset is inside the actual body
@@ -653,7 +727,7 @@ impl Visitor<'_> for ContextFinder {
     }
 
     fn visit_block(&mut self, block: &'_ qsc::ast::Block) {
-        if span_contains(block.span, self.offset) {
+        if block.span.contains(self.offset) {
             self.context = Context::Block;
         }
     }

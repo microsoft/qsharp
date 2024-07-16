@@ -1,9 +1,8 @@
 namespace Kata {
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
 
     operation WeightedRandomBit(x : Double) : Int {
-        let theta = 2.0 *  ArcCos(Sqrt(x));  // (or) 2.0 * ArcSin(Sqrt(1.0 - x));
+        let theta = 2.0 * ArcCos(Sqrt(x));  // or 2.0 * ArcSin(Sqrt(1.0 - x));
 
         use q = Qubit();
         Ry(theta, q);

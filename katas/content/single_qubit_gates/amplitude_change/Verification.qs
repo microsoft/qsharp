@@ -12,16 +12,13 @@ namespace Kata.Verification {
             let alpha = ((2.0 * PI()) * IntAsDouble(i)) / 36.0;
             let solution = register => Kata.AmplitudeChange(alpha, register[0]);
             let reference = register => AmplitudeChange(alpha, register[0]);
-            let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+            let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
             if not isCorrect {
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {alpha}.");
                 Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
                 "is expected to have.");
-                use initial = Qubit(); // |0〉
-                Ry(ArcTan2(0.8, 0.6) * 2.0, initial); // 0.6|0〉 + 0.8|1〉
-                ShowQuantumStateComparison([initial], solution, reference);
-                Reset(initial);
+                ShowQuantumStateComparison(1, qs => Ry(ArcTan2(0.8, 0.6) * 2.0, qs[0]), solution, reference);
                 return false;
             }
         }

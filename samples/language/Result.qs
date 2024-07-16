@@ -22,6 +22,7 @@ namespace MyQuantumApp {
 
         // Measure the qubit.
         let measurement = M(q);
+        Message($"Measurement: {measurement}");
 
         // Reset the qubit.
         Reset(q);

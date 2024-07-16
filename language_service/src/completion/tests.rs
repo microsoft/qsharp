@@ -547,9 +547,11 @@ fn in_block_from_other_namespace() {
         operation Bar() : Unit {
             ↘
         }
+        export Bar;
     }
     namespace Other {
         operation Foo() : Unit {}
+        export Foo;
     }"#},
         &["Foo"],
         &expect![[r#"
@@ -594,12 +596,12 @@ fn auto_open_multiple_files() {
         &[
             (
                 "foo.qs",
-                indoc! {r#"namespace Foo { operation FooOperation() : Unit {} }
+                indoc! {r#"namespace Foo { operation FooOperation() : Unit {} export FooOperation; }
                 "#},
             ),
             (
                 "bar.qs",
-                indoc! {r#"namespace Bar { operation BarOperation() : Unit { ↘ } }
+                indoc! {r#"namespace Bar { operation BarOperation() : Unit { ↘ } export BarOperation; }
                 "#},
             ),
         ],
@@ -1038,8 +1040,20 @@ fn notebook_block() {
 fn notebook_auto_open_start_of_cell_empty() {
     check_notebook(
         &[
-            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
-            ("cell2", "↘"),
+            (
+                "cell1",
+                indoc! {"
+                    //qsharp
+                    namespace Foo { operation Bar() : Unit {} }"
+                },
+            ),
+            (
+                "cell2",
+                indoc! {"
+                    //qsharp
+                    ↘"
+                },
+            ),
         ],
         &["Fake"],
         &expect![[r#"
@@ -1060,11 +1074,11 @@ fn notebook_auto_open_start_of_cell_empty() {
                                     new_text: "open FakeStdLib;\n",
                                     range: Range {
                                         start: Position {
-                                            line: 0,
+                                            line: 1,
                                             column: 0,
                                         },
                                         end: Position {
-                                            line: 0,
+                                            line: 1,
                                             column: 0,
                                         },
                                     },
@@ -1082,8 +1096,21 @@ fn notebook_auto_open_start_of_cell_empty() {
 fn notebook_auto_open_start_of_cell() {
     check_notebook(
         &[
-            ("cell1", "namespace Foo { operation Bar() : Unit {} }"),
-            ("cell2", r#"   Message("hi") ↘"#),
+            (
+                "cell1",
+                indoc! {"
+                    //qsharp
+                    namespace Foo { operation Bar() : Unit {} }"
+                },
+            ),
+            (
+                "cell2",
+                indoc! {r#"
+                    //qsharp
+                    Message("hi")
+                    ↘"#
+                },
+            ),
         ],
         &["Fake"],
         &expect![[r#"
@@ -1101,15 +1128,15 @@ fn notebook_auto_open_start_of_cell() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n   ",
+                                    new_text: "open FakeStdLib;\n",
                                     range: Range {
                                         start: Position {
-                                            line: 0,
-                                            column: 3,
+                                            line: 1,
+                                            column: 0,
                                         },
                                         end: Position {
-                                            line: 0,
-                                            column: 3,
+                                            line: 1,
+                                            column: 0,
                                         },
                                     },
                                 },

@@ -7,9 +7,9 @@ import { ActiveTab } from "./main.js";
 
 const tabArray: Array<[ActiveTab, string]> = [
   ["results-tab", "RESULTS"],
-  ["hir-tab", "HIR"],
   ["ast-tab", "AST"],
-  ["logs-tab", "LOGS"],
+  ["hir-tab", "HIR"],
+  ["qir-tab", "QIR"],
 ];
 
 function AstTab(props: { ast: string; activeTab: ActiveTab }) {
@@ -28,6 +28,14 @@ function HirTab(props: { hir: string; activeTab: ActiveTab }) {
   ) : null;
 }
 
+function QirTab(props: { qir: string; activeTab: ActiveTab }) {
+  return props.activeTab === "qir-tab" ? (
+    <textarea readonly class="qir-output">
+      {props.qir}
+    </textarea>
+  ) : null;
+}
+
 export function OutputTabs(props: {
   evtTarget: QscEventTarget;
   showPanel: boolean;
@@ -35,6 +43,7 @@ export function OutputTabs(props: {
   kataMode?: boolean;
   ast: string;
   hir: string;
+  qir: string;
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
 }) {
@@ -53,8 +62,9 @@ export function OutputTabs(props: {
         </div>
       ) : null}
       <ResultsTab {...props} />
-      <HirTab {...props} />
       <AstTab {...props} />
+      <HirTab {...props} />
+      <QirTab {...props} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::borrow::Cow;
+use std::fmt::Display;
 use std::rc::Rc;
 
 use crate::system::modeling::{
@@ -15,7 +16,7 @@ use crate::{
     system::modeling::default_t_factory,
 };
 
-use super::super::constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS};
+use super::super::constants::MAX_EXTRA_DISTILLATION_ROUNDS;
 
 use super::code_distance_iterators::{iterate_for_code_distances, search_for_code_distances};
 use super::distillation_units_map::DistillationUnitsMap;
@@ -28,14 +29,14 @@ where
 {
     /// Target output T-error rate
     output_t_error_rate: f64,
-    /// Number of combinations for which a TFactory was tried to build
+    /// Number of combinations for which a `TFactory` was tried to build
     num_combinations: usize,
-    /// Number of valid TFactory instances that were successfully build
+    /// Number of valid `TFactory` instances that were successfully build
     num_valid: usize,
-    /// Number of sufficient TFactory instances that do not succeed the user
+    /// Number of sufficient `TFactory` instances that do not succeed the user
     /// specified output T-error rate
     num_candidates: usize,
-    /// Pareto frontier of currently best TFactories.
+    /// Pareto frontier of currently best `TFactories`.
     /// We optimize them by two duration and normalized qubits.
     frontier_factories: Population<P>,
 }
@@ -176,12 +177,12 @@ impl From<TFactory> for Point2D<TFactory> {
     }
 }
 
-impl ToString for Point2D<TFactory> {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for Point2D<TFactory> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
             "Pareto frontier point.   normalized qubits: {},    duration: {}",
             self.value1, self.value2,
-        )
+        ))
     }
 }
 
@@ -199,12 +200,12 @@ impl From<TFactory> for Point4D<TFactory> {
     }
 }
 
-impl ToString for Point4D<TFactory> {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for Point4D<TFactory> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
             "Pareto frontier point.   normalized qubits: {},    duration: {},    output T-error rate: {},    code distance: {}",
             self.value1, self.value2, self.value3, self.value4,
-        )
+        ))
     }
 }
 
@@ -214,6 +215,7 @@ pub(crate) fn find_nondominated_tfactories<'a>(
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
+    max_distillation_rounds: u64,
 ) -> Vec<Cow<'a, TFactory>> {
     let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
@@ -221,6 +223,7 @@ pub(crate) fn find_nondominated_tfactories<'a>(
         distillation_unit_templates,
         output_t_error_rate,
         max_code_distance,
+        max_distillation_rounds,
     );
 
     points
@@ -236,6 +239,7 @@ fn find_nondominated_population<P>(
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
+    max_distillation_rounds: u64,
 ) -> Population<P>
 where
     P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
@@ -273,13 +277,13 @@ where
 
     let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
 
-    for num_rounds in 1..=MAX_DISTILLATION_ROUNDS {
-        process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
+    for num_rounds in 1..=max_distillation_rounds {
+        process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds as usize);
     }
 
     if searcher.frontier_factories.items().is_empty() || P::ITERATE_MAX_NUM_ROUNDS {
-        for num_rounds in MAX_DISTILLATION_ROUNDS + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
-            process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
+        for num_rounds in max_distillation_rounds + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
+            process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds as usize);
         }
     }
 
@@ -340,22 +344,18 @@ fn process_for_specifications_combination<P>(
 
 pub struct TFactoryBuilder {
     distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+    max_distillation_rounds: u64,
 }
 
 impl TFactoryBuilder {
-    pub fn set_distillation_unit_templates(
-        &mut self,
+    #[must_use]
+    pub fn new(
         distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
-    ) {
-        self.distillation_unit_templates = distillation_unit_templates;
-    }
-}
-
-impl Default for TFactoryBuilder {
-    fn default() -> Self {
+        max_distillation_rounds: u64,
+    ) -> Self {
         Self {
-            distillation_unit_templates:
-                TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
+            distillation_unit_templates,
+            max_distillation_rounds,
         }
     }
 }
@@ -370,14 +370,15 @@ impl FactoryBuilder<Protocol> for TFactoryBuilder {
         _magic_state_type: usize,
         output_t_error_rate: f64,
         max_code_distance: &u64,
-    ) -> Vec<Cow<Self::Factory>> {
-        find_nondominated_tfactories(
+    ) -> Option<Vec<Cow<Self::Factory>>> {
+        Some(find_nondominated_tfactories(
             ftp,
             qubit,
             &self.distillation_unit_templates,
             output_t_error_rate,
             *max_code_distance,
-        )
+            self.max_distillation_rounds,
+        ))
     }
 }
 

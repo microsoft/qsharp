@@ -3,7 +3,7 @@ We are asked to perform an $X$ gate on the `target` qubit controlled by the stat
 If the `controlBits` mask consists of all `true` values, we can use a familiar `Controlled X` gate. What can we do if the mask has some `false` values in it?
 
 Turns out we can transform the state of the control qubits depending on the corresponding elements of `controlBits`: if the element is `false`, we apply an $X$ gate to the corresponding qubit in the `controls` array. After this, `Controlled X` gate will apply an $X$ gate in the exact case that we want.
-Finally, we'll need to remember to undo (\"uncompute\") the first step, otherwise our controlled gate will affect the state of the control qubits as well as the state of the target.
+Finally, we'll need to remember to undo ("uncompute") the first step, otherwise our controlled gate will affect the state of the control qubits as well as the state of the target.
 
 As you can see in the first cell below, this can take quite some coding.
 

@@ -6,8 +6,11 @@
 use expect_test::expect;
 
 use crate::{
-    builder::{cx_decl, h_decl, mresetz_decl, mz_decl, reset_decl, x_decl},
-    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program},
+    builder::{cx_decl, h_decl, m_decl, mresetz_decl, read_result_decl, reset_decl, x_decl},
+    rir::{
+        Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
+        Variable, VariableId,
+    },
 };
 
 use super::reindex_qubits;
@@ -60,17 +63,17 @@ fn qubit_reindexed_after_reset_removes_reset() {
 #[test]
 fn qubit_reindexed_after_mz() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(X, x_decl());
-    program.callables.insert(MZ, mz_decl());
+    program.callables.insert(M, m_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -79,7 +82,7 @@ fn qubit_reindexed_after_mz() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
@@ -105,12 +108,14 @@ fn qubit_reindexed_after_mz() {
     expect![[r#"
         Block:
             Call id(0), args( Qubit(0), )
+            Call id(2), args( Qubit(0), Qubit(1), )
             Call id(1), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(1), )
+            Call id(2), args( Qubit(1), Qubit(2), )
             Call id(1), args( Qubit(1), Result(1), )
             Return"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
-    assert_eq!(program.num_qubits, 2);
+    assert_eq!(program.num_qubits, 3);
 }
 
 #[test]
@@ -119,8 +124,8 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
     const MRESETZ: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
-    program.callables.insert(CallableId(0), x_decl());
-    program.callables.insert(CallableId(1), mresetz_decl());
+    program.callables.insert(X, x_decl());
+    program.callables.insert(MRESETZ, mresetz_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
@@ -225,19 +230,19 @@ fn multiple_qubit_reindex() {
 }
 
 #[test]
-fn qubit_reindexed_multiple_times() {
+fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
     const X: CallableId = CallableId(0);
-    const MZ: CallableId = CallableId(1);
+    const M: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
-    program.callables.insert(CallableId(0), x_decl());
-    program.callables.insert(CallableId(1), mz_decl());
+    program.callables.insert(X, x_decl());
+    program.callables.insert(M, m_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(0)),
@@ -246,7 +251,7 @@ fn qubit_reindexed_multiple_times() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(1)),
@@ -255,7 +260,7 @@ fn qubit_reindexed_multiple_times() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(2)),
@@ -264,7 +269,7 @@ fn qubit_reindexed_multiple_times() {
             ),
             Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                MZ,
+                M,
                 vec![
                     Operand::Literal(Literal::Qubit(0)),
                     Operand::Literal(Literal::Result(3)),
@@ -294,14 +299,606 @@ fn qubit_reindexed_multiple_times() {
     expect![[r#"
         Block:
             Call id(0), args( Qubit(0), )
+            Call id(2), args( Qubit(0), Qubit(1), )
             Call id(1), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(1), )
+            Call id(2), args( Qubit(1), Qubit(2), )
             Call id(1), args( Qubit(1), Result(1), )
             Call id(0), args( Qubit(2), )
+            Call id(2), args( Qubit(2), Qubit(3), )
             Call id(1), args( Qubit(2), Result(2), )
             Call id(0), args( Qubit(3), )
+            Call id(2), args( Qubit(3), Qubit(4), )
             Call id(1), args( Qubit(3), Result(3), )
             Return"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
-    assert_eq!(program.num_qubits, 4);
+    assert_eq!(program.num_qubits, 5);
+}
+
+#[test]
+fn qubit_reindexed_across_branches() {
+    const X: CallableId = CallableId(0);
+    const M: CallableId = CallableId(1);
+    const READ_RESULT: CallableId = CallableId(2);
+    let mut program = Program::new();
+    program.num_qubits = 1;
+    program.num_results = 3;
+    program.callables.insert(X, x_decl());
+    program.callables.insert(M, m_decl());
+    program.callables.insert(READ_RESULT, read_result_decl());
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                M,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                READ_RESULT,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(1),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                M,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Jump(BlockId(3)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::Call(
+                M,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
+                ],
+                None,
+            ),
+            Instruction::Jump(BlockId(3)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(3),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Return,
+        ]),
+    );
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: __quantum__qis__x__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 1: Callable:
+                    name: __quantum__qis__m__body
+                    call_type: Measurement
+                    input_type:
+                        [0]: Qubit
+                        [1]: Result
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: __quantum__qis__read_result__body
+                    call_type: Readout
+                    input_type:
+                        [0]: Result
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(0), )
+                    Variable(0, Boolean) = Call id(2), args( Result(0), )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(1), )
+                    Jump(3)
+                Block 2: Block:
+                    Call id(1), args( Qubit(0), Result(2), )
+                    Jump(3)
+                Block 3: Block:
+                    Call id(0), args( Qubit(0), )
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 1
+            num_results: 3"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    reindex_qubits(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: __quantum__qis__x__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 1: Callable:
+                    name: __quantum__qis__m__body
+                    call_type: Measurement
+                    input_type:
+                        [0]: Qubit
+                        [1]: Result
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: __quantum__qis__read_result__body
+                    call_type: Readout
+                    input_type:
+                        [0]: Result
+                    output_type: Boolean
+                    body: <NONE>
+                Callable 3: Callable:
+                    name: __quantum__qis__cx__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                        [1]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(3), args( Qubit(0), Qubit(1), )
+                    Call id(1), args( Qubit(0), Result(0), )
+                    Variable(0, Boolean) = Call id(2), args( Result(0), )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Call id(0), args( Qubit(1), )
+                    Call id(3), args( Qubit(1), Qubit(2), )
+                    Call id(1), args( Qubit(1), Result(1), )
+                    Jump(3)
+                Block 2: Block:
+                    Call id(3), args( Qubit(1), Qubit(2), )
+                    Call id(1), args( Qubit(1), Result(2), )
+                    Jump(3)
+                Block 3: Block:
+                    Call id(0), args( Qubit(2), )
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 3
+            num_results: 3"#]]
+    .assert_eq(&program.to_string());
+}
+
+#[test]
+fn qubit_reindexed_across_branches_with_one_branch_longer() {
+    const X: CallableId = CallableId(0);
+    const MRESETZ: CallableId = CallableId(1);
+    const READ_RESULT: CallableId = CallableId(2);
+    let mut program = Program::new();
+    program.num_qubits = 1;
+    program.num_results = 4;
+    program.callables.insert(X, x_decl());
+    program.callables.insert(MRESETZ, mresetz_decl());
+    program.callables.insert(READ_RESULT, read_result_decl());
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                READ_RESULT,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(1),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                READ_RESULT,
+                vec![Operand::Literal(Literal::Result(2))],
+                Some(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+                BlockId(3),
+                BlockId(4),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(3),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(4),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(5),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Return,
+        ]),
+    );
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: __quantum__qis__x__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 1: Callable:
+                    name: __quantum__qis__mresetz__body
+                    call_type: Measurement
+                    input_type:
+                        [0]: Qubit
+                        [1]: Result
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: __quantum__qis__read_result__body
+                    call_type: Readout
+                    input_type:
+                        [0]: Result
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(0), )
+                    Variable(0, Boolean) = Call id(2), args( Result(0), )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(1), )
+                    Jump(5)
+                Block 2: Block:
+                    Call id(1), args( Qubit(0), Result(2), )
+                    Variable(1, Boolean) = Call id(2), args( Result(2), )
+                    Branch Variable(1, Boolean), 3, 4
+                Block 3: Block:
+                    Call id(0), args( Qubit(0), )
+                    Jump(5)
+                Block 4: Block:
+                    Call id(0), args( Qubit(0), )
+                    Jump(5)
+                Block 5: Block:
+                    Call id(0), args( Qubit(0), )
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 1
+            num_results: 4"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    reindex_qubits(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: __quantum__qis__x__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: __quantum__qis__read_result__body
+                    call_type: Readout
+                    input_type:
+                        [0]: Result
+                    output_type: Boolean
+                    body: <NONE>
+                Callable 3: Callable:
+                    name: __quantum__qis__m__body
+                    call_type: Measurement
+                    input_type:
+                        [0]: Qubit
+                        [1]: Result
+                    output_type: <VOID>
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(3), args( Qubit(0), Result(0), )
+                    Variable(0, Boolean) = Call id(2), args( Result(0), )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Call id(0), args( Qubit(1), )
+                    Call id(3), args( Qubit(1), Result(1), )
+                    Jump(5)
+                Block 2: Block:
+                    Call id(3), args( Qubit(1), Result(2), )
+                    Variable(1, Boolean) = Call id(2), args( Result(2), )
+                    Branch Variable(1, Boolean), 3, 4
+                Block 3: Block:
+                    Call id(0), args( Qubit(2), )
+                    Jump(5)
+                Block 4: Block:
+                    Call id(0), args( Qubit(2), )
+                    Jump(5)
+                Block 5: Block:
+                    Call id(0), args( Qubit(2), )
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 3
+            num_results: 4"#]]
+    .assert_eq(&program.to_string());
+}
+
+#[test]
+#[should_panic(expected = "Qubit id 0 has multiple mappings across predecessors")]
+fn qubit_reindex_fails_across_branches_with_one_branch_longer_different_usage_in_paths() {
+    const X: CallableId = CallableId(0);
+    const MRESETZ: CallableId = CallableId(1);
+    const READ_RESULT: CallableId = CallableId(2);
+    let mut program = Program::new();
+    program.num_qubits = 1;
+    program.num_results = 4;
+    program.callables.insert(X, x_decl());
+    program.callables.insert(MRESETZ, mresetz_decl());
+    program.callables.insert(READ_RESULT, read_result_decl());
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                READ_RESULT,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(1),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                READ_RESULT,
+                vec![Operand::Literal(Literal::Result(2))],
+                Some(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+                BlockId(3),
+                BlockId(4),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(3),
+        Block(vec![
+            Instruction::Call(
+                MRESETZ,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(3)),
+                ],
+                None,
+            ),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(4),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Jump(BlockId(5)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(5),
+        Block(vec![
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Return,
+        ]),
+    );
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: __quantum__qis__x__body
+                    call_type: Regular
+                    input_type:
+                        [0]: Qubit
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 1: Callable:
+                    name: __quantum__qis__mresetz__body
+                    call_type: Measurement
+                    input_type:
+                        [0]: Qubit
+                        [1]: Result
+                    output_type: <VOID>
+                    body: <NONE>
+                Callable 2: Callable:
+                    name: __quantum__qis__read_result__body
+                    call_type: Readout
+                    input_type:
+                        [0]: Result
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(0), )
+                    Variable(0, Boolean) = Call id(2), args( Result(0), )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Call id(0), args( Qubit(0), )
+                    Call id(1), args( Qubit(0), Result(1), )
+                    Jump(5)
+                Block 2: Block:
+                    Call id(1), args( Qubit(0), Result(2), )
+                    Variable(1, Boolean) = Call id(2), args( Result(2), )
+                    Branch Variable(1, Boolean), 3, 4
+                Block 3: Block:
+                    Call id(1), args( Qubit(0), Result(3), )
+                    Jump(5)
+                Block 4: Block:
+                    Call id(0), args( Qubit(0), )
+                    Jump(5)
+                Block 5: Block:
+                    Call id(0), args( Qubit(0), )
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 1
+            num_results: 4"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    reindex_qubits(&mut program);
 }

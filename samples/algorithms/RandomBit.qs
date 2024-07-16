@@ -9,7 +9,7 @@ namespace Sample {
 
     @EntryPoint()
     operation RandomBit() : Result {
-        // Qubits are only accesible for the duration of the scope where they
+        // Qubits are only accessible for the duration of the scope where they
         // are allocated and are automatically released at the end of the scope.
         use qubit = Qubit();
 

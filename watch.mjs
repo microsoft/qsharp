@@ -9,17 +9,16 @@ Always use ./build.py to ensure that all projects are built correctly before che
 Also run ./build.py to do any initial repo setup (npm install, copying 3rd party libs, etc.)
 
 Once running, any changes to the source code for Rust directories listed, or for
-the npm, vscode, or playground projects, should automatically recompile. Just
+the npm, vscode, docs, katas, samples or playground projects, should automatically recompile. Just
 reload the playground page or reload the VS Code window to see the changes.
 
 Notes:
 
-- This builds the wasm module, npm package, VS Code extension, and runs the playground.
+- This builds the wasm module, npm package, VS Code extension, docs, katas, samples and runs the playground.
 - It does NOT build Python packages or native binaries (currently).
-- It does NOT watch for docs, katas, or samples changes (currently).
 - It does NOT build the Node.js wasm package (or run any of the node unit tests).
 - It builds debug binaries (whereas ./build.py builds for release).
-- Future updates could include watching for katas changes, and supporting '--release'
+- Future updates could include supporting '--release'
 
 */
 
@@ -42,11 +41,13 @@ const libsDir = join(thisDir, "library");
 const vslsDir = join(thisDir, "language_service");
 const wasmDir = join(thisDir, "wasm");
 const npmDir = join(thisDir, "npm", "qsharp");
+const katasDir = join(thisDir, "katas");
+const samplesDir = join(thisDir, "samples");
 
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
 
-function onRustChange() {
+function buildRust() {
   console.log("Compiling the .wasm module with wasm-pack");
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
@@ -55,11 +56,11 @@ function onRustChange() {
   const result = spawnSync(
     "wasm-pack",
     ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
-    { cwd: wasmDir },
+    { cwd: wasmDir, shell: true },
   );
   console.log("wasm-pack done! ", result.stderr.toString());
 
-  console.log("Copying the wasm-pack ouput files to the npm package");
+  console.log("Copying the wasm-pack output files to the npm package");
   const npmLibDir = join(npmDir, "lib", "web");
 
   ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"].forEach((file) =>
@@ -72,12 +73,63 @@ function onRustChange() {
   copyWasmToPlayground();
 }
 
+// Minor delay to ensure all changes flush to disk before starting a build if
+// saving multiple files close together (e.g. a formatter running over a directory)
+// or saving the same file multiple times (e.g. format-on-save)
+const buildDelayMs = 100;
+let buildPending = false;
+function onRustChange() {
+  if (buildPending) return; // Already queued
+  buildPending = true;
+  setTimeout(() => {
+    // The build task runs sychronously, so we can clear the timeout handle and
+    // run the build knowing that nothing will interleave with those operations
+    if (buildPending) {
+      buildPending = false;
+      buildRust();
+    }
+  }, buildDelayMs);
+}
+
 // Do an initial build
 onRustChange();
 
 // Then watch the Rust directories for code changes
 [coreDir, libsDir, vslsDir, wasmDir].forEach((dir) =>
   subscribe(dir, onRustChange),
+);
+
+let katasBuildPending = false;
+function onKatasAndSamplesChange() {
+  if (katasBuildPending) return; // Already queued
+  katasBuildPending = true;
+  setTimeout(() => {
+    // The build task runs sychronously, so we can clear the timeout handle and
+    // run the build knowing that nothing will interleave with those operations
+    if (katasBuildPending) {
+      katasBuildPending = false;
+      buildKatasAndSamples();
+    }
+  }, buildDelayMs);
+}
+
+function buildKatasAndSamples() {
+  console.log("Recompiling katas and samples content");
+
+  const result = spawnSync(npmCmd, ["run", "generate"], {
+    cwd: npmDir,
+    shell: true,
+  });
+
+  console.log("Katas and samples recompiled!", result.stderr.toString());
+}
+
+// Do an initial build
+onKatasAndSamplesChange();
+
+// Watch the katas directories for code changes
+[katasDir, samplesDir].forEach((dir) =>
+  subscribe(dir, onKatasAndSamplesChange),
 );
 
 /**
@@ -87,7 +139,10 @@ onRustChange();
  */
 function runWatcher(dir, name, watchTask = "tsc:watch") {
   console.log(`Spawning tsc:watch for ${name} in ${dir}`);
-  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir });
+  const npmWatcher = spawn(npmCmd, ["run", watchTask], {
+    cwd: dir,
+    shell: true,
+  });
   npmWatcher.stdout.on("data", (data) =>
     console.log(`tsc:watch ${name}: ${data}`),
   );

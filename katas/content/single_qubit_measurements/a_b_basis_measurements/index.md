@@ -3,7 +3,7 @@
 1. Angle $\alpha$, in radians, represented as a `Double`.
 1. A qubit in some unknown state.
 
-**Output:** Implement a measurement in the $\{\ket A, \ket B\}$ basis. Same as in the previous exercise, $|A\rangle = \cos \alpha |0\rangle - i \sin \alpha |1\rangle$ and $|B\rangle = - i \sin \alpha |0\rangle + \cos \alpha |1\rangle$. Return `Zero` if the measurement outcome is $A$, and `One` if the outcome is $B$.
+**Output:** Implement a measurement in the $\{\ket A, \ket B\}$ basis. Same as in the previous exercise, $\ket{A} = \cos \alpha \ket{0} - i \sin \alpha \ket{1}$ and $\ket{B} = - i \sin \alpha \ket{0} + \cos \alpha \ket{1}$. Return `Zero` if the measurement outcome is $A$, and `One` if the outcome is $B$.
 The state of the qubit after the measurement should correspond to the measurement result.
 
 <details>

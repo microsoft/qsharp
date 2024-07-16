@@ -17,6 +17,11 @@
         "type": "string"
       }
     },
+    "packageType": {
+      "title": "Package type",
+      "type": "string",
+      "enum": ["exe", "lib"]
+    },
     "lints": {
       "title": "Lints",
       "type": "array",
@@ -33,6 +38,56 @@
           }
         }
       }
+    },
+    "dependencies": {
+      "title": "Dependencies",
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": ["path"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "github": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string"
+                  },
+                  "repo": {
+                    "type": "string"
+                  },
+                  "ref": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": ["owner", "repo", "ref"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["github"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "files": {
+    "type": "array",
+    "items": {
+      "type": "string"
     }
   }
 }

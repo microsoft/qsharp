@@ -12,10 +12,15 @@ use rustc_hash::FxHashMap;
 /// This function will return an error if the state is not separable using the provided qubit identifiers.
 pub fn split_state(
     qubits: &[usize],
-    state: Vec<(BigUint, Complex64)>,
+    state: &[(BigUint, Complex64)],
     qubit_count: usize,
 ) -> Result<Vec<(BigUint, Complex64)>, ()> {
-    let state = state.into_iter().collect::<FxHashMap<_, _>>();
+    // For an empty state, return an empty state.
+    // This handles cases where the underlying simulator doesn't track any quantum state.
+    if state.is_empty() {
+        return Ok(vec![]);
+    }
+
     let mut dump_state = FxHashMap::default();
     let mut other_state = FxHashMap::default();
 
@@ -25,7 +30,7 @@ pub fn split_state(
     // Try to split out the state for the given qubits from the whole state, detecting any entanglement
     // and returning an error if the qubits are not separable.
     let dump_norm = collect_split_state(
-        &state,
+        state,
         &dump_mask,
         &other_mask,
         &mut dump_state,
@@ -70,13 +75,16 @@ fn compute_mask(qubit_count: usize, qubits: &[usize]) -> (BigUint, BigUint) {
 /// On success, the `dump_state` and `other_state` maps will be populated with the separated states, and the
 /// function returns the accumulated norm of the dump state.
 fn collect_split_state(
-    state: &FxHashMap<BigUint, Complex64>,
+    state: &[(BigUint, Complex64)],
     dump_mask: &BigUint,
     other_mask: &BigUint,
     dump_state: &mut FxHashMap<BigUint, Complex64>,
     other_state: &mut FxHashMap<BigUint, Complex64>,
 ) -> Result<f64, ()> {
+    // To ensure consistent ordering, we iterate over the vector directly (returned from the simulator in a deterministic order),
+    // and not the map used for arbitrary lookup.
     let mut state_iter = state.iter();
+    let state_map = state.iter().cloned().collect::<FxHashMap<_, _>>();
     let (base_label, base_val) = state_iter.next().expect("state should never be empty");
     let dump_base_label = base_label & dump_mask;
     let other_base_label = base_label & other_mask;
@@ -93,10 +101,10 @@ fn collect_split_state(
 
         // If either the state identified by the dump mask or the state identified by the other mask
         // is None, that means it has zero amplitude and we can conclude the state is not separable.
-        let Some(dump_val) = state.get(&(&dump_label | &other_base_label)) else {
+        let Some(dump_val) = state_map.get(&(&dump_label | &other_base_label)) else {
             return Err(());
         };
-        let Some(other_val) = state.get(&(&dump_base_label | &other_label)) else {
+        let Some(other_val) = state_map.get(&(&dump_base_label | &other_label)) else {
             return Err(());
         };
 
@@ -112,7 +120,7 @@ fn collect_split_state(
             // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
             // state, and vice-versa below.
             let amplitude = curr_val / other_val;
-            let norm = amplitude.norm();
+            let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
                 dump_norm += norm;
@@ -120,7 +128,7 @@ fn collect_split_state(
         }
         if let Entry::Vacant(entry) = other_state.entry(other_label) {
             let amplitude = curr_val / dump_val;
-            let norm = amplitude.norm();
+            let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
             }

@@ -99,40 +99,20 @@
     "configuration": {
       "title": "Q#",
       "properties": {
-        "Q#.targetProfile": {
+        "Q#.qir.targetProfile": {
           "type": "string",
           "default": "unrestricted",
           "enum": [
             "unrestricted",
             "base",
-            "adaptive"
+            "adaptive_ri"
           ],
           "enumDescriptions": [
             "The set of all capabilities required to run any Q# program.",
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification.",
-            "The set of capabilities required to run an adaptive quantum program. This option maps to the Adaptive Profile as defined by the QIR specification."
+            "The Adaptive_RI target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification."
           ],
-          "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
-        },
-        "Q#.enableFormatting": {
-          "type": "boolean",
-          "default": "true",
-          "description": "Enables the Q# formatter."
-        },
-        "Q#.showCircuitCodeLens": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
-        },
-        "Q#.enablePreviewQirGen": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enables the preview QIR code generation functionality."
-        },
-        "Q#.enableAdaptiveProfile": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enables Adaptive as a target profile."
+          "markdownDescription": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. [Learn more](https://aka.ms/qdk.qir)"
         }
       }
     },
@@ -200,6 +180,10 @@
         },
         {
           "command": "qsharp-vscode.showCircuit",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.showDocumentation",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -317,6 +301,11 @@
       {
         "command": "qsharp-vscode.showCircuit",
         "title": "Show circuit",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showDocumentation",
+        "title": "Show API documentation",
         "category": "Q#"
       },
       {

@@ -11,13 +11,15 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : (Int, String) {
+    function Main() : (Int, String) {
         // A tuple of type `String`, `Int`, and `Double`
         let myTuple = ("Id", 0, 1.);
+        Message($"Tuple: {myTuple}");
 
         // A tuple of type `Pauli`, and a nested tuple of type `(Int, Int)`.
         // The type annotation is provided for clarity, but not necessary.
         let myTuple : (Pauli, (Int, Int)) = (PauliX, (3, 1));
+        Message($"Tuple: {myTuple}");
 
         return (0, "Foo");
     }

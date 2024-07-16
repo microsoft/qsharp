@@ -1,26 +1,34 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_codegen::qir::hir_to_qir;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
+#[cfg(test)]
+mod tests;
+
+use qsc_codegen::qir::fir_to_qir;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::{
+    compile::{Dependencies, PackageStore, SourceMap},
+    error::WithSource,
+};
+use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
-use crate::compile;
+use crate::interpret::Error;
 
 pub fn get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
-    capabilities: RuntimeCapabilityFlags,
-) -> Result<String, String> {
-    let core = compile::core();
-    let mut package_store = PackageStore::new(core);
-    let std = compile::std(&package_store, capabilities);
-    let std = package_store.insert(std);
+    capabilities: TargetCapabilityFlags,
+    mut package_store: PackageStore,
+    dependencies: &Dependencies,
+) -> Result<String, Vec<Error>> {
+    if capabilities == TargetCapabilityFlags::all() {
+        return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+    }
 
     let (unit, errors) = crate::compile::compile(
         &package_store,
-        &[std],
+        dependencies,
         sources,
         PackageType::Exe,
         capabilities,
@@ -29,27 +37,47 @@ pub fn get_qir(
 
     // Ensure it compiles before trying to add it to the store.
     if !errors.is_empty() {
-        // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
+        return Err(errors.iter().map(|e| Error::Compile(e.clone())).collect());
     }
 
     let package_id = package_store.insert(unit);
-
-    let caps_results = PassContext::run_fir_passes_on_hir(&package_store, package_id, capabilities);
-    // Ensure it compiles before trying to add it to the store.
-    match caps_results {
-        Ok(compute_properties) => hir_to_qir(
-            &package_store,
-            package_id,
-            capabilities,
-            Some(compute_properties),
+    let (fir_store, fir_package_id) = qsc_passes::lower_hir_to_fir(&package_store, package_id);
+    let package = fir_store.get(fir_package_id);
+    let entry = ProgramEntry {
+        exec_graph: package.entry_exec_graph.clone(),
+        expr: (
+            fir_package_id,
+            package
+                .entry
+                .expect("package must have an entry expression"),
         )
-        .map_err(|e| e.to_string()),
-        Err(_) => {
-            // This should never happen, as the program should be checked for errors before trying to
-            // generate code for it. But just in case, simply report the failure.
-            Err("Failed to generate QIR".to_string())
-        }
-    }
+            .into(),
+    };
+
+    let compute_properties =
+        PassContext::run_fir_passes_on_fir(&fir_store, fir_package_id, capabilities).map_err(
+            |errors| {
+                let source_package = package_store
+                    .get(package_id)
+                    .expect("package should be in store");
+                errors
+                    .iter()
+                    .map(|e| Error::Pass(WithSource::from_map(&source_package.sources, e.clone())))
+                    .collect::<Vec<_>>()
+            },
+        )?;
+
+    fir_to_qir(&fir_store, capabilities, Some(compute_properties), &entry).map_err(|e| {
+        let source_package_id = match e.span() {
+            Some(span) => span.package,
+            None => package_id,
+        };
+        let source_package = package_store
+            .get(source_package_id)
+            .expect("package should be in store");
+        vec![Error::PartialEvaluation(WithSource::from_map(
+            &source_package.sources,
+            e,
+        ))]
+    })
 }

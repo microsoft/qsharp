@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 
 # To be updated every time we start a new major.minor version.
-major_minor = "1.3"
+major_minor = "1.6"
 
 # Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
@@ -69,7 +69,7 @@ update_file(
 )
 
 update_file(
-    os.path.join(root_dir, "npm/package.json"),
+    os.path.join(root_dir, "npm/qsharp/package.json"),
     r'"version": "0.0.0",',
     r'"version": "{}",'.format(npm_version),
 )

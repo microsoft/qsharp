@@ -25,6 +25,7 @@ members = [
     "library",
     "pip",
     "resource_estimator",
+    "samples_test",
     "wasm",
 ]
 resolver = "2"
@@ -41,6 +42,7 @@ version = "0.0.0"
 bitflags = "2.4.2"
 clap = "4.4"
 criterion = { version = "0.5", default-features = false }
+difference = "2.0.0"
 enum-iterator = "1.5"
 env_logger = "0.10"
 expect-test = "1.4"
@@ -54,6 +56,7 @@ libfuzzer-sys = "0.4"
 log = "0.4"
 miette = "5.10"
 thiserror = "1.0"
+nalgebra = { version = "0.33.0" }
 num-bigint = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
@@ -68,7 +71,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.20"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "e7de80bf06dcaf69367576ec31f901c0496a9832", default-features = false }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.7.4" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
 
@@ -81,8 +84,8 @@ missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 
 [profile.release]
-debug = 1
-strip = true
+debug = "limited"
+strip = "symbols"
 lto = "fat"
 codegen-units = 1
 

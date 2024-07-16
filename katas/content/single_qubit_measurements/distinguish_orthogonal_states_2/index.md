@@ -1,9 +1,9 @@
 **Inputs:**
 
 1. Angle $\alpha$, in radians, represented as a `Double`.
-2. A qubit which is guaranteed to be in either the $|A\rangle$ or the $|B\rangle$ state, where $|A\rangle = \cos \alpha |0\rangle - i \sin \alpha |1\rangle$ and $|B\rangle = - i \sin \alpha |0\rangle + \cos \alpha |1\rangle$.
+2. A qubit which is guaranteed to be in either the $\ket{A}$ or the $\ket{B}$ state, where $\ket{A} = \cos \alpha \ket{0} - i \sin \alpha \ket{1}$ and $\ket{B} = - i \sin \alpha \ket{0} + \cos \alpha \ket{1}$.
 
-**Output:** `true` if the qubit was in the $|A\rangle$ state, or `false` if it was in the $|B\rangle$ state. The state of the qubit at the end of the operation does not matter.
+**Output:** `true` if the qubit was in the $\ket{A}$ state, or `false` if it was in the $\ket{B}$ state. The state of the qubit at the end of the operation does not matter.
 
 <details>
     <summary><strong>Need a hint?</strong></summary>

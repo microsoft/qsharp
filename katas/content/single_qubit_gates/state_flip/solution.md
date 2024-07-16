@@ -1,32 +1,32 @@
-We can recognize that the Pauli $X$ gate will change the state $|0\rangle$ to $|1\rangle$ and vice versa, and $\alpha|0\rangle + \beta|1\rangle$ to $\alpha|1\rangle + \beta|0\rangle$.
+We can recognize that the Pauli $X$ gate will change the state $\ket{0}$ to $\ket{1}$ and vice versa, and $\alpha\ket{0} + \beta\ket{1}$ to $\alpha\ket{1} + \beta\ket{0}$.
 
 As a reminder, the Pauli $X$ gate is defined by the following matrix:
 
 $$
 X =
-\begin{bmatrix} 0 &  1 \\\ 1 &  0 \end{bmatrix}
+\begin{bmatrix} 0 &  1 \\ 1 &  0 \end{bmatrix}
 $$
 
-We can see how it affects, for example, the basis state $|0\rangle$:
+We can see how it affects, for example, the basis state $\ket{0}$:
 
 $$
-X|0\rangle =
-\begin{bmatrix} 0 &  1 \\\ 1 &  0 \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix}=
-\begin{bmatrix} 0 \\\1 \end{bmatrix}=
-|1\rangle
+X\ket{0} =
+\begin{bmatrix} 0 &  1 \\ 1 &  0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix}=
+\begin{bmatrix} 0 \\1 \end{bmatrix}=
+\ket{1}
 $$
 
-Similarly, we can consider the effect of the $X$ gate on the superposition state $|\psi\rangle = 0.6|0\rangle + 0.8|1\rangle$:
+Similarly, we can consider the effect of the $X$ gate on the superposition state $\ket{\psi} = 0.6\ket{0} + 0.8\ket{1}$:
 
 $$
-X|\psi\rangle =
-\begin{bmatrix} 0 &  1 \\\1 &  0\end{bmatrix}
-\begin{bmatrix}0.6 \\\0.8 \end{bmatrix}=
-\begin{bmatrix} 0 \cdot 0.6 + 1 \cdot 0.8 \\\1 \cdot 0.6 + 0 \cdot 0.8\end{bmatrix}=
-\begin{bmatrix}0.8 \\\0.6\end{bmatrix}=
-0.8|0\rangle + 0.6|1\rangle
+X\ket{\psi} =
+\begin{bmatrix} 0 &  1 \\1 & 0\end{bmatrix}
+\begin{bmatrix}0.6 \\ 0.8 \end{bmatrix}=
+\begin{bmatrix} 0 \cdot 0.6 + 1 \cdot 0.8 \\ 1 \cdot 0.6 + 0 \cdot 0.8 \end{bmatrix}=
+\begin{bmatrix}0.8 \\ 0.6 \end{bmatrix}=
+0.8\ket{0} + 0.6\ket{1}
 $$
 
 @[solution]({

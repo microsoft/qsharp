@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_data_structures::namespaces::NamespaceId;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
@@ -17,6 +18,7 @@ use qsc_hir::{
 use std::mem::take;
 
 use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
+use crate::QIR_RUNTIME_NAMESPACE;
 
 #[derive(Debug, Clone)]
 struct QubitIdent {
@@ -238,9 +240,10 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_alloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "__quantum__rt__qubit_allocate",
             Vec::new(),
             ident.span,
@@ -250,21 +253,18 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_alloc_stmt(&mut self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
-        let mut call_expr = create_gen_core_ref(
-            self.core,
-            "QIR.Runtime",
-            "AllocateQubitArray",
-            Vec::new(),
-            ident.span,
-        );
+        let ns = self.get_qir_runtime_namespace();
+        let mut call_expr =
+            create_gen_core_ref(self.core, ns, "AllocateQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
         create_general_alloc_stmt(self.assigner, ident, call_expr, Some(array_size))
     }
 
     fn create_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "__quantum__rt__qubit_release",
             Vec::new(),
             ident.span,
@@ -274,15 +274,16 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
-        let mut call_expr = create_gen_core_ref(
-            self.core,
-            "QIR.Runtime",
-            "ReleaseQubitArray",
-            Vec::new(),
-            ident.span,
-        );
+        let ns = self.get_qir_runtime_namespace();
+        let mut call_expr =
+            create_gen_core_ref(self.core, ns, "ReleaseQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
         create_general_dealloc_stmt(self.assigner, call_expr, ident)
+    }
+    fn get_qir_runtime_namespace(&self) -> NamespaceId {
+        self.core
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
+            .expect("prelude namespaces should exist")
     }
 }
 
@@ -412,11 +413,14 @@ fn create_qubit_global_alloc(
     qubit_init: QubitInit,
 ) -> StmtKind {
     fn qubit_alloc_expr(assigner: &mut Assigner, core: &Table, qubit_init: QubitInit) -> Expr {
+        let ns = core
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
+            .expect("prelude namespaces should exist");
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => {
                 let mut call_expr = create_gen_core_ref(
                     core,
-                    "QIR.Runtime",
+                    ns,
                     "AllocateQubitArray",
                     Vec::new(),
                     qubit_init.span,
@@ -432,7 +436,7 @@ fn create_qubit_global_alloc(
             QubitInitKind::Single => {
                 let mut call_expr = create_gen_core_ref(
                     core,
-                    "QIR.Runtime",
+                    ns,
                     "__quantum__rt__qubit_allocate",
                     Vec::new(),
                     qubit_init.span,
