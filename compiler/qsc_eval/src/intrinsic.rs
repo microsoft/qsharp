@@ -126,8 +126,7 @@ pub(crate) fn call(
         "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),
         "__quantum__rt__qubit_release" => {
             let qubit = arg.unwrap_qubit().0;
-            if sim.qubit_is_zero(qubit) {
-                sim.qubit_release(qubit);
+            if sim.qubit_release(qubit) {
                 Ok(Value::unit())
             } else {
                 Err(Error::ReleasedQubitNotZero(qubit, arg_span))

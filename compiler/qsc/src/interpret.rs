@@ -160,6 +160,7 @@ impl Interpreter {
             language_features,
             store,
             dependencies,
+            None,
         )
     }
 
@@ -182,9 +183,36 @@ impl Interpreter {
             language_features,
             store,
             dependencies,
+            None,
         )
     }
 
+    /// Creates a new incremental compiler, compiling the passed in sources, and configured
+    /// for noisy execution with the given Pauli noise parameters.
+    /// # Errors
+    /// If compiling the sources fails, compiler errors are returned.
+    pub fn new_with_pauli_noise(
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
+        pauli_noise: (f64, f64, f64),
+    ) -> std::result::Result<Self, Vec<Error>> {
+        Self::new_internal(
+            false,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+            store,
+            dependencies,
+            Some(pauli_noise),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn new_internal(
         dbg: bool,
         sources: SourceMap,
@@ -193,6 +221,7 @@ impl Interpreter {
         language_features: LanguageFeatures,
         store: PackageStore,
         dependencies: &Dependencies,
+        pauli_noise: Option<(f64, f64, f64)>,
     ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(
             sources,
@@ -243,7 +272,7 @@ impl Interpreter {
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
             env: Env::default(),
-            sim: sim_circuit_backend(),
+            sim: sim_circuit_backend(pauli_noise),
             quantum_seed: None,
             classical_seed: None,
             package,
@@ -278,7 +307,7 @@ impl Interpreter {
             lowerer: qsc_lowerer::Lowerer::new(),
             expr_graph: None,
             env: Env::default(),
-            sim: sim_circuit_backend(),
+            sim: sim_circuit_backend(None),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
@@ -425,8 +454,11 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         expr: Option<&str>,
+        pauli_noise: Option<(f64, f64, f64)>,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        self.run_with_sim(&mut SparseSim::new(), receiver, expr)
+        let (px, py, pz) =
+            pauli_noise.unwrap_or((self.sim.main.px, self.sim.main.py, self.sim.main.pz));
+        self.run_with_sim(&mut SparseSim::with_pauli(px, py, pz), receiver, expr)
     }
 
     /// Gets the current quantum state of the simulator.
@@ -519,7 +551,7 @@ impl Interpreter {
         };
 
         let circuit = if simulate {
-            let mut sim = sim_circuit_backend();
+            let mut sim = sim_circuit_backend(None);
 
             self.run_with_sim_no_output(entry_expr, &mut sim)?;
 
@@ -722,9 +754,15 @@ impl Interpreter {
     }
 }
 
-fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
+fn sim_circuit_backend(
+    pauli_noise: Option<(f64, f64, f64)>,
+) -> BackendChain<SparseSim, CircuitBuilder> {
     BackendChain::new(
-        SparseSim::new(),
+        if let Some((px, py, pz)) = pauli_noise {
+            SparseSim::with_pauli(px, py, pz)
+        } else {
+            SparseSim::new()
+        },
         CircuitBuilder::new(CircuitConfig {
             // When using in conjunction with the simulator,
             // the circuit builder should *not* perform base profile

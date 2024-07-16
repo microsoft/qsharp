@@ -77,12 +77,56 @@ class Config:
         return {"application/x.qsharp-config": self._config}
 
 
+class PauliNoise(Tuple[float, float, float]):
+    """
+    The noise probability to apply to the simulator, expressed as a tuple of
+    the probability of Pauli-X, Pauli-Y, and Pauli-Z errors.
+    """
+
+    def __new__(cls, x: float, y: float, z: float):
+        if x < 0 or y < 0 or z < 0:
+            raise ValueError("Pauli noise probabilities must be non-negative.")
+        if x + y + z > 1:
+            raise ValueError("The sum of Pauli noise probabilities must be at most 1.")
+        return super().__new__(cls, (x, y, z))
+
+
+class DepolarizingNoise(PauliNoise):
+    """
+    The depolarizing noise to apply to the simulator.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, p / 3, p / 3, p / 3)
+
+
+class BitFlipNoise(PauliNoise):
+    """
+    The bit flip noise to apply to the simulator.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, p, 0, 0)
+
+
+class PhaseFlipNoise(PauliNoise):
+    """
+    The phase flip noise to apply to the simulator.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, 0, 0, p)
+
+
 def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
     target_name: Optional[str] = None,
     project_root: Optional[str] = None,
     language_features: Optional[List[str]] = None,
+    noise: Optional[
+        BitFlipNoise | PhaseFlipNoise | DepolarizingNoise | PauliNoise
+    ] = None,
 ) -> Config:
     """
     Initializes the Q# interpreter.
@@ -96,6 +140,10 @@ def init(
 
     :param project_root: An optional path to a root directory with a Q# project to include.
         It must contain a qsharp.json project manifest.
+
+    :param language_features: An optional list of language features to enable.
+
+    :param noise: An optional noise model to apply to simulation.
     """
     from ._fs import read_file, list_directory, exists, join, resolve
     from ._http import fetch_github
@@ -132,6 +180,7 @@ def init(
         target_profile,
         language_features,
         project_root,
+        noise,
         read_file,
         list_directory,
         resolve,
@@ -189,6 +238,9 @@ def run(
     *,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
+    noise: Optional[
+        BitFlipNoise | PhaseFlipNoise | DepolarizingNoise | PauliNoise
+    ] = None,
 ) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
@@ -198,6 +250,7 @@ def run(
     :param shots: The number of shots to run.
     :param on_result: A callback function that will be called with each result.
     :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
+    :param noise; The noise to apply to the simulator.
 
     :returns values: A list of results or runtime errors. If `save_events` is true,
     a List of ShotResults is returned.
@@ -221,7 +274,9 @@ def run(
     for shot in range(shots):
         results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
-            entry_expr, on_save_events if save_events else print_output
+            entry_expr,
+            on_save_events if save_events else print_output,
+            noise,
         )
         results[-1]["result"] = run_results
         if on_result:

@@ -14,6 +14,10 @@ from ._qsharp import (
     dump_circuit,
     StateDump,
     ShotResult,
+    PauliNoise,
+    DepolarizingNoise,
+    BitFlipNoise,
+    PhaseFlipNoise,
 )
 
 from ._native import Result, Pauli, QSharpError, TargetProfile
@@ -46,4 +50,8 @@ __all__ = [
     "TargetProfile",
     "StateDump",
     "ShotResult",
+    "PauliNoise",
+    "DepolarizingNoise",
+    "BitFlipNoise",
+    "PhaseFlipNoise",
 ]

@@ -4,7 +4,8 @@
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
-use rand::RngCore;
+use rand::{rngs::StdRng, Rng, RngCore, SeedableRng};
+use std::cell::RefCell;
 
 use crate::val::Value;
 
@@ -82,7 +83,7 @@ pub trait Backend {
     fn qubit_allocate(&mut self) -> usize {
         unimplemented!("qubit_allocate operation");
     }
-    fn qubit_release(&mut self, _q: usize) {
+    fn qubit_release(&mut self, _q: usize) -> bool {
         unimplemented!("qubit_release operation");
     }
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -102,6 +103,10 @@ pub trait Backend {
 /// Default backend used when targeting sparse simulation.
 pub struct SparseSim {
     pub sim: QuantumSim,
+    pub px: f64,
+    pub py: f64,
+    pub pz: f64,
+    rng: Option<RefCell<StdRng>>,
 }
 
 impl Default for SparseSim {
@@ -113,8 +118,34 @@ impl Default for SparseSim {
 impl SparseSim {
     #[must_use]
     pub fn new() -> Self {
+        Self::with_pauli(0.0, 0.0, 0.0)
+    }
+
+    #[must_use]
+    pub fn with_pauli(px: f64, py: f64, pz: f64) -> Self {
         Self {
             sim: QuantumSim::new(None),
+            px,
+            py,
+            pz,
+            rng: if (px + py + pz).abs() >= 1e-10 {
+                Some(RefCell::new(StdRng::from_entropy()))
+            } else {
+                None
+            },
+        }
+    }
+
+    fn apply_noise(&mut self, q: usize) {
+        if let Some(rng) = &self.rng {
+            let p = rng.borrow_mut().gen_range(0.0..=1.0);
+            if p < self.px {
+                self.sim.x(q);
+            } else if p < self.px + self.py {
+                self.sim.y(q);
+            } else if p < self.px + self.py + self.pz {
+                self.sim.z(q);
+            }
         }
     }
 }
@@ -124,29 +155,41 @@ impl Backend for SparseSim {
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.mcx(&[ctl0, ctl1], q);
+        self.apply_noise(ctl0);
+        self.apply_noise(ctl1);
+        self.apply_noise(q);
     }
 
     fn cx(&mut self, ctl: usize, q: usize) {
         self.sim.mcx(&[ctl], q);
+        self.apply_noise(ctl);
+        self.apply_noise(q);
     }
 
     fn cy(&mut self, ctl: usize, q: usize) {
         self.sim.mcy(&[ctl], q);
+        self.apply_noise(ctl);
+        self.apply_noise(q);
     }
 
     fn cz(&mut self, ctl: usize, q: usize) {
         self.sim.mcz(&[ctl], q);
+        self.apply_noise(ctl);
+        self.apply_noise(q);
     }
 
     fn h(&mut self, q: usize) {
         self.sim.h(q);
+        self.apply_noise(q);
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
+        self.apply_noise(q);
         self.sim.measure(q)
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
+        self.apply_noise(q);
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
@@ -160,84 +203,108 @@ impl Backend for SparseSim {
 
     fn rx(&mut self, theta: f64, q: usize) {
         self.sim.rx(theta, q);
+        self.apply_noise(q);
     }
 
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
-        self.h(q0);
-        self.h(q1);
-        self.rzz(theta, q0, q1);
-        self.h(q1);
-        self.h(q0);
+        self.sim.h(q0);
+        self.sim.h(q1);
+        self.sim.mcx(&[q1], q0);
+        self.sim.rz(theta, q0);
+        self.sim.mcx(&[q1], q0);
+        self.sim.h(q1);
+        self.sim.h(q0);
+        self.apply_noise(q0);
+        self.apply_noise(q1);
     }
 
     fn ry(&mut self, theta: f64, q: usize) {
         self.sim.ry(theta, q);
+        self.apply_noise(q);
     }
 
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
-        self.h(q0);
-        self.s(q0);
-        self.h(q0);
-        self.h(q1);
-        self.s(q1);
-        self.h(q1);
-        self.rzz(theta, q0, q1);
-        self.h(q1);
-        self.sadj(q1);
-        self.h(q1);
-        self.h(q0);
-        self.sadj(q0);
-        self.h(q0);
+        self.sim.h(q0);
+        self.sim.s(q0);
+        self.sim.h(q0);
+        self.sim.h(q1);
+        self.sim.s(q1);
+        self.sim.h(q1);
+        self.sim.mcx(&[q1], q0);
+        self.sim.rz(theta, q0);
+        self.sim.mcx(&[q1], q0);
+        self.sim.h(q1);
+        self.sim.sadj(q1);
+        self.sim.h(q1);
+        self.sim.h(q0);
+        self.sim.sadj(q0);
+        self.sim.h(q0);
+        self.apply_noise(q0);
+        self.apply_noise(q1);
     }
 
     fn rz(&mut self, theta: f64, q: usize) {
         self.sim.rz(theta, q);
+        self.apply_noise(q);
     }
 
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
-        self.cx(q1, q0);
-        self.rz(theta, q0);
-        self.cx(q1, q0);
+        self.sim.mcx(&[q1], q0);
+        self.sim.rz(theta, q0);
+        self.sim.mcx(&[q1], q0);
+        self.apply_noise(q0);
+        self.apply_noise(q1);
     }
 
     fn sadj(&mut self, q: usize) {
         self.sim.sadj(q);
+        self.apply_noise(q);
     }
 
     fn s(&mut self, q: usize) {
         self.sim.s(q);
+        self.apply_noise(q);
     }
 
     fn swap(&mut self, q0: usize, q1: usize) {
         self.sim.swap_qubit_ids(q0, q1);
+        self.apply_noise(q0);
+        self.apply_noise(q1);
     }
 
     fn tadj(&mut self, q: usize) {
         self.sim.tadj(q);
+        self.apply_noise(q);
     }
 
     fn t(&mut self, q: usize) {
         self.sim.t(q);
+        self.apply_noise(q);
     }
 
     fn x(&mut self, q: usize) {
         self.sim.x(q);
+        self.apply_noise(q);
     }
 
     fn y(&mut self, q: usize) {
         self.sim.y(q);
+        self.apply_noise(q);
     }
 
     fn z(&mut self, q: usize) {
         self.sim.z(q);
+        self.apply_noise(q);
     }
 
     fn qubit_allocate(&mut self) -> usize {
         self.sim.allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
+        let res = self.sim.qubit_is_zero(q);
         self.sim.release(q);
+        self.rng.is_some() || res
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -296,9 +363,16 @@ impl Backend for SparseSim {
     }
 
     fn set_seed(&mut self, seed: Option<u64>) {
-        match seed {
-            Some(seed) => self.sim.set_rng_seed(seed),
-            None => self.sim.set_rng_seed(rand::thread_rng().next_u64()),
+        if let Some(seed) = seed {
+            if self.rng.is_some() {
+                self.rng.replace(RefCell::new(StdRng::seed_from_u64(seed)));
+            }
+            self.sim.set_rng_seed(seed);
+        } else {
+            if self.rng.is_some() {
+                self.rng.replace(RefCell::new(StdRng::from_entropy()));
+            }
+            self.sim.set_rng_seed(rand::thread_rng().next_u64());
         }
     }
 }
@@ -453,9 +527,9 @@ where
         self.main.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.chained.qubit_release(q);
-        self.main.qubit_release(q);
+        self.main.qubit_release(q)
     }
 
     fn capture_quantum_state(

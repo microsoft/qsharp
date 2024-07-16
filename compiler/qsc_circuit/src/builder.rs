@@ -177,8 +177,9 @@ impl Backend for Builder {
         self.remapper.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.remapper.qubit_release(q);
+        true
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {

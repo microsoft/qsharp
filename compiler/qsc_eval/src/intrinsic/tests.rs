@@ -123,8 +123,8 @@ impl Backend for CustomSim {
         self.sim.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
-        self.sim.qubit_release(q);
+    fn qubit_release(&mut self, q: usize) -> bool {
+        self.sim.qubit_release(q)
     }
 
     fn capture_quantum_state(

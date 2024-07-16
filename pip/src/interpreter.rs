@@ -90,6 +90,7 @@ impl Interpreter {
         target: TargetProfile,
         language_features: Option<Vec<String>>,
         project_root: Option<String>,
+        pauli_noise: Option<(f64, f64, f64)>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
         resolve_path: Option<PyObject>,
@@ -131,13 +132,14 @@ impl Interpreter {
             BuildableProgram::new(target.into(), graph)
         };
 
-        match interpret::Interpreter::new(
+        match interpret::Interpreter::new_with_pauli_noise(
             SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
             target.into(),
             buildable_program.user_code.language_features,
             buildable_program.store,
             &buildable_program.user_code_dependencies,
+            pauli_noise.unwrap_or_default(),
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -196,9 +198,10 @@ impl Interpreter {
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
+        pauli_noise: Option<(f64, f64, f64)>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run(&mut receiver, entry_expr) {
+        match self.interpreter.run(&mut receiver, entry_expr, pauli_noise) {
             Ok(result) => match result {
                 Ok(v) => Ok(ValueWrapper(v).into_py(py)),
                 Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

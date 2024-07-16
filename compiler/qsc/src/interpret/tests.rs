@@ -28,7 +28,10 @@ mod given_interpreter {
     ) -> (Result<InterpretResult, Vec<Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.run(&mut receiver, Some(expr)), receiver.dump())
+        (
+            interpreter.run(&mut receiver, Some(expr), None),
+            receiver.dump(),
+        )
     }
 
     fn entry(

@@ -502,8 +502,9 @@ impl Backend for LogicalCounter {
         }
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.free_list.push(q);
+        true
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
