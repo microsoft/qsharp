@@ -208,7 +208,8 @@ impl With<'_> {
                     // if the package is Some, then this is a re-export and we
                     // need to preserve the reference to the original `ItemId`
                     if is_reexport {
-                        let name = self.lower_ident(item.name());
+                        let mut name = self.lower_ident(item.name());
+                        name.id = self.assigner.next_node();
                         let kind = hir::ItemKind::Export(name, id);
                         self.lowerer.items.push(hir::Item {
                             id: self.assigner.next_item(),
@@ -264,8 +265,8 @@ impl With<'_> {
                 // but it is exported with an alias.
                 // We want to hide the original item, making it private, but make
                 // the alias itself public.
-                let alias = self.lower_ident(alias);
-                let kind = hir::ItemKind::Export(alias.clone(), *id);
+                let mut alias = self.lower_ident(alias);
+                alias.id = self.assigner.next_node();
                 self.lowerer.items.push(hir::Item {
                     id: self.assigner.next_item(),
                     span: alias.span,
@@ -273,7 +274,7 @@ impl With<'_> {
                     doc: Rc::clone(&item.doc),
                     attrs: attrs.clone(),
                     visibility: Visibility::Public,
-                    kind,
+                    kind: hir::ItemKind::Export(alias, *id),
                 });
                 Visibility::Internal
             }
