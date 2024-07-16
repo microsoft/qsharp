@@ -162,6 +162,16 @@ pub(super) enum Error {
     #[error("glob exports are not supported")]
     #[diagnostic(code("Qsc.Resolve.GlobExportNotSupported"))]
     GlobExportNotSupported(#[label] Span),
+
+    #[error("aliasing a glob import is invalid")]
+    #[diagnostic(help("try `import {namespace_name} as {alias}` instead"))]
+    #[diagnostic(code("Qsc.Resolve.GlobImportAliasNotSupported"))]
+    GlobImportAliasNotSupported {
+        namespace_name: String,
+        alias: String,
+        #[label]
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -1029,9 +1039,19 @@ impl Resolver {
                 .push(Error::GlobExportNotSupported(item.path.span));
             return;
         }
+
+        if let Some(alias) = &item.alias {
+            self.errors.push(Error::GlobImportAliasNotSupported {
+                span: item.span(),
+                namespace_name: Into::<Idents>::into(item.path.clone()).name().to_string(),
+                alias: alias.name.to_string(),
+            });
+            return;
+        }
+
         let items = Into::<Idents>::into(item.path.clone());
         let ns = self.globals.find_namespace(items.str_iter());
-        let alias = item.alias.as_ref().map(|x| Box::new(x.clone()));
+
         let Some(ns) = ns else {
             self.errors.push(Error::GlobImportNamespaceNotFound(
                 item.path.name.to_string(),
@@ -1040,7 +1060,7 @@ impl Resolver {
             return;
         };
         if !is_export {
-            self.bind_open(&items, &alias, ns);
+            self.bind_open(&items, &None, ns);
         }
     }
 

@@ -5094,3 +5094,23 @@ fn import_newtype() {
             }"#]],
     );
 }
+
+#[test]
+fn disallow_glob_alias_import() {
+    check(
+        indoc! {r#"
+                namespace Bar {}
+                namespace Main {
+                    import Bar.* as B;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {}
+            namespace namespace8 {
+                import namespace7;
+            }
+
+            // GlobImportAliasNotSupported { namespace_name: "Bar", alias: "B", span: Span { lo: 45, hi: 55 } }
+        "#]],
+    );
+}
