@@ -165,9 +165,10 @@ pub fn run_fir_passes(
     package: &fir::Package,
     compute_properties: &PackageComputeProperties,
     capabilities: TargetCapabilityFlags,
+    store: &fir::PackageStore,
 ) -> Vec<Error> {
     let capabilities_errors =
-        check_supported_capabilities(package, compute_properties, capabilities);
+        check_supported_capabilities(package, compute_properties, capabilities, store);
     capabilities_errors
         .into_iter()
         .map(Error::CapabilitiesCk)
