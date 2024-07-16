@@ -226,7 +226,7 @@ impl NamespaceTreeRoot {
         }
     }
 
-    /// Each item in this iterator is one namespace. The reason there are multiple paths for it,
+    /// Each item in this iterator is the same, single namespace. The reason there are multiple paths for it,
     /// each represented by a `Vec<Rc<str>>`, is because there may be multiple paths to the same
     /// namespace, through aliasing or re-exports.
     pub fn iter(&self) -> std::collections::btree_map::IntoValues<NamespaceId, Vec<Vec<Rc<str>>>> {
