@@ -359,7 +359,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
-            ItemKind::Export(_, export) => write!(f, "Export: {export}"),
+            ItemKind::Export(name, export) => write!(f, "Export ({name}): {export}"),
         }
     }
 }

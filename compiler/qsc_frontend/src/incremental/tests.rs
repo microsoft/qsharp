@@ -274,8 +274,7 @@ fn conditional_compilation_not_available() {
 #[test]
 fn errors_across_multiple_lines() {
     let mut store = PackageStore::new(compile::core());
-    let std = compile::std(&store, TargetCapabilityFlags::all());
-    let std_id = store.insert(std);
+    let std_id = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let mut compiler = Compiler::new(
         &store,
         &[(std_id, None)],
@@ -471,7 +470,158 @@ fn continue_after_lower_error() {
 }
 
 #[test]
-fn reexports_complex() {
+fn import_foo() {
+    let mut store = PackageStore::new(compile::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile::compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile::compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+}
+
+#[test]
+fn import_foo_with_alias() {
+    let mut store = PackageStore::new(compile::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile::compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo as Foo2;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile::compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+}
+
+#[test]
+fn export_foo_with_alias() {
+    let mut store = PackageStore::new(compile::core());
+
+    let package_a = SourceMap::new(
+        [(
+            "PackageA.qs".into(),
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_a = compile::compile(
+        &store,
+        &[],
+        package_a,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
+
+    let package_a = store.insert(package_a);
+
+    let package_b = SourceMap::new(
+        [(
+            "PackageB.qs".into(),
+            indoc! {"
+                import A.PackageA.Foo;
+                export Foo as Bar;
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let package_b = compile::compile(
+        &store,
+        &[(package_a, Some(Arc::from("A")))],
+        package_b,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+}
+
+#[test]
+fn combined_import_export() {
     let mut store = PackageStore::new(compile::core());
 
     let package_a = SourceMap::new(
@@ -558,7 +708,7 @@ fn reexports_complex() {
 }
 
 #[test]
-fn reexports() {
+fn reexport_operation_from_a_dependency() {
     let mut store = PackageStore::new(compile::core());
 
     let package_a = SourceMap::new(

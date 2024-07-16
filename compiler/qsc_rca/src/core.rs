@@ -1935,9 +1935,10 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 },
             ) => {
                 let package = self.package_store.get(*package);
-                let Some(item) = package.items.get(*item) else {
-                    return;
-                };
+                let item = package
+                    .items
+                    .get(*item)
+                    .expect("item should exist in package");
                 self.visit_item(item);
             }
             ItemKind::Export(_, qsc_fir::fir::ItemId { package: None, .. }) => {

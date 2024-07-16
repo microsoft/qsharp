@@ -973,11 +973,11 @@ impl Resolver {
                 );
             }
 
+            // This is kind of a messy match, it is merged and formatted this way
+            // to appease clippy and rustfmt.
             let res = match (term_result, ty_result) {
-                // This is kind of a messy match, it is merged and formatted this way
-                // to appease clippy and rustfmt. What it is saying is that if either
-                // a term or a ty exists for this item already, as either an item or an export,
-                // then we should use that res.
+                // If either a term or a ty exists for this item already,
+                // as either an item or an export, then we should use that res.
                 (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
                 | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
                 // Then, if the item was found as either a term or ty but is _not_ an item or export, this export
@@ -1636,7 +1636,6 @@ fn bind_global_item(
                     else {
                         continue;
                     };
-                    //                    bind_global_item(names, scope, namespace, next_id, item)?;
                     let item_id = next_id();
                     let res = Res::Item(item_id, ItemStatus::Available);
                     names.insert(decl_item.name().id, res.clone());

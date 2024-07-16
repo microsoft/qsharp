@@ -6,6 +6,7 @@
 use crate::{interpret::Interpreter, packages::BuildableProgram};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_eval::output::CursorReceiver;
 use qsc_frontend::compile::SourceMap;
 use qsc_passes::PackageType;
 use qsc_project::{PackageGraphSources, PackageInfo};
@@ -70,7 +71,7 @@ namespace DependencyA {
 
     let user_code = SourceMap::new(user_code.sources, None);
 
-    let _ = Interpreter::new(
+    let mut interpreter = Interpreter::new(
         user_code,
         PackageType::Exe,
         TargetCapabilityFlags::all(),
@@ -79,6 +80,16 @@ namespace DependencyA {
         &user_code_dependencies,
     )
     .expect("interpreter creation should succeed");
+
+    let mut cursor = std::io::Cursor::new(Vec::<u8>::new());
+    let mut receiver = CursorReceiver::new(&mut cursor);
+    let res = interpreter.eval_entry(&mut receiver);
+
+    assert!(res.is_ok(), "evaluation should succeed");
+
+    let output = String::from_utf8(cursor.into_inner()).expect("output should be valid utf-8");
+
+    assert_eq!(output, "hello from dependency A!\n");
 }
 
 #[test]
@@ -139,7 +150,7 @@ namespace DependencyA {
 
     let user_code = SourceMap::new(user_code.sources, None);
 
-    let _ = Interpreter::new(
+    let mut interpreter = Interpreter::new(
         user_code,
         PackageType::Exe,
         TargetCapabilityFlags::all(),
@@ -148,4 +159,14 @@ namespace DependencyA {
         &user_code_dependencies,
     )
     .expect("interpreter creation should succeed");
+
+    let mut cursor = std::io::Cursor::new(Vec::<u8>::new());
+    let mut receiver = CursorReceiver::new(&mut cursor);
+    let res = interpreter.eval_entry(&mut receiver);
+
+    assert!(res.is_ok(), "evaluation should succeed");
+
+    let output = String::from_utf8(cursor.into_inner()).expect("output should be valid utf-8");
+
+    assert_eq!(output, "hello from dependency A!\n");
 }

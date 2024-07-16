@@ -1267,7 +1267,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         &store,
         &[(std, None)],
         sources,
-        TargetCapabilityFlags::all(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);

@@ -85,8 +85,7 @@ impl CompilationContext {
     }
 
     fn new_for_exe(source: &str) -> Self {
-        let mut store = qsc::PackageStore::new(qsc::compile::core());
-        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
         let compiler = Compiler::new(
             SourceMap::new([("test".into(), source.into())], Some("".into())),
             PackageType::Exe,

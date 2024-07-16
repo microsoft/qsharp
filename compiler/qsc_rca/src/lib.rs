@@ -6,6 +6,9 @@
 //! execution on a quantum kernel and does not consider these elements when determining the capabilities. Additionally,
 //! this implementation also provides details on why the program requires each capability.
 
+#[cfg(test)]
+mod tests;
+
 mod analyzer;
 mod applications;
 mod common;
