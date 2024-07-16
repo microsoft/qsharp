@@ -176,8 +176,9 @@ impl Backend for Builder {
         self.remapper.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.remapper.qubit_release(q);
+        true
     }
 
     fn qubit_swap_id(&mut self, q0: usize, q1: usize) {

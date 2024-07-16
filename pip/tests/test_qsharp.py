@@ -258,6 +258,49 @@ def test_dump_operation() -> None:
                 assert res[i][j] == complex(0.0, 0.0)
 
 
+def test_init_with_noise_produces_noisy_eval() -> None:
+    qsharp.init(noise=qsharp.BitFlipNoise(0.05))
+    qsharp.set_quantum_seed(42)
+    value1 = qsharp.eval(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }"
+    )
+    assert value1 > 0
+    qsharp.init(noise=qsharp.BitFlipNoise(0.05))
+    qsharp.set_quantum_seed(42)
+    value2 = qsharp.eval(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }"
+    )
+    assert value1 == value2
+    # .run() should use the same seed and noise model as .eval() when not specified
+    value3 = qsharp.run(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }",
+        shots=1,
+    )
+    assert value1 == value3[0]
+    # .run() should use the same seed but different noise model from .eval() when specified
+    value4 = qsharp.run(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }",
+        shots=1,
+        noise=qsharp.BitFlipNoise(0.0),
+    )
+    assert value4[0] == 0
+
+
+def test_run_with_noise_produces_noisy_results() -> None:
+    qsharp.init()
+    qsharp.set_quantum_seed(42)
+    value1 = qsharp.eval(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }"
+    )
+    assert value1 == 0
+    value2 = qsharp.run(
+        "{ mutable mismatches = 0; for _ in 0..100 { use (q1, q2) = (Qubit(), Qubit()); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches += 1; } } mismatches }",
+        shots=1,
+        noise=qsharp.BitFlipNoise(0.05),
+    )
+    assert value2[0] > 0
+
+
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
     qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
