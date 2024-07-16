@@ -55,7 +55,7 @@ impl StateVector {
             )));
         }
 
-        if data.len() != dimension * dimension {
+        if data.len() != dimension {
             return Err(Error::StateVectorTryFromError(format!(
                 "state vector dimension is {} but data has {} entries, {} != {}",
                 dimension,
