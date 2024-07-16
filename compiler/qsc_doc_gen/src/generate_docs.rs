@@ -204,7 +204,7 @@ pub fn generate_docs(
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
-    package_name: &String,
+    package_name: &str,
     include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
@@ -260,7 +260,7 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
 }
 
 fn generate_file(
-    package_name: &String,
+    package_name: &str,
     ns: &Rc<str>,
     item: &Item,
     display: &CodeDisplay,
