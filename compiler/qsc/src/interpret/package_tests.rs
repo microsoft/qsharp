@@ -19,11 +19,11 @@ fn import_and_call_reexport() {
             sources: vec![(
                 "PackageB.qs".into(),
                 indoc! {"
-                import Foo.DependencyA.Foo;
-                function Main() : Unit {
-      Foo([1, 2]); 
-      Foo.DependencyA.MagicFunction();
-  }"}
+                    import Foo.DependencyA.Foo;
+                    function Main() : Unit {
+                        Foo([1, 2]); 
+                        Foo.DependencyA.MagicFunction();
+                    }"}
                 .into(),
             )],
             language_features: LanguageFeatures::default(),
@@ -36,12 +36,12 @@ fn import_and_call_reexport() {
                 sources: vec![(
                     "Foo.qs".into(),
                     r#"
-namespace DependencyA {
-    function MagicFunction() : Unit {
-        Message("hello from dependency A!");
-    }
-    export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
-}
+                    namespace DependencyA {
+                        function MagicFunction() : Unit {
+                            Message("hello from dependency A!");
+                        }
+                        export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
+                    }
                     "#
                     .into(),
                 )],
@@ -115,12 +115,12 @@ fn directly_call_reexport() {
                 sources: vec![(
                     "Foo.qs".into(),
                     r#"
-namespace DependencyA {
-    function MagicFunction() : Unit {
-        Message("hello from dependency A!");
-    }
-    export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
-}
+                        namespace DependencyA {
+                            function MagicFunction() : Unit {
+                                Message("hello from dependency A!");
+                            }
+                            export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
+                        }
                     "#
                     .into(),
                 )],
