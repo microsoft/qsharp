@@ -25,7 +25,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -253,6 +253,8 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The namespace tree defined by this package
+    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     /// The top-level statements in the package.
     pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
@@ -335,6 +337,8 @@ pub enum ItemKind {
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export of an item.
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -355,6 +359,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(name, export) => write!(f, "Export ({name}): {export}"),
         }
     }
 }

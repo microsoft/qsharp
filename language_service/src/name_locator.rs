@@ -447,6 +447,9 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                                     path.id
                                 )
                             }
+                            hir::ItemKind::Export(_, _) => {
+                                unreachable!("handled in fn resolve_item_relative_to_user_package")
+                            }
                         }
                     }
                     Some(resolve::Res::Local(node_id)) => {
