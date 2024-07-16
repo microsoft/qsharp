@@ -23,3 +23,7 @@ workspace = true
 
 [lib]
 bench = false
+
+[[bench]]
+name = "noisy_simulator"
+harness = false

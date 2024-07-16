@@ -1,14 +1,12 @@
+use std::time::Duration;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use nalgebra::dmatrix;
-use noisy_simulator::{DensityMatrixSimulator, Error, NoisySimulator, Operation};
+use noisy_simulator::{
+    DensityMatrixSimulator, Error, NoisySimulator, Operation, StateVectorSimulator,
+};
 
-pub fn density_matrix_simulator(c: &mut Criterion) {
-    c.bench_function("12 qubits and 12 operations circuit", |b| {
-        b.iter(|| twelve_qubits_twelve_operations().expect("bench should succeed"));
-    });
-}
-
-fn twelve_qubits_twelve_operations() -> Result<(), Error> {
+fn ten_qubits_ten_operations<NS: NoisySimulator>() -> Result<(), Error> {
     let x_gate = Operation::new(vec![
         dmatrix![
             0.974_679_43.into(), 0.0.into();
@@ -47,7 +45,7 @@ fn twelve_qubits_twelve_operations() -> Result<(), Error> {
         ],
     ])?;
 
-    let mut sim = DensityMatrixSimulator::new_with_seed(12, 42);
+    let mut sim = NS::new_with_seed(10, 42);
     sim.apply_operation(&x_gate, &[0])?;
     sim.apply_operation(&swap_gate, &[0, 1])?;
     sim.apply_operation(&swap_gate, &[1, 2])?;
@@ -58,11 +56,30 @@ fn twelve_qubits_twelve_operations() -> Result<(), Error> {
     sim.apply_operation(&swap_gate, &[6, 7])?;
     sim.apply_operation(&swap_gate, &[7, 8])?;
     sim.apply_operation(&swap_gate, &[8, 9])?;
-    sim.apply_operation(&swap_gate, &[9, 10])?;
-    sim.apply_operation(&swap_gate, &[10, 11])?;
 
     Ok(())
 }
 
-criterion_group!(benches, density_matrix_simulator);
+pub fn density_matrix_simulator(c: &mut Criterion) {
+    c.benchmark_group("density_matrix_simulator")
+        .measurement_time(Duration::from_secs(25))
+        .bench_function("10 qubits and 10 operations circuit", |b| {
+            b.iter(|| {
+                ten_qubits_ten_operations::<DensityMatrixSimulator>()
+                    .expect("bench should succeed");
+            });
+        });
+}
+
+pub fn state_vector_simulator(c: &mut Criterion) {
+    c.benchmark_group("state_vector_simulator")
+        // .measurement_time(Duration::from_secs(25))
+        .bench_function("10 qubits and 10 operations circuit", |b| {
+            b.iter(|| {
+                ten_qubits_ten_operations::<StateVectorSimulator>().expect("bench should succeed");
+            });
+        });
+}
+
+criterion_group!(benches, density_matrix_simulator, state_vector_simulator);
 criterion_main!(benches);
