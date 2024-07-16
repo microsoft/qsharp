@@ -70,7 +70,7 @@ fn comments_are_omitted() {
 }
 
 #[test]
-fn visibility() {
+fn strip_visibility() {
     check(
         indoc! {r#"
             // NS comment
@@ -84,7 +84,7 @@ fn visibility() {
         None,
         &expect![[r#"
             namespace A {
-                internal operation B() : Unit {}
+                operation B() : Unit {}
             }"#]],
     );
 }

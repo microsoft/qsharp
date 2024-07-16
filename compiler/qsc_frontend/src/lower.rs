@@ -14,7 +14,7 @@ use qsc_ast::ast::{self, Ident};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId},
+    hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
     ty::{Arrow, FunctorSetValue, GenericArg, Ty},
 };
@@ -42,12 +42,6 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
-}
-
-#[derive(Clone, Copy)]
-enum ItemScope {
-    Global,
-    Local,
 }
 
 pub(super) struct Lowerer {
@@ -130,13 +124,28 @@ impl With<'_> {
         };
 
         self.lowerer.parent = Some(id);
-        let items: Vec<LocalItemId> = namespace
+
+        // Exports are `Res` items, which contain `hir::ItemId`s.
+        let exports = namespace
+            .exports()
+            .filter_map(|item| self.names.get(item.name().id))
+            .collect::<Vec<_>>();
+
+        let exported_hir_ids = exports
+            .iter()
+            .filter_map(|res| match res {
+                resolve::Res::Item(hir::ItemId { item: id, .. }, _) => Some(*id),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let items = namespace
             .items
             .iter()
-            .filter_map(|i| self.lower_item(ItemScope::Global, i))
-            .collect();
+            .filter_map(|i| self.lower_item(i, &exported_hir_ids[..]))
+            .collect::<Vec<_>>();
 
-        let name = self.lower_vec_ident(&namespace.name);
+        let name = self.lower_idents(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -150,20 +159,16 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    fn lower_item(&mut self, scope: ItemScope, item: &ast::Item) -> Option<LocalItemId> {
+    fn lower_item(
+        &mut self,
+        item: &ast::Item,
+        exported_ids: &[hir::LocalItemId],
+    ) -> Option<LocalItemId> {
         let attrs = item
             .attrs
             .iter()
             .filter_map(|a| self.lower_attr(a))
             .collect();
-
-        let visibility = match scope {
-            ItemScope::Global => item
-                .visibility
-                .as_ref()
-                .map_or(hir::Visibility::Public, lower_visibility),
-            ItemScope::Local => hir::Visibility::Internal,
-        };
 
         let resolve_id = |id| match self.names.get(id) {
             Some(&resolve::Res::Item(item, _)) => item,
@@ -206,6 +211,12 @@ impl With<'_> {
                     hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
                 )
             }
+        };
+
+        let visibility = if exported_ids.contains(&id.item) {
+            Visibility::Public
+        } else {
+            Visibility::Internal
         };
 
         self.lowerer.items.push(hir::Item {
@@ -413,9 +424,7 @@ impl With<'_> {
         let kind = match &*stmt.kind {
             ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => {
-                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item)?)
-            }
+            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item, &[])?),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
                 self.lower_pat(lhs),
@@ -834,15 +843,8 @@ impl With<'_> {
         })
     }
 
-    fn lower_vec_ident(&mut self, name: &ast::Idents) -> hir::Idents {
+    fn lower_idents(&mut self, name: &ast::Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
-    }
-}
-
-fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
-    match visibility.kind {
-        ast::VisibilityKind::Public => hir::Visibility::Public,
-        ast::VisibilityKind::Internal => hir::Visibility::Internal,
     }
 }
 

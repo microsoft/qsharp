@@ -672,3 +672,16 @@ fn notebook_callable_defined_in_later_cell() {
         ("cell2", "operation Callee() : Unit {}"),
     ]);
 }
+
+#[test]
+fn notebook_local_from_same_cell() {
+    assert_definition_notebook(&[("cell1", "let ◉x◉ = 3; let y = ↘x + 1;")]);
+}
+
+#[test]
+fn notebook_local_from_later_cell() {
+    assert_definition_notebook(&[
+        ("cell1", "let ◉x◉ = 3; let y = x + 1;"),
+        ("cell2", "let z = ↘x + 2;"),
+    ]);
+}

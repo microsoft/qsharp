@@ -1596,3 +1596,29 @@ fn notebook_callable_defined_in_later_cell() {
         ("cell2", "operation Callee() : Unit {}"),
     ]);
 }
+
+#[test]
+fn notebook_local_definition() {
+    check_notebook(
+        &[("cell1", "let x = 3;"), ("cell2", "let ◉↘y◉ = x + 1;")],
+        &expect![[r#"
+            local
+            ```qsharp
+            y : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_local_reference() {
+    check_notebook(
+        &[("cell1", "let x = 3;"), ("cell2", "let y = ◉↘x◉ + 1;")],
+        &expect![[r#"
+            local
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}

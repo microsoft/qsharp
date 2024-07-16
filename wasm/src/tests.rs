@@ -3,7 +3,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, SourceMap, TargetCapabilityFlags};
+use qsc::{interpret, LanguageFeatures, PackageStore, SourceMap, TargetCapabilityFlags};
 
 use crate::_get_qir;
 
@@ -13,12 +13,15 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
     run_internal_with_features(
         sources,
         event_cb,
         shots,
         LanguageFeatures::default(),
         TargetCapabilityFlags::all(),
+        store,
+        &[(std_id, None)],
     )
 }
 
@@ -47,10 +50,14 @@ fn test_compile() {
     M(q)
     }}";
 
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
+
     let result = qsc::codegen::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
         TargetCapabilityFlags::empty(),
+        store,
+        &[(std_id, None)],
     );
     assert!(result.is_ok());
 }
@@ -486,10 +493,12 @@ fn code_with_errors_returns_errors() {
     let language_features = LanguageFeatures::default();
     let capabilities = TargetCapabilityFlags::empty();
 
+    let store = PackageStore::new(qsc::compile::core());
+
     expect![[r#"
         Err(
             "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
         )
     "#]]
-    .assert_debug_eq(&_get_qir(sources, language_features, capabilities));
+    .assert_debug_eq(&_get_qir(sources, language_features, capabilities, store, &[]));
 }

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from IPython.display import display, Javascript, Pretty
+from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
 from ._native import QSharpError
 from ._qsharp import get_interpreter
@@ -12,9 +12,16 @@ def register_magic():
     @register_cell_magic
     def qsharp(line, cell):
         """Cell magic to interpret Q# code in Jupyter notebooks."""
+        # This effectively pings the kernel to ensure it recognizes the cell is running and helps with
+        # accureate cell execution timing.
+        clear_output()
 
         def callback(output):
             display(output)
+            # This is a workaround to ensure that the output is flushed. This avoids an issue
+            # where the output is not displayed until the next output is generated or the cell
+            # is finished executing.
+            display(display_id=True)
 
         try:
             return get_interpreter().interpret(cell, callback)

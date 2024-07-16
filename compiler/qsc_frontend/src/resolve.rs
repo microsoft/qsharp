@@ -25,7 +25,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::Arc};
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
@@ -356,6 +356,15 @@ impl GlobalScope {
     fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_or_find_namespace(name.into())
     }
+
+    /// Given a starting namespace, search from that namespace.
+    fn insert_or_find_namespace_from_root(
+        &mut self,
+        ns: Vec<Rc<str>>,
+        root: NamespaceId,
+    ) -> NamespaceId {
+        self.namespaces.insert_or_find_namespace_from_root(ns, root)
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -429,9 +438,6 @@ impl ExportImportVisitor<'_> {
 impl AstVisitor<'_> for ExportImportVisitor<'_> {
     fn visit_item(&mut self, item: &Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
-        item.visibility
-            .iter()
-            .for_each(|v| self.visit_visibility(v));
         match &*item.kind {
             ItemKind::ImportOrExport(decl) if decl.is_export() => self
                 .resolver
@@ -897,6 +903,8 @@ impl Resolver {
                 ItemSource::Imported
             };
 
+            //            if self.dropped_names.contains(TrackedName { name: item.name(), namespace: () }
+
             if let Ok(Res::Item(id, _)) = term_result {
                 if is_export {
                     if let Some(namespace) = current_namespace {
@@ -1351,14 +1359,35 @@ impl GlobalTable {
         errors
     }
 
-    pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
+    pub(super) fn add_external_package(
+        &mut self,
+        id: PackageId,
+        package: &hir::Package,
+        alias: &Option<Arc<str>>,
+    ) {
+        let root = match alias {
+            Some(alias) => self
+                .scope
+                .insert_or_find_namespace(vec![Rc::from(&**alias)]),
+            None => self.scope.namespaces.root_id(),
+        };
+
         for global in global::iter_package(Some(id), package).filter(|global| {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
+            // If the namespace is `Main`, we treat it as the root of the package, so there's no
+            // namespace prefix.
+            let global_namespace = if global.namespace.len() == 1 && &*global.namespace[0] == "Main"
+            {
+                vec![]
+            } else {
+                global.namespace.clone()
+            };
+
             let namespace = self
                 .scope
-                .insert_or_find_namespace(global.namespace.clone());
+                .insert_or_find_namespace_from_root(global_namespace, root);
 
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
@@ -1488,7 +1517,6 @@ fn bind_callable(
     let res = Res::Item(item_id, status);
     names.insert(decl.name.id, res);
     let mut errors = Vec::new();
-
     match scope
         .terms
         .get_mut_or_default(namespace)
@@ -1510,12 +1538,14 @@ fn bind_callable(
             entry.insert(res);
         }
     }
+
     if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
         errors.push(Error::DuplicateIntrinsic(
             decl.name.name.to_string(),
             decl.name.span,
         ));
     }
+
     if errors.is_empty() {
         Ok(())
     } else {
@@ -1532,6 +1562,7 @@ fn bind_ty(
     scope: &mut GlobalScope,
 ) -> Result<(), Vec<Error>> {
     let item_id = next_id();
+
     let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
     let res = Res::Item(item_id, status);
     names.insert(name.id, res);
@@ -1920,9 +1951,7 @@ where
     }
 
     // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
-    let res = namespace
-        //  .or(Some(candidate_namespace_id))
-        .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+    let res = namespace.and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
     // If a symbol was found, insert it into the candidates map
     if let Some(res) = res {

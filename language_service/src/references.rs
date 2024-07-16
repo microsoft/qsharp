@@ -162,9 +162,9 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         ident: &'a ast::Ident,
         _: &'a ast::Pat,
     ) {
-        if let Some(curr) = context.current_callable {
-            self.references = self.reference_finder.for_local(ident.id, curr);
-        }
+        self.references = self
+            .reference_finder
+            .for_local(ident.id, context.current_callable);
     }
 
     fn at_local_ref(
@@ -174,9 +174,9 @@ impl<'a> Handler<'a> for NameHandler<'a> {
         _: ast::NodeId,
         definition: &'a ast::Ident,
     ) {
-        if let Some(curr) = context.current_callable {
-            self.references = self.reference_finder.for_local(definition.id, curr);
-        }
+        self.references = self
+            .reference_finder
+            .for_local(definition.id, context.current_callable);
     }
 }
 
@@ -277,14 +277,22 @@ impl<'a> ReferenceFinder<'a> {
         locations
     }
 
-    pub fn for_local(&self, node_id: ast::NodeId, callable: &ast::CallableDecl) -> Vec<Location> {
+    pub fn for_local(
+        &self,
+        node_id: ast::NodeId,
+        callable: Option<&ast::CallableDecl>,
+    ) -> Vec<Location> {
         let mut find_refs = FindLocalLocations {
             node_id,
             compilation: self.compilation,
             include_declaration: self.include_declaration,
             locations: vec![],
         };
-        find_refs.visit_callable_decl(callable);
+        if let Some(callable) = callable {
+            find_refs.visit_callable_decl(callable);
+        } else {
+            find_refs.visit_package(&self.compilation.user_unit().ast.package);
+        }
         find_refs
             .locations
             .into_iter()
@@ -440,7 +448,25 @@ struct FindLocalLocations<'a> {
     locations: Vec<Span>,
 }
 
-impl<'a> Visitor<'_> for FindLocalLocations<'a> {
+impl Visitor<'_> for FindLocalLocations<'_> {
+    // Locals don't cross namespace boundaries, so don't visit namespaces.
+    fn visit_package(&mut self, package: &ast::Package) {
+        package.nodes.iter().for_each(|n| {
+            if let ast::TopLevelNode::Stmt(stmt) = n {
+                self.visit_stmt(stmt);
+            }
+        });
+        package.entry.iter().for_each(|e| self.visit_expr(e));
+    }
+
+    // Locals don't cross item boundaries, so don't visit items.
+    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
+        match &*stmt.kind {
+            ast::StmtKind::Item(_) => {}
+            _ => ast::visit::walk_stmt(self, stmt),
+        }
+    }
+
     fn visit_pat(&mut self, pat: &ast::Pat) {
         if self.include_declaration {
             match &*pat.kind {

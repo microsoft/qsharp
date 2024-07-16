@@ -59,7 +59,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap},
+    compile::{CompileUnit, Dependencies, PackageStore, Source, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -146,19 +146,21 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             false,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
@@ -166,32 +168,42 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new_with_debug(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             true,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
     fn new_internal(
         dbg: bool,
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
-            .map_err(into_errors)?;
+        let compiler = Compiler::new(
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+            store,
+            dependencies,
+        )
+        .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
@@ -741,13 +753,16 @@ impl Debugger {
         capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new_with_debug(
-            true,
             sources,
             PackageType::Exe,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )?;
         let source_package_id = interpreter.source_package;
         let unit = interpreter.fir_store.get(source_package_id);

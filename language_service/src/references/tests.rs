@@ -917,3 +917,19 @@ fn notebook_defined_in_later_cell() {
         ("cell2", "operation Callee() : Unit {}"),
     ]);
 }
+
+#[test]
+fn notebook_local_definition() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "let ↘x = 3; let y = ◉x◉ + 1;"),
+        ("cell2", "let z = ◉x◉ + 2;"),
+    ]);
+}
+
+#[test]
+fn notebook_local_reference() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "let x = 3; let y = ◉x◉ + 1;"),
+        ("cell2", "let z = ◉↘x◉ + 2;"),
+    ]);
+}

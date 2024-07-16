@@ -208,6 +208,7 @@ async function singleFileProject(
       packages: {},
     },
     lints: [],
+    errors: [],
   };
 }
 
