@@ -72,13 +72,14 @@ pub fn density_matrix_simulator(c: &mut Criterion) {
 }
 
 pub fn state_vector_simulator(c: &mut Criterion) {
-    c.benchmark_group("state_vector_simulator")
-        // .measurement_time(Duration::from_secs(25))
-        .bench_function("10 qubits and 10 operations circuit", |b| {
+    c.benchmark_group("state_vector_simulator").bench_function(
+        "10 qubits and 10 operations circuit",
+        |b| {
             b.iter(|| {
                 ten_qubits_ten_operations::<StateVectorSimulator>().expect("bench should succeed");
             });
-        });
+        },
+    );
 }
 
 criterion_group!(benches, density_matrix_simulator, state_vector_simulator);
