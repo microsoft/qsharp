@@ -6,4 +6,4 @@ The `src` directory includes a `qsharp.json` manifest and Q# source files organi
 
 You can execute this project by navigating to its root folder and running `python .\RunTeleport.py`. Alternatively, you can open the folder in Visual Studio Code, open the file `RunTeleport.qs`, and select **Run**.
 
-Full details are available on the [Microsoft Learn page](https://learn.microsoft.com/en-us/azure/quantum/user-guide/how-to-work-with-qsharp-projects?tabs=tabid-qsharp%2Ctabid-python-run#example-project).
+Full details are available on the [Microsoft Learn page](https://learn.microsoft.com/azure/quantum/user-guide/how-to-work-with-qsharp-projects?tabs=tabid-qsharp%2Ctabid-python-run#example-project).
