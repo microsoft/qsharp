@@ -16,23 +16,23 @@ Quantum oracles are a key part of many quantum algorithms that rely on quantum i
 
 **What you should know to start working on this kata:**
 
-- Fundamental quantum concepts
-- Multi-qubit gates (especially controlled gates)
+- Basic knowledge of fundamental quantum concepts
+- Basic knowledge of multi-qubit gates, especially controlled gates. If you're not familiar with these concepts, you can find them in the Multi-Qubit Gates kata. 
 
 @[section]({
     "id": "oracles__classical_oracles",
     "title": "Classical Oracles"
 })
 
-In classical computing, we often discuss "black box" versus "white box" testing.  In "white box" testing, the implementation of a function is visible to the tester,  thus they can verify specific runtime or memory complexity expectations for the algorithm.  
+In classical computing, the terms "black box" versus "white box" are often used to discuss the testing of a function. In "white box" testing, the implementation of a function is visible to the tester,  thus they can verify specific runtime or memory complexity expectations for the algorithm.  
 However, in "black box" testing, the tester doesn't have access to the details of the function implementation. They only have access to the "black box" that takes an input and produces the corresponding output. This means the tester can only test the functionality and expected behavior of the function, but not the implementation, which is hidden behind abstraction.
 
 Formally, a **classical oracle** is a function that, provided some input, produces a *deterministic* output
 (the same input *always* results in the same output).
 
-Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decision_problem" target="_blank">decision problems</a>) are also expressed in terms of oracles; in this case we do not care about how the function is implemented, but only about the functionality that it provides.  
+Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decision_problem" target="_blank">decision problems</a>) are also expressed in terms of oracles; in this case the implementation of the function isn't important, but the functionality that it provides.  
 
-> Suppose I provided you a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
+> Suppose you've given a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
 >
 > This function is an example of a classical oracle.
 
@@ -49,9 +49,9 @@ Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decisi
 
 An oracle in the quantum world is a "black box" operation that is used as input to an algorithm (such as Deutsch-Jozsa algorithm or Grover's search algorithm).
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
-In this kata, you will learn the properties of quantum oracles and how to implement them.
+In this kata, you'll learn the properties of quantum oracles and how to implement them.
 
-A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
+A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, you'll focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$\ket{\vec{x}} = \ket{x_0} \otimes \ket{x_1} \otimes ... \otimes \ket{x_{n-1}},$$
@@ -60,9 +60,9 @@ where $\ket{x_i}$ represents the state of the $i$-th qubit.
 Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations.
 This allows us to define quantum oracles based on their effect on the basis states - tensor products of single-qubit basis states $\ket{0}$ and $\ket{1}$.
 
-> For example, an oracle that implements a function that takes two bits of input will be defined using its effect on basis states $\ket{00}$, $\ket{01}$, $\ket{10}$, and $\ket{11}$.  
+> For example, an oracle that implements a function that takes two bits of input is defined using its effect on basis states $\ket{00}$, $\ket{01}$, $\ket{10}$, and $\ket{11}$.  
 
-There are two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
+There're two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
 
 @[section]({
     "id": "oracles__phase_oracles",
@@ -75,7 +75,7 @@ $$U_{phase} \ket{\vec{x}} = (-1)^{f(x)}\ket{\vec{x}}$$
 
 Thus, the phase oracle $U_{\text{phase}}$ doesn't change the phase of the basis states for which $f(x)=0$, but multiplies the phase of the basis states for which $f(x)=1$ by $-1$.
 
-The effect of such an oracle on any single basis state is not particularly interesting: it just adds a global phase which is not something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable.
+The effect of such an oracle on any single basis state isn't particularly interesting: it just adds a global phase which is not something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable.
 Remember that quantum operations are linear: if you define the effect of an operation on the basis states, you'll be able to deduce its effect on superposition states (which are just linear combinations of the basis states) using its linearity.
 
 A phase oracle doesn't have an "output", unlike the function it implements; the effect of the oracle application is the change in the state of the system.
@@ -87,12 +87,12 @@ A phase oracle doesn't have an "output", unlike the function it implements; the 
 
 Consider the function $f(x)$ that takes three bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise.
 
-The phase oracle that implements this function will take an array of three qubits as an input, flip the sign of basis states $\ket{101}$ and $\ket{010}$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
+The phase oracle that implements this function takes an array of three qubits as an input, flip the sign of basis states $\ket{101}$ and $\ket{010}$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
 
 @[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./examples/PhaseOracleAltBit.qs"})
 
-We introduced the function `ApplyControlledOnBitString` provided by the Q# standard library when we discussed controlled gates.
-It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $\ket{10}$ state.
+The Multi-Qubit Gates kata introduced the `ApplyControlledOnBitString` function provided by the Q# standard library when discussing controlled gates.
+The `ApplyControlledOnBitString` function defines a variant of a gate controlled on a state specified by a bit mask. For example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $\ket{10}$ state.
 
 The sequence of steps that implement this variant are:
 
@@ -102,9 +102,9 @@ The sequence of steps that implement this variant are:
 
 > Notice that the input state in the demo above is an equal superposition of all basis states.
 After applying the oracle the absolute values of all amplitudes are the same, but the states $\ket{010}$ and $\ket{101}$ had their phase flipped to negative.
-> Recall that these two states are exactly the inputs for which $f(x) = 1$, thus they are exactly the two states we expect to experience a phase flip!
+> Recall that these two states are exactly the inputs for which $f(x) = 1$, thus they're exactly the two states we expect to experience a phase flip!
 
-In the next exercise you will implement the classical oracle that you've implemented in the first exercise, this time as a quantum phase oracle $U_{7,\text{phase}}$ that encodes the number 7.
+In the next exercise, you'll implement the classical oracle that you've implemented in the first exercise, this time as a quantum phase oracle $U_{7,\text{phase}}$ that encodes the number 7.
 
 @[exercise]({
     "id": "oracles__phase_oracle_seven",
@@ -123,28 +123,28 @@ $$U_{mark}\ket{\vec{x}} \ket{y} = U_{mark}\big(\ket{\vec{x}} \otimes \ket{y}\big
 
 Again, since all quantum operations are linear, you can figure out the effect of this operation on superposition state knowing its effect on the basis states using its linearity.
 
-A marking oracle has distinct "input" and "output" qubits, but in general the effect of the oracle application is the change in the state of the whole system rather than of the "output" qubits only. We will look at this closer in a moment.
+A marking oracle has distinct "input" and "output" qubits, but in general the effect of the oracle application is the change in the state of the whole system rather than of the "output" qubits only. You'll look at this closer in a moment.
 
 @[section]({
     "id": "oracles__marking_oracle_alternating_bits",
     "title": "Marking Oracle for Alternating Bit Pattern Function"
 })
 
-Consider the function $f(x)$ that takes three bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in the lesson "Phase Oracle for Alternating Bit Pattern Function").
+Consider the function $f(x)$ that takes three bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it's the function in the lesson "Phase Oracle for Alternating Bit Pattern Function").
 
-The marking oracle that implements this function will take an array of three qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $\ket{101}$ or $\ket{010}$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
+The marking oracle that implements this function takes an array of three qubits as an "input" register and an "output" qubit, and flips the state of the output qubit if the input qubit is in basis state $\ket{101}$ or $\ket{010}$, and does nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
 @[example]({"id": "oracles__marking_oracle_alt_bit", "codePath": "./examples/MarkingOracleAltBit.qs"})
 
 > Let's compare the initial state to the final state from the above demo.
-In the initial state we had a tensor product of an equal superposition of all three-qubit basis states and the state $\ket{0}$.  In the final state, this is no longer the case.
+In the initial state, there's a tensor product of an equal superposition of all three-qubit basis states and the state $\ket{0}$.  In the final state, this is no longer the case.
 The basis states $\ket{010} \otimes \ket{0}$ and $\ket{101} \otimes \ket{0}$ no longer have non-zero amplitudes, and instead $\ket{010} \otimes \ket{1}$ and $\ket{101} \otimes \ket{1}$ have non-zero amplitudes.
 >
-> This is exactly the result that we expect.  Recall our function $f(x)$: $f(x)=1$ if and only if $x=010$ or $x=101$.  The first three qubits (variable `x`) represent the input state $\ket{x}$, and the last qubit (variable `y`) represents the output state $\ket{y}$.  Thus when we have the two basis states, $\ket{x}=\ket{010}$ or $\ket{x}=\ket{101}$, we will flip the state of the qubit $\ket{y}$, causing these two initial states to be tensored with $\ket{1}$ in the final state where originally they were tensored with $\ket{0}$.
+> This is exactly the expected result. Recall the function $f(x)$: $f(x)=1$ if and only if $x=010$ or $x=101$.  The first three qubits (variable `x`) represent the input state $\ket{x}$, and the last qubit (variable `y`) represents the output state $\ket{y}$.  Thus for the two basis states, $\ket{x}=\ket{010}$ or $\ket{x}=\ket{101}$, the function flips the state of the qubit $\ket{y}$, causing these two initial states to be tensored with $\ket{1}$ in the final state where originally they were tensored with $\ket{0}$.
 >
 > Since the rest of the basis states correspond to $f(x) = 0$, all other basis states in the initial superposition remain unchanged.
 
-Now you will implement the same function you've seen in the first two exercises as a marking oracle $U_{7,mark}$.
+Now you'll implement the same function you've seen in the first two exercises as a marking oracle $U_{7,mark}$.
 
 @[exercise]({
     "id": "oracles__marking_oracle_seven",
@@ -159,7 +159,7 @@ Now you will implement the same function you've seen in the first two exercises 
 
 Previously we considered applying marking oracles when the register $\ket{x}$ was in a basis state or a superposition state, and the target qubit $\ket{y}$ was in a basis state.  How might the effect of applying marking oracles change if the target is also in a superposition state?  In this case we might observe **phase kickback** - the relative phase from the target qubit affecting ("kicked back" into) the state of the input qubits.
 
-In order to observe phase kickback, we use the target qubit $\ket{y}=\ket{-}$.
+In order to observe phase kickback, the target qubit is $\ket{y}=\ket{-}$.
 
 > This is the standard choice for two reasons.
 > First, for phase kickback to occur, the target qubit must have a difference in relative phase between the basis states $\ket{0}$ and $\ket{1}$.
@@ -188,12 +188,12 @@ $$= \frac{1}{\sqrt{2}} \big( U_{mark}\ket{b_1}\ket{-} + U_{mark}\ket{b_2}\ket{-}
 
 $$= \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}\ket{b_1} + (-1)^{f(b_2)}\ket{b_2}\big) \ket{-}$$
 
-We see that in both cases applying $U_{mark}$ does not change the state of the target qubit, but it does change the state of the input register.
-Thus we can drop the target qubit without any repercussions after the application of the oracle.
+In both cases applying $U_{mark}$ doesn't change the state of the target qubit, but it does change the state of the input register.
+Thus you can drop the target qubit without any repercussions after the application of the oracle.
 Notice that the input register is now in the following state:
 $$\ket{\psi} = \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}\ket{b_1} + (-1)^{f(b_2)}\ket{b_2}\big),$$
 
-which looks exactly as if we applied a phase oracle to $\ket{x}$ instead of applying a marking oracle to $\ket{x}\ket{-}$!  This is a very important application of phase kickback: it allows to convert a marking oracle into a phase oracle - which you will implement in the next task.
+which looks exactly as if you apply a phase oracle to $\ket{x}$ instead of applying a marking oracle to $\ket{x}\ket{-}$!  This is a very important application of phase kickback: it allows to convert a marking oracle into a phase oracle - which you'll implement in the next task.
 
 > Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector.
 
@@ -211,7 +211,7 @@ $$= \frac{1}{2} \big( U_{7,mark}\ket{110}\ket{0} + U_{7,mark}\ket{111}\ket{0} - 
 
 $$= \frac{1}{2} \big(\ket{110}\ket{0} + \ket{111}\ket{1} - \ket{110}\ket{1} - \ket{111}\ket{0} \big) := \ket{\xi}$$
 
-Now we would like to observe how our input state $\ket{\eta}$ was modified by the oracle.  Let's simplify the resulting state $\ket{\xi}$:
+Now you want to observe how your input state $\ket{\eta}$ is modified by the oracle.  Let's simplify the resulting state $\ket{\xi}$:
 
 $$\ket{\xi} = \frac{1}{2} \big(\ket{110}\ket{0} + \ket{111}\ket{1} - \ket{110}\ket{1} - \ket{111}\ket{0}\big) =$$
 
@@ -227,7 +227,7 @@ Finally, let's compare $\ket{\eta}$ and $\ket{\xi}$; below are the final equatio
 $$\ket{\eta} = \Big[\frac{1}{\sqrt{2}}\big(\ket{110} + \ket{111}\big)\Big] \otimes \ket{-}$$
 $$\ket{\xi} = \Big[\frac{1}{\sqrt{2}}\big(\ket{110} - \ket{111}\big)\Big] \otimes \ket{-}$$
 
-We can see that these two equations are identical, except for the $-1$ phase that appeared on the $\ket{111}$ basis state - our marked state.  This is a specific example of the phase kickback effect, as the phase from $\ket{-}$ has been *kicked back* into $\ket{x}$.
+You can see that these two equations are identical, except for the $-1$ phase that appeared on the $\ket{111}$ basis state - our marked state.  This is a specific example of the phase kickback effect, as the phase from $\ket{-}$ has been *kicked back* into $\ket{x}$.
 
 
 @[exercise]({
@@ -241,13 +241,13 @@ We can see that these two equations are identical, except for the $-1$ phase tha
     "title": "Converting Marking Oracles to Phase Oracles"
 })
 
-In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
+In this demo you'll use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then you'll compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
 @[example]({"id": "oracles__oracle_converter_demo", "codePath": "./examples/OracleConverterDemo.qs"})
 
 > Notice from the above demo that your phase oracle $U_{7,phase}$ behaves the same as the converted version of your marking oracle $U_{7,mark}$, both of which induce a phase flip on the basis state $\ket{111}$!
 
-This way to convert a marking oracle to a phase oracle is useful because many quantum algorithms, such as Grover's search algorithm, rely on a phase oracle, but it is often easier to implement the function as a marking oracle.
+This way to convert a marking oracle to a phase oracle is useful because many quantum algorithms, such as Grover's search algorithm, rely on a phase oracle, but it's often easier to implement the function as a marking oracle.
 This converter provides a way to implement the function of interest as a marking oracle and then convert it into a phase oracle, which could then be leveraged in a quantum algorithm.
 
 @[section]({
@@ -255,10 +255,10 @@ This converter provides a way to implement the function of interest as a marking
     "title": "Implementing Quantum Oracles"
 })
 
-In this section you will implement a few more complicated quantum oracles.
+In this section you'll implement a few more complicated quantum oracles.
 Some of them - both phase and marking - can take extra "classical" parameters.
 A useful tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation. 
-You will practice that in some of the exercises below.
+You'll practice that in some of the exercises below.
 
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
 
@@ -303,13 +303,13 @@ You will practice that in some of the exercises below.
     "title": "Testing an Oracle Implementation"
 })
 
-In this demo we show how you could test an oracle that you've implemented for your own problem.
-For all of the previous oracles that you've implemented, we've been testing your oracle against a reference solution for that task.
-However, if you're designing an oracle for a new problem, you do not have a reference solution for it - if you did, there would be no point for you to implement the oracle in the first place!
+This demo shows how to test an oracle that you've implemented for your own problem.
+For all of the previous oracles that you've implemented, you've been testing your oracle against a reference solution for that task.
+However, if you're designing an oracle for a new problem, you don't have a reference solution for it - if you did, there'd be no point for you to implement the oracle in the first place!
 
 A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a certain percentage of the inputs if you are constrained by runtime) to ensure that they match.
 
-Here we will compare the reference implementation of `Meeting_Oracle` to the classical code implementing the same function.
+Here you'll compare the reference implementation of `Meeting_Oracle` to the classical code implementing the same function.
 
 @[example]({"id": "oracles__test_meeting_oracle", "codePath": "./examples/TestMeetingOracle.qs"})
 
@@ -318,7 +318,7 @@ Here we will compare the reference implementation of `Meeting_Oracle` to the cla
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
+Congratulations! In this kata you've learned to build quantum oracles. Here are a few key concepts to keep in mind:
 
 - A quantum oracle is an "opaque box" operation that implements a classical computation. 
 - Quantum oracles are used to convert classical problems into inputs to quantum algorithms, such as Grover's search algorithm.
