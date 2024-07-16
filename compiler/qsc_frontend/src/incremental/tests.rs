@@ -468,226 +468,98 @@ fn continue_after_lower_error() {
         ]
     "#]].assert_debug_eq(&errors);
 }
-
 #[test]
 fn import_foo() {
-    let mut store = PackageStore::new(compile::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
             indoc! {"
                 operation Foo(x: Int, y: Bool) : Int {
                     x
                 }
                 export Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_a = compile::compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB.qs".into(),
+        vec![(
+            "PackageB.qs",
             indoc! {"
                 import A.PackageA.Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
+        &[("A", "PackageA")],
+        "",
     );
-
-    let package_b = compile::compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
 }
 
 #[test]
 fn import_foo_with_alias() {
-    let mut store = PackageStore::new(compile::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
             indoc! {"
                 operation Foo(x: Int, y: Bool) : Int {
                     x
                 }
                 export Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_a = compile::compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB.qs".into(),
+        vec![(
+            "PackageB.qs",
             indoc! {"
                 import A.PackageA.Foo as Foo2;
-            "}
-            .into(),
+            "},
         )],
-        None,
+        &[("A", "PackageA")],
+        "",
     );
-
-    let package_b = compile::compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
 }
 
 #[test]
 fn export_foo_with_alias() {
-    let mut store = PackageStore::new(compile::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
             indoc! {"
                 operation Foo(x: Int, y: Bool) : Int {
                     x
                 }
                 export Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_a = compile::compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB.qs".into(),
+        vec![(
+            "PackageB.qs",
             indoc! {"
                 import A.PackageA.Foo;
                 export Foo as Bar;
-            "}
-            .into(),
+            "},
         )],
-        None,
+        &[("A", "PackageA")],
+        "",
     );
-
-    let package_b = compile::compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
 }
 
 #[test]
 fn combined_import_export() {
-    let mut store = PackageStore::new(compile::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
             indoc! {"
                 operation Foo(x: Int, y: Bool) : Int {
                     x
                 }
                 export Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_a = compile::compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB.qs".into(),
+        vec![(
+            "PackageB.qs",
             indoc! {"
                 import A.PackageA.Foo;
                 import A.PackageA.Foo as Foo2;
                 export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_b = compile::compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
-
-    let package_b = store.insert(package_b);
-
-    let mut compiler = Compiler::new(
-        &store,
-        &[(package_b, Some(Arc::from("B")))],
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    let mut unit = CompileUnit::default();
-
-    let mut errors = Vec::new();
-
-    compiler
-        .compile_fragments(
-            &mut unit,
-            "UserCode",
-            "
+        &[("A", "PackageA")],
+        indoc! {"
             import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
             @EntryPoint()
             function Main() : Unit {
@@ -696,73 +568,97 @@ fn combined_import_export() {
                 Bar(10, true);
                 Bar2(10, true);
             }
-",
-            |e| -> Result<(), ()> {
-                errors = e;
-                Ok(())
-            },
-        )
-        .expect("compile_fragments should succeed");
-
-    expect!["[]"].assert_eq(&format!("{errors:#?}"));
+        "},
+    );
 }
 
 #[test]
 fn reexport_operation_from_a_dependency() {
-    let mut store = PackageStore::new(compile::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
             indoc! {"
                 operation Foo(x: Int, y: Bool) : Int {
                     x
                 }
                 export Foo;
-            "}
-            .into(),
+            "},
         )],
-        None,
-    );
-
-    let package_a = compile::compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB.qs".into(),
+        vec![(
+            "PackageB.qs",
             indoc! {"
                 import A.PackageA.Foo;
-
                 export Foo as Bar;
-            "}
-            .into(),
+            "},
         )],
-        None,
+        &[("A", "PackageA")],
+        indoc! {"
+            import B.PackageB.Bar;
+            @EntryPoint()
+            function Main() : Unit {
+                Bar(10, true);
+            }
+        "},
     );
+}
 
-    let package_b = compile::compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
+fn multi_package_test(
+    packages: Vec<(&str, &str)>,
+    dependencies: Vec<(&str, &str)>,
+    imports: &[(&str, &str)],
+    user_code: &str,
+) {
+    let mut store = PackageStore::new(compile::core());
 
-    let package_b = store.insert(package_b);
+    let packages = packages
+        .into_iter()
+        .map(|(name, code)| {
+            let source_map = SourceMap::new([(name.into(), code.into())], None);
+            let compiled_package = compile::compile(
+                &store,
+                &[],
+                source_map,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+            assert!(
+                compiled_package.errors.is_empty(),
+                "{:#?}",
+                compiled_package.errors
+            );
+            store.insert(compiled_package)
+        })
+        .collect::<Vec<_>>();
+
+    let dependencies = dependencies
+        .into_iter()
+        .map(|(name, code)| {
+            let source_map = SourceMap::new([(name.into(), code.into())], None);
+            let compiled_package = compile::compile(
+                &store,
+                &imports
+                    .iter()
+                    .map(|(alias, _)| (packages[0], Some(Arc::from(*alias))))
+                    .collect::<Vec<_>>(),
+                source_map,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+            assert!(
+                compiled_package.errors.is_empty(),
+                "{:#?}",
+                compiled_package.errors
+            );
+            store.insert(compiled_package)
+        })
+        .collect::<Vec<_>>();
 
     let mut compiler = Compiler::new(
         &store,
-        &[(package_b, Some(Arc::from("B")))],
+        &dependencies
+            .iter()
+            .map(|&pkg| (pkg, Some(Arc::from("B"))))
+            .collect::<Vec<_>>(),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -771,25 +667,14 @@ fn reexport_operation_from_a_dependency() {
     let mut errors = Vec::new();
 
     compiler
-        .compile_fragments(
-            &mut unit,
-            "UserCode",
-            "
-            import B.PackageB.Bar;
-            @EntryPoint()
-            function Main() : Unit {
-                Bar(10, true);
-            }",
-            |e| -> Result<(), ()> {
-                errors = e;
-                Ok(())
-            },
-        )
+        .compile_fragments(&mut unit, "UserCode", user_code, |e| -> Result<(), ()> {
+            errors = e;
+            Ok(())
+        })
         .expect("compile_fragments should succeed");
 
     expect!["[]"].assert_eq(&format!("{errors:#?}"));
 }
-
 fn check_unit(expect: &Expect, actual: &Increment) {
     let ast = format!("ast:\n{}", actual.ast.package);
 
