@@ -108,8 +108,9 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
                 .iter()
                 .map(|k| {
                     // This code is doing the equivalent to:
-                    // choi_matrix += vec(K) * vec(K*)
-                    // where * denotes the complex conjugate
+                    // choi_matrix += vectorized(K) * vectorized(K).adjoint()
+                    // Note that if you multiply a row vector times a column
+                    // vector you get a matrix.
                     let dim = k.shape().0.pow(2);
                     let mut choi = SquareMatrix::zeros(dim, dim);
                     for row in 0..dim {
