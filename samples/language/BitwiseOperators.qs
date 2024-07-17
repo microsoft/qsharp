@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
 
         // `~~~` performs a bitwise NOT on the bits of an integer.
 

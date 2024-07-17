@@ -6,6 +6,7 @@ use crate::compile::TargetCapabilityFlags;
 use crate::compile::core;
 use expect_test::expect;
 use expect_test::Expect;
+use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_hir::hir::PackageId;
 
@@ -147,6 +148,304 @@ fn namespaces_named_main_treated_as_root() {
 }
 
 #[test]
+fn multiple_packages_reference_exports() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            indoc! {"
+                    operation Foo(x: Int, y: Bool) : Int {
+                        x
+                    }
+                    export Foo;
+                "},
+        ),
+        (
+            "PackageB",
+            indoc! {"
+                    import PackageA.PackageA.Foo;
+                    export Foo;
+                "},
+        ),
+        (
+            "PackageC",
+            indoc! {"
+                    import PackageB.PackageB.Foo;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Foo(10, true);
+                    }
+                "},
+        ),
+    ]);
+}
+
+#[test]
+#[allow(clippy::too_many_lines)]
+fn multiple_packages_disallow_unexported_imports() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "PackageA",
+                indoc! {"
+                    function FunctionA() : Int {
+                        1
+                    }
+                "},
+            ),
+            (
+                "PackageB",
+                indoc! {"
+                    import PackageA.PackageA.FunctionA;
+                    @EntryPoint()
+                    function Main() : Unit {
+                       FunctionA();
+                    }
+                "},
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Resolve(
+                        NotFound(
+                            "PackageA.PackageA.FunctionA",
+                            Span {
+                                lo: 7,
+                                hi: 34,
+                            },
+                        ),
+                    ),
+                ),
+                Error(
+                    Resolve(
+                        NotFound(
+                            "FunctionA",
+                            Span {
+                                lo: 78,
+                                hi: 87,
+                            },
+                        ),
+                    ),
+                ),
+                Error(
+                    Type(
+                        Error(
+                            AmbiguousTy(
+                                Span {
+                                    lo: 78,
+                                    hi: 89,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn reexport() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            indoc! {"
+                    export Microsoft.Quantum.Core.Length as Foo;
+                "},
+        ),
+        (
+            "PackageB",
+            indoc! {"
+
+                    import PackageA.PackageA.Foo;
+                    @EntryPoint()
+                    function Main() : Unit {
+                        use qs = Qubit[2];
+                        let len = Foo(qs);
+                    }
+                "},
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_export_has_alias() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;
+                "},
+        ),
+        (
+            "PackageB",
+            indoc! {"
+                import PackageA.PackageA.Bar;
+                "},
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_import_has_alias() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                import PackageA.PackageA.Foo as Bar;
+
+                export Bar;
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_reexport_has_alias() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            "
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                import PackageA.PackageA.Foo;
+                export Foo as Bar;
+            ",
+        ),
+        (
+            "PackageC",
+            "
+                import PackageB.PackageB.Bar;
+                @EntryPoint()
+                operation Main() : Unit {
+                    Bar(10, true);
+                }
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_callable_combined_aliases() {
+    multiple_package_check(vec![
+        (
+            "PackageA",
+            "
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            ",
+        ),
+        (
+            "PackageB",
+            "
+                import PackageA.PackageA.Foo;
+                import PackageA.PackageA.Foo as Foo2;
+                export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
+            ",
+        ),
+        (
+            "PackageC",
+            "
+                import PackageB.PackageB.Foo, PackageB.PackageB.Bar, PackageB.PackageB.Foo2, PackageB.PackageB.Bar2;
+                @EntryPoint()
+                operation Main() : Unit {
+                    Foo(10, true);
+                    Foo2(10, true);
+                    Bar(10, true);
+                    Bar2(10, true);
+                }
+            ",
+        ),
+    ]);
+}
+
+#[test]
+fn direct_reexport() {
+    multiple_package_check(vec![
+        (
+            "A",
+            "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;",
+        ),
+        ("B", "export A.A.Bar as Baz;"),
+        (
+            "C",
+            "import B.B.Baz as Quux;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Quux(10, true);
+                    }",
+        ),
+    ]);
+}
+
+#[test]
+fn reexports_still_type_check() {
+    multiple_package_check_expect_err(
+        vec![
+            (
+                "A",
+                "operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo as Bar;",
+            ),
+            (
+                "B",
+                "
+                 export A.A.Bar as Baz;",
+            ),
+            (
+                "C",
+                "import B.B.Baz as Quux;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        Quux(10, 10);
+                    }",
+            ),
+        ],
+        &expect![[r#"
+            [
+                Error(
+                    Type(
+                        Error(
+                            TyMismatch(
+                                "Bool",
+                                "Int",
+                                Span {
+                                    lo: 128,
+                                    hi: 140,
+                                },
+                            ),
+                        ),
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn namespaces_named_lowercase_main_not_treated_as_root() {
     multiple_package_check(vec![
         (
@@ -164,6 +463,49 @@ fn namespaces_named_lowercase_main_not_treated_as_root() {
                     operation Main() : Unit {
                         Foo(10, true);
                     }",
+        ),
+    ]);
+}
+
+#[test]
+fn aliased_export_via_aliased_import() {
+    multiple_package_check(vec![
+        (
+            "MyGithubLibrary",
+            r#"
+        namespace TestPackage {
+
+            import Subpackage.Subpackage.Hello as SubHello;
+
+            export HelloFromGithub;
+            export SubHello;
+
+            /// This is a Doc String!
+            function HelloFromGithub() : Unit {
+                SubHello();
+            }
+        }
+
+        namespace Subpackage.Subpackage {
+            function Hello() : Unit {}
+            export Hello;
+        }
+
+        "#,
+        ),
+        (
+            "UserCode",
+            r#"
+           import MyGithubLibrary.TestPackage.SubHello;
+           import MyGithubLibrary.TestPackage.HelloFromGithub;
+           import MyGithubLibrary.Subpackage.Subpackage as P;
+
+            function Main() : Unit {
+                HelloFromGithub();
+                SubHello();
+                P.Hello();
+            }
+         "#,
         ),
     ]);
 }
