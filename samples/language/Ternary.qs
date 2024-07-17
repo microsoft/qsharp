@@ -9,7 +9,7 @@
 /// `[condition] ? [true branch] | [else branch]`
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let fahrenheit = -40;
 
         // The below ternary expression sets the value of `fahrenheit` to its absolute value.

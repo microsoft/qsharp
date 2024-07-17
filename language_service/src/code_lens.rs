@@ -20,7 +20,7 @@ pub(crate) fn get_code_lenses(
     source_name: &str,
     position_encoding: Encoding,
 ) -> Vec<CodeLens> {
-    if matches!(compilation.kind, CompilationKind::Notebook) {
+    if matches!(compilation.kind, CompilationKind::Notebook { .. }) {
         // entrypoint actions don't work in notebooks
         return vec![];
     }

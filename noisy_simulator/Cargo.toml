@@ -1,0 +1,16 @@
+[package]
+name = "noisy_simulator"
+description = "Q# noisy simulator"
+
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nalgebra = { workspace = true }
+num-complex = { workspace = true }
+rand = { workspace = true }
+thiserror = { workspace = true }

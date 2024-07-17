@@ -8,8 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation ExplicitReturn() : Unit {
-        // Explicitly return `Unit`.
+    function ExplicitReturn() : Unit {
         return ();
     }
     operation NoReturn() : Unit {
