@@ -6,7 +6,7 @@
 ///
 /// # Description
 /// Organizing code into multiple Q# source files is an important part of
-/// writing readable and maintainable code. In this project, we have `BellState.qs`, `SWAP.qs`,
+/// writing readable and maintainable code. In this project, we have `BellState.qs`, `Test_SWAP.qs`,
 /// and `OperationEquivalence.qs`, which contain the operation to be tested.
 /// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
 /// to include all Q# files under `src/`.
