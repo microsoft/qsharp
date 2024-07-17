@@ -12,7 +12,7 @@
 /// to include all Q# files under `src/`.
 /// These will be tested by Python wrapper, `test_dump_operation.py`
 
-namespace SWAP {
+namespace Test_SWAP {
     /// # Summary
     /// Operation for testing with `dump_operation.py` and `TestEquivalence` operation.
     ///
@@ -30,6 +30,8 @@ namespace SWAP {
     /// ## qs
     /// Input qubit register
     operation ApplySWAP2(qs : Qubit[]) : Unit is Ctl + Adj {
-        SWAP(qs[0], qs[1]);
+        CNOT(qs[0], qs[1]); // a, a xor b
+        CNOT(qs[1], qs[0]); // b, a xor b
+        CNOT(qs[0], qs[1]); // b, a
     }
 }
