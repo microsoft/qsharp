@@ -11,6 +11,7 @@ import {
 import * as vscode from "vscode";
 import { URI, Utils } from "vscode-uri";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
+import { sendTelemetryEvent, EventType } from "./telemetry";
 
 /** Returns the manifest document if one is found
  * returns null otherwise
@@ -247,6 +248,11 @@ export async function fetchGithubRaw(
   const uri = `${githubEndpoint}/${owner}/${repo}/${ref}/${pathNoLeadingSlash}`;
   log.info(`making request to ${uri}`);
   const response = await fetch(uri);
+  sendTelemetryEvent(
+    EventType.FetchGitHub,
+    { status: response.status.toString() },
+    {},
+  );
   if (!response.ok) {
     log.warn(
       `fetchGithubRaw: ${owner}/${repo}/${ref}/${path} -> ${response.status} ${response.statusText}`,
