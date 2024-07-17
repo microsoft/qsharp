@@ -45,7 +45,9 @@ import { isPanelOpen } from "../webviewPanel";
 import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
-  "program contains compile errors(s): cannot run. See debug console for more details.";
+  "The Q# program contains one or more compile errors and cannot run. See debug console for more details.";
+const ErrorProgramMissingEntry =
+  "The Q# program does not contain an entry point and cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
 const ConfigurationDelayMS = 1000;
 
@@ -259,7 +261,9 @@ export class QscDebugSession extends LoggingDebugSession {
       this.writeToDebugConsole(this.failureMessage);
       this.sendErrorResponse(response, {
         id: -1,
-        format: ErrorProgramHasErrors,
+        format: this.failureMessage.includes("Qsc.EntryPoint.NotFound")
+          ? ErrorProgramMissingEntry
+          : ErrorProgramHasErrors,
         showUser: true,
       });
       return;

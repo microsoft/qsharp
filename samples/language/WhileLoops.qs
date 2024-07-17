@@ -9,7 +9,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         mutable x = 0;
         while x < 3 {
             set x += 1;

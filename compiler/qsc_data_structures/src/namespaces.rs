@@ -5,7 +5,7 @@
 mod tests;
 
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+use std::{cell::RefCell, collections::BTreeMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
 pub const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
@@ -15,7 +15,7 @@ pub const PRELUDE: [[&str; 3]; 4] = [
 ];
 
 /// An ID that corresponds to a namespace in the global scope.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default, PartialOrd, Ord)]
 pub struct NamespaceId(usize);
 impl NamespaceId {
     /// Create a new namespace ID.
@@ -187,12 +187,84 @@ impl NamespaceTreeRoot {
         ns: impl Into<Vec<Rc<str>>>,
         root: NamespaceId,
     ) -> NamespaceId {
+        let ns = ns.into();
+        if ns.is_empty() {
+            return root;
+        }
         let (_root_name, root_contents) = self.find_namespace_by_id(&root);
         let id = root_contents
             .borrow_mut()
-            .insert_or_find_namespace(ns.into().into_iter().peekable(), &mut self.assigner);
+            .insert_or_find_namespace(ns.into_iter().peekable(), &mut self.assigner);
 
-        id.expect("empty name should not be passed into namespace insertion")
+        id.expect("empty name checked for above")
+    }
+
+    pub fn insert_or_find_namespace_from_root_with_id(
+        &mut self,
+        mut ns: Vec<Rc<str>>,
+        root: NamespaceId,
+        base_id: NamespaceId,
+    ) {
+        if ns.is_empty() {
+            return;
+        }
+        let (_root_name, root_contents) = self.find_namespace_by_id(&root);
+        // split `ns` into [0..len - 1] and [len - 1]
+        let suffix = ns.split_off(ns.len() - 1)[0].clone();
+        let prefix = ns;
+
+        // if the prefix is empty, we are inserting into the root
+        if prefix.is_empty() {
+            self.insert_with_id(Some(root), base_id, &suffix);
+        } else {
+            let prefix_id = root_contents
+                .borrow_mut()
+                .insert_or_find_namespace(prefix.into_iter().peekable(), &mut self.assigner)
+                .expect("empty name checked for above");
+
+            self.insert_with_id(Some(prefix_id), base_id, &suffix);
+        }
+    }
+
+    /// Each item in this iterator is the same, single namespace. The reason there are multiple paths for it,
+    /// each represented by a `Vec<Rc<str>>`, is because there may be multiple paths to the same
+    /// namespace, through aliasing or re-exports.
+    pub fn iter(&self) -> std::collections::btree_map::IntoValues<NamespaceId, Vec<Vec<Rc<str>>>> {
+        let mut stack = vec![(vec![], self.tree.clone())];
+        let mut result: Vec<(NamespaceId, Vec<Rc<str>>)> = vec![];
+        while let Some((names, node)) = stack.pop() {
+            result.push((node.borrow().id, names.clone()));
+            for (name, child) in node.borrow().children() {
+                let mut new_names = names.clone();
+                new_names.push(name.clone());
+                stack.push((new_names, child.clone()));
+            }
+            if node.borrow().children().is_empty() {
+                result.push((node.borrow().id, names));
+            }
+        }
+
+        // flatten the result into a list of paths
+
+        // use a btree map here instead of a hash map for deterministic iteration --
+        // while it shouldn't be consequential, any nondeterminism in a compiler makes
+        // things more difficult to track down then they go wrong.
+        let mut flattened_result = BTreeMap::default();
+        for (id, names) in result {
+            let entry = flattened_result.entry(id).or_insert_with(Vec::new);
+            entry.push(names);
+        }
+
+        flattened_result.into_values()
+    }
+}
+
+impl IntoIterator for &NamespaceTreeRoot {
+    type Item = Vec<Vec<Rc<str>>>;
+    type IntoIter = std::collections::btree_map::IntoValues<NamespaceId, Vec<Vec<Rc<str>>>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

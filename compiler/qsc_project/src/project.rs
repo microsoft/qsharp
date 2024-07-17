@@ -19,7 +19,7 @@ use std::{
 use thiserror::Error;
 
 /// Describes a Q# project with all its sources and dependencies resolved.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
     /// Not guaranteed to be unique. Don't use as a key.

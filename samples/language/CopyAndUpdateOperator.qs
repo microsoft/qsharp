@@ -7,7 +7,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         let array = [10, 11, 12, 13];
 
         // `w/` followed by the `<-` copies and updates a single element.
