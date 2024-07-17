@@ -11,7 +11,7 @@
   },
   "type": "commonjs",
   "engines": {
-    "vscode": "^1.88.0"
+    "vscode": "^1.90.0"
   },
   "categories": [
     "Programming Languages",
@@ -26,9 +26,6 @@
     "onDebugDynamicConfigurations:qsharp",
     "onFileSystem:qsharp-vfs",
     "onWebviewPanel:qsharp-webview"
-  ],
-  "enabledApiProposals": [
-    "chatParticipant"
   ],
   "contributes": {
     "walkthroughs": [
