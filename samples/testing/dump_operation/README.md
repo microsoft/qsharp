@@ -1,12 +1,12 @@
 **Copyright (c) Microsoft Corporation. All rights reserved.**  
 **Licensed under the MIT License.**
 
-# Testing Operations in Modern QDK
-This sample project demonstrates different approaches to testing operations in Modern QDK, which unlike Classic QDK, doesn't support native Q# tests.
+# Testing Operations in the QDK
+This sample project demonstrates different approaches to testing operations in the QDK, both via Python and within Q# itself.
 
 ## Testing Methods
 
-There are two primary ways to test operations in Modern QDK:
+There are two primary ways to test operations in the QDK:
 
 1. **Dumping Operation Output:**
    - Use the `dump_operation` Python API to retrieve the operation's representation and compare it against the expected output.
@@ -33,5 +33,5 @@ Open the `samples/testing/dump_operation` directory, and run `pytest` command.
 
 ## Reference Links:
 - [Q# Testing guide](https://learn.microsoft.com/azure/quantum/user-guide/testing-debugging).
-- [Getting started with modern QDK](https://learn.microsoft.com/azure/quantum/install-overview-qdk)
+- [Getting started with the QDK](https://learn.microsoft.com/azure/quantum/install-overview-qdk)
 - [Getting started with Pytest](https://docs.pytest.org/en/stable/getting-started.html)
