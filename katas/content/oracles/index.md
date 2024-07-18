@@ -62,7 +62,7 @@ This allows us to define quantum oracles based on their effect on the basis stat
 
 > For example, an oracle that implements a function that takes two bits of input is defined using its effect on basis states $\ket{00}$, $\ket{01}$, $\ket{10}$, and $\ket{11}$.  
 
-There're two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
+There are two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
 
 @[section]({
     "id": "oracles__phase_oracles",
