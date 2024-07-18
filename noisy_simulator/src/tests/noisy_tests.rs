@@ -50,24 +50,25 @@ fn depolarizing_channel(lambda: f64) -> Operation {
 }
 
 pub fn check_noisy_identity_yields_same_qubit_with_right_probability<NS: NoisySimulator>() {
+    const SHOTS: u64 = 500_000;
+
     let depolarizing_channel = depolarizing_channel(0.1);
     let mz = noiseless_tests::noiseless_mz();
 
-    let mut total_outcome: f64 = 0.0;
+    let mut total_outcome: usize = 0;
 
-    // Run 1000 simulations, on average we should measure the wrong outcome, i.e. 1,
+    // Run `SHOTS` simulations, on average we should measure the wrong outcome, i.e. 1,
     // 5% of the times (𝜆 / 2).
-    const SHOTS: u64 = 500_000;
-
     for seed in 0..SHOTS {
         let mut sim = NS::new_with_seed(1, seed);
         sim.apply_operation(&depolarizing_channel, &[0])
             .expect("operation should succeed");
         total_outcome += sim
             .sample_instrument(&mz, &[0])
-            .expect("operation should succeed") as f64;
+            .expect("operation should succeed");
     }
 
-    total_outcome /= SHOTS as f64;
-    assert_approx_eq_with_tolerance(0.05, total_outcome, 0.001);
+    #[allow(clippy::cast_precision_loss)]
+    let expected_outcome: f64 = (total_outcome as f64) / (SHOTS as f64);
+    assert_approx_eq_with_tolerance(0.05, expected_outcome, 0.001);
 }
