@@ -56,12 +56,16 @@ pub fn apply_kernel(
         if (s & mask) == 0 {
             // Extract relevant entries into a vector to make the gate application easier.
             for k in 0..num_elements {
-                let idx = s | index_offsets[k];
-                extracted_entries[k] = state[idx];
+                // let idx = s | index_offsets[k];
+                // extracted_entries[k] = state[idx];
+                let idx = s | unsafe { index_offsets.get_unchecked(k) };
+                unsafe {
+                    *extracted_entries.get_unchecked_mut(k) = *state.get_unchecked(idx);
+                }
             }
 
             // Apply the gate.
-            new_entries.gemv(
+            new_entries.gemv_tr(
                 Complex::ONE,
                 operation_matrix,
                 &extracted_entries,
@@ -70,8 +74,12 @@ pub fn apply_kernel(
 
             // Store accumulated result back into the state vector.
             for k in 0..num_elements {
-                let idx = s | index_offsets[k];
-                state[idx] = new_entries[k];
+                // let idx = s | index_offsets[k];
+                // state[idx] = extracted_entries[k];
+                let idx = s | unsafe { index_offsets.get_unchecked(k) };
+                unsafe {
+                    *state.get_unchecked_mut(idx) = *new_entries.get_unchecked(k);
+                }
             }
         }
     }
