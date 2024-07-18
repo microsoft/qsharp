@@ -203,7 +203,7 @@ impl<'a> ReferenceFinder<'a> {
             let def_span = match &def.kind {
                 hir::ItemKind::Callable(decl) => decl.name.span,
                 hir::ItemKind::Namespace(name, _) => name.span(),
-                hir::ItemKind::Ty(name, _) => name.span,
+                hir::ItemKind::Ty(name, _) | hir::ItemKind::Export(name, _) => name.span,
             };
             locations.push(
                 self.location(

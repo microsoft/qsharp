@@ -70,8 +70,8 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals.add_external_package(PackageId::CORE, &unit.package, &None);
-            typeck_globals.add_external_package(PackageId::CORE, &unit.package);
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
+            typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
@@ -79,8 +79,8 @@ impl Compiler {
             let unit = store
                 .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.add_external_package(*id, &unit.package, alias);
-            typeck_globals.add_external_package(*id, &unit.package);
+            resolve_globals.add_external_package(*id, &unit.package, store, alias);
+            typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
@@ -269,7 +269,13 @@ impl Compiler {
         self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
-        let package = self.lower(&mut unit.assigner, &*ast);
+        let package = self.lower(
+            &mut unit.assigner,
+            &*ast,
+            // not an ideal clone, but it is once per fragment, and the namespace tree is
+            // relatively lightweight
+            self.resolver.namespaces().clone(),
+        );
 
         let errors = self
             .resolver
@@ -376,10 +382,15 @@ impl Compiler {
         (package, with_source(errors, sources, offset))
     }
 
-    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
+    fn lower(
+        &mut self,
+        hir_assigner: &mut HirAssigner,
+        package: &ast::Package,
+        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    ) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package)
+            .lower_package(package, namespaces)
     }
 }
 
