@@ -1,6 +1,6 @@
-Suppose that you would like to schedule a meeting with your co-worker Jasmine.
+Suppose that you'd like to schedule a meeting with your co-worker Jasmine.
 You both work five day workweeks, and $\ket{x}$ and $\ket{jasmine}$ are 5-bit states representing your and Jasmine's schedules.
-The schedules are indicators of a person being busy on that day: a $1$ bit means that person is busy on that day, and $0$ means they're free for a meeting that day. Implement a function that determines if you and Jasmine can schedule a meeting during the week, i.e., whether there is a day when both schedules have a $0$ simultaneously.
+The schedules are indicators of a person being busy on that day: a $1$ bit means that person is busy on that day, and $0$ means they're free for a meeting that day. Implement a function that determines if you and Jasmine can schedule a meeting during the week, that is, whether there is a day when both schedules have a $0$ simultaneously.
 
 **Inputs:**
 
@@ -22,5 +22,5 @@ Flip the state of $\ket{y}$ if you and Jasmine are both free on the same day for
 <br/>
 <details>
   <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
-    This is a marking oracle, because we are flipping the state of the target qubit $\ket{y}$ based on the state of the inputs $\ket{x}$ and $\ket{jasmine}$. Notice that even though we do not have the typical single-input-register situation that we saw earlier, this is still a marking oracle.
+    This is a marking oracle, because you're flipping the state of the target qubit $\ket{y}$ based on the state of the inputs $\ket{x}$ and $\ket{jasmine}$. Notice that even though you don't have the typical single-input-register situation that we saw earlier, this is still a marking oracle.
 </details>
