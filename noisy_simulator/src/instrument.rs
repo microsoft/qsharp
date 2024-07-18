@@ -109,7 +109,7 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
                 .map(|k| {
                     // This code is doing the equivalent to:
                     // choi_matrix += vectorized(K) * vectorized(K).adjoint()
-                    // Note that if you multiply a row vector times a column
+                    // Note that if you multiply a column vector times a row
                     // vector you get a matrix.
                     let dim = k.shape().0.pow(2);
                     let mut choi = SquareMatrix::zeros(dim, dim);
