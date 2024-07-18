@@ -32,7 +32,7 @@ Formally, a **classical oracle** is a function that, provided some input, produc
 
 Some classical problems (typically <a href="https://en.wikipedia.org/wiki/Decision_problem" target="_blank">decision problems</a>) are also expressed in terms of oracles; in this case the implementation of the function isn't important, but the functionality that it provides.  
 
-> Suppose you've given a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
+> Suppose you've been given a function which takes two list parameters as input, where these lists represent the availability of two employees at a company during the week.  The function returns true if there is a day (Monday, Tuesday, Wednesday, Thursday, or Friday) for which they are both free and could schedule a meeting, and false if no such date exists.
 >
 > This function is an example of a classical oracle.
 
