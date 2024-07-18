@@ -60,7 +60,7 @@ fn check_effect_matrix_is_computed_correctly() {
          9., 12., 23., 37.;
         15., 19., 37., 61.;
     ]
-    .map(|z| z.into());
+    .map(std::convert::Into::into);
 
     let eff1 = dmatrix! [
         11.3225 + 0.   * I, 6.1 - 1.85 * I, 9.  - 1.95 * I, 15. - 3.4 * I;
@@ -101,7 +101,7 @@ fn check_operation_matrix_is_computed_correctly() {
         3.,  3.,  9.,  15.,  1.,  1.,  3.,  5. ,  1.,  1.,  3.,  5. ,  2. ,  2. ,  6. ,  10.;
         9.,  3.,  3.,  6. ,  3.,  1.,  1.,  2. ,  3.,  1.,  1.,  2. ,  6. ,  2. ,  2. ,  4. ;
     ]
-    .map(|z| z.into());
+    .map(std::convert::Into::into);
 
     let op1 = dmatrix![
         0.01   + 0.   * I, 0.1  + 0.1  * I, 0. + 0.2  * I, 0.  + 0.4  * I, 0.1  - 0.1  * I, 2. + 0. * I, 2. + 2. * I, 4.  + 4. * I, 0. - 0.2  * I, 2. - 2. * I, 4. + 0. * I, 8.  + 0. * I, 0.  - 0.4  * I, 4.  - 4. * I, 8.  + 0. * I, 16. + 0. * I;

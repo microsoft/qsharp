@@ -16,5 +16,5 @@ Flip the sign of the input state $\ket{x}$ if the $k$-th bit of $x$ is $1$.
 <br/>
 <details>
   <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $\ket{x}$ based on the value of the function $f(x)$.
+    This is a phase oracle, because you're changing the phase of the input state $\ket{x}$ based on the value of the function $f(x)$.
 </details>
