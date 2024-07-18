@@ -498,18 +498,14 @@ impl CompletionListBuilder {
                                             Some(alias) => alias.clone().map(|x| vec![x]),
                                             None => match insert_open_at {
                                                 Some(start) => {
+                                                    let open_text = format_external_name(
+                                                        &package_alias_from_manifest,
+                                                        &Into::<Vec<_>>::into(namespace),
+                                                        None,
+                                                    );
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {}{};{indent}",
-                                                            // insert the package alias, if there is one
-                                                            if let Some(ref alias) =
-                                                                package_alias_from_manifest
-                                                            {
-                                                                format!("{alias}.")
-                                                            } else {
-                                                                String::new()
-                                                            },
-                                                            namespace.name()
+                                                            "open {open_text};{indent}",
                                                         ),
                                                         range: start,
                                                     });
@@ -528,15 +524,10 @@ impl CompletionListBuilder {
                                 };
 
                                 let label = if let Some(qualification) = qualification {
-                                    format!(
-                                        "{}{}.{name}",
-                                        // insert the package alias, if there is one
-                                        if let Some(ref alias) = package_alias_from_manifest {
-                                            format!("{alias}.")
-                                        } else {
-                                            String::new()
-                                        },
-                                        qualification.join(".")
+                                    format_external_name(
+                                        &package_alias_from_manifest,
+                                        &qualification,
+                                        Some(name),
                                     )
                                 } else {
                                     name.to_owned()
@@ -597,20 +588,50 @@ impl CompletionListBuilder {
             ItemKind::Namespace(namespace, _)
                 if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
-                let label = format!(
-                    "{}{}",
-                    if let Some(ref alias) = package_alias {
-                        format!("{alias}.")
-                    } else {
-                        String::new()
-                    },
-                    namespace.name()
-                );
+                let qualification = namespace
+                    .str_iter()
+                    .into_iter()
+                    .map(Rc::from)
+                    .collect::<Vec<_>>();
+                let label = format_external_name(&package_alias, &qualification[..], None);
                 Some(CompletionItem::new(label, CompletionItemKind::Module))
             }
             _ => None,
         })
     }
+}
+
+/// Format an external fully qualified name
+/// This will prepend the package alias and remove `Main` if it is the first namespace
+fn format_external_name(
+    package_alias_from_manifest: &Option<Arc<str>>,
+    qualification: &[Rc<str>],
+    name: Option<&str>,
+) -> String {
+    let qualification = if package_alias_from_manifest.is_some()
+        && qualification.len() == 1
+        && qualification.first() == Some(&"Main".into())
+    {
+        &qualification[1..]
+    } else {
+        qualification
+    };
+
+    format!(
+        "{}{}{}",
+        // insert the package alias, if there is one
+        if let Some(ref alias) = package_alias_from_manifest {
+            format!("{alias}.")
+        } else {
+            String::new()
+        },
+        qualification.join("."),
+        if let Some(name) = name {
+            format!(".{name}")
+        } else {
+            String::new()
+        }
+    )
 }
 
 /// Convert a local into a completion item

@@ -66,7 +66,7 @@ pub enum Res {
     /// A type/functor parameter in the generics section of the parent callable decl.
     Param(ParamId),
     /// A primitive type.
-    PrimTy(Prim),
+    PrimTy(Prim),   
     /// The unit type.
     UnitTy,
     /// An export, which could be from another package.
