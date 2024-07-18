@@ -54,8 +54,6 @@ pub fn apply_kernel(
     let mut new_entries = ComplexVector::zeros(num_elements);
     for s in 0..state.len() {
         if (s & mask) == 0 {
-            new_entries.fill(Complex::ZERO);
-
             // Extract relevant entries into a vector to make the gate application easier.
             for k in 0..num_elements {
                 let idx = s | index_offsets[k];
@@ -63,8 +61,12 @@ pub fn apply_kernel(
             }
 
             // Apply the gate.
-            let one = num_complex::Complex::<f64>::ONE;
-            new_entries.gemv(one, operation_matrix, &extracted_entries, one);
+            new_entries.gemv(
+                Complex::ONE,
+                operation_matrix,
+                &extracted_entries,
+                Complex::ZERO,
+            );
 
             // Store accumulated result back into the state vector.
             for k in 0..num_elements {
