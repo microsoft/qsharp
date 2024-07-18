@@ -194,3 +194,4 @@ You may play with the code and check if there is a difference in results when
 })
 
 Congratulations! In this kata you learned how to use quantum entanglement in nonlocal quantum games to get results that are better than any classical strategy can offer.
+
