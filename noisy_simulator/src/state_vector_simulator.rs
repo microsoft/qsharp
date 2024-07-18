@@ -120,9 +120,7 @@ impl StateVector {
             return Err(Error::ProbabilityZeroEvent);
         }
         let renormalization_factor = 1.0 / norm_squared.sqrt();
-        for entry in self.data.iter_mut() {
-            *entry *= renormalization_factor;
-        }
+        self.data.scale_mut(renormalization_factor);
         Ok(())
     }
 
