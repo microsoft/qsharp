@@ -45,7 +45,7 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
             for error in &errors {
                 eprintln!("error: {error}");
             }
-            panic!("compilation failed (first error: {:?})", errors[0]);
+            panic!("compilation failed (first error: {})", errors[0]);
         }
     };
     interpreter.set_classical_seed(Some(1));
@@ -59,7 +59,7 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
             for error in &errors {
                 eprintln!("error: {error}");
             }
-            panic!("execution failed (first error: {:?})", errors[0]);
+            panic!("execution failed (first error: {})", errors[0]);
         }
     };
     String::from_utf8(output).expect("output should be valid UTF-8") + &val.to_string()
@@ -81,7 +81,7 @@ fn compile(sources: SourceMap) {
             for error in &errors {
                 eprintln!("error: {error}");
             }
-            panic!("compilation failed (first error: {:?})", errors[0]);
+            panic!("compilation failed (first error: {})", errors[0]);
         }
     };
 }
@@ -94,7 +94,7 @@ fn compile_project(project_folder: &str) {
 
     if !project.errors.is_empty() {
         for e in project.errors {
-            eprintln!("{e:?}");
+            eprintln!("{e}");
         }
         panic!("project should load without errors");
     }
@@ -105,7 +105,7 @@ fn compile_project(project_folder: &str) {
 
     if !buildable_program.dependency_errors.is_empty() {
         for e in buildable_program.dependency_errors {
-            eprintln!("{e:?}");
+            eprintln!("{e}");
         }
         panic!("dependencies should compile without errors");
     }
@@ -132,7 +132,7 @@ fn compile_project(project_folder: &str) {
             for error in &errors {
                 eprintln!("error: {error}");
             }
-            panic!("compilation failed (first error: {:?})", errors[0]);
+            panic!("compilation failed (first error: {})", errors[0]);
         }
     };
 }
