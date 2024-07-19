@@ -296,7 +296,11 @@ impl LanguageService {
         // Borrow must succeed here. If it doesn't succeed, a writer
         // (i.e. [`state::CompilationStateUpdater`]) must be holding a mutable reference across
         // an `await` point. Which it shouldn't be doing.
-        let compilation_state = self.state.borrow();
+        let Ok(compilation_state) = self.state.try_borrow() else {
+            log::warn!("Failed to borrow compilation state for {op_name} on {uri}");
+            return T::default();
+        };
+
         if let Some(compilation) = compilation_state.get_compilation(uri) {
             let res = op(compilation, uri, arg, self.position_encoding);
             trace!("{op_name} result: {res:?}");
