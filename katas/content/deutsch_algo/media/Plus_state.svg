@@ -48,7 +48,7 @@
             </g>
 
             <!-- Normal points -->
-            <g class="kata_svg_point" stroke-miterlimit="8" stroke-width="1.38">
+            <g class="kata_svg_point">
                 <path d="m140 7.4c0-3.26 2.64-5.9 5.9-5.9s5.9 2.64 5.9 5.9-2.64 5.9-5.9 5.9-5.9-2.64-5.9-5.9z" />
                 <path d="m1.3 147c0-3.26 2.64-5.9 5.9-5.9 3.26 0 5.9 2.64 5.9 5.9s-2.64 5.9-5.9 5.9c-3.26 0-5.9-2.64-5.9-5.9z" />
                 <path d="m140 286c0-3.26 2.64-5.9 5.9-5.9s5.9 2.64 5.9 5.9-2.64 5.9-5.9 5.9-5.9-2.64-5.9-5.9z" />
@@ -70,7 +70,7 @@
             </g>
 
             <!-- From points -->
-            <g class="kata_svg_point kata_svg_stroke_accent" stroke-miterlimit="8" stroke-width="1.38">
+            <g class="kata_svg_point kata_svg_stroke_accent">
                 <path d="m279 147c0-3.26 2.69-5.9 6-5.9s6 2.64 6 5.9-2.69 5.9-6 5.9-6-2.64-6-5.9z" />
                 <path d="m630 147c0-3.26 2.64-5.9 5.9-5.9s5.9 2.64 5.9 5.9-2.64 5.9-5.9 5.9-5.9-2.64-5.9-5.9z" />
             </g>
