@@ -615,12 +615,14 @@ fn format_external_name(
         vec![]
     };
 
-    if package_alias_from_manifest.is_some()
+    // if this comes from an external project's Main, then the path does not include Main
+    let item_comes_from_main_of_external_project = package_alias_from_manifest.is_some()
         && qualification.len() == 1
-        && qualification.first() == Some(&"Main".into())
-    {
-        fully_qualified_name.append(&mut qualification[1..].to_vec());
-    } else {
+        && qualification.first() == Some(&"Main".into());
+
+    // So, if it is _not_ from an external project's `Main`, we include the namespace in the fully
+    // qualified name.
+    if !(item_comes_from_main_of_external_project) {
         fully_qualified_name.append(&mut qualification.to_vec());
     };
 
