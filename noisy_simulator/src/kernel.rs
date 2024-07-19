@@ -71,7 +71,7 @@ pub fn apply_kernel(
             }
 
             // Apply the gate.
-            new_entries.gemv_tr(
+            new_entries.gemv(
                 Complex::ONE,
                 operation_matrix,
                 &extracted_entries,
