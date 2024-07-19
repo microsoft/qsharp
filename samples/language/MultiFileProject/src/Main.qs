@@ -7,21 +7,14 @@
 /// and `Particle.qs`, which defines a new namespace for particle operations.
 /// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
 /// to include all Q# files under `src/`.
-namespace Main {
+namespace MyQuantumApp {
     open Particle;
     @EntryPoint()
-    function Bar() : Unit {
+    function Main() : Unit {
         let particleA = Particle(0, 0, 0);
         let particleB = Particle(1, 1, 1);
 
         let particleC = addParticles(particleA, particleB);
         Message($"Particle C: Particle({particleC::x}, {particleC::y}, {particleC::z})")
     }
-
-    export Bar;
-}
-
-namespace Main.Foo.Bar.Baz {
-    function Hello() : Unit {}
-    export Hello;
 }

@@ -482,7 +482,8 @@ impl CompletionListBuilder {
                                 let mut qualification: Option<Vec<Rc<str>>> = None;
                                 match &current_namespace_name {
                                     Some(curr_ns)
-                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                        if package_alias_from_manifest.is_none()
+                                            && *curr_ns == Into::<Vec<_>>::into(namespace) => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
@@ -498,14 +499,14 @@ impl CompletionListBuilder {
                                             Some(alias) => alias.clone().map(|x| vec![x]),
                                             None => match insert_open_at {
                                                 Some(start) => {
-                                                    let open_text = format_external_name(
+                                                    let import_text = format_external_name(
                                                         &package_alias_from_manifest,
                                                         &Into::<Vec<_>>::into(namespace),
-                                                        None,
+                                                        Some(name),
                                                     );
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {open_text};{indent}",
+                                                            "import {import_text};{indent}",
                                                         ),
                                                         range: start,
                                                     });
@@ -608,30 +609,26 @@ fn format_external_name(
     qualification: &[Rc<str>],
     name: Option<&str>,
 ) -> String {
-    let qualification = if package_alias_from_manifest.is_some()
+    let mut fully_qualified_name: Vec<Rc<str>> = if let Some(alias) = package_alias_from_manifest {
+        vec![Rc::from(&*alias.clone())]
+    } else {
+        vec![]
+    };
+
+    if package_alias_from_manifest.is_some()
         && qualification.len() == 1
         && qualification.first() == Some(&"Main".into())
     {
-        &qualification[1..]
+        fully_qualified_name.append(&mut qualification[1..].to_vec());
     } else {
-        qualification
+        fully_qualified_name.append(&mut qualification.to_vec());
     };
 
-    format!(
-        "{}{}{}",
-        // insert the package alias, if there is one
-        if let Some(ref alias) = package_alias_from_manifest {
-            format!("{alias}.")
-        } else {
-            String::new()
-        },
-        qualification.join("."),
-        if let Some(name) = name {
-            format!(".{name}")
-        } else {
-            String::new()
-        }
-    )
+    if let Some(name) = name {
+        fully_qualified_name.push(name.into());
+    }
+
+    fully_qualified_name.join(".")
 }
 
 /// Convert a local into a completion item
