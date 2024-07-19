@@ -1,9 +1,10 @@
 namespace Particle {
-    newtype Particle = (x : Int, y : Int, z : Int);
+    export Particle;
+    newtype Particles = (x : Int, y : Int, z : Int);
 
-    function addParticles(a : Particle, b : Particle) : Particle {
+    function addParticles(a : Particles, b : Particles) : Particles {
         let (x1, y1, z1) = a!;
         let (x2, y2, z2) = b!;
-        return Particle(x1 + x2, y1 + y2, z1 + z2);
+        return Particles(x1 + x2, y1 + y2, z1 + z2);
     }
 }

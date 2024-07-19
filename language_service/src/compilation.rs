@@ -63,8 +63,10 @@ impl Compilation {
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
     ) -> Self {
+        trace!("compiling dependencies into buildable program");
         let mut buildable_program =
             prepare_package_store(target_profile.into(), package_graph_sources.clone());
+        trace!("finished compiling dependencies into buildable program");
 
         let mut compile_errors = take(&mut buildable_program.dependency_errors);
 
@@ -75,6 +77,8 @@ impl Compilation {
             ..
         } = buildable_program;
         let user_code = SourceMap::new(user_code.sources, None);
+
+        trace!("compiling user code");
 
         let (unit, mut this_errors) = compile::compile(
             &package_store,
@@ -92,6 +96,8 @@ impl Compilation {
             .get(package_id)
             .expect("expected to find user package");
 
+        trace!("running FIR passes");
+
         run_fir_passes(
             &mut compile_errors,
             target_profile,
@@ -100,7 +106,10 @@ impl Compilation {
             unit,
         );
 
+        trace!("running linter passes");
+
         run_linter_passes(&mut compile_errors, &package_store, unit, lints_config);
+        trace!("finished compiling user code");
 
         Self {
             package_store,
@@ -479,6 +488,8 @@ impl Lookup for Compilation {
                 .items
                 .get(*local_item_id)
                 .expect("exported item should exist");
+
+            trace!("following re-export chain to item {item:?}");
         }
         (
             item,

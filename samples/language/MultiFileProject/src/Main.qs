@@ -8,11 +8,11 @@
 /// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
 /// to include all Q# files under `src/`.
 namespace MyQuantumApp {
-    open Particle;
+    import Particle.*;
     @EntryPoint()
     function Main() : Unit {
-        let particleA = Particle(0, 0, 0);
-        let particleB = Particle(1, 1, 1);
+        let particleA = Particles(0, 0, 0);
+        let particleB = Particles(1, 1, 1);
 
         let particleC = addParticles(particleA, particleB);
         Message($"Particle C: Particle({particleC::x}, {particleC::y}, {particleC::z})")
