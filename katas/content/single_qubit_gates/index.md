@@ -15,15 +15,15 @@ This kata introduces you to single-qubit gates. Quantum gates are the quantum co
 
 **What you should know to start working on this kata:**
 
-- Basic linear algebra
-- The concept of qubit
+- Basic knowledge of linear algebra
+- The concept of qubit. If you need a refresher, you can check out "The Qubit" kata preceding this one.
 
 @[section]({
     "id": "single_qubit_gates__basics",
     "title": "The Basics"
 })
 
-There are certain properties common to all quantum gates. This section will introduce those properties, using the $X$ gate as an example.
+There are certain properties common to all quantum gates. This section introduces those properties, using the $X$ gate as an example.
 
 ## Matrix Representation
 
@@ -74,7 +74,7 @@ Matrix multiplication is associative, so this is equivalent to multiplying the $
 
 >Note that matrix multiplication isn’t commutative, thus $(BA) \neq (AB)$.
 
-All quantum gates are reversible - there is another gate which will undo any given gate's transformation, returning the qubit to its original state.
+All quantum gates are reversible, that is, there exists another gate which will undo any given gate's transformation, returning the qubit to its original state.
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information.
 Quantum gates are represented by unitary matrices, so the inverse of a gate is its adjoint; these terms are also used interchangeably in quantum computing.
 
@@ -84,7 +84,7 @@ There is a simple way to find out what a gate does to the two computational basi
 
 $$A = \begin{bmatrix} \epsilon & \zeta \\ \eta & \mu \end{bmatrix}$$
 
-Watch what happens when we apply it to these states:
+Watch what happens when applying $A$ to these states:
 
 $$
 A\ket{0} =
@@ -102,7 +102,7 @@ A\ket{1} =
 \begin{bmatrix} \zeta \\ \mu \end{bmatrix} = \zeta\ket{0} + \mu\ket{1}
 $$
 
-Notice that applying the gate to the $\ket{0}$ state transforms it into the state written as the first column of the gate's matrix. Likewise, applying the gate to the $\ket{1}$ state transforms it into the state written as the second column. This holds true for any quantum gate, including, of course, the $X$ gate:
+Notice that applying the $A$ gate to the $\ket{0}$ state transforms it into the state written as the first column of the gate's matrix. Likewise, applying the $A$ gate to the $\ket{1}$ state transforms it into the state written as the second column. This holds true for any quantum gate, including, of course, the $X$ gate:
 
 $$X = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
@@ -126,7 +126,7 @@ That is, applying a gate to a qubit in superposition is equivalent to applying t
     "title": "Ket-Bra Representation"
 })
 
-There is another way to represent quantum gates, this time using Dirac notation. However, the kets we've been using aren't enough to represent arbitrary matrices. We need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
+There is another way to represent quantum gates, this time using Dirac notation. However, kets aren't enough to represent arbitrary matrices. You need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
 
 Recall that kets represent column vectors; a bra is a ket's row vector counterpart. For any ket $\ket{\psi}$, the corresponding bra is its adjoint (conjugate transpose): $\bra{\psi} = \ket{\psi}^\dagger$.
 
@@ -161,7 +161,7 @@ Some examples:
 
 Kets and bras give us a neat way to express inner and outer products. The inner product of $\ket{\phi}$ and $\ket{\psi}$ is the matrix product of $\bra{\phi}$ and $\ket{\psi}$, denoted as $\braket{\phi|\psi}$, and their outer product is the matrix product of $\ket{\phi}$ and $\bra{\psi}$, denoted as $\ket{\phi}\bra{\psi}$. Notice that the norm of $\ket{\psi}$ is $\sqrt{\braket{\psi|\psi}}$.
 
-This brings us to representing matrices. Recall that the outer product of two vectors of the same size produces a square matrix. We can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
+This leads to the representation of matrices. Recall that the outer product of two vectors of the same size produces a square matrix. You can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
 
 $$X = \ket{0}\bra{1} + \ket{1}\bra{0}$$
 
@@ -177,7 +177,7 @@ This representation can be used to carry out calculations in Dirac notation with
 
 $$X\ket{0} = \big(\ket{0}\bra{1} + \ket{1}\bra{0}\big)\ket{0} = \ket{0}\braket{1|0} + \ket{1}\braket{0|0} = \ket{0}\big(\braket{1|0}\big) + \ket{1}\big(\braket{0|0}\big) = \ket{0}(0) + \ket{1}(1) = \ket{1}$$
 
-> That last step may seem a bit confusing. Recall that $\ket{0}$ and $\ket{1}$ form an **orthonormal basis**. That is, they are both normalized, and they are orthogonal to each other.
+> That last step may seem a bit confusing. Recall that $\ket{0}$ and $\ket{1}$ form an **orthonormal basis**. That is, they're both normalized, and they're orthogonal to each other.
 >
 > A vector is normalized if its norm is equal to $1$, which only happens if its inner product with itself is equal to $1$. This means that $\braket{0|0} = \braket{1|1} = 1$
 >
@@ -193,7 +193,7 @@ $$A = a_{00} \ket{0}\bra{0} + a_{01} \ket{0}\bra{1} + a_{10} \ket{1}\bra{0} + a_
     "title": "Ket-Bra Decomposition"
 })
 
-This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section is not necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
+This section describes a more formal process of finding the ket-bra decompositions of quantum gates. This section isn't necessary to start working with quantum gates, so feel free to skip it for now, and come back to it later.
 
 You can use the properties of _eigenvalues_ and _eigenvectors_ to find the ket-bra decomposition of any gate. Given a gate $A$ and the orthogonal vectors $\ket{\phi}$ and $\ket{\psi}$, if:
 
@@ -221,7 +221,7 @@ $$= \ket{0}\bra{1} + \ket{1}\bra{0}$$
     "title": "Pauli Gates"
 })
 
-This section introduces some of the common single-qubit gates, including their matrix form, their ket-bra decomposition, and a brief "cheatsheet" listing their effect on some common qubit states.
+This section introduces some of the common single-qubit gates, including their matrix form, their ket-bra decomposition, and a brief "cheat sheet" listing their effect on some common qubit states.
 
 You can use a tool called <a href="https://algassert.com/quirk" target="_blank">Quirk</a> to visualize how these gates interact with various qubit states.
 
@@ -312,16 +312,16 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 The following example contains code demonstrating how to apply gates in Q#. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
-In the previous kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
+In the previous kata, it was mentioned that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. That's the reason why you never assign the output of these gates to any variables in this demo - they don't produce any output.
 
-The same principle applies to applying several gates in a row to a qubit. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $\ket{\psi}$ is denoted as $Z(X(\ket{\psi}))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
+The same principle applies to applying several gates in a row to a qubit. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $\ket{\psi}$ is denoted as $Z(X(\ket{\psi}))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` won't produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they're applied:
 
 ```qsharp
 X(q);
 Z(q);
 ```
 
-All the basic gates we will be covering in this kata are part of the Intrinsic namespace. We're also using the function DumpMachine to print the state of the quantum simulator.
+All the basic gates covered in this kata are part of the Intrinsic namespace. The function `DumpMachine` is also used to print the state of the quantum simulator.
 
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
@@ -367,7 +367,7 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
     "title": "Identity Gate"
 })
 
-The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It is represented by the identity matrix, and does not affect the state of the qubit.
+The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It's represented by the identity matrix, and doesn't affect the state of the qubit.
 
 <table>
 <tr>
@@ -435,7 +435,7 @@ $H\ket{-i} = e^{-i\pi/4}\ket{i} $ <br>
     "title": "Phase Shift Gates"
 })
 
-The next two gates are known as phase shift gates. They apply a phase to the $\ket{1}$ state, and leave the $\ket{0}$ state unchanged.
+The next two gates are known as **phase shift gates**. They apply a phase to the $\ket{1}$ state, and leave the $\ket{0}$ state unchanged.
 
 <table>
   <tr>
@@ -496,8 +496,8 @@ These gates are the $X$ rotation gate $R_x(\theta)$, $Y$ rotation gate $R_y(\the
 Note that for the first three gates the parameter $\theta$ is multiplied by $\frac{1}{2}$ within the gate's matrix.
 
 > These gates are known as rotation gates, because they represent rotations around various axes on the Bloch sphere. The Bloch sphere is a way of representing the qubit states visually, mapping them onto the surface of a sphere.
-> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why we have opted not to go into details in this kata.
-> If you are curious about it, you can learn more in <a href="https://en.wikipedia.org/wiki/Bloch_sphere" target="_blank">this Wikipedia article</a>.
+> Unfortunately, this visualization isn't very useful beyond single-qubit states, which is why this kata doesn't go into details.
+> If you're curious about it, you can learn more in <a href="https://en.wikipedia.org/wiki/Bloch_sphere" target="_blank">this Wikipedia article</a>.
 
 <table>
   <tr>
@@ -597,4 +597,4 @@ Congratulations!  In this kata you learned the matrix and the ket-bra representa
 - Any square matrix can be represented as a linear combination of the outer products of vectors. The outer product is the matrix product of $\ket{\phi}$ and $\bra{\psi}$, denoted as $\ket{\phi}\bra{\psi}$.
 - Pauli gates, identity and Hadamard gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
 
-Next, you will learn about multi-qubit systems in the “Multi-Qubit Systems” kata.
+Next, you'll learn about multi-qubit systems in the “Multi-Qubit Systems” kata.
