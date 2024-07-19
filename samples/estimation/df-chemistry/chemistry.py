@@ -553,8 +553,8 @@ for item in result_obj:
         data['Physical qubits'].append("-")
         data['rQOPS'].append("-")
 
-# Print high-level resource estimation results 
 df = pd.DataFrame(data, columns=["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"])
+# Print high-level resource estimation results
 print(df.to_markdown(index=False))
 
 print("For more detailed resource counts, see file resource_estimate.json")
