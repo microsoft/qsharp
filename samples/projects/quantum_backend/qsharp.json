@@ -1,0 +1,4 @@
+{
+    "files" : [ "src/GateSet.qs" ],
+    "packageType": "lib"
+}
