@@ -56,6 +56,14 @@ pub fn apply_kernel(
         if (s & mask) == 0 {
             // Extract relevant entries into a vector to make the gate application easier.
             for k in 0..num_elements {
+                // SAFETY: index_offsets and extracted_entries have size `num_elements`,
+                // so those get_unchecked are safe. state.get_unchecked(idx) is safe because:
+                //  1. s has total_qubits_in_system bits
+                //  2. index_offset has total_qubits_in_system bits
+                //  3. Therefore, idx = s | index_offset also has total_qubits_in_system bits.
+                //  4. idx < (1 << total_qubits_in_system) = state.len() because
+                //     it has (total_qubits_in_system + 1) bits.
+                //  5. Therefore state.get_unchecked(idx) is safe.
                 let idx = s | unsafe { index_offsets.get_unchecked(k) };
                 unsafe {
                     *extracted_entries.get_unchecked_mut(k) = *state.get_unchecked(idx);
@@ -72,6 +80,14 @@ pub fn apply_kernel(
 
             // Store accumulated result back into the state vector.
             for k in 0..num_elements {
+                // SAFETY: index_offsets and new_entries have size `num_elements`,
+                // so those get_unchecked are safe. state.get_unchecked(idx) is safe because:
+                //  1. s has total_qubits_in_system bits
+                //  2. index_offset has total_qubits_in_system bits
+                //  3. Therefore, idx = s | index_offset also has total_qubits_in_system bits.
+                //  4. idx < (1 << total_qubits_in_system) = state.len() because
+                //     it has (total_qubits_in_system + 1) bits.
+                //  5. Therefore state.get_unchecked(idx) is safe.
                 let idx = s | unsafe { index_offsets.get_unchecked(k) };
                 unsafe {
                     *state.get_unchecked_mut(idx) = *new_entries.get_unchecked(k);
