@@ -132,7 +132,7 @@ impl StateVector {
     ) -> Result<f64, Error> {
         let mut state_copy = self.data.clone();
         apply_kernel(&mut state_copy, effect_matrix, qubits)?;
-        Ok(state_copy.dot(&self.data.conjugate()).re)
+        Ok(self.data.dotc(&state_copy).re)
     }
 
     fn sample_kraus_operators(
