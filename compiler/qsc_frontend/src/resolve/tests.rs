@@ -5114,3 +5114,37 @@ fn disallow_glob_alias_import() {
         "#]],
     );
 }
+
+#[test]
+fn allow_export_of_namespace_within_itself() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export namespace7;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    operation Foo() : Unit {}
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export item1;
+            }
+        "#]],
+    );
+}

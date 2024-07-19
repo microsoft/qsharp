@@ -1656,6 +1656,11 @@ fn bind_global_item(
                     else {
                         continue;
                     };
+                    if ns == namespace {
+                        // A namespace exporting itself is meaningless, since it is already available as itself.
+                        // No need to bind it to an item here, so we skip it.
+                        continue;
+                    }
                     let item_id = next_id();
                     let res = Res::Item(item_id, ItemStatus::Available);
                     names.insert(decl_item.name().id, res.clone());
