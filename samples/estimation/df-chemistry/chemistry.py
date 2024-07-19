@@ -552,14 +552,9 @@ for item in result_obj:
     else:
         data['Physical qubits'].append("-")
         data['rQOPS'].append("-")
- 
-df = pd.DataFrame(data)
+
+# Print high-level resource estimation results 
+df = pd.DataFrame(data, columns=["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"])
 print(df.to_markdown(index=False))
 
-# Print high-level resource estimation results
-# if "physicalCountsFormatted" in res:
-#     print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
-#     print(
-#         f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
-#     )
 print("For more detailed resource counts, see file resource_estimate.json")
