@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Optional, List
+from typing import Optional, List, Any
 
 class NoisySimulatorError(BaseException):
     """
@@ -20,11 +20,14 @@ class Operation:
     transformation that maps a valid density matrix to another valid density matrices.
     """
 
-    def __init__(self, kraus_operators: List[List[List[complex]]]) -> None:
+    def __init__(self, kraus_operators: Any) -> None:
         """
         Construct an operation from a list of Kraus operators.
         Matrices must be of dimension 2^k x 2^k, where k is an integer.
         Raises a `NoisySimulatorError` if the Kraus matrices are ill formed.
+
+        Input:
+            kraus_operators: List[List[List[complex]]], can be a Python list or a numpy array.
         """
         ...
 

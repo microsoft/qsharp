@@ -152,7 +152,7 @@ fn ignore_unstable_callable() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n            ",
+                                    new_text: "import FakeStdLib.Fake;\n            ",
                                     range: Range {
                                         start: Position {
                                             line: 2,
@@ -204,7 +204,7 @@ fn ignore_internal_callable() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n            ",
+                                    new_text: "import FakeStdLib.Fake;\n            ",
                                     range: Range {
                                         start: Position {
                                             line: 2,
@@ -335,7 +335,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.Fake;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -364,7 +364,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.FakeWithParam;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -393,7 +393,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.FakeCtlAdj;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -569,7 +569,7 @@ fn in_block_from_other_namespace() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open Other;\n    ",
+                                    new_text: "import Other.Foo;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -621,7 +621,7 @@ fn auto_open_multiple_files() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open Foo;\n ",
+                                    new_text: "import Foo.FooOperation;\n ",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -800,7 +800,7 @@ fn stdlib_udt() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.TakesUdt;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -879,7 +879,7 @@ fn notebook_top_level() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -925,7 +925,7 @@ fn notebook_top_level_global() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -1004,7 +1004,7 @@ fn notebook_block() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -1071,7 +1071,7 @@ fn notebook_auto_open_start_of_cell_empty() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -1128,7 +1128,7 @@ fn notebook_auto_open_start_of_cell() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 1,

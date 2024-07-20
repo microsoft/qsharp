@@ -60,14 +60,14 @@ impl Operation {
             ))?
             .shape();
 
-        let number_of_qubits = (dim as f64).log2() as usize;
+        let number_of_qubits = dim.ilog2() as usize;
         if 1 << number_of_qubits != dim {
             return Err(Error::FailedToConstructOperation(
                 "kraus operators should have dimensions 2^k x 2^k".to_string(),
             ));
         }
 
-        for kraus_operator in kraus_operators.iter() {
+        for kraus_operator in &kraus_operators {
             let (rows, cols) = kraus_operator.shape();
             if rows != dim || cols != dim {
                 return Err(Error::FailedToConstructOperation(
@@ -96,30 +96,38 @@ impl Operation {
     }
 
     /// Return matrix representation:
-    /// $$ \sum_i K_i \otimes K_{i}* $$
-    /// where $K_i$ are Kraus operators.
+    /// Σᵢ (Kᵢ ⊗ Kᵢ*)
+    /// where Kᵢ are Kraus operators, ⊗ is the Kronecker product
+    /// and * denotes the complex conjugate of the matrix.
+    #[must_use]
     pub fn matrix(&self) -> &SquareMatrix {
         &self.operation_matrix
     }
 
     /// Returns effect matrix:
-    /// $$ (\sum_i K_i^{\dagger} K_i) $$
+    /// Σᵢ (Kᵢ Kᵢ†)
+    /// where Kᵢ are Kraus operators and † denotes the adjoint of the matrix.
+    #[must_use]
     pub fn effect_matrix(&self) -> &SquareMatrix {
         &self.effect_matrix
     }
 
     /// Return transpose of effect matrix:
-    /// $$ (\sum_i K_i^{\dagger} K_i)^T $$
+    /// Σᵢ (Kᵢ Kᵢ†)^T
+    /// where Kᵢ are Kraus operators and † denotes the adjoint of the matrix.
+    #[must_use]
     pub fn effect_matrix_transpose(&self) -> &SquareMatrix {
         &self.effect_matrix_transpose
     }
 
     /// Return list of Kraus operators.
+    #[must_use]
     pub fn kraus_operators(&self) -> &Vec<SquareMatrix> {
         &self.kraus_operators
     }
 
     /// Return the number of qubits that the operation acts on.
+    #[must_use]
     pub fn number_of_qubits(&self) -> usize {
         self.number_of_qubits
     }

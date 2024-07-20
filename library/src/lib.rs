@@ -89,4 +89,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         "qsharp-library-source:unstable_table_lookup.qs",
         include_str!("../qs_source/src/std/unstable_table_lookup.qs"),
     ),
+    (
+        "qsharp-library-source:modern_api.qs",
+        include_str!("../qs_source/src/std/modern_api.qs"),
+    ),
 ];

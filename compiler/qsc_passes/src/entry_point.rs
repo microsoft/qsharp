@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use crate::PackageType;
+
 use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
@@ -44,13 +46,14 @@ pub enum Error {
 pub(super) fn generate_entry_expr(
     package: &mut Package,
     assigner: &mut Assigner,
+    package_type: PackageType,
 ) -> Vec<super::Error> {
     if package.entry.is_some() {
         return vec![];
     }
     let callables = get_callables(package);
 
-    match create_entry_from_callables(assigner, callables) {
+    match create_entry_from_callables(assigner, callables, package_type) {
         Ok(expr) => {
             package.entry = Some(expr);
             vec![]
@@ -62,6 +65,7 @@ pub(super) fn generate_entry_expr(
 fn create_entry_from_callables(
     assigner: &mut Assigner,
     callables: Vec<(&CallableDecl, LocalItemId)>,
+    package_type: PackageType,
 ) -> Result<Expr, Vec<super::Error>> {
     if callables.len() == 1 {
         let ep = callables[0].0;
@@ -110,7 +114,12 @@ fn create_entry_from_callables(
             Err(vec![PassErr::EntryPoint(Error::Args(ep.input.span))])
         }
     } else if callables.is_empty() {
-        Err(vec![PassErr::EntryPoint(Error::NotFound)])
+        if package_type == PackageType::Exe {
+            Err(vec![PassErr::EntryPoint(Error::NotFound)])
+        } else {
+            // For libraries, no entry point is required. Leave the entry expression empty and return no errors.
+            Err(Vec::new())
+        }
     } else {
         Err(callables
             .into_iter()
