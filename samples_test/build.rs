@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use std::{
-    env,
     ffi::OsStr,
     fs::{read_dir, File},
     io::Write,
@@ -21,9 +20,21 @@ fn create_tests_for_files(folder: &str) {
     // Iterate through the folder and create a test for each qs file
     let mut paths =
         read_dir(format!("../samples/{folder}")).expect("folder should exist and be readable");
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
-    let dest_path = Path::new(&out_dir).join(format!("{folder}_test_cases.rs"));
-    let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
+    let out_dir = "./src/tests";
+    let dest_path = Path::new(&out_dir).join(format!("{folder}_generated.rs"));
+    let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
+
+    writeln!(
+        f,
+        r#"
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use super::{folder}::*;
+use super::{{compile_and_run, compile_and_run_debug}};
+use qsc::SourceMap;"#,
+    )
+    .expect("writing to file should succeed");
 
     while let Some(Ok(dir_entry)) = paths.next() {
         let path = &dir_entry.path();
@@ -49,32 +60,31 @@ fn create_tests_for_files(folder: &str) {
         writeln!(
             f,
             r#"
-            #[allow(non_snake_case)]
-            fn {file_stem}_src() -> SourceMap {{
-                SourceMap::new(
-                    vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
-                    None,
-                )
-            }}
+#[allow(non_snake_case)]
+fn {file_stem}_src() -> SourceMap {{
+    SourceMap::new(
+        vec![("{file_name}".into(), include_str!("../../../samples/{folder}/{file_name}").into())],
+        None,
+    )
+}}
 
-            #[allow(non_snake_case)]
-            #[test]
-            fn run_{file_stem}() {{
-                let output = compile_and_run({file_stem}_src());
-                // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
-                // must contain the output of the sample {file_name}
-                {file_stem_upper}_EXPECT.assert_eq(&output);
-            }}
+#[allow(non_snake_case)]
+#[test]
+fn run_{file_stem}() {{
+    let output = compile_and_run({file_stem}_src());
+    // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
+    // must contain the output of the sample {file_name}
+    {file_stem_upper}_EXPECT.assert_eq(&output);
+}}
 
-            #[allow(non_snake_case)]
-            #[test]
-            fn debug_{file_stem}() {{
-                let output = compile_and_run_debug({file_stem}_src());
-                // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
-                // must contain the output of the sample {file_name}
-                {file_stem_upper}_EXPECT_DEBUG.assert_eq(&output);
-            }}
-            "#
+#[allow(non_snake_case)]
+#[test]
+fn debug_{file_stem}() {{
+    let output = compile_and_run_debug({file_stem}_src());
+    // This constant must be defined in `samples_test/src/tests/{folder}.rs` and
+    // must contain the output of the sample {file_name}
+    {file_stem_upper}_EXPECT_DEBUG.assert_eq(&output);
+}}"#
         )
         .expect("writing to file should succeed");
     }
@@ -85,9 +95,20 @@ fn create_tests_for_files_compile_only(folder: &str) {
     // Iterate through the folder and create a test for each qs file
     let mut paths =
         read_dir(format!("../samples/{folder}")).expect("folder should exist and be readable");
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
-    let dest_path = Path::new(&out_dir).join(format!("{folder}_test_cases.rs"));
-    let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
+    let out_dir = "./src/tests";
+    let dest_path = Path::new(&out_dir).join(format!("{folder}_generated.rs"));
+    let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
+
+    writeln!(
+        f,
+        r#"
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use super::compile;
+use qsc::SourceMap;"#,
+    )
+    .expect("writing to file should succeed");
 
     while let Some(Ok(dir_entry)) = paths.next() {
         let path = &dir_entry.path();
@@ -112,17 +133,16 @@ fn create_tests_for_files_compile_only(folder: &str) {
         writeln!(
             f,
             r#"
-            #[allow(non_snake_case)]
-            #[test]
-            fn compile_{file_stem}() {{
-                compile(
-                    SourceMap::new(
-                        vec![("{file_name}".into(), include_str!("../../../../../samples/{folder}/{file_name}").into())],
-                        None,
-                    )
-                );
-            }}
-            "#
+#[allow(non_snake_case)]
+#[test]
+fn compile_{file_stem}() {{
+    compile(
+        SourceMap::new(
+            vec![("{file_name}".into(), include_str!("../../../samples/{folder}/{file_name}").into())],
+            None,
+        )
+    );
+}}"#
         )
         .expect("writing to file should succeed");
     }
@@ -130,9 +150,19 @@ fn create_tests_for_files_compile_only(folder: &str) {
 
 fn create_tests_for_projects() {
     let paths = collect_qsharp_project_folders(Path::new("../samples"));
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR should be set");
-    let dest_path = Path::new(&out_dir).join("project_test_cases.rs");
-    let mut f = File::create(dest_path).expect("files should be creatable in OUT_DIR");
+    let out_dir = "./src/tests";
+    let dest_path = Path::new(&out_dir).join("project_generated.rs");
+    let mut f = File::create(dest_path).expect("files should be creatable in ./src/tests");
+
+    writeln!(
+        f,
+        r#"
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use super::compile_project;"#,
+    )
+    .expect("writing to file should succeed");
 
     for path in paths {
         println!(
@@ -153,12 +183,12 @@ fn create_tests_for_projects() {
         writeln!(
             f,
             r#"
-            #[allow(non_snake_case)]
-            #[test]
-            fn compile_{file_stem_cleaned}() {{
-                compile_project(r"{full_path}");
-            }}
-            "#,
+#[allow(non_snake_case)]
+#[test]
+fn compile_{file_stem_cleaned}() {{
+    compile_project(r"{full_path}");
+}}
+"#,
             full_path = path.to_str().expect("should have a valid path"),
         )
         .expect("writing to file should succeed");

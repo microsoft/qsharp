@@ -4,9 +4,11 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod algorithms;
-mod estimation;
+mod algorithms_generated;
+mod estimation_generated;
 mod language;
-mod project;
+mod language_generated;
+mod project_generated;
 
 use qsc::{
     compile,
