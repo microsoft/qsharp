@@ -110,15 +110,19 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
         if *eigenvalue > 0. {
             let mut kraus_operator = SquareMatrix::zeros(krows, kcols);
             let sqrt_eigenvalue = eigenvalue.sqrt();
+
+            // Perf transformation note: for performance reasons we transpose the
+            // Kraus operators before storing them. We want to store each column
+            // of the eigenvector matrix as a Kraus matrix in row major order, and
+            // then transpose it. But because nalgebra stores and iterates over
+            // its matrices in column major order, we can skip the transposition,
+            // since it is already implicit.
+            //
+            // See noisy_simulator/src/operation.rs/Operation::new for more details.
             for row in 0..choi_dim {
                 let idx = kraus_operator.vector_to_matrix_index(row);
                 kraus_operator[idx] = sqrt_eigenvalue * eigenvectors[(row, col)];
             }
-
-            // Perf transformation note: for performance reasons we transpose the
-            // Kraus operators before storing them.
-            // See noisy_simulator/src/operation.rs/Operation::new for more details.
-            // kraus_operator.transpose_mut();
 
             summed_kraus_operators.push(kraus_operator);
         } else if *eigenvalue < -TOLERANCE {
@@ -151,6 +155,8 @@ fn compute_choi_matrix(operations: &[Operation]) -> SquareMatrix {
 /// Perf transformation note: Typically vectorization stacks the
 /// rows of a matrix into a single column vector. But since we
 /// transposed all matrices until now, we stack the columns instead.
+///
+/// See `noisy_simulator/src/operation.rs/Operation::new` for more details.
 fn vectorize<T: nalgebra::Scalar + Copy>(matrix: &DMatrix<T>) -> DVector<T> {
     let mut vectorized_matrix = DVector::<T>::from_vec(Vec::<T>::new());
     for column in matrix.column_iter() {

@@ -75,6 +75,7 @@ fn check_non_selective_evolution_operator_is_computed_correctly() {
     // Perf transformation note: We reverse the transposition made by
     // the performance optimization related to nalgebra column major
     // order before passing the kraus_operators again into Operator::new.
+    //
     // See noisy_simulator/src/operation.rs/Operation::new for more details.
     let kraus_operators: Vec<SquareMatrix> = instrument_0
         .non_selective_kraus_operators()
