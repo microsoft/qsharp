@@ -4,10 +4,14 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod algorithms;
+#[rustfmt::skip]
 mod algorithms_generated;
+#[rustfmt::skip]
 mod estimation_generated;
 mod language;
+#[rustfmt::skip]
 mod language_generated;
+#[rustfmt::skip]
 mod project_generated;
 
 use qsc::{

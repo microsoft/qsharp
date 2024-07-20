@@ -24,8 +24,23 @@ env:
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
   clippy:
-    name: Clippy & Format
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -39,8 +54,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy Lints
         run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Format
-        run: cargo fmt --all -- --check
 
   format-qsc:
     name: Format Q# Files
@@ -174,7 +187,7 @@ jobs:
 
   status-check:
     name: Status Check
-    needs: [clippy, web-check, build, unit-tests, format-qsc, integration-tests]
+    needs: [format, clippy, web-check, build, unit-tests, format-qsc, integration-tests]
     runs-on: ubuntu-latest
     if: failure()
     steps:
