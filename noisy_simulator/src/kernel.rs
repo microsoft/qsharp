@@ -11,6 +11,12 @@ use nalgebra::Complex;
 /// Then it applies the `operation_matrix` to this extracted entries.
 /// Finally it stores the results back into the state vector.
 ///
+/// Performance note: Because `nalgebra` stores its matrices in column major form, we apply
+/// `gemv_tr` to avoid incurring cache misses. That is why we transpose all Kraus operators
+/// when they enter the simulator:
+/// `gemv(1, matrix, vec, 0)` is equivalent to `gemv_tr(1, matrix_tr, vec, 0)`,
+/// but the later has much better performance.
+///
 /// Errors: If the `operation_matrix` doesn't have the right dimension for the number of target `qubits`,
 /// this function will return `Error::MatrixVecDimensionMismatch`.
 pub fn apply_kernel(
@@ -71,7 +77,7 @@ pub fn apply_kernel(
             }
 
             // Apply the gate.
-            new_entries.gemv(
+            new_entries.gemv_tr(
                 Complex::ONE,
                 operation_matrix,
                 &extracted_entries,
