@@ -16,7 +16,7 @@ rand = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-iai-callgrind = { workspace = true }
+criterion = { workspace = true, features = ["cargo_bench_support"]}
 
 [lints]
 workspace = true

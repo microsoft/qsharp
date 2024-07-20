@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use iai_callgrind::{library_benchmark, library_benchmark_group, main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use nalgebra::dmatrix;
 use noisy_simulator::{
     DensityMatrixSimulator, Error, NoisySimulator, Operation, StateVectorSimulator,
 };
+use std::time::Duration;
 
 fn ten_qubits_ten_operations<NS: NoisySimulator>() -> Result<(), Error> {
     let x_gate = Operation::new(vec![
@@ -61,19 +62,27 @@ fn ten_qubits_ten_operations<NS: NoisySimulator>() -> Result<(), Error> {
     Ok(())
 }
 
-#[library_benchmark]
-pub fn density_matrix_simulator() {
-    ten_qubits_ten_operations::<DensityMatrixSimulator>().expect("bench should succeed");
+pub fn density_matrix_simulator(c: &mut Criterion) {
+    c.benchmark_group("density_matrix_simulator")
+        .measurement_time(Duration::from_secs(25))
+        .bench_function("10 qubits and 10 operations circuit", |b| {
+            b.iter(|| {
+                ten_qubits_ten_operations::<DensityMatrixSimulator>()
+                    .expect("bench should succeed");
+            });
+        });
 }
 
-#[library_benchmark]
-pub fn state_vector_simulator() {
-    ten_qubits_ten_operations::<StateVectorSimulator>().expect("bench should succeed");
+pub fn state_vector_simulator(c: &mut Criterion) {
+    c.benchmark_group("state_vector_simulator").bench_function(
+        "10 qubits and 10 operations circuit",
+        |b| {
+            b.iter(|| {
+                ten_qubits_ten_operations::<StateVectorSimulator>().expect("bench should succeed");
+            });
+        },
+    );
 }
 
-library_benchmark_group!(
-    name = bench_noisy_simulator_group;
-    benchmarks = density_matrix_simulator, state_vector_simulator
-);
-
-main!(library_benchmark_groups = bench_noisy_simulator_group);
+criterion_group!(benches, density_matrix_simulator, state_vector_simulator);
+criterion_main!(benches);

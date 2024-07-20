@@ -40,7 +40,6 @@ version = "0.0.0"
 
 [workspace.dependencies]
 bitflags = "2.4.2"
-iai-callgrind = "0.11.1"
 clap = "4.4"
 criterion = { version = "0.5", default-features = false }
 difference = "2.0.0"
@@ -92,7 +91,3 @@ codegen-units = 1
 
 [profile.release.package.fuzz]
 codegen-units = 16
-
-[profile.bench]
-debug = true
-strip = false
