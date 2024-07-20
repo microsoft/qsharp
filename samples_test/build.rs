@@ -30,6 +30,9 @@ fn create_tests_for_files(folder: &str) {
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This build-generated module contains tests for the samples in the /samples/{folder} folder.
+//! DO NOT MANUALLY EDIT THIS FILE. To regenerate this file, run `cargo check` or `cargo test` in the `samples_test` directory.
+
 use super::{folder}::*;
 use super::{{compile_and_run, compile_and_run_debug}};
 use qsc::SourceMap;"#,
@@ -105,6 +108,9 @@ fn create_tests_for_files_compile_only(folder: &str) {
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! This build-generated module contains tests for the samples in the /samples/{folder} folder.
+//! DO NOT MANUALLY EDIT THIS FILE. To regenerate this file, run `cargo check` or `cargo test` in the `samples_test` directory.
+
 use super::compile;
 use qsc::SourceMap;"#,
     )
@@ -159,6 +165,9 @@ fn create_tests_for_projects() {
         r#"
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
+//! This build-generated module contains tests for the projects found in the samples folder.
+//! DO NOT MANUALLY EDIT THIS FILE. To regenerate this file, run `cargo check` or `cargo test` in the `samples_test` directory.
 
 use super::compile_project;"#,
     )
