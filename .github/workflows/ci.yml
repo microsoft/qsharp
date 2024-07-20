@@ -38,7 +38,9 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - uses: Swatinem/rust-cache@v2
       - name: Clippy Lints
-        run: cargo clippy --all-targets --all-features -- -D warnings && cargo fmt --all -- --check
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Format
+        run: cargo fmt --all -- --check
 
   format-qsc:
     name: Format Q# Files
