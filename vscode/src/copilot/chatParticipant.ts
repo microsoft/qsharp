@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { getRandomGuid } from "./utils";
+import { getRandomGuid } from "../utils";
 import { log } from "qsharp-lang";
-import { getAuthSession, scopes } from "./azure/auth";
+import { getAuthSession, scopes } from "../azure/auth";
 import { fetchEventSource } from "./fetch";
 
 const chatUrl =

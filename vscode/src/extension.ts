@@ -59,7 +59,7 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { activateChatParticipant } from "./chatParticipant.js";
+import { activateChatParticipant } from "./copilot/chatParticipant.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
