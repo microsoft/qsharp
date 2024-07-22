@@ -11,8 +11,6 @@ mod package_tests;
 #[cfg(test)]
 mod tests;
 
-use std::rc::Rc;
-
 pub use qsc_eval::{
     debug::Frame,
     output::{self, GenericReceiver},
@@ -52,7 +50,7 @@ use qsc_eval::{
     output::Receiver,
     val, Env, State, VariableInfo,
 };
-use qsc_fir::fir::{self, ExecGraphNode, Global, PackageStoreLookup};
+use qsc_fir::fir::{self, ExecGraph, Global, PackageStoreLookup};
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
@@ -119,6 +117,8 @@ pub struct Interpreter {
     fir_store: fir::PackageStore,
     /// FIR lowerer
     lowerer: qsc_lowerer::Lowerer,
+    /// The execution graph for the last expression evaluated.
+    expr_graph: Option<ExecGraph>,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -241,6 +241,7 @@ impl Interpreter {
             capabilities,
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
+            expr_graph: None,
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -275,6 +276,7 @@ impl Interpreter {
             capabilities,
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new(),
+            expr_graph: None,
             env: Env::default(),
             sim: sim_circuit_backend(),
             quantum_seed: None,
@@ -300,6 +302,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
         let graph = self.get_entry_exec_graph()?;
+        self.expr_graph = Some(graph.clone());
         eval(
             self.source_package,
             self.classical_seed,
@@ -320,6 +323,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
         let graph = self.get_entry_exec_graph()?;
+        self.expr_graph = Some(graph.clone());
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
@@ -335,7 +339,7 @@ impl Interpreter {
         )
     }
 
-    fn get_entry_exec_graph(&self) -> std::result::Result<Rc<[ExecGraphNode]>, Vec<Error>> {
+    fn get_entry_exec_graph(&self) -> std::result::Result<ExecGraph, Vec<Error>> {
         let unit = self.fir_store.get(self.source_package);
         if unit.entry.is_some() {
             return Ok(unit.entry_exec_graph.clone());
@@ -393,6 +397,7 @@ impl Interpreter {
         increment: Increment,
     ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
+        self.expr_graph = Some(graph.clone());
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -405,7 +410,7 @@ impl Interpreter {
         eval(
             self.package,
             self.classical_seed,
-            graph.into(),
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut self.env,
@@ -422,6 +427,32 @@ impl Interpreter {
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr)
+    }
+
+    /// Re-run the last expression evaluated on a new instance of the environment and simulator,
+    /// but using the current compilation.
+    pub fn run_last_expr(
+        &mut self,
+        receiver: &mut impl Receiver,
+    ) -> std::result::Result<InterpretResult, Vec<Error>> {
+        if let Some(graph) = &self.expr_graph {
+            let mut sim = SparseSim::new();
+            if self.quantum_seed.is_some() {
+                sim.set_seed(self.quantum_seed);
+            }
+            Ok(eval(
+                self.package,
+                self.classical_seed,
+                graph.clone(),
+                self.compiler.package_store(),
+                &self.fir_store,
+                &mut Env::default(),
+                &mut sim,
+                receiver,
+            ))
+        } else {
+            Err(vec![Error::NoEntryPoint])
+        }
     }
 
     /// Gets the current quantum state of the simulator.
@@ -452,7 +483,7 @@ impl Interpreter {
         };
         let package = self.fir_store.get(self.package);
         let entry = ProgramEntry {
-            exec_graph: graph.into(),
+            exec_graph: graph,
             expr: (
                 self.package,
                 package
@@ -541,6 +572,7 @@ impl Interpreter {
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
         let (graph, _) = self.compile_entry_expr(expr)?;
+        self.expr_graph = Some(graph.clone());
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -549,7 +581,7 @@ impl Interpreter {
         Ok(eval(
             self.package,
             self.classical_seed,
-            graph.into(),
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -568,11 +600,12 @@ impl Interpreter {
 
         let (package_id, graph) = if let Some(entry_expr) = entry_expr {
             // entry expression is provided
-            (self.package, self.compile_entry_expr(&entry_expr)?.0.into())
+            (self.package, self.compile_entry_expr(&entry_expr)?.0)
         } else {
             // no entry expression, use the entrypoint in the package
             (self.source_package, self.get_entry_exec_graph()?)
         };
+        self.expr_graph = Some(graph.clone());
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -593,8 +626,7 @@ impl Interpreter {
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -624,14 +656,13 @@ impl Interpreter {
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
+    ) -> core::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
 
         self.lower_and_update_package(unit_addition);
-        Ok((self.lowerer.take_exec_graph(), None))
+        Ok((self.lowerer.take_exec_graph().into(), None))
     }
 
     fn lower_and_update_package(&mut self, unit: &qsc_frontend::incremental::Increment) {
@@ -647,8 +678,7 @@ impl Interpreter {
     fn run_fir_passes(
         &mut self,
         unit: &qsc_frontend::incremental::Increment,
-    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         self.lower_and_update_package(unit);
 
         let cap_results =
@@ -673,7 +703,7 @@ impl Interpreter {
         })?;
 
         let graph = self.lowerer.take_exec_graph();
-        Ok((graph, Some(compute_properties)))
+        Ok((graph.into(), Some(compute_properties)))
     }
 
     fn next_line_label(&mut self) -> String {
@@ -897,7 +927,7 @@ impl Debugger {
 fn eval(
     package: PackageId,
     classical_seed: Option<u64>,
-    exec_graph: Rc<[ExecGraphNode]>,
+    exec_graph: ExecGraph,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,

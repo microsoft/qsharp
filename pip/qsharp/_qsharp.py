@@ -206,6 +206,9 @@ def run(
     """
     ipython_helper()
 
+    if shots < 1:
+        raise QSharpError("The number of shots must be greater than 0.")
+
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
@@ -215,10 +218,20 @@ def run(
         # Append the output to the last shot's output list
         results[-1]["events"].append(output)
 
-    for _ in range(shots):
+    # Run the first shot using `run`, which will compile the entry expression
+    results.append({"result": None, "events": []})
+    run_results = get_interpreter().run(
+        entry_expr, on_save_events if save_events else print_output
+    )
+    results[-1]["result"] = run_results
+    if on_result:
+        on_result(results[-1])
+
+    # Run the remaining shots using `rerun`, which will reuse the compiled entry expression
+    for _ in range(shots - 1):
         results.append({"result": None, "events": []})
-        run_results = get_interpreter().run(
-            entry_expr, on_save_events if save_events else print_output
+        run_results = get_interpreter().rerun(
+            on_save_events if save_events else print_output
         )
         results[-1]["result"] = run_results
         if on_result:

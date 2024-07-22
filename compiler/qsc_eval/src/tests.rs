@@ -3,8 +3,6 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use std::rc::Rc;
-
 use crate::{
     backend::{Backend, SparseSim},
     debug::Frame,
@@ -15,7 +13,7 @@ use crate::{
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use qsc_fir::fir::{self, ExecGraphNode, StmtId};
+use qsc_fir::fir::{self, ExecGraph, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_lowerer::map_hir_package_to_fir;
@@ -26,7 +24,7 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// # Errors
 /// Returns the first error encountered during execution.
 pub(super) fn eval_graph(
-    graph: Rc<[ExecGraphNode]>,
+    graph: ExecGraph,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     globals: &impl PackageStoreLookup,
     package: PackageId,
