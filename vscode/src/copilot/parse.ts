@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /**
  * Represents a message sent in an event stream
  * https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format
@@ -38,7 +41,7 @@ const enum ControlChars {
 }
 
 /**
- * Parses arbitary byte chunks into EventSource line buffers.
+ * Parses arbitrary byte chunks into EventSource line buffers.
  * Each line should be of the format "field: value" and ends with \r, \n, or \r\n.
  * @param onLine A function that will be called on each new EventSource line.
  * @returns A function that should be called for each incoming byte chunk.

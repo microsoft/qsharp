@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { EventSourceMessage, getBytes, getLines, getMessages } from "./parse";
 
 export const EventStreamContentType = "text/event-stream";
