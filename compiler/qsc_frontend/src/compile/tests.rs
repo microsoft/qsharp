@@ -1471,3 +1471,24 @@ fn test_longest_common_prefix_only_root_common() {
 fn test_longest_common_prefix_only_root_common_no_leading() {
     expect![""].assert_eq(longest_common_prefix(&["a/b", "b/c"]));
 }
+
+#[test]
+fn export_namespace_with_same_name_as_newtype_does_not_cause_panic() {
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace A {
+                    export A;
+                    newtype A = Int;
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let unit = default_compile(sources);
+    expect![[r#"[Error(Resolve(Duplicate("A", "A", Span { lo: 40, hi: 41 })))]"#]]
+        .assert_eq(&format!("{:?}", unit.errors));
+}
