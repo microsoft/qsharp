@@ -158,9 +158,5 @@ fn compute_choi_matrix(operations: &[Operation]) -> SquareMatrix {
 ///
 /// See `noisy_simulator/src/operation.rs/Operation::new` for more details.
 fn vectorize<T: nalgebra::Scalar + Copy>(matrix: &DMatrix<T>) -> DVector<T> {
-    let mut vectorized_matrix = DVector::<T>::from_vec(Vec::<T>::new());
-    for column in matrix.column_iter() {
-        vectorized_matrix.extend(column.iter().copied());
-    }
-    vectorized_matrix
+    DVector::<T>::from_iterator(matrix.len(), matrix.iter().copied())
 }
