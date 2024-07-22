@@ -5,8 +5,10 @@ import * as vscode from "vscode";
 import { getRandomGuid } from "./utils";
 import { log } from "qsharp-lang";
 import { getAuthSession, scopes } from "./azure/auth";
+import { fetchEventSource } from "./fetch";
 
-const chatUrl = "https://canary.api.quantum.microsoft.com/api/chat/completions";
+const chatUrl =
+  "https://westus3.aqa.canary.quantum.azure.com/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 type quantumChatRequest = {
@@ -15,20 +17,27 @@ type quantumChatRequest = {
     role: string; // e.g. "user"
     content: string;
   }>; // The actual question
-  additionalContext: any; // ?
+  additionalContext: any;
+  identifier: string;
 };
 
 type QuantumChatResponse = {
-  role: string; // e.g. "assistant"
-  content: string; // The actual answer
-  embeddedData: any; // ?
+  ConversationId: string; // GUID,
+  Role: string; // e.g. "assistant"
+  Content?: string; // The full response
+  Delta?: string; // The next response token
+  FinishReason?: string; // e.g. "stop"|"content_filter"|"length"|null,
+  EmbeddedData: any;
+  Created: string; // e.g. "2021-09-29T17:00:00.000Z"
 };
 
 async function chatRequest(
   token: string,
   question: string,
+  stream: vscode.ChatResponseStream,
   context?: string,
-): Promise<QuantumChatResponse> {
+): Promise<vscode.ChatResult> {
+  log.debug("Requesting response");
   const payload: quantumChatRequest = {
     conversationId: getRandomGuid(),
     messages: [
@@ -40,6 +49,7 @@ async function chatRequest(
     additionalContext: {
       qcomEnvironment: "Desktop",
     },
+    identifier: "Quantum",
   };
 
   if (context) {
@@ -57,15 +67,19 @@ async function chatRequest(
     },
     body: JSON.stringify(payload),
   };
-  log.debug("About to call ChatAPI with payload: ", payload);
 
   try {
-    const response = await fetch(chatUrl, options);
-    log.debug("ChatAPI response status: ", response.statusText);
+    log.debug("About to call ChatAPI with payload: ", payload);
+    await fetchEventSource(chatUrl, {
+      ...options,
+      onMessage(ev) {
+        const messageReceived: QuantumChatResponse = JSON.parse(ev.data);
+        log.debug("Received message: ", messageReceived);
+        if (messageReceived.Delta) stream.markdown(messageReceived.Delta);
+      },
+    });
 
-    const json = await response.json();
-    log.debug("ChatAPI response payload: ", json);
-    return json;
+    return Promise.resolve({});
   } catch (error) {
     log.error("ChatAPI fetch failed with error: ", error);
     throw error;
@@ -85,17 +99,19 @@ const requestHandler: vscode.ChatRequestHandler = async (
   );
   if (!msaChatSession) throw Error("Failed to get MSA chat token");
 
-  let response: QuantumChatResponse;
+  //let response: QuantumChatResponse;
   if (request.command == "samples") {
     if (request.prompt) {
-      response = await chatRequest(
+      await chatRequest(
         msaChatSession.accessToken,
         "Please show me the Q# code for " + request.prompt,
+        stream,
       );
     } else {
-      response = await chatRequest(
+      await chatRequest(
         msaChatSession.accessToken,
         "Can you list the names of the quantum samples you could write if asked?",
+        stream,
         "The main samples I know how to write are Bell state, Grovers, QRNG, hidden shift, Bernstein-Vazarani, Deutsch-Jozsa, superdense coding, and teleportation",
       );
     }
@@ -104,11 +120,9 @@ const requestHandler: vscode.ChatRequestHandler = async (
     await vscode.commands.executeCommand("qsharp-vscode.createNotebook");
     return Promise.resolve({});
   } else {
-    response = await chatRequest(msaChatSession.accessToken, request.prompt);
+    await chatRequest(msaChatSession.accessToken, request.prompt, stream);
   }
   if (token.isCancellationRequested) return Promise.reject("Request cancelled");
-
-  stream.markdown(response.content);
 
   return Promise.resolve({});
 };
