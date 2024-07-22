@@ -1054,7 +1054,7 @@ impl Resolver {
 
         let Some(ns) = ns else {
             self.errors.push(Error::GlobImportNamespaceNotFound(
-                item.path.name.to_string(),
+                item.path.name.name.to_string(),
                 item.path.span,
             ));
             return;

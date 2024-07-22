@@ -5116,6 +5116,24 @@ fn disallow_glob_alias_import() {
 }
 
 #[test]
+fn glob_import_ns_not_found() {
+    check(
+        indoc! {r#"
+                namespace Main {
+                    import Bar.*;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                import Bar.*;
+            }
+
+            // GlobImportNamespaceNotFound("Bar", Span { lo: 28, hi: 31 })
+        "#]],
+    );
+}
+
+#[test]
 fn allow_export_of_namespace_within_itself() {
     check(
         indoc! {r#"
