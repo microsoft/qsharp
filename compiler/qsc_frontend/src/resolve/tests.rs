@@ -4840,12 +4840,12 @@ fn export_direct_cycle() {
         "},
         &expect![[r#"
             namespace namespace7 {
-                export item1;
+                export namespace7;
             }
 
             namespace namespace8 {
                 open namespace7;
-                operation item3() : Unit { }
+                operation item2() : Unit { }
             }
         "#]],
     );
@@ -5162,6 +5162,24 @@ fn export_of_item_with_same_name_as_namespace_resolves_to_item() {
             namespace namespace7 {
                 operation item1() : Unit {}
                 export item1;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item_even_when_before_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                    operation Foo() : Unit {}
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export item1;
+                operation item1() : Unit {}
             }
         "#]],
     );
