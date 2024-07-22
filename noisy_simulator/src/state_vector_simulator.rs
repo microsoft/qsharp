@@ -42,7 +42,7 @@ impl StateVector {
     /// Builds a `StateVector` from its raw fields. Returns `None` if
     ///  the provided args don't represent a valid `StateVector`.
     ///
-    /// This method is to be used from the PyO3 wrapper.
+    /// This method is to be used from the `PyO3` wrapper.
     pub fn try_from(
         dimension: usize,
         number_of_qubits: usize,
@@ -55,7 +55,7 @@ impl StateVector {
             )));
         }
 
-        if data.len() != dimension * dimension {
+        if data.len() != dimension {
             return Err(Error::StateVectorTryFromError(format!(
                 "state vector dimension is {} but data has {} entries, {} != {}",
                 dimension,
@@ -74,16 +74,19 @@ impl StateVector {
     }
 
     /// Returns a reference to the vector containing the density matrix's data.
+    #[must_use]
     pub fn data(&self) -> &ComplexVector {
         &self.data
     }
 
     /// Returns dimension of the matrix. E.g.: If the matrix is 5 x 5, then dimension is 5.
+    #[must_use]
     pub fn dimension(&self) -> usize {
         self.dimension
     }
 
     /// Returns the number of qubits in the system.
+    #[must_use]
     pub fn number_of_qubits(&self) -> usize {
         self.number_of_qubits
     }
@@ -101,6 +104,7 @@ impl StateVector {
     /// Return theoretical change in trace due to operations that have been applied so far.
     /// In reality, the density matrix is always renormalized after instruments / operations
     /// have been applied.
+    #[must_use]
     pub fn trace_change(&self) -> f64 {
         self.trace_change
     }

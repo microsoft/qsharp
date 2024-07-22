@@ -43,6 +43,7 @@ export enum EventType {
   FormatStart = "Qsharp.FormatStart",
   FormatEnd = "Qsharp.FormatEnd",
   CreateProject = "Qsharp.CreateProject",
+  FetchGitHub = "Qsharp.FetchGitHub",
   TriggerCircuit = "Qsharp.TriggerCircuit",
   CircuitStart = "Qsharp.CircuitStart",
   CircuitEnd = "Qsharp.CircuitEnd",
@@ -222,6 +223,10 @@ type EventTypes = {
   };
   [EventType.CreateProject]: {
     properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.FetchGitHub]: {
+    properties: { status: string };
     measurements: Empty;
   };
   [EventType.TriggerCircuit]: {

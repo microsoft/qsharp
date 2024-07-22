@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { TextDocument, Uri, Range, Location } from "vscode";
+import { Utils } from "vscode-uri";
 import { ILocation, IRange, IWorkspaceEdit } from "qsharp-lang";
 import * as vscode from "vscode";
 
@@ -9,7 +10,11 @@ export const qsharpLanguageId = "qsharp";
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
-  return document.languageId === qsharpLanguageId;
+  return (
+    document.languageId === qsharpLanguageId &&
+    (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
+    document.uri.scheme !== "git"
+  );
 }
 
 // Returns true for only Q# notebook cell documents.

@@ -1244,10 +1244,36 @@ impl Display for Idents {
         }
     }
 }
+
+/// An iterator which yields string slices of the names of the idents in a [`Idents`].
+/// Note that [`Idents`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct IdentsStrIter<'a>(pub &'a Idents);
+
+impl<'a> IntoIterator for IdentsStrIter<'a> {
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
+    type Item = &'a str;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(|i| i.name.as_ref())
+    }
+}
+
+impl<'a> From<&'a Idents> for IdentsStrIter<'a> {
+    fn from(v: &'a Idents) -> Self {
+        IdentsStrIter(v)
+    }
+}
+
 impl Idents {
     /// constructs an iter over the [Ident]s that this contains.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
+    }
+
+    /// constructs an iterator over the elements of `self` as string slices.
+    /// see [`Self::iter`] for an iterator over the [Ident]s.
+    #[must_use]
+    pub fn str_iter(&self) -> IdentsStrIter {
+        self.into()
     }
 
     /// the conjoined span of all idents in the `Idents`
