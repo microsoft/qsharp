@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 // expect-test updates these strings automatically
-#![allow(clippy::needless_raw_string_hashes)]
+#![allow(clippy::needless_raw_string_hashes, clippy::too_many_lines)]
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
-use qsc::{compile, project, target::Profile, PackageType};
+use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
 use std::{cell::RefCell, fmt::Write, rc::Rc};
 
@@ -605,20 +605,22 @@ async fn target_profile_update_causes_error_in_stdlib() {
     );
 }
 
-#[test]
-fn notebook_document_no_errors() {
+#[tokio::test]
+async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Main()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Main()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -628,20 +630,22 @@ fn notebook_document_no_errors() {
     );
 }
 
-#[test]
-fn notebook_document_errors() {
+#[tokio::test]
+async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -688,20 +692,22 @@ fn notebook_document_errors() {
     );
 }
 
-#[test]
-fn notebook_document_lints() {
+#[tokio::test]
+async fn notebook_document_lints() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
-            ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "function Foo() : Unit { let x = 4;;;; }"),
+                ("cell2", 1, "function Bar() : Unit { let y = 5 / 0; }"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -768,20 +774,22 @@ fn notebook_document_lints() {
     );
 }
 
-#[test]
-fn notebook_update_remove_cell_clears_errors() {
+#[tokio::test]
+async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -827,11 +835,13 @@ fn notebook_update_remove_cell_clears_errors() {
         "#]],
     );
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -848,20 +858,22 @@ fn notebook_update_remove_cell_clears_errors() {
     );
 }
 
-#[test]
-fn close_notebook_clears_errors() {
+#[tokio::test]
+async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);
 
-    updater.update_notebook_document(
-        "notebook.ipynb",
-        &NotebookMetadata::default(),
-        [
-            ("cell1", 1, "operation Main() : Unit {}"),
-            ("cell2", 1, "Foo()"),
-        ]
-        .into_iter(),
-    );
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata::default(),
+            [
+                ("cell1", 1, "operation Main() : Unit {}"),
+                ("cell2", 1, "Foo()"),
+            ]
+            .into_iter(),
+        )
+        .await;
 
     expect_errors(
         &errors,
@@ -921,6 +933,269 @@ fn close_notebook_clears_errors() {
                 ),
             ]
         "#]],
+    );
+}
+
+#[tokio::test]
+async fn update_notebook_with_valid_dependencies() {
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file("qsharp.json", r#"{ }"#),
+                dir(
+                    "src",
+                    [file(
+                        "file.qs",
+                        r#"namespace Foo { function Bar() : Unit { } }"#,
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&errors, &fs);
+
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata {
+                target_profile: None,
+                language_features: LanguageFeatures::default(),
+                manifest: None,
+                project_root: Some("project".to_string()),
+            },
+            [("cell1", 1, "open Foo;Bar();")].into_iter(),
+        )
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        []
+    "#]],
+    );
+}
+
+#[tokio::test]
+async fn update_notebook_reports_errors_from_dependencies() {
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file("qsharp.json", r#"{ }"#),
+                dir(
+                    "src",
+                    [file(
+                        "file.qs",
+                        r#"namespace Foo { function Bar() : Int { } }"#,
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&errors, &fs);
+
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata {
+                target_profile: None,
+                language_features: LanguageFeatures::default(),
+                manifest: None,
+                project_root: Some("project".to_string()),
+            },
+            [("cell1", 1, "open Foo;Bar();")].into_iter(),
+        )
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell1",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 5,
+                                            hi: 8,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Foo",
+                                        Span {
+                                            lo: 5,
+                                            hi: 8,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "Bar",
+                                        Span {
+                                            lo: 9,
+                                            hi: 12,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        AmbiguousTy(
+                                            Span {
+                                                lo: 9,
+                                                hi: 14,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                    [],
+                ),
+                (
+                    "project/src/file.qs",
+                    None,
+                    [
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        TyMismatch(
+                                            "Unit",
+                                            "Int",
+                                            Span {
+                                                lo: 33,
+                                                hi: 36,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                    [],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[tokio::test]
+async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
+    let fs = FsNode::Dir(
+        [
+            dir(
+                "project",
+                [
+                    file(
+                        "qsharp.json",
+                        r#"{ "dependencies" : { "MyDep" : { "path" : "../project2" } } }"#,
+                    ),
+                    dir(
+                        "src",
+                        [file(
+                            "file.qs",
+                            r#"namespace Foo { function Bar() : Unit { } }"#,
+                        )],
+                    ),
+                ],
+            ),
+            dir(
+                "project2",
+                [
+                    file("qsharp.json", r#"{ }"#),
+                    dir(
+                        "src",
+                        [file(
+                            "file.qs",
+                            r#"namespace Foo { function Baz() : Int { } }"#,
+                        )],
+                    ),
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&errors, &fs);
+
+    updater
+        .update_notebook_document(
+            "notebook.ipynb",
+            &NotebookMetadata {
+                target_profile: None,
+                language_features: LanguageFeatures::default(),
+                manifest: None,
+                project_root: Some("project".to_string()),
+            },
+            [("cell1", 1, "open Foo;Bar();")].into_iter(),
+        )
+        .await;
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+        [
+            (
+                "project2/src/file.qs",
+                None,
+                [
+                    Frontend(
+                        Error(
+                            Type(
+                                Error(
+                                    TyMismatch(
+                                        "Unit",
+                                        "Int",
+                                        Span {
+                                            lo: 33,
+                                            hi: 36,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+                [],
+            ),
+        ]
+    "#]],
     );
 }
 

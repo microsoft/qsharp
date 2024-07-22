@@ -125,6 +125,7 @@ impl LanguageService {
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
                 language_features: LanguageFeatures::from_iter(language_features),
                 manifest,
+                project_root: notebook_metadata.projectRoot,
             },
             cells
                 .iter()
@@ -566,11 +567,13 @@ serializable_type! {
         pub targetProfile: Option<String>,
         pub languageFeatures: Option<Vec<String>>,
         pub manifest: Option<String>,
+        pub projectRoot: Option<String>,
     },
     r#"export interface INotebookMetadata {
         targetProfile?: "base" | "adaptive_ri" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
         manifest?: string;
+        projectRoot?: string;
     }"#,
     INotebookMetadata
 }

@@ -20,7 +20,7 @@ use qsc_rir::{
 fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::fir::PackageStore {
     let mut fir_store = qsc_fir::fir::PackageStore::new();
     for (id, unit) in package_store {
-        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
         fir_store.insert(map_hir_package_to_fir(id), package);
     }
     fir_store

@@ -13,6 +13,7 @@ from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
+import os
 
 _interpreter = None
 
@@ -42,6 +43,7 @@ class Config:
         target_profile: TargetProfile,
         language_features: Optional[List[str]],
         manifest: Optional[str],
+        project_root: Optional[str],
     ):
         if target_profile == TargetProfile.Adaptive_RI:
             self._config = {"targetProfile": "adaptive_ri"}
@@ -52,6 +54,12 @@ class Config:
 
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
+        if project_root:
+            # For now, we only support local project roots, so use a file schema in the URI.
+            # In the future, we may support other schemes, such as github, if/when
+            # we have VS Code Web + Jupyter support.
+            normalized_root = os.path.normpath(os.path.join(os.getcwd(), project_root))
+            self._config["projectRoot"] = "file://" + normalized_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -132,7 +140,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features, manifest_contents)
+    return Config(target_profile, language_features, manifest_contents, project_root)
 
 
 def get_interpreter() -> Interpreter:
