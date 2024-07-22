@@ -2,7 +2,7 @@
 
 The example project demonstrates a Q# quantum teleportation program implemented as a multi-file project, designed to be executed from Python classical code. 
 
-The `src` directory includes a `qsharp.json` manifest and Q# source files organized into subfolders. The main file, `RunTeleport.qs`, contains the entry point and references operations defined in other files. The teleportation logic is implemented in `Teleport.qs`, which uses a standard operation from `PrepareState.qs` to create a Bell pair. 
+The `qsharp.json` manifest is located at the root folder. The `src` directory includes the Q# source files which are organized into subfolders. The main file, `RunTeleport.qs`, contains the entry point and references operations defined in other files. The teleportation logic is implemented in `Teleport.qs`, which uses a standard operation from `PrepareState.qs` to create a Bell pair.
 
 You can execute this project by navigating to its root folder and running `python .\RunTeleport.py`. Alternatively, you can open the folder in Visual Studio Code, open the file `RunTeleport.qs`, and select **Run**.
 
