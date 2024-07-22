@@ -1489,5 +1489,6 @@ fn export_namespace_with_same_name_as_newtype_does_not_cause_panic() {
     );
 
     let unit = default_compile(sources);
-    expect![[r#"[Error(Resolve(Duplicate("A", "A", Span { lo: 40, hi: 41 })))]"#]].assert_eq(&format!("{:?}", unit.errors));
+    expect![[r#"[Error(Resolve(Duplicate("A", "A", Span { lo: 40, hi: 41 })))]"#]]
+        .assert_eq(&format!("{:?}", unit.errors));
 }
