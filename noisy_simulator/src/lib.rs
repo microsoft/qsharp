@@ -12,15 +12,15 @@
 //! of the system as a whole, so you only need to run the simulation once, and take all
 //! the samples you need from the final density matrix. However, it is more memory intensive.
 //!
-//! A density matrix has 2 ^ (2 * number_of_qubits) complex numbers entries.
+//! A density matrix has 2 ^ (2 * `number_of_qubits`) complex numbers entries.
 //! If each complex number is represented as two 64-bits floating point numbers,
-//! the density matrix will be 2 ^ (2 * number_of_qubits) * 16 bytes. E.g., a density
+//! the density matrix will be 2 ^ (2 * `number_of_qubits`) * 16 bytes. E.g., a density
 //! matrix representing a 20 qubits system will be 17592186044416 bytes, or 16.4 TB.
 //!
 //! # State vector simulator
-//! The state vector simulator allocates less memory, however if you want 1_000_000 shots
-//! of the circuit, you need to run the simulation 1_000_000 times.
-//! A state vector has 2 ^ (number_of_qubits) complex entries. So, a state vector of a 20
+//! The state vector simulator allocates less memory, however if you want 1,000,000 shots
+//! of the circuit, you need to run the simulation 1,000,000 times.
+//! A state vector has 2 ^ (`number_of_qubits`) complex entries. So, a state vector of a 20
 //! qubits system will be 16777216 bytes, or 16 MB.
 //!
 //! # Which one should I use?

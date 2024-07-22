@@ -13,6 +13,21 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 /// Seed for the random number generators.
 const SEED: u64 = 42;
 
+#[test]
+#[should_panic(expected = "instrument should be invalid")]
+fn check_ill_formed_instrument_throws_error() {
+    let op0 = operation!([1., 0.;
+                          0., 0.;])
+    .expect("operation should be valid");
+    let op1 = operation!([1., 0., 0., 0.;
+                          0., 0., 0., 0.;
+                          0., 0., 0., 0.;
+                          0., 0., 0., 0.;])
+    .expect("operation should be valid");
+
+    let _instrument = Instrument::new(vec![op0, op1]).expect("instrument should be invalid");
+}
+
 /// Check that the inner matrices of the instrument are constructed correctly.
 #[test]
 fn check_non_selective_operation_matrix_is_computed_correctly() {
@@ -48,7 +63,7 @@ fn check_non_selective_evolution_operator_is_computed_correctly() {
         .collect();
     let op0 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_0 = Instrument::new(vec![op0]).expect("instrument should be valid");
-    let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().to_vec();
+    let kraus_operators: Vec<SquareMatrix> = instrument_0.non_selective_kraus_operators().clone();
     let op1 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_1 = Instrument::new(vec![op1]).expect("instrument should be valid");
     let m0 = instrument_0.non_selective_operation_matrix();
