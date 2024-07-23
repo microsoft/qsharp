@@ -16,8 +16,8 @@ def setup():
 def test_empty_operation() -> None:
     res = dump_operation("qs => ()", 1)
     assert res == [
-        [1.0, 0.0],
-        [0.0, 1.0],
+        [1, 0],
+        [0, 1],
     ]
 
 
@@ -26,8 +26,8 @@ def test_single_qubit_not_gate() -> None:
 
     res = dump_operation("qs => X(qs[0])", 1)
     assert res == [
-        [0.0, 1.0],
-        [1.0, 0.0],
+        [0, 1],
+        [1, 0],
     ]
 
 def test_single_qubit_hadamard_gate() -> None:
@@ -44,10 +44,10 @@ def test_two_qubit_cnot_gate() -> None:
 
     res = dump_operation("qs => CNOT(qs[0], qs[1])", 2)
     assert res == [
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0, 0.0],
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0],
     ]
 
 def test_custom_operation() -> None:
@@ -59,10 +59,10 @@ def test_custom_operation() -> None:
 
     res = dump_operation("ApplySWAP", 2)
     assert res == [
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
+        [1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
     ]
 
 def test_operation_no_args_in_qsharp_file() -> None:
@@ -71,10 +71,10 @@ def test_operation_no_args_in_qsharp_file() -> None:
 
     res = dump_operation("qs => CustomOperation.ApplySWAP(qs[0], qs[1])", 2)
     assert res == [
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
+        [1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
     ]
 
 def test_operation_with_args_in_qsharp_file() -> None:
