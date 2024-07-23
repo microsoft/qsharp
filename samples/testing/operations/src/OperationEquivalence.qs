@@ -13,10 +13,12 @@ namespace OperationEquivalence {
     open Test_SWAP;
     /// # Summary
     /// Verifies the equivalence of quantum operations using `Fact` function
-    /// and the `CheckOperationsAreEqual` operation.
+    /// and the `CheckOperationsAreEqual` operation. You can either run this here,
+    /// by clicking `Run` in VsCode or call `TestEquivalence` operation in python.
+    @EntryPoint()
     operation TestEquivalence() : Unit {
         let actual = qs => Test_SWAP.ApplySWAP1(qs);
         let expected = qs => Test_SWAP.ApplySWAP2(qs);
-        Fact(CheckOperationsAreEqual(2, actual, expected) == true, "Actual and expected operation should be same");
+        Fact(CheckOperationsAreEqual(2, actual, expected), "Actual and expected operation should be same");
     }
 }
