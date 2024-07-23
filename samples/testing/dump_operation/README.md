@@ -1,6 +1,3 @@
-**Copyright (c) Microsoft Corporation. All rights reserved.**  
-**Licensed under the MIT License.**
-
 # Testing Operations in the QDK
 This sample project demonstrates different approaches to testing operations in the QDK, both via Python and within Q# itself.
 
