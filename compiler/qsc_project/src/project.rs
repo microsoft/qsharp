@@ -618,7 +618,7 @@ pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
 
 impl PackageGraphSources {
     /// Produces an ordered vector over the packages in the order they should be compiled
-    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
+    pub fn compilation_order(self) -> (Result<OrderedDependencies, DependencyCycle>, PackageInfo) {
         // The order is defined by which packages depend on which other packages
         // For example, if A depends on B which depends on C, then we compile C, then B, then A
         // If there are cycles, this is an error, and we will report it as such
@@ -657,16 +657,24 @@ impl PackageGraphSources {
         }
 
         let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        let mut cycle_detected = false;
         sorted_packages.sort_by_key(|(a_key, _pkg)| {
             sorted_keys
                 .iter()
                 .position(|key| key.as_str() == &**a_key)
-                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
+                .unwrap_or_else(|| {
+                    cycle_detected = true;
+                    sorted_keys.len()
+                })
         });
+
+        if cycle_detected {
+            return (Err(DependencyCycle), self.root);
+        }
 
         log::debug!("build plan: {:#?}", sorted_keys);
 
-        Ok((sorted_packages, self.root))
+        (Ok(sorted_packages), self.root)
     }
 
     #[must_use]
