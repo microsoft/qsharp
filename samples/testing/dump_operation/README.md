@@ -15,9 +15,9 @@ There are two primary ways to test operations in the QDK:
 This sample project is a multi-file Q# project that showcases both testing methods. The project structure is as follows:
 
 - src
-    - "BellState.qs": Q# file containing the `AllBellStates` operation to be tested
-    - "Test_SWAP.qs": Q# file containing the `ApplySWAP1` and `ApplySWAP2` operations to be tested
-    - "OperationEquivalence.qs": Q# file containing the `TestEquivalence` operation to be called in python wrapper
+    - `BellState.qs`: Q# file containing the `AllBellStates` operation to be tested
+    - `Test_SWAP.qs`: Q# file containing the `ApplySWAP1` and `ApplySWAP2` operations to be tested
+    - `OperationEquivalence.qs`: Q# file containing the `TestEquivalence` operation to be called in python wrapper
 - "qsharp.json": Q# project configuration file
 - test_dump_operation.py: "Python wrapper containing tests"
 
