@@ -9,25 +9,17 @@
 /// demonstrating how to organize Q# code into multiple files for testing.
 
 namespace Test_SWAP {
-    /// # Summary
-    /// Operation for testing with `dump_operation.py` and `TestEquivalence` operation.
-    ///
-    /// # Input
-    /// ## qs
-    /// Input qubit register
-    operation ApplySWAP1(qs : Qubit[]) : Unit is Ctl + Adj {
-        SWAP(qs[0], qs[1]);
-    }
-
     // # Summary
-    /// Operation for testing with `TestEquivalence` operation.
+    /// CNOT based operation for testing with `TestEquivalence` operation.
     ///
     /// # Input
-    /// ## qs
-    /// Input qubit register
-    operation ApplySWAP2(qs : Qubit[]) : Unit is Ctl + Adj {
-        CNOT(qs[0], qs[1]); // a, a xor b
-        CNOT(qs[1], qs[0]); // b, a xor b
-        CNOT(qs[0], qs[1]); // b, a
+    /// ## q1
+    /// First input qubit
+    /// ## q2
+    /// Second input qubit
+    operation ApplySWAP(q1: Qubit, q2: Qubit) : Unit is Ctl + Adj {
+        CNOT(q1, q2); // q1, q1 xor q2
+        CNOT(q2, q1); // q2, q1 xor q2
+        CNOT(q1, q2); // q2, q1
     }
 }

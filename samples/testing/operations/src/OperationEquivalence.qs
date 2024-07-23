@@ -17,8 +17,8 @@ namespace OperationEquivalence {
     /// by clicking `Run` in VsCode or call `TestEquivalence` operation in python.
     @EntryPoint()
     operation TestEquivalence() : Unit {
-        let actual = qs => Test_SWAP.ApplySWAP1(qs);
-        let expected = qs => Test_SWAP.ApplySWAP2(qs);
+        let actual = qs => Test_SWAP.ApplySWAP(qs[0], qs[1]);
+        let expected = qs => SWAP(qs[0], qs[1]);
         Fact(CheckOperationsAreEqual(2, actual, expected), "Actual and expected operation should be same");
     }
 }

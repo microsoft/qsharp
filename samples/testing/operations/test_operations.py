@@ -6,7 +6,7 @@ from qsharp.utils import dump_operation
 
 def test_empty_operation() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
-    
+
     res = dump_operation("qs => ()", 1)
     assert res == [
         [complex(1.0, 0.0), complex(0.0, 0.0)],
@@ -62,7 +62,7 @@ def test_operation_no_args_in_qsharp_file() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.init(project_root='.')
 
-    res = dump_operation("Test_SWAP.ApplySWAP1", 2)
+    res = dump_operation("qs => Test_SWAP.ApplySWAP(qs[0], qs[1])", 2)
     assert res == [
         [complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
         [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
@@ -109,6 +109,7 @@ def test_operation_with_args_in_qsharp_file() -> None:
         [complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0), complex(0.0, 0.0)],
         [complex(0.0, 0.0), complex(-0.707107, 0.0), complex(0.0, 0.0), complex(0.707107, 0.0)],
     ]
+
 
 def test_operation_equivalence_using_fact() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
