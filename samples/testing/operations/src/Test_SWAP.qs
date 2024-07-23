@@ -5,12 +5,8 @@
 /// Multi File Testing Project
 ///
 /// # Description
-/// Organizing code into multiple Q# source files is an important part of
-/// writing readable and maintainable code. In this project, we have `BellState.qs`, `Test_SWAP.qs`,
-/// and `OperationEquivalence.qs`, which contain the operation to be tested.
-/// The presence of a Q# manifest file (`qsharp.json`) tells the compiler
-/// to include all Q# files under `src/`.
-/// These will be tested by Python wrapper, `test_dump_operation.py`
+/// This code builds upon the concepts explained in the README file,
+/// demonstrating how to organize Q# code into multiple files for testing.
 
 namespace Test_SWAP {
     /// # Summary

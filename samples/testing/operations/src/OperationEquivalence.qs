@@ -7,12 +7,6 @@
 /// # Description
 /// This code builds upon the concepts explained in the README file,
 /// demonstrating how to organize Q# code into multiple files for testing.
-/// Here, we have separate files (`BellState.qs`, `Test_SWAP.qs`, and `OperationEquivalence.qs`)
-/// containing individual operations under test.
-
-/// The presence of a Q# manifest file (`qsharp.json`) instructs the compiler
-/// to include all Q# files within the `src` directory. These operations are tested
-/// by the Python wrapper script, `test_dump_operation.py`.
 
 namespace OperationEquivalence {
     open Microsoft.Quantum.Diagnostics;
