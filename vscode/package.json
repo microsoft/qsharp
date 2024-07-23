@@ -481,7 +481,7 @@
       {
         "id": "quantum.copilot",
         "name": "quantum",
-        "fullName": "Azure Quantum Copilot",
+        "fullName": "Azure Quantum",
         "description": "Azure Quantum Copilot",
         "isSticky": true,
         "commands": [
