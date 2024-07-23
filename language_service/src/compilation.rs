@@ -218,7 +218,7 @@ impl Compilation {
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
-            dependencies: FxHashMap::default(),
+            dependencies: dependencies.into_iter().collect(),
         }
     }
 

@@ -4840,12 +4840,12 @@ fn export_direct_cycle() {
         "},
         &expect![[r#"
             namespace namespace7 {
-                export item1;
+                export namespace7;
             }
 
             namespace namespace8 {
                 open namespace7;
-                operation item3() : Unit { }
+                operation item2() : Unit { }
             }
         "#]],
     );
@@ -5111,6 +5111,76 @@ fn disallow_glob_alias_import() {
             }
 
             // GlobImportAliasNotSupported { namespace_name: "Bar", alias: "B", span: Span { lo: 45, hi: 55 } }
+        "#]],
+    );
+}
+
+#[test]
+fn glob_import_ns_not_found() {
+    check(
+        indoc! {r#"
+                namespace Main {
+                    import Bar.*;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                import Bar.*;
+            }
+
+            // GlobImportNamespaceNotFound("Bar", Span { lo: 28, hi: 31 })
+        "#]],
+    );
+}
+
+#[test]
+fn allow_export_of_namespace_within_itself() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export namespace7;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    operation Foo() : Unit {}
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export item1;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item_even_when_before_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                    operation Foo() : Unit {}
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export item1;
+                operation item1() : Unit {}
+            }
         "#]],
     );
 }

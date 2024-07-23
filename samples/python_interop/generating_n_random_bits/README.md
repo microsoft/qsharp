@@ -1,0 +1,3 @@
+# Passing arguments from Python to Q# and processing measurement results in Python
+
+In this example, a Q# program generates an array of random bits of user-defined length (`nQubits`). The program creates a random bit sequence by applying an $H$ gate to each of the qubits, measuring them, and returning a tuple containing the measurement results in an array along with the integer representation of the generated bits or the random number. The Python program then processes the resulting array of bits by counting the number of `One`s and displays this count along with the array of random bits and the integer representation of the generated bits.
