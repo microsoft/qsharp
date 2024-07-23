@@ -1,12 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import pytest
 import qsharp
 from qsharp.utils import dump_operation
 
-def test_empty_operation() -> None:
+@pytest.fixture(autouse=True)
+def setup():
+    """Fixture to execute asserts before a test is run"""
+    # You can set the target profile here if you want
+    # By default, it uses "Unrestricted" profile
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    yield # this is where the testing happens
 
+def test_empty_operation() -> None:
     res = dump_operation("qs => ()", 1)
     assert res == [
         [complex(1.0, 0.0), complex(0.0, 0.0)],
