@@ -46,19 +46,21 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut fir_lowerer = qsc_lowerer::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = fir_lowerer.lower_package(&core.package);
+    let fir_store = fir::PackageStore::new();
+    // store can be empty since core doesn't have any dependencies
+    let core_fir = fir_lowerer.lower_package(&core.package, &fir_store);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
-    let std_fir = fir_lowerer.lower_package(&std.package);
+    let std_fir = fir_lowerer.lower_package(&std.package, &fir_store);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(
         &store,
-        &[std_id],
+        &[(std_id, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -66,7 +68,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
-    let unit_fir = fir_lowerer.lower_package(&unit.package);
+    let unit_fir = fir_lowerer.lower_package(&unit.package, &fir_store);
     let entry = unit_fir.entry_exec_graph.clone();
     let id = store.insert(unit);
 
@@ -101,19 +103,20 @@ fn check_partial_eval_stmt(
 ) {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
+    let fir_store = fir::PackageStore::new();
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package, &fir_store);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
-    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package, &fir_store);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(
         &store,
-        &[std_id],
+        &[(std_id, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -121,7 +124,7 @@ fn check_partial_eval_stmt(
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
-    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
     fir_expect.assert_eq(&unit_fir.to_string());
 
     let entry = unit_fir.entry_exec_graph.clone();
@@ -417,16 +420,16 @@ fn block_qubit_use_array_invalid_count_expr() {
                             0,
                         ),
                         span: Span {
-                            lo: 2034,
-                            hi: 2091,
+                            lo: 2064,
+                            hi: 2121,
                         },
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 2034,
-                            hi: 2091,
+                            lo: 2064,
+                            hi: 2121,
                         },
                         id: StoreItemId {
                             package: PackageId(
@@ -4189,7 +4192,7 @@ fn partial_eval_stmt_function_calls() {
                 Items:
                     Item 0 [41-102] (Public):
                         Namespace (Ident 1 [51-55] "Test"): Item 1
-                    Item 1 [62-100] (Public):
+                    Item 1 [62-100] (Internal):
                         Parent: 0
                         Callable 0 [62-100] (function):
                             name: Ident 0 [71-75] "Add1"

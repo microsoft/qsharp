@@ -7,6 +7,7 @@ use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::hir::PackageId;
+use qsc::packages::BuildableProgram;
 use qsc::{compile::compile, PassContext};
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -18,6 +19,7 @@ use qsc_hir::hir::Package;
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, StdFs};
+use std::sync::Arc;
 use std::{
     concat, fs,
     io::{self, Read},
@@ -95,11 +97,10 @@ enum Emit {
     Qir,
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> miette::Result<ExitCode> {
     env_logger::init();
     let cli = Cli::parse();
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
     let profile: qsc::target::Profile = cli.profile.unwrap_or_default().into();
     let capabilities = profile.into();
     let package_type = if cli.emit.contains(&Emit::Qir) {
@@ -107,52 +108,43 @@ fn main() -> miette::Result<ExitCode> {
     } else {
         PackageType::Lib
     };
-
-    if !cli.nostdlib {
-        dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
-    }
-
     let mut features = LanguageFeatures::from_iter(cli.features);
 
-    let mut sources = cli
-        .sources
-        .iter()
-        .map(read_source)
-        .collect::<miette::Result<Vec<_>>>()?;
-
-    if sources.is_empty() {
-        let fs = StdFs;
-        if let Some(qsharp_json) = cli.qsharp_json {
-            if let Some(dir) = qsharp_json.parent() {
-                let project = match fs.load_project(dir, None) {
-                    Ok(project) => project,
-                    Err(errs) => {
-                        for e in errs {
-                            eprintln!("{e:?}");
-                        }
-                        return Ok(ExitCode::FAILURE);
-                    }
-                };
-
-                let (mut project_sources, language_features) =
-                    project.package_graph_sources.into_sources_temporary();
-
-                sources.append(&mut project_sources);
-
-                features.merge(LanguageFeatures::from_iter(language_features));
-            } else {
-                eprintln!("{} must have a parent directory", qsharp_json.display());
-                return Ok(ExitCode::FAILURE);
+    let (mut store, dependencies, source_map) = if let Some(qsharp_json) = cli.qsharp_json {
+        if let Some(dir) = qsharp_json.parent() {
+            match load_project(dir, &mut features) {
+                Ok(items) => items,
+                Err(exit_code) => return Ok(exit_code),
             }
+        } else {
+            eprintln!("{} must have a parent directory", qsharp_json.display());
+            return Ok(ExitCode::FAILURE);
         }
-    }
+    } else {
+        let sources = cli
+            .sources
+            .iter()
+            .map(read_source)
+            .collect::<miette::Result<Vec<_>>>()?;
 
-    let entry = cli.entry.unwrap_or_default();
-    let sources = SourceMap::new(sources, Some(entry.into()));
+        let mut store = PackageStore::new(qsc::compile::core());
+        let dependencies = if cli.nostdlib {
+            vec![]
+        } else {
+            let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+            vec![(std_id, None)]
+        };
+        (
+            store,
+            dependencies,
+            SourceMap::new(sources, cli.entry.clone().map(std::convert::Into::into)),
+        )
+    };
+
     let (unit, errors) = compile(
         &store,
         &dependencies,
-        sources,
+        source_map,
         package_type,
         capabilities,
         features,
@@ -279,4 +271,55 @@ fn emit_qir(
             ))])
         }
     }
+}
+
+/// Loads a project from the given directory and returns the package store, the list of
+/// dependencies, and the source map.
+/// Pre-populates the package store with all of the compiled dependencies.
+#[allow(clippy::type_complexity)]
+fn load_project(
+    dir: impl AsRef<Path>,
+    features: &mut LanguageFeatures,
+) -> Result<(PackageStore, Vec<(PackageId, Option<Arc<str>>)>, SourceMap), ExitCode> {
+    let fs = StdFs;
+    let project = match fs.load_project(dir.as_ref(), None) {
+        Ok(project) => project,
+        Err(errs) => {
+            for e in errs {
+                eprintln!("{e:?}");
+            }
+            return Err(ExitCode::FAILURE);
+        }
+    };
+
+    if !project.errors.is_empty() {
+        for e in project.errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    // This builds all the dependencies
+    let buildable_program =
+        BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+
+    if !buildable_program.dependency_errors.is_empty() {
+        for e in buildable_program.dependency_errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+        ..
+    } = buildable_program;
+
+    let source_map = qsc::SourceMap::new(user_code.sources, None);
+
+    features.merge(LanguageFeatures::from_iter(user_code.language_features));
+
+    Ok((store, user_code_dependencies, source_map))
 }

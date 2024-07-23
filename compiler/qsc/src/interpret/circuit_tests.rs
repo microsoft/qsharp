@@ -14,12 +14,14 @@ use qsc_passes::PackageType;
 
 fn interpreter(code: &str, profile: Profile) -> Interpreter {
     let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+    let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
     Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("interpreter creation should succeed")
 }
@@ -66,6 +68,33 @@ fn one_gate() {
 
     expect![[r"
         q_0    ── H ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn toffoli() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit[3];
+                    CCNOT(q[0], q[1], q[2]);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── ● ──
+        q_1    ── ● ──
+        q_2    ── X ──
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -467,6 +496,7 @@ fn operation_with_qubits() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -497,6 +527,7 @@ fn operation_with_qubits_base_profile() {
                 CNOT(q1, q2);
                 [M(q1), M(q2)]
             }
+
         }",
         Profile::Base,
     );
@@ -596,6 +627,7 @@ fn adjoint_operation() {
                 controlled (cs, ...) {
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -661,6 +693,7 @@ fn controlled_operation() {
                     CNOT(q1, q2);
                 }
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -685,6 +718,7 @@ fn controlled_operation() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn internal_operation() {
     let mut interpreter = interpreter(
         r"
@@ -703,35 +737,109 @@ fn internal_operation() {
 
     let circ_err = interpreter
         .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
-        .expect_err("circuit generation should fail");
+        .expect("circuit generation should not fail");
 
     expect![[r#"
-        [
-            Compile(
-                WithSource {
-                    sources: [
-                        Source {
-                            name: "line_0",
-                            contents: "Test.Test",
-                            offset: 0,
+        Circuit {
+            operations: [
+                Operation {
+                    gate: "H",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
                         },
                     ],
-                    error: Frontend(
-                        Error(
-                            Resolve(
-                                NotFound(
-                                    "Test.Test",
-                                    Span {
-                                        lo: 0,
-                                        hi: 9,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ),
+                    children: [],
                 },
-            ),
-        ]
+                Operation {
+                    gate: "X",
+                    display_args: None,
+                    is_controlled: true,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 0,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 0,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+                Operation {
+                    gate: "Measure",
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: [
+                        Register {
+                            q_id: 1,
+                            type: 0,
+                            c_id: None,
+                        },
+                    ],
+                    targets: [
+                        Register {
+                            q_id: 1,
+                            type: 1,
+                            c_id: Some(
+                                0,
+                            ),
+                        },
+                    ],
+                    children: [],
+                },
+            ],
+            qubits: [
+                Qubit {
+                    id: 0,
+                    num_children: 1,
+                },
+                Qubit {
+                    id: 1,
+                    num_children: 1,
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&circ_err);
 }
@@ -746,6 +854,7 @@ fn operation_with_non_qubit_args() {
 
             operation Test(q1: Qubit, q2: Qubit, i: Int) : Unit {
             }
+
         }",
         Profile::Unrestricted,
     );
@@ -779,11 +888,14 @@ mod debugger_stepping {
     /// circuit representation at each step.
     fn generate_circuit_steps(code: &str, profile: Profile) -> String {
         let sources = SourceMap::new([("test.qs".into(), code.into())], None);
+        let (std_id, store) = crate::compile::package_store_with_stdlib(profile.into());
         let mut debugger = Debugger::new(
             sources,
             profile.into(),
             Encoding::Utf8,
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("debugger creation should succeed");
 

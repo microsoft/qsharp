@@ -7,7 +7,12 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::{self, InterpretResult, Interpreter};
+use qsc::{
+    hir::PackageId,
+    interpret::{self, InterpretResult, Interpreter},
+    packages::BuildableProgram,
+    PackageStore,
+};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_eval::{
     output::{self, Receiver},
@@ -23,6 +28,7 @@ use std::{
     path::{Path, PathBuf},
     process::ExitCode,
     string::String,
+    sync::Arc,
 };
 
 #[derive(Debug, Parser)]
@@ -81,42 +87,41 @@ impl Receiver for TerminalReceiver {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    let mut sources = cli
-        .sources
-        .iter()
-        .map(read_source)
-        .collect::<miette::Result<Vec<_>>>()?;
-
     let mut features = LanguageFeatures::from_iter(cli.features);
 
-    if sources.is_empty() {
-        let fs = StdFs;
-        if let Some(qsharp_json) = cli.qsharp_json {
-            if let Some(dir) = qsharp_json.parent() {
-                let project = match fs.load_project(dir, None) {
-                    Ok(project) => project,
-                    Err(errs) => {
-                        for e in errs {
-                            eprintln!("{e:?}");
-                        }
-                        return Ok(ExitCode::FAILURE);
-                    }
-                };
-
-                let (mut project_sources, language_features) =
-                    project.package_graph_sources.into_sources_temporary();
-
-                sources.append(&mut project_sources);
-
-                features.merge(LanguageFeatures::from_iter(language_features));
-            } else {
-                eprintln!("{} must have a parent directory", qsharp_json.display());
-                return Ok(ExitCode::FAILURE);
+    let (store, dependencies, source_map) = if let Some(qsharp_json) = cli.qsharp_json {
+        if let Some(dir) = qsharp_json.parent() {
+            match load_project(dir, &mut features) {
+                Ok(items) => items,
+                Err(code) => return Ok(code),
             }
+        } else {
+            eprintln!("{} must have a parent directory", qsharp_json.display());
+            return Ok(ExitCode::FAILURE);
         }
-    }
+    } else {
+        let sources = cli
+            .sources
+            .iter()
+            .map(read_source)
+            .collect::<miette::Result<Vec<_>>>()?;
+
+        let mut store = PackageStore::new(qsc::compile::core());
+        let dependencies = if cli.nostdlib {
+            vec![]
+        } else {
+            let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
+            vec![(std_id, None)]
+        };
+        (
+            store,
+            dependencies,
+            SourceMap::new(sources, cli.entry.clone().map(std::convert::Into::into)),
+        )
+    };
 
     if cli.exec {
         let mut interpreter = match (if cli.debug {
@@ -124,11 +129,12 @@ fn main() -> miette::Result<ExitCode> {
         } else {
             Interpreter::new
         })(
-            !cli.nostdlib,
-            SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
+            source_map,
             PackageType::Exe,
             TargetCapabilityFlags::all(),
             features,
+            store,
+            &dependencies,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -148,11 +154,12 @@ fn main() -> miette::Result<ExitCode> {
     } else {
         Interpreter::new
     })(
-        !cli.nostdlib,
-        SourceMap::new(sources, None),
+        source_map,
         PackageType::Lib,
         TargetCapabilityFlags::all(),
         features,
+        store,
+        &dependencies,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
@@ -253,4 +260,55 @@ fn print_exec_result(result: Result<Value, Vec<interpret::Error>>) -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// Loads a project from the given directory and returns the package store, the list of
+/// dependencies, and the source map.
+/// Pre-populates the package store with all of the compiled dependencies.
+#[allow(clippy::type_complexity)]
+fn load_project(
+    dir: impl AsRef<Path>,
+    features: &mut LanguageFeatures,
+) -> Result<(PackageStore, Vec<(PackageId, Option<Arc<str>>)>, SourceMap), ExitCode> {
+    let fs = StdFs;
+    let project = match fs.load_project(dir.as_ref(), None) {
+        Ok(project) => project,
+        Err(errs) => {
+            for e in errs {
+                eprintln!("{e:?}");
+            }
+            return Err(ExitCode::FAILURE);
+        }
+    };
+
+    if !project.errors.is_empty() {
+        for e in project.errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    // This builds all the dependencies
+    let buildable_program =
+        BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+
+    if !buildable_program.dependency_errors.is_empty() {
+        for e in buildable_program.dependency_errors {
+            eprintln!("{e:?}");
+        }
+        return Err(ExitCode::FAILURE);
+    }
+
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+        ..
+    } = buildable_program;
+
+    let source_map = qsc::SourceMap::new(user_code.sources, None);
+
+    features.merge(LanguageFeatures::from_iter(user_code.language_features));
+
+    Ok((store, user_code_dependencies, source_map))
 }

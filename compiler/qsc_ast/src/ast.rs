@@ -23,7 +23,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -215,8 +215,6 @@ pub struct Item {
     pub doc: Rc<str>,
     /// The attributes.
     pub attrs: Box<[Box<Attr>]>,
-    /// The visibility.
-    pub visibility: Option<Visibility>,
     /// The item kind.
     pub kind: Box<ItemKind>,
 }
@@ -228,7 +226,6 @@ impl Default for Item {
             span: Span::default(),
             doc: "".into(),
             attrs: Box::default(),
-            visibility: None,
             kind: Box::default(),
         }
     }
@@ -249,10 +246,6 @@ impl Display for Item {
 
         for attr in &*self.attrs {
             write!(indent, "\n{attr}")?;
-        }
-
-        if let Some(visibility) = &self.visibility {
-            write!(indent, "\n{visibility}")?;
         }
 
         write!(indent, "\n{}", self.kind)?;
@@ -293,23 +286,6 @@ impl Display for ItemKind {
             ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
         }
         Ok(())
-    }
-}
-
-/// A visibility modifier.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Visibility {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The visibility kind.
-    pub kind: VisibilityKind,
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
     }
 }
 
@@ -1658,15 +1634,6 @@ impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Ident {} {} \"{}\"", self.id, self.span, self.name)
     }
-}
-
-/// A declaration visibility kind.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VisibilityKind {
-    /// Visible everywhere.
-    Public,
-    /// Visible within a package.
-    Internal,
 }
 
 /// A callable kind.

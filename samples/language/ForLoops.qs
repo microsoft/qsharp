@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // For loop over `Range`
         for i in 0..5 {}
 

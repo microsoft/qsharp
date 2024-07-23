@@ -31,7 +31,6 @@ parser.add_argument("--widgets", action="store_true", help="Build the Python wid
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
-parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -80,7 +79,6 @@ build_all = (
     and not args.pip
     and not args.widgets
     and not args.wasm
-    and not args.samples
     and not args.npm
     and not args.play
     and not args.vscode
@@ -90,7 +88,6 @@ build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
-build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -194,7 +191,7 @@ if args.check:
             cwd=root_dir,
         )
 
-    if build_cli or build_samples:
+    if build_cli:
         print("Running Q# format check")
         subprocess.run(
             [
@@ -224,13 +221,6 @@ if build_cli:
             cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
         step_end()
-
-    step_start("Building the command line compiler")
-    cargo_build_args = ["cargo", "build", "--bin", "qsc"]
-    if build_type == "release":
-        cargo_build_args.append("--release")
-    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
-    step_end()
 
 
 def install_qsharp_python_package(cwd, wheelhouse, interpreter):
@@ -394,7 +384,7 @@ if build_samples:
         os.path.join(dp, f)
         for dp, _, filenames in project_directories
         for f in filenames
-        if f == "qsharp.json" and dp.find("testing") == -1
+        if f == "qsharp.json"
     ]
     cargo_args = ["cargo", "run", "--bin", "qsc"]
     if build_type == "release":
@@ -488,6 +478,7 @@ if build_pip and build_widgets and args.integration_tests:
             or f.startswith("circuits.")
             or f.startswith("iterative_phase_estimation.")
             or f.startswith("repeat_until_success.")
+            or f.startswith("python-deps.")
         )
     ]
     python_bin = use_python_env(samples_src)

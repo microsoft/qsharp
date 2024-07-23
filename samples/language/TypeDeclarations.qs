@@ -6,7 +6,7 @@
 /// in Q#. They are immutable but support a copy-and-update construct.
 namespace MyQuantumApp {
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
         // UDTs are defined with the `newtype` keyword.
         newtype Point3d = (X : Double, Y : Double, Z : Double);
 

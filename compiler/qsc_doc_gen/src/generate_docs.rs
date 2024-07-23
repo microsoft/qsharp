@@ -9,7 +9,7 @@ use crate::display::{CodeDisplay, Lookup};
 use qsc_ast::ast;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, Dependencies, PackageStore, SourceMap};
 use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
@@ -31,31 +31,34 @@ impl Compilation {
     /// Creates a new `Compilation` by compiling standard library
     /// and additional sources.
     pub(crate) fn new(
-        additional_sources: Option<SourceMap>,
+        additional_program: Option<(PackageStore, &Dependencies, SourceMap)>,
         capabilities: Option<TargetCapabilityFlags>,
         language_features: Option<LanguageFeatures>,
     ) -> Self {
-        let mut package_store = PackageStore::new(compile::core());
         let actual_capabilities = capabilities.unwrap_or_default();
-        let std_unit = compile::std(&package_store, actual_capabilities);
-        let std_package_id = package_store.insert(std_unit);
+        let actual_language_features = language_features.unwrap_or_default();
 
-        if let Some(sources) = additional_sources {
-            let actual_language_features = language_features.unwrap_or_default();
+        let package_store =
+            if let Some((mut package_store, dependencies, sources)) = additional_program {
+                let unit = compile(
+                    &package_store,
+                    dependencies,
+                    sources,
+                    actual_capabilities,
+                    actual_language_features,
+                );
+                // We ignore errors here (unit.errors vector) and use whatever
+                // documentation we can produce. In future we may consider
+                // displaying the fact of error presence on documentation page.
 
-            let unit = compile(
-                &package_store,
-                &[std_package_id],
-                sources,
-                actual_capabilities,
-                actual_language_features,
-            );
-            // We ignore errors here (unit.errors vector) and use whatever
-            // documentation we can produce. In future we may consider
-            // displaying the fact of error presence on documentation page.
-
-            package_store.insert(unit);
-        }
+                package_store.insert(unit);
+                package_store
+            } else {
+                let mut package_store = PackageStore::new(compile::core());
+                let std_unit = compile::std(&package_store, actual_capabilities);
+                package_store.insert(std_unit);
+                package_store
+            };
 
         Self { package_store }
     }
@@ -132,7 +135,7 @@ impl Lookup for Compilation {
 /// and additional sources (if specified.)
 #[must_use]
 pub fn generate_docs(
-    additional_sources: Option<SourceMap>,
+    additional_sources: Option<(PackageStore, &Dependencies, SourceMap)>,
     capabilities: Option<TargetCapabilityFlags>,
     language_features: Option<LanguageFeatures>,
 ) -> Files {
@@ -252,6 +255,7 @@ impl Display for Metadata {
             MetadataKind::Function => "function",
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "udt",
+            MetadataKind::Export => "export",
         };
         write!(
             f,
@@ -274,6 +278,7 @@ enum MetadataKind {
     Function,
     Operation,
     Udt,
+    Export,
 }
 
 fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
@@ -292,6 +297,12 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Udt,
         )),
         ItemKind::Namespace(_, _) => None,
+        ItemKind::Export(name, _) => Some((
+            name.name.clone(),
+            // If we want to show docs for exports, we could do that here.
+            String::new(),
+            MetadataKind::Export,
+        )),
     }?;
 
     let summary = parse_doc_for_summary(&item.doc)
@@ -304,6 +315,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Function => format!("{name} function"),
             MetadataKind::Operation => format!("{name} operation"),
             MetadataKind::Udt => format!("{name} user defined type"),
+            MetadataKind::Export => format!("{name} exported item"),
         },
         topic: "managed-reference".to_string(),
         kind,

@@ -19,5 +19,7 @@
   "marking_oracles",
   "deutsch_algo",
   "deutsch_jozsa",
+  "grovers_search",
+  "solving_sat",
   "qec_shor"
 ]

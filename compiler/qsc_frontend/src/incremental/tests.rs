@@ -3,14 +3,14 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore},
+    compile::{self, CompileUnit, PackageStore, SourceMap},
     incremental::Error,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 
 #[allow(clippy::too_many_lines)]
 #[test]
@@ -18,7 +18,7 @@ fn one_callable() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &[],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -119,7 +119,7 @@ fn one_callable() {
             Package:
                 Item 0 [0-44] (Public):
                     Namespace (Ident 5 [10-13] "Foo"): Item 1
-                Item 1 [16-42] (Public):
+                Item 1 [16-42] (Internal):
                     Parent: 0
                     Callable 0 [16-42] (operation):
                         name: Ident 1 [26-30] "Main"
@@ -140,7 +140,7 @@ fn one_statement() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &[],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -203,7 +203,7 @@ fn parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &[],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -248,7 +248,7 @@ fn conditional_compilation_not_available() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &[],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -274,11 +274,10 @@ fn conditional_compilation_not_available() {
 #[test]
 fn errors_across_multiple_lines() {
     let mut store = PackageStore::new(compile::core());
-    let std = compile::std(&store, TargetCapabilityFlags::all());
-    let std_id = store.insert(std);
+    let std_id = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let mut compiler = Compiler::new(
         &store,
-        [std_id],
+        &[(std_id, None)],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -347,7 +346,7 @@ fn continue_after_parse_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &Vec::new(),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -423,7 +422,7 @@ fn continue_after_lower_error() {
     let store = PackageStore::new(compile::core());
     let mut compiler = Compiler::new(
         &store,
-        vec![],
+        &[],
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
@@ -469,7 +468,213 @@ fn continue_after_lower_error() {
         ]
     "#]].assert_debug_eq(&errors);
 }
+#[test]
+fn import_foo() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                import A.PackageA.Foo;
+            "},
+        )],
+        &[("A", "PackageA")],
+        "",
+    );
+}
 
+#[test]
+fn import_foo_with_alias() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                import A.PackageA.Foo as Foo2;
+            "},
+        )],
+        &[("A", "PackageA")],
+        "",
+    );
+}
+
+#[test]
+fn export_foo_with_alias() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                import A.PackageA.Foo;
+                export Foo as Bar;
+            "},
+        )],
+        &[("A", "PackageA")],
+        "",
+    );
+}
+
+#[test]
+fn combined_import_export() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                import A.PackageA.Foo;
+                import A.PackageA.Foo as Foo2;
+                export Foo, Foo as Bar, Foo2, Foo2 as Bar2;
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            import B.PackageB.Foo, B.PackageB.Bar, B.PackageB.Foo2, B.PackageB.Bar2;
+            @EntryPoint()
+            function Main() : Unit {
+                Foo(10, true);
+                Foo2(10, true);
+                Bar(10, true);
+                Bar2(10, true);
+            }
+        "},
+    );
+}
+
+#[test]
+fn reexport_operation_from_a_dependency() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                operation Foo(x: Int, y: Bool) : Int {
+                    x
+                }
+                export Foo;
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                import A.PackageA.Foo;
+                export Foo as Bar;
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            import B.PackageB.Bar;
+            @EntryPoint()
+            function Main() : Unit {
+                Bar(10, true);
+            }
+        "},
+    );
+}
+
+fn multi_package_test(
+    packages: Vec<(&str, &str)>,
+    dependencies: Vec<(&str, &str)>,
+    imports: &[(&str, &str)],
+    user_code: &str,
+) {
+    let mut store = PackageStore::new(compile::core());
+
+    let packages = packages
+        .into_iter()
+        .map(|(name, code)| {
+            let source_map = SourceMap::new([(name.into(), code.into())], None);
+            let compiled_package = compile::compile(
+                &store,
+                &[],
+                source_map,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+            assert!(
+                compiled_package.errors.is_empty(),
+                "{:#?}",
+                compiled_package.errors
+            );
+            store.insert(compiled_package)
+        })
+        .collect::<Vec<_>>();
+
+    let dependencies = dependencies
+        .into_iter()
+        .map(|(name, code)| {
+            let source_map = SourceMap::new([(name.into(), code.into())], None);
+            let compiled_package = compile::compile(
+                &store,
+                &imports
+                    .iter()
+                    .map(|(alias, _)| (packages[0], Some(Arc::from(*alias))))
+                    .collect::<Vec<_>>(),
+                source_map,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+            assert!(
+                compiled_package.errors.is_empty(),
+                "{:#?}",
+                compiled_package.errors
+            );
+            store.insert(compiled_package)
+        })
+        .collect::<Vec<_>>();
+
+    let mut compiler = Compiler::new(
+        &store,
+        &dependencies
+            .iter()
+            .map(|&pkg| (pkg, Some(Arc::from("B"))))
+            .collect::<Vec<_>>(),
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    let mut unit = CompileUnit::default();
+
+    let mut errors = Vec::new();
+
+    compiler
+        .compile_fragments(&mut unit, "UserCode", user_code, |e| -> Result<(), ()> {
+            errors = e;
+            Ok(())
+        })
+        .expect("compile_fragments should succeed");
+
+    expect!["[]"].assert_eq(&format!("{errors:#?}"));
+}
 fn check_unit(expect: &Expect, actual: &Increment) {
     let ast = format!("ast:\n{}", actual.ast.package);
 

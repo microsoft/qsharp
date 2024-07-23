@@ -17,6 +17,9 @@ namespace MyQuantumApp {
         let result = Measure([pauliDimension], [q]);
         Message($"Measurement result: {result}");
 
+        // Reset the qubit before releasing it to ensure it is in the |0⟩ state.
+        Reset(q);
+
         return result;
     }
 }

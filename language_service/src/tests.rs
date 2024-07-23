@@ -29,22 +29,7 @@ async fn single_document() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -78,22 +63,7 @@ async fn single_document_update() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -124,16 +94,7 @@ async fn single_document_update() {
         &mut received_errors.borrow_mut(),
         "foo.qs",
         &(expect![[r#"
-            [
-                (
-                    "foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [],
-                    [],
-                ),
-            ]
+            []
         "#]]),
         &(expect![[r#"
             SourceMap {
@@ -163,7 +124,7 @@ async fn document_in_project() {
     check_errors_and_no_compilation(
         &ls,
         &mut received_errors.borrow_mut(),
-        "this_file.qs",
+        "project/src/this_file.qs",
         &(expect![[r#"
             []
         "#]]),
@@ -177,20 +138,7 @@ async fn document_in_project() {
         &mut received_errors.borrow_mut(),
         "project/src/this_file.qs",
         &expect![[r#"
-            [
-                (
-                    "project/qsharp.json",
-                    None,
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
+            []
         "#]],
         &expect![[r#"
             SourceMap {

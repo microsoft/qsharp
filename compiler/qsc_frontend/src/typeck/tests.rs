@@ -2244,7 +2244,7 @@ fn struct_cons_wrong_input() {
             #25 88-124 "new Pair { First = 5.0, Second = 6 }" : UDT<"Pair": Item 1>
             #30 107-110 "5.0" : Double
             #33 121-122 "6" : Int
-            Error(Type(Error(TyMismatch("Double", "Int", Span { lo: 99, hi: 110 }))))
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 99, hi: 110 }))))
         "#]],
     );
 }

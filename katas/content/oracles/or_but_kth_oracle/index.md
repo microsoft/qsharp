@@ -5,7 +5,7 @@
 
 **Goal:**
 
-Flip the sign of the basis state $\ket{x}$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in the input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
+Flip the sign of the basis state $\ket{x}$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in the input register. In other words, the input register with the $k$-th qubit excluded shouldn't be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
 
 *Feel free to explore implementing this operation with or without auxiliary qubits.*
 
@@ -16,7 +16,7 @@ Flip the sign of the basis state $\ket{x}$ if any of the bits of $x$ (not consid
 
 <details>
   <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
-    This is a phase oracle, because we are changing the phase of the input state $\ket{x}$ based on the value of the function $f(x)$.
+    This is a phase oracle, because you're changing the phase of the input state $\ket{x}$ based on the value of the function $f(x)$.
 </details>
 
 <details>
