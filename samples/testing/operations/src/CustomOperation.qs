@@ -8,7 +8,7 @@
 /// This code builds upon the concepts explained in the README file,
 /// demonstrating how to organize Q# code into multiple files for testing.
 
-namespace Test_SWAP {
+namespace CustomOperation {
     // # Summary
     /// CNOT based operation for testing with `TestEquivalence` operation.
     ///

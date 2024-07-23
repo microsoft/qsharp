@@ -10,14 +10,14 @@
 
 namespace OperationEquivalence {
     open Microsoft.Quantum.Diagnostics;
-    open Test_SWAP;
+    open CustomOperation;
     /// # Summary
     /// Verifies the equivalence of quantum operations using `Fact` function
     /// and the `CheckOperationsAreEqual` operation. You can either run this here,
     /// by clicking `Run` in VsCode or call `TestEquivalence` operation in python.
     @EntryPoint()
     operation TestEquivalence() : Unit {
-        let actual = qs => Test_SWAP.ApplySWAP(qs[0], qs[1]);
+        let actual = qs => CustomOperation.ApplySWAP(qs[0], qs[1]);
         let expected = qs => SWAP(qs[0], qs[1]);
         Fact(CheckOperationsAreEqual(2, actual, expected), "Actual and expected operation should be same");
     }
