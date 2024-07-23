@@ -105,6 +105,9 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         const files: string[] = [];
         const srcDir = vscode.Uri.joinPath(qsharpJsonUri, "..", "src");
 
+        // TODO: Error on no ./src dir, or no files found
+        // TODO: Telemetry on number of files found (log start/end so can see perf)
+
         async function getQsFilesInDir(dir: vscode.Uri) {
           const dirFiles = (await vscode.workspace.fs.readDirectory(dir)).sort(
             (a, b) => {
@@ -174,11 +177,11 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         path: "samples/language/MultiFileProject",
       },
     },
-    qspkg: {
+    "<name>": {
       github: {
-        owner: "billti",
-        repo: "qspkg",
-        ref: "f3e2dc58",
+        owner: "<org or username>",
+        repo: "<repo name>",
+        ref: "<tag or commit>",
       },
     },
   };
@@ -291,7 +294,8 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           projectChoices.map((choice) => {
             if ("github" in choice.ref) {
               return {
-                label: choice.name,
+                label:
+                  choice.name == "<name>" ? "GitHub template" : choice.name,
                 detail: `github://${choice.ref.github.owner}/${choice.ref.github.repo}#${choice.ref.github.ref}`,
                 iconPath: githubIcon,
                 ref: choice.ref,
@@ -316,6 +320,8 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         log.info("User picked project: ", projectChoice);
 
         // TODO: Check the reference (or name) isn't already present in the dependencies
+        if (projectChoice.label == "GitHub template")
+          projectChoice.label = "<name>";
         if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
         manifestObj["dependencies"][projectChoice.label] = projectChoice.ref;
 
