@@ -289,14 +289,22 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           });
         });
 
-        // Note: As some point we may want to detect/avoid duplicate names, e.g. if the user already
-        // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
         Object.keys(githubProjects).forEach((name) => {
           projectChoices.push({
             name: name,
             ref: githubProjects[name],
           });
         });
+
+        // Convert any spaces, dashes, dots, tildes, or quotes in project names
+        // to underscores. (Leave more 'exotic' non-identifier patterns to the user to fix)
+        //
+        // Note: At some point we may want to detect/avoid duplicate names, e.g. if the user already
+        // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
+        projectChoices.forEach(
+          (val, idx, arr) =>
+            (arr[idx].name = val.name.replace(/[- "'.~]/g, "_")),
+        );
 
         const folderIcon = new vscode.ThemeIcon("folder");
         const githubIcon = new vscode.ThemeIcon("github");
