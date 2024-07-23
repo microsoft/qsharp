@@ -168,20 +168,21 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
   type Dependency = LocalProjectRef | GitHubProjectRef;
 
-  const tmpGitHubList: { [name: string]: GitHubProjectRef } = {
-    unstable: {
+  // TODO: Replace with a list of legitimate known Q# projects on GitHub
+  const githubProjects: { [name: string]: GitHubProjectRef } = {
+    assert: {
       github: {
-        owner: "microsoft",
-        repo: "qsharp",
-        ref: "main",
-        path: "samples/language/MultiFileProject",
+        owner: "swernli",
+        repo: "MyQsLib",
+        ref: "6ebc707",
       },
     },
-    "<name>": {
+    // Add a template to the end of the list users can use to easily add their own
+    "<id>": {
       github: {
-        owner: "<org or username>",
-        repo: "<repo name>",
-        ref: "<tag or commit>",
+        owner: "<owner>",
+        repo: "<project>",
+        ref: "<commit>",
       },
     },
   };
@@ -262,9 +263,6 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           await vscode.workspace.findFiles("**/qsharp.json")
         ).filter((file) => file.toString() !== qsharpJsonUri.toString());
 
-        // TODO: Get a list of known Q# projects on GitHub
-        const githubProjects = tmpGitHubList;
-
         const projectChoices: Array<{ name: string; ref: Dependency }> = [];
 
         projectFiles.forEach((file) => {
@@ -294,8 +292,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           projectChoices.map((choice) => {
             if ("github" in choice.ref) {
               return {
-                label:
-                  choice.name == "<name>" ? "GitHub template" : choice.name,
+                label: choice.name,
                 detail: `github://${choice.ref.github.owner}/${choice.ref.github.repo}#${choice.ref.github.ref}`,
                 iconPath: githubIcon,
                 ref: choice.ref,
@@ -319,9 +316,6 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
         log.info("User picked project: ", projectChoice);
 
-        // TODO: Check the reference (or name) isn't already present in the dependencies
-        if (projectChoice.label == "GitHub template")
-          projectChoice.label = "<name>";
         if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
         manifestObj["dependencies"][projectChoice.label] = projectChoice.ref;
 
