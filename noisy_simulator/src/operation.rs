@@ -53,7 +53,7 @@ impl Operation {
     /// Matrices must be of dimension 2^k x 2^k, where k is an integer.
     /// Returns `None` if the kraus matrices are ill formed.
     pub fn new(mut kraus_operators: Vec<SquareMatrix>) -> Result<Self, Error> {
-        // Perf transformation note: Because `nalgebra` stores its matrices in column major
+        // Performance note: Because `nalgebra` stores its matrices in column major
         // form, we use `gemv_tr` in the `apply_kernel` function when multiplying to avoid
         // incurring cache misses. That is why we transpose all Kraus operators when they
         // enter the simulator:
@@ -91,12 +91,12 @@ impl Operation {
             }
         }
 
-        // Perf transformation note: The effect_matrix = Σᵢ (kᵢ† ⋅ k), but due to performance
+        // Performance note: The effect_matrix = Σᵢ (kᵢ† ⋅ k), but due to performance
         // reasons described above we want to store its transpose. But (A ⋅ B)^T = B^T ⋅ A^T.
         // Therefore, we have to swap the order of the factors.
         let effect_matrix: SquareMatrix = kraus_operators.iter().map(|k| k * k.adjoint()).sum();
 
-        // Perf transformation note: (A ⊗ B)^T = A^T ⊗ B^T, so we don't need to change
+        // Performance note: (A ⊗ B)^T = A^T ⊗ B^T, so we don't need to change
         // anything here.
         let operation_matrix: SquareMatrix = kraus_operators
             .iter()

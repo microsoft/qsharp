@@ -72,7 +72,7 @@ fn check_non_selective_evolution_operator_is_computed_correctly() {
     let op0 = Operation::new(kraus_operators).expect("operation should be valid");
     let instrument_0 = Instrument::new(vec![op0]).expect("instrument should be valid");
 
-    // Perf transformation note: We reverse the transposition made by
+    // Performance note: We reverse the transposition made by
     // the performance optimization related to nalgebra column major
     // order before passing the kraus_operators again into Operator::new.
     //

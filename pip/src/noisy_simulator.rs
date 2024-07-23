@@ -48,7 +48,7 @@ fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
     let (nrows, ncols) = matrix.shape();
     let mut list = Vec::with_capacity(nrows * ncols);
 
-    // Performance transformation note: Because of the performance optimization in
+    // Performance note: Because of the performance optimization in
     // noisy_simulator/src/operation.rs/Operation::new, the simulator stores its matrices
     // transposed. When we give them back to python, we need to transpose them back,
     // that's why we write matrix[(col, row)] instead of the usual matrix[(row, col)].

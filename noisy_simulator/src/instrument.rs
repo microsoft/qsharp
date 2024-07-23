@@ -111,7 +111,7 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
             let mut kraus_operator = SquareMatrix::zeros(krows, kcols);
             let sqrt_eigenvalue = eigenvalue.sqrt();
 
-            // Perf transformation note: for performance reasons we transpose the
+            // Performance note: for performance reasons we transpose the
             // Kraus operators before storing them. We want to store each column
             // of the eigenvector matrix as a Kraus matrix in row major order, and
             // then transpose it. But because nalgebra stores and iterates over
@@ -152,7 +152,7 @@ fn compute_choi_matrix(operations: &[Operation]) -> SquareMatrix {
 
 /// Stacks the columns of `matrix` into a single column vector.
 ///
-/// Perf transformation note: Typically vectorization stacks the
+/// Performance note: Typically vectorization stacks the
 /// rows of a matrix into a single column vector. But since we
 /// transposed all matrices until now, we stack the columns instead.
 ///
