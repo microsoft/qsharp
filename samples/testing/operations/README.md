@@ -26,7 +26,7 @@ This sample project is a multi-file Q# project that showcases both testing metho
 - Install `pytest` python package.
 
 ## Running the sample
-Open the `samples/testing/dump_operation` directory, and run `pytest` command.
+Open the `samples/testing/operations` directory, and run `pytest` command.
 
 ## Reference Links:
 - [Q# Testing guide](https://learn.microsoft.com/azure/quantum/user-guide/testing-debugging).
