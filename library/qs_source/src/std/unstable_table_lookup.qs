@@ -274,5 +274,5 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
-    export Select, WriteMemoryContents, Unlookup, MustBeFixed, EncodeUnary;
+    export Select, WriteMemoryContents, Unlookup;
 }
