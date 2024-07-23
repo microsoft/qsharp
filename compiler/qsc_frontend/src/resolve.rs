@@ -74,10 +74,10 @@ pub enum Res {
 }
 
 impl Res {
+    #[must_use]
     pub fn item_id(&self) -> Option<ItemId> {
         match self {
-            Res::Item(id, _) => Some(*id),
-            Res::ExportedItem(id, _) => Some(*id),
+            Res::Item(id, _) | Res::ExportedItem(id, _) => Some(*id),
             _ => None,
         }
     }
