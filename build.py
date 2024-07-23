@@ -363,43 +363,6 @@ if build_wasm:
     )
     step_end()
 
-if build_samples:
-    step_start("Building qsharp samples")
-    project_directories = [
-        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
-    ]
-    single_file_directories = [
-        candidate
-        for candidate in os.walk(samples_src)
-        if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])
-    ]
-
-    files = [
-        os.path.join(dp, f)
-        for dp, _, filenames in single_file_directories
-        for f in filenames
-        if os.path.splitext(f)[1] == ".qs"
-    ]
-    projects = [
-        os.path.join(dp, f)
-        for dp, _, filenames in project_directories
-        for f in filenames
-        if f == "qsharp.json"
-    ]
-    cargo_args = ["cargo", "run", "--bin", "qsc"]
-    if build_type == "release":
-        cargo_args.append("--release")
-    for file in files:
-        subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
-    for project in projects:
-        subprocess.run(
-            (cargo_args + ["--", "--qsharp-json", project]),
-            check=True,
-            text=True,
-            cwd=root_dir,
-        )
-    step_end()
-
 if build_npm:
     step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
