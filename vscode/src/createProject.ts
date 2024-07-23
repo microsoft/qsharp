@@ -105,8 +105,21 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         const files: string[] = [];
         const srcDir = vscode.Uri.joinPath(qsharpJsonUri, "..", "src");
 
-        // TODO: Error on no ./src dir, or no files found
-        // TODO: Telemetry on number of files found (log start/end so can see perf)
+        // Verify the src directory exists
+        try {
+          const srcDirStat = await vscode.workspace.fs.stat(srcDir);
+          if (srcDirStat.type !== vscode.FileType.Directory) {
+            await vscode.window.showErrorMessage(
+              "The ./src path is not a directory",
+            );
+            return;
+          }
+        } catch (err) {
+          await vscode.window.showErrorMessage(
+            "The ./src directory does not exist. Create the directory and add .qs files to it",
+          );
+          return;
+        }
 
         async function getQsFilesInDir(dir: vscode.Uri) {
           const dirFiles = (await vscode.workspace.fs.readDirectory(dir)).sort(
@@ -276,13 +289,14 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           });
         });
 
+        // Note: As some point we may want to detect/avoid duplicate names, e.g. if the user already
+        // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
         Object.keys(githubProjects).forEach((name) => {
           projectChoices.push({
             name: name,
             ref: githubProjects[name],
           });
         });
-        // TODO: Avoid duplicate names if same dir name or matches github project (maybe use an array so there can be duplicates)
 
         const folderIcon = new vscode.ThemeIcon("folder");
         const githubIcon = new vscode.ThemeIcon("github");
