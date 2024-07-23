@@ -23,7 +23,7 @@ def test_single_qubit_not_gate() -> None:
         [complex(1.0, 0.0), complex(0.0, 0.0)],
     ]
 
-def test_single_qubit_superposition() -> None:
+def test_single_qubit_hadamard_gate() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
 
     res = dump_operation("qs => H(qs[0])", 1)
