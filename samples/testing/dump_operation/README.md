@@ -18,8 +18,8 @@ This sample project is a multi-file Q# project that showcases both testing metho
     - `BellState.qs`: Q# file containing the `AllBellStates` operation to be tested
     - `Test_SWAP.qs`: Q# file containing the `ApplySWAP1` and `ApplySWAP2` operations to be tested
     - `OperationEquivalence.qs`: Q# file containing the `TestEquivalence` operation to be called in python wrapper
-- "qsharp.json": Q# project configuration file
-- test_dump_operation.py: "Python wrapper containing tests"
+- `qsharp.json`: Q# project configuration file
+- `test_dump_operation.py`: Python wrapper containing tests.
 
 ## Installation
 - Install the `qsharp` python package by following the instructions mentioned [here](https://learn.microsoft.com/azure/quantum/install-overview-qdk#add-support-for-python-and-jupyter-notebooks).
