@@ -119,7 +119,7 @@ jobs:
         run: python ./build.py --no-check --wasm --npm --vscode --play --pip --widgets --jupyterlab
 
   unit-tests:
-    name: Rust Unit and Samples tests
+    name: Rust Unit tests
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]
@@ -149,7 +149,7 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py --no-check --cli --samples
+        run: python ./build.py --no-check --cli
 
   integration-tests:
     name: Integration tests

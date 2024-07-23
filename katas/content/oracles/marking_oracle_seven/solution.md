@@ -21,7 +21,7 @@ Now let's again apply this oracle to a superposition state $\ket{\alpha}$ such t
 $$\ket{\alpha} = \frac{1}{\sqrt{2}}\big(\ket{110} + \ket{111}\big)\ket{0} = 
 \ket{11} \otimes \frac{1}{\sqrt{2}} \big(\ket{0} + \ket{1}\big) \otimes \ket{0} = \ket{11+} \ket{0}$$
 
-Let's consider how our operator $U_{7,mark}$ acts on this state.
+Let's consider how the operator $U_{7,mark}$ acts on this state.
 
 > Recall that oracles are linear operators, thus they can be applied to each term individually.
 
@@ -29,15 +29,15 @@ $$U_{7,mark} \ket{\alpha} = \frac{1}{\sqrt{2}} \big(U_{7,mark}\ket{110} \ket{0} 
 
 $$= \frac{1}{\sqrt{2}} \big(\ket{110} \ket{0} + \ket{111} \ket{1}\big) := \ket{\epsilon}$$
 
-Was our input state modified during this operation?  Let's simplify the resulting state $\ket{\epsilon}$:
+Was your input state modified during this operation?  Let's simplify the resulting state $\ket{\epsilon}$:
 
 $$\ket{\epsilon} = \frac{1}{\sqrt{2}} \big(\ket{110} \ket{0} + \ket{111} \ket{1}\big) = \ket{11} \otimes \frac{1}{\sqrt{2}} \big(\ket{0} \ket{0} + \ket{1} \ket{1}\big) =$$
 
 $$= \ket{11} \otimes \frac{1}{\sqrt{2}} \big(\ket{00} + \ket{11}\big) = \ket{11} \otimes \ket{\Phi^+} = \ket{11\Phi^+}$$
 
-We have entangled the states of qubits $\ket{x}$ and $\ket{y}$!  This is a common occurrence for marking oracles when the input is a superposition of basis states: after applying the oracle, the input $\ket{x}$ will often become entangled with $\ket{y}$. Thus, while applying the marking oracle to a basis state will leave the input array unchanged, applying the marking oracle to a superposition state will change the state of both the input array and the output qubit.
+You have entangled the states of qubits $\ket{x}$ and $\ket{y}$!  This is a common occurrence for marking oracles when the input is a superposition of basis states: after applying the oracle, the input $\ket{x}$ will often become entangled with $\ket{y}$. Thus, while applying the marking oracle to a basis state will leave the input array unchanged, applying the marking oracle to a superposition state will change the state of both the input array and the output qubit.
 
->As an exercise, what entangled state would we get in the previous example if $\ket{y} = \ket{1}$ instead of $\ket{y} = \ket{0}$?
+>As an exercise, what entangled state would you get in the previous example if $\ket{y} = \ket{1}$ instead of $\ket{y} = \ket{0}$?
 >
 > <details>
 >   <summary><b>Answer</b></summary>

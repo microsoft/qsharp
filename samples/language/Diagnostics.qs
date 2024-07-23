@@ -21,6 +21,9 @@ namespace MyQuantumApp {
         // `DumpMachine` displays the quantum state of the qubits.
         DumpMachine();
 
+        // To ensure qubits are in the ground or |0⟩ state before being released, we can reset them.
+        ResetAll(qs);
+
         // `Fact` checks whether a classical condition is true, and throws an
         // error with the specified message if not.
         Fact(1 == 1, "1 should always be equal to 1");

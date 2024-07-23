@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! This module contains the apply_kernel function used by the `DensityMatrixSimualtor`
+//! This module contains the `apply_kernel` function used by the `DensityMatrixSimualtor`
 //! and the `TrajectorySimulator`.
 
 use crate::{ComplexVector, Error, SquareMatrix};

@@ -618,7 +618,7 @@ pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
 
 impl PackageGraphSources {
     /// Produces an ordered vector over the packages in the order they should be compiled
-    pub fn compilation_order(self) -> Result<(OrderedDependencies, PackageInfo), DependencyCycle> {
+    pub fn compilation_order(self) -> (Result<OrderedDependencies, DependencyCycle>, PackageInfo) {
         // The order is defined by which packages depend on which other packages
         // For example, if A depends on B which depends on C, then we compile C, then B, then A
         // If there are cycles, this is an error, and we will report it as such
@@ -626,6 +626,9 @@ impl PackageGraphSources {
         let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
 
         // Initialize the graph and in-degrees
+        // This graph contains all direct and transient dependencies
+        // and tracks which packages depend on which other packages,
+        // as well as the in-degree (quantity of dependents) of each package
         for (key, package_info) in &self.packages {
             in_degree.entry(key).or_insert(0);
             for dep in package_info.dependencies.values() {
@@ -634,6 +637,11 @@ impl PackageGraphSources {
             }
         }
 
+        // this queue contains all packages with in-degree 0
+        // these packages are valid starting points for the build order,
+        // as they don't depend on any other packages.
+        // If there are no dependency cycles, then all packages will be reachable
+        // via this queue of build order entry points.
         let mut queue: Vec<&str> = in_degree
             .iter()
             .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
@@ -641,6 +649,11 @@ impl PackageGraphSources {
 
         let mut sorted_keys = Vec::new();
 
+        // from all build order entry points (the initial value of `queue`), we
+        // can build the build order by visiting each package and decrementing
+        // the in-degree of its dependencies. If the in-degree of a dependency
+        // reaches 0, then it can be added to the queue of build order entry points,
+        // as all of its dependents have been built.
         while let Some(node) = queue.pop() {
             sorted_keys.push(node.to_string());
             if let Some(neighbors) = graph.get(node) {
@@ -657,16 +670,29 @@ impl PackageGraphSources {
         }
 
         let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        let mut cycle_detected = false;
         sorted_packages.sort_by_key(|(a_key, _pkg)| {
             sorted_keys
                 .iter()
                 .position(|key| key.as_str() == &**a_key)
-                .unwrap_or_else(|| panic!("package {a_key} should be in sorted keys list"))
+                .unwrap_or_else(|| {
+                    // The only situation in which a package is not in the build order
+                    // is if there is a cycle in the dependency graph.
+                    // this is because the build order must start with a package that
+                    // has zero dependencies. If all packages have dependencies, then
+                    // a cycle must exist.
+                    cycle_detected = true;
+                    sorted_keys.len()
+                })
         });
+
+        if cycle_detected {
+            return (Err(DependencyCycle), self.root);
+        }
 
         log::debug!("build plan: {:#?}", sorted_keys);
 
-        Ok((sorted_packages, self.root))
+        (Ok(sorted_packages), self.root)
     }
 
     #[must_use]

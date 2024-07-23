@@ -482,7 +482,8 @@ impl CompletionListBuilder {
                                 let mut qualification: Option<Vec<Rc<str>>> = None;
                                 match &current_namespace_name {
                                     Some(curr_ns)
-                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                        if package_alias_from_manifest.is_none()
+                                            && *curr_ns == Into::<Vec<_>>::into(namespace) => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
@@ -498,18 +499,14 @@ impl CompletionListBuilder {
                                             Some(alias) => alias.clone().map(|x| vec![x]),
                                             None => match insert_open_at {
                                                 Some(start) => {
+                                                    let import_text = format_external_name(
+                                                        &package_alias_from_manifest,
+                                                        &Into::<Vec<_>>::into(namespace),
+                                                        Some(name),
+                                                    );
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {}{};{indent}",
-                                                            // insert the package alias, if there is one
-                                                            if let Some(ref alias) =
-                                                                package_alias_from_manifest
-                                                            {
-                                                                format!("{alias}.")
-                                                            } else {
-                                                                String::new()
-                                                            },
-                                                            namespace.name()
+                                                            "import {import_text};{indent}",
                                                         ),
                                                         range: start,
                                                     });
@@ -528,15 +525,10 @@ impl CompletionListBuilder {
                                 };
 
                                 let label = if let Some(qualification) = qualification {
-                                    format!(
-                                        "{}{}.{name}",
-                                        // insert the package alias, if there is one
-                                        if let Some(ref alias) = package_alias_from_manifest {
-                                            format!("{alias}.")
-                                        } else {
-                                            String::new()
-                                        },
-                                        qualification.join(".")
+                                    format_external_name(
+                                        &package_alias_from_manifest,
+                                        &qualification,
+                                        Some(name),
                                     )
                                 } else {
                                     name.to_owned()
@@ -597,20 +589,48 @@ impl CompletionListBuilder {
             ItemKind::Namespace(namespace, _)
                 if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
-                let label = format!(
-                    "{}{}",
-                    if let Some(ref alias) = package_alias {
-                        format!("{alias}.")
-                    } else {
-                        String::new()
-                    },
-                    namespace.name()
-                );
+                let qualification = namespace
+                    .str_iter()
+                    .into_iter()
+                    .map(Rc::from)
+                    .collect::<Vec<_>>();
+                let label = format_external_name(&package_alias, &qualification[..], None);
                 Some(CompletionItem::new(label, CompletionItemKind::Module))
             }
             _ => None,
         })
     }
+}
+
+/// Format an external fully qualified name
+/// This will prepend the package alias and remove `Main` if it is the first namespace
+fn format_external_name(
+    package_alias_from_manifest: &Option<Arc<str>>,
+    qualification: &[Rc<str>],
+    name: Option<&str>,
+) -> String {
+    let mut fully_qualified_name: Vec<Rc<str>> = if let Some(alias) = package_alias_from_manifest {
+        vec![Rc::from(&*alias.clone())]
+    } else {
+        vec![]
+    };
+
+    // if this comes from an external project's Main, then the path does not include Main
+    let item_comes_from_main_of_external_project = package_alias_from_manifest.is_some()
+        && qualification.len() == 1
+        && qualification.first() == Some(&"Main".into());
+
+    // So, if it is _not_ from an external project's `Main`, we include the namespace in the fully
+    // qualified name.
+    if !(item_comes_from_main_of_external_project) {
+        fully_qualified_name.append(&mut qualification.to_vec());
+    };
+
+    if let Some(name) = name {
+        fully_qualified_name.push(name.into());
+    }
+
+    fully_qualified_name.join(".")
 }
 
 /// Convert a local into a completion item
@@ -646,6 +666,8 @@ fn local_completion(
                         CompletionItemKind::Interface,
                     )
                 }
+                // We don't want completions for items exported from the local scope
+                ItemKind::Export(_, _) => return None,
             };
             (kind, detail)
         }
