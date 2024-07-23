@@ -63,4 +63,90 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
       },
     ),
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "qsharp-vscode.populateFilesList",
+      async (qsharpJsonUri: vscode.Uri | undefined) => {
+        // If called from the content menu qsharpJsonUri will be the full qsharp.json uri
+        // If called from the command palette is will be undefined, so use the active editor
+        log.info("populateQsharpFilesList called with", qsharpJsonUri);
+
+        qsharpJsonUri =
+          qsharpJsonUri ?? vscode.window.activeTextEditor?.document.uri;
+        if (!qsharpJsonUri) {
+          log.error(
+            "populateFilesList called, but argument or active editor is not qsharp.json",
+          );
+          return;
+        }
+
+        log.debug("Populating qsharp.json files for: ", qsharpJsonUri.path);
+
+        // First, verify the qsharp.json can be opened and is a valid json file
+        const qsharpJsonDoc =
+          await vscode.workspace.openTextDocument(qsharpJsonUri);
+        if (!qsharpJsonDoc) {
+          log.error("Unable to open the qsharp.json file at ", qsharpJsonDoc);
+          return;
+        }
+
+        let manifestObj: any = {};
+        try {
+          manifestObj = JSON.parse(qsharpJsonDoc.getText());
+        } catch (err: any) {
+          await vscode.window.showErrorMessage(
+            `Unable to parse the contents of ${qsharpJsonUri.path}`,
+          );
+          return;
+        }
+
+        // Recursively find all .qs documents under the ./src dir
+        const files: string[] = [];
+        const srcDir = vscode.Uri.joinPath(qsharpJsonUri, "..", "src");
+
+        async function getQsFilesInDir(dir: vscode.Uri) {
+          const dirFiles = (await vscode.workspace.fs.readDirectory(dir)).sort(
+            (a, b) => {
+              // To order the list, put files before directories, then sort alphabetically
+              if (a[1] !== b[1]) return a[1] < b[1] ? -1 : 1;
+              return a[0] < b[0] ? -1 : 1;
+            },
+          );
+          for (const [name, type] of dirFiles) {
+            if (type === vscode.FileType.File && name.endsWith(".qs")) {
+              files.push(vscode.Uri.joinPath(dir, name).toString());
+            } else if (type === vscode.FileType.Directory) {
+              await getQsFilesInDir(vscode.Uri.joinPath(dir, name));
+            }
+          }
+          return files;
+        }
+        await getQsFilesInDir(srcDir);
+
+        // Update the files property of the qsharp.json and write back to the document
+        const srcDirPrefix = srcDir.toString() + "";
+        manifestObj["files"] = files.map((file) =>
+          file.replace(srcDirPrefix, "src"),
+        );
+
+        // Apply the edits to the qsharp.json
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          qsharpJsonUri,
+          new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
+          JSON.stringify(manifestObj, null, 2),
+        );
+        if (!(await vscode.workspace.applyEdit(edit))) {
+          vscode.window.showErrorMessage(
+            "Unable to update the qsharp.json file. Check the file is writable",
+          );
+          return;
+        }
+
+        // Bring the qsharp.json to the front for the user to save
+        await vscode.window.showTextDocument(qsharpJsonDoc);
+      },
+    ),
+  );
 }
