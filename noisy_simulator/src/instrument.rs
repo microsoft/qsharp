@@ -103,7 +103,7 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
     let eigen_decomposition = choi_matrix.symmetric_eigen();
     let eigenvectors = eigen_decomposition.eigenvectors;
     let eigenvalues = eigen_decomposition.eigenvalues;
-    let mut summed_kraus_operators = Vec::new();
+    let mut summed_kraus_operators = Vec::with_capacity(eigenvalues.len());
 
     let (krows, kcols) = operations[0].kraus_operators()[0].shape();
     for (col, eigenvalue) in eigenvalues.iter().enumerate() {
