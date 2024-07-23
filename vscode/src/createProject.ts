@@ -187,7 +187,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
       github: {
         owner: "swernli",
         repo: "MyQsLib",
-        ref: "6ebc707",
+        ref: "29dc67f",
       },
     },
     // Add a template to the end of the list users can use to easily add their own
