@@ -7,8 +7,7 @@ import { log } from "qsharp-lang";
 import { getAuthSession, scopes } from "../azure/auth";
 import { fetchEventSource } from "./fetch";
 
-const chatUrl =
-  "https://westus3.aqa.canary.quantum.azure.com/api/chat/streaming";
+const chatUrl = "https://westus3.aqa.quantum.azure.com/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 type quantumChatRequest = {
