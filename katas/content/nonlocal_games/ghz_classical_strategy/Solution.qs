@@ -11,3 +11,4 @@ namespace Kata {
         return true;
     }
 }
+
