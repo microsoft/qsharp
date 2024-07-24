@@ -1,4 +1,5 @@
 In this task, you need to read the coloring of an $V$-vertex graph stored in a qubit array.
+This is the last step of Grover's search algorithm: performing measurements and interpreting the results as the potential solution to your problem.
 
 **Inputs**:
 

@@ -34,7 +34,11 @@ Vertex coloring problem is the simplest form of a graph coloring problem. In it,
 
 In this lesson, you will implement the marking oracle for the vertex coloring problem, as well as several building blocks you'll need for an end-to-end implementation of Grover's search for this problem.
 
-TODO "Is Vertex Coloring Valid? (Classical)"
+@[exercise]({
+    "id": "solving_graph_coloring__vertex_coloring_classical",
+    "title": "Is Vertex Coloring Valid? (Classical)",
+    "path": "./vertex_coloring_classical/"
+})
 
 @[exercise]({
     "id": "solving_graph_coloring__read_coloring",
@@ -60,6 +64,7 @@ TODO "Is Vertex Coloring Valid? (Classical)"
     "title": "Weak Coloring Problem"
 })
 
+TBD
 
 
 @[section]({
@@ -72,8 +77,7 @@ In this lesson, you will experiment with using Grover's algorithm to solve graph
 Notice that in this case, it's not as easy to know the number of solutions to the problem upfront as it was for the prefix function used in the "Grover's Search Algorithm" kata.
 Experiment with choosing the number of iterations at random. How does this affect the success probability?
 
-[example]({"id": "solving_graph_coloring__e2edemo", "codePath": "./examples/SolvingGraphColoringWithGroverDemo.qs"})
-
+TBD
 
 @[section]({
     "id": "solving_graph_coloring__conclusion",
