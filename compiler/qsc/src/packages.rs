@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{compile, hir::PackageId, PackageStore, TargetCapabilityFlags};
+use crate::{
+    compile::{self, ErrorKind},
+    hir::PackageId,
+    PackageStore, TargetCapabilityFlags,
+};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::SourceMap;
 use qsc_passes::PackageType;
@@ -42,11 +46,21 @@ pub fn prepare_package_store(
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
-    let (ordered_packages, user_code) = package_graph_sources
-        .compilation_order()
-        .expect("dependency cycle detected in package graph -- this should have been caught by the target scenario");
+    let (ordered_packages, user_code) = package_graph_sources.compilation_order();
 
     let mut dependency_errors = Vec::new();
+    let ordered_packages = if let Ok(o) = ordered_packages {
+        o
+    } else {
+        // If there was a cycle in the dependencies, we treat the compilation as if
+        // there were no dependencies, and report the error upwards
+        dependency_errors.push(qsc_frontend::error::WithSource::from_map(
+            &SourceMap::default(),
+            ErrorKind::DependencyCycle,
+        ));
+        vec![]
+    };
+
     for (package_name, package_to_compile) in ordered_packages {
         let sources: Vec<(Arc<str>, Arc<str>)> =
             package_to_compile.sources.into_iter().collect::<Vec<_>>();
