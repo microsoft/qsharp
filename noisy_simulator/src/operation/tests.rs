@@ -71,7 +71,7 @@ fn check_effect_matrix_is_computed_correctly() {
 
     let eff = eff0 + eff1;
 
-    for (x0, x1) in eff.iter().zip(op.effect_matrix_transpose().iter()) {
+    for (x0, x1) in eff.iter().zip(op.effect_matrix().iter()) {
         assert_approx_eq(0., (x0 - x1.conj()).abs());
     }
 }
@@ -122,7 +122,9 @@ fn check_operation_matrix_is_computed_correctly() {
         9.0625 + 0.   * I, 3.   + 0.25 * I, 3. + 0.25 * I, 6.  + 0.5  * I, 3.   - 0.25 * I, 1. + 0. * I, 1. + 0. * I, 2.  + 0. * I, 3. - 0.25 * I, 1. + 0. * I, 1. + 0. * I, 2.  + 0. * I, 6.  - 0.5  * I, 2.  + 0. * I, 2.  + 0. * I, 4.  + 0. * I;
     ];
 
-    for ((x, x0), x1) in op.matrix().iter().zip(op0.iter()).zip(op1.iter()) {
-        assert_approx_eq(0., (x0 + x1 - x).abs());
+    let op_matrix = op0 + op1;
+
+    for (x0, x1) in op.matrix().transpose().iter().zip(op_matrix.iter()) {
+        assert_approx_eq(0., (x0 - x1).abs());
     }
 }

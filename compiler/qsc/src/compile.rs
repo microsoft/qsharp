@@ -14,23 +14,29 @@ use thiserror::Error;
 pub type Error = WithSource<ErrorKind>;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[diagnostic(transparent)]
 #[error(transparent)]
 /// `ErrorKind` represents the different kinds of errors that can occur in the compiler.
 /// Each variant of the enum corresponds to a different stage of the compilation process.
 pub enum ErrorKind {
     /// `Frontend` variant represents errors that occur during the frontend stage of the compiler.
     /// These errors are typically related to syntax and semantic checks.
+    #[diagnostic(transparent)]
     Frontend(#[from] qsc_frontend::compile::Error),
 
     /// `Pass` variant represents errors that occur during the `qsc_passes` stage of the compiler.
     /// These errors are typically related to optimization, transformation, code generation, passes,
     /// and static analysis passes.
+    #[diagnostic(transparent)]
     Pass(#[from] qsc_passes::Error),
 
     /// `Lint` variant represents lints generated during the linting stage. These diagnostics are
     /// typically emitted from the language server and happens after all other compilation passes.
+    #[diagnostic(transparent)]
     Lint(#[from] qsc_linter::Lint),
+
+    #[error("Cycle in dependency graph")]
+    /// `DependencyCycle` occurs when there is a cycle in the dependency graph.
+    DependencyCycle,
 }
 
 /// Compiles a package from its AST representation.

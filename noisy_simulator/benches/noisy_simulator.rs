@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::time::Duration;
-
 use criterion::{criterion_group, criterion_main, Criterion};
 use nalgebra::dmatrix;
 use noisy_simulator::{
     DensityMatrixSimulator, Error, NoisySimulator, Operation, StateVectorSimulator,
 };
+use std::time::Duration;
 
 fn ten_qubits_ten_operations<NS: NoisySimulator>() -> Result<(), Error> {
     let x_gate = Operation::new(vec![
