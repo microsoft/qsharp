@@ -1,7 +1,10 @@
 namespace Kata {
-    // Simple implementation of the GHZ classical game
     // 3 players, each player has own strategy and receives a bit from the referee
     operation PlayClassicalGHZ (strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {
+        
+        if Length(strategies) != 3 or Length(inputs) != 3 {
+            return [];
+        }
         let r = inputs[0];
         let s = inputs[1];
         let t = inputs[2];
