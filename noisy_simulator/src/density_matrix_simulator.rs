@@ -148,9 +148,7 @@ impl DensityMatrix {
         }
         self.trace_change *= trace;
         let renormalization_factor = 1.0 / trace;
-        for entry in self.data.iter_mut() {
-            *entry *= renormalization_factor;
-        }
+        self.data.scale_mut(renormalization_factor);
         Ok(())
     }
 

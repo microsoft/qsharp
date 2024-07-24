@@ -18,8 +18,8 @@ pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> Py
 }
 
 /// Performance Warning:
-///  nalgebra stores its matrices in column major order, and we want to send it
-///  to Python in row major order, this means that there will be lots of
+///  nalgebra stores its matrices in column major order, and we want to send
+///  them from Python in row major order, this means that there will be lots of
 ///  cache-misses in the convertion from one format to another.
 ///
 ///  This function is only used on a non-critical path for performance. Namely,
@@ -44,20 +44,17 @@ fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> PyResult<SquareMatrix> {
     Ok(SquareMatrix::from_row_iterator(nrows, ncols, data))
 }
 
-/// Performance Warning:
-///  nalgebra stores its matrices in column major order, and we want to send it
-///  to Python in row major order, this means that there will be lots of
-///  cache-misses in the convertion from one format to another.
-///
-///  This function is only used on a non-critical path for performance. Namely,
-///  the input to the simulator to set it up, and getting the final output.
-///  This warning is just to avoid any performance accidents in the future.
 fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
     let (nrows, ncols) = matrix.shape();
     let mut list = Vec::with_capacity(nrows * ncols);
+
+    // Performance note: Because of the performance optimization in
+    // noisy_simulator/src/operation.rs/Operation::new, the simulator stores its matrices
+    // transposed. When we give them back to python, we need to transpose them back,
+    // that's why we write matrix[(col, row)] instead of the usual matrix[(row, col)].
     for row in 0..nrows {
         for col in 0..ncols {
-            list.push(matrix[(row, col)]);
+            list.push(matrix[(col, row)]);
         }
     }
     list
