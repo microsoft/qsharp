@@ -10,6 +10,7 @@ version.workspace = true
 [dev-dependencies]
 expect-test = { workspace = true }
 qsc = { path = "../compiler/qsc" }
+qsc_project = { path = "../compiler/qsc_project" }
 
 [lints]
 workspace = true

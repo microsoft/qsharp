@@ -73,6 +73,16 @@ pub enum Res {
     ExportedItem(ItemId, Option<Ident>),
 }
 
+impl Res {
+    #[must_use]
+    pub fn item_id(&self) -> Option<ItemId> {
+        match self {
+            Res::Item(id, _) | Res::ExportedItem(id, _) => Some(*id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Diagnostic, Error, PartialEq)]
 pub(super) enum Error {
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
@@ -923,10 +933,26 @@ impl Resolver {
                     (false, Some(entry), _) | (true, _, Some(entry))
                         if matches!(entry.source, ItemSource::Imported(..)) =>
                     {
-                        let err =
-                            Error::ImportedDuplicate(local_name.to_string(), decl_item.name().span);
-                        self.errors.push(err);
-                        continue;
+                        // only push this error if the import is of a different item.
+                        // this is for the re-runnability of jupyter cells.
+                        // we want to be able to re-run a cell which may have an import in
+                        // it, meaning it would evaluate the same import multiple times.
+                        //
+                        // if the import is of a different item, though, then we should throw an
+                        // error because the import introduces a conflict.
+                        match (term_result, ty_result) {
+                            (Ok(res), _) | (_, Ok(res)) if res.item_id() == Some(entry.id) => {
+                                continue;
+                            }
+                            _ => {
+                                let err = Error::ImportedDuplicate(
+                                    local_name.to_string(),
+                                    decl_item.name().span,
+                                );
+                                self.errors.push(err);
+                                continue;
+                            }
+                        }
                     }
                     // special case:
                     // if this is an export of an import with an alias,

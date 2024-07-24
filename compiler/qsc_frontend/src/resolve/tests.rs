@@ -4472,6 +4472,7 @@ fn import_self() {
     );
 }
 
+// this should be allowed for jupyter cell re-runnability
 #[test]
 fn import_duplicate_symbol() {
     check(
@@ -4490,12 +4491,11 @@ fn import_duplicate_symbol() {
             namespace namespace9 {
                 operation item2() : Unit {}
             }
-
-            // ImportedDuplicate("Baz", Span { lo: 49, hi: 52 })
         "#]],
     );
 }
 
+// this should be allowed for jupyter cell re-runnability
 #[test]
 fn import_duplicate_symbol_different_name() {
     check(
@@ -4516,11 +4516,37 @@ fn import_duplicate_symbol_different_name() {
             namespace namespace9 {
                 operation item2() : Unit {}
             }
-
-            // ImportedDuplicate("Baz", Span { lo: 65, hi: 68 })
         "#]],
     );
 }
+
+// this should be allowed for jupyter cell re-runnability
+#[test]
+fn disallow_importing_different_items_with_same_name() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            import Foo.Bar.Baz, Foo.Bar.Baz2 as Baz;
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+            operation Baz2() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+                import item2, item3;
+            }
+            namespace namespace9 {
+                operation item2() : Unit {}
+                operation item3() : Unit {}
+            }
+
+            // ImportedDuplicate("Baz", Span { lo: 57, hi: 60 })
+        "#]],
+    );
+}
+
 #[test]
 fn import_takes_precedence_over_local_decl() {
     check(
