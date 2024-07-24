@@ -348,7 +348,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```
     operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl {
         let nBits = Length(bits);
-        Fact(nBits == Length(qubits), "Number of control bits must be equal to number of control qubits.");
+        Fact(nBits == Length(qubits), "Number of bits must be equal to number of qubits.");
         for i in 0..nBits - 1 {
             if bits[i] == bitApply {
                 ApplyP(pauli, qubits[i]);
