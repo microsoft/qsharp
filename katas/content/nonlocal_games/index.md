@@ -12,13 +12,11 @@ so they cannot communicate with each other during the game.
 Another characteristics of these games is that they are "refereed", which means the players try to win against the referee.
 
 **This kata covers the following topics:**
-
 - Clauser, Horne, Shimony, and Hold thought experiment (often abbreviated as CHSH game)
 - Greenberger-Horne-Zeilinger game (often abbreviated as GHZ game)
 - The Mermin-Peres Magic Square game
 
 **What you should know to start working on this kata:**
-
 - Basic linear algebra
 - Basic knowledge of quantum gates and measurements
 
@@ -33,11 +31,15 @@ Each of them is given a bit (Alice gets X and Bob gets Y), and
 they have to return new bits (Alice returns A and Bob returns B)
 so that X ∧ Y = A ⊕ B. The trick is, they can not communicate during the game.
 
-> - ∧ is the standard bitwise AND operator.
-> - ⊕ is the exclusive or, or XOR operator, so (P ⊕ Q) is true if exactly one of P and Q is true.
+> * ∧ is the standard bitwise AND operator.
+> * ⊕ is the exclusive or, or XOR operator, so (P ⊕ Q) is true if exactly one of P and Q is true.
+
+@[section]({
+    "id": "nonlocal_games__chsh_game_classical",
+    "title": "Part I. Classical CHSH"
+})
 
 To start with, let's take a look at how you would play the classical variant of this game without access to any quantum tools.
-Then, let's proceed with quantum strategies for Alice and Bob.
 
 @[exercise]({
     "id": "nonlocal_games__chsh_classical_win_condition",
