@@ -12,13 +12,13 @@ so they cannot communicate with each other during the game.
 Another characteristics of these games is that they are "refereed", which means the players try to win against the referee.
 
 **This kata covers the following topics:**
-- Clauser, Horne, Shimony, and Hold thought experiment (often abbreviated as CHSH game)
-- Greenberger-Horne-Zeilinger game (often abbreviated as GHZ game)
-- The Mermin-Peres Magic Square game
+ - Clauser, Horne, Shimony, and Hold thought experiment (often abbreviated as CHSH game)
+ - Greenberger-Horne-Zeilinger game (often abbreviated as GHZ game)
+ - The Mermin-Peres Magic Square game
 
 **What you should know to start working on this kata:**
-- Basic linear algebra
-- Basic knowledge of quantum gates and measurements
+ - Basic linear algebra
+ - Basic knowledge of quantum gates and measurements
 
 @[section]({
     "id": "nonlocal_games__chsh_game",
