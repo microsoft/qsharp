@@ -272,6 +272,7 @@ namespace Microsoft.Quantum.Convert {
     /// Double to be converted.
     /// ## precision
     /// Non-negative number of digits after the decimal point.
+    ///
     /// # Example
     /// ```qsharp
     /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
@@ -283,18 +284,5 @@ namespace Microsoft.Quantum.Convert {
         body intrinsic;
     }
 
-    export IntAsDouble,
-    IntAsBigInt,
-    ResultAsBool,
-    BoolAsResult,
-    BoolArrayAsInt,
-    IntAsBoolArray,
-    BoolArrayAsBigInt,
-    BigIntAsBoolArray,
-    ResultArrayAsInt,
-    ResultArrayAsBoolArray,
-    BoolArrayAsResultArray,
-    ComplexAsComplexPolar,
-    ComplexPolarAsComplex,
-    DoubleAsStringWithPrecision;
+    export IntAsDouble, IntAsBigInt, ResultAsBool, BoolAsResult, BoolArrayAsInt, IntAsBoolArray, BoolArrayAsBigInt, BigIntAsBoolArray, ResultArrayAsInt, ResultArrayAsBoolArray, BoolArrayAsResultArray, ComplexAsComplexPolar, ComplexPolarAsComplex, DoubleAsStringWithPrecision;
 }
