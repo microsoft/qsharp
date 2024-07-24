@@ -120,9 +120,7 @@ impl StateVector {
             return Err(Error::ProbabilityZeroEvent);
         }
         let renormalization_factor = 1.0 / norm_squared.sqrt();
-        for entry in self.data.iter_mut() {
-            *entry *= renormalization_factor;
-        }
+        self.data.scale_mut(renormalization_factor);
         Ok(())
     }
 
@@ -134,7 +132,7 @@ impl StateVector {
     ) -> Result<f64, Error> {
         let mut state_copy = self.data.clone();
         apply_kernel(&mut state_copy, effect_matrix, qubits)?;
-        Ok(state_copy.dot(&self.data.conjugate()).re)
+        Ok(self.data.dotc(&state_copy).re)
     }
 
     fn sample_kraus_operators(

@@ -8,6 +8,7 @@
 mod tests;
 
 use crate::{operation::Operation, Error, SquareMatrix, TOLERANCE};
+use nalgebra::{DMatrix, DVector};
 
 /// An instrument is the means by which we make measurements on a quantum system.
 pub struct Instrument {
@@ -97,49 +98,32 @@ impl Instrument {
 }
 
 fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>, Error> {
-    // Since all the Kraus operators are square matrices of the same dimension
-    // we can cache the `vector_to_matrix_index` computation beforehand.
-    let vector_to_matrix_index = cache_vector_to_matrix_index(operations);
-
-    let choi_matrix: SquareMatrix = operations
-        .iter()
-        .map(|op| {
-            op.kraus_operators()
-                .iter()
-                .map(|k| {
-                    // This code is doing the equivalent to:
-                    // choi_matrix += vectorized(K) * vectorized(K).adjoint()
-                    // Note that if you multiply a column vector times a row
-                    // vector you get a matrix.
-                    let dim = k.shape().0.pow(2);
-                    let mut choi = SquareMatrix::zeros(dim, dim);
-                    for row in 0..dim {
-                        for col in 0..dim {
-                            choi[(row, col)] += k[vector_to_matrix_index[col]]
-                                * k[vector_to_matrix_index[row]].conj();
-                        }
-                    }
-                    choi
-                })
-                .sum::<SquareMatrix>()
-        })
-        .sum();
-
+    let choi_matrix = compute_choi_matrix(operations);
     let (choi_dim, _) = choi_matrix.shape();
     let eigen_decomposition = choi_matrix.symmetric_eigen();
     let eigenvectors = eigen_decomposition.eigenvectors;
     let eigenvalues = eigen_decomposition.eigenvalues;
-    let mut summed_kraus_operators = Vec::new();
+    let mut summed_kraus_operators = Vec::with_capacity(eigenvalues.len());
 
+    let (krows, kcols) = operations[0].kraus_operators()[0].shape();
     for (col, eigenvalue) in eigenvalues.iter().enumerate() {
         if *eigenvalue > 0. {
-            let (krows, kcols) = operations[0].kraus_operators()[0].shape();
             let mut kraus_operator = SquareMatrix::zeros(krows, kcols);
             let sqrt_eigenvalue = eigenvalue.sqrt();
+
+            // Performance note: for performance reasons we transpose the
+            // Kraus operators before storing them. We want to store each column
+            // of the eigenvector matrix as a Kraus matrix in row major order, and
+            // then transpose it. But because nalgebra stores and iterates over
+            // its matrices in column major order, we can skip the transposition,
+            // since it is already implicit.
+            //
+            // See noisy_simulator/src/operation.rs/Operation::new for more details.
             for row in 0..choi_dim {
                 let idx = kraus_operator.vector_to_matrix_index(row);
                 kraus_operator[idx] = sqrt_eigenvalue * eigenvectors[(row, col)];
             }
+
             summed_kraus_operators.push(kraus_operator);
         } else if *eigenvalue < -TOLERANCE {
             return Err(Error::FailedToConstructInstrument(format!(
@@ -151,19 +135,28 @@ fn summed_kraus_operators(operations: &[Operation]) -> Result<Vec<SquareMatrix>,
     Ok(summed_kraus_operators)
 }
 
-/// Caches `vector_to_matrix_index` into a vector.
-fn cache_vector_to_matrix_index(operations: &[Operation]) -> Vec<(usize, usize)> {
+fn compute_choi_matrix(operations: &[Operation]) -> SquareMatrix {
     operations
-        .first()
+        .iter()
         .map(|op| {
-            if let Some(k) = op.kraus_operators().first() {
-                let num_elements = k.shape().0.pow(2);
-                (0..num_elements)
-                    .map(|idx| k.vector_to_matrix_index(idx))
-                    .collect()
-            } else {
-                Vec::default()
-            }
+            op.kraus_operators()
+                .iter()
+                .map(|k| {
+                    let vectorized_k = vectorize(k);
+                    &vectorized_k * &vectorized_k.adjoint()
+                })
+                .sum::<SquareMatrix>()
         })
-        .unwrap_or_default()
+        .sum()
+}
+
+/// Stacks the columns of `matrix` into a single column vector.
+///
+/// Performance note: Typically vectorization stacks the
+/// rows of a matrix into a single column vector. But since we
+/// transposed all matrices until now, we stack the columns instead.
+///
+/// See `noisy_simulator/src/operation.rs/Operation::new` for more details.
+fn vectorize<T: nalgebra::Scalar + Copy>(matrix: &DMatrix<T>) -> DVector<T> {
+    DVector::<T>::from_iterator(matrix.len(), matrix.iter().copied())
 }
