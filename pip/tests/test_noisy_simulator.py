@@ -13,6 +13,17 @@ import pytest
 
 # Tests for the Q# noisy simulator.
 
+
+def test_matrices_are_not_transposed_when_returned_back_to_python():
+    """
+    This test is due to the performance optimization we make in
+    `noisy_simulator/src/operation.rs/Operation::new`, we want to check that
+    we are reversing the transpose we made there before returning to Python.
+    """
+    op = Operation([[[1, 2], [3, 4]]])
+    assert op.get_kraus_operators() == [[[(1 + 0j), (2 + 0j)], [(3 + 0j), (4 + 0j)]]]
+
+
 # Operation tests
 
 
@@ -23,33 +34,21 @@ def test_operation_number_of_qubits_is_mapped_correctly():
 
 def test_operation_kraus_operators_are_mapped_correctly():
     op = Operation([[[1, 0], [0, 0]]])
-    assert op.get_kraus_operators() == [[(1 + 0j), 0j, 0j, 0j]]
+    assert op.get_kraus_operators() == [[[(1 + 0j), 0j], [0j, 0j]]]
 
 
 def test_operation_effect_matrix_is_mapped_correctly():
     op = Operation([[[1, 0], [0, 0]]])
-    assert op.get_effect_matrix() == [(1 + 0j), 0j, 0j, 0j]
+    assert op.get_effect_matrix() == [[(1 + 0j), 0j], [0j, 0j]]
 
 
 def test_operation_matrix_is_mapped_correctly():
     op = Operation([[[1, 0], [0, 0]]])
     assert op.get_operation_matrix() == [
-        (1 + 0j),
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
-        0j,
+        [(1 + 0j), 0j, 0j, 0j],
+        [0j, 0j, 0j, 0j],
+        [0j, 0j, 0j, 0j],
+        [0j, 0j, 0j, 0j],
     ]
 
 

@@ -25,7 +25,7 @@ pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> Py
 ///  This function is only used on a non-critical path for performance. Namely,
 ///  the input to the simulator to set it up, and getting the final output.
 ///  This warning is just to avoid any performance accidents in the future.
-fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> PyResult<SquareMatrix> {
+fn python_matrix_to_nalgebra_matrix(matrix: PythonMatrix) -> PyResult<SquareMatrix> {
     let nrows = matrix.len();
     let ncols = matrix[0].len();
     // Check that matrix is well formed.
@@ -44,20 +44,22 @@ fn python_to_nalgebra_matrix(matrix: PythonMatrix) -> PyResult<SquareMatrix> {
     Ok(SquareMatrix::from_row_iterator(nrows, ncols, data))
 }
 
-fn nalgebra_matrix_to_python_list(matrix: &SquareMatrix) -> Vec<Complex<f64>> {
-    let (nrows, ncols) = matrix.shape();
-    let mut list = Vec::with_capacity(nrows * ncols);
-
+fn nalgebra_matrix_to_python_matrix(matrix: &SquareMatrix) -> PythonMatrix {
     // Performance note: Because of the performance optimization in
     // noisy_simulator/src/operation.rs/Operation::new, the simulator stores its matrices
     // transposed. When we give them back to python, we need to transpose them back,
-    // that's why we write matrix[(col, row)] instead of the usual matrix[(row, col)].
-    for row in 0..nrows {
-        for col in 0..ncols {
-            list.push(matrix[(col, row)]);
-        }
+    // that's why we `python_row.extend(nalgebra_col.iter())`.
+
+    let (nrows, ncols) = matrix.shape();
+    let mut python_list = Vec::with_capacity(ncols);
+
+    for nalgebra_col in matrix.column_iter() {
+        let mut python_row = Vec::with_capacity(nrows);
+        python_row.extend(nalgebra_col.iter());
+        python_list.push(python_row);
     }
-    list
+
+    python_list
 }
 
 pyo3::create_exception!(qsharp.noisy_sim, NoisySimulatorError, PyException);
@@ -72,25 +74,25 @@ impl Operation {
     pub fn new(kraus_operators: Vec<PythonMatrix>) -> PyResult<Self> {
         let kraus_operators: PyResult<Vec<SquareMatrix>> = kraus_operators
             .into_iter()
-            .map(python_to_nalgebra_matrix)
+            .map(python_matrix_to_nalgebra_matrix)
             .collect();
         noisy_simulator::Operation::new(kraus_operators?)
             .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
             .map(Self)
     }
 
-    pub fn get_effect_matrix(&self) -> Vec<Complex<f64>> {
-        nalgebra_matrix_to_python_list(self.0.effect_matrix())
+    pub fn get_effect_matrix(&self) -> PythonMatrix {
+        nalgebra_matrix_to_python_matrix(self.0.effect_matrix())
     }
 
-    pub fn get_operation_matrix(&self) -> Vec<Complex<f64>> {
-        nalgebra_matrix_to_python_list(self.0.matrix())
+    pub fn get_operation_matrix(&self) -> PythonMatrix {
+        nalgebra_matrix_to_python_matrix(self.0.matrix())
     }
 
-    pub fn get_kraus_operators(&self) -> Vec<Vec<Complex<f64>>> {
+    pub fn get_kraus_operators(&self) -> Vec<PythonMatrix> {
         let mut kraus_operators = Vec::new();
         for kraus_operator in self.0.kraus_operators() {
-            kraus_operators.push(nalgebra_matrix_to_python_list(kraus_operator));
+            kraus_operators.push(nalgebra_matrix_to_python_matrix(kraus_operator));
         }
         kraus_operators
     }
