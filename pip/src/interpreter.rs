@@ -194,22 +194,11 @@ impl Interpreter {
     fn run(
         &mut self,
         py: Python,
-        entry_expr: &str,
+        entry_expr: Option<&str>,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.run(&mut receiver, entry_expr) {
-            Ok(result) => match result {
-                Ok(v) => Ok(ValueWrapper(v).into_py(py)),
-                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-            },
-            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-        }
-    }
-
-    fn rerun(&mut self, py: Python, callback: Option<PyObject>) -> PyResult<PyObject> {
-        let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run_last_expr(&mut receiver) {
             Ok(result) => match result {
                 Ok(v) => Ok(ValueWrapper(v).into_py(py)),
                 Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

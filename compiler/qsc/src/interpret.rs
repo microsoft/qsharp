@@ -424,35 +424,9 @@ impl Interpreter {
     pub fn run(
         &mut self,
         receiver: &mut impl Receiver,
-        expr: &str,
+        expr: Option<&str>,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr)
-    }
-
-    /// Re-run the last expression evaluated on a new instance of the environment and simulator,
-    /// but using the current compilation.
-    pub fn run_last_expr(
-        &mut self,
-        receiver: &mut impl Receiver,
-    ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        if let Some(graph) = &self.expr_graph {
-            let mut sim = SparseSim::new();
-            if self.quantum_seed.is_some() {
-                sim.set_seed(self.quantum_seed);
-            }
-            Ok(eval(
-                self.package,
-                self.classical_seed,
-                graph.clone(),
-                self.compiler.package_store(),
-                &self.fir_store,
-                &mut Env::default(),
-                &mut sim,
-                receiver,
-            ))
-        } else {
-            Err(vec![Error::NoEntryPoint])
-        }
     }
 
     /// Gets the current quantum state of the simulator.
@@ -569,10 +543,15 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-        expr: &str,
+        expr: Option<&str>,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let (graph, _) = self.compile_entry_expr(expr)?;
-        self.expr_graph = Some(graph.clone());
+        let graph = if let Some(expr) = expr {
+            let (graph, _) = self.compile_entry_expr(expr)?;
+            self.expr_graph = Some(graph.clone());
+            graph
+        } else {
+            self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?
+        };
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
