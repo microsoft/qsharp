@@ -64,7 +64,7 @@ In this lesson, you will implement the marking oracle for the vertex coloring pr
     "title": "Weak Coloring Problem"
 })
 
-TBD
+TODO: finish migration
 
 
 @[section]({
@@ -77,7 +77,7 @@ In this lesson, you will experiment with using Grover's algorithm to solve graph
 Notice that in this case, it's not as easy to know the number of solutions to the problem upfront as it was for the prefix function used in the "Grover's Search Algorithm" kata.
 Experiment with choosing the number of iterations at random. How does this affect the success probability?
 
-TBD
+TODO: add demo
 
 @[section]({
     "id": "solving_graph_coloring__conclusion",
