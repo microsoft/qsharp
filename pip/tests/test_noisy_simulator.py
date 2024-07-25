@@ -20,8 +20,10 @@ def test_matrices_are_not_transposed_when_returned_back_to_python():
     `noisy_simulator/src/operation.rs/Operation::new`, we want to check that
     we are reversing the transpose we made there before returning to Python.
     """
-    op = Operation([[[1, 2], [3, 4]]])
-    assert op.get_kraus_operators() == [[[(1 + 0j), (2 + 0j)], [(3 + 0j), (4 + 0j)]]]
+    # This is one of the Kraus operators of the depolarizing channel,
+    # so it is a valid Kraus operator.
+    op = Operation([[[0j, -0.5j], [0.5j, 0j]]])
+    assert op.get_kraus_operators() == [[[0j, -0.5j], [0.5j, 0j]]]
 
 
 # Operation tests
