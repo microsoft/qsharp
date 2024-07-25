@@ -39,12 +39,14 @@ pub struct CompilationContext {
 impl CompilationContext {
     #[must_use]
     pub fn new(capabilities: TargetCapabilityFlags) -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(capabilities);
         let compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             capabilities,
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let fir_store = lower_hir_package_store(compiler.package_store());
@@ -168,7 +170,7 @@ fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore 
         let mut lowerer = Lowerer::new();
         fir_store.insert(
             map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
+            lowerer.lower_package(&unit.package, &fir_store),
         );
     }
     fir_store

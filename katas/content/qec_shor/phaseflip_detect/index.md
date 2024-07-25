@@ -3,4 +3,4 @@ or in one of the states $(Z \otimes I \otimes I)\ket{\psi_L}$, $(I \otimes Z \ot
 
 **Goal**: determine whether a $Z$ error has occurred, and if so, on which qubit. 
 The return value should be the index of the qubit on which the error occurred, or $-1$ if no error occurred.
-The state of the qubits after your operation is applied should not change.
+The state of the qubits after your operation is applied shouldn't change.

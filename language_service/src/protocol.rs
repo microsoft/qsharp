@@ -166,6 +166,7 @@ pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
     pub language_features: LanguageFeatures,
     pub manifest: Option<Manifest>,
+    pub project_root: Option<String>,
 }
 
 #[derive(Debug)]

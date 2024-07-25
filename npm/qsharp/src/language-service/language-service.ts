@@ -171,6 +171,13 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     position: IPosition,
   ): Promise<ICompletionList> {
+    // Tiny delay to let the compilation catch up before we invoke
+    // the completion provider.
+    // This becomes important when the completion list is triggered
+    // during typing. If the last character typed is significant to
+    // the completion (e.g. in `Foo.` completions)
+    // it's critical that the completion provider "sees" this character.
+    await new Promise((resolve) => setTimeout(resolve, 50));
     return this.languageService.get_completions(documentUri, position);
   }
 

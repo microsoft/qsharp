@@ -30,7 +30,7 @@ use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
     ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
     Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind, Visibility, VisibilityKind,
+    TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -72,7 +72,6 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         span: s.span(lo),
         doc: doc.unwrap_or_default().into(),
         attrs: attrs.into_boxed_slice(),
-        visibility,
         kind,
     }))
 }
@@ -103,7 +102,6 @@ fn default(span: Span) -> Box<Item> {
         span,
         doc: "".into(),
         attrs: Vec::new().into_boxed_slice(),
-        visibility: None,
         kind: Box::new(ItemKind::Err),
     })
 }
@@ -295,16 +293,10 @@ fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     }))
 }
 
-fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
-    let lo = s.peek().span.lo;
+fn parse_visibility(s: &mut ParserContext) -> Result<()> {
     keyword(s, Keyword::Internal)?;
-    Ok(Visibility {
-        id: NodeId::default(),
-        span: s.span(lo),
-        kind: VisibilityKind::Internal,
-    })
+    Ok(())
 }
-
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     keyword(s, Keyword::Open)?;
     s.push_prediction(vec![Prediction::Namespace]);

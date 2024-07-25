@@ -64,12 +64,14 @@ mod given_interpreter {
 
             #[test]
             fn stdlib_members_should_be_unavailable() {
+                let store = crate::PackageStore::new(crate::compile::core());
                 let mut interpreter = Interpreter::new(
-                    false,
                     SourceMap::default(),
                     PackageType::Lib,
                     TargetCapabilityFlags::all(),
                     LanguageFeatures::default(),
+                    store,
+                    &[],
                 )
                 .expect("interpreter should be created");
 
@@ -518,7 +520,8 @@ mod given_interpreter {
 
         #[test]
         fn callables_failing_profile_validation_are_not_registered() {
-            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -550,7 +553,8 @@ mod given_interpreter {
 
         #[test]
         fn callables_failing_profile_validation_also_fail_qir_generation() {
-            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -602,7 +606,8 @@ mod given_interpreter {
 
         #[test]
         fn once_rca_validation_fails_following_calls_do_not_fail() {
-            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -671,14 +676,7 @@ mod given_interpreter {
 
         #[test]
         fn local_var_valid_after_item_definition() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(&mut interpreter, "let a = 1;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "a");
@@ -702,14 +700,7 @@ mod given_interpreter {
 
         #[test]
         fn base_qirgen() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -754,16 +745,11 @@ mod given_interpreter {
 
         #[test]
         fn adaptive_qirgen() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
+            let mut interpreter = get_interpreter_with_capabilities(
                 TargetCapabilityFlags::Adaptive
                     | TargetCapabilityFlags::QubitReset
                     | TargetCapabilityFlags::IntegerComputations,
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            );
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -830,14 +816,9 @@ mod given_interpreter {
 
         #[test]
         fn adaptive_qirgen_nested_output_types() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
+            let mut interpreter = get_interpreter_with_capabilities(
                 TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::QubitReset,
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            );
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -906,14 +887,8 @@ mod given_interpreter {
 
         #[test]
         fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -937,14 +912,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_in_block() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -989,14 +957,8 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_defines_operation() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
+
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -1056,14 +1018,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_multiple_exprs_parse_fail() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -1083,14 +1038,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_defines_operation_then_more_operations() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -1155,14 +1103,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_define_operation_use_it() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let res = interpreter
                 .qirgen("{ operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; }; Foo() }")
                 .expect("expected success");
@@ -1204,14 +1145,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_profile_incompatible() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let res = interpreter
                 .qirgen("1")
                 .expect_err("expected qirgen to fail");
@@ -1309,37 +1243,37 @@ mod given_interpreter {
 
         #[test]
         fn base_prof_non_result_return() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(&mut interpreter, "123");
             is_only_value(&result, &output, &Value::Int(123));
         }
     }
 
     fn get_interpreter() -> Interpreter {
+        let (std_id, store) =
+            crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let dependencies = &[(std_id, None)];
         Interpreter::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            dependencies,
         )
         .expect("interpreter should be created")
     }
 
-    fn get_interpreter_with_capbilities(capabilities: TargetCapabilityFlags) -> Interpreter {
+    fn get_interpreter_with_capabilities(capabilities: TargetCapabilityFlags) -> Interpreter {
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let dependencies = &[(std_id, None)];
         Interpreter::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             capabilities,
             LanguageFeatures::default(),
+            store,
+            dependencies,
         )
         .expect("interpreter should be created")
     }
@@ -1445,12 +1379,15 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Exe,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("interpreter should be created");
 
@@ -1464,14 +1401,17 @@ mod given_interpreter {
             namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let result = Interpreter::new(
-                true,
                 sources,
                 PackageType::Exe,
                 TargetCapabilityFlags::Adaptive
                     | TargetCapabilityFlags::IntegerComputations
                     | TargetCapabilityFlags::QubitReset,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             );
 
             match result {
@@ -1502,12 +1442,16 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let dependencies = &[(std_id, None)];
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                dependencies,
             )
             .expect("interpreter should be created");
 
@@ -1529,12 +1473,14 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
 
@@ -1573,11 +1519,14 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
@@ -1601,11 +1550,15 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("debugger should be created");
             let (result, output) = entry(&mut debugger.interpreter);
@@ -1624,11 +1577,15 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("debugger should be created");
             let (result, output) = entry(&mut debugger.interpreter);
@@ -1655,13 +1612,18 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("debugger should be created");
+
             let (result, output) = entry(&mut debugger.interpreter);
             is_only_value(
                 &result,
@@ -1695,12 +1657,14 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
@@ -1726,14 +1690,17 @@ mod given_interpreter {
                 Some("Foo.Bar()".into()),
             );
 
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
+
             let (result, output) = entry(&mut interpreter);
             is_only_error(
                 &result,
@@ -1773,7 +1740,10 @@ mod given_interpreter {
             );
 
             let mut store = crate::PackageStore::new(crate::compile::core());
-            let dependencies = vec![store.insert(crate::compile::std(&store, capabilities))];
+            let dependencies = vec![(
+                store.insert(crate::compile::std(&store, capabilities)),
+                None,
+            )];
 
             let (unit, errors) = crate::compile::compile(
                 &store,
@@ -1825,15 +1795,18 @@ mod given_interpreter {
                 )],
                 None,
             );
-
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("interpreter should be created");
+
             let package = get_package_for_call("A", "B");
             let (result, output) = fragment(&mut interpreter, "A.B()", package);
             is_only_value(
@@ -1858,15 +1831,18 @@ mod given_interpreter {
                 )],
                 None,
             );
-
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("interpreter should be created");
+
             let package = get_package_for_call("A", "B");
             let (result, output) = fragment(&mut interpreter, "A.B()", package);
             is_only_error(

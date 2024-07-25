@@ -10,16 +10,16 @@ pub struct Validator<'a> {
     pub package: &'a Package,
 }
 
-pub fn validate(package: &Package) {
+pub fn validate(package: &Package, store: &crate::fir::PackageStore) {
     let mut v = Validator { package };
-    v.validate();
+    v.validate(store);
 }
 
 /// Validates that the FIR is well-formed.
 /// Running `validate` will validate the entire package.
 impl Validator<'_> {
-    pub fn validate(&mut self) {
-        self.visit_package(self.package);
+    pub fn validate(&mut self, store: &crate::fir::PackageStore) {
+        self.visit_package(self.package, store);
     }
 }
 

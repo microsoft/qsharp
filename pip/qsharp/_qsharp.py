@@ -13,8 +13,23 @@ from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
+import os
 
 _interpreter = None
+
+
+# Reporting execution time during IPython cells requires that IPython
+# gets pinged to ensure it understands the cell is active. This is done by
+# requesting a display id without displaying any content, avoiding any UI changes
+# that would be visible to the user.
+def ipython_helper():
+    try:
+        if __IPYTHON__:  # type: ignore
+            from IPython.display import display
+
+            display(display_id=True)
+    except NameError:
+        pass
 
 
 class Config:
@@ -28,6 +43,7 @@ class Config:
         target_profile: TargetProfile,
         language_features: Optional[List[str]],
         manifest: Optional[str],
+        project_root: Optional[str],
     ):
         if target_profile == TargetProfile.Adaptive_RI:
             self._config = {"targetProfile": "adaptive_ri"}
@@ -38,6 +54,12 @@ class Config:
 
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
+        if project_root:
+            # For now, we only support local project roots, so use a file schema in the URI.
+            # In the future, we may support other schemes, such as github, if/when
+            # we have VS Code Web + Jupyter support.
+            normalized_root = os.path.normpath(os.path.join(os.getcwd(), project_root))
+            self._config["projectRoot"] = "file://" + normalized_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -118,7 +140,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features, manifest_contents)
+    return Config(target_profile, language_features, manifest_contents, project_root)
 
 
 def get_interpreter() -> Interpreter:
@@ -144,9 +166,10 @@ def eval(source: str) -> Any:
     :returns value: The value returned by the last statement in the source code.
     :raises QSharpError: If there is an error evaluating the source code.
     """
+    ipython_helper()
 
     def callback(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
 
@@ -181,11 +204,12 @@ def run(
 
     :raises QSharpError: If there is an error interpreting the input.
     """
+    ipython_helper()
 
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
-        print(output)
+        print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
@@ -248,6 +272,8 @@ def compile(entry_expr: str) -> QirInputData:
         with open('myfile.ll', 'w') as file:
             file.write(str(program))
     """
+    ipython_helper()
+
     ll_str = get_interpreter().qir(entry_expr)
     return QirInputData("main", ll_str)
 
@@ -267,6 +293,7 @@ def circuit(
 
     :raises QSharpError: If there is an error synthesizing the circuit.
     """
+    ipython_helper()
     return get_interpreter().circuit(entry_expr, operation)
 
 
@@ -281,6 +308,8 @@ def estimate(
 
     :returns resources: The estimated resources.
     """
+    ipython_helper()
+
     if params is None:
         params = [{}]
     elif isinstance(params, EstimatorParams):
@@ -397,6 +426,7 @@ def dump_machine() -> StateDump:
 
     :returns: The state of the simulator.
     """
+    ipython_helper()
     return StateDump(get_interpreter().dump_machine())
 
 
@@ -407,4 +437,5 @@ def dump_circuit() -> Circuit:
     This circuit will contain the gates that have been applied
     in the simulator up to the current point.
     """
+    ipython_helper()
     return get_interpreter().dump_circuit()

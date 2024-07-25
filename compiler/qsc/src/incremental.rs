@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, core, std};
+use std::sync::Arc;
+
+use crate::compile::{self, compile};
 use miette::Diagnostic;
 
 use qsc_ast::ast;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, SourceMap},
+    compile::{Dependencies, OpenPackageStore, PackageStore, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -23,7 +25,7 @@ pub struct Compiler {
     /// The ID of the source package. The source package
     /// is made up of the initial sources passed in when creating the compiler.
     source_package_id: PackageId,
-    dependencies: Vec<PackageId>,
+    dependencies: Vec<(PackageId, Option<Arc<str>>)>,
     /// Context for passes that is reused across incremental compilations.
     passes: PassContext,
     /// The frontend incremental compiler.
@@ -38,24 +40,16 @@ impl Compiler {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        include_std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        mut store: PackageStore,
+        dependencies: &Dependencies,
     ) -> Result<Self, Errors> {
-        let core = core();
-        let mut store = PackageStore::new(core);
-        let mut dependencies = Vec::new();
-        if include_std {
-            let std = std(&store, capabilities);
-            let id = store.insert(std);
-            dependencies.push(id);
-        };
-
-        let (unit, errors) = compile(
+        let (mut unit, errors) = compile(
             &store,
-            &dependencies,
+            dependencies,
             sources,
             package_type,
             capabilities,
@@ -65,12 +59,17 @@ impl Compiler {
             return Err(errors);
         }
 
+        // make the user code fully public, so increments on top of this can access them
+        unit.expose();
+
+        let mut dependencies = dependencies.iter().map(Clone::clone).collect::<Vec<_>>();
+
         let source_package_id = store.insert(unit);
-        dependencies.push(source_package_id);
+        dependencies.push((source_package_id, None));
 
         let frontend = qsc_frontend::incremental::Compiler::new(
             &store,
-            dependencies.clone(),
+            &dependencies[..],
             capabilities,
             language_features,
         );
@@ -88,12 +87,12 @@ impl Compiler {
     pub fn from(
         store: PackageStore,
         source_package_id: PackageId,
-        dependencies: Vec<PackageId>,
+        dependencies: Vec<(PackageId, Option<Arc<str>>)>,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let frontend =
-            qsc_frontend::incremental::Compiler::new(&store, [], capabilities, language_features);
+            qsc_frontend::incremental::Compiler::new(&store, &[], capabilities, language_features);
         let store = store.open();
 
         Ok(Self {
@@ -218,7 +217,7 @@ impl Compiler {
 
         // Even if we don't fail fast, skip passes if there were compilation errors.
         if !errors {
-            let pass_errors = self.passes.run_default_passes(
+            let   pass_errors   = self.passes.run_default_passes(
                 &mut increment.hir,
                 &mut unit.assigner,
                 core,
@@ -293,7 +292,7 @@ impl Compiler {
     /// Consumes the incremental compiler and returns an immutable package store.
     /// This method can be used to finalize the compilation.
     #[must_use]
-    pub fn into_package_store(self) -> (PackageStore, PackageId, Vec<PackageId>) {
+    pub fn into_package_store(self) -> (PackageStore, PackageId, Vec<(PackageId, Option<Arc<str>>)>) {
         let t = self.store.into_package_store();
         (t.0, t.1, self.dependencies)
     }

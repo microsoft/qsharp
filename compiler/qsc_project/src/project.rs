@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{manifest::GitHubRef, Manifest, ManifestDescriptor, PackageRef};
+use crate::{
+    manifest::{GitHubRef, PackageType},
+    Manifest, ManifestDescriptor, PackageRef,
+};
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
@@ -16,7 +19,7 @@ use std::{
 use thiserror::Error;
 
 /// Describes a Q# project with all its sources and dependencies resolved.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Project {
     /// Friendly name, typically based on project directory name
     /// Not guaranteed to be unique. Don't use as a key.
@@ -48,6 +51,7 @@ impl Project {
                     sources: vec![(name.clone(), contents)],
                     language_features: LanguageFeatures::default(),
                     dependencies: FxHashMap::default(),
+                    package_type: None,
                 },
                 packages: FxHashMap::default(),
             },
@@ -380,6 +384,7 @@ pub trait FileSystemAsync {
             sources,
             language_features: LanguageFeatures::from_iter(&manifest.manifest.language_features),
             dependencies,
+            package_type: manifest.manifest.package_type,
         })
     }
 
@@ -409,8 +414,15 @@ pub trait FileSystemAsync {
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             Error::GitHubManifestParse {
                 path: format!(
-                    "qsharp-github-source:{}/{}/{}/{path_trimmed_seps}/qsharp.json",
-                    dep.owner, dep.repo, dep.r#ref
+                    "qsharp-github-source:{}/{}/{}{}/qsharp.json",
+                    dep.owner,
+                    dep.repo,
+                    dep.r#ref,
+                    if path_trimmed_seps.is_empty() {
+                        String::new()
+                    } else {
+                        format!("/{path_trimmed_seps}")
+                    }
                 ),
                 owner: dep.owner.clone(),
                 repo: dep.repo.clone(),
@@ -421,7 +433,11 @@ pub trait FileSystemAsync {
         // Look at the files field in the manifest to find the sources.
         let mut sources = vec![];
         for file in &manifest.files {
-            let path = format!("{path_trimmed_seps}/{file}");
+            let path = if path_trimmed_seps.is_empty() {
+                format!("/{file}")
+            } else {
+                format!("/{path_trimmed_seps}/{file}")
+            };
             let contents = self
                 .fetch_github(&dep.owner, &dep.repo, &dep.r#ref, &path)
                 .await
@@ -448,6 +464,7 @@ pub trait FileSystemAsync {
                 .into_iter()
                 .map(|(k, v)| (k.into(), key_for_package_ref(&v)))
                 .collect(),
+            package_type: manifest.package_type,
         })
     }
 
@@ -585,6 +602,7 @@ pub struct PackageInfo {
     pub sources: Sources,
     pub language_features: LanguageFeatures,
     pub dependencies: FxHashMap<PackageAlias, PackageKey>,
+    pub package_type: Option<PackageType>,
 }
 
 #[derive(Clone, Debug)]
@@ -593,19 +611,105 @@ pub struct PackageGraphSources {
     pub packages: FxHashMap<PackageKey, PackageInfo>,
 }
 
+#[derive(Debug)]
+pub struct DependencyCycle;
+
+pub type OrderedDependencies = Vec<(Arc<str>, PackageInfo)>;
+
 impl PackageGraphSources {
-    /// Temporary implementation which just concatenates all sources.
-    /// This will be replaced soon to build and return all the dependencies
-    /// along with the root package sources.
-    /// TODO(packages): delete this method and use the package graph instead
-    #[must_use]
-    pub fn into_sources_temporary(self) -> (Sources, LanguageFeatures) {
-        let mut sources = self.root.sources;
-        for mut pkg in self.packages.into_values() {
-            sources.append(&mut pkg.sources);
+    /// Produces an ordered vector over the packages in the order they should be compiled
+    pub fn compilation_order(self) -> (Result<OrderedDependencies, DependencyCycle>, PackageInfo) {
+        // The order is defined by which packages depend on which other packages
+        // For example, if A depends on B which depends on C, then we compile C, then B, then A
+        // If there are cycles, this is an error, and we will report it as such
+        let mut in_degree: FxHashMap<&str, usize> = FxHashMap::default();
+        let mut graph: FxHashMap<&str, Vec<&str>> = FxHashMap::default();
+
+        // Initialize the graph and in-degrees
+        // This graph contains all direct and transient dependencies
+        // and tracks which packages depend on which other packages,
+        // as well as the in-degree (quantity of dependents) of each package
+        for (key, package_info) in &self.packages {
+            in_degree.entry(key).or_insert(0);
+            for dep in package_info.dependencies.values() {
+                graph.entry(dep).or_default().push(key);
+                *in_degree.entry(key).or_insert(0) += 1;
+            }
         }
 
-        (sources, self.root.language_features)
+        // this queue contains all packages with in-degree 0
+        // these packages are valid starting points for the build order,
+        // as they don't depend on any other packages.
+        // If there are no dependency cycles, then all packages will be reachable
+        // via this queue of build order entry points.
+        let mut queue: Vec<&str> = in_degree
+            .iter()
+            .filter_map(|(key, &deg)| if deg == 0 { Some(*key) } else { None })
+            .collect();
+
+        let mut sorted_keys = Vec::new();
+
+        // from all build order entry points (the initial value of `queue`), we
+        // can build the build order by visiting each package and decrementing
+        // the in-degree of its dependencies. If the in-degree of a dependency
+        // reaches 0, then it can be added to the queue of build order entry points,
+        // as all of its dependents have been built.
+        while let Some(node) = queue.pop() {
+            sorted_keys.push(node.to_string());
+            if let Some(neighbors) = graph.get(node) {
+                for &neighbor in neighbors {
+                    let count = in_degree
+                        .get_mut(neighbor)
+                        .expect("graph pre-calculated this");
+                    *count -= 1;
+                    if *count == 0 {
+                        queue.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        let mut sorted_packages = self.packages.into_iter().collect::<Vec<_>>();
+        let mut cycle_detected = false;
+        sorted_packages.sort_by_key(|(a_key, _pkg)| {
+            sorted_keys
+                .iter()
+                .position(|key| key.as_str() == &**a_key)
+                .unwrap_or_else(|| {
+                    // The only situation in which a package is not in the build order
+                    // is if there is a cycle in the dependency graph.
+                    // this is because the build order must start with a package that
+                    // has zero dependencies. If all packages have dependencies, then
+                    // a cycle must exist.
+                    cycle_detected = true;
+                    sorted_keys.len()
+                })
+        });
+
+        if cycle_detected {
+            return (Err(DependencyCycle), self.root);
+        }
+
+        log::debug!("build plan: {:#?}", sorted_keys);
+
+        (Ok(sorted_packages), self.root)
+    }
+
+    #[must_use]
+    pub fn with_no_dependencies(
+        sources: Vec<(Arc<str>, Arc<str>)>,
+        language_features: LanguageFeatures,
+        package_type: Option<PackageType>,
+    ) -> Self {
+        Self {
+            root: PackageInfo {
+                sources,
+                language_features,
+                dependencies: FxHashMap::default(),
+                package_type,
+            },
+            packages: FxHashMap::default(),
+        }
     }
 }
 

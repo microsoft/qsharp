@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod circuit_tests;
 mod debug;
-
+#[cfg(test)]
+mod debugger_tests;
+#[cfg(test)]
+mod package_tests;
 #[cfg(test)]
 mod tests;
 
-#[cfg(test)]
-mod debugger_tests;
-
-#[cfg(test)]
-mod circuit_tests;
-
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 pub use qsc_eval::{
     debug::Frame,
@@ -59,7 +58,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap},
+    compile::{CompileUnit, Dependencies, PackageStore, Source, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -146,19 +145,21 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             false,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
@@ -166,41 +167,49 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new_with_debug(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             true,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
     fn new_internal(
         dbg: bool,
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
-            .map_err(into_errors)?;
+        let compiler = Compiler::new(
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+            store,
+            dependencies,
+        )
+        .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
-            fir_store.insert(
-                map_hir_package_to_fir(id),
-                qsc_lowerer::Lowerer::new()
-                    .with_debug(dbg)
-                    .lower_package(&unit.package),
-            );
+            let pkg = qsc_lowerer::Lowerer::new()
+                .with_debug(dbg)
+                .lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
 
         let source_package_id = compiler.source_package_id();
@@ -244,7 +253,7 @@ impl Interpreter {
     pub fn from(
         store: PackageStore,
         source_package_id: qsc_hir::hir::PackageId,
-        dependencies: Vec<qsc_hir::hir::PackageId>,
+        dependencies: Vec<(qsc_hir::hir::PackageId, Option<Arc<str>>)>,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
@@ -260,10 +269,8 @@ impl Interpreter {
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
             let mut lowerer = qsc_lowerer::Lowerer::new();
-            fir_store.insert(
-                map_hir_package_to_fir(id),
-                lowerer.lower_package(&unit.package),
-            );
+            let pkg = lowerer.lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
 
         let source_package_id = compiler.source_package_id();
@@ -354,10 +361,13 @@ impl Interpreter {
     ) -> InterpretResult {
         let label = self.next_line_label();
 
-        let increment = self
+        let mut increment = self
             .compiler
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
+        // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
+        // should not change what gets executed.
+        increment.clear_entry();
 
         self.eval_increment(receiver, increment)
     }
@@ -626,10 +636,19 @@ impl Interpreter {
         if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit_addition.hir);
+
+        self.lower_and_update_package(unit_addition);
         Ok((self.lowerer.take_exec_graph(), None))
+    }
+
+    fn lower_and_update_package(&mut self, unit: &qsc_frontend::incremental::Increment) {
+        {
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer
+                .lower_and_update_package(fir_package, &unit.hir);
+        }
+        let fir_package: &Package = self.fir_store.get(self.package);
+        qsc_fir::validate::validate(fir_package, &self.fir_store);
     }
 
     fn run_fir_passes(
@@ -637,9 +656,7 @@ impl Interpreter {
         unit: &qsc_frontend::incremental::Increment,
     ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit.hir);
+        self.lower_and_update_package(unit);
 
         let cap_results =
             PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
@@ -748,13 +765,16 @@ impl Debugger {
         capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new_with_debug(
-            true,
             sources,
             PackageType::Exe,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )?;
         let source_package_id = interpreter.source_package;
         let unit = interpreter.fir_store.get(source_package_id);
@@ -849,7 +869,7 @@ impl Debugger {
                 package,
                 self.position_encoding,
             );
-            collector.visit_package(package);
+            collector.visit_package(package, &self.interpreter.fir_store);
             let mut spans: Vec<_> = collector.statements.into_iter().collect();
 
             // Sort by start position (line first, column next)

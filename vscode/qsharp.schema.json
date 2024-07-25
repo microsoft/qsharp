@@ -17,6 +17,11 @@
         "type": "string"
       }
     },
+    "packageType": {
+      "title": "Package type",
+      "type": "string",
+      "enum": ["exe", "lib"]
+    },
     "lints": {
       "title": "Lints",
       "type": "array",

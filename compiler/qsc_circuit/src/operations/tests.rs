@@ -18,7 +18,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     let sources = SourceMap::new([("test".into(), code.into())], None);
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),

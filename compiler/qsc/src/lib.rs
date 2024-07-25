@@ -7,6 +7,7 @@ pub mod error;
 pub mod incremental;
 pub mod interpret;
 pub mod location;
+pub mod packages;
 pub mod target;
 
 pub use qsc_formatter::formatter;
@@ -32,6 +33,7 @@ pub mod ast {
 pub mod project {
     pub use qsc_project::{
         DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
+        PackageGraphSources,
     };
 }
 
