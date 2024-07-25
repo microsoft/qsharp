@@ -10,12 +10,12 @@ operation Rzz(theta : Double, qubit0: Qubit, qubit1: Qubit) : Unit {
     __quantum__qis__rzz__body(theta, qubit0, qubit1);
 }
 
-operation Mz(q : Qubit) : Result {
-    __quantum__qis__mz__body(q)
+operation MResetZ(q : Qubit) : Result {
+    QIR.Intrinsic.__quantum__qis__mresetz__body(q)
 }
 
 operation Reset(q : Qubit) : Unit {
-    __quantum__qis__reset__body(q);
+    QIR.Intrinsic.__quantum__qis__reset__body(q);
 }
 
 @SimulatableIntrinsic()
@@ -37,14 +37,4 @@ operation __quantum__qis__rzz__body(
     Std.Intrinsic.Rzz(theta, qubit0, qubit1);
 }
 
-@SimulatableIntrinsic()
-operation __quantum__qis__mz__body(q: Qubit) : Result {
-    Std.Intrinsic.M(q)
-}
-
-@SimulatableIntrinsic()
-operation __quantum__qis__reset__body(q: Qubit) : Unit {
-    Std.Intrinsic.Reset(q);
-}
-
-export Rx, Rz, Rzz, Mz, Reset;
+export Rx, Rz, Rzz, MResetZ, Reset;

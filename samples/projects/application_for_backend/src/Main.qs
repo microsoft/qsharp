@@ -1,22 +1,16 @@
 import Std;
 import ContosoBackend;
 
-operation Main() : (Result, Result, Result[]) {
-    use rxQubit = Qubit();
-    GateSet.Rx(Math.PI(), rxQubit);
+operation Main() : Result[] {
+    use qs = Qubit[4];
+    GateSet.Rx(Math.PI(), qs[0]);
+    GateSet.Rz(Math.PI(), qs[1]);
+    GateSet.Rzz(Math.PI(), qs[2], qs[3]);
 
-    use rzQubit = Qubit();
-    GateSet.Rz(Math.PI(), rzQubit);
-
-    use rzzRegister = Qubit[2];
-    GateSet.Rzz(Math.PI(), rzzRegister[0], rzzRegister[1]);
-
-    let output = (GateSet.Mz(rxQubit), GateSet.Mz(rzQubit), [GateSet.Mz(rzzRegister[0]), GateSet.Mz(rzzRegister[1])]);
-
-    GateSet.Reset(rxQubit);
-    GateSet.Reset(rzQubit);
-    for q in rzzRegister {
-        GateSet.Reset(q);
-    }
-    output
+    [
+        GateSet.MResetZ(qs[0]),
+        GateSet.MResetZ(qs[1]),
+        GateSet.MResetZ(qs[2]),
+        GateSet.MResetZ(qs[3])
+    ]
 }
