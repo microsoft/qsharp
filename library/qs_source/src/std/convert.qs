@@ -264,5 +264,25 @@ namespace Microsoft.Quantum.Convert {
         );
     }
 
-    export IntAsDouble, IntAsBigInt, ResultAsBool, BoolAsResult, BoolArrayAsInt, IntAsBoolArray, BoolArrayAsBigInt, BigIntAsBoolArray, ResultArrayAsInt, ResultArrayAsBoolArray, BoolArrayAsResultArray, ComplexAsComplexPolar, ComplexPolarAsComplex;
+    /// # Summary
+    /// Converts a given double-precision floating-point number to a string representation with desired precision, rounding if required.
+    ///
+    /// # Input
+    /// ## input
+    /// Double to be converted.
+    /// ## precision
+    /// Non-negative number of digits after the decimal point.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{DoubleAsStringWithPrecision(0.354, 2)}"); // Prints 0.35
+    /// Message($"{DoubleAsStringWithPrecision(0.485, 1)}"); // Prints 0.5
+    /// Message($"{DoubleAsStringWithPrecision(5.6, 4)}"); // Prints 5.6000
+    /// Message($"{DoubleAsStringWithPrecision(2.268, 0)}"); // Prints 2
+    /// ```
+    function DoubleAsStringWithPrecision(input : Double, precision : Int) : String {
+        body intrinsic;
+    }
+
+    export IntAsDouble, IntAsBigInt, ResultAsBool, BoolAsResult, BoolArrayAsInt, IntAsBoolArray, BoolArrayAsBigInt, BigIntAsBoolArray, ResultArrayAsInt, ResultArrayAsBoolArray, BoolArrayAsResultArray, ComplexAsComplexPolar, ComplexPolarAsComplex, DoubleAsStringWithPrecision;
 }
