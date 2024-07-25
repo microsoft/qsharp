@@ -324,7 +324,7 @@ pub enum Global<'a> {
 }
 
 /// A unique identifier for an item within a package store.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 pub struct StoreItemId {
     /// The package ID.
     pub package: PackageId,

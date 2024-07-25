@@ -149,5 +149,25 @@ namespace Microsoft.Quantum.Diagnostics {
         areEqual
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual;
+    @Config(Unrestricted)
+    operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
+        body intrinsic;
+    }
+
+    @Config(Unrestricted)
+    operation StopCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Int {
+        body intrinsic;
+    }
+
+    @Config(Unrestricted)
+    operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
+        body intrinsic;
+    }
+
+    @Config(Unrestricted)
+    operation StopCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Int {
+        body intrinsic;
+    }
+
+    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction;
 }

@@ -43,7 +43,7 @@ use qsc_fir::fir::{
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
 use rand::{rngs::StdRng, SeedableRng};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::ops;
 use std::{
     cell::RefCell,
@@ -449,6 +449,7 @@ pub struct State {
     call_stack: CallStack,
     current_span: Span,
     rng: RefCell<StdRng>,
+    call_counts: FxHashMap<(StoreItemId, FunctorApp), i64>,
 }
 
 impl State {
@@ -473,6 +474,7 @@ impl State {
             call_stack: CallStack::default(),
             current_span: Span::default(),
             rng,
+            call_counts: FxHashMap::default(),
         }
     }
 
@@ -974,8 +976,19 @@ impl State {
 
         let spec = spec_from_functor_app(functor);
         match &callee.implementation {
+            CallableImpl::Intrinsic if is_counting_call(&callee.name.name) => {
+                self.push_frame(Vec::new().into(), callee_id, functor);
+
+                let val = self.counting_call(&callee.name.name, arg);
+
+                self.set_val_register(val);
+                self.leave_frame();
+                Ok(())
+            }
             CallableImpl::Intrinsic => {
                 self.push_frame(Vec::new().into(), callee_id, functor);
+
+                self.increment_call_count(callee_id, functor);
 
                 let name = &callee.name.name;
                 let val = intrinsic::call(
@@ -1007,6 +1020,7 @@ impl State {
                 .expect("missing specialization should be a compilation error");
                 self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
                 self.push_scope(env);
+                self.increment_call_count(callee_id, functor);
 
                 self.bind_args_for_spec(
                     env,
@@ -1446,6 +1460,31 @@ impl State {
         PackageSpan {
             package: map_fir_package_to_hir(self.package),
             span,
+        }
+    }
+
+    fn counting_call(&mut self, name: &str, arg: Value) -> Value {
+        let callable = if let Value::Closure(closure) = arg {
+            (closure.id, closure.functor)
+        } else {
+            arg.unwrap_global()
+        };
+        match name {
+            "StartCountingOperation" | "StartCountingFunction" => {
+                self.call_counts.insert(callable, 0);
+                Value::unit()
+            }
+            "StopCountingOperation" | "StopCountingFunction" => {
+                let count = self.call_counts.remove(&callable).unwrap_or(-1);
+                Value::Int(count)
+            }
+            _ => panic!("unknown counting call"),
+        }
+    }
+
+    fn increment_call_count(&mut self, callee_id: StoreItemId, functor: FunctorApp) {
+        if let Some(count) = self.call_counts.get_mut(&(callee_id, functor)) {
+            *count += 1;
         }
     }
 }
@@ -1936,4 +1975,14 @@ fn is_updatable_in_place(env: &Env, expr: &Expr) -> (bool, bool) {
         },
         _ => (false, false),
     }
+}
+
+fn is_counting_call(name: &str) -> bool {
+    matches!(
+        name,
+        "StartCountingOperation"
+            | "StopCountingOperation"
+            | "StartCountingFunction"
+            | "StopCountingFunction"
+    )
 }
