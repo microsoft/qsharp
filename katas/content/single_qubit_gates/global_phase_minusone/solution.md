@@ -22,7 +22,7 @@ To do that, you use a sequence of gates. The Pauli Z gate followed by the Pauli 
    \begin{bmatrix}0 & 1 \\ 1 & 0\end{bmatrix}
    $$
 
-3. **Repeat the Z and X gates**: Applying the Z gate again will multiply the $\ket{1}$ state (that used to be $\ket{0}$), converting the state $\beta \ket{1} - \gamma \ket{0}$ to $- \beta \ket{1} - \gamma \ket{0}$. Finally, the second X gate will restore the original basis states, but now with both amplitudes having acquired an additional phase of $-1$. This means your state has been multiplied by $-1$, achieving the required global phase change.
+3. **Repeat the Z and X gates**: Applying the Z gate again will multiply the $\ket{1}$ state (that used to be $\ket{0}$), converting the state $\beta \ket{1} - \gamma \ket{0}$ to $- \beta \ket{1} - \gamma \ket{0}$. Finally, the second X gate will restore the original basis states, but now with both amplitudes having acquired an additional phase of $-1$. This means the state has been multiplied by $-1$, achieving the required global phase change.
 
 @[solution]({
 "id": "single_qubit_gates__global_phase_minusone_solution",
