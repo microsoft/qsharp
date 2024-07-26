@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! This module contains the apply_kernel function used by the `DensityMatrixSimualtor`
+//! This module contains the `apply_kernel` function used by the `DensityMatrixSimualtor`
 //! and the `TrajectorySimulator`.
 
 use crate::{ComplexVector, Error, SquareMatrix};
@@ -10,6 +10,12 @@ use nalgebra::Complex;
 /// This function extracts the relevant entries from the `state_vector` into its own vector.
 /// Then it applies the `operation_matrix` to this extracted entries.
 /// Finally it stores the results back into the state vector.
+///
+/// Performance note: Because `nalgebra` stores its matrices in column major form, we apply
+/// `gemv_tr` to avoid incurring cache misses. That is why we transpose all Kraus operators
+/// when they enter the simulator:
+/// `gemv(1, matrix, vec, 0)` is equivalent to `gemv_tr(1, matrix_tr, vec, 0)`,
+/// but the later has much better performance.
 ///
 /// Errors: If the `operation_matrix` doesn't have the right dimension for the number of target `qubits`,
 /// this function will return `Error::MatrixVecDimensionMismatch`.
@@ -54,23 +60,45 @@ pub fn apply_kernel(
     let mut new_entries = ComplexVector::zeros(num_elements);
     for s in 0..state.len() {
         if (s & mask) == 0 {
-            new_entries.fill(Complex::ZERO);
-
             // Extract relevant entries into a vector to make the gate application easier.
-            for k in 0..num_elements {
+            (0..index_offsets.len()).for_each(|k| {
+                // SAFETY: extracted_entries has size index_offset.len(), so that get_unchecked is safe.
+                // state.get_unchecked(idx) is safe because:
+                //  1. s has total_qubits_in_system bits
+                //  2. index_offset has total_qubits_in_system bits
+                //  3. Therefore, idx = s | index_offset also has total_qubits_in_system bits.
+                //  4. idx < (1 << total_qubits_in_system) = state.len() because
+                //     it has (total_qubits_in_system + 1) bits.
+                //  5. Therefore state.get_unchecked(idx) is safe.
                 let idx = s | index_offsets[k];
-                extracted_entries[k] = state[idx];
-            }
+                unsafe {
+                    *extracted_entries.get_unchecked_mut(k) = *state.get_unchecked(idx);
+                }
+            });
 
             // Apply the gate.
-            let one = num_complex::Complex::<f64>::ONE;
-            new_entries.gemv(one, operation_matrix, &extracted_entries, one);
+            new_entries.gemv_tr(
+                Complex::ONE,
+                operation_matrix,
+                &extracted_entries,
+                Complex::ZERO,
+            );
 
             // Store accumulated result back into the state vector.
-            for k in 0..num_elements {
+            (0..index_offsets.len()).for_each(|k| {
+                // SAFETY: new_entries has size index_offset.len(), so that get_unchecked is safe.
+                // state.get_unchecked(idx) is safe because:
+                //  1. s has total_qubits_in_system bits
+                //  2. index_offset has total_qubits_in_system bits
+                //  3. Therefore, idx = s | index_offset also has total_qubits_in_system bits.
+                //  4. idx < (1 << total_qubits_in_system) = state.len() because
+                //     it has (total_qubits_in_system + 1) bits.
+                //  5. Therefore state.get_unchecked(idx) is safe.
                 let idx = s | index_offsets[k];
-                state[idx] = new_entries[k];
-            }
+                unsafe {
+                    *state.get_unchecked_mut(idx) = *new_entries.get_unchecked(k);
+                }
+            });
         }
     }
 

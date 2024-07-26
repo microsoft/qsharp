@@ -12,7 +12,8 @@ pub fn assert_approx_eq(left: f64, right: f64) {
 }
 
 pub fn assert_approx_eq_with_tolerance(left: f64, right: f64, tolerance: f64) {
-    if (left - right).abs() > tolerance {
-        panic!("aprox_equal failed, left = {left}, right = {right}");
-    }
+    assert!(
+        (left - right).abs() <= tolerance,
+        "aprox_equal failed, left = {left}, right = {right}"
+    );
 }

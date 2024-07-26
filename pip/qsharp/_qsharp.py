@@ -13,6 +13,7 @@ from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
+import os
 
 _interpreter = None
 
@@ -57,7 +58,8 @@ class Config:
             # For now, we only support local project roots, so use a file schema in the URI.
             # In the future, we may support other schemes, such as github, if/when
             # we have VS Code Web + Jupyter support.
-            self._config["projectRoot"] = "file://" + project_root
+            normalized_root = os.path.normpath(os.path.join(os.getcwd(), project_root))
+            self._config["projectRoot"] = "file://" + normalized_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
