@@ -321,7 +321,7 @@ X(q);
 Z(q);
 ```
 
-All the basic gates covered in this kata are part of the Intrinsic namespace. The function `DumpMachine` is also used to print the state of the quantum simulator.
+All the basic gates covered in this kata are part of the Intrinsic namespace. Additionally, the function `DumpMachine` from the Diagnostics namespace is used to print the state of the quantum simulator.
 
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
