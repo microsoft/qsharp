@@ -57,8 +57,6 @@ def test_custom_operation() -> None:
     ]
 
 def test_operation_no_args_in_qsharp_file() -> None:
-    qsharp.init(project_root='.')
-
     res = dump_operation("qs => CustomOperation.ApplySWAP(qs[0], qs[1])", 2)
     assert res == [
         [1, 0, 0, 0],
@@ -68,8 +66,6 @@ def test_operation_no_args_in_qsharp_file() -> None:
     ]
 
 def test_operation_with_args_in_qsharp_file() -> None:
-    qsharp.init(project_root='.')
-
     res0 = dump_operation("BellState.AllBellStates(_, 0)", 2)
 
     assert res0 == [
@@ -108,8 +104,6 @@ def test_operation_with_args_in_qsharp_file() -> None:
 
 
 def test_operation_equivalence_using_fact() -> None:
-    qsharp.init(project_root='.')
-
     qsharp.eval(
         "OperationEquivalence.TestEquivalence()"
     )
