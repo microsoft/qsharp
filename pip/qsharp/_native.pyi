@@ -84,18 +84,6 @@ class Interpreter:
         """
         ...
 
-    def rerun(self, output_fn: Callable[[Output], None]) -> Any:
-        """
-        Re-runs the last executed Q# expression with an independent instance of the simulator.
-
-        :param output_fn: A callback function that will be called with each output.
-
-        :returns values: A result or runtime errors.
-
-        :raises QSharpError: If there is an error interpreting the input.
-        """
-        ...
-
     def qir(self, entry_expr: str) -> str:
         """
         Generates QIR from Q# source code.
