@@ -126,7 +126,7 @@ That is, applying a gate to a qubit in superposition is equivalent to applying t
     "title": "Ket-Bra Representation"
 })
 
-There is another way to represent quantum gates, this time using Dirac notation. However, kets aren't enough to represent arbitrary matrices. You need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
+There is another way to represent quantum gates, this time using Dirac notation. However, kets aren't enough to represent arbitrary matrices. An additional notation is required: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
 
 Recall that kets represent column vectors; a bra is a ket's row vector counterpart. For any ket $\ket{\psi}$, the corresponding bra is its adjoint (conjugate transpose): $\bra{\psi} = \ket{\psi}^\dagger$.
 
