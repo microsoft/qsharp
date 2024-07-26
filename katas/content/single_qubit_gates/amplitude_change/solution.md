@@ -20,7 +20,7 @@ R_y(\theta)\ket{0} =
 $$
 
 Recall that when applying a gate, you can tell what its matrix does to the basis states by looking at its columns: the first column of the matrix is the state into which it will transform the $\ket{0}$ state, and the second column is the state into which it will transform the $\ket{1}$ state.
-One of the examples used by the testing harness has $\beta = 0.6, \gamma = 0.8$ and $\alpha = \frac{\pi}{3} = 1.0472$.
+One of the examples used by the testing harness has $\beta = 0.6, \gamma = 0.8$ and $\alpha = \frac{\pi}{3} ≈ 1.0472$.
 Since $\cos \frac{\pi}{3} = 0.5$ and $\sin \frac{\pi}{3} = 0.8660$, working to 4 decimal places, you can use $\frac{\theta}{2} = \alpha$ to compute:
 
 $$
