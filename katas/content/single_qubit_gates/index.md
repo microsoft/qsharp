@@ -128,7 +128,7 @@ That is, applying a gate to a qubit in superposition is equivalent to applying t
     "title": "Ket-Bra Representation"
 })
 
-There is another way to represent quantum gates, this time using Dirac notation. However, kets aren't enough to represent arbitrary matrices. You need to introduce another piece of notation: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
+There is another way to represent quantum gates, this time using Dirac notation. However, kets aren't enough to represent arbitrary matrices. An additional notation is required: the **bra** (this is why Dirac notation is sometimes called **bra-ket notation**).
 
 Recall that kets represent column vectors; a bra is a ket's row vector counterpart. For any ket $\ket{\psi}$, the corresponding bra is its adjoint (conjugate transpose): $\bra{\psi} = \ket{\psi}^\dagger$.
 
@@ -163,7 +163,7 @@ Some examples:
 
 Kets and bras give us a neat way to express inner and outer products. The inner product of $\ket{\phi}$ and $\ket{\psi}$ is the matrix product of $\bra{\phi}$ and $\ket{\psi}$, denoted as $\braket{\phi|\psi}$, and their outer product is the matrix product of $\ket{\phi}$ and $\bra{\psi}$, denoted as $\ket{\phi}\bra{\psi}$. Notice that the norm of $\ket{\psi}$ is $\sqrt{\braket{\psi|\psi}}$.
 
-This leads to the representation of matrices. Recall that the outer product of two vectors of the same size produces a square matrix. You can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
+This leads to the representation of matrices via outer products. Recall that the outer product of two vectors of the same size produces a square matrix. You can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
 
 $$X = \ket{0}\bra{1} + \ket{1}\bra{0}$$
 
@@ -314,7 +314,7 @@ Here are several properties of the Pauli gates that are easy to verify and conve
 
 The following example contains code demonstrating how to apply gates in Q#. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
-In the previous kata, it was mentioned that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. That's the reason why you never assign the output of these gates to any variables in this demo - they don't produce any output.
+The previous kata mentioned that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit but doesn't return the resulting state of the qubit. That's the reason why you never assign the output of these gates to any variables in this demo - they don't produce any output.
 
 The same principle applies to applying several gates in a row to a qubit. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $\ket{\psi}$ is denoted as $Z(X(\ket{\psi}))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` won't produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they're applied:
 
@@ -323,7 +323,7 @@ X(q);
 Z(q);
 ```
 
-All the basic gates covered in this kata are part of the Intrinsic namespace. The function `DumpMachine` is also used to print the state of the quantum simulator.
+All the basic gates covered in this kata are part of the Intrinsic namespace. Additionally, the function `DumpMachine` from the Diagnostics namespace is used to print the state of the quantum simulator.
 
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
