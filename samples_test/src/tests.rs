@@ -54,6 +54,9 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
             panic!("compilation failed (first error: {})", errors[0]);
         }
     };
+
+    check_lints(&interpreter);
+
     interpreter.set_classical_seed(Some(1));
     interpreter.set_quantum_seed(Some(1));
 
@@ -82,7 +85,9 @@ fn compile(sources: SourceMap) {
         store,
         &[(std_id, None)],
     ) {
-        Ok(_) => {}
+        Ok(interpreter) => {
+            check_lints(&interpreter);
+        }
         Err(errors) => {
             for error in &errors {
                 eprintln!("error: {error}");
@@ -133,7 +138,9 @@ fn compile_project(project_folder: &str) {
         store,
         &user_code_dependencies,
     ) {
-        Ok(_) => {}
+        Ok(interpreter) => {
+            check_lints(&interpreter);
+        }
         Err(errors) => {
             for error in &errors {
                 eprintln!("error: {error}");
@@ -141,4 +148,14 @@ fn compile_project(project_folder: &str) {
             panic!("compilation failed (first error: {})", errors[0]);
         }
     };
+}
+
+fn check_lints(interpreter: &Interpreter) {
+    let lints = interpreter.check_source_lints();
+    if !lints.is_empty() {
+        for lint in &lints {
+            eprintln!("lint: {lint}");
+        }
+        panic!("linting failed (first lint: {})", lints[0]);
+    }
 }
