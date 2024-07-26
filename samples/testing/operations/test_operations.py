@@ -7,10 +7,9 @@ from qsharp.utils import dump_operation
 
 @pytest.fixture(autouse=True)
 def setup():
-    """Fixture to execute asserts before a test is run"""
-    # You can set the target profile here if you want
-    # By default, it uses "Unrestricted" profile
-    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    """Fixture to execute before a test is run"""
+    # Setting the project root to current folder.
+    qsharp.init(project_root=".")
     yield # this is where the testing happens
 
 def test_empty_operation() -> None:

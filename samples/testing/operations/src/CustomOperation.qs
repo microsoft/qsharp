@@ -1,13 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-/// # Sample
-/// Multi File Testing Project
-///
-/// # Description
-/// This code builds upon the concepts explained in the README file,
-/// demonstrating how to organize Q# code into multiple files for testing.
-
 namespace CustomOperation {
     // # Summary
     /// CNOT based operation for testing with `TestEquivalence` operation.
