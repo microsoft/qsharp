@@ -5,7 +5,7 @@ namespace OperationEquivalence {
     open Microsoft.Quantum.Diagnostics;
     open CustomOperation;
     /// # Summary
-    /// Verifies the equivalence of quantum operations upto a global phase using `Fact` function
+    /// Verifies the equivalence of quantum operations up to a global phase using `Fact` function
     /// and the `CheckOperationsAreEqual` operation. You can either run this here,
     /// by clicking `Run` in VsCode or call `TestEquivalence` operation in Python.
     @EntryPoint()
