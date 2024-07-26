@@ -16,8 +16,10 @@ The quantum algorithm for random number generation is one of the simplest applic
 
 **What you should know to start working on this kata:**
 
-- Basic knowledge of qubits and measurements. If you need a refresher, you can check the Qubit kata.
-- Basic knowledge of single-qubit gates. If you need a refresher, you can check the Single-Qubit Gates kata.
+- Basic knowledge of qubits and measurements
+- Basic knowledge of single-qubit gates
+
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({"id": "random_numbers__introduction", "title": "Introduction"})
 
