@@ -22,8 +22,6 @@ def test_empty_operation() -> None:
 
 
 def test_single_qubit_not_gate() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
-
     res = dump_operation("qs => X(qs[0])", 1)
     assert res == [
         [0, 1],
@@ -31,8 +29,6 @@ def test_single_qubit_not_gate() -> None:
     ]
 
 def test_single_qubit_hadamard_gate() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
-
     res = dump_operation("qs => H(qs[0])", 1)
     assert res == [
         [0.707107, 0.707107],
@@ -40,8 +36,6 @@ def test_single_qubit_hadamard_gate() -> None:
     ]
 
 def test_two_qubit_cnot_gate() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
-
     res = dump_operation("qs => CNOT(qs[0], qs[1])", 2)
     assert res == [
         [1, 0, 0, 0],
@@ -51,8 +45,6 @@ def test_two_qubit_cnot_gate() -> None:
     ]
 
 def test_custom_operation() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
-
     qsharp.eval(
         "operation ApplySWAP(qs : Qubit[]) : Unit is Ctl + Adj { SWAP(qs[0], qs[1]); }"
     )
@@ -66,7 +58,6 @@ def test_custom_operation() -> None:
     ]
 
 def test_operation_no_args_in_qsharp_file() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.init(project_root='.')
 
     res = dump_operation("qs => CustomOperation.ApplySWAP(qs[0], qs[1])", 2)
@@ -78,7 +69,6 @@ def test_operation_no_args_in_qsharp_file() -> None:
     ]
 
 def test_operation_with_args_in_qsharp_file() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.init(project_root='.')
 
     res0 = dump_operation("BellState.AllBellStates(_, 0)", 2)
@@ -119,7 +109,6 @@ def test_operation_with_args_in_qsharp_file() -> None:
 
 
 def test_operation_equivalence_using_fact() -> None:
-    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.init(project_root='.')
 
     qsharp.eval(
