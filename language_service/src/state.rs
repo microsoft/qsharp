@@ -139,13 +139,6 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        if doc_uri.starts_with(qsc_project::GITHUB_SCHEME) {
-            // Since this is a read only GitHub document provided by our own compilation,
-            // we don't need to track it in the open documents map. As a later feature,
-            // we could consider tracking these documents to provide a better user experience.
-            return;
-        }
-
         let project = match self.load_manifest(&doc_uri).await {
             Ok(Some(p)) => p,
             Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
@@ -289,11 +282,6 @@ impl<'a> CompilationStateUpdater<'a> {
     /// document was the last open document in a compilation,
     /// the compilation is also removed.
     fn remove_open_document(&mut self, uri: &str) -> bool {
-        if uri.starts_with(qsc_project::GITHUB_SCHEME) {
-            // We don't need to track GitHub documents in the open documents map
-            return false;
-        }
-
         let existing_compilation_uri = self.with_state_mut(|state| {
             state.compilations.remove(uri);
 
@@ -427,6 +415,12 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
+                        continue;
+                    }
+                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                        // Don't publish diagnostics for GitHub URIs.
+                        // This is temporary workaround to avoid spurious errors when a document
+                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 
