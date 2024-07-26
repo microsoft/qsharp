@@ -9,7 +9,7 @@ There are two primary ways to test operations in the QDK:
    - Use the `dump_operation` Python API to retrieve the operation's representation as a matrix and compare it against the expected matrix.
 
 2. **Q# `Fact` Assertions:**
-   - Use a `Fact` function in your Q# code that uses the `CheckOperationsAreEqual` operation to verify if two operations are identical. The `Fact` function asserts that the check returns `true`.
+   - Use a `Fact` function in your Q# code that uses the `CheckOperationsAreEqual` operation to verify if two operations are identical upto a global phase. The `Fact` function asserts that the check returns `true`.
 
 ## Project Structure
 This sample project is a multi-file Q# project that showcases both testing methods. The project structure is as follows:
