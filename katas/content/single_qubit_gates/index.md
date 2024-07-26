@@ -16,7 +16,9 @@ This kata introduces you to single-qubit gates. Quantum gates are the quantum co
 **What you should know to start working on this kata:**
 
 - Basic knowledge of linear algebra
-- The concept of qubit. If you need a refresher, you can check out "The Qubit" kata preceding this one.
+- The concept of qubit
+
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({
     "id": "single_qubit_gates__basics",
