@@ -5,11 +5,11 @@
 // Q# has a pragmatic and intuitive type system. All data types in Q# are immutable. The available
 // primitive data types are: `Unit`, `Int`, `BigInt`, `Double`, `Bool`, `String`, `Qubit`, `Result`,
 // `Pauli`, and `Range`. In addition to these primitive types, Q# offers primitive aggregate types
-// as well, `Array` and `Tuple`; composite types (a.k.a. user-defined types or UDTs); and function
+// as well, `Array` and `Tuple`, user-defined struct types, and function
 // and operation types.
 
 // In the below code, all variables have type annotations to showcase their type.
-operation MeasureOneQubit() : Unit {
+operation Main() : Unit {
     // Notably, Qubits are allocated with the `use` keyword instead of declared with the `let`
     // keyword.
     // The resulting value represents an opaque identifier by which virtual quantum memory
@@ -63,13 +63,11 @@ operation MeasureOneQubit() : Unit {
     // Tuples containing a single element are equivalent to the element they contain.
     let tuple = (1, "one", One);
 
-    // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
-    // and one anonymous parameter of Boolean type.
-    newtype ComplexBool = (Real : Double, Imaginary : Double, Bool);
-    // Instantiation of the above UDT.
-    let complex = ComplexBool(42.0, 0.0, false);
-    let (real, imaginary, anonymous) = complex!;
-    Message($"Complex Bool: (real: {real}, imaginary: {imaginary}, anonymous: {anonymous})");
+    // A user-defined struct type consisting of two named fields, `Real` and `Imaginary`.
+    struct Complex { Real : Double, Imaginary : Double }
+    // Instantiation of the above struct.
+    let complex = new Complex { Real = 42.0, Imaginary = 0.0 };
+    Message($"Complex: (real: {complex.Real}, imaginary: {complex.Imaginary})");
 
     // A function that takes an integer and returns a boolean. This variable declaration
     // uses a Lambda function as its right hand side.
