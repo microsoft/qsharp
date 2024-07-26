@@ -12,6 +12,7 @@ license.workspace = true
 [dependencies]
 nalgebra = { workspace = true }
 num-complex = { workspace = true }
+qsc = { path = "../compiler/qsc" }
 rand = { workspace = true }
 thiserror = { workspace = true }
 

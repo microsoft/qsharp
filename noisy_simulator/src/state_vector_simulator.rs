@@ -7,6 +7,7 @@
 #[cfg(test)]
 mod tests;
 
+use qsc::Backend;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
@@ -381,5 +382,17 @@ impl NoisySimulator for StateVectorSimulator {
         }
         self.state.as_mut()?.trace_change = trace;
         Ok(())
+    }
+}
+
+impl Backend for StateVectorSimulator {
+    type ResultType = qsc::Result;
+
+    fn h(&mut self, _q: usize) {
+        todo!()
+    }
+
+    fn m(&mut self, _q: usize) -> Self::ResultType {
+        todo!()
     }
 }
