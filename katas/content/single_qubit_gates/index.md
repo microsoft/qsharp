@@ -161,7 +161,7 @@ Some examples:
 
 Kets and bras give us a neat way to express inner and outer products. The inner product of $\ket{\phi}$ and $\ket{\psi}$ is the matrix product of $\bra{\phi}$ and $\ket{\psi}$, denoted as $\braket{\phi|\psi}$, and their outer product is the matrix product of $\ket{\phi}$ and $\bra{\psi}$, denoted as $\ket{\phi}\bra{\psi}$. Notice that the norm of $\ket{\psi}$ is $\sqrt{\braket{\psi|\psi}}$.
 
-This leads to the representation of matrices. Recall that the outer product of two vectors of the same size produces a square matrix. You can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
+This leads to the representation of matrices via outer products. Recall that the outer product of two vectors of the same size produces a square matrix. You can use a linear combination of several outer products of simple vectors (such as basis vectors) to express any square matrix. For example, the $X$ gate can be expressed as follows:
 
 $$X = \ket{0}\bra{1} + \ket{1}\bra{0}$$
 
