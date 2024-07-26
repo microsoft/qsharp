@@ -107,7 +107,7 @@ For example, if the length of the bit string $p$ equals the length of the input,
 /*** Kata specific styles ***/
 .kata_svg_path {
     stroke: var(--kata-svg-path);
-    stroke-width: 10;
+    stroke-width: 2;
     stroke-linecap: round;
     fill: none;
 }

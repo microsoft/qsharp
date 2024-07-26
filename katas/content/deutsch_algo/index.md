@@ -168,7 +168,7 @@ Note that this algorithm requires only **1** oracle call, and always produces th
 /*** Kata specific styles ***/
 .kata_svg_path {
     stroke: var(--kata-svg-path);
-    stroke-width: 10;
+    stroke-width: 2;
     stroke-linecap: round;
     fill: none;
 }
