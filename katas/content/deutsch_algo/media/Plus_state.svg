@@ -1,43 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="660" height="334" fill="none" version="1.1" viewBox="0 0 660 334" xmlns="http://www.w3.org/2000/svg">
-    <style>
-        :root {
-            --kata-svg-stroke: #222;
-            --kata-svg-fill: #fff;
-            --kata-svg-path: #777;
-            --kata-svg-accent: #06c;
-        }
-        @media(prefers-color-scheme: dark) {
-        :root {
-            --kata-svg-stroke: #eee;
-            --kata-svg-fill: #111;
-            --kata-svg-path: #bbb;
-            --kata-svg-accent: #08f;
-        }
-        }
-        .kata_svg_path {
-            stroke: var(--kata-svg-path);
-        }
-        .kata_svg_text {
-            fill: var(--kata-svg-stroke);
-        }
-        .kata_svg_point {
-            fill: var(--kata-svg-fill);
-            stroke: var(--kata-svg-stroke);
-        }
-        .kata_svg_fill_accent {
-            fill: var(--kata-svg-accent);
-        }
-        .kata_svg_stroke_accent {
-            stroke: var(--kata-svg-accent);
-        }
-    </style>
     <g clip-path="url(#clip0_4_498)">
         <g clip-rule="evenodd" fill-rule="evenodd">
             <!-- Large circles -->
             <g class="kata_svg_path">
-                <path d="m7.1 146c0-76.8 62.3-139 139-139 76.8 0 139 62.3 139 139 0 76.8-62.3 139-139 139-76.8 0-139-62.3-139-139z" stroke-miterlimit="8" stroke-width="1.38" />
-                <path d="m358 146c0-76.8 62.2-139 139-139s139 62.3 139 139c0 76.8-62.2 139-139 139s-139-62.3-139-139z" stroke-miterlimit="8" stroke-width="1.38" />
+                <path d="m7.1 146c0-76.8 62.3-139 139-139 76.8 0 139 62.3 139 139 0 76.8-62.3 139-139 139-76.8 0-139-62.3-139-139z" stroke-width="1.38" />
+                <path d="m358 146c0-76.8 62.2-139 139-139s139 62.3 139 139c0 76.8-62.2 139-139 139s-139-62.3-139-139z" stroke-width="1.38" />
             </g>
             <!-- Normal points -->
             <g class="kata_svg_point">

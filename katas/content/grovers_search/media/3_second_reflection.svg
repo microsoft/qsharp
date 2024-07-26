@@ -1,40 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="447" height="370" overflow="hidden" version="1.1" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
-    <style>
-        :root {
-            --kata-svg-stroke: #222;
-            --kata-svg-fill: #fff;
-            --kata-svg-path: #777;
-            --kata-svg-accent: #06c;
-        }
-        @media(prefers-color-scheme: dark) {
-        :root {
-            --kata-svg-stroke: #eee;
-            --kata-svg-fill: #111;
-            --kata-svg-path: #bbb;
-            --kata-svg-accent: #08f;
-        }
-        }
-        .kata_svg_path {
-            stroke: var(--kata-svg-path);
-            stroke-width: 10;
-            stroke-linecap: round;
-            fill: none;
-        }
-        .kata_svg_text {
-            fill: var(--kata-svg-stroke);
-        }
-        .kata_svg_point {
-            fill: var(--kata-svg-fill);
-            stroke: var(--kata-svg-stroke);
-        }
-        .kata_svg_fill_accent {
-            fill: var(--kata-svg-accent);
-        }
-        .kata_svg_stroke_accent {
-            stroke: var(--kata-svg-accent);
-        }
-    </style>
     <g transform="matrix(.25 0 0 .25 -333 -132)">
         <g class="kata_svg_path">
             <!-- Main circle -->
