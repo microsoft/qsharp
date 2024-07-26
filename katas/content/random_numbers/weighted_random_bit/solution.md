@@ -7,7 +7,7 @@ $$
 
 Here, $\theta$ is the angle between the state vector and the $Z$-axis, and $\phi$ is the longitude angle with respect to the $X$-axis on the Bloch sphere.
 
-Your goal is to generate $0$ or $1$ with the probability of generating a $0$ equal to $x$ and the probability of generating a $1$ equal to $1 - x$. This means that the qubit state should look like
+Your goal is to generate $0$ or $1$ with the probability of generating a $0$ equal to $x$ and the probability of generating a $1$ equal to $1 - x$. This means that the qubit state should look like this:
 
 $$
 \ket{\psi} =
