@@ -417,6 +417,12 @@ impl<'a> CompilationStateUpdater<'a> {
                         // a less confusing user experience.
                         continue;
                     }
+                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                        // Don't publish diagnostics for GitHub URIs.
+                        // This is temporary workaround to avoid spurious errors when a document
+                        // is opened in single file mode that is part of a read-only GitHub project.
+                        continue;
+                    }
 
                     self.publish_diagnostics_for_doc(state, &uri, errors);
                 }

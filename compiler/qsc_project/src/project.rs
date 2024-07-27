@@ -18,6 +18,8 @@ use std::{
 };
 use thiserror::Error;
 
+pub const GITHUB_SCHEME: &str = "qsharp-github-source";
+
 /// Describes a Q# project with all its sources and dependencies resolved.
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -414,7 +416,7 @@ pub trait FileSystemAsync {
         let manifest = serde_json::from_str::<Manifest>(&manifest_content).map_err(|e| {
             Error::GitHubManifestParse {
                 path: format!(
-                    "qsharp-github-source:{}/{}/{}{}/qsharp.json",
+                    "{GITHUB_SCHEME}:{}/{}/{}{}/qsharp.json",
                     dep.owner,
                     dep.repo,
                     dep.r#ref,
@@ -448,7 +450,7 @@ pub trait FileSystemAsync {
             // and open them using cached contents.
             sources.push((
                 format!(
-                    "qsharp-github-source:{}/{}/{}{path}",
+                    "{GITHUB_SCHEME}:{}/{}/{}{path}",
                     dep.owner, dep.repo, dep.r#ref
                 )
                 .into(),

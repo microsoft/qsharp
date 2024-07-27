@@ -183,13 +183,6 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
   // TODO: Replace with a list of legitimate known Q# projects on GitHub
   const githubProjects: { [name: string]: GitHubProjectRef } = {
-    assert: {
-      github: {
-        owner: "swernli",
-        repo: "MyQsLib",
-        ref: "29dc67f",
-      },
-    },
     // Add a template to the end of the list users can use to easily add their own
     "<id>": {
       github: {
