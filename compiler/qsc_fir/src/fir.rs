@@ -562,7 +562,7 @@ pub struct Package {
     /// The entry expression for an executable package.
     pub entry: Option<ExprId>,
     /// The control flow graph for the entry expression in the package.
-    pub entry_exec_graph: Rc<[ExecGraphNode]>,
+    pub entry_exec_graph: ExecGraph,
     /// The blocks in the package.
     pub blocks: IndexMap<BlockId, Block>,
     /// The expressions in the package.
@@ -881,7 +881,7 @@ pub struct SpecDecl {
     /// The input of the specialization.
     pub input: Option<PatId>,
     /// The flattened control flow graph for the execution of the specialization.
-    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub exec_graph: ExecGraph,
 }
 
 impl Display for SpecDecl {
@@ -893,6 +893,9 @@ impl Display for SpecDecl {
         )
     }
 }
+
+/// An execution graph represented by a reference counted vector of nodes.
+pub type ExecGraph = Rc<[ExecGraphNode]>;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 /// A node within the control flow graph.

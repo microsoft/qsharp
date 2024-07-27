@@ -472,21 +472,21 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
 fn prepare_chemistry_estimation_with_expected_majorana(
 ) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
-    let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e4());
+    let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
     let value = r#"{
         "numQubits": 1318,
-        "tCount": 55321680,
-        "rotationCount": 205612244,
-        "rotationDepth": 205151230,
-        "cczCount": 134678785904,
+        "tCount": 96,
+        "rotationCount": 11987084,
+        "rotationDepth": 11986482,
+        "cczCount": 67474931068,
         "ccixCount": 0,
-        "measurementCount": 1374743748
+        "measurementCount": 63472407520
     }"#;
 
     let counts: LogicalResourceCounts = serde_json::from_str(value).expect("json should be valid");
 
-    let partitioning = ErrorBudgetSpecification::Total(1e-3)
+    let partitioning = ErrorBudgetSpecification::Total(0.01)
         .partitioning(&counts)
         .expect("partitioning should succeed");
     PhysicalResourceEstimation::new(
@@ -540,33 +540,32 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
     // constraint is not violated
     assert!(result.runtime() <= max_duration_in_nanoseconds);
 
-    assert_eq!(logical_qubit.code_parameter(), &19);
-    assert_eq!(logical_qubit.logical_cycle_time(), 5700);
+    assert_eq!(logical_qubit.code_parameter(), &9);
+    assert_eq!(logical_qubit.logical_cycle_time(), 2700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
-    assert_eq!(part.copies(), 2);
-    assert_eq!(result.physical_qubits_for_factories(), 572_000);
-    assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
-    assert_eq!(result.physical_qubits(), 4_923_120);
+    assert_eq!(result.algorithmic_logical_depth(), 266_172_890_508);
+    assert_eq!(part.copies(), 1);
+    assert_eq!(result.physical_qubits_for_factories(), 16_640);
+    assert_eq!(result.physical_qubits_for_algorithm(), 1_063_120);
+    assert_eq!(result.physical_qubits(), 1_079_760);
 
-    assert_eq!(result.runtime(), 22_363_183_367_607_300);
+    assert_eq!(result.runtime(), 10_050_079_976_035_200);
 
-    assert_eq!(tfactory.physical_qubits(), 286_000);
-    assert_eq!(tfactory.num_rounds(), 4);
-    assert_eq!(tfactory.num_units_per_round(), vec![19994, 275, 16, 1]);
+    assert_eq!(tfactory.physical_qubits(), 16_640);
+    assert_eq!(tfactory.num_rounds(), 3);
+    assert_eq!(tfactory.num_units_per_round(), vec![303, 16, 1]);
     assert_eq!(
         tfactory.unit_names(),
         vec![
-            String::from("15-to-1 space efficient"),
-            String::from("15-to-1 space efficient"),
             String::from("15-to-1 RM prep"),
+            String::from("15-to-1 space efficient"),
             String::from("15-to-1 RM prep"),
         ]
     );
     assert_eq!(
         tfactory.code_parameter_per_round(),
-        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+        vec![Some(&1), Some(&3), Some(&7)]
     );
 
     assert_eq!(
@@ -598,32 +597,31 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     // constraint is not violated
     assert!(result.physical_qubits() <= max_num_qubits);
 
-    assert_eq!(logical_qubit.code_parameter(), &19);
-    assert_eq!(logical_qubit.logical_cycle_time(), 5700);
+    assert_eq!(logical_qubit.code_parameter(), &9);
+    assert_eq!(logical_qubit.logical_cycle_time(), 2700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
-    assert_eq!(part.copies(), 2);
-    assert_eq!(result.physical_qubits_for_factories(), 572_000);
-    assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
-    assert_eq!(result.physical_qubits(), 4_923_120);
-    assert_eq!(result.runtime(), 22_363_183_367_607_300);
+    assert_eq!(result.algorithmic_logical_depth(), 266_172_890_508);
+    assert_eq!(part.copies(), 231);
+    assert_eq!(result.physical_qubits_for_factories(), 3_843_840);
+    assert_eq!(result.physical_qubits_for_algorithm(), 1_063_120);
+    assert_eq!(result.physical_qubits(), 4_906_960);
+    assert_eq!(result.runtime(), 718_666_804_371_600);
 
-    assert_eq!(tfactory.physical_qubits(), 286_000);
-    assert_eq!(tfactory.num_rounds(), 4);
-    assert_eq!(tfactory.num_units_per_round(), vec![19994, 275, 16, 1]);
+    assert_eq!(tfactory.physical_qubits(), 16_640);
+    assert_eq!(tfactory.num_rounds(), 3);
+    assert_eq!(tfactory.num_units_per_round(), vec![303, 16, 1]);
     assert_eq!(
         tfactory.unit_names(),
         vec![
-            String::from("15-to-1 space efficient"),
-            String::from("15-to-1 space efficient"),
             String::from("15-to-1 RM prep"),
+            String::from("15-to-1 space efficient"),
             String::from("15-to-1 RM prep"),
         ]
     );
     assert_eq!(
         tfactory.code_parameter_per_round(),
-        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+        vec![Some(&1), Some(&3), Some(&7)]
     );
 
     assert_eq!(
@@ -800,6 +798,25 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
         Rc::new(counts),
         partitioning,
     )
+}
+
+#[test]
+fn test_chemistry_based_max_factories() {
+    for max_factories in 1..=14 {
+        let mut estimation = prepare_chemistry_estimation_with_expected_majorana();
+        estimation.set_max_factories(max_factories);
+
+        let result = estimation.estimate().expect("failed to estimate");
+        let actual_factories = result.factory_parts()[0]
+            .as_ref()
+            .expect("has factories")
+            .copies();
+
+        assert!(
+            actual_factories <= max_factories,
+            "failed for {max_factories} maximum factories"
+        );
+    }
 }
 
 #[test]

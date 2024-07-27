@@ -7,4 +7,4 @@
 
 **Goal:** Transform the qubit into state $\alpha\ket{0} + e^{i\theta}\beta\ket{1}$.
 
-> Since only the relative amplitudes and relative phase have any physical meaning, this allows us to prepare any single-qubit quantum state we want to.
+> Since only the relative amplitudes and relative phase have any physical meaning, this allows you to prepare any single-qubit quantum state you want to.
