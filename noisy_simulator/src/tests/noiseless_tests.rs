@@ -11,7 +11,7 @@ use num_complex::Complex;
 use super::assert_approx_eq;
 
 /// Returns an H gate.
-fn noiseless_h() -> Operation {
+pub(crate) fn noiseless_h() -> Operation {
     let f = 0.5_f64.sqrt();
     operation!([f,  f;
                 f, -f;])
@@ -42,7 +42,7 @@ fn noiseless_mz1() -> Operation {
 }
 
 /// Returns an MZ measurement.
-pub(super) fn noiseless_mz() -> Instrument {
+pub(crate) fn noiseless_mz() -> Instrument {
     Instrument::new(vec![noiseless_mz0(), noiseless_mz1()]).expect("instrument should be valid")
 }
 

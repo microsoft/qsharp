@@ -6,6 +6,8 @@
 
 #[cfg(test)]
 mod tests;
+use std::sync::OnceLock;
+
 use crate::{Error, SquareMatrix};
 
 /// A helper macro to write operations more conveniently.
@@ -25,7 +27,7 @@ use crate::{Error, SquareMatrix};
 #[macro_export]
 macro_rules! operation {
     ($([$($($v:expr),* );*]),*) => {
-        Operation::new(vec![
+        $crate::Operation::new(vec![
             $(nalgebra::dmatrix![
                 $($(num_complex::Complex::<f64>::from($v)),* );*
             ]),*
@@ -149,5 +151,39 @@ impl Operation {
     #[must_use]
     pub fn number_of_qubits(&self) -> usize {
         self.number_of_qubits
+    }
+}
+
+/// Common operations.
+impl Operation {
+    /// Returns the H gate.
+    pub fn h() -> &'static Self {
+        static H: OnceLock<Operation> = OnceLock::new();
+        H.get_or_init(|| {
+            let f = 0.5_f64.sqrt();
+            operation!([f,  f;
+                        f, -f;])
+            .expect("operation should be valid")
+        })
+    }
+
+    /// Returns the 0-projection of an MZ measurement.
+    pub fn noiseless_mz0() -> &'static Self {
+        static MZ0: OnceLock<Operation> = OnceLock::new();
+        MZ0.get_or_init(|| {
+            operation!([1., 0.;
+                        0., 0.;])
+            .expect("operation should be valid")
+        })
+    }
+
+    /// Returns the 1-projection of an MZ measurement.
+    pub fn noiseless_mz1() -> &'static Self {
+        static MZ1: OnceLock<Operation> = OnceLock::new();
+        MZ1.get_or_init(|| {
+            operation!([0., 0.;
+                        0., 1.;])
+            .expect("operation should be valid")
+        })
     }
 }

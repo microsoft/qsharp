@@ -386,13 +386,16 @@ impl NoisySimulator for StateVectorSimulator {
 }
 
 impl Backend for StateVectorSimulator {
-    type ResultType = qsc::Result;
+    type ResultType = bool;
 
-    fn h(&mut self, _q: usize) {
-        todo!()
+    fn h(&mut self, q: usize) {
+        NoisySimulator::apply_operation(self, Operation::h(), &[q])
+            .expect("operation should succeed");
     }
 
-    fn m(&mut self, _q: usize) -> Self::ResultType {
-        todo!()
+    fn m(&mut self, q: usize) -> Self::ResultType {
+        let outcome = NoisySimulator::sample_instrument(self, Instrument::mz(), &[q])
+            .expect("measurement should succeed");
+        outcome != 0
     }
 }

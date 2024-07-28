@@ -7,7 +7,9 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{operation::Operation, Error, SquareMatrix, TOLERANCE};
+use std::sync::OnceLock;
+
+use crate::{operation, operation::Operation, Error, SquareMatrix, TOLERANCE};
 use nalgebra::{DMatrix, DVector};
 
 /// An instrument is the means by which we make measurements on a quantum system.
@@ -94,6 +96,23 @@ impl Instrument {
     #[must_use]
     pub fn num_operations(&self) -> usize {
         self.operations.len()
+    }
+}
+
+/// Common instruments.
+impl Instrument {
+    /// Returns MZ measurement instrument.
+    pub fn mz() -> &'static Self {
+        static H: OnceLock<Instrument> = OnceLock::new();
+        H.get_or_init(|| {
+            let mz0 = operation!([1., 0.;
+                                  0., 0.;])
+            .expect("operation should be valid");
+            let mz1 = operation!([0., 0.;
+                                  0., 1.;])
+            .expect("operation should be valid");
+            Instrument::new(vec![mz0, mz1]).expect("instrument should be valid")
+        })
     }
 }
 

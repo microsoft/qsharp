@@ -35,7 +35,7 @@
 pub(crate) mod density_matrix_simulator;
 pub(crate) mod instrument;
 pub(crate) mod kernel;
-pub(crate) mod operation;
+mod operation;
 pub(crate) mod state_vector_simulator;
 #[cfg(test)]
 pub(crate) mod tests;
