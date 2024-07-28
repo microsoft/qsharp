@@ -137,56 +137,6 @@ Note that this algorithm requires only **1** oracle call, and always produces th
     "title": "Visualizing Deutsch Algorithm"
 })
 
-<style>
-/* 
-  Kata Styles: Copy/paste these styles for any kata content that includes SVG images
-  First set the variables to match the theme in use, then define the katas styles using them.
-*/
-/* OS not set to dark, or theme set explicitly to light */
-:root, [data-theme="light"] {
-    --kata-svg-stroke: #222;
-    --kata-svg-fill: #fff;
-    --kata-svg-path: #777;
-    --kata-svg-accent: #06c;
-}
-/* User has set OS preference for dark (explict theme will override) */
-@media(prefers-color-scheme: dark) {
-:root {
-    --kata-svg-stroke: #eee;
-    --kata-svg-fill: #111;
-    --kata-svg-path: #bbb;
-    --kata-svg-accent: #08f;
-}
-}
-/* Explicit dark theme set (should match above dark preference values) */
-[data-theme="dark"] {
-    --kata-svg-stroke: #eee;
-    --kata-svg-fill: #111;
-    --kata-svg-path: #bbb;
-    --kata-svg-accent: #08f;
-}
-/*** Kata specific styles ***/
-.kata_svg_path {
-    stroke: var(--kata-svg-path);
-    stroke-width: 2;
-    stroke-linecap: round;
-    fill: none;
-}
-.kata_svg_text {
-    fill: var(--kata-svg-stroke);
-}
-.kata_svg_point {
-    fill: var(--kata-svg-fill);
-    stroke: var(--kata-svg-stroke);
-}
-.kata_svg_fill_accent {
-    fill: var(--kata-svg-accent);
-}
-.kata_svg_stroke_accent {
-    stroke: var(--kata-svg-accent);
-}
-</style>
-
 You can follow the steps of the algorithm for the constant and the balanced scenarios using a neat visualization. Since Deutsch algorithm deals only with states with real amplitudes, you can map all states on the unit circle, and follow the state evolution through the steps.
 
 1. Start with a qubit in the $\ket{0}$ state and apply the $H$ gate to the qubit.
