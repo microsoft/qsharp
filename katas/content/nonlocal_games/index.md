@@ -177,15 +177,15 @@ Putting together the building blocks we've implemented into a strategy is very s
 - Allocate two qubits and prepare a Bell state on them.
 - Send one of the qubits to Alice and another to Bob (this step is "virtual", not directly reflected in Q# code, other than making sure that Alice and Bob each act on their qubit only).
 - Have Alice and Bob perform their measurements on their respective qubits using `AliceQuantum` and `BobQuantum` operations.
-- Reset used qubits to $ket{0}$ before they are released.
+- Reset used qubits to $\ket{0}$ before they are released.
 - Return their measurement results.
 
 In the example below you can compare classical and quantum results: first boolean value indicates win for classical Alice and Bob, second boolean is win for quantum Alice and Bob.
 
-You may play with the code and check if there is a difference in results when
-1. The referee picks non-random bits. How can the referee minimize Alice and Bob's win probability?
-2. Bob's qubit is measured first.
-3. Alice and Bob get unentangled qubit pair.
+>You may play with the code and check if there is a difference in results when
+>1. The referee picks non-random bits. How can the referee minimize Alice and Bob's win probability?
+>2. Bob's qubit is measured first.
+>3. Alice and Bob get unentangled qubit pair.
 
 @[example]({"id": "nonlocal_games__chsh_e2edemo", "codePath": "./examples/CHSHGameDemo.qs"})
 
