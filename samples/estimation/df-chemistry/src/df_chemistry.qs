@@ -7,8 +7,8 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.ResourceEstimation;
-    open Unstable.Arithmetic;
-    open Unstable.TableLookup;
+    open Microsoft.Quantum.Unstable.Arithmetic;
+    open Microsoft.Quantum.Unstable.TableLookup;
 
     // ------------------------------------------ //
     // DF chemistry (public operations and types) //
@@ -356,5 +356,4 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     internal function IsNaN(value : Double) : Bool {
         value != value
     }
-
 }
