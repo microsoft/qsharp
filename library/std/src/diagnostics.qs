@@ -217,5 +217,15 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction;
+    @Config(Unrestricted)
+    operation StartCountingQubits() : Unit {
+        body intrinsic;
+    }
+
+    @Config(Unrestricted)
+    operation StopCountingQubits() : Int {
+        body intrinsic;
+    }
+
+    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
 }

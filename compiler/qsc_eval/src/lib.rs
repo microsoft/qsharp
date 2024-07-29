@@ -447,6 +447,7 @@ pub struct State {
     current_span: Span,
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<(StoreItemId, FunctorApp), i64>,
+    qubit_counter: Option<QubitCounter>,
 }
 
 impl State {
@@ -468,6 +469,7 @@ impl State {
             current_span: Span::default(),
             rng,
             call_counts: FxHashMap::default(),
+            qubit_counter: None,
         }
     }
 
@@ -994,6 +996,14 @@ impl State {
                         callee_span,
                     ));
                 }
+
+                // If qubit counting is enabled, update the qubit counter when the intrinsic for allocation is called.
+                if let (Some(counter), "__quantum__rt__qubit_allocate", Value::Qubit(q)) =
+                    (&mut self.qubit_counter, name.as_ref(), &val)
+                {
+                    counter.allocated(q.0);
+                }
+
                 self.set_val_register(val);
                 self.leave_frame();
                 Ok(())
@@ -1452,20 +1462,26 @@ impl State {
     }
 
     fn counting_call(&mut self, name: &str, arg: Value) -> Value {
-        let callable = if let Value::Closure(closure) = arg {
-            (closure.id, closure.functor)
-        } else {
-            arg.unwrap_global()
-        };
         match name {
             "StartCountingOperation" | "StartCountingFunction" => {
+                let callable = as_callable(arg);
                 self.call_counts.insert(callable, 0);
                 Value::unit()
             }
             "StopCountingOperation" | "StopCountingFunction" => {
+                let callable = as_callable(arg);
                 let count = self.call_counts.remove(&callable).unwrap_or(-1);
                 Value::Int(count)
             }
+            "StartCountingQubits" => {
+                self.qubit_counter = Some(QubitCounter::default());
+                Value::unit()
+            }
+            "StopCountingQubits" => Value::Int(
+                self.qubit_counter
+                    .take()
+                    .map_or(-1, QubitCounter::into_count),
+            ),
             _ => panic!("unknown counting call"),
         }
     }
@@ -1474,6 +1490,14 @@ impl State {
         if let Some(count) = self.call_counts.get_mut(&(callee_id, functor)) {
             *count += 1;
         }
+    }
+}
+
+fn as_callable(arg: Value) -> (StoreItemId, FunctorApp) {
+    if let Value::Closure(closure) = arg {
+        (closure.id, closure.functor)
+    } else {
+        arg.unwrap_global()
     }
 }
 
@@ -1972,5 +1996,25 @@ fn is_counting_call(name: &str) -> bool {
             | "StopCountingOperation"
             | "StartCountingFunction"
             | "StopCountingFunction"
+            | "StartCountingQubits"
+            | "StopCountingQubits"
     )
+}
+
+#[derive(Default)]
+struct QubitCounter {
+    seen: FxHashSet<usize>,
+    count: i64,
+}
+
+impl QubitCounter {
+    fn allocated(&mut self, qubit: usize) {
+        if self.seen.insert(qubit) {
+            self.count += 1;
+        }
+    }
+
+    fn into_count(self) -> i64 {
+        self.count
+    }
 }
