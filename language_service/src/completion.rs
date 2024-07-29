@@ -583,8 +583,7 @@ impl CompletionListBuilder {
         package_alias: Option<Arc<str>>,
     ) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Namespace(namespace, _) =>
-            {
+            ItemKind::Namespace(namespace, _) => {
                 let qualification = namespace
                     .str_iter()
                     .into_iter()

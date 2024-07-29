@@ -6,7 +6,6 @@ use qsc::interpret::Value;
 
 // Tests for Unstable.Arithmetic namespace
 
-
 #[test]
 fn check_maj() {
     test_expression(

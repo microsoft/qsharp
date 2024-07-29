@@ -25,25 +25,25 @@ use qsc::{
     Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
 
-
 /// Only needed for testing of the unstable lib, as unstable is not bundled in the compiler.
-const UNSTABLE_LIB : &[(&str, &str)]= &[(
-    "qsharp-library-source:Unstable/src/Arithmetic.qs",
-    include_str!("../qs_source/unstable/src/Arithmetic.qs"),
-),
-(
-    "qsharp-library-source:Unstable/src/ArithmeticUtils.qs",
-    include_str!("../qs_source/unstable/src/ArithmeticUtils.qs"),
-),
-(
-    "qsharp-library-source:Unstable/src/StatePreparation.qs",
-    include_str!("../qs_source/unstable/src/StatePreparation.qs"),
-),
-(
-    "qsharp-library-source:Unstable/src/TableLookup.qs",
-    include_str!("../qs_source/unstable/src/TableLookup.qs"),
-)];
-
+const UNSTABLE_LIB: &[(&str, &str)] = &[
+    (
+        "qsharp-library-source:Unstable/src/Arithmetic.qs",
+        include_str!("../qs_source/unstable/src/Arithmetic.qs"),
+    ),
+    (
+        "qsharp-library-source:Unstable/src/ArithmeticUtils.qs",
+        include_str!("../qs_source/unstable/src/ArithmeticUtils.qs"),
+    ),
+    (
+        "qsharp-library-source:Unstable/src/StatePreparation.qs",
+        include_str!("../qs_source/unstable/src/StatePreparation.qs"),
+    ),
+    (
+        "qsharp-library-source:Unstable/src/TableLookup.qs",
+        include_str!("../qs_source/unstable/src/TableLookup.qs"),
+    ),
+];
 
 /// # Panics
 ///
@@ -83,9 +83,25 @@ pub fn test_expression_with_lib_and_profile_and_sim(
     let (std_id, mut store) = qsc::compile::package_store_with_stdlib(profile.into());
 
     // compile the unstable library as Unstable
-    let unstable_sources = SourceMap::new(UNSTABLE_LIB.iter().map(|(name, source)| (Arc::from(*name), Arc::from(*source))).collect::<Vec<_>>(), None);
-    let (compiled_unstable, errs) = qsc::compile::compile(&store, &[(std_id, None)], unstable_sources, PackageType::Lib, profile.into(), LanguageFeatures::default());
-    assert!(errs.is_empty(), "Compilation of unstable lib failed: {errs:?}");
+    let unstable_sources = SourceMap::new(
+        UNSTABLE_LIB
+            .iter()
+            .map(|(name, source)| (Arc::from(*name), Arc::from(*source)))
+            .collect::<Vec<_>>(),
+        None,
+    );
+    let (compiled_unstable, errs) = qsc::compile::compile(
+        &store,
+        &[(std_id, None)],
+        unstable_sources,
+        PackageType::Lib,
+        profile.into(),
+        LanguageFeatures::default(),
+    );
+    assert!(
+        errs.is_empty(),
+        "Compilation of unstable lib failed: {errs:?}"
+    );
     let unstable_id = store.insert(compiled_unstable);
 
     let mut interpreter = Interpreter::new(

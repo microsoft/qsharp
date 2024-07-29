@@ -356,4 +356,5 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     internal function IsNaN(value : Double) : Bool {
         value != value
     }
+
 }

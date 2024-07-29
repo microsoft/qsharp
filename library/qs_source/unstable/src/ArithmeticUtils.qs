@@ -461,7 +461,7 @@ operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Applies `action` to `target` if the sum of `x` and `y` registers
 /// overflows, i.e. there's a carry out (if `invertControl` is false).
 /// If `invertControl` is true, the `action` is applied when there's no carry out.
@@ -495,7 +495,7 @@ operation ApplyActionIfSumOverflows<'T>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes carry out assuming carry in is 1.
 /// Simplified version that is only applicable for scenarios
 /// where controlled version is the same as non-controlled.
@@ -553,7 +553,7 @@ operation ApplyAsSinglyControlled<'TIn>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// This helper function computes the AND of all control bits in `ctls` into
 /// the last qubit of `tgts`, using the other qubits in `tgts` as helper
 /// qubits for the AND of subsets of control bits.  The operation has a

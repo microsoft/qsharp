@@ -1,1 +1,7 @@
-{}
+{
+    "dependencies":{
+        "Unstable": {
+            "path": "../../../library/qs_source/unstable"
+        }
+    }
+}
