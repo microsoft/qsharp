@@ -68,18 +68,18 @@ Then, let's proceed with quantum strategies for Alice and Bob.
     "title": "Discussion: Probability of Victory for Quantum Strategy"
 })
 
-The above quantum strategy adopted by Alice and Bob offers a win rate of $\frac{2 + \sqrt{2}}{4}$, or about 85.36%. Let's see why this is the case.
+The above quantum strategy adopted by Alice and Bob offers a win rate of $\frac{2 + \sqrt{2}}{4}$, or about $85.36\%$. Let's see why this is the case.
 
 First, consider the outcome if Alice and Bob simply measure their qubits in the Z basis without manipulating them at all. Because of the entanglement inherent to the Bell state they hold, their measurements will always agree (i.e., both true or both false).
-This will suffice for victory in the three scenarios (0,0), (0,1) and (1,0) and fail for (1,1), so their win probability is 75%, the same as that for the straightforward classical strategies of invariably returning both true or both false.
+This will suffice for victory in the three scenarios (0,0), (0,1) and (1,0) and fail for (1,1), so their win probability is $75\%$, the same as that for the straightforward classical strategies of invariably returning both true or both false.
 
 Now let's analyze the optimal quantum strategy.
 
 > As a reminder, probability "wavefunction" for a two-qubit state is given by the following length-4 vector of amplitudes:
 > $$\begin{bmatrix}\psi_{00}\\\psi_{01}\\\psi_{10}\\\psi_{11}\end{bmatrix}$$
-> $|\psi_{ij}|^2$ gives the probability of observing the corresponding basis state $|ij\rangle$ upon measuring the qubit pair.
+> $|\psi_{ij}|^2$ gives the probability of observing the corresponding basis state $\ket{ij}$ upon measuring the qubit pair.
 
-The initial state $|00\rangle$ has $\psi_{00} = 1$ and $\psi_{01} = \psi_{10} = \psi_{11} = 0$.
+The initial state $\ket{00}$ has $\psi_{00} = 1$ and $\psi_{01} = \psi_{10} = \psi_{11} = 0$.
 The Bell state we prepare as the first step of the game has an amplitude vector as follows (we'll use decimal approximations for matrix elements):
 
 $$\begin{bmatrix}1/\sqrt{2}\\0\\0\\1/\sqrt{2}\end{bmatrix} = \begin{bmatrix}0.7071\\0\\0\\0.7071\end{bmatrix}$$
@@ -98,7 +98,7 @@ $$\begin{bmatrix}
     0 & 0 & 0.9239 & 0.3827\\
     0 & 0 & -0.3827 & 0.9239
 \end{bmatrix}$$
-This performs the $R_y$ rotation by $\pi/8$ radians clockwise on Bob's qubit while leaving Alice's qubit unchanged.
+>This performs the $R_y$ rotation by $\pi/8$ radians clockwise on Bob's qubit while leaving Alice's qubit unchanged.
 
 - If Bob's bit were 1, he would rotate his qubit counterclockwise by $\pi/8$, applying a very similar operator
 
@@ -124,11 +124,12 @@ $$\begin{bmatrix}
 \end{bmatrix}$$
 depending on whether Bob holds 0 (left-hand case) or 1 (right-hand case).
 
-The result of AND on their input bits will always be 0; thus they win when their outputs agree.  These two cases correspond to the top and bottom elements of the vectors above, with a combined probability of $(0.6533)^2 + (0.6533)^2 = 0.4268 + 0.4268 = 0.8536$, so they have an 85.36% win chance.
+The result of AND on their input bits will always be 0; thus they win when their outputs agree.  These two cases correspond to the top and bottom elements of the vectors above, with a combined probability of $(0.6533)^2 + (0.6533)^2 = 0.4268 + 0.4268 = 0.8536$, so they have an $85.36\%$ win chance.
 
 ## Case 2: Alice holds bit 1
 
-When Alice holds bit 1, she measures in basis X (or, equivalently, Hadamard-transforms her qubit, leaving Bob's be, before making her Z-basis measurement).  This corresponds to applying the operator
+When Alice holds bit 1, she measures in basis X (or, equivalently, Hadamard-transforms her qubit, leaving Bob's qubit unchanged,
+before making her Z-basis measurement).  This corresponds to applying the operator
 $$\begin{bmatrix}
     0.7071 & 0 & 0.7071 & 0\\
     0 & 0.7071 & 0 & 0.7071\\
@@ -157,16 +158,15 @@ $$\begin{bmatrix}
     -0.2706
     \end{bmatrix}$$
 
-When Bob holds 0, they still want to return the same parity, which they again do with 85.36% probability (left-hand vector above).
+When Bob holds 0, they still want to return the same parity, which they again do with $85.36\%$ probability (left-hand vector above).
 But when Bob holds 1, the AND condition is now true and the players want to answer in opposite parity. This corresponds to the second and third elements of the right-hand vector above.
-Thanks to the "magic" of the combination of the counterclockwise rotation and Hadamard transform, they now do this with probability $(0.6533)^2 + (0.6533)^2 = 0.8536$ and thus 85.36% becomes their win odds once more.
+Thanks to the "magic" of the combination of the counterclockwise rotation and Hadamard transform, they now do this with probability $(0.6533)^2 + (0.6533)^2 = 0.8536$ and thus $85.36\%$ becomes their win odds once more.
 
 ## Side notes
 
-- If Bob never rotated his qubit, their entangled state would remain the Bell state if Alice held bit 0 and the state corresponding to $\frac12 \big(|00\rangle + |01\rangle + |10\rangle - |11\rangle\big)$ if Alice held bit 1.
-
-While she and Bob would have a 100% success probability against Alice's 0 bit, they would have only a 50% chance of success if she held bit 1, and thus their win chance would revert to the 75% of the classical strategy again.
-- It can be proven that Alice and Bob cannot surpass an overall win probability of 85.36% in the CHSH game. This entails a higher-level discussion of quantum observable theory, for instance see [Tsirelson's bound](https://en.wikipedia.org/wiki/Tsirelson's_bound).
+- If Bob never rotated his qubit, their entangled state would remain the Bell state if Alice held bit 0 and the state corresponding to $\frac12 \big(\ket{00} + \ket{01} + \ket{10} - \ket{11}\big)$ if Alice held bit 1.
+While she and Bob would have a $100\%$ success probability against Alice's 0 bit, they would have only a $50\%$ chance of success if she held bit 1, and thus their win chance would revert to the $75\%$ of the classical strategy again.
+- It can be proven that Alice and Bob cannot surpass an overall win probability of $85.36\%$ in the CHSH game. This entails a higher-level discussion of quantum observable theory, for instance see [Tsirelson's bound](https://en.wikipedia.org/wiki/Tsirelson's_bound).
 
 @[section]({
     "id": "nonlocal_games__chsh_e2e",
@@ -177,14 +177,15 @@ Putting together the building blocks we've implemented into a strategy is very s
 - Allocate two qubits and prepare a Bell state on them.
 - Send one of the qubits to Alice and another to Bob (this step is "virtual", not directly reflected in Q# code, other than making sure that Alice and Bob each act on their qubit only).
 - Have Alice and Bob perform their measurements on their respective qubits using `AliceQuantum` and `BobQuantum` operations.
-- Release(reset) used qubits
+- Reset used qubits to $ket{0}$ before they are released.
 - Return their measurement results.
 
 In the example below you can compare classical and quantum results: first boolean value indicates win for classical Alice and Bob, second boolean is win for quantum Alice and Bob.
+
 You may play with the code and check if there is a difference in results when
-1. referee picks non-random bits
-2. Bob's qubit is measured first
-3. Alice and Bob get not entangled qubit pair
+1. The referee picks non-random bits. How can the referee minimize Alice and Bob's win probability?
+2. Bob's qubit is measured first.
+3. Alice and Bob get unentangled qubit pair.
 
 @[example]({"id": "nonlocal_games__chsh_e2edemo", "codePath": "./examples/CHSHGameDemo.qs"})
 
@@ -194,4 +195,3 @@ You may play with the code and check if there is a difference in results when
 })
 
 Congratulations! In this kata you learned how to use quantum entanglement in nonlocal quantum games to get results that are better than any classical strategy can offer.
-
