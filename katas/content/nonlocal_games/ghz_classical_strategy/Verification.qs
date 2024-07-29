@@ -18,7 +18,6 @@ namespace Kata.Verification {
     }
 
     operation PlayClassicalGHZ_Reference (strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {
-
         if Length(strategies) != 3 or Length(inputs) != 3 {
             return [];
         }
@@ -50,7 +49,7 @@ namespace Kata.Verification {
         if wins < iterations*Length(inputs)*3/4 {
             Message("Alice, Bob, and Charlie's classical strategy is not optimal");
             return false;
-	    }
+        }
         Message("Correct!");
         true
     }

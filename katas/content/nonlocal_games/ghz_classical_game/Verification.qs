@@ -14,10 +14,6 @@ namespace Kata.Verification {
     }
 
     operation PlayClassicalGHZ_Reference (strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {
-
-        if Length(strategies) != 3 or Length(inputs) != 3 {
-            return [];
-        }
         let r = inputs[0];
         let s = inputs[1];
         let t = inputs[2];
