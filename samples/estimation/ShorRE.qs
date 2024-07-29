@@ -245,7 +245,7 @@ namespace Shors {
     operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl {
         IncByIUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
- 
+
     /// # Summary
     /// Increments a little-endian register ys by an Int number c
     /// using provided adder.
@@ -278,7 +278,6 @@ namespace Shors {
             }
         }
     }
-
 
     /// # Summary
     /// Reversible, in-place ripple-carry addition of two integers.
@@ -357,7 +356,8 @@ namespace Shors {
             CNOT(xs[i], xs[i + 1]);
         }
     }
- /// # Summary
+
+    /// # Summary
     /// Implements the inner addition function for the operation
     /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
     /// with the outer operation to construct the full adder.
@@ -425,6 +425,7 @@ namespace Shors {
         }
         controlled adjoint auto;
     }
+
     /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
@@ -459,6 +460,7 @@ namespace Shors {
         H(target);
         S(target);
     }
+
     /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
@@ -491,6 +493,7 @@ namespace Shors {
             }
         }
     }
+
     /// # Summary
     /// Implements the inner addition function for the operation
     /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
@@ -544,8 +547,7 @@ namespace Shors {
         ApplyActionIfGreaterThanOrEqualConstant(false, action, c, x, target);
     }
 
-
-/// # Summary
+    /// # Summary
     /// Applies `action` to `target` if register `x` is greater or equal to BigInt `c`
     /// (if `invertControl` is false). If `invertControl` is true, the `action`
     /// is applied in the opposite situation.
@@ -600,6 +602,7 @@ namespace Shors {
             }
         }
     }
+
     operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             X(control1);
@@ -609,5 +612,4 @@ namespace Shors {
             X(target);
         }
     }
-
 }

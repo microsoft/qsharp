@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         CCNOT(y, x, z);
     }
 
-/// # Summary
+    /// # Summary
     /// Reflects a quantum register about a given classical integer.
     ///
     /// # Description
@@ -887,7 +887,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Performs table lookup using a SELECT network
     ///
     /// # Description
@@ -1152,7 +1152,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate
     /// the inner operation to construct the full adder. Only Length(xs)
     /// qubits are processed.
@@ -1603,7 +1603,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Applies `action` to `target` if the sum of `x` and `y` registers
     /// overflows, i.e. there's a carry out (if `invertControl` is false).
     /// If `invertControl` is true, the `action` is applied when there's no carry out.
@@ -1637,7 +1637,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Computes carry out assuming carry in is 1.
     /// Simplified version that is only applicable for scenarios
     /// where controlled version is the same as non-controlled.
@@ -1695,7 +1695,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// This helper function computes the AND of all control bits in `ctls` into
     /// the last qubit of `tgts`, using the other qubits in `tgts` as helper
     /// qubits for the AND of subsets of control bits.  The operation has a
@@ -1727,6 +1727,4 @@ namespace Microsoft.Quantum.Applications.Cryptography {
             ApplyAndAssuming0Target(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
         }
     }
-
-
 }
