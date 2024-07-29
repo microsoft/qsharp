@@ -199,6 +199,13 @@ async function onload() {
     }
     if (kataIndex < 0) kataIndex = 0;
 
+    // Allow the user to pass ?theme={dark|light} on the URL to set the theme
+    const urlParams = new URLSearchParams(window.location.search);
+    const theme = urlParams.get("theme");
+    if (theme) {
+      document.body.setAttribute("data-theme", theme);
+    }
+
     onRender(kataIndex);
   }
 
