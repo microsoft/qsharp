@@ -11,7 +11,7 @@ namespace Sample {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Random;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Unstable.Arithmetic;
+    open Unstable.Arithmetic;
     open Microsoft.Quantum.Arrays;
 
     @EntryPoint()

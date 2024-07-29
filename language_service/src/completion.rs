@@ -451,9 +451,6 @@ impl CompletionListBuilder {
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
-                            return None;
-                        }
                         // If the item's visibility is internal, the item may be ignored
                         if matches!(i.visibility, Visibility::Internal) {
                             if !is_user_package {
@@ -586,8 +583,7 @@ impl CompletionListBuilder {
         package_alias: Option<Arc<str>>,
     ) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Namespace(namespace, _)
-                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
+            ItemKind::Namespace(namespace, _) =>
             {
                 let qualification = namespace
                     .str_iter()

@@ -13,8 +13,8 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    open Unstable.Arithmetic;
+    open Unstable.TableLookup;
 
     // !!! IMPORTANT !!!
     // When computing resource estimtes from the VS Code plugin directly on this

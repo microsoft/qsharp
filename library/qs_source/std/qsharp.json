@@ -15,10 +15,6 @@
     "src/std/modern_api.qs",
     "src/std/qir.qs",
     "src/std/random.qs",
-    "src/std/re.qs",
-    "src/std/unstable_arithmetic.qs",
-    "src/std/unstable_arithmetic_internal.qs",
-    "src/std/unstable_state_preparation.qs",
-    "src/std/unstable_table_lookup.qs"
+    "src/std/re.qs"
   ]
 }

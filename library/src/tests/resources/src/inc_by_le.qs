@@ -1,5 +1,5 @@
 namespace Test {
-    open Microsoft.Quantum.Unstable.Arithmetic;
+    open Unstable.Arithmetic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
 

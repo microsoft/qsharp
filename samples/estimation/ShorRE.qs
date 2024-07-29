@@ -14,7 +14,7 @@ namespace Shors {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Unstable.Arithmetic;
+    open Unstable.Arithmetic;
     open Microsoft.Quantum.ResourceEstimation;
 
     @EntryPoint()

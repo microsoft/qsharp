@@ -1,0 +1,9 @@
+{
+    "author": "Microsoft",
+    "license": "MIT",
+    "dependencies": {
+        "Unstable" : {
+            "path": "../../../qs_source/unstable"
+        }
+    }
+}

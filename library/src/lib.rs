@@ -74,22 +74,6 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../qs_source/std/src/std/re.qs"),
     ),
     (
-        "qsharp-library-source:unstable_arithmetic.qs",
-        include_str!("../qs_source/std/src/std/unstable_arithmetic.qs"),
-    ),
-    (
-        "qsharp-library-source:unstable_arithmetic_internal.qs",
-        include_str!("../qs_source/std/src/std/unstable_arithmetic_internal.qs"),
-    ),
-    (
-        "qsharp-library-source:unstable_state_preparation.qs",
-        include_str!("../qs_source/std/src/std/unstable_state_preparation.qs"),
-    ),
-    (
-        "qsharp-library-source:unstable_table_lookup.qs",
-        include_str!("../qs_source/std/src/std/unstable_table_lookup.qs"),
-    ),
-    (
         "qsharp-library-source:modern_api.qs",
         include_str!("../qs_source/std/src/std/modern_api.qs"),
     ),

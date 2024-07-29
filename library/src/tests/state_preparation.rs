@@ -8,7 +8,7 @@ use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.StatePreparation namespace
 
-const STATE_PREPARATION_TEST_LIB: &str = include_str!("resources/state_preparation.qs");
+const STATE_PREPARATION_TEST_LIB: &str = include_str!("resources/src/state_preparation.qs");
 
 #[test]
 fn check_plus_state_preparation() {
@@ -241,7 +241,7 @@ fn check_preparation_doc_sample() {
         open Microsoft.Quantum.Math;
         let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
         use qubits = Qubit[2];
-        Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD(amplitudes, qubits);
+        Unstable.StatePreparation.PreparePureStateD(amplitudes, qubits);
         Microsoft.Quantum.Diagnostics.DumpMachine();
         ResetAll(qubits); }",
         &Value::Tuple(vec![].into()),

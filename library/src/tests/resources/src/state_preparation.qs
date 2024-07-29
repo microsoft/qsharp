@@ -3,7 +3,7 @@ namespace Test {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Unstable.StatePreparation;
+    open Unstable.StatePreparation;
 
 
     operation TestPlusState() : Unit {

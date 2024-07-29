@@ -6,8 +6,8 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    open Unstable.Arithmetic;
+    open Unstable.TableLookup;
 
     // ------------------------------------- //
     // State preparation (public operations) //
