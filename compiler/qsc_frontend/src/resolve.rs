@@ -1674,7 +1674,7 @@ fn bind_global_item(
             if decl.is_import() {
                 Ok(())
             } else {
-                for decl_item in &decl.items {
+                for decl_item in &*decl.items {
                     // if the item is a namespace, bind it here as an item
                     let Some(ns) = scope
                         .namespaces

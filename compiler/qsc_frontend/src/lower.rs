@@ -200,7 +200,7 @@ impl With<'_> {
                 if item.is_import() {
                     return None;
                 }
-                for item in &item.items {
+                for item in &*item.items {
                     let Some((id, alias)) = resolve_id(item.name().id) else {
                         continue;
                     };
