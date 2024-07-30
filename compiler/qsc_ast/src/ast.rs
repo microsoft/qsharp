@@ -388,7 +388,7 @@ impl Display for TyDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts {
+                    for t in &**ts {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -531,7 +531,7 @@ impl Display for CallableBody {
                 let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Specializations:")?;
                 indent = set_indentation(indent, 1);
-                for spec in specs {
+                for spec in &**specs {
                     write!(indent, "\n{spec}")?;
                 }
             }
