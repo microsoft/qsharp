@@ -39,7 +39,7 @@ declare_hir_lints! {
     (DeprecatedFunctionConstructor, LintLevel::Allow, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
     (DeprecatedWithOperator, LintLevel::Allow, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
     (DeprecatedDoubleColonOperator, LintLevel::Allow, "deprecated `::` for field access", "`::` operator is deprecated, use `.` instead"),
-    (DeprecatedFunctorKeywords, LintLevel::Warn, "deprecated functor keywords", "`Adjoint` and `Controlled` keywords are deprecated, use `adjoint` and `controlled` instead"),
+    (DeprecatedFunctorKeywords, LintLevel::Allow, "deprecated functor keywords", "`Adjoint` and `Controlled` keywords are deprecated, use `adjoint` and `controlled` instead"),
 }
 
 /// Helper to check if an operation has desired operation characteristics
