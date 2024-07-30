@@ -171,7 +171,7 @@ impl Checker {
                 },
             ),
             ast::CallableBody::Specs(specs) => {
-                for spec in specs.iter() {
+                for spec in specs {
                     if let ast::SpecBody::Impl(input, block) = &spec.body {
                         self.check_spec(
                             names,

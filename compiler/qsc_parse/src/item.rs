@@ -370,7 +370,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
         TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
         TyDefKind::Tuple(tup) => {
             let mut ty_tup = Vec::new();
-            for tydef in tup.iter() {
+            for tydef in tup {
                 ty_tup.push(try_tydef_as_ty(tydef)?);
             }
             Some(Ty {

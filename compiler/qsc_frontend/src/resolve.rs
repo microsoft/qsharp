@@ -1674,7 +1674,7 @@ fn bind_global_item(
             if decl.is_import() {
                 Ok(())
             } else {
-                for decl_item in decl.items.iter() {
+                for decl_item in &decl.items {
                     // if the item is a namespace, bind it here as an item
                     let Some(ns) = scope
                         .namespaces
@@ -1832,6 +1832,7 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// - Next, we check open statements for a non-prelude open.
 /// - Then, we check the prelude.
 /// - Lastly, we check the global namespace.
+///
 /// In the example `Foo.Bar.Baz()` -- the `provided_namespace_name` would be
 ///`Foo.Bar` and the `provided_symbol_name` would be `Baz`.
 ///
@@ -1960,6 +1961,7 @@ fn check_all_scopes<'a>(
 /// 1. if any locally declared symbols match `provided_symbol_name`
 /// 2. if any aliases in this scope match the provided namespace, and if they contain `provided_symbol_name`
 /// 3. if any opens in this scope contain the `provided_symbol_name`
+///
 /// It follows the Q# shadowing rules:
 /// - Local variables shadow everything. They are the first priority.
 /// - Next, we check open statements for an explicit open.
@@ -2046,8 +2048,8 @@ fn check_scoped_resolutions(
 /// * `globals` - The global scope to resolve the name against.
 /// * `provided_symbol_name` - The symbol name that is ambiguous.
 /// * `candidates` - A map of possible resolutions for the symbol, each associated with the `Open`
-/// statement that brought it into scope. Note that only the first two opens in
-/// the candidates are actually used in the error message.
+///   statement that brought it into scope. Note that only the first two opens in
+///   the candidates are actually used in the error message.
 fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,

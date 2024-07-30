@@ -342,7 +342,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Interpolate(components) => {
                 let mut diverges = false;
-                for component in components.iter() {
+                for component in components {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
@@ -465,7 +465,7 @@ impl<'a> Context<'a> {
                     self.inferrer.eq(copy.span, container.clone(), copy_ty.ty);
                 }
 
-                for field in fields.iter() {
+                for field in fields {
                     self.infer_field_assign(
                         field.span,
                         container.clone(),
@@ -499,7 +499,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_expr(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -626,7 +626,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_hole_tuple(hole, given, tuple, to_ty, item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -847,7 +847,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_qubit_init(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
