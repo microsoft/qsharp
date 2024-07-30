@@ -507,11 +507,11 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
             kind: UnOp::Neg,
             precedence: 11,
         }),
-        OpName::Keyword(Keyword::AdjointUpper) => Some(PrefixOp {
+        OpName::Keyword(Keyword::AdjointUpper | Keyword::Adjoint) => Some(PrefixOp {
             kind: UnOp::Functor(Functor::Adj),
             precedence: 14,
         }),
-        OpName::Keyword(Keyword::ControlledUpper) => Some(PrefixOp {
+        OpName::Keyword(Keyword::ControlledUpper | Keyword::Controlled) => Some(PrefixOp {
             kind: UnOp::Functor(Functor::Ctl),
             precedence: 14,
         }),
