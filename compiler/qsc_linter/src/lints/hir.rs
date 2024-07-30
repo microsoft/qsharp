@@ -6,8 +6,8 @@ use std::rc::Rc;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        CallableDecl, CallableKind, Expr, ExprKind, Field, ItemKind, Res, SpecBody, SpecDecl, Stmt,
-        StmtKind,
+        CallableDecl, CallableKind, Expr, ExprKind, Field, Functor, ItemKind, Res, SpecBody,
+        SpecDecl, Stmt, StmtKind, UnOp,
     },
     ty::Ty,
     visit::{self, Visitor},
@@ -39,6 +39,7 @@ declare_hir_lints! {
     (DeprecatedFunctionConstructor, LintLevel::Allow, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
     (DeprecatedWithOperator, LintLevel::Allow, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
     (DeprecatedDoubleColonOperator, LintLevel::Allow, "deprecated `::` for field access", "`::` operator is deprecated, use `.` instead"),
+    (DeprecatedFunctorKeywords, LintLevel::Warn, "deprecated functor keywords", "`Adjoint` and `Controlled` keywords are deprecated, use `adjoint` and `controlled` instead"),
 }
 
 /// Helper to check if an operation has desired operation characteristics
@@ -301,6 +302,47 @@ impl HirLintPass for DeprecatedDoubleColonOperator {
                                 .map(|s| (".".to_string(), s))
                                 .collect()
                         ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Default)]
+struct DeprecatedFunctorKeywords {
+    level: LintLevel,
+}
+
+const ADJ_UPPER_KEYWORD: &str = "Adjoint";
+const ADJ_KEYWORD: &str = "adjoint";
+const CTL_UPPER_KEYWORD: &str = "Controlled";
+const CTL_KEYWORD: &str = "controlled";
+
+impl HirLintPass for DeprecatedFunctorKeywords {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
+        if let ExprKind::UnOp(UnOp::Functor(func), _) = &expr.kind {
+            match func {
+                Functor::Adj => {
+                    let span = Span {
+                        lo: expr.span.lo,
+                        hi: expr.span.lo
+                            + u32::try_from(ADJ_UPPER_KEYWORD.len())
+                                .expect("should be able to fit usize into u32"),
+                    };
+                    if compilation.get_source_code(span) == ADJ_UPPER_KEYWORD {
+                        buffer.push(lint!(self, span, vec![(ADJ_KEYWORD.to_string(), span)]));
+                    }
+                }
+                Functor::Ctl => {
+                    let span = Span {
+                        lo: expr.span.lo,
+                        hi: expr.span.lo
+                            + u32::try_from(CTL_UPPER_KEYWORD.len())
+                                .expect("should be able to fit usize into u32"),
+                    };
+                    if compilation.get_source_code(span) == CTL_UPPER_KEYWORD {
+                        buffer.push(lint!(self, span, vec![(CTL_KEYWORD.to_string(), span)]));
                     }
                 }
             }
