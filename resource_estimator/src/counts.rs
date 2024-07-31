@@ -11,7 +11,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
 use std::{array, cell::RefCell, f64::consts::PI, fmt::Debug, iter::Sum};
 
-use crate::system::LogicalResourceCounts;
+use crate::system::{LogicalResourceCounts, VolumeEntry};
 
 /// Resource counter implementation
 ///
@@ -37,6 +37,12 @@ pub struct LogicalCounter {
     /// Global allocation barrier (when calling global barrier this is advanced
     /// to allocate new qubits after the barrier)
     allocation_barrier: usize,
+    /// If set, enables more precise volume computation: in this mode,
+    /// un-allocated qubits do not contribute to the logical volume, as they do
+    /// not need to be error corrected. The vector contains for each qubit the
+    /// data to compute the logical depth collected while the qubit was
+    /// allocated.
+    precise_volume: Option<Vec<(VolumeEntry, VolumeEntry)>>,
     /// Caching stack
     caching_stack: Vec<String>,
     /// Caching
@@ -59,6 +65,7 @@ impl Default for LogicalCounter {
             ccz_count: 0,
             m_count: 0,
             allocation_barrier: 0,
+            precise_volume: None,
             caching_stack: vec![],
             caching_layers: FxHashMap::default(),
             repeats: vec![],
@@ -68,16 +75,24 @@ impl Default for LogicalCounter {
 }
 
 impl LogicalCounter {
+    pub fn enable_precise_volume(&mut self) {
+        self.precise_volume = Some(vec![]);
+    }
+
     #[must_use]
     pub fn logical_resources(&self) -> LogicalResourceCounts {
         LogicalResourceCounts {
             num_qubits: self.next_free as _,
             t_count: self.t_count as _,
             rotation_count: self.r_count as _,
-            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count() as _,
+            rotation_depth: self.rotation_depth() as _,
             ccz_count: self.ccz_count as _,
             ccix_count: 0,
             measurement_count: self.m_count as _,
+            precise_volume_data: self
+                .precise_volume
+                .as_ref()
+                .map(|d| d.iter().map(|(total, _)| total.clone()).collect()),
         }
     }
 
@@ -136,6 +151,10 @@ impl LogicalCounter {
         }
 
         self.max_layer[q]
+    }
+
+    fn rotation_depth(&self) -> usize {
+        self.layers.iter().filter(|layer| layer.r != 0).count() as _
     }
 
     fn global_barrier(&mut self) -> usize {
@@ -492,18 +511,47 @@ impl Backend for LogicalCounter {
     fn z(&mut self, _q: usize) {}
 
     fn qubit_allocate(&mut self) -> usize {
-        if let Some(index) = self.free_list.pop() {
+        let index = if let Some(index) = self.free_list.pop() {
             index
         } else {
             let index = self.next_free;
             self.next_free += 1;
             self.max_layer.push(self.allocation_barrier);
             index
+        };
+
+        if let Some(precise_volume) = self.precise_volume.as_mut() {
+            let rotation_depth = self.layers.iter().filter(|layer| layer.r != 0).count();
+
+            if precise_volume.len() <= index {
+                precise_volume.push((VolumeEntry::default(), VolumeEntry::default()));
+            }
+
+            let entry = &mut precise_volume[index];
+            entry.1.m_count = self.m_count as _;
+            entry.1.r_count = self.r_count as _;
+            entry.1.r_depth = rotation_depth as _;
+            entry.1.t_count = self.t_count as _;
+            entry.1.ccz_count = self.ccz_count as _;
         }
+
+        index
     }
 
     fn qubit_release(&mut self, q: usize) {
         self.free_list.push(q);
+
+        if let Some(precise_volume) = self.precise_volume.as_mut() {
+            let rotation_depth = self.layers.iter().filter(|layer| layer.r != 0).count();
+
+            let (total, current) = &mut precise_volume[q];
+
+            total.m_count += self.m_count as u64 - current.m_count;
+            total.r_count += self.r_count as u64 - current.r_count;
+            total.r_depth += rotation_depth as u64 - current.r_depth;
+            total.t_count += self.t_count as u64 - current.t_count;
+            total.ccz_count += self.ccz_count as u64 - current.ccz_count;
+        }
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {

@@ -73,6 +73,7 @@ fn gates_are_counted() {
                 ccz_count: 2,
                 ccix_count: 0,
                 measurement_count: 10,
+                precise_volume_data: None,
             }
         "]],
     );
@@ -120,6 +121,7 @@ fn estimate_caching_works() {
                 ccz_count: 0,
                 ccix_count: 0,
                 measurement_count: 0,
+                precise_volume_data: None,
             }
         "]],
     );
@@ -167,6 +169,7 @@ fn estimate_repeat_works() {
                 ccz_count: 0,
                 ccix_count: 0,
                 measurement_count: 0,
+                precise_volume_data: None,
             }
         "#]],
     );
@@ -206,6 +209,7 @@ fn account_for_estimates_works() {
                 ccz_count: 5,
                 ccix_count: 0,
                 measurement_count: 6,
+                precise_volume_data: None,
             }
         "]],
     );
@@ -234,6 +238,7 @@ fn pauli_i_rotation_for_global_phase_is_noop() {
                 ccz_count: 0,
                 ccix_count: 0,
                 measurement_count: 0,
+                precise_volume_data: None,
             }
         "#]],
     );
