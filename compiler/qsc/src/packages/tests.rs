@@ -191,6 +191,7 @@ fn missing_dependency_doesnt_force_failure() {
     .assert_debug_eq(&errors);
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn dependency_error() {
     let mut program = mock_program();
