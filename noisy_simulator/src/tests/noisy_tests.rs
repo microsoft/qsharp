@@ -49,6 +49,12 @@ fn depolarizing_channel(lambda: f64) -> Operation {
     Operation::new(vec![k0, k1, k2, k3]).expect("operation should be valid")
 }
 
+#[test]
+fn asdfasf() {
+    let op = depolarizing_channel(1.);
+    println!("{:#?}", op.kraus_operators());
+}
+
 pub fn check_noisy_identity_yields_same_qubit_with_right_probability<NS: NoisySimulator>() {
     const SHOTS: u64 = 500_000;
 

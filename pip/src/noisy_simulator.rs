@@ -6,6 +6,7 @@
 use noisy_simulator::{ComplexVector, NoisySimulator, SquareMatrix};
 use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
+use qsc::Backend;
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
 pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> PyResult<()> {
@@ -304,7 +305,7 @@ impl TryInto<noisy_simulator::StateVector> for StateVector {
 }
 
 #[pyclass]
-pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
+pub(crate) struct StateVectorSimulator(pub noisy_simulator::StateVectorSimulator);
 
 #[pymethods]
 impl StateVectorSimulator {
@@ -375,5 +376,13 @@ impl StateVectorSimulator {
         self.0
             .set_trace(trace)
             .map_err(|e| NoisySimulatorError::new_err(e.to_string()))
+    }
+
+    pub fn set_x_gate(&mut self, operation: Operation) {
+        self.0.x = operation.0;
+    }
+
+    pub fn set_h_gate(&mut self, operation: Operation) {
+        self.0.h = operation.0;
     }
 }

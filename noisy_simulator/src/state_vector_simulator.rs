@@ -188,6 +188,10 @@ pub struct StateVectorSimulator {
     dimension: usize,
     /// Random number generator used for probabilistic operations.
     rng: StdRng,
+    /// Backend H gate.
+    pub h: Operation,
+    /// Backend X gate.
+    pub x: Operation,
 }
 
 impl StateVectorSimulator {
@@ -212,6 +216,8 @@ impl NoisySimulator for StateVectorSimulator {
             state: Ok(state_vector),
             dimension,
             rng: StdRng::from_entropy(),
+            h: Operation::h().clone(),
+            x: Operation::x().clone(),
         }
     }
 
@@ -223,6 +229,8 @@ impl NoisySimulator for StateVectorSimulator {
             state: Ok(state_vector),
             dimension,
             rng: StdRng::seed_from_u64(seed),
+            h: Operation::h().clone(),
+            x: Operation::x().clone(),
         }
     }
 
@@ -389,7 +397,14 @@ impl Backend for StateVectorSimulator {
     type ResultType = bool;
 
     fn h(&mut self, q: usize) {
-        NoisySimulator::apply_operation(self, Operation::h(), &[q])
+        let h = self.h.clone();
+        self.apply_operation(&h, &[q])
+            .expect("operation should succeed");
+    }
+
+    fn x(&mut self, q: usize) {
+        let x = self.x.clone();
+        self.apply_operation(&x, &[q])
             .expect("operation should succeed");
     }
 
@@ -397,5 +412,47 @@ impl Backend for StateVectorSimulator {
         let outcome = NoisySimulator::sample_instrument(self, Instrument::mz(), &[q])
             .expect("measurement should succeed");
         outcome != 0
+    }
+
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+        let res = self.m(q);
+        if res {
+            self.x(q);
+        }
+        res
+    }
+
+    fn reset(&mut self, q: usize) {
+        self.mresetz(q);
+    }
+
+    fn qubit_allocate(&mut self) -> usize {
+        0
+    }
+
+    fn qubit_release(&mut self, _q: usize) {}
+
+    // fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+    //     let (state, count) = self.sim.get_state();
+    //     // Because the simulator returns the state indices with opposite endianness from the
+    //     // expected one, we need to reverse the bit order of the indices.
+    //     let mut new_state = state
+    //         .into_iter()
+    //         .map(|(idx, val)| {
+    //             let mut new_idx = BigUint::default();
+    //             for i in 0..(count as u64) {
+    //                 if idx.bit((count as u64) - 1 - i) {
+    //                     new_idx.set_bit(i, true);
+    //                 }
+    //             }
+    //             (new_idx, val)
+    //         })
+    //         .collect::<Vec<_>>();
+    //     new_state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    //     (new_state, count)
+    // }
+
+    fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        true
     }
 }

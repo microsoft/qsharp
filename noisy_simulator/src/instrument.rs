@@ -7,7 +7,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 use crate::{operation, operation::Operation, Error, SquareMatrix, TOLERANCE};
 use nalgebra::{DMatrix, DVector};
@@ -102,9 +102,9 @@ impl Instrument {
 /// Common instruments.
 impl Instrument {
     /// Returns MZ measurement instrument.
+    #[must_use]
     pub fn mz() -> &'static Self {
-        static H: OnceLock<Instrument> = OnceLock::new();
-        H.get_or_init(|| {
+        static H: LazyLock<Instrument> = LazyLock::new(|| {
             let mz0 = operation!([1., 0.;
                                   0., 0.;])
             .expect("operation should be valid");
@@ -112,7 +112,8 @@ impl Instrument {
                                   0., 1.;])
             .expect("operation should be valid");
             Instrument::new(vec![mz0, mz1]).expect("instrument should be valid")
-        })
+        });
+        &H
     }
 }
 

@@ -230,6 +230,54 @@ def run(
         return [shot["result"] for shot in results]
 
 
+def run_with_sim(
+    sim: Any,
+    entry_expr: str,
+    shots: int,
+    *,
+    on_result: Optional[Callable[[ShotResult], None]] = None,
+    save_events: bool = False,
+) -> List[Any]:
+    """
+    Runs the given Q# expression for the given number of shots.
+    Each shot uses an independent instance of the simulator.
+
+    :param entry_expr: The entry expression.
+    :param shots: The number of shots to run.
+    :param on_result: A callback function that will be called with each result.
+    :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
+
+    :returns values: A list of results or runtime errors. If `save_events` is true,
+    a List of ShotResults is returned.
+
+    :raises QSharpError: If there is an error interpreting the input.
+    """
+    ipython_helper()
+
+    results: List[ShotResult] = []
+
+    def print_output(output: Output) -> None:
+        print(output, flush=True)
+
+    def on_save_events(output: Output) -> None:
+        # Append the output to the last shot's output list
+        results[-1]["events"].append(output)
+
+    for _ in range(shots):
+        results.append({"result": None, "events": []})
+        run_results = get_interpreter().run_with_sim(
+            sim, entry_expr, on_save_events if save_events else print_output
+        )
+        results[-1]["result"] = run_results
+        if on_result:
+            on_result(results[-1])
+
+    if save_events:
+        return results
+    else:
+        return [shot["result"] for shot in results]
+
+
 # Class that wraps generated QIR, which can be used by
 # azure-quantum as input data.
 #
