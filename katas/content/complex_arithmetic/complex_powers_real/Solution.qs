@@ -1,14 +1,13 @@
-namespace Kata { 
+namespace Kata {
     open Microsoft.Quantum.Math;
 
     function ComplexExpReal(r : Double, x : Complex) : Complex {
         if AbsD(r) < 1e-9 {
-            return Complex(0.0, 0.0);
+            return Complex(0., 0.);
         }
-        
-        let (a, b) = x!;        
-        let ra = r ^ a;
+
+        let ra = r^x.Real;
         let lnr = Log(r);
-        return Complex(ra * Cos(b * lnr), ra * Sin(b * lnr));
+        return Complex(ra * Cos(x.Imag * lnr), ra * Sin(x.Imag * lnr));
     }
 }

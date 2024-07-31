@@ -259,8 +259,8 @@ namespace Microsoft.Quantum.Convert {
     /// Complex number c = x + y𝑖.
     function ComplexPolarAsComplex(input : ComplexPolar) : Complex {
         return Complex(
-            input::Magnitude * Cos(input::Argument),
-            input::Magnitude * Sin(input::Argument)
+            input.Magnitude * Cos(input.Argument),
+            input.Magnitude * Sin(input.Argument)
         );
     }
 

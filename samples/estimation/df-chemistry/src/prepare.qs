@@ -51,12 +51,12 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         }
     }
 
-    newtype PrepareArbitrarySuperposition = (
+    struct PrepareArbitrarySuperposition {
         NIndexQubits : Int,
         NGarbageQubits : Int,
         Prepare : (Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl,
         PrepareWithSelect : ((Bool[][], Qubit[], Qubit[]) => Unit is Adj + Ctl, Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl
-    );
+    }
 
     function MakePrepareArbitrarySuperposition(targetError : Double, coefficients : Double[]) : PrepareArbitrarySuperposition {
         let nBitsPrecision = -Ceiling(Lg(0.5 * targetError)) + 1;
