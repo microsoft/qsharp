@@ -100,7 +100,7 @@ impl With<'_> {
         namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     ) -> hir::Package {
         let mut stmts = Vec::new();
-        for node in &*package.nodes {
+        for node in &package.nodes {
             match node {
                 ast::TopLevelNode::Namespace(namespace) => self.lower_namespace(namespace),
                 ast::TopLevelNode::Stmt(stmt) => {
@@ -200,7 +200,7 @@ impl With<'_> {
                 if item.is_import() {
                     return None;
                 }
-                for item in &*item.items {
+                for item in &item.items {
                     let Some((id, alias)) = resolve_id(item.name().id) else {
                         continue;
                     };

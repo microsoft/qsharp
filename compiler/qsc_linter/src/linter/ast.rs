@@ -31,7 +31,7 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&[LintConfi
 
     let mut lints = CombinedAstLints::from_config(config);
 
-    for node in &*package.nodes {
+    for node in &package.nodes {
         match node {
             TopLevelNode::Namespace(namespace) => lints.visit_namespace(namespace),
             TopLevelNode::Stmt(stmt) => lints.visit_stmt(stmt),

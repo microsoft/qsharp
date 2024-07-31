@@ -130,7 +130,7 @@ impl AstLintPass for RedundantSemicolons {
         // Some(_): one or more redundant semicolons
         let mut seq: Option<Span> = None;
 
-        for stmt in &*block.stmts {
+        for stmt in &block.stmts {
             match (&*stmt.kind, &mut seq) {
                 (StmtKind::Empty, None) => seq = Some(stmt.span),
                 (StmtKind::Empty, Some(span)) => span.hi = stmt.span.hi,
