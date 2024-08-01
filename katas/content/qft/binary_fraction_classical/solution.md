@@ -1,7 +1,7 @@
 Since you can express the exponent of a sum as a product of exponents ($e^{a+b} = e^a \cdot e^b$), you can implement the required transformation as a sequence of rotation gates from the previous task with increasing $k$.
 
 Each of the individual rotations will use the bit $j_k$ to decide whether to apply the rotation (you only want to apply the rotation if $j_k$ is true), and the index of that bit $k$ to define the rotation angle.
-The gate applies for each $k$ will be:
+The gate applied for each $k$ will be:
 
 $$U_k = \begin{cases}
 I, j_k=0 \\
@@ -46,9 +46,9 @@ As you iterate over $k$, the resulting state will get closer and closer to the r
 "codePath": "./SolutionA.qs"
 })
 
-Alternatively, you can do this in a single rotation using the $R1$ gate if you convert the array $j$ into a rotation angle. You'll need the angle $2\pi \cdot 0.j_1j_2 \dots j_n$, and this fraction can be calculated by converting the bit notation into an integer and dividing it by $2^n$.
+Alternatively, you can do this in a single rotation using the $R1$ gate if you convert the array $j$ into a rotation angle. You'll need the angle $2\pi \cdot 0.j_1j_2 \dots j_n$, and this fraction can be calculated by converting the bit string into an integer $j$ (using big endian notation) and dividing it by $2^n$.
 
-This solution is better when considered on its own, but it will not be as helpful as the first one once you get to the next task!
+This solution is better when considered on its own, since it involves doing only a single rotation rather than a series of them. However, it will not be as helpful as the first one once you get to the next task!
 
 @[solution]({
 "id": "qft__binary_fraction_classical_solution_b",
