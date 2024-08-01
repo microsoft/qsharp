@@ -98,7 +98,7 @@ $$\begin{bmatrix}
     0 & 0 & 0.9239 & 0.3827\\
     0 & 0 & -0.3827 & 0.9239
 \end{bmatrix}$$
->This performs the $R_y$ rotation by $\pi/8$ radians clockwise on Bob's qubit while leaving Alice's qubit unchanged.
+This performs the $R_y$ rotation by $\pi/8$ radians clockwise on Bob's qubit while leaving Alice's qubit unchanged.
 
 - If Bob's bit were 1, he would rotate his qubit counterclockwise by $\pi/8$, applying a very similar operator
 
