@@ -30,8 +30,7 @@ namespace Quantum.Kata.CHSHGame {
 
     @EntryPoint()
     operation CHSH_GameDemo() : Unit {
-        use aliceQubit = Qubit();
-        use bobQubit = Qubit();
+        use (aliceQubit, bobQubit) = (Qubit(), Qubit());
         mutable classicalWins = 0;
         mutable quantumWins = 0;
         let iterations = 1000;
