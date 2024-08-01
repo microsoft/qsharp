@@ -1,9 +1,4 @@
 {
     "author": "Microsoft",
-    "license": "MIT",
-    "dependencies": {
-        "Microsoft.Quantum.Unstable" : {
-            "path": "../../../qs_source/Microsoft.Quantum.Unstable"
-        }
-    }
+    "license": "MIT"
 }

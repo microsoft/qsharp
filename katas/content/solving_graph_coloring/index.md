@@ -64,7 +64,28 @@ In this lesson, you will implement the marking oracle for the vertex coloring pr
     "title": "Weak Coloring Problem"
 })
 
-TODO: finish migration
+Weak graph coloring is a coloring of graph vertices which labels each vertex with one of the given colors in such a way that each non-isolated vertex is connected by an edge to at least one neighbor of a different color.
+
+In this lesson, you will implement the marking oracle for the weak graph coloring problem.
+
+@[exercise]({
+    "id": "solving_graph_coloring__weak_coloring_classical",
+    "title": "Is Weak Coloring Valid? (Classical)",
+    "path": "./weak_coloring_classical/"
+})
+
+@[exercise]({
+    "id": "solving_graph_coloring__weak_coloring_one_vertex",
+    "title": "Is One-Vertex Weak Coloring Valid? (Quantum)",
+    "path": "./weak_coloring_one_vertex/"
+})
+
+@[exercise]({
+    "id": "solving_graph_coloring__weak_coloring_quantum",
+    "title": "Is Weak Coloring Valid? (Quantum)",
+    "path": "./weak_coloring/"
+})
+
 
 
 @[section]({
@@ -74,10 +95,16 @@ TODO: finish migration
 
 In this lesson, you will experiment with using Grover's algorithm to solve graph coloring problems.
 
-Notice that in this case, it's not as easy to know the number of solutions to the problem upfront as it was for the prefix function used in the "Grover's Search Algorithm" kata.
+In this case, it's not as easy to know the number of solutions to the problem upfront as it was for the prefix function used in the "Grover's Search Algorithm" kata.
 Experiment with choosing the number of iterations at random. How does this affect the success probability?
 
-TODO: add demo
+> Notice that the example used in this demo, a three-vertex graph with two edges, has the search space of size $4^3 = 64$.
+> A bit over half of the colorings in the search space are valid vertex colorings. You can count them by assigning any color to vertex $1$ and then assigning any of the remaining three colors to vertices $0$ and $2$ independently, to get $4 \cdot 3 \cdot 3 = 36$ solutions to the problem.
+> This example is one of the scenarios in which Grover's search behaves in a non-intuitive way: not doing any iterations 
+> yields a success probability of over $50\%$, so the first iteration actually reduces the probability of getting a correct answer!
+
+@[example]({"id": "solving_graph_coloring__e2edemo", "codePath": "./examples/SolvingGraphColoringWithGroverDemo.qs"})
+
 
 @[section]({
     "id": "solving_graph_coloring__conclusion",

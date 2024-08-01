@@ -1,9 +1,0 @@
-{
-  "author": "Microsoft",
-  "license": "MIT",
-  "files": [
-    "src/Arithmetic.qs",
-    "src/StatePreparation.qs",
-    "src/TableLookup.qs"
-  ]
-}

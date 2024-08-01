@@ -21,5 +21,6 @@
   "deutsch_jozsa",
   "grovers_search",
   "solving_sat",
+  "solving_graph_coloring",
   "qec_shor"
 ]
