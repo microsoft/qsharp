@@ -180,7 +180,7 @@ Putting together the building blocks we've implemented into a strategy is very s
 - Reset used qubits to $\ket{0}$ before they are released.
 - Return their measurement results.
 
-In the example below you can compare classical and quantum results: first boolean value indicates win for classical Alice and Bob, second boolean is win for quantum Alice and Bob.
+In the example below you can compare winning percentage of classical and quantum games.
 
 >You may play with the code and check if there is a difference in results when
 >1. The referee picks non-random bits. How can the referee minimize Alice and Bob's win probability?
