@@ -1,8 +1,8 @@
 In Q#, you can perform measurements in a specific basis using either the
-[Measure operation](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure)
+[Measure operation](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/measure)
 or convenient shorthands for measure-and-reset-to-$\ket{0}$ sequence of operations
-[MResetZ](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.measurement.mresetz) and
-[MResetX](https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.measurement.mresetx).
+[MResetZ](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.measurement/mresetz) and
+[MResetX](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.measurement/mresetx).
 
 (See the the lesson below for details on why Alice should follow this strategy.)
 
