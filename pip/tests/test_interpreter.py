@@ -184,7 +184,7 @@ def test_target_error() -> None:
         e.interpret(
             "operation Program() : Result { use q = Qubit(); if M(q) == Zero { return Zero } else { return One } }"
         )
-    assert str(excinfo.value).startswith("Qsc.BaseProfCk.ResultLiteral") != -1
+    assert str(excinfo.value).startswith("Qsc.CapabilitiesCk.UseOfDynamicBool")
 
 
 def test_qirgen_compile_error() -> None:
@@ -192,7 +192,7 @@ def test_qirgen_compile_error() -> None:
     e.interpret("operation Program() : Int { return 0 }")
     with pytest.raises(QSharpError) as excinfo:
         e.qir("Foo()")
-    assert str(excinfo.value).startswith("Qsc.Resolve.NotFound") != -1
+    assert str(excinfo.value).startswith("Qsc.Resolve.NotFound")
 
 
 def test_error_spans_from_multiple_lines() -> None:

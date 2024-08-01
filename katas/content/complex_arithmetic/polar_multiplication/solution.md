@@ -8,7 +8,7 @@ $$ z = x \cdot y = r_{1}e^{\theta_1 i} \cdot r_{2}e^{\theta_2 i} = r_{1}r_{2} \c
 > $$ z = x \cdot y = r_1r_2 \cdot \left( \cos \theta_1 \cos \theta_2 − \sin \theta_1 \sin \theta_2 + 
 i (\sin \theta_1 \cos \theta_2 + \sin \theta_2 \cos \theta_1 ) \right) $$
 >
-> We can simplify this using the following trigonometric identities:
+> You can simplify this using the following trigonometric identities:
 > * $\cos a \cos b  \mp \sin a \sin b = \cos(a \pm b)$
 > * $\sin a \cos b  \pm \sin b \cos a = \sin(a \pm b)$
 >
