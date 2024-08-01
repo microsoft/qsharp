@@ -8,7 +8,4 @@ Measure Bob's qubit in the $\frac{\pi}{8}$ basis if his bit is 0 (false), or the
 if his bit is 1 (true) and return the measurement result as a Boolean value: map `Zero` to false and `One` to true.
 The state of the qubit after the operation does not matter.
 
-<details>
-<summary><strong>Need a hint?</strong></summary>
 Measuring a qubit in the $\theta$ basis is the same as rotating the qubit by $\theta$, clockwise, and then making a standard measurement in the Z basis.
-</details>
