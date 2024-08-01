@@ -106,7 +106,7 @@ $$e^{2\pi i \cdot 0.j_1 j_2 ... j_{n-1} j_n} = e^{2\pi i \cdot \frac{j}{2^n}}$$
 $$e^{2\pi i \cdot 0.j_2 ... j_{n-1} j_n} = e^{2\pi i \cdot j_1} e^{2\pi i \cdot 0.j_2 ... j_{n-1} j_n} = e^{2\pi i \cdot j_1.j_2 ... j_{n-1} j_n} = e^{2\pi i \cdot \frac{j \cdot 2}{2^n}}$$
 (Remember that since $j_1$ can only be $0$ or $1$, $e^{2\pi i \cdot j_1}$ is either $e^0$ or $e^{2\pi i}$, which are both $1$. Any exponents of integer multiples of $e^{2\pi i}$ are $1$ and thus can be ignored.)
 
-And so on, until the last term
+And so on, until the last term:
 $$e^{2\pi i \cdot 0.j_n} = e^{2\pi i \cdot \frac{j \cdot 2^{n-1}}{2^n}}$$
 
 Now, the complete state looks as follows:
@@ -146,4 +146,4 @@ TODO: finish part 2
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you learned to implement quantum Fourier transform and to use it in simple tasks. In the next kata, you will learn to use QFT to solve a more complicated problem - the phase estimation task.
+Congratulations! In this kata you learned to implement the quantum Fourier transform and to use it in simple tasks. In the next kata, you will learn to use the QFT to solve a more complicated problem - the phase estimation task.

@@ -24,7 +24,7 @@ These two steps allow us to see a pattern: for each qubit $j_k, k = 1 .. n$ :
 1. Apply a Hadamard gate to $|j_k\rangle$.
 2. Apply the controlled rotation operator $n-k$ times to the qubit $|j_k\rangle$, using qubits $|j_{k+1}\rangle$ through $|j_n\rangle$ as the controls, with phases corresponding to fractions from $2^2$ to $2^{n-k+1}$.
 
-The effect of thse steps will be preparing the state that almost matches the required state, but has the qubit order reversed compared to it. 
+The effect of these steps will be preparing the state that almost matches the required state, but has the qubit order reversed compared to it. 
 You can fix that by using a series of $\textrm{SWAP}$ gates to reverse the order of qubits in the state.
 
 @[solution]({

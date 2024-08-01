@@ -12,7 +12,7 @@ Recall that
 
 $$ \textrm{R1Frac}(2, k)( \alpha \ket{0} + \beta \ket{1}) = \alpha \ket{0} + \beta \cdot e^{2\pi i/2^{k}} \ket{1} = \alpha \ket{0} + \beta \cdot e^{2\pi i \cdot 0. \underset{k-1}{\underbrace{0\dots0}} 1} \ket{1}$$
 
-This means that the overall effect of the gate $U_k$ for each $k$ is 
+This means that the overall effect of the gate $U_k$ for each $k$ is:
 
 $$U_k (\alpha \ket{0} + \beta \ket{1}) = \alpha \ket{0} + \beta \cdot e^{2\pi i \cdot 0. \underset{k-1}{\underbrace{0\dots0}} j_k} \ket{1}$$
 
