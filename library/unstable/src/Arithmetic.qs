@@ -104,7 +104,7 @@ operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl {
     IncByIUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by a BigInt number c
 ///
 /// # Description
@@ -116,7 +116,7 @@ operation IncByL(c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
     IncByLUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by a little-endian register xs
 ///
 /// # Description
@@ -128,7 +128,7 @@ operation IncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     RippleCarryTTKIncByLE(xs, ys);
 }
 
-    /// # Summary
+/// # Summary
 /// Sets a zero-initialized little-endian register zs to the sum of
 /// little-endian registers xs and ys
 ///
@@ -141,7 +141,7 @@ operation AddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
     RippleCarryCGAddLE(xs, ys, zs);
 }
 
-    /// # Summary
+/// # Summary
 /// Reversible, in-place ripple-carry addition of two integers.
 ///
 /// # Description
@@ -191,7 +191,7 @@ operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl 
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by a little-endian register xs
 /// using the ripple-carry algorithm.
 ///
@@ -247,7 +247,7 @@ operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Sets a zero-initialized little-endian register zs to the sum of
 /// little-endian registers xs and ys using the ripple-carry algorithm.
 ///
@@ -281,7 +281,7 @@ operation RippleCarryCGAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Sets a zero-initialized little-endian register zs to the sum of
 /// little-endian registers xs and ys using the carry-lookahead algorithm.
 ///
@@ -333,7 +333,7 @@ operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by a little-endian register xs
 /// using Quantum Fourier Transform.
 ///
@@ -355,7 +355,7 @@ operation FourierTDIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by a BigInt number c
 /// using provided adder.
 ///
@@ -388,7 +388,7 @@ operation IncByLUsingIncByLE(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Increments a little-endian register ys by an Int number c
 /// using provided adder.
 ///
@@ -421,7 +421,7 @@ operation IncByIUsingIncByLE(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Generic operation to turn two out-place adders into one in-place adder
 ///
 /// # Description
@@ -554,7 +554,7 @@ operation ApplyIfLessL<'T>(
     ApplyActionIfGreaterThanOrEqualConstant(false, action, c + 1L, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if (c <= x) { action(target) }`, that is, applies `action` to `target`
 /// if a BigInt value `c` is less or equal to the little-endian qubit register `x`
 operation ApplyIfLessOrEqualL<'T>(
@@ -567,7 +567,7 @@ operation ApplyIfLessOrEqualL<'T>(
     ApplyActionIfGreaterThanOrEqualConstant(false, action, c, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if (c == x) { action(target) }`, that is, applies `action` to `target`
 /// if a BigInt value `c` is equal to the little-endian qubit register `x`
 operation ApplyIfEqualL<'T>(
@@ -589,7 +589,7 @@ operation ApplyIfEqualL<'T>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if (c >= x) { action(target) }`, that is, applies `action` to `target`
 /// if a BigInt value `c` is greater or equal to the little-endian qubit register `x`
 operation ApplyIfGreaterOrEqualL<'T>(
@@ -602,7 +602,7 @@ operation ApplyIfGreaterOrEqualL<'T>(
     ApplyActionIfGreaterThanOrEqualConstant(true, action, c + 1L, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if (c > x) { action(target) }`, that is, applies `action` to `target`
 /// if a BigInt value `c` is greater than the little-endian qubit register `x`
 operation ApplyIfGreaterL<'T>(
@@ -615,7 +615,7 @@ operation ApplyIfGreaterL<'T>(
     ApplyActionIfGreaterThanOrEqualConstant(true, action, c, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if x < y { action(target) }`, that is, applies `action` to `target`
 /// if register `x` is less than the register `y`.
 /// Both qubit registers should be in a little-endian format.
@@ -629,7 +629,7 @@ operation ApplyIfLessLE<'T>(
     ApplyIfGreaterLE(action, y, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if x <= y { action(target) }`, that is, applies `action` to `target`
 /// if register `x` is less or equal to the register `y`.
 /// Both qubit registers should be in a little-endian format.
@@ -649,7 +649,7 @@ operation ApplyIfLessOrEqualLE<'T>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if x == y { action(target) }`, that is, applies `action` to `target`
 /// if register `x` is equal to the register `y`.
 /// Both qubit registers should be in a little-endian format.
@@ -671,7 +671,7 @@ operation ApplyIfEqualLE<'T>(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if x >= y { action(target) }`, that is, applies `action` to `target`
 /// if register `x` is greater or equal to the register `y`.
 /// Both qubit registers should be in a little-endian format.
@@ -685,7 +685,7 @@ operation ApplyIfGreaterOrEqualLE<'T>(
     ApplyIfLessOrEqualLE(action, y, x, target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `if x > y { action(target) }`, that is, applies `action` to `target`
 /// if register `x` is greater than the register `y`.
 /// Both qubit registers should be in a little-endian format.

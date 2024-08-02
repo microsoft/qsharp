@@ -38,7 +38,7 @@ operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Implements the inner addition function for the operation
 /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
 /// with the outer operation to construct the full adder.
@@ -78,7 +78,7 @@ operation ApplyInnerTTKAdderNoCarry(xs : Qubit[], ys : Qubit[]) : Unit is Adj + 
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Implements the inner addition function for the operation
 /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
 /// with the outer operation to construct the full adder.
@@ -122,7 +122,7 @@ operation ApplyInnerTTKAdderWithCarry(xs : Qubit[], ys : Qubit[]) : Unit is Adj 
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
 operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
     body (...) {
@@ -147,7 +147,7 @@ operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj 
     controlled adjoint auto;
 }
 
-    /// # Summary
+/// # Summary
 /// Implements Full-adder. Adds qubit carryIn and x to qubit y and sets carryOut appropriately.
 operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
     body (...) {
@@ -184,7 +184,7 @@ operation FullAdder(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : U
     CNOT(y, carryIn);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes carry bit for a full adder.
 operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
     body (...) {
@@ -204,7 +204,7 @@ operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) :
     controlled adjoint auto;
 }
 
-    /// # Summary
+/// # Summary
 /// Uncomputes carry bit for a full adder.
 operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
     body (...) {
@@ -228,7 +228,7 @@ operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit)
     controlled adjoint auto;
 }
 
-    /// # Summary
+/// # Summary
 /// Applies AND gate between `control1` and `control2` and stores the result
 /// in `target` assuming `target` is in |0> state.
 ///
@@ -271,7 +271,7 @@ operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qu
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Applies AND gate between `control1` and `control2` and stores the result
 /// in `target` assuming `target` is in |0> state.
 ///
@@ -306,7 +306,7 @@ operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Q
     S(target);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes carries for the look-ahead adder
 operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let n = Length(gs);
@@ -329,7 +329,7 @@ operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes all p[i, j] values in workspace for the look-ahead adder.
 ///
 /// The register array `pWorkspace` has T entries, where T = ⌊log₂ n⌋.
@@ -357,7 +357,7 @@ operation PRounds(pWorkspace : Qubit[][]) : Unit is Adj {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes g[i ∧ (i + 1), i + 1] into gs[i] for the look-ahead adder.
 ///
 /// The register gs has n entries initialized to gs[i] = g[i, i + 1].
@@ -379,7 +379,7 @@ operation GRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Computes carries into gs for the look-ahead adder.
 operation CRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
     let n = Length(gs);
@@ -522,7 +522,7 @@ operation CarryWith1CarryIn(
     controlled adjoint auto;
 }
 
-    /// # Summary
+/// # Summary
 /// This wrapper allows operations that support only one control
 /// qubit to be used in a multi-controlled scenarios. It provides
 /// controlled version that collects controls into one qubit

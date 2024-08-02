@@ -128,7 +128,7 @@ operation ApproximatelyPreparePureStateCP(
     );
 }
 
-    /// # Summary
+/// # Summary
 /// Implementation step of arbitrary state preparation procedure.
 operation ApproximatelyUnprepareArbitraryState(
     tolerance : Double,
@@ -163,7 +163,7 @@ operation ApproximatelyUnprepareArbitraryState(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Applies a Pauli rotation conditioned on an array of qubits, truncating
 /// small rotation angles according to a given tolerance.
 ///
@@ -228,7 +228,7 @@ operation ApproximatelyMultiplexPauli(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Implementation step of arbitrary state preparation procedure.
 function StatePreparationSBMComputeCoefficients(
     coefficients : ComplexPolar[]
@@ -248,7 +248,7 @@ function StatePreparationSBMComputeCoefficients(
     return (disentanglingY, disentanglingZ, newCoefficients);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes the Bloch sphere coordinates for a single-qubit state.
 ///
 /// Given two complex numbers $a0, a1$ that represent the qubit state, computes coordinates
@@ -279,7 +279,7 @@ function BlochSphereCoordinates(
     return (ComplexPolar(r, t), phi, theta);
 }
 
-    /// # Summary
+/// # Summary
 /// Applies a Pauli Z rotation conditioned on an array of qubits, truncating
 /// small rotation angles according to a given tolerance.
 ///
@@ -363,7 +363,7 @@ operation ApproximatelyMultiplexZ(
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Implementation step of multiply-controlled Z rotations.
 function MultiplexZCoefficients(coefficients : Double[]) : (Double[], Double[]) {
     let newCoefficientsLength = Length(coefficients) / 2;
