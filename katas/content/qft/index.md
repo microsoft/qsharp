@@ -162,6 +162,18 @@ You can solve them without QFT, but it is useful to try and come up with a QFT-b
     "path": "./all_even_vectors/"
 })
 
+@[exercise]({
+    "id": "qft__square_wave",
+    "title": "Prepare Square-Wave Signal",
+    "path": "./square_wave/"
+})
+
+@[exercise]({
+    "id": "qft__signal_frequency",
+    "title": "Get Signal Frequency",
+    "path": "./signal_frequency/"
+})
+
 
 @[section]({
     "id": "qft__conclusion",
