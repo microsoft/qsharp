@@ -151,6 +151,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
     }
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    recovering_token(s, TokenKind::Eof);
     if items.is_empty() || s.peek().kind != TokenKind::Eof {
         return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
     }
