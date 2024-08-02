@@ -1,7 +1,7 @@
 {
     "dependencies": {
         "ContosoBackend": {
-            "path": "../quantum_backend"
+            "path": "../quantum_backend_library"
         }
     }
 }
