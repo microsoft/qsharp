@@ -22,6 +22,8 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 - Basic knowledge of complex arithmetic
 - Basic knowledge of linear algebra
 
+If you need a refresher on these topics, you can check out the previous katas.
+
 @[section]({
     "id": "qubit__concept",
     "title": "The Concept of Qubit"

@@ -19,7 +19,9 @@ This kata introduces you to Deutsch-Jozsa algorithm - one of the most famous alg
 
 - Basic knowledge of single-qubit gates
 - Basic knowledge of quantum measurements
-- Deutsch algorithm - the single-qubit variant of Deutsch-Jozsa algorithm. If you're not familiar with it, you can find it in the Deutsch algorithm kata.
+- Deutsch algorithm - the single-qubit variant of Deutsch-Jozsa algorithm. 
+
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({
     "id": "deutsch_jozsa__problem",

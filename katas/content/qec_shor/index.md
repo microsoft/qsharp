@@ -20,6 +20,8 @@ This kata introduces you to the basic concepts of quantum error correction using
 - Basic knowledge of single-qubit and multi-qubit gates
 - Basic knowledge of single-qubit and multi-qubit quantum measurements and their effect on quantum systems
 
+If you need a refresher on these topics, you can check out the previous katas.
+
 @[section]({
     "id": "qec_shor__noise",
     "title": "Noise in Classical and Quantum Systems"
