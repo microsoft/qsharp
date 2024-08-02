@@ -1,5 +1,4 @@
 {
-    "packageType": "exe",
     "dependencies": {
         "ContosoBackend": {
             "path": "../quantum_backend"
