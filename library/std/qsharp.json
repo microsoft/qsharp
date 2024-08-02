@@ -15,6 +15,10 @@
     "src/modern_api.qs",
     "src/qir.qs",
     "src/random.qs",
-    "src/re.qs"
+    "src/re.qs",
+    "src/unstable_arithmetic.qs",
+    "src/unstable_arithmetic_internal.qs",
+    "src/unstable_state_preparation.qs",
+    "src/unstable_table_lookup.qs"
   ]
 }
