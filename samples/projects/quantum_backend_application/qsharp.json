@@ -1,11 +1,7 @@
 {
     "dependencies": {
         "ContosoBackend": {
-            "github": {
-                "owner": "microsoft",
-                "repo": "qsharp",
-                "ref": "4e7863b7e31926f3bcd5c4afeaed721d0fb0a652/samples/projects/quantum_backend_library"
-            }
+            "path": "../quantum_backend_library"
         }
     }
 }
