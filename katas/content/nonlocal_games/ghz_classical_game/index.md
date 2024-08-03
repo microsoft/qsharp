@@ -1,6 +1,6 @@
 **Inputs:**
 
-1. An operations which implement classical strategies (i.e., takes an input bit and produces an output bit),
+1. An array of three operations which implement the classical strategies of the players (that is, take an input bit and produce an output bit),
 2. An array of 3 input bits that should be passed to the players.
 
 **Goal:**
