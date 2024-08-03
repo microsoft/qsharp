@@ -1,5 +1,4 @@
 namespace Kata {
-    // 3 players, each player has own strategy and receives a bit from the referee
     operation PlayClassicalGHZ (strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {
         let r = inputs[0];
         let s = inputs[1];
