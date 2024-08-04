@@ -5,7 +5,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Random;
 
     function WinCondition_Reference (rst : Bool[], abc : Bool[]) : Bool {
-        return (rst[0] or rst[1] or rst[2]) == Xor(Xor(abc[0], abc[1]), abc[2]);
+        return (rst[0] or rst[1] or rst[2]) == (abc[0] != abc[1] != abc[2]);
     }
 
     // All possible starting bits (r, s and t) that the referee can give
@@ -18,9 +18,6 @@ namespace Kata.Verification {
     }
 
     operation PlayClassicalGHZ_Reference (strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {
-        if Length(strategies) != 3 or Length(inputs) != 3 {
-            return [];
-        }
         let r = inputs[0];
         let s = inputs[1];
         let t = inputs[2];
@@ -35,7 +32,7 @@ namespace Kata.Verification {
         let inputs = RefereeBits();
         let strategies = [Kata.AliceClassical, Kata.BobClassical, Kata.CharlieClassical];
 
-        let iterations = 10000;
+        let iterations = 1000;
         mutable wins = 0;
         for _ in 0 .. iterations - 1 {
             for bits in inputs {
@@ -45,9 +42,9 @@ namespace Kata.Verification {
                 }
             }
         }
-        // The solution is correct if the players win 75% (3/4) of the time.        
+        // The solution is correct if the players win 75% (3/4) of the time.
         if wins < iterations*Length(inputs)*3/4 {
-            Message("Alice, Bob, and Charlie's classical strategy is not optimal");
+            Message($"Alice, Bob, and Charlie's classical strategy gets {wins} wins out of {iterations*Length(inputs)} possible inputs, which is not optimal");
             return false;
         }
         Message("Correct!");

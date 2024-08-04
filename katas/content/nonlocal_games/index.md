@@ -31,10 +31,10 @@ In **CHSH Game**, two players (Alice and Bob) try to win the following game:
 
 Each of them is given a bit (Alice gets X and Bob gets Y), and
 they have to return new bits (Alice returns A and Bob returns B)
-so that X ∧ Y = A ⊕ B. The trick is, they can not communicate during the game.
+so that X $\land$ Y = A $\oplus$ B. The trick is, they can not communicate during the game.
 
-> - ∧ is the standard bitwise AND operator.
-> - ⊕ is the exclusive or, or XOR operator, so (P ⊕ Q) is true if exactly one of P and Q is true.
+> - $\land$ is the standard bitwise AND operator.
+> - $\oplus$ is the exclusive or, or XOR operator, so (P $\oplus$ Q) is true if exactly one of P and Q is true.
 
 To start with, let's take a look at how you would play the classical variant of this game without access to any quantum tools.
 Then, let's proceed with quantum strategies for Alice and Bob.
@@ -196,14 +196,14 @@ In the example below you can compare winning percentage of classical and quantum
 
 In **GHZ Game** three players (Alice, Bob and Charlie) try to win the following game:
 
-Each of them is given a bit (r, s and t respectively), and they have to return new bits (a, b and c respectively) 
-so that **r ∨ s ∨ t = a ⊕ b ⊕ c**.
+Each of them is given a bit (R, S and T respectively), and they have to return new bits (A, B and C respectively) so that 
+R $\lor$ S $\lor$ T = A $\oplus$ B $\oplus$ C.
 The input bits will have zero or two bits set to true and three or one bits set to false. 
 The players are free to share information (and even qubits!) before the game starts, but are forbidden from communicating
 with each other afterwards.
 
-- ∨ is the standard bitwise OR operator.
-- ⊕ is the exclusive or, or XOR operator, so (P ⊕ Q) is true if exactly one of P and Q is true.
+> - $\lor$ is the standard bitwise OR operator.
+> - $\oplus$ is the exclusive or, or XOR operator, so (P $\oplus$ Q) is true if exactly one of P and Q is true.
 
 To start with, take a look at how you would play the classical variant of this game without access to any quantum tools.
 Then, let's proceed with quantum strategy and game implementation.

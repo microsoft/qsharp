@@ -1,13 +1,13 @@
 namespace Kata {
-    operation AliceClassical (x : Bool) : Bool {
+    operation AliceClassical (r : Bool) : Bool {
         return true;
     }
 
-    operation BobClassical (y : Bool) : Bool {
+    operation BobClassical (s : Bool) : Bool {
         return true;
     }
 
-    operation CharlieClassical (z : Bool) : Bool {
+    operation CharlieClassical (t : Bool) : Bool {
         return true;
     }
 }

@@ -1,17 +1,17 @@
 namespace Kata {
-    operation AliceClassical (x : Bool) : Bool {
+    operation AliceClassical (r : Bool) : Bool {
         // Implement your solution here...
 
         return false;
     }
 
-    operation BobClassical (y : Bool) : Bool {
+    operation BobClassical (s : Bool) : Bool {
         // Implement your solution here...
 
         return false;
     }
 
-    operation CharlieClassical (z : Bool) : Bool {
+    operation CharlieClassical (t : Bool) : Bool {
         // Implement your solution here...
 
         return false;

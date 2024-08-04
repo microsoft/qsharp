@@ -6,4 +6,4 @@
 
 **Goal:**
 
-True if Alice, Bob and Charlie won the GHZ game, that is, if r ∨ s ∨ t = a ⊕ b ⊕ c, and false otherwise.
+True if Alice, Bob and Charlie won the GHZ game, that is, if R $\lor$ S $\lor$ T = A $\oplus$ B $\oplus$ C, and false otherwise.
