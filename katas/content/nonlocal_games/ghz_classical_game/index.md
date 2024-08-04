@@ -5,4 +5,4 @@
 
 **Output:**
 
-An array of 3 bits that will be produced if each player uses this strategy.
+An array of three bits that will be produced if each player uses their given strategy.
