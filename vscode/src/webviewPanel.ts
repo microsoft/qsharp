@@ -378,6 +378,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
       await showDocumentationCommand(context.extensionUri);
     }),
   );
+
+  context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.showQuantumCopilot", async () => {
+      const message = {
+        command: "copilot",
+      };
+      sendMessageToPanel("copilot", true, message);
+    }),
+  );
 }
 
 type PanelType =
@@ -385,7 +394,8 @@ type PanelType =
   | "estimates"
   | "help"
   | "circuit"
-  | "documentation";
+  | "documentation"
+  | "copilot";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -400,6 +410,7 @@ const panelTypeToPanel: Record<
     panel: undefined,
     state: {},
   },
+  copilot: { title: "Azure Quantum Copilot", panel: undefined, state: {} },
 };
 
 export function sendMessageToPanel(
@@ -539,7 +550,8 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "circuit" &&
       panelType !== "help" &&
-      panelType != "documentation"
+      panelType != "documentation" &&
+      panelType != "copilot"
     ) {
       // If it was loading when closed, that's fine
       if (panelType === "loading") {

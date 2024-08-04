@@ -322,6 +322,11 @@
         "category": "Q#"
       },
       {
+        "command": "qsharp-vscode.showQuantumCopilot",
+        "title": "Open Azure Quantum Copilot",
+        "category": "Q#"
+      },
+      {
         "command": "qsharp-vscode.workspacesRefresh",
         "category": "Q#",
         "title": "Refresh Azure Quantum workspaces",

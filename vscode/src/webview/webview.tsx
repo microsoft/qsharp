@@ -55,13 +55,20 @@ type DocumentationState = {
   fragmentsToRender: string[];
 };
 
+type CopilotState = {
+  viewType: "copilot";
+  markdown: string;
+};
+
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
   | HistogramState
   | EstimatesState
   | CircuitState
-  | DocumentationState;
+  | DocumentationState
+  | CopilotState;
+
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
@@ -189,6 +196,12 @@ function onMessage(event: any) {
         };
       }
       break;
+    case "copilot":
+      state = {
+        viewType: "copilot",
+        markdown: "## Loading...",
+      };
+      break;
     default:
       console.error("Unknown command: ", message.command);
       return;
@@ -252,6 +265,8 @@ function App({ state }: { state: State }) {
       document.body.classList.add("markdown-body");
       document.body.style.fontSize = "0.8em";
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
+    case "copilot":
+      return <h1>Welcome to Azure Quantum Copilot</h1>;
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;
