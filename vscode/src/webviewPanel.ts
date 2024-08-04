@@ -24,6 +24,7 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { makeChatRequest } from "./copilot";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -518,16 +519,29 @@ export class QSharpWebViewPanel {
   private _setWebviewMessageListener(webview: Webview) {
     console.log("Setting up webview message listener");
     webview.onDidReceiveMessage((message: any) => {
+      log.debug("Received message from webview", message);
       if (message.command === "ready") {
         this._ready = true;
         this._queuedMessages.forEach((message) =>
           this.panel.webview.postMessage(message),
         );
         this._queuedMessages = [];
+      } else if (message.command == "copilotRequest") {
+        // Send the message to the copilot
+        // TODO: Move this view specific logic out of here
+        makeChatRequest(message.request, (response, done) => {
+          if (!done) {
+            this.panel.webview.postMessage({
+              command: "copilotResponse",
+              response,
+            });
+          } else {
+            this.panel.webview.postMessage({
+              command: "copilotResponseDone",
+            });
+          }
+        });
       }
-
-      // No messages are currently sent from the webview
-      console.log("Message for webview received", message);
     });
   }
 

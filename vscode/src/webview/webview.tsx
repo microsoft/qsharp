@@ -11,6 +11,7 @@ import {
   CircuitProps,
   EstimatesPanel,
   Histogram,
+  Markdown,
   setRenderer,
   type ReData,
 } from "qsharp-lang/ux";
@@ -58,6 +59,7 @@ type DocumentationState = {
 type CopilotState = {
   viewType: "copilot";
   markdown: string;
+  inProgress: boolean;
 };
 
 type State =
@@ -199,8 +201,27 @@ function onMessage(event: any) {
     case "copilot":
       state = {
         viewType: "copilot",
-        markdown: "## Loading...",
+        markdown: "AMA!\n\n",
+        inProgress: false,
       };
+      break;
+    case "copilotResponse":
+      if (state.viewType !== "copilot") {
+        console.error("Received copilot response in wrong state", state);
+        return;
+      }
+      state.markdown += message.response;
+      // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+      state.markdown = state.markdown.replace(/(\\\()|(\\\))/g, "$");
+      break;
+    case "copilotResponseDone":
+      if (state.viewType !== "copilot") {
+        console.error("Received copilot response done in wrong state", state);
+        return;
+      } else {
+        state.markdown += "\n\n---\n\n";
+        state.inProgress = false;
+      }
       break;
     default:
       console.error("Unknown command: ", message.command);
@@ -226,6 +247,18 @@ function onRowDeleted(rowId: string) {
   state = newState;
 
   vscodeApi.setState(state);
+  render(<App state={state} />, document.body);
+}
+
+function copilotRequest() {
+  const questionText = document.querySelector(
+    "#copilotQuestion",
+  ) as HTMLInputElement;
+  vscodeApi.postMessage({
+    command: "copilotRequest",
+    request: questionText.value,
+  });
+  (state as CopilotState).inProgress = true;
   render(<App state={state} />, document.body);
 }
 
@@ -266,7 +299,22 @@ function App({ state }: { state: State }) {
       document.body.style.fontSize = "0.8em";
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
     case "copilot":
-      return <h1>Welcome to Azure Quantum Copilot</h1>;
+      return (
+        <div>
+          <h1>Welcome to Azure Quantum Copilot</h1>
+          <Markdown markdown={state.markdown} />
+          <br />
+          <input
+            type="text"
+            placeholder="What is a Bell state?"
+            id="copilotQuestion"
+          />
+          <br />
+          <button onClick={copilotRequest}>
+            {state.inProgress ? "Cancel" : "Ask Copilot"}
+          </button>
+        </div>
+      );
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;
