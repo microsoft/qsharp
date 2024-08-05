@@ -296,7 +296,7 @@ to the first element of the array.)
 
 @[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
-> You might have noticed that you've been "resetting" the qubits at the end of every demo, that is, returning them to $\ket{0}$ state. Q# requires you to return your qubits into the $\ket{0}$ state before they are released at the end of their scope.
+> You might have noticed that every demo has been "resetting" the qubits at the end of the code, that is, returning them to $\ket{0}$ state. Q# requires you to return your qubits into the $\ket{0}$ state before they are released at the end of their scope.
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.
