@@ -2,7 +2,7 @@
 A complex number $x = a + bi$.
 
 **Goal:**
-Return the polar representation of $x = re^{i\theta}$, i.e., the distance from origin $r$ and phase $\theta$ as a `ComplexPolar`.
+Return the polar representation of $x = re^{i\theta}$, that is, the distance from origin $r$ and phase $\theta$ as a `ComplexPolar`.
 
 * $r$ should be non-negative: $r \geq 0$
 * $\theta$ should be between $-\pi$ and $\pi$: $-\pi < \theta \leq \pi$
