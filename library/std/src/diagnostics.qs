@@ -217,11 +217,28 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Starts counting the number of qubits allocated. The counter is reset to zero.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of qubits allocated until `StopCountingQubits` is called.
+    /// As part of starting the counting, the counter is reset to zero, which may override a previous count.
+    /// The counter is incremented only when a new unique qubit is allocated, so reusing the same qubit multiple times
+    /// across separate allocations does not increment the counter.
     @Config(Unrestricted)
     operation StartCountingQubits() : Unit {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Stops counting the number of qubits allocated and returns the count.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of qubits allocated and returns the count since the
+    /// last call to `StartCountingQubits`.
+    ///
+    /// # Output
+    /// The number of unique qubits allocated since the last call to `StartCountingQubits`.
     @Config(Unrestricted)
     operation StopCountingQubits() : Int {
         body intrinsic;
