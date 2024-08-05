@@ -138,7 +138,41 @@ The same can be done for an arbitrary $n$.
 This section offers you tasks on state preparation and state analysis that can be solved using QFT or inverse QFT. 
 You can solve them without QFT, but it is useful to try and come up with a QFT-based solution as an exercise.
 
-TODO: finish part 2
+@[exercise]({
+    "id": "qft__all_basis_vectors",
+    "title": "Prepare Even Superposition of All Basis Vectors",
+    "path": "./all_basis_vectors/"
+})
+
+@[exercise]({
+    "id": "qft__periodic_state",
+    "title": "Prepare a Periodic State",
+    "path": "./periodic_state/"
+})
+
+@[exercise]({
+    "id": "qft__alternating_amplitudes",
+    "title": "Prepare a State with Alternating Amplitudes",
+    "path": "./alternating_amplitudes/"
+})
+
+@[exercise]({
+    "id": "qft__all_even_vectors",
+    "title": "Prepare Even Superposition of All Even Basis Vectors",
+    "path": "./all_even_vectors/"
+})
+
+@[exercise]({
+    "id": "qft__square_wave",
+    "title": "Prepare Square-Wave Signal",
+    "path": "./square_wave/"
+})
+
+@[exercise]({
+    "id": "qft__signal_frequency",
+    "title": "Get Signal Frequency",
+    "path": "./signal_frequency/"
+})
 
 
 @[section]({

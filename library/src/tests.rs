@@ -69,6 +69,7 @@ pub fn test_expression_with_lib_and_profile_and_sim(
         &[(std_id, None)],
     )
     .expect("test should compile");
+
     let result = interpreter
         .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");
