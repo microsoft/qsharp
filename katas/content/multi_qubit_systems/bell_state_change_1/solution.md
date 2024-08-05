@@ -1,6 +1,6 @@
 You recognize that the goal is another Bell state. In fact, it is one of the four Bell states.
 
-You remember from the Single-Qubit Gates kata that the Pauli Z gate will change the state of the $\ket{1}$ basis state of a single qubit, so this gate seems like a good candidate for what you want to achieve. This gate leaves the sign of the $\ket{0}$ basis state of a superposition unchanged, but flips the sign of the $\ket{1}$ basis state of the superposition.
+You have seen in the Single-Qubit Gates kata that the Pauli Z gate will change the state of the $\ket{1}$ basis state of a single qubit, so this gate seems like a good candidate for what you want to achieve. This gate leaves the sign of the $\ket{0}$ basis state of a superposition unchanged, but flips the sign of the $\ket{1}$ basis state of the superposition.
 
 Don't forget that the Z gate acts on only a single qubit, and you have two here.
 Let's also remember how the Bell state is made up from its individual qubits.
