@@ -28,6 +28,7 @@ use crate::oqasm_helpers::{
     span_for_syntax_node, span_for_syntax_token,
 };
 use crate::oqasm_types::{promote_types, types_equal_except_const};
+use crate::runtime::RuntimeFunctions;
 use crate::symbols::IOKind;
 use crate::symbols::Symbol;
 use crate::symbols::SymbolTable;
@@ -74,7 +75,8 @@ pub fn qasm_to_program_with_semantics(
     let compiler = QasmCompiler {
         source,
         source_map,
-        nodes: Vec::new(),
+        stmts: Vec::new(),
+        runtime: RuntimeFunctions::default(),
         errors: Vec::new(),
         file_stack: Vec::new(),
         qubit_semantics,
@@ -93,7 +95,8 @@ pub(crate) enum QubitSemantics {
 struct QasmCompiler {
     source: QasmSource,
     source_map: SourceMap,
-    nodes: Vec<ast::Stmt>,
+    stmts: Vec<ast::Stmt>,
+    runtime: RuntimeFunctions,
     errors: Vec<WithSource<crate::Error>>,
     file_stack: Vec<PathBuf>,
     qubit_semantics: QubitSemantics,
@@ -162,12 +165,12 @@ impl QasmCompiler {
     }
 
     pub fn drain_nodes(&mut self) -> Drain<ast::Stmt> {
-        self.nodes.drain(..)
+        self.stmts.drain(..)
     }
 
     fn compile_program(mut self, program_ty: ProgramType) -> QasmCompileUnit {
         self.compile_source(&self.source.clone());
-
+        self.prepend_runtime_decls();
         let package = match program_ty {
             ProgramType::File(name) => self.build_file(name),
             ProgramType::Operation(name) => self.build_operation(name),
@@ -175,6 +178,11 @@ impl QasmCompiler {
         };
 
         QasmCompileUnit::new(self.source_map, self.errors, Some(package))
+    }
+
+    fn prepend_runtime_decls(&mut self) {
+        let mut runtime = declare_runtime_functions(self.runtime);
+        self.stmts.splice(0..0, runtime.drain(..));
     }
 
     fn build_file<S: AsRef<str>>(&mut self, name: S) -> Package {
@@ -261,7 +269,7 @@ impl QasmCompiler {
                 }
                 _ => {
                     if let Some(stmt) = self.compile_stmt(&stmt) {
-                        self.nodes.push(stmt);
+                        self.stmts.push(stmt);
                     }
                 }
             }
@@ -1055,11 +1063,18 @@ impl QasmCompiler {
                         *mod_span,
                     );
                 }
-                GateModifier::Pow(_, _) => todo!(),
+                GateModifier::Pow(exponent, mod_span) => {
+                    // The exponent is only an option when initially parsing the gate
+                    // call. The stmt would not have been created. If we don't have an
+                    // an eponent at this point it is a bug
+                    let exponent = exponent.expect("Exponent must be present");
+                    let exponent_expr = build_lit_int_expr(exponent, *mod_span);
+                    self.runtime |= RuntimeFunctions::Pow;
+                    args = build_tuple_expr(vec![exponent_expr, callee, args]);
+                    callee = build_path_ident_expr("__Pow__", *mod_span, expr_span);
+                }
                 GateModifier::Ctrl(controls, mod_span) => {
                     // remove the last n qubits from the qubit list
-                    // for now we only support a single control
-                    // if the ctrls was empty, we have an error, but try to take 1 anyway
                     let num_ctrls = controls.unwrap_or(1);
                     if qubit_args.len() < num_ctrls {
                         let kind =
@@ -1076,7 +1091,21 @@ impl QasmCompiler {
                         *mod_span,
                     );
                 }
-                GateModifier::NegCtrl(_, _) => todo!(),
+                GateModifier::NegCtrl(controls, mod_span) => {
+                    // remove the last n qubits from the qubit list
+                    let num_ctrls = controls.unwrap_or(1);
+                    if qubit_args.len() < num_ctrls {
+                        let kind =
+                            SemanticErrorKind::InvalidNumberOfQubitArgs(qargs_len, 0, call_span);
+                        self.push_semantic_error(kind);
+                        return None;
+                    }
+                    let ctrl = qubit_args.split_off(qubit_args.len() - num_ctrls);
+                    let ctrls = build_expr_array_expr(ctrl, *mod_span);
+                    let lit_0 = build_lit_int_expr(0, Span::default());
+                    args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
+                    callee = build_path_ident_expr("ApplyControlledOnInt", *mod_span, expr_span);
+                }
             }
         }
 
@@ -3028,6 +3057,15 @@ impl QasmCompiler {
             _ => None,
         }
     }
+}
+
+fn declare_runtime_functions(runtime: RuntimeFunctions) -> Vec<ast::Stmt> {
+    let mut stmts = vec![];
+    if runtime.contains(RuntimeFunctions::Pow) {
+        let pow = crate::runtime::get_pow_decl();
+        stmts.push(pow);
+    }
+    stmts
 }
 
 fn compile_end_stmt(end: &oq3_syntax::ast::EndStmt) -> ast::Stmt {

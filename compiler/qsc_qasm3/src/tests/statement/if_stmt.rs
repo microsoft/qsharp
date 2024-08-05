@@ -40,7 +40,7 @@ fn can_use_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<Report>> 
     Ok(())
 }
 
-/// https://openqasm.com/language/classical.html#if-else-statements
+/// <https://openqasm.com/language/classical.html#if-else-statements>
 /// Both true-body and false-body can be a single statement terminated
 /// by a semicolon, or a program block of several statements { stmt1; stmt2; }.
 /// The stmts can also be on the next line.

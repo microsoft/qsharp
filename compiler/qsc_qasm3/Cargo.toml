@@ -8,6 +8,7 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+bitflags = { workspace = true }
 num-bigint = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../qsc" }

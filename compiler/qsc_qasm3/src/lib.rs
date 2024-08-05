@@ -9,6 +9,7 @@ pub mod io;
 mod oqasm_helpers;
 mod oqasm_types;
 mod parse;
+mod runtime;
 mod symbols;
 mod types;
 
