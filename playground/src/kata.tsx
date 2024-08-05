@@ -37,6 +37,11 @@ function ExplainedSolutionElem(props: { solution: ExplainedSolution }) {
       {props.solution.items.map((item) => {
         switch (item.type) {
           case "example":
+            return (
+              <pre>
+                <code>{item.code}</code>
+              </pre>
+            );
           case "solution":
             return (
               <pre>
@@ -80,6 +85,8 @@ function QuestionElem(props: { question: Question }) {
 function LessonElem(props: Props & { section: KataSection }) {
   if (props.section.type !== "lesson") throw "Invalid section type";
   const lesson = props.section;
+  const [shotError, setShotError] = useState<VSDiagnostic>();
+  const [evtHandler] = useState(() => new QscEventTarget(true));
 
   return (
     <div>
@@ -94,9 +101,41 @@ function LessonElem(props: Props & { section: KataSection }) {
           switch (item.type) {
             case "example":
               return (
-                <pre>
-                  <code>{item.code}</code>
-                </pre>
+                <>
+                  <div>
+                    <Editor
+                      defaultShots={1}
+                      showExpr={false}
+                      showShots={false}
+                      shotError={shotError}
+                      evtTarget={evtHandler}
+                      compiler={props.compiler}
+                      compilerState={props.compilerState}
+                      compiler_worker_factory={props.compiler_worker_factory}
+                      onRestartCompiler={props.onRestartCompiler}
+                      code={item.code}
+                      key={item.id}
+                      profile={"unrestricted"}
+                      setAst={() => ({})}
+                      setHir={() => ({})}
+                      setQir={() => ({})}
+                      activeTab="results-tab"
+                      languageService={props.languageService}
+                    ></Editor>
+                    <OutputTabs
+                      key={item.id + "-results"}
+                      evtTarget={evtHandler}
+                      showPanel={false}
+                      kataMode={false}
+                      onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+                      ast=""
+                      hir=""
+                      qir=""
+                      activeTab="results-tab"
+                      setActiveTab={() => undefined}
+                    ></OutputTabs>
+                  </div>
+                </>
               );
             case "text-content":
               return <Markdown markdown={item.content}></Markdown>;
