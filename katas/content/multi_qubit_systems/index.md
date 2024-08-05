@@ -318,7 +318,7 @@ If they are not in zero state by that time, they can potentially be still entang
 In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits.
 You will only need knowledge from the Single-Qubit Gates kata for that.
 
-> In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`.
+> In each exercise, you'll be given an array of qubits to manipulate; you can access the $i$-th element of the array `qs` as `qs[i]`.
 Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({

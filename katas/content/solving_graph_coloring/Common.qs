@@ -86,4 +86,31 @@ namespace Kata.Verification {
 
         true
     }
+
+    function IsWeakColoringValid_OneVertex_Reference (V : Int, edges: (Int, Int)[], colors: Int[], vertex : Int) : Bool {
+        mutable neighborCount = 0;
+        mutable hasDifferentNeighbor = false;
+
+        for (start, end) in edges {
+            if start == vertex or end == vertex {
+                set neighborCount += 1;
+                if colors[start] != colors[end] {
+                    set hasDifferentNeighbor = true;
+                }
+            }
+        }
+
+        return neighborCount == 0 or hasDifferentNeighbor;
+    }
+
+    function IsWeakColoringValid_Reference (V : Int, edges: (Int, Int)[], colors: Int[]) : Bool {
+        for v in 0 .. V - 1 {
+            if not IsWeakColoringValid_OneVertex_Reference(V, edges, colors, v) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }

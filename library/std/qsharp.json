@@ -1,0 +1,24 @@
+{
+  "author": "Microsoft",
+  "license": "MIT",
+  "files": [
+    "src/std/arrays.qs",
+    "src/std/canon.qs",
+    "src/std/convert.qs",
+    "src/std/core.qs",
+    "src/std/diagnostics.qs",
+    "src/std/internal.qs",
+    "src/std/intrinsic.qs",
+    "src/std/logical.qs",
+    "src/std/math.qs",
+    "src/std/measurement.qs",
+    "src/std/modern_api.qs",
+    "src/std/qir.qs",
+    "src/std/random.qs",
+    "src/std/re.qs",
+    "src/std/unstable_arithmetic.qs",
+    "src/std/unstable_arithmetic_internal.qs",
+    "src/std/unstable_state_preparation.qs",
+    "src/std/unstable_table_lookup.qs"
+  ]
+}
