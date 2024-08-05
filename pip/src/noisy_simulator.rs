@@ -15,6 +15,7 @@ pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> Py
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;
     m.add_class::<StateVectorSimulator>()?;
+    m.add_class::<SimulationBackend>()?;
     Ok(())
 }
 
@@ -304,6 +305,7 @@ impl TryInto<noisy_simulator::StateVector> for StateVector {
     }
 }
 
+#[derive(Clone)]
 #[pyclass]
 pub(crate) struct StateVectorSimulator(pub noisy_simulator::StateVectorSimulator);
 
@@ -384,5 +386,100 @@ impl StateVectorSimulator {
 
     pub fn set_h_gate(&mut self, operation: Operation) {
         self.0.h = operation.0;
+    }
+}
+
+#[pyclass]
+pub struct SimulationBackend {
+    simulator: noisy_simulator::StateVectorSimulator,
+    x_gate: noisy_simulator::Operation,
+    h_gate: noisy_simulator::Operation,
+}
+
+#[pymethods]
+impl SimulationBackend {
+    #[new]
+    pub fn new(simulator: &StateVectorSimulator) -> Self {
+        Self {
+            simulator: simulator.0.clone(),
+            x_gate: noisy_simulator::Operation::x().clone(),
+            h_gate: noisy_simulator::Operation::x().clone(),
+        }
+    }
+
+    pub fn set_x_gate(&mut self, operation: Operation) {
+        self.x_gate = operation.0;
+    }
+
+    pub fn set_h_gate(&mut self, operation: Operation) {
+        self.h_gate = operation.0;
+    }
+}
+
+impl Backend for SimulationBackend {
+    type ResultType = bool;
+
+    fn h(&mut self, q: usize) {
+        let h = self.h_gate.clone();
+        self.simulator
+            .apply_operation(&h, &[q])
+            .expect("operation should succeed");
+    }
+
+    fn x(&mut self, q: usize) {
+        let x = self.x_gate.clone();
+        self.simulator
+            .apply_operation(&x, &[q])
+            .expect("operation should succeed");
+    }
+
+    fn m(&mut self, q: usize) -> Self::ResultType {
+        let outcome = self
+            .simulator
+            .sample_instrument(noisy_simulator::Instrument::mz(), &[q])
+            .expect("measurement should succeed");
+        outcome != 0
+    }
+
+    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+        let res = self.m(q);
+        if res {
+            self.x(q);
+        }
+        res
+    }
+
+    fn reset(&mut self, q: usize) {
+        self.mresetz(q);
+    }
+
+    fn qubit_allocate(&mut self) -> usize {
+        0
+    }
+
+    fn qubit_release(&mut self, _q: usize) {}
+
+    // fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+    //     let (state, count) = self.sim.get_state();
+    //     // Because the simulator returns the state indices with opposite endianness from the
+    //     // expected one, we need to reverse the bit order of the indices.
+    //     let mut new_state = state
+    //         .into_iter()
+    //         .map(|(idx, val)| {
+    //             let mut new_idx = BigUint::default();
+    //             for i in 0..(count as u64) {
+    //                 if idx.bit((count as u64) - 1 - i) {
+    //                     new_idx.set_bit(i, true);
+    //                 }
+    //             }
+    //             (new_idx, val)
+    //         })
+    //         .collect::<Vec<_>>();
+    //     new_state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    //     (new_state, count)
+    // }
+
+    fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        true
     }
 }

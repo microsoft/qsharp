@@ -4,7 +4,7 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
-    noisy_simulator::{register_noisy_simulator_submodule, StateVectorSimulator},
+    noisy_simulator::{register_noisy_simulator_submodule, SimulationBackend},
 };
 use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
@@ -26,7 +26,7 @@ use qsc::{
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
-    Backend, LanguageFeatures, PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
@@ -210,14 +210,14 @@ impl Interpreter {
     fn run_with_sim(
         &mut self,
         py: Python,
-        sim: &mut StateVectorSimulator,
+        sim: &mut SimulationBackend,
         entry_expr: &str,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self
             .interpreter
-            .run_with_sim(&mut sim.0, &mut receiver, entry_expr)
+            .run_with_sim(sim, &mut receiver, entry_expr)
         {
             Ok(result) => match result {
                 Ok(v) => Ok(ValueWrapper(v).into_py(py)),
