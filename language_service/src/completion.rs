@@ -25,6 +25,7 @@ use std::sync::Arc;
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
+#[derive(Debug)]
 struct ImportItem {
     path: Vec<Rc<str>>,
     alias: Option<Rc<str>>,
@@ -90,8 +91,8 @@ pub(crate) fn get_completions(
             // Starting context is top-level (i.e. outside a namespace block)
             Context::TopLevel
         },
-        opens: todo!("populate this with imports"),
-        start_of_namespace: todo!("set this to after the first comment"),
+        // TODO(alex) below line
+        start_of_namespace: Default::default(), // todo!("set this to after the first comment"),
         current_namespace_name: None,
         imports: vec![],
     };
@@ -148,7 +149,7 @@ pub(crate) fn get_completions(
             builder.push_types();
             builder.push_globals(
                 compilation,
-                &context_finder.opens,
+                &context_finder.imports,
                 insert_open_range,
                 &context_finder.current_namespace_name,
                 &indent,
@@ -167,7 +168,7 @@ pub(crate) fn get_completions(
             builder.push_types();
             builder.push_globals(
                 compilation,
-                &context_finder.opens,
+                &context_finder.imports,
                 insert_open_range,
                 &context_finder.current_namespace_name,
                 &indent,
@@ -193,7 +194,7 @@ pub(crate) fn get_completions(
                 builder.push_types();
                 builder.push_globals(
                     compilation,
-                    &context_finder.opens,
+                    &context_finder.imports,
                     insert_open_range,
                     &context_finder.current_namespace_name,
                     &indent,
@@ -328,10 +329,11 @@ impl CompletionListBuilder {
         );
     }
 
+    /// Populates self's completion list with globals
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(NamespaceName, Option<NamespaceAlias>)],
+        imports: &[ImportItem],
         insert_open_range: Option<Range>,
         current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
@@ -355,7 +357,7 @@ impl CompletionListBuilder {
             self.push_sorted_completions(Self::get_callables(
                 compilation,
                 *package_id,
-                opens,
+                imports,
                 insert_open_range,
                 current_namespace_name.clone(),
                 indent,
@@ -452,12 +454,12 @@ impl CompletionListBuilder {
     }
 
     #[allow(clippy::too_many_lines)]
-    /// Get all callables in a package
+    /// Get all callables in a package and return them as completion items, with a sort priority
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
         // name and alias
-        opens: &'a [(NamespaceName, Option<NamespaceAlias>)],
+        imports: &'a [ImportItem],
         // The range at which to insert an open statement if one is needed
         insert_open_at: Option<Range>,
         // The name of the current namespace, if any --
@@ -480,110 +482,148 @@ impl CompletionListBuilder {
         let is_user_package = compilation.user_package_id == package_id;
 
         package.items.values().filter_map(move |i| {
-            // We only want items whose parents are namespaces
-            if let Some(item_id) = i.parent {
-                if let Some(parent) = package.items.get(item_id) {
-                    if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
-                            return None;
-                        }
-                        // If the item's visibility is internal, the item may be ignored
-                        if matches!(i.visibility, Visibility::Internal) {
-                            if !is_user_package {
-                                return None; // ignore item if not in the user's package
-                            }
-                            // ignore item if the user is not in the item's namespace
-                            match &current_namespace_name {
-                                Some(curr_ns) => {
-                                    if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
-                                        return None;
+                    // We only want items whose parents are namespaces
+                    if let Some(item_id) = i.parent {
+                        if let Some(parent) = package.items.get(item_id) {
+                            if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                                    // filter out internal packages that are not from the user's
+                                    // compilation
+                                if matches!(i.visibility, Visibility::Internal) {
+                                    if !is_user_package {
+                                        return None; // ignore item if not in the user's package
                                     }
-                                }
-                                None => {
-                                    return None;
-                                }
-                            }
-                        }
-                        return match &i.kind {
-                            ItemKind::Callable(callable_decl) => {
-                                let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
-                                // Everything that starts with a __ goes last in the list
-                                let sort_group = u32::from(name.starts_with("__"));
-                                let mut additional_edits = vec![];
-                                let mut qualification: Option<Vec<Rc<str>>> = None;
-                                match &current_namespace_name {
-                                    Some(curr_ns)
-                                        if package_alias_from_manifest.is_none()
-                                            && *curr_ns == Into::<Vec<_>>::into(namespace) => {}
-                                    _ => {
-                                        // open is an option of option of Rc<str>
-                                        // the first option tells if it found an open with the namespace name
-                                        // the second, nested option tells if that open has an alias
-                                        let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == Into::<Vec<_>>::into(namespace) {
-                                                Some(alias)
-                                            } else {
-                                                None
+                                    /*
+                                    // ignore item if the user is not in the item's namespace
+                                    match &current_namespace_name {
+                                        Some(curr_ns) => {
+                                            if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
+                                                return None;
                                             }
-                                        });
-                                        qualification = match open {
-                                            Some(alias) => alias.clone().map(|x| vec![x]),
-                                            None => match insert_open_at {
-                                                Some(start) => {
-                                                    let import_text = format_external_name(
-                                                        &package_alias_from_manifest,
-                                                        &Into::<Vec<_>>::into(namespace),
-                                                        Some(name),
-                                                    );
-                                                    additional_edits.push(TextEdit {
-                                                        new_text: format!(
-                                                            "import {import_text};{indent}",
-                                                        ),
-                                                        range: start,
-                                                    });
-                                                    None
-                                                }
-                                                None => Some(namespace.into()),
-                                            },
+                                        }
+                                        None => {
+                                            return None;
                                         }
                                     }
+                                    */
                                 }
+                                return match &i.kind {
+                                    ItemKind::Callable(callable_decl) => {
+                                        let name = callable_decl.name.name.as_ref();
+                                        // details used when rendering the completion item
+                                        let detail =
+                                            Some(display.hir_callable_decl(callable_decl).to_string());
+                                        // Everything that starts with a __ goes last in the list
+                                        let sort_group = u32::from(name.starts_with("__"));
 
-                                let additional_text_edits = if additional_edits.is_empty() {
-                                    None
-                                } else {
-                                    Some(additional_edits)
-                                };
+                                        // buffer to be filled up with an edit that would need to
+                                        // be applied if this completion item is selected
+                                        let mut additional_edits = vec![];
 
-                                let label = if let Some(qualification) = qualification {
-                                    format_external_name(
-                                        &package_alias_from_manifest,
-                                        &qualification,
-                                        Some(name),
-                                    )
-                                } else {
-                                    name.to_owned()
+                                        // qualification is the namespace that goes before the
+                                        // import item
+                                        let mut qualification: Option<Vec<Rc<str>>> = None;
+                                        match &current_namespace_name {
+                                            Some(curr_ns)
+                                                // if there is no package alias for this callable (i.e. it
+                                                // is not the user package or stdlib) and
+                                                if package_alias_from_manifest.is_none()
+                                                    // if the current namespace is the same as the callable
+                                                    // namespace
+                                                    && *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                            _ => {
+
+                                                // calculate the qualification that goes before the import
+                                                // item
+                                                // if an exact import already exists, or if that namespace
+                                                // is glob imported, then there is no qualification
+
+                                                // If there is no matching import or glob import, then the
+                                                // qualification is the full namespace name
+
+                                                // an exact import is an import that matches the namespace
+                                                // and item name exactly
+//                                                log::info!("My imports are: {:?}", imports);
+                                                let namespace_as_strs = Into::<Vec<_>>::into(namespace);
+                                                let preexisting_exact_import = imports.iter().any(|import_item| {
+                                                    let import_item_namespace = &import_item.path[..import_item.path.len() - 1];
+                                                    let import_item_name = import_item.path.last().map(|x| &**x);
+  //                                                  log::info!("import item ns is: {:?}, import item name is: {:?}", import_item_namespace, import_item_name);
+   //                                                 log::info!("namespace as strs is: {:?} and import item name is {:?}", namespace_as_strs, name );
+                                                    *import_item_namespace == namespace_as_strs[..]
+                                                        && import_item_name
+                                                        == Some(name) 
+                                                });
+
+                                                let preexisting_glob_import = imports.iter().any(|import_item|
+                                                     import_item.path[..import_item.path.len() - 1] ==  namespace_as_strs[..]
+                                                        && import_item.is_glob
+                                                );
+
+                                                let preexisting_namespace_alias = imports.iter().find_map(|import_item|
+                                                     if import_item.path ==  namespace_as_strs[..]
+                                                        { import_item.alias.clone() }  else { None } 
+                                                );
+
+                                                qualification = if let Some(alias) = preexisting_namespace_alias {
+                                                    Some(vec![alias])
+                                                } else { None } ;
+
+
+        match (preexisting_exact_import, preexisting_glob_import, insert_open_at)  {
+            (true, _, _) | (_, true, _) => None,
+            (_, _, Some(start)) => {
+
+                                                            let import_text = format_external_name(
+                                                                &package_alias_from_manifest,
+                                                                &Into::<Vec<_>>::into(namespace),
+                                                                Some(name),
+                                                            );
+                                                            additional_edits.push(TextEdit {
+                                                                new_text: format!(
+                                                                    "import {import_text};{indent}",
+                                                                ),
+                                                                range: start,
+                                                            });
+                                                            None
+                                                        }
+                                                        _ => Some(namespace.into()),
+                                                    };
+
+
+
+                                        let additional_text_edits = if additional_edits.is_empty() {
+                                            None
+                                        } else {
+                                            Some(additional_edits)
+                                        };
+
+                                        let label = if let Some(qualification) = qualification {
+                                            format_external_name(
+                                                &package_alias_from_manifest,
+                                                &qualification,
+                                                Some(name),
+                                            )
+                                        } else {
+                                            name.to_owned()
+                                        };
+                                        Some((
+                                            CompletionItem {
+                                                label,
+                                                kind: CompletionItemKind::Function,
+                                                sort_text: None, // This will get filled in during `push_sorted_completions`
+                                                detail,
+                                                additional_text_edits,
+                                            },
+                                            sort_group,
+                                        ))
+                                    }
+                                    _ => None,
                                 };
-                                Some((
-                                    CompletionItem {
-                                        label,
-                                        kind: CompletionItemKind::Function,
-                                        sort_text: None, // This will get filled in during `push_sorted_completions`
-                                        detail,
-                                        additional_text_edits,
-                                    },
-                                    sort_group,
-                                ))
                             }
-                            _ => None,
-                        };
+                        }
                     }
-                }
-            }
-            None
-        })
+                    None
+                })
     }
 
     /// Get all callables in the core package
@@ -731,7 +771,6 @@ fn local_completion(
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(NamespaceName, Option<NamespaceAlias>)>,
     imports: Vec<ImportItem>,
     start_of_namespace: Option<u32>,
     current_namespace_name: Option<Vec<Rc<str>>>,
@@ -751,7 +790,6 @@ impl Visitor<'_> for ContextFinder {
         if namespace.span.contains(self.offset) {
             self.current_namespace_name = Some(namespace.name.clone().into());
             self.context = Context::Namespace;
-            self.opens = vec![];
             self.imports = vec![];
             self.start_of_namespace = None;
             visit::walk_namespace(self, namespace);
