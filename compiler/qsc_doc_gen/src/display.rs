@@ -643,7 +643,7 @@ fn ast_callable_functors(callable: &ast::CallableDecl) -> ty::FunctorSetValue {
         });
 
     if let ast::CallableBody::Specs(specs) = callable.body.as_ref() {
-        for spec in specs.iter() {
+        for spec in &**specs {
             let spec_functors = match spec.spec {
                 ast::Spec::Body => ty::FunctorSetValue::Empty,
                 ast::Spec::Adj => ty::FunctorSetValue::Adj,
@@ -678,7 +678,7 @@ fn as_struct(ty_def: &ast::TyDef) -> Option<Vec<ast::FieldDef>> {
         ast::TyDefKind::Paren(inner) => as_struct(inner),
         ast::TyDefKind::Tuple(fields) => {
             let mut converted_fields = Vec::new();
-            for field in fields.iter() {
+            for field in &**fields {
                 let field = remove_parens(field);
                 match field.kind.as_ref() {
                     ast::TyDefKind::Field(Some(name), field_ty) => {
