@@ -27,7 +27,7 @@ If you need a refresher on these topics, you can check out the previous katas.
     "title": "Multi-Qubit Systems"
 })
 
-The Qubit kata covers the concept of a qubit - the basic building block of a quantum computer.
+The Qubit kata discussed the concept of a qubit - the basic building block of a quantum computer.
 A multi-qubit system is a collection of multiple qubits, treated as a single system.
 
 Let's start by examining a system of two classical bits. Each bit can be in two states: $0$ and $1$. Therefore, a system of two bits can be in four different states: $00$, $01$, $10$, and $11$. Generally, a system of $N$ classical bits can be in any of the $2^N$ states.
