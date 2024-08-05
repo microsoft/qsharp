@@ -149,21 +149,69 @@ namespace Microsoft.Quantum.Diagnostics {
         areEqual
     }
 
+    /// # Summary
+    /// Starts counting the number of times the given operation is called. The counter is reset to zero.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given operation is called. As part of
+    /// starting teh counting, the counter is reset to zero, which may override existing counts for the same operation.
+    /// Counting is based on the specific specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
+    /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation to be counted.
     @Config(Unrestricted)
     operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Stops counting the number of times the given operation is called and returns the count. Returns -1
+    /// if the operation was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given operation is called and returns the count.
+    /// If the operation was not being counted, it returns -1.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation whose count will be returned.
+    /// # Output
+    /// The number of times the operation was called since the last call to `StartCountingOperation`.
     @Config(Unrestricted)
     operation StopCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Int {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Starts counting the number of times the given function is called. The counter is reset to zero.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given function is called. As part of
+    /// starting the counting, the counter is reset to zero, which may override existing counts for the same function.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function to be counted.
     @Config(Unrestricted)
     operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Stops counting the number of times the given function is called and returns the count. Returns -1
+    /// if the function was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given function is called and returns the count.
+    /// If the function was not being counted, it returns -1.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function whose count will be returned.
+    /// # Output
+    /// The number of times the function was called since the last call to `StartCountingFunction`.
     @Config(Unrestricted)
     operation StopCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Int {
         body intrinsic;
