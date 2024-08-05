@@ -142,7 +142,7 @@ impl Checker {
             ));
         }
 
-        for top_level_node in &*package.nodes {
+        for top_level_node in &package.nodes {
             if let TopLevelNode::Stmt(stmt) = top_level_node {
                 self.new.append(&mut rules::stmt(
                     names,
@@ -171,7 +171,7 @@ impl Checker {
                 },
             ),
             ast::CallableBody::Specs(specs) => {
-                for spec in &**specs {
+                for spec in specs {
                     if let ast::SpecBody::Impl(input, block) = &spec.body {
                         self.check_spec(
                             names,

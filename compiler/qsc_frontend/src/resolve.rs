@@ -494,7 +494,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             // we are re-opening a namespace. This is important, as without this,
             // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None, root_id);
-            for item in &*namespace.items {
+            for item in &namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(decl) => {
                         visitor
@@ -1216,7 +1216,7 @@ impl AstVisitor<'_> for With<'_> {
 
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            for item in &*namespace.items {
+            for item in &namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(..) | ItemKind::Open(..) => {
                         // Global imports and exports should have been handled
@@ -1314,7 +1314,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_block(&mut self, block: &ast::Block) {
         self.with_scope(block.span, ScopeKind::Block, |visitor| {
-            for stmt in &*block.stmts {
+            for stmt in &block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
                     visitor
                         .resolver
@@ -1449,7 +1449,7 @@ impl GlobalTable {
         package: &ast::Package,
     ) -> Vec<Error> {
         let mut errors = Vec::new();
-        for node in &*package.nodes {
+        for node in &package.nodes {
             match node {
                 TopLevelNode::Namespace(namespace) => {
                     bind_global_items(
@@ -1601,7 +1601,7 @@ fn bind_global_items(
 
     let namespace_id = scope.insert_or_find_namespace(&namespace.name);
 
-    for item in &*namespace.items {
+    for item in &namespace.items {
         match bind_global_item(
             names,
             scope,
@@ -1674,7 +1674,7 @@ fn bind_global_item(
             if decl.is_import() {
                 Ok(())
             } else {
-                for decl_item in &*decl.items {
+                for decl_item in &decl.items {
                     // if the item is a namespace, bind it here as an item
                     let Some(ns) = scope
                         .namespaces
