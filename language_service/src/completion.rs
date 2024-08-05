@@ -25,6 +25,34 @@ use std::sync::Arc;
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
+struct ImportItem {
+    path: Vec<Rc<str>>,
+    alias: Option<Rc<str>>,
+    is_glob: bool,
+}
+
+impl ImportItem {
+    fn from_import_or_export_item(decl: &qsc::ast::ImportOrExportDecl) -> Vec<Self> {
+        if decl.is_export() {
+            return vec![];
+        };
+        let mut buf = Vec::with_capacity(decl.items.len());
+        for item in decl.items.iter() {
+            let alias = item.alias.as_ref().map(|x| x.name.clone());
+            let is_glob = item.is_glob;
+            let path: qsc::ast::Idents = item.path.clone().into();
+            let path = path.into_iter().map(|x| x.name.clone()).collect();
+
+            buf.push(ImportItem {
+                path,
+                alias,
+                is_glob,
+            });
+        }
+        buf
+    }
+}
+
 #[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
@@ -62,9 +90,10 @@ pub(crate) fn get_completions(
             // Starting context is top-level (i.e. outside a namespace block)
             Context::TopLevel
         },
-        opens: vec![],
-        start_of_namespace: None,
+        opens: todo!("populate this with imports"),
+        start_of_namespace: todo!("set this to after the first comment"),
         current_namespace_name: None,
+        imports: vec![],
     };
     context_finder.visit_package(user_ast_package);
 
@@ -91,13 +120,17 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
-    let mut prelude_ns_ids: Vec<_> = PRELUDE
+    let mut prelude_ns_ids: Vec<ImportItem> = PRELUDE
         .into_iter()
-        .map(|ns| (ns.into_iter().map(Rc::from).collect(), None))
+        .map(|ns| ImportItem {
+            path: ns.into_iter().map(|x| Rc::from(x)).collect(),
+            alias: None,
+            is_glob: true,
+        })
         .collect();
 
     // The PRELUDE namespaces are always implicitly opened.
-    context_finder.opens.append(&mut prelude_ns_ids);
+    context_finder.imports.append(&mut prelude_ns_ids);
 
     let mut builder = CompletionListBuilder::new();
 
@@ -699,6 +732,7 @@ struct ContextFinder {
     offset: u32,
     context: Context,
     opens: Vec<(NamespaceName, Option<NamespaceAlias>)>,
+    imports: Vec<ImportItem>,
     start_of_namespace: Option<u32>,
     current_namespace_name: Option<Vec<Rc<str>>>,
 }
@@ -718,6 +752,7 @@ impl Visitor<'_> for ContextFinder {
             self.current_namespace_name = Some(namespace.name.clone().into());
             self.context = Context::Namespace;
             self.opens = vec![];
+            self.imports = vec![];
             self.start_of_namespace = None;
             visit::walk_namespace(self, namespace);
         }
@@ -728,9 +763,23 @@ impl Visitor<'_> for ContextFinder {
             self.start_of_namespace = Some(item.span.lo);
         }
 
-        if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
-            self.opens
-                .push((name.into(), alias.as_ref().map(|alias| alias.name.clone())));
+        match &*item.kind {
+            qsc::ast::ItemKind::Open(name, alias) => {
+                let open_as_import = ImportItem {
+                    path: name.clone().into(),
+                    alias: alias.as_ref().map(|x| x.name.clone()),
+                    is_glob: true,
+                };
+                self.imports.push(open_as_import);
+            }
+            qsc::ast::ItemKind::ImportOrExport(decl) => {
+                // if this is an import, populate self.imports
+                if decl.is_import() {
+                    self.imports
+                        .append(&mut ImportItem::from_import_or_export_item(decl));
+                }
+            }
+            _ => (),
         }
 
         if item.span.contains(self.offset) {
