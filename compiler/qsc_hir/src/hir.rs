@@ -1233,7 +1233,7 @@ impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in self.0.iter() {
+        for ident in &*self.0 {
             buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
@@ -1313,7 +1313,7 @@ impl Idents {
             return self.0[0].name.clone();
         }
         let mut buf = String::new();
-        for ident in self.0.iter() {
+        for ident in &*self.0 {
             if !buf.is_empty() {
                 buf.push('.');
             }
