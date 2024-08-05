@@ -495,10 +495,13 @@ export class QSharpWebViewPanel {
       <link rel="stylesheet" href="${githubCss}" />
       <link rel="stylesheet" href="${katexCss}" />
       <link rel="stylesheet" href="${webviewCss}" />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/default.min.css"
+    />
       <script src="${webviewJs}"></script>
       <script>
         window.resourcesUri = "${resourcesUri.toString()}";
       </script>
+      <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     </head>
     <body>
     </body>

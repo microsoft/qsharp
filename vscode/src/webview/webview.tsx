@@ -17,6 +17,7 @@ import {
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
 import { DocumentationView } from "./docview";
+import hljsQsharp from "./qsharp-hljs";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -101,7 +102,20 @@ function updateGitHubTheme() {
       );
       el.setAttribute("href", newVal);
     }
+
+    if (!isDark && el.id === "hljs-dark-theme") {
+      // Remove the dark theme
+      el.remove();
+    }
   });
+
+  if (isDark) {
+    // Add a stylesheet with inline css
+    const style = document.createElement("style");
+    style.id = "hljs-dark-theme";
+    style.innerHTML = `pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#ddd;background:#303030}.hljs-keyword,.hljs-link,.hljs-literal,.hljs-section,.hljs-selector-tag{color:#fff}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-name,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#d88}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#979797}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}`;
+    document.head.appendChild(style);
+  }
 }
 
 function setThemeStylesheet() {
@@ -131,6 +145,7 @@ function main() {
   state = (vscodeApi.getState() as any) || loadingState;
   render(<App state={state} />, document.body);
   setThemeStylesheet();
+  (window as any).hljs.registerLanguage("qsharp", hljsQsharp);
   vscodeApi.postMessage({ command: "ready" });
 }
 
@@ -213,6 +228,7 @@ function onMessage(event: any) {
       state.markdown += message.response;
       // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
       state.markdown = state.markdown.replace(/(\\\()|(\\\))/g, "$");
+      state.markdown = state.markdown.replace(/(\\\[)|(\\\])/g, "$$");
       break;
     case "copilotResponseDone":
       if (state.viewType !== "copilot") {
@@ -222,6 +238,11 @@ function onMessage(event: any) {
         state.markdown += "\n\n---\n\n";
         state.inProgress = false;
       }
+      // Highlight any code blocks
+      // Need to wait until Markdown is rendered. Hack for now with a timeout
+      setTimeout(() => {
+        (window as any).hljs.highlightAll();
+      }, 100);
       break;
     default:
       console.error("Unknown command: ", message.command);
@@ -259,6 +280,7 @@ function copilotRequest() {
     request: questionText.value,
   });
   (state as CopilotState).inProgress = true;
+  questionText.value = "";
   render(<App state={state} />, document.body);
 }
 
@@ -300,17 +322,21 @@ function App({ state }: { state: State }) {
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
     case "copilot":
       return (
-        <div>
+        <div style="font-size: 10pt; line-height: 1.5;">
           <h1>Welcome to Azure Quantum Copilot</h1>
           <Markdown markdown={state.markdown} />
           <br />
-          <input
+          <textarea
+            style="width: 90vw; min-height: 32px; max-height: 128px;"
             type="text"
-            placeholder="What is a Bell state?"
+            placeholder="Ask your question here"
             id="copilotQuestion"
           />
           <br />
-          <button onClick={copilotRequest}>
+          <button
+            style="margin-top: 8px; margin-bottom: 12px; padding: 4px;"
+            onClick={copilotRequest}
+          >
             {state.inProgress ? "Cancel" : "Ask Copilot"}
           </button>
         </div>
