@@ -17,7 +17,7 @@ $$ \begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bm
 If you recall that $i = e^{i\pi/2}$, you can write the final state of the first qubit as:
 $$ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/2} \end{bmatrix} $$
 
-For the second qubit, you'll apply the **H** gate, followed by the **T** gate, with the following result:
+For the second qubit, you'll apply the $H$ gate, followed by the $T$ gate, with the following result:
 $$ \begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/4} \end{bmatrix} $$
 
 @[solution]({
