@@ -276,7 +276,7 @@ fn check_apply_controlled_on_bitstring() {
     );
 }
 
-const QFT_LE_TEST_LIB: &str = include_str!("resources/qft_le.qs");
+const QFT_LE_TEST_LIB: &str = include_str!("resources/src/qft_le.qs");
 
 #[test]
 fn check_qft_le_sample_1() {
