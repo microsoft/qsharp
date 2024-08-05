@@ -388,7 +388,7 @@ impl Display for TyDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts.iter() {
+                    for t in &**ts {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -531,7 +531,7 @@ impl Display for CallableBody {
                 let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Specializations:")?;
                 indent = set_indentation(indent, 1);
-                for spec in specs.iter() {
+                for spec in &**specs {
                     write!(indent, "\n{spec}")?;
                 }
             }
@@ -697,7 +697,7 @@ impl Display for TyKind {
                     indent = indent.with_format(Format::Uniform {
                         indentation: "    ",
                     });
-                    for t in ts.iter() {
+                    for t in &**ts {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -1309,7 +1309,7 @@ impl Display for PatKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for p in ps.iter() {
+                    for p in &**ps {
                         write!(indent, "\n{p}")?;
                     }
                 }
@@ -1380,7 +1380,7 @@ impl Display for QubitInitKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for qi in qis.iter() {
+                    for qi in &**qis {
                         write!(indent, "\n{qi}")?;
                     }
                 }
@@ -1512,7 +1512,7 @@ impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in self.0.iter() {
+        for ident in &*self.0 {
             buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
@@ -1595,7 +1595,7 @@ impl Idents {
             return self.0[0].name.clone();
         }
         let mut buf = String::new();
-        for ident in self.0.iter() {
+        for ident in &*self.0 {
             if !buf.is_empty() {
                 buf.push('.');
             }

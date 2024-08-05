@@ -361,7 +361,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
                     }
 
-                    for field in fields.iter() {
+                    for field in &**fields {
                         if field.span.touches(self.offset) {
                             if field.field.span.touches(self.offset) {
                                 if let Some(hir::ty::Ty::Udt(_, res)) =
