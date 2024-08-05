@@ -10,7 +10,7 @@ $$
 
 You will again need to adjust the states of both qubits independently.
 
-For the first qubit, you'll start by applying the **H** gate, getting the state $\frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix}$, as you've seen in the previous task. Afterwards you'll apply the **S** gate with the following result:
+For the first qubit, you'll start by applying the $H$ gate, getting the state $\frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix}$, as you've seen in the previous task. Afterwards you'll apply the $S$ gate with the following result:
 
 $$ \begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ i \end{bmatrix}$$
 
