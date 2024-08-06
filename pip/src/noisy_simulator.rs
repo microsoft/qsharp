@@ -132,8 +132,16 @@ pub(crate) struct DensityMatrix {
 #[pymethods]
 impl DensityMatrix {
     /// Returns a copy of the matrix data.
-    fn data(&self) -> Vec<Complex<f64>> {
-        self.data.clone()
+    fn data(&self) -> Vec<Vec<Complex<f64>>> {
+        let mut density_matrix = Vec::with_capacity(self.dimension);
+        for row in 0..dimension {
+            let mut row_vec = Vec::with_capacity(self.dimension);
+            for col in 0..self.dimension {
+                row_vec.push(self.data[row * self.dimension + col]);
+            }
+            density_matrix.push(row_vec);
+        }
+        density_matrix
     }
 
     /// Returns the dimension of the matrix.

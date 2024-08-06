@@ -133,7 +133,7 @@ def test_density_matrix_simulator_sample_instrument_is_mapped_correctly():
 
 def test_density_matrix_simulator_get_state_is_mapped_correctly():
     sim = DensityMatrixSimulator(1)
-    assert sim.get_state().data() == [1, 0, 0, 0]
+    assert sim.get_state().data() == [[1, 0], [0, 0]]
 
 
 def test_density_matrix_simulator_set_state_is_mapped_correctly():
