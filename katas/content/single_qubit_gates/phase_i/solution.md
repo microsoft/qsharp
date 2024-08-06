@@ -1,6 +1,6 @@
 #### Solution 1
 
-We can recognize that the $S$ gate performs this particular relative phase addition to the $\ket{1}$ basis state. As a reminder,
+You can recognize that the $S$ gate performs this particular relative phase addition to the $\ket{1}$ basis state. As a reminder,
 
 $$
 S =

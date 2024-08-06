@@ -151,6 +151,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
     }
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    recovering_token(s, TokenKind::Eof);
     if items.is_empty() || s.peek().kind != TokenKind::Eof {
         return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
     }
@@ -370,7 +371,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
         TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
         TyDefKind::Tuple(tup) => {
             let mut ty_tup = Vec::new();
-            for tydef in tup.iter() {
+            for tydef in tup {
                 ty_tup.push(try_tydef_as_ty(tydef)?);
             }
             Some(Ty {
