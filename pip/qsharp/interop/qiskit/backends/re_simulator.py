@@ -118,17 +118,19 @@ class ReSimulator(QsBackend):
         elif isinstance(params, dict):
             params = [params]
         param_str = json.dumps(params)
-        name = input_params.get("name")
-        search_path = input_params.get("search_path", ".")
+        kwargs = {
+            "name": input_params.pop("name"),
+            "search_path": input_params.pop("search_path", "."),
+        }
+        kwargs.update(input_params)
         res_str = resource_estimate_qasm3(
             source,
-            name,
             param_str,
-            search_path,
             read_file,
             list_directory,
             resolve,
             fetch_github,
+            **kwargs,
         )
         res = json.loads(res_str)
         return res

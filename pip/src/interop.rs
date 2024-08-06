@@ -117,7 +117,7 @@ pub fn run_qasm3(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let tu = qsc_qasm3::compile_qasm_to_program(
+    let unit = qsc_qasm3::compile_qasm_to_program(
         source,
         format!("{name}.qasm"),
         &resolver,
@@ -126,10 +126,10 @@ pub fn run_qasm3(
     )
     .map_err(|e| QSharpError::new_err(e.to_string()))?;
 
-    if tu.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(tu.errors())));
+    if unit.has_errors() {
+        return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
     }
-    let (source_map, _, package) = tu.into_tuple();
+    let (source_map, _, package) = unit.into_tuple();
     let Some(package) = package else {
         return Err(QasmError::new_err("package should have had value"));
     };
@@ -207,36 +207,56 @@ fn run_ast(
 /// callbacks and other Python specific details.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(
+    signature = (source, job_params, read_file, list_directory, resolve_path, fetch_github, **kwargs)
+)]
 pub(crate) fn resource_estimate_qasm3(
     py: Python,
     source: &str,
-    name: &str,
     job_params: &str,
-    search_path: Option<&str>,
     read_file: Option<PyObject>,
     list_directory: Option<PyObject>,
     resolve_path: Option<PyObject>,
     fetch_github: Option<PyObject>,
+    kwargs: Option<&PyDict>,
 ) -> PyResult<String> {
-    let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+    let name = kwargs
+        .get_item("name")?
+        .map_or_else(|| Ok("program"), pyo3::PyAny::extract::<&str>)?;
 
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path.unwrap_or_default()));
+    // sanitize the name to ensure it is a valid identifier
+    // When creating operation, we'll throw an error if the name is not a valid identifier
+    // so that the user gets the exact name they expect, but here it's better to sanitize.
+    let name = sanitize_name(name);
+
+    let search_path = kwargs.get_item("search_path")?.map_or_else(
+        || {
+            Err(PyException::new_err(
+                "Could not parse search path".to_string(),
+            ))
+        },
+        pyo3::PyAny::extract::<&str>,
+    )?;
+
+    let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     // The output semantics are set to OpenQasm because we are only interested in the resource
     // estimation and not the QIR output. So there is no need to do extra work
     // for the simulator to coerce the output.
-    let tu = qsc_qasm3::compile_qasm_to_program(
+    let unit = qsc_qasm3::compile_qasm_to_program(
         source,
-        format!("{}.qasm", sanitize_name(name)),
+        format!("{name}.qasm"),
         &resolver,
-        ProgramType::File(sanitize_name(name)),
-        OutputSemantics::OpenQasm,
+        ProgramType::File(name),
+        OutputSemantics::ResourceEstimation,
     )
     .map_err(|e| QSharpError::new_err(e.to_string()))?;
-    if tu.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(tu.errors())));
+    if unit.has_errors() {
+        return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
     }
-    let (source_map, _, package) = tu.into_tuple();
+    let (source_map, _, package) = unit.into_tuple();
     match crate::interop::estimate_qasm3(
         package.expect("Package must exist when there are no errors"),
         source_map,
@@ -272,24 +292,60 @@ pub(crate) fn resource_estimate_qasm3(
 /// callbacks and other Python specific details.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(
+    signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
+)]
 pub(crate) fn compile_qasm3_to_qir(
     py: Python,
     source: &str,
-    name: &str,
-    target: TargetProfile,
-    entry_expr: Option<&str>,
-    search_path: Option<&str>,
     read_file: Option<PyObject>,
     list_directory: Option<PyObject>,
     resolve_path: Option<PyObject>,
     fetch_github: Option<PyObject>,
+    kwargs: Option<&PyDict>,
 ) -> PyResult<String> {
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+    let target: TargetProfile = kwargs.get_item("target_profile")?.map_or_else(
+        || Ok(TargetProfile::Unrestricted),
+        pyo3::PyAny::extract::<TargetProfile>,
+    )?;
+    let name = kwargs
+        .get_item("name")?
+        .map_or_else(|| Ok("program"), pyo3::PyAny::extract::<&str>)?;
+
+    // sanitize the name to ensure it is a valid identifier
+    // When creating operation, we'll throw an error if the name is not a valid identifier
+    // so that the user gets the exact name they expect, but here it's better to sanitize.
+    let name = sanitize_name(name);
+    let entry_expr = kwargs.get_item("entry_expr")?.map_or_else(
+        || {
+            Err(PyException::new_err(
+                "Could not parse entry expr".to_string(),
+            ))
+        },
+        |expr| {
+            Ok(expr
+                .extract::<&str>()
+                .map(ToString::to_string)
+                .unwrap_or(format!("qasm3_import.{name}()")))
+        },
+    )?;
+
+    let search_path = kwargs.get_item("search_path")?.map_or_else(
+        || {
+            Err(PyException::new_err(
+                "Could not parse search path".to_string(),
+            ))
+        },
+        pyo3::PyAny::extract::<&str>,
+    )?;
+
     let target = target.into();
     let language_features = LanguageFeatures::default();
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path.unwrap_or_default()));
-    let name = sanitize_name(name);
-    let tu = qsc_qasm3::compile_qasm_to_program(
+    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+
+    let unit = qsc_qasm3::compile_qasm_to_program(
         source,
         format!("{}.qasm", &name),
         &resolver,
@@ -297,16 +353,14 @@ pub(crate) fn compile_qasm3_to_qir(
         OutputSemantics::Qiskit,
     )
     .map_err(|e| QSharpError::new_err(e.to_string()))?;
-    if tu.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(tu.errors())));
+    if unit.has_errors() {
+        return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
     }
-    let (source_map, _, package) = tu.into_tuple();
+    let (source_map, _, package) = unit.into_tuple();
     let Some(package) = package else {
         return Err(QasmError::new_err("package should have had value"));
     };
-    let entry_expr = entry_expr
-        .map(ToString::to_string)
-        .unwrap_or(format!("qasm3_import.{name}()"));
+
     generate_qir_from_ast(entry_expr, package, source_map, target, language_features)
         .map_err(|errors| QSharpError::new_err(format_errors(errors)))
 }

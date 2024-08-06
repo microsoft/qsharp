@@ -356,9 +356,6 @@ class QsBackend(BackendV2, ABC):
     def qir(
         self,
         circuit: QuantumCircuit,
-        target_profile: Optional[TargetProfile] = None,
-        entry_expr: Optional[str] = None,
-        search_path: Optional[str] = None,
         **kwargs,
     ) -> str:
         """
@@ -366,27 +363,30 @@ class QsBackend(BackendV2, ABC):
 
         Args:
             circuit ('QuantumCircuit'): The input Qiskit QuantumCircuit object.
-            target_profile (TargetProfile, optional): The target profile for the backend. Defaults to backend config value.
-            entry_expr (str, optional): The entry expression for the QIR conversion. Defaults to None.
-            search_path (str, optional): The search path for the backend. Defaults to '.'.
+            **kwargs: Additional options for the execution.
+              - entry_expr (str, optional): The entry expression for the QIR conversion. Defaults to None.
+              - target_profile (TargetProfile, optional): The target profile for the backend. Defaults to backend config value.
+              - search_path (str, optional): The search path for the backend. Defaults to '.'.
 
         Returns:
             str: The converted QIR code as a string.
         """
-        target_profile = target_profile or self.options.target_profile
+        name = kwargs.pop("name", circuit.name)
+        target_profile = kwargs.pop("target_profile", self.options.target_profile)
 
         qasm3_source = self.qasm3(circuit, **kwargs)
-        return self._qir(
-            qasm3_source, circuit.name, target_profile, entry_expr, search_path
-        )
+        qir_args = {
+            "name": name,
+            "target_profile": target_profile,
+            "entry_expr": kwargs.pop("entry_expr", None),
+            "search_path": kwargs.pop("search_path", "."),
+        }
+        return self._qir(qasm3_source, **qir_args)
 
     def _qir(
         self,
         source: str,
-        name: str,
-        target_profile: TargetProfile = TargetProfile.Base,
-        entry_expr: Optional[str] = None,
-        search_path: Optional[str] = None,
+        **kwargs,
     ) -> str:
         from ...._native import compile_qasm3_to_qir
         from ...._fs import read_file, list_directory, resolve
@@ -394,12 +394,9 @@ class QsBackend(BackendV2, ABC):
 
         return compile_qasm3_to_qir(
             source,
-            name,
-            target_profile,
-            entry_expr,
-            search_path,
             read_file,
             list_directory,
             resolve,
             fetch_github,
+            **kwargs,
         )
