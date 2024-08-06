@@ -1,7 +1,8 @@
-<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="140 120 740 780" xmlns="http://www.w3.org/2000/svg">
   <!-- <rect x="96" y="96" width="828" height="828" fill="white" rx="32" /> -->
   <g fill="none" stroke="gray" stroke-width="8">
-    <path d="M 512 135 L 819 313 L 819 667 L 512 845 L 205 667 L 205 313 L 512 135 Z"/>
+    <path stroke-width="50" d="M 512 135 L 819 313 L 819 667 L 512 845 L 205 667 L 205 313 L 512 135 Z"/>
+    <path stroke-width="50" d="M 510 755 L 742 890 L 818 845 L 818 756 L 585 620 L 510 675 Z"/>
     <path d="M 205 580 L 742 890 L 819 845 L 818 756 L 205 402"/>
     <path d="M 204 579 L 743 268"/>
     <path d="M 664 224 L 207 489"/>

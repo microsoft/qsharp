@@ -252,11 +252,27 @@
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "quantum-copilot-container",
+          "title": "Quantum Copilot",
+          "icon": "resources/Q-vector-1024x1024.svg"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
           "id": "quantum-workspaces",
           "name": "Quantum Workspaces"
+        }
+      ],
+      "quantum-copilot-container": [
+        {
+          "id": "quantum-copilot",
+          "type": "webview",
+          "name": "Quantum Copilot"
         }
       ]
     },

@@ -24,17 +24,27 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { makeChatRequest } from "./copilot";
+import { CopilotWebviewViewProvider, makeChatRequest } from "./copilot";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
 export function registerWebViewCommands(context: ExtensionContext) {
   QSharpWebViewPanel.extensionUri = context.extensionUri;
+  const copilotProvider = new CopilotWebviewViewProvider(context.extensionUri);
 
   window.registerWebviewPanelSerializer(
     QSharpWebViewType,
     new QSharpViewViewPanelSerializer(),
+  );
+
+  log.info("registering webview view provider");
+  window.registerWebviewViewProvider(
+    CopilotWebviewViewProvider.viewType,
+    copilotProvider,
+    {
+      webviewOptions: { retainContextWhenHidden: true },
+    },
   );
 
   const compilerWorkerScriptPath = Uri.joinPath(

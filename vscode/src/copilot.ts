@@ -5,6 +5,13 @@ import { getRandomGuid } from "./utils";
 import { log } from "qsharp-lang";
 import { getAuthSession, scopes } from "./azure/auth";
 import { fetchEventSource } from "./fetch";
+import {
+  CancellationToken,
+  Uri,
+  WebviewView,
+  WebviewViewProvider,
+  WebviewViewResolveContext,
+} from "vscode";
 
 const chatUrl = "https://westus3.aqa.quantum.azure.com/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
@@ -110,5 +117,40 @@ async function chatRequest(
   } catch (error) {
     log.error("ChatAPI fetch failed with error: ", error);
     throw error;
+  }
+}
+
+export class CopilotWebviewViewProvider implements WebviewViewProvider {
+  public static readonly viewType = "quantum-copilot";
+
+  private view?: WebviewView;
+
+  constructor(private readonly extensionUri: Uri) {
+    log.info("In Copilot WebviewView constructor");
+  }
+
+  resolveWebviewView(
+    webviewView: WebviewView,
+    context: WebviewViewResolveContext,
+    token: CancellationToken,
+  ): Thenable<void> | void {
+    if (token.isCancellationRequested) return;
+    log.info("In resolveWebviewView with state: ", context.state);
+
+    this.view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this.extensionUri],
+    };
+
+    webviewView.webview.html = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+    </head>
+    <body>
+    Quantum Copilot
+    </body>
+    </html>`;
   }
 }
