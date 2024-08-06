@@ -143,7 +143,7 @@ def test_density_matrix_simulator_set_state_is_mapped_correctly():
     inital_state = sim.get_state()
     sim.apply_operation(h, [0])
     sim.set_state(inital_state)
-    assert sim.get_state().data() == [1, 0, 0, 0]
+    assert sim.get_state().data() == [[1, 0], [0, 0]]
 
 
 def test_density_matrix_simulator_set_trace_is_mapped_correctly():
