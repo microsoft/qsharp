@@ -17,8 +17,8 @@ This kata introduces you to the basic concepts of quantum error correction using
 
 **What you should know to start working on this kata:**
 
-- Basic knowledge of single-qubit and multi-qubit gates
-- Basic knowledge of single-qubit and multi-qubit quantum measurements and their effect on quantum systems
+- Basic concepts of single-qubit and multi-qubit gates
+- Basic concepts of single-qubit and multi-qubit quantum measurements, and their effect on quantum systems
 
 If you need a refresher on these topics, you can check out the previous katas.
 

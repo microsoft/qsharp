@@ -19,8 +19,8 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 
 **What you should know to start working on this kata:**
 
-- Basic knowledge of complex arithmetic
-- Basic knowledge of linear algebra
+- Basic concepts of complex arithmetic
+- Basic concepts of linear algebra
 
 If you need a refresher on these topics, you can check out the previous katas.
 
