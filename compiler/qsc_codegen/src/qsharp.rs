@@ -176,7 +176,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
     fn visit_ty_def(&mut self, def: &'_ TyDef) {
         match &*def.kind {
             TyDefKind::Field(name, ty) => {
-                for n in name {
+                if let Some(n) = name {
                     self.visit_ident(n);
                     self.write(": ");
                 }
@@ -479,7 +479,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_expr(cond);
                 self.write(" ");
                 self.visit_block(body);
-                for expr in otherwise {
+                if let Some(expr) = otherwise {
                     if matches!(*expr.kind, ExprKind::If(..)) {
                         // visiting expr as if writes 'if' to make 'elif'
                         self.write(" el");
@@ -610,7 +610,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_block(body);
                 self.write("until ");
                 self.visit_expr(until);
-                for fixup in fixup {
+                if let Some(fixup) = fixup {
                     self.write(" fixup ");
                     self.visit_block(fixup);
                 }
@@ -709,14 +709,14 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             PatKind::Bind(name, ty) => {
                 self.visit_ident(name);
 
-                for t in ty {
+                if let Some(t) = ty {
                     self.write(": ");
                     self.visit_ty(t);
                 }
             }
             PatKind::Discard(ty) => {
                 self.write("_");
-                for t in ty {
+                if let Some(t) = ty {
                     self.write(": ");
                     self.visit_ty(t);
                 }

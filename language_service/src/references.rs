@@ -414,7 +414,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
                 if let Some(copy) = copy {
                     self.visit_expr(copy);
                 }
-                for field in fields.iter() {
+                for field in fields {
                     if field.field.name == self.field_name {
                         if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(expr.id) {
                             if self.eq(id) {

@@ -28,6 +28,7 @@ struct BlockQubitMap {
 /// 1. Only one callable has a body, which is the entry point callable.
 /// 2. The entry point callable is a directed acyclic graph where block ids have topological ordering.
 /// 3. No dynamic qubits are used.
+///
 /// The pass will panic if the input program violates any of these assumptions.
 pub fn reindex_qubits(program: &mut Program) {
     validate_assumptions(program);
