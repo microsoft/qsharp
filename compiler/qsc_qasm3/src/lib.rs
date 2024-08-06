@@ -3,6 +3,7 @@
 
 #![allow(dead_code)]
 
+mod angle;
 mod ast_builder;
 mod compile;
 pub mod io;
@@ -382,6 +383,7 @@ impl QasmCompileUnit {
 pub enum OutputSemantics {
     Qiskit,
     OpenQasm,
+    ResourceEstimation,
 }
 
 pub fn compile_qasm_to_program<S, P, R>(

@@ -33,13 +33,28 @@ pub(crate) fn span_for_syntax_token(token: &oq3_syntax::SyntaxToken) -> Span {
 pub(crate) fn safe_u128_to_f64(value: u128) -> Option<f64> {
     if value <= u128::from(i64::MAX as u64) {
         let value = i64::try_from(value).ok()?;
-        #[allow(clippy::cast_possible_truncation)]
-        if value <= f64::MAX as i64 {
-            #[allow(clippy::cast_precision_loss)]
-            Some(value as f64)
-        } else {
-            None
-        }
+        safe_i64_to_f64(value)
+    } else {
+        None
+    }
+}
+
+pub(crate) fn safe_i64_to_f64(value: i64) -> Option<f64> {
+    #[allow(clippy::cast_possible_truncation)]
+    if value <= f64::MAX as i64 {
+        #[allow(clippy::cast_precision_loss)]
+        Some(value as f64)
+    } else {
+        None
+    }
+}
+
+pub(crate) fn safe_u64_to_f64(value: u64) -> Option<f64> {
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    if value <= f64::MAX as u64 {
+        #[allow(clippy::cast_precision_loss)]
+        Some(value as f64)
     } else {
         None
     }

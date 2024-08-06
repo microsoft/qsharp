@@ -9,15 +9,14 @@ from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
 if QISKIT_AVAILABLE:
     from qiskit import QuantumCircuit
     from qsharp.interop import QSharpSimulator
-    from qsharp.interop.qiskit.utils import _convert_qiskit_to_qasm3
 
 
 def run_transpile_test(
-    operation: Callable[["QuantumCircuit"], None], expected_output: str
+    operation: Callable[["QuantumCircuit"], None], expected_output: str, **options
 ) -> None:
     circuit = QuantumCircuit(3, 3)
     operation(circuit)
-    info = _convert_qiskit_to_qasm3(circuit, QSharpSimulator())
+    info = QSharpSimulator().qasm3(circuit, **options)
     lines = info.splitlines()
     # remove the first four lines, which are the header
     # OPENQASM 3.0;
@@ -101,7 +100,14 @@ def test_gate_sdg_transpiles() -> None:
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_gate_sx_transpiles_to_rx_pi_over_2() -> None:
-    run_transpile_test(lambda circuit: circuit.sx(1), "rx(pi/2) q[1];")
+    run_transpile_test(
+        lambda circuit: circuit.sx(1), "rx(pi/2) q[1];", disable_constants=False
+    )
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_gate_sx_transpiles_to_rx_pi_over_2_approx() -> None:
+    run_transpile_test(lambda circuit: circuit.sx(1), "rx(1.5707963267948966) q[1];")
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

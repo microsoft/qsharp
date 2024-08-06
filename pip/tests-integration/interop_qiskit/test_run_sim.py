@@ -13,7 +13,6 @@ if QISKIT_AVAILABLE:
     from qiskit.qasm3 import loads as from_qasm3
     from qiskit import ClassicalRegister
     from qsharp.interop import QSharpSimulator
-    from qsharp.interop.qiskit.utils import _convert_qiskit_to_qasm3
     from .test_circuits import (
         core_tests_small,
         generate_repro_information,
@@ -66,13 +65,13 @@ def test_get_counts_matches_qiskit_simulator():
     circuit = create_deterministic_test_circuit()
 
     try:
-        qssim = QSharpSimulator(target_profile=target_profile)
-        qasm3 = _convert_qiskit_to_qasm3(circuit, qssim)
+        backend = QSharpSimulator(target_profile=target_profile)
+        qasm3 = backend.qasm3(circuit)
         circuit = from_qasm3(qasm3)
 
         aersim = AerSimulator()
         job = aersim.run(circuit, shots=5)
-        qsjob = qssim.run(circuit, shots=5)
+        qsjob = backend.run(circuit, shots=5)
         qscounts = qsjob.result().get_counts()
         assert qscounts == job.result().get_counts()
     except AssertionError:

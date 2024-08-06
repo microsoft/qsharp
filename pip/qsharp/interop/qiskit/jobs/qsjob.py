@@ -14,7 +14,7 @@ from qiskit.circuit import (
 from qiskit.result import Result
 from qiskit.providers import JobV1, JobStatus, JobError
 
-from ..utils import SynchronousExecutor
+from ..execution import SynchronousExecutor
 
 from ....estimator import EstimatorResult
 

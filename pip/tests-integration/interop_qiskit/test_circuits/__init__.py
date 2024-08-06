@@ -17,12 +17,11 @@ def generate_repro_information(
     message += "\n"
     message += f"Profile: {profile_name}"
     message += "\n"
-    from qsharp.interop.qiskit.utils import _convert_qiskit_to_qasm3
     from qsharp.interop import QSharpSimulator
 
     try:
         backend = QSharpSimulator(target_profile=target_profile)
-        qasm3_source = _convert_qiskit_to_qasm3(circuit, backend)
+        qasm3_source = backend.qasm3(circuit)
     except Exception:
         # if the conversion fails, print the circuit as a string
         # as a fallback since we won't have the qasm3 source
@@ -30,7 +29,7 @@ def generate_repro_information(
         message += "\n"
         message += "QuantumCircuit rendered:"
         message += "\n"
-        circuit_str = circuit.draw(output="text")
+        circuit_str = str(circuit.draw(output="text"))
         message += circuit_str
         return message
 

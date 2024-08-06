@@ -3,12 +3,14 @@
 
 from abc import ABC, abstractmethod
 import datetime
-import time
 import logging
-from typing import Dict, Any, List
+import time
+from typing import Dict, Any, List, Optional
 
-from qiskit.providers import BackendV2
+from qiskit import transpile
 from qiskit.circuit import (
+    Barrier,
+    Delay,
     Measure,
     Parameter,
     QuantumCircuit,
@@ -16,15 +18,14 @@ from qiskit.circuit import (
     Store,
 )
 from qiskit.circuit.controlflow import (
-    IfElseOp,
-    ForLoopOp,
-    WhileLoopOp,
-    SwitchCaseOp,
-    ControlFlowOp,
     BreakLoopOp,
     ContinueLoopOp,
+    ControlFlowOp,
+    ForLoopOp,
+    IfElseOp,
+    SwitchCaseOp,
+    WhileLoopOp,
 )
-from qiskit.circuit import Barrier, Delay
 from qiskit.circuit.library.standard_gates import (
     CHGate,
     CCXGate,
@@ -51,16 +52,30 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
     IGate,
 )
-from qiskit.transpiler.target import Target
+from qiskit.qasm3.exporter import Exporter
+from qiskit.providers import BackendV2, Options
 from qiskit.result import Result
-from qsharp import QSharpError
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import RemoveBarriers
+from qiskit.transpiler.target import Target
 
-from ..utils import _convert_qiskit_to_qasm3
-
-from .... import TargetProfile
 from ..jobs import QsJob
+from ..passes import RemoveRemoveDelays
+from .... import QSharpError, TargetProfile
+
 
 logger = logging.getLogger(__name__)
+
+
+def filter_kwargs(func, kwargs):
+    import inspect
+
+    sig = inspect.signature(func)
+    supported_args = set(sig.parameters.keys())
+    extracted_kwargs = {
+        k: kwargs.pop(k) for k in list(kwargs.keys()) if k in supported_args
+    }
+    return extracted_kwargs
 
 
 class QsBackend(BackendV2, ABC):
@@ -70,7 +85,9 @@ class QsBackend(BackendV2, ABC):
 
     def __init__(
         self,
-        target=None,
+        target: Optional[Target] = None,
+        transpile_options: Optional[Dict[str, Any]] = None,
+        skip_transpilation: bool = False,
         **fields,
     ):
         """
@@ -87,19 +104,32 @@ class QsBackend(BackendV2, ABC):
 
         if fields is not None:
             self.set_options(**fields)
+
+        self._transpile_options = Options(supports_barrier=False, supports_delay=False)
+        self._skip_transpilation = skip_transpilation
+
         # we need to set the target after the options are set
         # so that the target_profile can be used to determine
         # which gates/instructions are available
         if target is not None:
             # update the properties so that we are internally consistent
-            self._options["supports_barrier"] = target.instruction_supported("barrier")
-            self._options["supports_delay"] = target.instruction_supported("delay")
+            self._transpile_options.update_options(
+                **{
+                    "supports_barrier": target.instruction_supported("barrier"),
+                    "supports_delay": target.instruction_supported("delay"),
+                }
+            )
+
             self._target = target
         else:
             self._target = self._create_target()
 
+        if transpile_options is not None:
+            self._transpile_options.update_options(**transpile_options)
+
     def _create_target(self) -> Target:
-        target = Target(num_qubits=2 ^ 64 - 1)
+        num_qubits = None
+        target = Target(num_qubits=num_qubits)
         if self._options["target_profile"] != TargetProfile.Base:
             target.add_instruction(BreakLoopOp, name="break")
             target.add_instruction(ContinueLoopOp, name="continue")
@@ -110,9 +140,9 @@ class QsBackend(BackendV2, ABC):
 
         target.add_instruction(Store, name="store")
 
-        if self._options["supports_barrier"]:
+        if self._transpile_options["supports_barrier"]:
             target.add_instruction(Barrier, name="barrier")
-        if self._options["supports_delay"]:
+        if self._transpile_options["supports_delay"]:
             target.add_instruction(Delay, name="delay")
 
         # For loops should be fully deterministic in Qiskit/QASM
@@ -240,11 +270,136 @@ class QsBackend(BackendV2, ABC):
 
     def _compile(self, run_input: List[QuantumCircuit], **options) -> List[str]:
         # for each run input, convert to qasm3
-        qasm = [
-            _convert_qiskit_to_qasm3(circuit, self, **options) for circuit in run_input
-        ]
+        qasm = [self.qasm3(circuit, **options) for circuit in run_input]
         return qasm
 
     @abstractmethod
     def _create_results(self, output: Dict[str, Any]) -> Any:
         pass
+
+    def _transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
+        if self._skip_transpilation:
+            return circuit
+
+        remove_barriers = not options.pop("supports_barrier", False)
+        remove_delays = not options.pop("supports_delay", False)
+        pass_manager = PassManager()
+        if remove_barriers:
+            pass_manager.append(RemoveBarriers())
+        if remove_delays:
+            pass_manager.append(RemoveRemoveDelays())
+        circuit = pass_manager.run(circuit)
+
+        if "optimization_level" not in options:
+            options["optimization_level"] = 0
+
+        backend = options.pop("backend", self)
+        target = options.pop("target", self.target)
+        remove_final_measurements = options.pop("remove_final_measurements", False)
+
+        orig = self.target.num_qubits
+        try:
+            self.target.num_qubits = circuit.num_qubits
+            transpiled_circuit = transpile(
+                circuit, backend=backend, target=target, **options
+            )
+
+            if remove_final_measurements:
+                transpiled_circuit.remove_final_measurements(inplace=True)
+
+            return transpiled_circuit
+        finally:
+            self.target.num_qubits = orig
+
+    def _build_transpile_options(self, **kwargs) -> Dict[str, Any]:
+        params: Dict[str, Any] = vars(self._transpile_options).copy()
+        for opt in kwargs.copy():
+            params[opt] = kwargs.pop(opt)
+        return params
+
+    def _build_qasm_export_options(self, kwargs) -> Dict[str, Any]:
+        # Disable aliasing until we decide want to support it
+        # The exporter defaults to only having the U gate.
+        # When it sees the stdgates.inc in the default includes list, it adds
+        # bodyless symbols for that fixed gate set.
+        # We set the basis gates for any gates that we want that wouldn't
+        # be defined when stdgates.inc is included.
+
+        includes = kwargs.pop("includes", ("stdgates.inc",))
+        alias_classical_registers = kwargs.pop("alias_classical_registers", False)
+        allow_aliasing = kwargs.pop("allow_aliasing", False)
+        disable_constants = kwargs.pop("disable_constants", True)
+        basis_gates = kwargs.pop("basis_gates", ["rxx", "ryy", "rzz"])
+
+        return {
+            "includes": includes,
+            "alias_classical_registers": alias_classical_registers,
+            "allow_aliasing": allow_aliasing,
+            "disable_constants": disable_constants,
+            "basis_gates": basis_gates,
+        }
+
+    def transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
+        transpile_options = filter_kwargs(transpile, options)
+        transpile_options = self._build_transpile_options(**transpile_options)
+        transpiled_circuit = self._transpile(circuit, **transpile_options)
+        return transpiled_circuit
+
+    def qasm3(self, circuit: QuantumCircuit, **options) -> str:
+        export_options = self._build_qasm_export_options(options)
+        transpiled_circuit = self.transpile(circuit, **options)
+
+        exporter = Exporter(**export_options)
+        qasm3_source = exporter.dumps(transpiled_circuit)
+        return qasm3_source
+
+    def qir(
+        self,
+        circuit: QuantumCircuit,
+        target_profile: Optional[TargetProfile] = None,
+        entry_expr: Optional[str] = None,
+        search_path: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        """
+        Converts a Qiskit QuantumCircuit to QIR (Quantum Intermediate Representation).
+
+        Args:
+            circuit ('QuantumCircuit'): The input Qiskit QuantumCircuit object.
+            target_profile (TargetProfile, optional): The target profile for the backend. Defaults to backend config value.
+            entry_expr (str, optional): The entry expression for the QIR conversion. Defaults to None.
+            search_path (str, optional): The search path for the backend. Defaults to '.'.
+
+        Returns:
+            str: The converted QIR code as a string.
+        """
+        target_profile = target_profile or self.options.target_profile
+
+        qasm3_source = self.qasm3(circuit, **kwargs)
+        return self._qir(
+            qasm3_source, circuit.name, target_profile, entry_expr, search_path
+        )
+
+    def _qir(
+        self,
+        source: str,
+        name: str,
+        target_profile: TargetProfile = TargetProfile.Base,
+        entry_expr: Optional[str] = None,
+        search_path: Optional[str] = None,
+    ) -> str:
+        from ...._native import compile_qasm3_to_qir
+        from ...._fs import read_file, list_directory, resolve
+        from ...._http import fetch_github
+
+        return compile_qasm3_to_qir(
+            source,
+            name,
+            target_profile,
+            entry_expr,
+            search_path,
+            read_file,
+            list_directory,
+            resolve,
+            fetch_github,
+        )

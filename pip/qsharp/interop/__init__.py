@@ -13,19 +13,19 @@ def _test_qiskit_import() -> bool:
 
 if _test_qiskit_import():
     from .qiskit import (
-        convert_qiskit_to_qir,
+        QSharpSimulator,
         QsJob,
         ReJob,
         ReSimulator,
-        QSharpSimulator,
+        SynchronousExecutor,
     )
 
     __all__ = [
-        "convert_qiskit_to_qir",
+        "QSharpSimulator",
         "QsJob",
         "ReJob",
         "ReSimulator",
-        "QSharpSimulator",
+        "SynchronousExecutor",
     ]
 else:
     __all__ = []

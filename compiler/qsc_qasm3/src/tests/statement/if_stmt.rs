@@ -40,6 +40,39 @@ fn can_use_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<Report>> 
     Ok(())
 }
 
+#[test]
+fn can_use_negated_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit q;
+
+        h q;
+        bit result = measure q;
+        if (!result) {
+            reset q;
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![
+        r#"
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        H(q);
+        mutable result = M(q);
+        if not if Microsoft.Quantum.Convert.ResultAsBool(result) {
+            true
+        } else {
+            false
+        }
+        {
+            Reset(q);
+        };
+        "#
+    ]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
 /// <https://openqasm.com/language/classical.html#if-else-statements>
 /// Both true-body and false-body can be a single statement terminated
 /// by a semicolon, or a program block of several statements { stmt1; stmt2; }.

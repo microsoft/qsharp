@@ -8,8 +8,6 @@ from .. import QISKIT_AVAILABLE
 
 if QISKIT_AVAILABLE:
     from qiskit.circuit.random import random_circuit
-
-    from qsharp.interop.qiskit.utils import _transpile
     from qsharp.interop import QSharpSimulator
 
 
@@ -28,7 +26,7 @@ def _generate_random_fixture(
             raise ValueError(f"Unsupported QIR profile: {target_profile}")
 
         backend = QSharpSimulator(target_profile=target_profile)
-        circuit = _transpile(circuit, backend)
+        circuit = backend.transpile(circuit)
         circuit.name = name
         return circuit
 

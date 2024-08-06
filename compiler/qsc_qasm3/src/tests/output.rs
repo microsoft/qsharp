@@ -14,6 +14,57 @@ use miette::Report;
 use super::compile_qasm_to_qir;
 
 #[test]
+fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        OPENQASM 3.0;
+        include "stdgates.inc";
+        output bit[2] c;
+        qubit[2] q;
+        input float[64] theta;
+        input int[64] beta;
+        output float[64] gamma;
+        output float[64] delta;
+        rz(theta) q[0];
+        h q[0];
+        cx q[0], q[1];
+        barrier q[0], q[1];
+        c[0] = measure q[0];
+        c[1] = measure q[1];
+    "#;
+
+    let res = parse(source)?;
+    assert!(!res.has_errors());
+    let unit = qasm_to_program_with_semantics(
+        res.source,
+        res.source_map,
+        QubitSemantics::Qiskit,
+        ProgramType::File("OutputTest".to_string()),
+        OutputSemantics::ResourceEstimation,
+    );
+    fail_on_compilation_errors(&unit);
+    let qsharp = gen_qsharp(&unit.package.expect("no package found"));
+    expect![
+        r#"
+        namespace qasm3_import {
+            operation OutputTest(theta : Double, beta : Int) : Unit {
+                mutable c = [Zero, Zero];
+                let q = QIR.Runtime.AllocateQubitArray(2);
+                mutable gamma = 0.;
+                mutable delta = 0.;
+                Rz(theta, q[0]);
+                H(q[0]);
+                CNOT(q[0], q[1]);
+                set c w/= 0 <- M(q[0]);
+                set c w/= 1 <- M(q[1]);
+            }
+        }"#
+    ]
+    .assert_eq(&qsharp);
+
+    Ok(())
+}
+
+#[test]
 fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Result<(), Vec<Report>>
 {
     let source = r#"

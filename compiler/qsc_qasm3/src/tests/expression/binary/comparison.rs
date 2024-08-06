@@ -255,12 +255,12 @@ fn bool_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
                 mutable y = false;
                 mutable a = (x and y);
                 mutable b = (x or y);
-                mutable c = (~~~x and ~~~y);
-                mutable d = (~~~x or ~~~y);
-                mutable e = (~~~x and y);
-                mutable f = (~~~x or y);
-                mutable g = (x and ~~~y);
-                mutable h = (x or ~~~y);
+                mutable c = (not x and not y);
+                mutable d = (not x or not y);
+                mutable e = (not x and y);
+                mutable f = (not x or y);
+                mutable g = (x and not y);
+                mutable h = (x or not y);
                 (x, y, a, b, c, d, e, f, g, h)
             }
         }"#

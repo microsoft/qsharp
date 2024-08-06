@@ -5,9 +5,9 @@ import pytest
 from qsharp import TargetProfile
 
 from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
+from qsharp.interop.qiskit.backends import QSharpSimulator
 
 if QISKIT_AVAILABLE:
-    from qsharp.interop import convert_qiskit_to_qir
     from .test_circuits import core_tests, generate_repro_information
 else:
     core_tests = []
@@ -23,7 +23,8 @@ def test_random(circuit_name: str, request):
         target_profile = TargetProfile.Adaptive_RI
 
     try:
-        qir = convert_qiskit_to_qir(circuit, target_profile)
+        backend = QSharpSimulator(target_profile=target_profile)
+        qir = backend.qir(circuit)
         assert qir is not None
     except AssertionError:
         raise

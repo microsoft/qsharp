@@ -4,13 +4,14 @@
 from collections import Counter
 from concurrent.futures import Executor
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Options
+from qiskit.transpiler.target import Target
 from .... import Result, TargetProfile
-from ..utils import SynchronousExecutor
+from ..execution import SynchronousExecutor
 from ..jobs import QsSimJob
 from .qsbackend import QsBackend
 
@@ -45,7 +46,9 @@ class QSharpSimulator(QsBackend):
     # pylint: disable=useless-parent-delegation
     def __init__(
         self,
-        target=None,
+        target: Optional[Target] = None,
+        transpile_options: Optional[Dict[str, Any]] = None,
+        skip_transpilation: bool = False,
         **fields,
     ):
         """
@@ -64,7 +67,7 @@ class QSharpSimulator(QsBackend):
                   The executor to be used to submit the job. Defaults to SynchronousExecutor.
         """
 
-        super().__init__(target, **fields)
+        super().__init__(target, transpile_options, skip_transpilation, **fields)
 
     @classmethod
     def _default_options(cls):
@@ -76,8 +79,6 @@ class QSharpSimulator(QsBackend):
             output_fn=None,
             target_profile=TargetProfile.Unrestricted,
             executor=SynchronousExecutor(),
-            supports_barrier=False,
-            supports_delay=False,
         )
 
     def run(

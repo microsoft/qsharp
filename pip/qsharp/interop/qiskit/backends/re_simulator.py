@@ -9,11 +9,11 @@ from uuid import uuid4
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Options
-
+from qiskit.transpiler.target import Target
 
 from .qsbackend import QsBackend
 from ..jobs import ReJob
-from ..utils import SynchronousExecutor
+from ..execution import SynchronousExecutor
 from ...._fs import read_file, list_directory, resolve
 from ...._http import fetch_github
 from ...._native import resource_estimate_qasm3
@@ -36,7 +36,9 @@ class ReSimulator(QsBackend):
     # pylint: disable=useless-parent-delegation
     def __init__(
         self,
-        target=None,
+        target: Optional[Target] = None,
+        transpile_options: Optional[Dict[str, Any]] = None,
+        skip_transpilation: bool = False,
         **fields,
     ):
         """
@@ -52,7 +54,7 @@ class ReSimulator(QsBackend):
                         The executor to be used to submit the job. Defaults to SynchronousExecutor.
         """
 
-        super().__init__(target, **fields)
+        super().__init__(target, transpile_options, skip_transpilation, **fields)
 
     @classmethod
     def _default_options(cls):
@@ -62,8 +64,6 @@ class ReSimulator(QsBackend):
             search_path=".",
             target_profile=TargetProfile.Unrestricted,
             executor=SynchronousExecutor(),
-            supports_barrier=False,
-            supports_delay=False,
         )
 
     def run(

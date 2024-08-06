@@ -42,9 +42,9 @@ fn to_bool_implicitly() -> miette::Result<(), Vec<Report>> {
         r#"
         mutable x = 42;
         mutable y = if x == 0 {
-            true
-        } else {
             false
+        } else {
+            true
         };
     "#
     ]

@@ -1863,7 +1863,8 @@ impl QasmCompiler {
                     None
                 }
             },
-            Some(UnaryOp::Not) => {
+            Some(UnaryOp::LogicNot) => {
+                // bug in QASM parser, logical not and bitwise not are backwards
                 if let Some(prefix) = prefix_expr.expr() {
                     let texpr = self.compile_expr(&prefix)?;
                     let expr = build_unary_op_expr(ast::UnOp::NotB, texpr.expr, prefix_span);
@@ -1877,19 +1878,17 @@ impl QasmCompiler {
                     None
                 }
             }
-            Some(UnaryOp::LogicNot) => {
-                if let Some(prefix) = prefix_expr.expr() {
-                    let texpr = self.compile_expr(&prefix)?;
-                    let expr = build_unary_op_expr(ast::UnOp::NotL, texpr.expr, prefix_span);
-                    let ty = texpr.ty;
-                    Some(QasmTypedExpr { ty, expr })
-                } else {
-                    self.push_unimplemented_error_message(
-                        "logical not empty expressions",
-                        prefix_expr.syntax(),
-                    );
-                    None
-                }
+            Some(UnaryOp::Not) => {
+                // bug in QASM parser, logical not and bitwise not are backwards
+                // THIS CODE IS FOR LOGICAL NOT
+                let ty = Type::Bool(IsConst::False);
+                let expr = self.resolve_rhs_expr_with_casts(
+                    prefix_expr.expr(),
+                    &ty,
+                    prefix_expr.syntax(),
+                )?;
+                let expr = build_unary_op_expr(ast::UnOp::NotL, expr, prefix_span);
+                Some(QasmTypedExpr { ty, expr })
             }
             None => None,
         }
@@ -3045,8 +3044,8 @@ impl QasmCompiler {
                 );
                 let coerce_expr = build_if_expr_then_expr_else_expr(
                     cond,
-                    build_lit_bool_expr(true, rhs.expr.span),
                     build_lit_bool_expr(false, rhs.expr.span),
+                    build_lit_bool_expr(true, rhs.expr.span),
                     rhs.expr.span,
                 );
                 Some(QasmTypedExpr {
@@ -3338,8 +3337,8 @@ fn cast_int_expr_to_type(ty: &Type, rhs: &QasmTypedExpr) -> Option<QasmTypedExpr
             );
             let coerce_expr = build_if_expr_then_expr_else_expr(
                 cond,
-                build_lit_bool_expr(true, rhs.expr.span),
                 build_lit_bool_expr(false, rhs.expr.span),
+                build_lit_bool_expr(true, rhs.expr.span),
                 rhs.expr.span,
             );
             Some(QasmTypedExpr {
@@ -3450,7 +3449,10 @@ fn create_entry_item<S: AsRef<str>>(
     output_semantics: OutputSemantics,
 ) -> ast::Item {
     let mut stmts = stmts;
-    let output_ty = if let Some(output) = output {
+    let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
+        // we have no output, but need to set the entry point return type
+        crate::types::Type::Tuple(vec![])
+    } else if let Some(output) = output {
         let is_qiskit = matches!(output_semantics, OutputSemantics::Qiskit);
         let output_exprs = if is_qiskit {
             output
