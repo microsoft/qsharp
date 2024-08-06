@@ -134,7 +134,7 @@ impl DensityMatrix {
     /// Returns a copy of the matrix data.
     fn data(&self) -> Vec<Vec<Complex<f64>>> {
         let mut density_matrix = Vec::with_capacity(self.dimension);
-        for row in 0..dimension {
+        for row in 0..self.dimension {
             let mut row_vec = Vec::with_capacity(self.dimension);
             for col in 0..self.dimension {
                 row_vec.push(self.data[row * self.dimension + col]);
