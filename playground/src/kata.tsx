@@ -6,6 +6,7 @@ import { QscEventTarget } from "qsharp-lang";
 import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { Markdown } from "qsharp-lang/ux";
+import { Viewer } from "./viewer.js";
 
 import type {
   CompilerState,
@@ -93,11 +94,7 @@ function LessonElem(props: Props & { section: KataSection }) {
         {lesson.items.map((item) => {
           switch (item.type) {
             case "example":
-              return (
-                <pre>
-                  <code>{item.code}</code>
-                </pre>
-              );
+              return <Viewer code={item.code}></Viewer>;
             case "text-content":
               return <Markdown markdown={item.content}></Markdown>;
             case "question":

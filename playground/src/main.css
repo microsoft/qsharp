@@ -7,3 +7,13 @@ pre:has(code) {
   margin: 5px 0px 5px 0px;
   padding: 0em 0em 0em 0.5em;
 }
+.viewer-column {
+  grid-area: editor;
+  margin: 16px;
+  margin-top: 32px;
+}
+.example-viewer {
+  height: 40vh;
+  min-height: 400px;
+  border: 1px solid var(--border-color);
+}
