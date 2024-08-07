@@ -1612,10 +1612,6 @@ impl Idents {
         buf.push(other);
         Self(buf.into_boxed_slice())
     }
-
-    fn into_vec_deque(self) -> std::collections::VecDeque<Ident> {
-        self.0.into_vec().into()
-    }
 }
 
 impl Default for Ident {
@@ -1971,37 +1967,6 @@ impl ImportOrExportItem {
         match self.alias {
             Some(ref alias) => alias,
             None => &self.path.name,
-        }
-    }
-
-    #[must_use]
-    /// Constructs an [`ImportOrExportItem`] that is equivalent to an open, i.e., a glob import.
-    pub fn new_open(name: Idents, alias: Option<Box<Ident>>) -> Self {
-        let span = name.span();
-
-        let mut path_iter: std::collections::VecDeque<Ident> = name.into_vec_deque();
-
-        let name = path_iter
-            .pop_back()
-            .expect("invariant: names always have at least one item");
-
-        let path = Path {
-            id: NodeId::default(),
-            span,
-            segments: if path_iter.is_empty() {
-                None
-            } else {
-                Some(Idents(
-                    path_iter.into_iter().collect::<Vec<_>>().into_boxed_slice(),
-                ))
-            },
-            name: name.into(),
-        };
-
-        Self {
-            path,
-            alias: alias.map(|x| *x),
-            is_glob: true,
         }
     }
 }
