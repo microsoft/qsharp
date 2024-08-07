@@ -23,9 +23,6 @@ use rustc_hash::FxHashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
-type NamespaceName = Vec<Rc<str>>;
-type NamespaceAlias = Rc<str>;
-
 #[derive(Debug)]
 struct ImportItem {
     path: Vec<Rc<str>>,
@@ -458,7 +455,7 @@ impl CompletionListBuilder {
     }
 
     #[allow(clippy::too_many_lines)]
-    /// Get all callables in a package and return them as completion items, with a sort priority
+    /// Get all callables in a package and return them as completion items, with a sort priority.
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
@@ -486,6 +483,8 @@ impl CompletionListBuilder {
 
         let is_user_package = compilation.user_package_id == package_id;
 
+        // Given the package, get all completion items by iterating over its items
+        // and converting any that would be valid as completions into completions
         let res = package
             .items
             .values()
@@ -518,7 +517,7 @@ impl CompletionListBuilder {
                 let name = callable_decl.name.name.as_ref();
                 let detail = Some(display.hir_callable_decl(callable_decl).to_string());
                 // Everything that starts with a __ goes last in the list
-                let sort_group = u32::from(name.starts_with("__"));
+                let sort_group = SortPriority::from(name.starts_with("__"));
                 Some((
                     CompletionItem {
                         label: name.to_string(),
@@ -747,19 +746,6 @@ fn package_item_to_completion_item(
                     }
                 }
 
-                /*
-                // ignore item if the user is not in the item's namespace
-                match &current_namespace_name {
-                Some(curr_ns) => {
-                if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
-                return None;
-                }
-                }
-                None => {
-                return None;
-                }
-                }
-                */
                 return match &i.kind {
                     ItemKind::Callable(callable_decl) => {
                         return callable_decl_to_completion_item(
