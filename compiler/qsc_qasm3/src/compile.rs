@@ -2853,7 +2853,7 @@ impl QasmCompiler {
         let stmts = self.drain_nodes().collect::<Vec<_>>();
         let input = self.symbols.get_input();
         let output = self.symbols.get_output();
-        create_entry_item(
+        self.create_entry_item(
             name,
             stmts,
             input,
@@ -3043,6 +3043,91 @@ impl QasmCompiler {
             }
             _ => None,
         }
+    }
+
+    fn create_entry_item<S: AsRef<str>>(
+        &mut self,
+        name: S,
+        stmts: Vec<ast::Stmt>,
+        input: Option<Vec<Symbol>>,
+        output: Option<Vec<Symbol>>,
+        whole_span: Span,
+        output_semantics: OutputSemantics,
+    ) -> ast::Item {
+        let mut stmts = stmts;
+        let is_qiskit = matches!(output_semantics, OutputSemantics::Qiskit);
+        let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
+            // we have no output, but need to set the entry point return type
+            crate::types::Type::Tuple(vec![])
+        } else if let Some(output) = output {
+            let output_exprs = if is_qiskit {
+                output
+                    .iter()
+                    .rev()
+                    .filter(|symbol| matches!(symbol.ty, Type::BitArray(..)))
+                    .map(|symbol| {
+                        let ident =
+                            build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
+
+                        build_array_reverse_expr(ident)
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                output
+                    .iter()
+                    .map(|symbol| {
+                        build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span)
+                    })
+                    .collect::<Vec<_>>()
+            };
+            // this is the output whether it is inferred or explicitly defined
+            // map the output symbols into a return statement, add it to the nodes list,
+            // and get the entry point return type
+            let output_types = if is_qiskit {
+                output
+                    .iter()
+                    .rev()
+                    .filter(|symbol| matches!(symbol.ty, Type::BitArray(..)))
+                    .map(|symbol| symbol.qsharp_ty.clone())
+                    .collect::<Vec<_>>()
+            } else {
+                output
+                    .iter()
+                    .map(|symbol| symbol.qsharp_ty.clone())
+                    .collect::<Vec<_>>()
+            };
+
+            let (output_ty, output_expr) = if output_types.len() == 1 {
+                (output_types[0].clone(), output_exprs[0].clone())
+            } else {
+                let output_ty = crate::types::Type::Tuple(output_types);
+                let output_expr = build_tuple_expr(output_exprs);
+                (output_ty, output_expr)
+            };
+
+            let return_stmt = build_implicit_return_stmt(output_expr);
+            stmts.push(return_stmt);
+            output_ty
+        } else {
+            if is_qiskit {
+                let kind = SemanticErrorKind::QiskitEntryPointMissingOutput(whole_span);
+                self.push_semantic_error(kind);
+            }
+            crate::types::Type::Tuple(vec![])
+        };
+
+        let ast_ty = map_qsharp_type_to_ast_ty(output_ty);
+        // TODO: This can create a collision on multiple compiles when interactive
+        // We also have issues with the new entry point inference logic
+        let input_pats = input
+            .into_iter()
+            .flat_map(|s| {
+                s.into_iter()
+                    .map(|s| build_arg_pat(s.name, s.span, map_qsharp_type_to_ast_ty(s.qsharp_ty)))
+            })
+            .collect::<Vec<_>>();
+
+        build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span)
     }
 }
 
@@ -3430,87 +3515,6 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
         }
     }
     None
-}
-
-fn create_entry_item<S: AsRef<str>>(
-    name: S,
-    stmts: Vec<ast::Stmt>,
-    input: Option<Vec<Symbol>>,
-    output: Option<Vec<Symbol>>,
-    whole_span: Span,
-    output_semantics: OutputSemantics,
-) -> ast::Item {
-    let mut stmts = stmts;
-    let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
-        // we have no output, but need to set the entry point return type
-        crate::types::Type::Tuple(vec![])
-    } else if let Some(output) = output {
-        let is_qiskit = matches!(output_semantics, OutputSemantics::Qiskit);
-        let output_exprs = if is_qiskit {
-            output
-                .iter()
-                .rev()
-                .filter(|symbol| matches!(symbol.ty, Type::BitArray(..)))
-                .map(|symbol| {
-                    let ident =
-                        build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
-
-                    build_array_reverse_expr(ident)
-                })
-                .collect::<Vec<_>>()
-        } else {
-            output
-                .iter()
-                .map(|symbol| build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span))
-                .collect::<Vec<_>>()
-        };
-        // this is the output whether it is inferred or explicitly defined
-        // map the output symbols into a return statement, add it to the nodes list,
-        // and get the entry point return type
-        let output_types = if is_qiskit {
-            output
-                .iter()
-                .rev()
-                .filter(|symbol| matches!(symbol.ty, Type::BitArray(..)))
-                .map(|symbol| symbol.qsharp_ty.clone())
-                .collect::<Vec<_>>()
-        } else {
-            output
-                .iter()
-                .map(|symbol| symbol.qsharp_ty.clone())
-                .collect::<Vec<_>>()
-        };
-
-        let (output_ty, output_expr) = if output_types.len() == 1 {
-            (output_types[0].clone(), output_exprs[0].clone())
-        } else {
-            let output_ty = crate::types::Type::Tuple(output_types);
-            let output_expr = build_tuple_expr(output_exprs);
-            (output_ty, output_expr)
-        };
-
-        let return_stmt = build_implicit_return_stmt(output_expr);
-        stmts.push(return_stmt);
-        output_ty
-    } else {
-        // we have no output
-        // don't need to add any statements, but need to set the entry point
-        // return type
-        crate::types::Type::Tuple(vec![])
-    };
-
-    let ast_ty = map_qsharp_type_to_ast_ty(output_ty);
-    // TODO: This can create a collision on multiple compiles when interactive
-    // We also have issues with the new entry point inference logic
-    let input_pats = input
-        .into_iter()
-        .flat_map(|s| {
-            s.into_iter()
-                .map(|s| build_arg_pat(s.name, s.span, map_qsharp_type_to_ast_ty(s.qsharp_ty)))
-        })
-        .collect::<Vec<_>>();
-
-    build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span)
 }
 
 fn compile_bitstring(bitstring: &BitString, span: Span) -> Option<QasmTypedExpr> {

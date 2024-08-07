@@ -56,7 +56,7 @@ from qiskit.qasm3.exporter import Exporter
 from qiskit.providers import BackendV2, Options
 from qiskit.result import Result
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import RemoveBarriers
+from qiskit.transpiler.passes import RemoveBarriers, RemoveResetInZeroState
 from qiskit.transpiler.target import Target
 
 from ..jobs import QsJob
@@ -67,13 +67,13 @@ from .... import QSharpError, TargetProfile
 logger = logging.getLogger(__name__)
 
 
-def filter_kwargs(func, kwargs):
+def filter_kwargs(func, **kwargs):
     import inspect
 
     sig = inspect.signature(func)
     supported_args = set(sig.parameters.keys())
     extracted_kwargs = {
-        k: kwargs.pop(k) for k in list(kwargs.keys()) if k in supported_args
+        k: kwargs.get(k) for k in list(kwargs.keys()) if k in supported_args
     }
     return extracted_kwargs
 
@@ -105,7 +105,11 @@ class QsBackend(BackendV2, ABC):
         if fields is not None:
             self.set_options(**fields)
 
-        self._transpile_options = Options(supports_barrier=False, supports_delay=False)
+        self._transpile_options = Options(
+            supports_barrier=False,
+            supports_delay=False,
+            remove_reset_in_zero_state=True,
+        )
         self._skip_transpilation = skip_transpilation
 
         # we need to set the target after the options are set
@@ -117,6 +121,7 @@ class QsBackend(BackendV2, ABC):
                 **{
                     "supports_barrier": target.instruction_supported("barrier"),
                     "supports_delay": target.instruction_supported("delay"),
+                    "remove_reset_in_zero_state": True,
                 }
             )
 
@@ -283,11 +288,19 @@ class QsBackend(BackendV2, ABC):
 
         remove_barriers = not options.pop("supports_barrier", False)
         remove_delays = not options.pop("supports_delay", False)
+        remove_reset_in_zero_state = options.pop("remove_reset_in_zero_state", True)
         pass_manager = PassManager()
         if remove_barriers:
             pass_manager.append(RemoveBarriers())
         if remove_delays:
             pass_manager.append(RemoveRemoveDelays())
+        if remove_reset_in_zero_state:
+            # when doing state initialization, qiskit will reset all qubits to 0
+            # As our semantics are different, we can remove these resets
+            # as it will double the number of qubits if we have to reset them
+            # before using them when using the base profile.
+            pass_manager.append(RemoveResetInZeroState())
+
         circuit = pass_manager.run(circuit)
 
         if "optimization_level" not in options:
@@ -313,8 +326,9 @@ class QsBackend(BackendV2, ABC):
 
     def _build_transpile_options(self, **kwargs) -> Dict[str, Any]:
         params: Dict[str, Any] = vars(self._transpile_options).copy()
-        for opt in kwargs.copy():
-            params[opt] = kwargs.pop(opt)
+        for opt in params.copy():
+            if opt in kwargs:
+                params[opt] = kwargs.pop(opt)
         return params
 
     def _build_qasm_export_options(self, kwargs) -> Dict[str, Any]:
@@ -340,8 +354,9 @@ class QsBackend(BackendV2, ABC):
         }
 
     def transpile(self, circuit: QuantumCircuit, **options) -> QuantumCircuit:
-        transpile_options = filter_kwargs(transpile, options)
-        transpile_options = self._build_transpile_options(**transpile_options)
+        transpile_options = filter_kwargs(transpile, **options)
+        pass_options = self._build_transpile_options(**options)
+        transpile_options.update(pass_options)
         transpiled_circuit = self._transpile(circuit, **transpile_options)
         return transpiled_circuit
 

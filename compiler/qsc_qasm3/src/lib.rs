@@ -182,6 +182,9 @@ enum SemanticErrorKind {
     #[error("Pow gate modifiers must have an exponent.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.PowModifierMustHaveExponent"))]
     PowModifierMustHaveExponent(#[label] Span),
+    #[error("Qiskit circuits must have output registers.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.QiskitEntryPointMissingOutput"))]
+    QiskitEntryPointMissingOutput(#[label] Span),
     #[error("Quantum declarations must be done in global scope.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.QuantumDeclarationInNonGlobalScope"))]
     QuantumDeclarationInNonGlobalScope(#[label] Span),
@@ -293,6 +296,9 @@ impl SemanticErrorKind {
             }
             Self::PowModifierMustHaveExponent(span) => {
                 Self::PowModifierMustHaveExponent(span + offset)
+            }
+            Self::QiskitEntryPointMissingOutput(span) => {
+                Self::QiskitEntryPointMissingOutput(span + offset)
             }
             Self::QuantumDeclarationInNonGlobalScope(span) => {
                 Self::QuantumDeclarationInNonGlobalScope(span + offset)

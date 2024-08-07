@@ -65,3 +65,7 @@ pub mod circuit {
 pub mod parse {
     pub use qsc_parse::top_level_nodes;
 }
+
+pub mod partial_eval {
+    pub use qsc_partial_eval::Error;
+}

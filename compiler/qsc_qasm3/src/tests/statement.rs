@@ -8,4 +8,5 @@ mod if_stmt;
 mod implicit_modified_gate_call;
 mod measure;
 mod modified_gate_call;
+mod reset;
 mod while_loop;

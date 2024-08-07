@@ -6,6 +6,7 @@
 use crate::tests::{compile_qasm_to_qir, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
+use qsc::target::Profile;
 
 #[test]
 fn x_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
@@ -72,14 +73,16 @@ fn barrier_can_be_called_without_qubits() -> miette::Result<(), Vec<Report>> {
 fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
+        bit[1] c;
         qubit[2] q;
         barrier q[0], q[1];
         barrier q[0];
         barrier;
         barrier q[0], q[1], q[0];
+        c[0] = measure q[0];
     "#;
 
-    let qsharp = compile_qasm_to_qir(source)?;
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![
         r#"
         %Result = type opaque
@@ -91,15 +94,21 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__barrier__body()
-          call void @__quantum__rt__tuple_record_output(i64 0, i8* null)
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__rt__array_record_output(i64 1, i8* null)
+          call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           ret void
         }
 
         declare void @__quantum__qis__barrier__body()
 
-        declare void @__quantum__rt__tuple_record_output(i64, i8*)
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
-        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="0" }
+        declare void @__quantum__rt__array_record_output(i64, i8*)
+
+        declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="1" }
         attributes #1 = { "irreversible" }
 
         ; module flags

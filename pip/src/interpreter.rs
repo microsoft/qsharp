@@ -332,21 +332,23 @@ create_exception!(
 pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
-        .map(|e| {
-            let mut message = String::new();
-            if let Some(stack_trace) = e.stack_trace() {
-                write!(message, "{stack_trace}").unwrap();
-            }
-            let additional_help = python_help(&e);
-            let report = Report::new(e.clone());
-            write!(message, "{report:?}")
-                .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
-            if let Some(additional_help) = additional_help {
-                writeln!(message, "{additional_help}").unwrap();
-            }
-            message
-        })
+        .map(|e| format_error(&e))
         .collect::<String>()
+}
+
+pub(crate) fn format_error(e: &interpret::Error) -> String {
+    let mut message = String::new();
+    if let Some(stack_trace) = e.stack_trace() {
+        write!(message, "{stack_trace}").unwrap();
+    }
+    let additional_help = python_help(&e);
+    let report = Report::new(e.clone());
+    write!(message, "{report:?}")
+        .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
+    if let Some(additional_help) = additional_help {
+        writeln!(message, "{additional_help}").unwrap();
+    }
+    message
 }
 
 /// Additional help text for an error specific to the Python module

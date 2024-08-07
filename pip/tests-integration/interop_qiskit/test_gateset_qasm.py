@@ -30,7 +30,11 @@ def run_transpile_test(
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_reset_instruction_transpiles() -> None:
-    run_transpile_test(lambda circuit: circuit.reset(1), "reset q[1];")
+    run_transpile_test(
+        lambda circuit: circuit.reset(1),
+        "reset q[1];",
+        remove_reset_in_zero_state=False,
+    )
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

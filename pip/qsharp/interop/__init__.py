@@ -13,6 +13,7 @@ def _test_qiskit_import() -> bool:
 
 if _test_qiskit_import():
     from .qiskit import (
+        QasmError,
         QSharpSimulator,
         QsJob,
         ReJob,
@@ -21,6 +22,7 @@ if _test_qiskit_import():
     )
 
     __all__ = [
+        "QasmError",
         "QSharpSimulator",
         "QsJob",
         "ReJob",

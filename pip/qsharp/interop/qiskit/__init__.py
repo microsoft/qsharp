@@ -4,3 +4,4 @@
 from .backends import QSharpSimulator, ReSimulator
 from .jobs import QsJob, QsSimJob, ReJob
 from .execution import SynchronousExecutor
+from ..._native import QasmError

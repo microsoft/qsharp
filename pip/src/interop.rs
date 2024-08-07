@@ -8,13 +8,12 @@ use std::fmt::Write;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use qsc::compile::ErrorKind;
-use qsc::interpret::into_errors;
 use qsc::interpret::output::Receiver;
+use qsc::interpret::{into_errors, Interpreter};
 use qsc::target::Profile;
 use qsc::{
     ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures,
-    PackageStore, SourceMap, TargetCapabilityFlags,
+    PackageStore, SourceMap,
 };
 use qsc::{Backend, PackageType, SparseSim};
 use qsc_qasm3::io::SourceResolver;
@@ -22,7 +21,8 @@ use qsc_qasm3::{OutputSemantics, ProgramType};
 
 use crate::fs::file_system;
 use crate::interpreter::{
-    format_errors, OptionalCallbackReceiver, QSharpError, QasmError, TargetProfile, ValueWrapper,
+    format_error, format_errors, OptionalCallbackReceiver, QSharpError, QasmError, TargetProfile,
+    ValueWrapper,
 };
 
 use resource_estimator::{self as re};
@@ -161,35 +161,13 @@ fn run_ast(
     shots: usize,
     seed: Option<u64>,
 ) -> Result<Vec<qsc::interpret::Value>, Vec<interpret::Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
-
-    let (package_type, capabilities) = (PackageType::Exe, profile.into());
-
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
-    let (mut unit, errors) = qsc::compile::compile_ast(
-        &store,
-        &dependencies,
+    let mut interpreter = create_interpreter_from_ast(
         ast_package,
         source_map,
-        package_type,
-        capabilities,
-    );
-    unit.expose();
-    if !errors.is_empty() {
-        return Err(into_errors(errors));
-    }
-
-    let source_package_id = store.insert(unit);
-
-    let mut interpreter = interpret::Interpreter::from(
-        store,
-        source_package_id,
-        capabilities,
+        profile,
         language_features,
-        &dependencies,
+        PackageType::Exe,
     )?;
-
     let mut results = Vec::with_capacity(shots);
     for i in 0..shots {
         let mut sim = SparseSim::new();
@@ -361,47 +339,66 @@ pub(crate) fn compile_qasm3_to_qir(
         return Err(QasmError::new_err("package should have had value"));
     };
 
-    generate_qir_from_ast(entry_expr, package, source_map, target, language_features)
-        .map_err(|errors| QSharpError::new_err(format_errors(errors)))
+    let mut interpreter = create_interpreter_from_ast(
+        package,
+        source_map,
+        target,
+        language_features,
+        PackageType::Lib,
+    )
+    .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
+
+    generate_qir_from_ast(entry_expr, &mut interpreter)
 }
 
 fn generate_qir_from_ast<S: AsRef<str>>(
     entry_expr: S,
-    ast_package: Package,
-    source_map: SourceMap,
-    profile: Profile,
-    language_features: LanguageFeatures,
-) -> Result<String, Vec<interpret::Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
+    interpreter: &mut Interpreter,
+) -> PyResult<String> {
+    interpreter
+        .qirgen(entry_expr.as_ref())
+        .map_err(map_qirgen_errors)
+}
 
-    let (package_type, capabilities) = (PackageType::Lib, profile.into());
+fn map_qirgen_errors(errors: Vec<interpret::Error>) -> PyErr {
+    let mut semantic = vec![];
+    for error in errors {
+        match &error {
+            interpret::Error::Compile(_) => {
+                // We've gotten this far with no compilation errors, so if we get one here
+                // then the entry expression is invalid.
+                let mut message = format_error(&error);
+                writeln!(message, "entry point could not compiled.").unwrap();
+                writeln!(
+                    message,
+                    "  help: check that the parameter types match the entry point signature"
+                )
+                .unwrap();
 
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
-    let (mut unit, errors) = qsc::compile::compile_ast(
-        &store,
-        &dependencies,
-        ast_package,
-        source_map,
-        package_type,
-        capabilities,
-    );
+                semantic.push(message);
+            }
+            interpret::Error::PartialEvaluation(pe) => match pe.error() {
+                qsc::partial_eval::Error::OutputResultLiteral(..) => {
+                    let mut message = format_error(&error);
+                    writeln!(
+                        message,
+                        "  help: ensure all output registers have been measured into."
+                    )
+                    .unwrap();
 
-    if !errors.is_empty() {
-        return Err(into_errors(errors));
+                    semantic.push(message);
+                }
+                _ => {
+                    semantic.push(format_error(&error));
+                }
+            },
+            _ => {
+                semantic.push(format_error(&error));
+            }
+        }
     }
-
-    unit.expose();
-    let source_package_id = store.insert(unit);
-
-    let mut interpreter = interpret::Interpreter::from(
-        store,
-        source_package_id,
-        capabilities,
-        language_features,
-        &dependencies,
-    )?;
-    interpreter.qirgen(entry_expr.as_ref())
+    let message = semantic.into_iter().collect::<String>();
+    QSharpError::new_err(message)
 }
 
 fn estimate_qasm3(
@@ -409,47 +406,16 @@ fn estimate_qasm3(
     source_map: SourceMap,
     params: &str,
 ) -> Result<String, Vec<resource_estimator::Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
-
-    let (package_type, capabilities) = (qsc::PackageType::Exe, TargetCapabilityFlags::all());
-
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
-    let (mut unit, errors) = qsc::compile::compile_ast(
-        &store,
-        &dependencies,
+    let mut interpreter = create_interpreter_from_ast(
         ast_package,
         source_map,
-        package_type,
-        capabilities,
-    );
-    unit.expose();
-    if !errors.is_empty() {
-        return Err(map_compile_errors_to_estimation_errors(errors));
-    }
-
-    let package_id = store.insert(unit);
-
-    let mut interpreter = interpret::Interpreter::from(
-        store,
-        package_id,
-        capabilities,
-        LanguageFeatures::empty(),
-        &dependencies,
+        Profile::Unrestricted,
+        LanguageFeatures::default(),
+        PackageType::Exe,
     )
     .map_err(into_estimation_errors)?;
-    resource_estimator::estimate_entry(&mut interpreter, params)
-}
 
-fn map_compile_errors_to_estimation_errors(
-    errors: Vec<WithSource<ErrorKind>>,
-) -> Vec<resource_estimator::Error> {
-    errors
-        .into_iter()
-        .map(|error| {
-            resource_estimator::Error::Interpreter(qsc::interpret::Error::Compile(error.clone()))
-        })
-        .collect::<Vec<_>>()
+    resource_estimator::estimate_entry(&mut interpreter, params)
 }
 
 fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimator::Error> {
@@ -487,6 +453,44 @@ fn create_filesystem_from_py(
             .expect("file system hooks should have been passed in with a resolve path callback"),
         fetch_github
             .expect("file system hooks should have been passed in with a fetch github callback"),
+    )
+}
+
+fn create_interpreter_from_ast(
+    ast_package: Package,
+    source_map: SourceMap,
+    profile: Profile,
+    language_features: LanguageFeatures,
+    package_type: PackageType,
+) -> Result<Interpreter, Vec<interpret::Error>> {
+    let mut store = PackageStore::new(qsc::compile::core());
+    let mut dependencies = Vec::new();
+
+    let capabilities = profile.into();
+
+    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
+    let (mut unit, errors) = qsc::compile::compile_ast(
+        &store,
+        &dependencies,
+        ast_package,
+        source_map,
+        package_type,
+        capabilities,
+    );
+
+    if !errors.is_empty() {
+        return Err(into_errors(errors));
+    }
+
+    unit.expose();
+    let source_package_id = store.insert(unit);
+
+    interpret::Interpreter::from(
+        store,
+        source_package_id,
+        capabilities,
+        language_features,
+        &dependencies,
     )
 }
 

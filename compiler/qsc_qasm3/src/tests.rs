@@ -71,7 +71,7 @@ pub(crate) fn generate_qir_from_ast(
     )
 }
 
-fn compile_qasm_to_qir(source: &str) -> Result<String, Vec<Report>> {
+fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
     let res = parse(source)?;
     assert!(!res.has_errors());
     let unit = qasm_to_program_with_semantics(
@@ -83,13 +83,12 @@ fn compile_qasm_to_qir(source: &str) -> Result<String, Vec<Report>> {
     );
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
-    let qir = generate_qir_from_ast(package, unit.source_map, qsc::target::Profile::AdaptiveRI)
-        .map_err(|errors| {
-            errors
-                .iter()
-                .map(|e| Report::new(e.clone()))
-                .collect::<Vec<_>>()
-        })?;
+    let qir = generate_qir_from_ast(package, unit.source_map, profile).map_err(|errors| {
+        errors
+            .iter()
+            .map(|e| Report::new(e.clone()))
+            .collect::<Vec<_>>()
+    })?;
     Ok(qir)
 }
 

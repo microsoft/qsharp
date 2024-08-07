@@ -10,6 +10,7 @@ use crate::{
 };
 use expect_test::expect;
 use miette::Report;
+use qsc::target::Profile;
 
 use super::compile_qasm_to_qir;
 
@@ -261,7 +262,7 @@ c2[1] = measure q[3];
 c2[2] = measure q[4];
     "#;
 
-    let qir = compile_qasm_to_qir(source)?;
+    let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
     expect![
         r#"
 %Result = type opaque
