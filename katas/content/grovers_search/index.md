@@ -20,6 +20,7 @@ Note that this tutorial does not cover implementing specific classical functions
 - Basic knowledge of quantum gates and measurements
 - Basic understanding of quantum oracles
 
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({
     "id": "grovers_search__search_problem",
