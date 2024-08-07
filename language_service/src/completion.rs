@@ -790,10 +790,6 @@ fn callable_decl_to_completion_item(
         // be applied if this completion item is selected
         let mut additional_edits = vec![];
 
-        // qualification is the namespace that goes before the
-        // import item
-        let mut qualification: Option<Vec<Rc<str>>> = None;
-
         match &current_namespace_name {
             // if there is no package alias for this callable (i.e. it
             // is not the user package or stdlib) and
@@ -816,7 +812,6 @@ fn callable_decl_to_completion_item(
 
                 // an exact import is an import that matches the namespace
                 // and item name exactly
-                //                                                log::info!("My imports are: {:?}", imports);
                 let namespace_as_strs = Into::<Vec<_>>::into(callable_namespace);
                 let preexisting_exact_import = imports.iter().any(|import_item| {
                     let import_item_namespace = &import_item.path[..import_item.path.len() - 1];
@@ -831,21 +826,13 @@ fn callable_decl_to_completion_item(
 
                 let preexisting_namespace_alias = imports.iter().find_map(|import_item| {
                     if import_item.path == namespace_as_strs[..] {
-                        import_item.alias.clone()
+                        import_item.alias.as_ref().map(|x| vec![x.clone()])
                     } else {
                         None
                     }
                 });
 
-                /*
-                qualification = if let Some(alias) = preexisting_namespace_alias {
-                    Some(vec![alias])
-                } else {
-                    None
-                };
-                */
-
-                qualification = match (
+                match (
                     preexisting_exact_import,
                     preexisting_glob_import,
                     insert_open_at,
@@ -853,10 +840,10 @@ fn callable_decl_to_completion_item(
                     // If there is already an import of this exact item,
                     // or if there is already a glob import of this namespace,
                     // then we don't need any additional text edits.
-                    (true, _, _) | (_, true, _) => None,
+                    (true, _, _) | (_, true, _) => (),
                     // If there is no exact import or glob import of the alias, then
                     // we need to add an import statement of this item.
-                    (_, _, Some(start)) => {
+                    (_, _, Some(start)) if preexisting_namespace_alias.is_none() => {
                         let import_text = format_external_name(
                             &package_alias_from_manifest,
                             &Into::<Vec<_>>::into(callable_namespace),
@@ -866,12 +853,11 @@ fn callable_decl_to_completion_item(
                             new_text: format!("import {import_text};{indent}",),
                             range: start,
                         });
-                        None
                     }
-                    _ => Some(callable_namespace.into()),
+                    _ => (),
                 };
 
-                let label = if let Some(qualification) = qualification {
+                let label = if let Some(qualification) = preexisting_namespace_alias {
                     format_external_name(&package_alias_from_manifest, &qualification, Some(name))
                 } else {
                     name.to_owned()
