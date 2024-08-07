@@ -29,7 +29,7 @@ use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
     ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
     Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind, Visibility, VisibilityKind,
+    TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -71,7 +71,6 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         span: s.span(lo),
         doc: doc.unwrap_or_default().into(),
         attrs: attrs.into_boxed_slice(),
-        visibility,
         kind,
     }))
 }
@@ -102,7 +101,6 @@ fn default(span: Span) -> Box<Item> {
         span,
         doc: "".into(),
         attrs: Vec::new().into_boxed_slice(),
-        visibility: None,
         kind: Box::new(ItemKind::Err),
     })
 }
@@ -153,6 +151,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
     }
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    recovering_token(s, TokenKind::Eof);
     if items.is_empty() || s.peek().kind != TokenKind::Eof {
         return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
     }
@@ -293,16 +292,10 @@ fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     }))
 }
 
-fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
-    let lo = s.peek().span.lo;
+fn parse_visibility(s: &mut ParserContext) -> Result<()> {
     token(s, TokenKind::Keyword(Keyword::Internal))?;
-    Ok(Visibility {
-        id: NodeId::default(),
-        span: s.span(lo),
-        kind: VisibilityKind::Internal,
-    })
+    Ok(())
 }
-
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
     let mut name = vec![*(ident(s)?)];
@@ -378,7 +371,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
         TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
         TyDefKind::Tuple(tup) => {
             let mut ty_tup = Vec::new();
-            for tydef in tup.iter() {
+            for tydef in tup {
                 ty_tup.push(try_tydef_as_ty(tydef)?);
             }
             Some(Ty {

@@ -117,7 +117,6 @@ fn fixup_bad_namespace_name_with_dash() {
                             },
                             doc: "",
                             attrs: [],
-                            visibility: None,
                             kind: Callable(
                                 CallableDecl {
                                     id: NodeId(
@@ -227,6 +226,174 @@ fn reject_bad_namespace_name_starts_with_number() {
                             hi: 26,
                         },
                         "123Bar",
+                    ),
+                ),
+            ],
+        )"#]]
+    .assert_eq(&result);
+}
+
+#[test]
+fn implicit_namespace_with_incomplete_items() {
+    let result = format!(
+        "{:#?}",
+        crate::namespaces(
+            "
+operation Main() : Unit {}
+oper",
+            Some("code/src/Foo.qs"),
+            LanguageFeatures::default()
+        )
+    );
+    expect![[r#"
+        (
+            [
+                Namespace {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 1,
+                        hi: 32,
+                    },
+                    doc: "",
+                    name: Idents(
+                        [
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 32,
+                                },
+                                name: "code",
+                            },
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 32,
+                                },
+                                name: "src",
+                            },
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 32,
+                                },
+                                name: "Foo",
+                            },
+                        ],
+                    ),
+                    items: [
+                        Item {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 27,
+                            },
+                            doc: "",
+                            attrs: [],
+                            kind: Callable(
+                                CallableDecl {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 1,
+                                        hi: 27,
+                                    },
+                                    kind: Operation,
+                                    name: Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 11,
+                                            hi: 15,
+                                        },
+                                        name: "Main",
+                                    },
+                                    generics: [],
+                                    input: Pat {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 15,
+                                            hi: 17,
+                                        },
+                                        kind: Tuple(
+                                            [],
+                                        ),
+                                    },
+                                    output: Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 20,
+                                            hi: 24,
+                                        },
+                                        kind: Path(
+                                            Path {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 20,
+                                                    hi: 24,
+                                                },
+                                                segments: None,
+                                                name: Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 20,
+                                                        hi: 24,
+                                                    },
+                                                    name: "Unit",
+                                                },
+                                            },
+                                        ),
+                                    },
+                                    functors: None,
+                                    body: Block(
+                                        Block {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 25,
+                                                hi: 27,
+                                            },
+                                            stmts: [],
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ],
+                },
+            ],
+            [
+                Error(
+                    Token(
+                        Eof,
+                        Ident,
+                        Span {
+                            lo: 28,
+                            hi: 32,
+                        },
                     ),
                 ),
             ],

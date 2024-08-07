@@ -105,13 +105,8 @@ impl PassContext {
         let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, package, assigner);
         Validator::default().visit_package(package);
 
-        let entry_point_errors = if package_type == PackageType::Exe {
-            let entry_point_errors = generate_entry_expr(package, assigner);
-            Validator::default().visit_package(package);
-            entry_point_errors
-        } else {
-            Vec::new()
-        };
+        let entry_point_errors = generate_entry_expr(package, assigner, package_type);
+        Validator::default().visit_package(package);
 
         LoopUni { core, assigner }.visit_package(package);
         Validator::default().visit_package(package);
@@ -170,9 +165,10 @@ pub fn run_fir_passes(
     package: &fir::Package,
     compute_properties: &PackageComputeProperties,
     capabilities: TargetCapabilityFlags,
+    store: &fir::PackageStore,
 ) -> Vec<Error> {
     let capabilities_errors =
-        check_supported_capabilities(package, compute_properties, capabilities);
+        check_supported_capabilities(package, compute_properties, capabilities, store);
     capabilities_errors
         .into_iter()
         .map(Error::CapabilitiesCk)

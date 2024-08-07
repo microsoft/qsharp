@@ -4,7 +4,7 @@
 use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
-use qsc::{linter::LintConfig, LanguageFeatures};
+use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -227,6 +227,13 @@ impl From<qsc_project::PackageInfo> for PackageInfo {
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
+            package_type: value.package_type.map(|x| {
+                match x {
+                    qsc_project::PackageType::Exe => "exe",
+                    qsc_project::PackageType::Lib => "lib",
+                }
+                .into()
+            }),
         }
     }
 }
@@ -266,11 +273,15 @@ serializable_type! {
         pub sources: Vec<(String, String)>,
         pub language_features: Vec<String>,
         pub dependencies: FxHashMap<PackageAlias,PackageKey>,
+        pub package_type: Option<String>,
     },
-    r#"export interface IPackageInfo {
+    r#"
+    
+    export interface IPackageInfo {
         sources: [string, string][];
         languageFeatures: string[];
         dependencies: Record<string,string>;
+        packageType?: "exe" | "lib";
     }"#
 }
 
@@ -316,6 +327,7 @@ serializable_type! {
           lint: string;
           level: string;
         }[];
+        errors: string[];
     }"#,
     IProjectConfig
 }
@@ -350,20 +362,33 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
                 .into_iter()
                 .map(|(k, v)| (Arc::from(k), Arc::from(v)))
                 .collect(),
+            package_type: value.package_type.map(|x| match x.as_str() {
+                "exe" => qsc_project::PackageType::Exe,
+                "lib" => qsc_project::PackageType::Lib,
+                _ => unreachable!(
+                    "expected one of 'exe' or 'lib' -- should be guaranteed by TS types"
+                ),
+            }),
         }
     }
 }
 
 /// This returns the common parameters that the compiler/interpreter uses
+#[allow(clippy::type_complexity)]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn into_qsc_args(
     program: ProgramConfig,
     entry: Option<String>,
-) -> (
-    qsc::SourceMap,
-    qsc::TargetCapabilityFlags,
-    qsc::LanguageFeatures,
-) {
+) -> Result<
+    (
+        qsc::SourceMap,
+        qsc::TargetCapabilityFlags,
+        qsc::LanguageFeatures,
+        qsc::PackageStore,
+        Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
+    ),
+    Vec<qsc::compile::Error>,
+> {
     let capabilities = qsc::target::Profile::from_str(&program.profile())
         .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
         .into();
@@ -371,9 +396,29 @@ pub(crate) fn into_qsc_args(
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
 
-    let (sources, language_features) = pkg_graph.into_sources_temporary();
+    // this function call builds all dependencies as a part of preparing the package store
+    // for building the user code.
+    let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
 
-    let source_map = qsc::SourceMap::new(sources, entry.map(Into::into));
+    if !buildable_program.dependency_errors.is_empty() {
+        return Err(buildable_program.dependency_errors);
+    }
 
-    (source_map, capabilities, language_features)
+    let BuildableProgram {
+        store,
+        user_code,
+        user_code_dependencies,
+        ..
+    } = buildable_program;
+
+    let source_map = qsc::SourceMap::new(user_code.sources, entry.map(std::convert::Into::into));
+    let language_features = qsc::LanguageFeatures::from_iter(user_code.language_features);
+
+    Ok((
+        source_map,
+        capabilities,
+        language_features,
+        store,
+        user_code_dependencies,
+    ))
 }

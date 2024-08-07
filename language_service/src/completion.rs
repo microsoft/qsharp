@@ -8,6 +8,7 @@ use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
 use crate::qsc_utils::into_range;
 
+use log::{log_enabled, trace, Level::Trace};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
@@ -19,10 +20,12 @@ use qsc::{
 };
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
+use std::sync::Arc;
 
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
@@ -32,6 +35,22 @@ pub(crate) fn get_completions(
     let offset =
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
+
+    if log_enabled!(Trace) {
+        let last_char = compilation
+            .user_unit()
+            .sources
+            .find_by_offset(offset)
+            .map(|s| {
+                let offset = offset - s.offset;
+                if offset > 0 {
+                    s.contents[(offset as usize - 1)..].chars().next()
+                } else {
+                    None
+                }
+            });
+        trace!("the character before the cursor is: {last_char:?}");
+    }
 
     // Determine context for the offset
     let mut context_finder = ContextFinder {
@@ -50,11 +69,13 @@ pub(crate) fn get_completions(
     context_finder.visit_package(user_ast_package);
 
     let insert_open_at = match compilation.kind {
-        CompilationKind::OpenProject => context_finder.start_of_namespace,
+        CompilationKind::OpenProject { .. } => context_finder.start_of_namespace,
         // Since notebooks don't typically contain namespace declarations,
         // open statements should just get before the first non-whitespace
         // character (i.e. at the top of the cell)
-        CompilationKind::Notebook => Some(get_first_non_whitespace_in_source(compilation, offset)),
+        CompilationKind::Notebook { .. } => {
+            Some(get_first_non_whitespace_in_source(compilation, offset))
+        }
     };
 
     let insert_open_range = insert_open_at.map(|o| {
@@ -123,8 +144,8 @@ pub(crate) fn get_completions(
             builder.push_item_decl_keywords();
         }
         Context::NoCompilation | Context::TopLevel => match compilation.kind {
-            CompilationKind::OpenProject => builder.push_namespace_keyword(),
-            CompilationKind::Notebook => {
+            CompilationKind::OpenProject { .. } => builder.push_namespace_keyword(),
+            CompilationKind::Notebook { .. } => {
                 // For notebooks, the top-level allows for
                 // more syntax.
 
@@ -310,11 +331,12 @@ impl CompletionListBuilder {
 
         self.push_sorted_completions(Self::get_core_callables(compilation, core));
 
-        for (_, unit) in &all_except_core {
-            self.push_completions(Self::get_namespaces(&unit.package));
+        for (id, unit) in &all_except_core {
+            let alias = compilation.dependencies.get(id).cloned().flatten();
+            self.push_completions(Self::get_namespaces(&unit.package, alias));
         }
 
-        self.push_completions(Self::get_namespaces(core));
+        self.push_completions(Self::get_namespaces(core, None));
     }
 
     fn push_locals(
@@ -396,6 +418,7 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
+    #[allow(clippy::too_many_lines)]
     /// Get all callables in a package
     fn get_callables<'a>(
         compilation: &'a Compilation,
@@ -413,6 +436,12 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package id should exist")
             .package;
+
+        // if an alias exists for this dependency from the manifest,
+        // this is used to prefix any access to items from this package with the alias
+        let package_alias_from_manifest =
+            compilation.dependencies.get(&package_id).cloned().flatten();
+
         let display = CodeDisplay { compilation };
 
         let is_user_package = compilation.user_package_id == package_id;
@@ -422,9 +451,6 @@ impl CompletionListBuilder {
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
-                            return None;
-                        }
                         // If the item's visibility is internal, the item may be ignored
                         if matches!(i.visibility, Visibility::Internal) {
                             if !is_user_package {
@@ -453,7 +479,8 @@ impl CompletionListBuilder {
                                 let mut qualification: Option<Vec<Rc<str>>> = None;
                                 match &current_namespace_name {
                                     Some(curr_ns)
-                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                        if package_alias_from_manifest.is_none()
+                                            && *curr_ns == Into::<Vec<_>>::into(namespace) => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
@@ -469,10 +496,14 @@ impl CompletionListBuilder {
                                             Some(alias) => alias.clone().map(|x| vec![x]),
                                             None => match insert_open_at {
                                                 Some(start) => {
+                                                    let import_text = format_external_name(
+                                                        &package_alias_from_manifest,
+                                                        &Into::<Vec<_>>::into(namespace),
+                                                        Some(name),
+                                                    );
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {};{indent}",
-                                                            namespace.name()
+                                                            "import {import_text};{indent}",
                                                         ),
                                                         range: start,
                                                     });
@@ -491,7 +522,11 @@ impl CompletionListBuilder {
                                 };
 
                                 let label = if let Some(qualification) = qualification {
-                                    format!("{}.{name}", qualification.join("."))
+                                    format_external_name(
+                                        &package_alias_from_manifest,
+                                        &qualification,
+                                        Some(name),
+                                    )
                                 } else {
                                     name.to_owned()
                                 };
@@ -543,19 +578,54 @@ impl CompletionListBuilder {
         })
     }
 
-    fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
-        package.items.values().filter_map(|i| match &i.kind {
-            ItemKind::Namespace(namespace, _)
-                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
-            {
-                Some(CompletionItem::new(
-                    namespace.name().to_string(),
-                    CompletionItemKind::Module,
-                ))
+    fn get_namespaces(
+        package: &'_ Package,
+        package_alias: Option<Arc<str>>,
+    ) -> impl Iterator<Item = CompletionItem> + '_ {
+        package.items.values().filter_map(move |i| match &i.kind {
+            ItemKind::Namespace(namespace, _) => {
+                let qualification = namespace
+                    .str_iter()
+                    .into_iter()
+                    .map(Rc::from)
+                    .collect::<Vec<_>>();
+                let label = format_external_name(&package_alias, &qualification[..], None);
+                Some(CompletionItem::new(label, CompletionItemKind::Module))
             }
             _ => None,
         })
     }
+}
+
+/// Format an external fully qualified name
+/// This will prepend the package alias and remove `Main` if it is the first namespace
+fn format_external_name(
+    package_alias_from_manifest: &Option<Arc<str>>,
+    qualification: &[Rc<str>],
+    name: Option<&str>,
+) -> String {
+    let mut fully_qualified_name: Vec<Rc<str>> = if let Some(alias) = package_alias_from_manifest {
+        vec![Rc::from(&*alias.clone())]
+    } else {
+        vec![]
+    };
+
+    // if this comes from an external project's Main, then the path does not include Main
+    let item_comes_from_main_of_external_project = package_alias_from_manifest.is_some()
+        && qualification.len() == 1
+        && qualification.first() == Some(&"Main".into());
+
+    // So, if it is _not_ from an external project's `Main`, we include the namespace in the fully
+    // qualified name.
+    if !(item_comes_from_main_of_external_project) {
+        fully_qualified_name.append(&mut qualification.to_vec());
+    };
+
+    if let Some(name) = name {
+        fully_qualified_name.push(name.into());
+    }
+
+    fully_qualified_name.join(".")
 }
 
 /// Convert a local into a completion item
@@ -591,6 +661,8 @@ fn local_completion(
                         CompletionItemKind::Interface,
                     )
                 }
+                // We don't want completions for items exported from the local scope
+                ItemKind::Export(_, _) => return None,
             };
             (kind, detail)
         }

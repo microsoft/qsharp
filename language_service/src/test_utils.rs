@@ -13,6 +13,8 @@ use qsc::{
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
+use qsc_project::{PackageGraphSources, PackageInfo};
+use rustc_hash::FxHashMap;
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
@@ -67,11 +69,11 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
 
-    let source_map = SourceMap::new(sources, None);
+    let source_map = SourceMap::new(sources.clone(), None);
     let (mut package_store, std_package_id) = compile_fake_stdlib();
     let (unit, errors) = compile::compile(
         &package_store,
-        &[std_package_id],
+        &[(std_package_id, None)],
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
@@ -84,9 +86,20 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
         Compilation {
             package_store,
             user_package_id: package_id,
-            kind: CompilationKind::OpenProject,
+            kind: CompilationKind::OpenProject {
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources,
+                        language_features: LanguageFeatures::default(),
+                        dependencies: FxHashMap::default(),
+                        package_type: None,
+                    },
+                    packages: FxHashMap::default(),
+                },
+            },
             compile_errors: errors,
             project_errors: Vec::new(),
+            dependencies: FxHashMap::default(),
         },
         cursor_location,
         target_spans,
@@ -117,18 +130,21 @@ where
                 operation FakeCtlAdj() : Unit is Ctl + Adj {}
                 newtype Complex = (Real: Double, Imag: Double);
                 function TakesComplex(input : Complex) : Unit {}
+                export Fake, FakeWithParam, FakeCtlAdj, Complex, TakesComplex;
             }"
             .into(),
         )],
         None,
     );
 
+    let store = qsc::PackageStore::new(qsc::compile::core());
     let mut compiler = Compiler::new(
-        false,
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
         LanguageFeatures::default(),
+        store,
+        &[],
     )
     .expect("expected incremental compiler creation to succeed");
 
@@ -150,8 +166,9 @@ where
         package_store,
         user_package_id: package_id,
         compile_errors: errors,
-        kind: CompilationKind::Notebook,
+        kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
+        dependencies: FxHashMap::default(),
     }
 }
 
@@ -183,10 +200,8 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
                 function TakesStruct(input : FakeStruct) : FakeStruct {
                     fail "not implemented"
                 }
-            }
-
-            namespace Microsoft.Quantum.Unstable {
-                operation UnstableFake() : Unit {}
+                export Fake, FakeWithParam, FakeCtlAdj, Udt, UdtWrapper, UdtFn, UdtFnWithUdtParams, TakesUdt, RefFake, FakeWithTypeParam;
+                export FakeStruct, StructWrapper, StructFn, StructFnWithStructParams, TakesStruct;
             }"#
             .into(),
         )],
@@ -194,7 +209,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
     );
     let (std_compile_unit, std_errors) = compile::compile(
         &package_store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),

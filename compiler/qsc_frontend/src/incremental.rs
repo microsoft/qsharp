@@ -5,7 +5,9 @@
 mod tests;
 
 use crate::{
-    compile::{self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap},
+    compile::{
+        self, preprocess, AstPackage, CompileUnit, Dependencies, Offsetter, PackageStore, SourceMap,
+    },
     error::WithSource,
     lower::Lowerer,
     resolve::{self, Resolver},
@@ -50,11 +52,17 @@ pub struct Increment {
     pub hir: hir::Package,
 }
 
+impl Increment {
+    pub fn clear_entry(&mut self) {
+        self.hir.entry = None;
+    }
+}
+
 impl Compiler {
     /// Creates a new compiler.
     pub fn new(
         store: &PackageStore,
-        dependencies: impl IntoIterator<Item = PackageId>,
+        dependencies: &Dependencies,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Self {
@@ -62,17 +70,17 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals.add_external_package(PackageId::CORE, &unit.package);
-            typeck_globals.add_external_package(PackageId::CORE, &unit.package);
+            resolve_globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
+            typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
-        for id in dependencies {
+        for (id, alias) in dependencies {
             let unit = store
-                .get(id)
+                .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.add_external_package(id, &unit.package);
-            typeck_globals.add_external_package(id, &unit.package);
+            resolve_globals.add_external_package(*id, &unit.package, store, alias);
+            typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
@@ -261,7 +269,13 @@ impl Compiler {
         self.checker.check_package(self.resolver.names(), ast);
         self.checker.solve(self.resolver.names());
 
-        let package = self.lower(&mut unit.assigner, &*ast);
+        let package = self.lower(
+            &mut unit.assigner,
+            &*ast,
+            // not an ideal clone, but it is once per fragment, and the namespace tree is
+            // relatively lightweight
+            self.resolver.namespaces().clone(),
+        );
 
         let errors = self
             .resolver
@@ -358,7 +372,7 @@ impl Compiler {
         let offset = sources.push(source_name.into(), source_contents.into());
 
         let mut offsetter = Offsetter(offset);
-        for node in package.nodes.iter_mut() {
+        for node in &mut *package.nodes {
             match node {
                 ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
                 ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
@@ -368,10 +382,15 @@ impl Compiler {
         (package, with_source(errors, sources, offset))
     }
 
-    fn lower(&mut self, hir_assigner: &mut HirAssigner, package: &ast::Package) -> hir::Package {
+    fn lower(
+        &mut self,
+        hir_assigner: &mut HirAssigner,
+        package: &ast::Package,
+        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    ) -> hir::Package {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package)
+            .lower_package(package, namespaces)
     }
 }
 

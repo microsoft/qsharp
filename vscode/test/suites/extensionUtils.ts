@@ -8,8 +8,15 @@ import { type ExtensionApi } from "../../src/extension";
 const extensionLogLevel = "warn";
 
 export async function activateExtension() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
+  // Check for pre-release or stable builds of the extension, as could be in release pipeline
+  const ext =
+    vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev") ??
+    vscode.extensions.getExtension("quantum.qsharp-lang-vscode");
+
+  if (!ext) {
+    throw new Error("qsharp extension not found");
+  }
+
   if (ext.isActive) {
     return;
   }

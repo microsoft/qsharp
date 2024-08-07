@@ -141,7 +141,7 @@ impl<'a> Rename<'a> {
         &mut self,
         node_id: ast::NodeId,
         ast_name: &ast::Ident,
-        current_callable: &ast::CallableDecl,
+        current_callable: Option<&ast::CallableDecl>,
     ) {
         if self.is_prepare {
             self.prepare = Some((ast_name.span, ast_name.name.to_string()));
@@ -265,9 +265,7 @@ impl<'a> Handler<'a> for Rename<'a> {
         ident: &'a ast::Ident,
         _: &'a ast::Pat,
     ) {
-        if let Some(curr) = context.current_callable {
-            self.get_spans_for_local_rename(ident.id, ident, curr);
-        }
+        self.get_spans_for_local_rename(ident.id, ident, context.current_callable);
     }
 
     fn at_local_ref(
@@ -277,9 +275,7 @@ impl<'a> Handler<'a> for Rename<'a> {
         node_id: ast::NodeId,
         _: &'a ast::Ident,
     ) {
-        if let Some(curr) = context.current_callable {
-            self.get_spans_for_local_rename(node_id, name, curr);
-        }
+        self.get_spans_for_local_rename(node_id, name, context.current_callable);
     }
 }
 

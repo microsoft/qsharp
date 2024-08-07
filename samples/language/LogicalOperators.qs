@@ -8,7 +8,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : Unit {
+    function Main() : Unit {
 
         // `and` performs the Boolean And on two Boolean values.
 

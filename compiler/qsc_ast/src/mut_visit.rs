@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
     FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit,
     QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl, TopLevelNode,
-    Ty, TyDef, TyDefKind, TyKind, Visibility,
+    Ty, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -25,8 +25,6 @@ pub trait MutVisitor: Sized {
     fn visit_attr(&mut self, attr: &mut Attr) {
         walk_attr(self, attr);
     }
-
-    fn visit_visibility(&mut self, _: &mut Visibility) {}
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {
         walk_ty_def(self, def);
@@ -113,9 +111,6 @@ pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     vis.visit_span(&mut item.span);
     item.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
-    item.visibility
-        .iter_mut()
-        .for_each(|v| vis.visit_visibility(v));
 
     match &mut *item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
@@ -131,7 +126,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
         ItemKind::ImportOrExport(export) => {
             vis.visit_span(&mut export.span);
-            for item in export.items.iter_mut() {
+            for item in &mut *export.items {
                 vis.visit_path(&mut item.path);
                 if let Some(ref mut alias) = item.alias {
                     vis.visit_ident(alias);
@@ -394,7 +389,7 @@ pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
 }
 
 pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
-    for ref mut ident in ident.0.iter_mut() {
+    for ref mut ident in &mut *ident.0 {
         vis.visit_ident(ident);
     }
 }

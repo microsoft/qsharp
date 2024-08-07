@@ -100,9 +100,7 @@ memfs = {
         },
         "with_deps": {
             "src": {
-                # TODO(packages) When package aliases are taken into account,
-                # the below call should become: `Foo.Test.ReturnsFour()`
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Test.ReturnsFour(); } }",
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
             },
             "qsharp.json": """
                 {
@@ -128,9 +126,7 @@ memfs = {
         },
         "with_github_dep": {
             "src": {
-                # TODO(packages) When package aliases are taken into account,
-                # the below call should become: `Foo.Test.ReturnsTwelve()`
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Test.ReturnsTwelve(); } }",
+                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsTwelve(); } }",
             },
             "qsharp.json": """
                 {
@@ -150,15 +146,12 @@ memfs = {
 
 
 def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    match (owner, repo, ref, path):
-        case ("test-owner", "test-repo", "12345", "/qsharp.json"):
-            return """{ "files" : ["src/test.qs"] }"""
-        case ("test-owner", "test-repo", "12345", "/src/test.qs"):
-            return "namespace Test { operation ReturnsTwelve() : Int { 12 } }"
-        case _:
-            raise Exception(
-                f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}"
-            )
+    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
+        return """{ "files" : ["src/test.qs"] }"""
+    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
+        return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
+    raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
+
 
 
 def read_file_memfs(path):

@@ -6,7 +6,7 @@ use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.TableLookup namespace
 
-const SELECT_TEST_LIB: &str = include_str!("resources/select.qs");
+const SELECT_TEST_LIB: &str = include_str!("resources/src/select.qs");
 
 #[test]
 fn check_select_exhaustive_bitwidth_1() {

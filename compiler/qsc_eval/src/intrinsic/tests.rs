@@ -149,26 +149,27 @@ impl Backend for CustomSim {
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
+    let fir_store = fir::PackageStore::new();
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package, &fir_store);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
-    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package, &fir_store);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(
         &store,
-        &[std_id],
+        &[(std_id, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
-    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
     let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);
@@ -236,6 +237,51 @@ fn int_as_double_precision_loss() {
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(9_223_372_036_854_775_807)",
         &expect!["9223372036854775808.0"],
+    );
+}
+
+#[test]
+fn double_as_string_with_precision() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8414709848078965, 4)",
+        &expect!["0.8415"],
+    );
+}
+
+#[test]
+fn double_as_string_with_precision_extend() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, 5)",
+        &expect!["0.80000"],
+    );
+}
+
+#[test]
+fn double_as_string_with_precision_negative_error() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, -5)",
+        &expect!["negative integers cannot be used here: -5"],
+    );
+}
+
+#[test]
+fn double_as_string_with_zero_precision() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.47, 0)",
+        &expect!["0."],
+    );
+}
+
+#[test]
+fn double_as_string_with_zero_precision_rounding() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.913, 0)",
+        &expect!["1."],
     );
 }
 

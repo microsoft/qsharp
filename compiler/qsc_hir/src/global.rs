@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility},
+    hir::{
+        self, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility,
+    },
     ty::Scheme,
 };
 use qsc_data_structures::{
@@ -25,6 +27,7 @@ pub enum Kind {
     Namespace,
     Ty(Ty),
     Term(Term),
+    Export(ItemId),
 }
 
 impl std::fmt::Debug for Kind {
@@ -33,6 +36,7 @@ impl std::fmt::Debug for Kind {
             Kind::Namespace => write!(f, "Namespace"),
             Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
             Kind::Term(term) => write!(f, "Term({})", term.id),
+            Kind::Export(id) => write!(f, "Export({id:?})"),
         }
     }
 }
@@ -92,7 +96,7 @@ impl FromIterator<Global> for Table {
                         .or_default()
                         .insert(global.name, term);
                 }
-                Kind::Namespace => {}
+                Kind::Namespace | Kind::Export(_) => {}
             }
         }
 
@@ -121,17 +125,31 @@ impl PackageIter<'_> {
                 .expect("parent should exist")
                 .kind
         });
-        let id = ItemId {
-            package: self.id,
-            item: item.id,
+        let (id, visibility, alias) = match &item.kind {
+            ItemKind::Export(name, item_id) => (
+                ItemId {
+                    package: item_id.package.or(self.id),
+                    item: item_id.item,
+                },
+                hir::Visibility::Public,
+                Some(name),
+            ),
+            _ => (
+                ItemId {
+                    package: self.id,
+                    item: item.id,
+                },
+                item.visibility,
+                None,
+            ),
         };
         let status = ItemStatus::from_attrs(item.attrs.as_ref());
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: namespace.into(),
-                name: Rc::clone(&decl.name.name),
-                visibility: item.visibility,
+                name: alias.map_or_else(|| Rc::clone(&decl.name.name), |alias| alias.name.clone()),
+                visibility,
                 status,
                 kind: Kind::Term(Term {
                     id,
@@ -142,8 +160,8 @@ impl PackageIter<'_> {
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: namespace.into(),
-                    name: Rc::clone(&name.name),
-                    visibility: item.visibility,
+                    name: alias.map_or_else(|| Rc::clone(&name.name), |alias| alias.name.clone()),
+                    visibility,
                     status,
                     kind: Kind::Term(Term {
                         id,
@@ -155,7 +173,7 @@ impl PackageIter<'_> {
                 Some(Global {
                     namespace: namespace.into(),
                     name: Rc::clone(&name.name),
-                    visibility: item.visibility,
+                    visibility,
                     status,
                     kind: Kind::Ty(Ty { id }),
                 })
@@ -167,6 +185,24 @@ impl PackageIter<'_> {
                 status,
                 kind: Kind::Namespace,
             }),
+            (
+                ItemKind::Export(name, ItemId { package, .. }),
+                Some(ItemKind::Namespace(namespace, _)),
+            ) => {
+                if package.is_none() && alias.is_none() {
+                    // if there is no package, then this was declared in this package
+                    // and this is a noop -- it will be marked as public on export
+                    None
+                } else {
+                    Some(Global {
+                        namespace: namespace.into(),
+                        name: name.name.clone(),
+                        visibility,
+                        status,
+                        kind: Kind::Export(id),
+                    })
+                }
+            }
             _ => None,
         }
     }

@@ -84,22 +84,26 @@ impl<'a> Renamer<'a> {
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
             Res::Param(id) => format!("param{id}"),
+            Res::ExportedItem(item, _) => match item.package {
+                None => format!("exported_item{}", item.item),
+                Some(package) => format!("reexport_from_{package}:{}", item.item),
+            },
         }
     }
 }
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.names.get(path.id) {
-            self.changes.push((path.span, id.into()));
+        if let Some(res) = self.names.get(path.id) {
+            self.changes.push((path.span, res.clone().into()));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.names.get(ident.id) {
-            self.changes.push((ident.span, id.into()));
+        if let Some(res) = self.names.get(ident.id) {
+            self.changes.push((ident.span, res.clone().into()));
         }
     }
 
@@ -113,8 +117,8 @@ impl Visitor<'_> for Renamer<'_> {
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
-                    if let Some(resolved_id) = self.names.get(item.path.id) {
-                        self.changes.push((item.span(), (*resolved_id).into()));
+                    if let Some(res) = self.names.get(item.path.id) {
+                        self.changes.push((item.span(), (res.clone()).into()));
                     } else if let Some(namespace_id) = self
                         .namespaces
                         .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
@@ -132,8 +136,8 @@ impl Visitor<'_> for Renamer<'_> {
     fn visit_idents(&mut self, vec_ident: &Idents) {
         let parts: Vec<Ident> = vec_ident.clone().into();
         let first = parts.first().expect("should contain at least one item");
-        if let Some(&id) = self.names.get(first.id) {
-            self.changes.push((first.span, id.into()));
+        if let Some(res) = self.names.get(first.id) {
+            self.changes.push((first.span, res.clone().into()));
             return;
         }
 
@@ -3759,6 +3763,66 @@ namespace Main {
 }
 
 #[test]
+fn multiple_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+            }
+            namespace Main {
+                import Foo.ApplyX as X, Foo.ApplyY as Y;
+                operation Main() : Unit {
+                    X();
+                    Y();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                import item1, item2;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn no_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn export_non_existent_symbol() {
     check(
         indoc! {"
@@ -3856,6 +3920,36 @@ fn export_non_item() {
             }
 
             // ExportedNonItem(Span { lo: 80, hi: 84 })
+        "#]],
+    );
+}
+
+#[test]
+fn export_udt() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Pair = (First: Int, Second: Int);
+                export Pair;
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    Pair(1, 2);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                newtype item1 = (First: Int, Second: Int);
+                export item1;
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1(1, 2);
+                }
+            }
         "#]],
     );
 }
@@ -4378,6 +4472,7 @@ fn import_self() {
     );
 }
 
+// this should be allowed for jupyter cell re-runnability
 #[test]
 fn import_duplicate_symbol() {
     check(
@@ -4396,12 +4491,11 @@ fn import_duplicate_symbol() {
             namespace namespace9 {
                 operation item2() : Unit {}
             }
-
-            // ImportedDuplicate("Baz", Span { lo: 49, hi: 52 })
         "#]],
     );
 }
 
+// this should be allowed for jupyter cell re-runnability
 #[test]
 fn import_duplicate_symbol_different_name() {
     check(
@@ -4422,11 +4516,37 @@ fn import_duplicate_symbol_different_name() {
             namespace namespace9 {
                 operation item2() : Unit {}
             }
-
-            // ImportedDuplicate("Baz", Span { lo: 65, hi: 68 })
         "#]],
     );
 }
+
+// this should be allowed for jupyter cell re-runnability
+#[test]
+fn disallow_importing_different_items_with_same_name() {
+    check(
+        indoc! { r#"
+        namespace Main {
+            import Foo.Bar.Baz, Foo.Bar.Baz2 as Baz;
+        }
+        namespace Foo.Bar {
+            operation Baz() : Unit {}
+            operation Baz2() : Unit {}
+        }
+"# },
+        &expect![[r#"
+            namespace namespace7 {
+                import item2, item3;
+            }
+            namespace namespace9 {
+                operation item2() : Unit {}
+                operation item3() : Unit {}
+            }
+
+            // ImportedDuplicate("Baz", Span { lo: 57, hi: 60 })
+        "#]],
+    );
+}
+
 #[test]
 fn import_takes_precedence_over_local_decl() {
     check(
@@ -4652,11 +4772,11 @@ fn export_namespace() {
                 operation item2() : Unit {}
             }
             namespace namespace8 {
-                export namespace7;
+                export item4;
             }
             namespace namespace9 {
                 open namespace7;
-                operation item5() : Unit {
+                operation item6() : Unit {
                     item1();
                     item2();
                 }
@@ -4687,11 +4807,11 @@ fn export_namespace_contains_children() {
                 operation item1() : Unit {}
             }
             namespace namespace9 {
-                export namespace7;
+                export item3;
             }
             namespace namespace10 {
                 open namespace8;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                 }
             }
@@ -4720,12 +4840,12 @@ fn export_namespace_cyclic() {
                 export namespace8;
             }
             namespace namespace8 {
-                export namespace7;
-                operation item2() : Unit {}
+                export item2;
+                operation item3() : Unit {}
             }
             namespace namespace9 {
                 open namespace8;
-                operation item4() : Unit { item2(); }
+                operation item5() : Unit { item3(); }
             }
         "#]],
     );
@@ -4784,7 +4904,7 @@ fn export_namespace_with_alias() {
             }
             namespace namespace10 {
                 open namespace8;
-                operation item4() : Unit {
+                operation item5() : Unit {
                     item1();
                     item1();
                 }
@@ -4998,5 +5118,95 @@ fn import_newtype() {
                 export item3;
 
             }"#]],
+    );
+}
+
+#[test]
+fn disallow_glob_alias_import() {
+    check(
+        indoc! {r#"
+                namespace Bar {}
+                namespace Main {
+                    import Bar.* as B;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {}
+            namespace namespace8 {
+                import namespace7;
+            }
+
+            // GlobImportAliasNotSupported { namespace_name: "Bar", alias: "B", span: Span { lo: 45, hi: 55 } }
+        "#]],
+    );
+}
+
+#[test]
+fn glob_import_ns_not_found() {
+    check(
+        indoc! {r#"
+                namespace Main {
+                    import Bar.*;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                import Bar.*;
+            }
+
+            // GlobImportNamespaceNotFound("Bar", Span { lo: 28, hi: 31 })
+        "#]],
+    );
+}
+
+#[test]
+fn allow_export_of_namespace_within_itself() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export namespace7;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    operation Foo() : Unit {}
+                    export Foo;
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                export item1;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_of_item_with_same_name_as_namespace_resolves_to_item_even_when_before_item() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    export Foo;
+                    operation Foo() : Unit {}
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace7 {
+                export item1;
+                operation item1() : Unit {}
+            }
+        "#]],
     );
 }

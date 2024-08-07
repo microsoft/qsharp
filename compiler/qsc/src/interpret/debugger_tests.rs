@@ -131,11 +131,15 @@ mod given_debugger {
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             use qsc_data_structures::language_features::LanguageFeatures;
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -154,11 +158,15 @@ mod given_debugger {
         #[test]
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -173,11 +181,15 @@ mod given_debugger {
         #[test]
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -199,11 +211,15 @@ mod given_debugger {
         #[test]
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];

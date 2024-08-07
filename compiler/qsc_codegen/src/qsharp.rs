@@ -18,7 +18,7 @@ use qsc_ast::ast::{
     FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item, ItemKind, Lit,
     Mutability, Pat, PatKind, Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody,
     SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind, UnOp, Visibility, VisibilityKind,
+    TyKind, UnOp,
 };
 use qsc_ast::ast::{Namespace, Package};
 use qsc_ast::visit::Visitor;
@@ -114,9 +114,6 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         item.attrs.iter().for_each(|a| self.visit_attr(a));
-        item.visibility
-            .iter()
-            .for_each(|v| self.visit_visibility(v));
         match &*item.kind {
             ItemKind::Err => {
                 unreachable!()
@@ -176,17 +173,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         self.writeln("");
     }
 
-    fn visit_visibility(&mut self, vis: &'_ Visibility) {
-        match vis.kind {
-            VisibilityKind::Public => {}
-            VisibilityKind::Internal => self.write("internal "),
-        }
-    }
-
     fn visit_ty_def(&mut self, def: &'_ TyDef) {
         match &*def.kind {
             TyDefKind::Field(name, ty) => {
-                for n in name {
+                if let Some(n) = name {
                     self.visit_ident(n);
                     self.write(": ");
                 }
@@ -489,7 +479,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_expr(cond);
                 self.write(" ");
                 self.visit_block(body);
-                for expr in otherwise {
+                if let Some(expr) = otherwise {
                     if matches!(*expr.kind, ExprKind::If(..)) {
                         // visiting expr as if writes 'if' to make 'elif'
                         self.write(" el");
@@ -620,7 +610,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_block(body);
                 self.write("until ");
                 self.visit_expr(until);
-                for fixup in fixup {
+                if let Some(fixup) = fixup {
                     self.write(" fixup ");
                     self.visit_block(fixup);
                 }
@@ -719,14 +709,14 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             PatKind::Bind(name, ty) => {
                 self.visit_ident(name);
 
-                for t in ty {
+                if let Some(t) = ty {
                     self.write(": ");
                     self.visit_ty(t);
                 }
             }
             PatKind::Discard(ty) => {
                 self.write("_");
-                for t in ty {
+                if let Some(t) = ty {
                     self.write(": ");
                     self.visit_ty(t);
                 }

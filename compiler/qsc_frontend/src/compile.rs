@@ -48,6 +48,14 @@ pub struct CompileUnit {
     pub dropped_names: Vec<TrackedName>,
 }
 
+impl CompileUnit {
+    pub fn expose(&mut self) {
+        for (_item_id, item) in self.package.items.iter_mut() {
+            item.visibility = hir::Visibility::Public;
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct AstPackage {
     pub package: ast::Package,
@@ -175,6 +183,9 @@ pub type SourceName = Arc<str>;
 
 pub type SourceContents = Arc<str>;
 
+// the arc<str> is only `None` for the legacy stdlib, core, and an interpreter special case
+pub type Dependencies = [(PackageId, Option<Arc<str>>)];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
@@ -254,7 +265,13 @@ impl PackageStore {
             open: id,
         }
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+    }
 }
+
 impl<'a> IntoIterator for &'a PackageStore {
     type IntoIter = Iter<'a>;
     type Item = (qsc_hir::hir::PackageId, &'a CompileUnit);
@@ -329,7 +346,7 @@ impl MutVisitor for Offsetter {
 #[must_use]
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
@@ -349,7 +366,7 @@ pub fn compile(
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     mut ast_package: ast::Package,
     sources: SourceMap,
     capabilities: TargetCapabilityFlags,
@@ -363,7 +380,12 @@ pub fn compile_ast(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, locals, name_errors) = resolve_all(
+    let ResolveResult {
+        names,
+        locals,
+        errors: name_errors,
+        namespaces,
+    } = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -374,7 +396,7 @@ pub fn compile_ast(
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package);
+        .lower_package(&ast_package, namespaces);
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
@@ -447,7 +469,7 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
 
     let mut unit = compile(
         store,
-        &[PackageId::CORE],
+        &[(PackageId::CORE, None)],
         sources,
         capabilities,
         LanguageFeatures::default(),
@@ -493,24 +515,31 @@ fn parse_all(
     (package, errors)
 }
 
+pub(crate) struct ResolveResult {
+    pub names: Names,
+    pub locals: Locals,
+    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    pub errors: Vec<resolve::Error>,
+}
+
 fn resolve_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Locals, Vec<resolve::Error>) {
+) -> ResolveResult {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
-    for &id in dependencies {
+    for (ref id, alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be in package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        globals.add_external_package(*id, &unit.package, store, alias);
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 
@@ -523,27 +552,37 @@ fn resolve_all(
 
     // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
+    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, locals, errors)
+
+    ResolveResult {
+        names,
+        locals,
+        namespaces,
+        errors,
+    }
 }
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: &[PackageId],
+    dependencies: &Dependencies,
     package: &ast::Package,
     names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        globals.add_external_package(PackageId::CORE, &unit.package);
+        globals.add_external_package(PackageId::CORE, &unit.package, store);
     }
 
-    for &id in dependencies {
+    for (id, _alias) in dependencies {
         let unit = store
-            .get(id)
+            .get(*id)
             .expect("dependency should be added to package store before compilation");
-        globals.add_external_package(id, &unit.package);
+        // we can ignore the dependency alias here, because the
+        // typechecker doesn't do any name resolution -- it only operates on item ids.
+        // because of this, the typechecker doesn't actually need to care about visibility
+        // or the names of items at all.
+        globals.add_external_package(*id, &unit.package, store);
     }
 
     let mut checker = Checker::new(globals);

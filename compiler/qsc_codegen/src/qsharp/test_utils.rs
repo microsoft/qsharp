@@ -39,7 +39,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
 
     let mut unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources.unwrap_or_default(),
         TargetCapabilityFlags::all(),
         LanguageFeatures::empty(),
@@ -76,8 +76,5 @@ impl qsc_ast::mut_visit::MutVisitor for AstDespanner {
     fn visit_span(&mut self, span: &mut Span) {
         span.hi = 0;
         span.lo = 0;
-    }
-    fn visit_visibility(&mut self, vis: &mut qsc_ast::ast::Visibility) {
-        self.visit_span(&mut vis.span);
     }
 }

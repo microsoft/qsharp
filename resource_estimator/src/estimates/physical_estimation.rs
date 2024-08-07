@@ -1167,15 +1167,12 @@ impl<
             .iter()
             .map(|factory| {
                 let magic_states_per_run = max_factories * factory.num_output_states();
-                let required_runs = ((self
+                let required_runs = self
                     .layout_overhead
                     .num_magic_states(&self.error_budget, magic_state_index)
-                    as f64)
-                    / magic_states_per_run as f64)
-                    .ceil() as u64;
+                    .div_ceil(magic_states_per_run);
                 let required_duration = required_runs * factory.duration();
-                let num = (required_duration as f64 / logical_patch.logical_cycle_time() as f64)
-                    .ceil() as u64;
+                let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
                 (factory.clone(), num)
             })
             .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
@@ -1184,13 +1181,12 @@ impl<
                     .normalized_volume()
                     .partial_cmp(&q.normalized_volume())
                     .expect("Could not compare factories normalized volume");
-                if comp1 == Ordering::Equal {
+
+                comp1.then_with(|| {
                     num_p
                         .partial_cmp(num_q)
                         .expect("Could not compare factories num cycles")
-                } else {
-                    comp1
-                }
+                })
             })
     }
 
@@ -1310,15 +1306,26 @@ impl<
         factory: &Builder::Factory,
         num_cycles: u64,
     ) -> u64 {
-        let magic_states_per_cycles =
+        // first, try with the exact calculation; if that does not work, use
+        // floating-point arithmetic, which may cause numeric imprecision
+        if let Some(total_duration) = num_cycles.checked_mul(logical_patch.logical_cycle_time()) {
+            // number of magic states that one factory can compute in num_cycles
+            let num_states_per_run =
+                (total_duration / factory.duration()) * factory.num_output_states();
             self.layout_overhead
-                .num_magic_states(&self.error_budget, magic_state_index) as f64
-                / (factory.num_output_states() * num_cycles) as f64;
+                .num_magic_states(&self.error_budget, magic_state_index)
+                .div_ceil(num_states_per_run)
+        } else {
+            let magic_states_per_cycles =
+                self.layout_overhead
+                    .num_magic_states(&self.error_budget, magic_state_index) as f64
+                    / (factory.num_output_states() * num_cycles) as f64;
 
-        let factory_duration_fraction =
-            factory.duration() as f64 / logical_patch.logical_cycle_time() as f64;
+            let factory_duration_fraction =
+                factory.duration() as f64 / logical_patch.logical_cycle_time() as f64;
 
-        (magic_states_per_cycles * factory_duration_fraction).ceil() as _
+            (magic_states_per_cycles * factory_duration_fraction).ceil() as _
+        }
     }
 }
 
