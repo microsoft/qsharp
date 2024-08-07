@@ -77,7 +77,6 @@ pub struct CompletionList {
 
 #[derive(Debug)]
 pub struct CompletionItem {
-    /// This label is used to render the completion item.
     pub label: String,
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,

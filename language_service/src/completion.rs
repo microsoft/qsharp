@@ -23,7 +23,10 @@ use rustc_hash::FxHashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
+type SortPriority = u32;
+
 #[derive(Debug)]
+/// Used to represent pre-existing imports in the completion context
 struct ImportItem {
     path: Vec<Rc<str>>,
     alias: Option<Rc<str>>,
@@ -89,8 +92,7 @@ pub(crate) fn get_completions(
             // Starting context is top-level (i.e. outside a namespace block)
             Context::TopLevel
         },
-        // TODO(alex) below line
-        start_of_namespace: Default::default(), // todo!("set this to after the first comment"),
+        start_of_namespace: None,
         current_namespace_name: None,
         imports: vec![],
     };
@@ -713,8 +715,6 @@ impl Visitor<'_> for ContextFinder {
         }
     }
 }
-
-type SortPriority = u32;
 
 fn package_item_to_completion_item(
     i: qsc::hir::Item,
