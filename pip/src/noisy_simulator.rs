@@ -390,7 +390,7 @@ impl StateVectorSimulator {
 }
 
 #[pyclass]
-pub struct SimulationBackend {
+pub(crate) struct SimulationBackend {
     simulator: noisy_simulator::StateVectorSimulator,
     x_gate: noisy_simulator::Operation,
     h_gate: noisy_simulator::Operation,
