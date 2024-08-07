@@ -368,17 +368,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// The output result is given by the distribution:
     /// $$
     /// \begin{align}
-    ///     \Pr(\texttt{Zero} | \ket{\psi}) =
-    ///         \frac12 \braket{
-    ///             \psi \mid|
-    ///             \left(
-    ///                 \boldone + P_0 \otimes P_1 \otimes \cdots \otimes P_{N-1}
-    ///             \right) \mid|
-    ///             \psi
-    ///         },
+    ///     \langle\psi|
+    ///         \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2}
+    ///     |\psi\rangle,
     /// \end{align}
     /// $$
-    /// where $P_i$ is the $i$th element of `bases`, and where
+    /// where $P_i$ is the $i$'th element of `bases`, and where
     /// $N = \texttt{Length}(\texttt{bases})$.
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
     /// observed measurement effect is $(-1)^d$.
