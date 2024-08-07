@@ -7,7 +7,7 @@ use std::vec::Drain;
 
 use crate::ast_builder::{
     self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
-    build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
+    build_call_no_params, build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
     build_convert_call_expr, build_default_result_array_expr, build_expr_array_expr,
     build_gate_call_param_expr, build_if_expr_then_block, build_if_expr_then_block_else_block,
     build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
@@ -32,9 +32,7 @@ use crate::runtime::RuntimeFunctions;
 use crate::symbols::IOKind;
 use crate::symbols::Symbol;
 use crate::symbols::SymbolTable;
-use crate::types::{
-    get_indexed_type, get_qsharp_gate_name, CallableKind, GateModifier, QasmTypedExpr,
-};
+use crate::types::{get_indexed_type, get_qsharp_gate_name, GateModifier, QasmTypedExpr};
 use crate::{OutputSemantics, ProgramType, SemanticError, SemanticErrorKind};
 
 use ast::NodeId;
@@ -434,37 +432,27 @@ impl QasmCompiler {
     }
 
     fn compile_barrier_stmt(&mut self, barrier: &oq3_syntax::ast::Barrier) -> Option<ast::Stmt> {
-        let qubit_args: Vec<_> = barrier
-            .qubit_list()
-            .expect("Cannot call a barrier without qubit arguments")
-            .gate_operands()
-            .map(|op| self.compile_gate_operand(&op).map(|x| x.expr))
-            .collect();
+        let qubit_args: Vec<_> = if let Some(qubits) = barrier.qubit_list() {
+            qubits
+                .gate_operands()
+                .map(|op| self.compile_gate_operand(&op).map(|x| x.expr))
+                .collect()
+        } else {
+            vec![]
+        };
+
         if qubit_args.iter().any(Option::is_none) {
             // if any of the qubit arguments failed to compile, we can't proceed
             // This can happen if the qubit is not defined or if the qubit was
             // a hardware qubit
             return None;
         }
-        let name = format!("barrier_{}", qubit_args.len());
-        if self.symbols.get_symbol_by_name(name.as_str()).is_none() {
-            let symbol = Symbol {
-                name,
-                span: Span::default(),
-                ty: Type::Gate(0, qubit_args.len()),
-                qsharp_ty: crate::types::Type::Callable(
-                    CallableKind::Operation,
-                    0,
-                    qubit_args.len(),
-                ),
-                io_kind: IOKind::Default,
-            };
-            self.symbols
-                .insert_symbol(symbol)
-                .expect("Failed to insert symbol");
-        }
-        // TODO: handle barrier qir generation
-        None
+        let call_span = span_for_syntax_node(barrier.syntax());
+
+        self.runtime.insert(RuntimeFunctions::Barrier);
+        let expr = build_call_no_params("__quantum__qis__barrier__body", &[], call_span);
+        let stmt = build_stmt_semi_from_expr(expr);
+        Some(stmt)
     }
 
     fn compile_break_stmt(&mut self, break_stmt: &oq3_syntax::ast::BreakStmt) -> Option<ast::Stmt> {
@@ -3063,6 +3051,10 @@ fn declare_runtime_functions(runtime: RuntimeFunctions) -> Vec<ast::Stmt> {
     if runtime.contains(RuntimeFunctions::Pow) {
         let pow = crate::runtime::get_pow_decl();
         stmts.push(pow);
+    }
+    if runtime.contains(RuntimeFunctions::Barrier) {
+        let barrier = crate::runtime::get_barrier_decl();
+        stmts.push(barrier);
     }
     stmts
 }

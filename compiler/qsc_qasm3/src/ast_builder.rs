@@ -760,26 +760,30 @@ pub fn build_gate_call_param_expr(args: Vec<Expr>, remaining: usize) -> Expr {
 }
 
 pub(crate) fn build_math_call_no_params(name: &str, span: Span) -> Expr {
+    build_call_no_params(name, &["Microsoft", "Quantum", "Math"], span)
+}
+
+pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> Expr {
+    let idents = idents
+        .iter()
+        .map(|name| Ident {
+            name: Rc::from(*name),
+            ..Default::default()
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+    let segments = if idents.is_empty() {
+        None
+    } else {
+        Some(Idents(idents))
+    };
     let fn_name = Ident {
         name: Rc::from(name),
         ..Default::default()
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("Microsoft"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Quantum"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Math"),
-                    ..Default::default()
-                },
-            ]))),
+            segments,
             name: Box::new(fn_name),
             ..Default::default()
         }))),
