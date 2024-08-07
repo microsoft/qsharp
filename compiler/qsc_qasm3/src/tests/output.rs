@@ -27,7 +27,6 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
         rz(theta) q[0];
         h q[0];
         cx q[0], q[1];
-        barrier q[0], q[1];
         c[0] = measure q[0];
         c[1] = measure q[1];
     "#;
@@ -79,7 +78,6 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
         rz(theta) q[0];
         h q[0];
         cx q[0], q[1];
-        barrier q[0], q[1];
         c[0] = measure q[0];
         c[1] = measure q[1];
     "#;
@@ -132,7 +130,6 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
         rz(theta) q[0];
         h q[0];
         cx q[0], q[1];
-        barrier q[0], q[1];
         c[0] = measure q[0];
         c[1] = measure q[1];
     "#;
@@ -189,7 +186,6 @@ cx q[0], q[1];
 x q[2];
 id q[3];
 x q[4];
-barrier q[0], q[1];
 c[0] = measure q[0];
 c[1] = measure q[1];
 c2[0] = measure q[2];
@@ -278,6 +274,7 @@ block_0:
   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
   call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 2 to %Qubit*))
   call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 4 to %Qubit*))
+  call void @__quantum__qis__barrier__body()
   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
   call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*))
@@ -301,6 +298,8 @@ declare void @__quantum__qis__h__body(%Qubit*)
 declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
 
 declare void @__quantum__qis__x__body(%Qubit*)
+
+declare void @__quantum__qis__barrier__body()
 
 declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
