@@ -209,6 +209,9 @@ enum SemanticErrorKind {
     #[error("Return statements are only allowed within subroutines.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ReturnNotInSubroutine"))]
     ReturnNotInSubroutine(#[label] Span),
+    #[error("Switch statements cannot have empty cases.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.SwitchCaseEmptyCase"))]
+    SwitchCaseEmptyCase(#[label] Span),
     #[error("Too many controls specified.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TooManyControls"))]
     TooManyControls(#[label] Span),
@@ -320,6 +323,7 @@ impl SemanticErrorKind {
                 Self::ResetExpressionMustHaveName(span + offset)
             }
             Self::ReturnNotInSubroutine(span) => Self::ReturnNotInSubroutine(span + offset),
+            Self::SwitchCaseEmptyCase(span) => Self::SwitchCaseEmptyCase(span + offset),
             Self::TooManyControls(span) => Self::TooManyControls(span + offset),
             Self::TypeRankError(span) => Self::TypeRankError(span + offset),
             Self::UndefinedSymbol(name, span) => Self::UndefinedSymbol(name, span + offset),

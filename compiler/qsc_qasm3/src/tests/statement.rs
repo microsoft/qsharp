@@ -9,4 +9,5 @@ mod implicit_modified_gate_call;
 mod measure;
 mod modified_gate_call;
 mod reset;
+mod switch;
 mod while_loop;

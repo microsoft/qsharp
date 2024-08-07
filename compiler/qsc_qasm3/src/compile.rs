@@ -10,15 +10,16 @@ use crate::ast_builder::{
     build_call_no_params, build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
     build_convert_call_expr, build_default_result_array_expr, build_expr_array_expr,
     build_gate_call_param_expr, build_if_expr_then_block, build_if_expr_then_block_else_block,
-    build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-    build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
-    build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+    build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
+    build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_bigint_expr,
+    build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
     build_lit_result_array_expr_from_bitstring, build_lit_result_expr, build_managed_qubit_alloc,
     build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-    build_path_ident_expr, build_range_expr, build_reset_call, build_stmt_semi_from_expr,
-    build_stmt_wrapped_block_expr, build_top_level_ns_with_item, build_tuple_expr,
-    build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-    is_complex_binop_supported, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+    build_path_ident_expr, build_range_expr, build_reset_call, build_stmt_semi_from_block,
+    build_stmt_semi_from_expr, build_stmt_wrapped_block_expr, build_top_level_ns_with_item,
+    build_tuple_expr, build_unary_op_expr, build_unmanaged_qubit_alloc,
+    build_unmanaged_qubit_alloc_array, build_wrapped_block_expr, is_complex_binop_supported,
+    managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
 };
 
 use crate::oqasm_helpers::{
@@ -1260,6 +1261,33 @@ impl QasmCompiler {
         None
     }
 
+    fn compile_typed_expression_list(
+        &mut self,
+        expr_list: &oq3_syntax::ast::ExpressionList,
+        ty: &Type,
+    ) -> Option<Vec<QasmTypedExpr>> {
+        let exprs: Vec<_> = expr_list.exprs().collect();
+        let exprs_len = exprs.len();
+        let mapped_exprs: Vec<_> = exprs
+            .into_iter()
+            .filter_map(|expr| {
+                self.resolve_rhs_expr_with_casts(Some(expr.clone()), ty, expr.syntax())
+                    .map(|expr| QasmTypedExpr {
+                        expr,
+                        ty: ty.clone(),
+                    })
+            })
+            .collect();
+        if exprs_len == mapped_exprs.len() {
+            return Some(mapped_exprs);
+        }
+        let kind = SemanticErrorKind::FailedToCompileExpressionList(span_for_syntax_node(
+            expr_list.syntax(),
+        ));
+        self.push_semantic_error(kind);
+        None
+    }
+
     fn compile_gate_operand(&mut self, op: &oq3_syntax::ast::GateOperand) -> Option<QasmTypedExpr> {
         let op_span = span_for_syntax_node(op.syntax());
         match op {
@@ -2245,8 +2273,107 @@ impl QasmCompiler {
         &mut self,
         switch_case: &oq3_syntax::ast::SwitchCaseStmt,
     ) -> Option<ast::Stmt> {
-        self.push_unimplemented_error_message("switch statements", switch_case.syntax());
-        None
+        let stmt_span = span_for_syntax_node(switch_case.syntax());
+        let cond_ty = Type::Int(None, IsConst::False);
+        let control = switch_case.control().and_then(|control| {
+            self.resolve_rhs_expr_with_casts(Some(control), &cond_ty, switch_case.syntax())
+        });
+        let cases: Vec<_> = switch_case
+            .case_exprs()
+            .map(|case| {
+                let lhs = case
+                    .expression_list()
+                    .and_then(|expr| self.compile_typed_expression_list(&expr, &cond_ty));
+                self.symbols.push_scope(crate::symbols::ScopeKind::Block);
+                let rhs = case
+                    .block_expr()
+                    .map(|block| self.compile_block_expr(&block));
+                self.symbols.pop_scope();
+                (lhs, rhs)
+            })
+            .collect();
+        self.symbols.push_scope(crate::symbols::ScopeKind::Block);
+        let default_block = switch_case
+            .default_block()
+            .map(|block| self.compile_block_expr(&block));
+        self.symbols.pop_scope();
+
+        // at this point we tried to compile everything, bail if we have any errors
+        if control.is_none()
+            || cases
+                .iter()
+                .any(|(lhs, rhs)| lhs.is_none() || rhs.is_none())
+            || cases.is_empty() && default_block.is_none()
+        {
+            return None;
+        }
+        // we need to convert each case lhs into a sequence of equality checks
+        // that are the cond for an if block
+        // Semantics of switch case is that the outer block doesn't introduce a new scope
+        // but each case rhs does. Can we add a new scope anyway to hold a temporary variable?
+        // if we do that, we can refer to a new variable instead of the control expr
+        // this would allow us to avoid the need to resolve the control expr multiple times
+        // in the case where we have to coerce the control expr to the correct type
+        let control = control.expect("Control must be resolved");
+        let cases: Vec<_> = cases
+            .into_iter()
+            .map(|(lhs, rhs)| {
+                let lhs = lhs.expect("Case must have a lhs");
+                let rhs = rhs.expect("Case must have a rhs");
+                let case = lhs
+                    .iter()
+                    .map(|texpr| {
+                        ast_builder::build_binary_expr(
+                            false,
+                            ast::BinOp::Eq,
+                            control.clone(),
+                            texpr.expr.clone(),
+                            texpr.expr.span,
+                        )
+                    })
+                    .fold(None, |acc, expr| match acc {
+                        None => Some(expr),
+                        Some(acc) => {
+                            let qsop = ast::BinOp::OrL;
+                            let span = expr.span;
+                            Some(ast_builder::build_binary_expr(false, qsop, acc, expr, span))
+                        }
+                    });
+                if let Some(case) = case {
+                    Some((case, rhs))
+                } else {
+                    let kind = SemanticErrorKind::SwitchCaseEmptyCase(stmt_span);
+                    self.push_semantic_error(kind);
+                    None
+                }
+            })
+            .collect();
+        if cases.iter().any(Option::is_none) {
+            // we already pushed an error, bail
+            return None;
+        }
+        let cases: Vec<_> = cases.into_iter().map(Option::unwrap).collect();
+        // cond is resolved, cases are resolved, default is resolved
+        // cases may be empty but we have a default block based on the
+        // check above
+        // Base case, there are no cases, just a default block
+        if cases.is_empty() {
+            return default_block.map(build_stmt_semi_from_block);
+        }
+        let default_expr = default_block.map(build_wrapped_block_expr);
+        let if_expr = cases
+            .into_iter()
+            .rev()
+            .fold(default_expr, |else_expr, (cond, block)| {
+                let span = Span {
+                    lo: cond.span.lo,
+                    hi: block.span.hi,
+                };
+                Some(build_if_expr_then_block_else_expr(
+                    cond, block, else_expr, span,
+                ))
+            });
+        if_expr.map(build_stmt_semi_from_expr)
     }
 
     // This is a no-op in Q# but we will save it for future use

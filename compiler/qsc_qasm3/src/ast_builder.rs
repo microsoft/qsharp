@@ -600,6 +600,22 @@ pub(crate) fn build_range_expr(start: Expr, stop: Expr, step: Option<Expr>, span
     }
 }
 
+pub(crate) fn build_if_expr_then_block_else_expr(
+    cond: Expr,
+    then_expr: Block,
+    else_expr: Option<Expr>,
+    span: Span,
+) -> Expr {
+    let else_expr = else_expr.map(Box::new);
+    let if_kind = ExprKind::If(Box::new(cond), Box::new(then_expr), else_expr);
+
+    ast::Expr {
+        id: NodeId::default(),
+        span,
+        kind: Box::new(if_kind),
+    }
+}
+
 pub(crate) fn build_if_expr_then_expr_else_expr(
     cond: Expr,
     then_expr: Expr,
@@ -818,6 +834,14 @@ pub(crate) fn build_lit_string_expr(value: f64, span: Span) -> Expr {
 }
 
 pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span: expr.span,
+        kind: Box::new(StmtKind::Semi(Box::new(expr))),
+    }
+}
+pub(crate) fn build_stmt_semi_from_block(block: Block) -> Stmt {
+    let expr = build_wrapped_block_expr(block);
     Stmt {
         id: NodeId::default(),
         span: expr.span,
