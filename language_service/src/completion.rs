@@ -485,24 +485,19 @@ impl CompletionListBuilder {
 
         // Given the package, get all completion items by iterating over its items
         // and converting any that would be valid as completions into completions
-        let res = package
-            .items
-            .values()
-            .filter_map(move |i| {
-                package_item_to_completion_item(
-                    i.clone(),
-                    package.clone(),
-                    is_user_package,
-                    current_namespace_name,
-                    &display,
-                    &package_alias_from_manifest,
-                    imports,
-                    insert_open_at,
-                    indent,
-                )
-            })
-            .collect::<Vec<_>>();
-        res.into_iter()
+        package.items.values().filter_map(move |i| {
+            package_item_to_completion_item(
+                i.clone(),
+                package.clone(),
+                is_user_package,
+                current_namespace_name,
+                &display,
+                &package_alias_from_manifest,
+                imports,
+                insert_open_at,
+                indent,
+            )
+        })
     }
 
     /// Get all callables in the core package
@@ -538,9 +533,7 @@ impl CompletionListBuilder {
         package_alias: Option<Arc<str>>,
     ) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Namespace(namespace, _)
-                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
-            {
+            ItemKind::Namespace(namespace, _) => {
                 let qualification = namespace
                     .str_iter()
                     .into_iter()

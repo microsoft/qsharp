@@ -16,6 +16,5 @@ namespace Std {
         Microsoft.Quantum.Math,
         Microsoft.Quantum.Measurement,
         Microsoft.Quantum.Random,
-        Microsoft.Quantum.ResourceEstimation,
-        Microsoft.Quantum.Unstable;
+        Microsoft.Quantum.ResourceEstimation;
 }

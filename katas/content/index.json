@@ -22,5 +22,6 @@
   "grovers_search",
   "solving_sat",
   "solving_graph_coloring",
+  "qft",
   "qec_shor"
 ]

@@ -8,7 +8,7 @@ use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.StatePreparation namespace
 
-const STATE_PREPARATION_TEST_LIB: &str = include_str!("resources/state_preparation.qs");
+const STATE_PREPARATION_TEST_LIB: &str = include_str!("resources/src/state_preparation.qs");
 
 #[test]
 fn check_plus_state_preparation() {
