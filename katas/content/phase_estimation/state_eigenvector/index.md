@@ -8,5 +8,7 @@
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  The library operation <code>CheckZero</code> allows you to check whether the state of the given qubit is $\ket{0}$.
+
+The library operation <code>CheckZero</code> allows you to check whether the state of the given qubit is $\ket{0}$.
+
 </details>

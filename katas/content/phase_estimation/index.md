@@ -56,7 +56,7 @@ If the quantum gate is self-adjoint, that is, its matrix equals its inverse $U^{
 > You can prove this in a similar manner, using the defintion of an eigenvalue:
 > $$U^2 \ket{v} = U(U \ket{v}) = U(\lambda \ket{v}) = \lambda U \ket{v} = \lambda^2 \ket{v}$$
 > At the same time,
-> $$U^2 \ket{v} = UU \ket{v} = U^(-1)U \ket{v} = I \ket{v} = \ket{v}$$
+> $$U^2 \ket{v} = UU \ket{v} = U^{-1}U \ket{v} = I \ket{v} = \ket{v}$$
 > So you can conclude that $\lambda^2 = 1$.
 
 For example, the $Z$ gate has two eigenvctors:
@@ -90,14 +90,13 @@ For example, the $Z$ gate has two eigenvctors:
 
 The phase estimation problem is formulated as follows. 
 
-You are given a unitary operator $U$ and its eigenvector $\ket{\psi}$. The eigenvector is given as a way to prepare it,
-for example, a unitary $P$ that, when applied to the $\ket{0}$ state, converts it to the state $\ket{\psi}$.
+You are given a unitary operator $U$ and its eigenvector $\ket{\psi}$. The eigenvector is given as a unitary operator $P$ that, when applied to $\ket{0}$, results in the state $\ket{\psi}$.
 
 Your goal is to find the eigenvalue $\lambda$ associated with this eigenvector, or, in a more common formulation, the corresponding eigenphase $\theta$:
 
 $$U\ket{\psi} = e^{2 \pi i \theta} \ket{\psi}, \theta = ?$$
 
-The value of $\theta$ is defined to be between $0$ and $1$, since any value outside of this range has an equivalent value within it. Instead of discussing the floating-point number $\theta$, sometimes its representation as a binary fraction with $n$ digits is used:
+The value of $\theta$ is defined to be between $0$ and $1$, since any value outside of this range has an equivalent value within it. Instead of representing $\theta$ as a decimal, sometimes it is represented as a binary fraction with $n$ digits:
 
 $$\theta = 0.\theta_1 \theta_2... \theta_n = \frac{\theta_1}{2^1}+ \frac{\theta_2}{2^2}+...\frac{\theta_n}{2^n}$$
 
