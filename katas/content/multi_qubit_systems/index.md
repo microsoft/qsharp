@@ -17,7 +17,7 @@ If you are not familiar with single-qubit systems, we recommend that you complet
 
 **What you should know to start working on this kata:**
 
-- Basic concepts of single-qubit gates
+- Basic single-qubit gates
 - The concept of tensor product
 
 If you need a refresher on these topics, you can check out the previous katas.

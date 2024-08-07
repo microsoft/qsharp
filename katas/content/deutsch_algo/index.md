@@ -16,8 +16,8 @@ This kata introduces you to Deutsch algorithm - the single-qubit variant of Deut
 
 **What you should know to start working on this kata:**
 
-- Basic concepts of single-qubit gates
-- Basic concepts of quantum measurements
+- Basic single-qubit gates
+- Quantum measurements
 
 If you need a refresher on these topics, you can check out the previous katas.
 

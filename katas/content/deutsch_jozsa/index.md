@@ -17,8 +17,8 @@ This kata introduces you to Deutsch-Jozsa algorithm - one of the most famous alg
 
 **What you should know to start working on this kata:**
 
-- Basic concepts of single-qubit gates
-- Basic concepts of quantum measurements
+- Basic single-qubit gates
+- Quantum measurements
 - Deutsch algorithm - the single-qubit variant of Deutsch-Jozsa algorithm. 
 
 If you need a refresher on these topics, you can check out the previous katas.
