@@ -10,6 +10,10 @@ use rustc_hash::FxHashMap;
 
 use miette::IntoDiagnostic;
 
+/// A trait for resolving include file paths to their contents.
+/// This is used by the parser to resolve `include` directives.
+/// Implementations of this trait can be provided to the parser
+/// to customize how include files are resolved.
 pub trait SourceResolver {
     #[cfg(feature = "fs")]
     fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
@@ -36,6 +40,7 @@ pub trait SourceResolver {
         P: AsRef<Path>;
 }
 
+/// A source resolver that resolves include files from the file system.
 #[cfg(feature = "fs")]
 pub mod fs {
     use super::SourceResolver;
@@ -45,6 +50,12 @@ pub mod fs {
     impl SourceResolver for FsSourceResolver {}
 }
 
+/// A source resolver that resolves include files from an in-memory map.
+/// This is useful for testing or environments in which file system access
+/// is not available.
+///
+/// This requires users to build up a map of include file paths to their
+/// contents prior to parsing.
 pub struct InMemorySourceResolver {
     sources: FxHashMap<PathBuf, String>,
 }

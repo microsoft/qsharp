@@ -6,8 +6,8 @@ use std::path::PathBuf;
 use std::vec::Drain;
 
 use crate::ast_builder::{
-    self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
-    build_call_no_params, build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
+    self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
+    build_binary_expr, build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
     build_convert_call_expr, build_default_result_array_expr, build_expr_array_expr,
     build_gate_call_param_expr, build_if_expr_then_block, build_if_expr_then_block_else_block,
     build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
@@ -15,15 +15,15 @@ use crate::ast_builder::{
     build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
     build_lit_result_array_expr_from_bitstring, build_lit_result_expr, build_managed_qubit_alloc,
     build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-    build_path_ident_expr, build_range_expr, build_reset_call, build_stmt_semi_from_block,
-    build_stmt_semi_from_expr, build_stmt_wrapped_block_expr, build_top_level_ns_with_item,
-    build_tuple_expr, build_unary_op_expr, build_unmanaged_qubit_alloc,
-    build_unmanaged_qubit_alloc_array, build_wrapped_block_expr, is_complex_binop_supported,
-    managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+    build_path_ident_expr, build_range_expr, build_reset_call, build_stmt_semi_from_expr,
+    build_stmt_wrapped_block_expr, build_top_level_ns_with_item, build_tuple_expr,
+    build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+    build_wrapped_block_expr, is_complex_binop_supported, managed_qubit_alloc_array,
+    map_qsharp_type_to_ast_ty,
 };
 
 use crate::oqasm_helpers::{
-    binop_requires_int_conversion, can_cast_literal_with_value_knowledge,
+    binop_requires_symmetric_int_conversion, can_cast_literal_with_value_knowledge,
     extract_dims_from_designator, get_designator_from_scalar_type, requires_symmetric_conversion,
     requires_types_already_match_conversion, safe_u128_to_f64, span_for_named_item,
     span_for_syntax_node, span_for_syntax_token,
@@ -42,8 +42,9 @@ use ast::TopLevelNode;
 use num_bigint::BigInt;
 use oq3_semantics::types::{ArrayDims, IsConst, Type};
 use oq3_syntax::ast::{
-    BinaryOp, BitString, Expr, GateOperand, HasArgList, HasName, Literal, LiteralKind, Modifier,
-    ParenExpr, Stmt, TimeUnit, TimingLiteral, UnaryOp,
+    AnnotationStatement, BinaryOp, BitString, DelayStmt, Expr, GateOperand, HasArgList, HasName,
+    Literal, LiteralKind, Modifier, ParenExpr, PragmaStatement, Stmt, TimeUnit, TimingLiteral,
+    UnaryOp,
 };
 use oq3_syntax::AstNode;
 use oq3_syntax::SyntaxNode;
@@ -59,6 +60,7 @@ use crate::{
 #[cfg(test)]
 pub(crate) mod tests;
 
+/// Compiles a QASM3 source to a Q# AST package.
 pub fn qasm_to_program_with_semantics(
     source: QasmSource,
     source_map: SourceMap,
@@ -86,21 +88,49 @@ pub fn qasm_to_program_with_semantics(
     compiler.compile_program(program_ty)
 }
 
+/// Qubit semantics differ between Q# and Qiskit. This enum is used to
+/// specify which semantics to use when compiling QASM to Q#.
+///
+/// Q# requires qubits to be in the 0 state before and after use.
+/// Qiskit makes no assumptions about the state of qubits before or after use.
+///
+/// During compliation, if Qiskit semantics are used, the compiler will insert
+/// calls to create qubits instead of `use` bindings. This means that later
+/// compiler passes won't generate the Q# code that would check the qubits.
+///
+/// If Q# semantics are used, the compiler will insert `use` bindings.
+///
+/// The Qiskit semantics can also be useful if we ever want to do state
+/// vector simulation as it will allow us to get the simulator state at
+/// the end of the program.
 pub(crate) enum QubitSemantics {
     QSharp,
     Qiskit,
 }
 
 struct QasmCompiler {
+    /// The root QASM source to compile.
     source: QasmSource,
+    /// The source map of QASM sources for error reporting.
     source_map: SourceMap,
+    /// The compiled statments accumulated during compilation.
     stmts: Vec<ast::Stmt>,
+    /// The runtime functions that need to be included at the end of
+    /// compilation
     runtime: RuntimeFunctions,
     errors: Vec<WithSource<crate::Error>>,
+    /// The file stack is used to track the current file for error reporting.
+    /// When we include a file, we push the file path to the stack and pop it
+    /// when we are done with the file.
+    /// This allows us to report errors with the correct file path.
     file_stack: Vec<PathBuf>,
+    /// The qubit semantics to follow when compiling to Q# AST.
     qubit_semantics: QubitSemantics,
     symbols: SymbolTable,
     output_semantics: OutputSemantics,
+    /// The QASM version parsed from the source file. This is a placeholder
+    /// for future use. We may want to use this to generate/parse different code
+    /// based on the QASM version.
     version: Option<String>,
 }
 
@@ -167,6 +197,9 @@ impl QasmCompiler {
         self.stmts.drain(..)
     }
 
+    /// The main entry into compilation. This function will compile the
+    /// source file and build the appropriate package based on the
+    /// `program_ty` parameter.
     fn compile_program(mut self, program_ty: ProgramType) -> QasmCompileUnit {
         self.compile_source(&self.source.clone());
         self.prepend_runtime_decls();
@@ -179,11 +212,20 @@ impl QasmCompiler {
         QasmCompileUnit::new(self.source_map, self.errors, Some(package))
     }
 
+    /// Prepends the runtime declarations to the beginning of the statements.
+    /// Any runtime functions that are required by the compiled code are set
+    /// in the `self.runtime` field during compilation.
+    ///
+    /// We could declare these as top level functions when compiling to
+    /// `ProgramType::File`, but prepending them to the statements is the
+    /// most flexible approach.
     fn prepend_runtime_decls(&mut self) {
         let mut runtime = declare_runtime_functions(self.runtime);
         self.stmts.splice(0..0, runtime.drain(..));
     }
 
+    /// Build a package with namespace and an operation
+    /// containing the compiled statements.
     fn build_file<S: AsRef<str>>(&mut self, name: S) -> Package {
         let tree = self.source.tree();
         let whole_span = span_for_syntax_node(tree.syntax());
@@ -196,6 +238,7 @@ impl QasmCompiler {
         }
     }
 
+    /// Creates an operation with the given name.
     fn build_operation<S: AsRef<str>>(&mut self, name: S) -> Package {
         let tree = self.source.tree();
         let whole_span = span_for_syntax_node(tree.syntax());
@@ -210,6 +253,7 @@ impl QasmCompiler {
         }
     }
 
+    /// Turns the compiled statements into package of top level nodes
     fn build_fragments(&mut self) -> Package {
         let nodes = self
             .drain_nodes()
@@ -223,6 +267,7 @@ impl QasmCompiler {
         }
     }
 
+    /// Root recursive function for compiling the source.
     fn compile_source(&mut self, source: &QasmSource) {
         // we push the file path to the stack so we can track the current file
         // for reporting errors. This saves us from having to pass around
@@ -279,6 +324,8 @@ impl QasmCompiler {
         self.file_stack.pop();
     }
 
+    /// Match against the different types of statements and compile them
+    /// to the appropriate AST statement. There should be no logic here.
     fn compile_stmt(&mut self, stmt: &oq3_syntax::ast::Stmt) -> Option<ast::Stmt> {
         match stmt {
             Stmt::AliasDeclarationStatement(alias) => self.compile_alias_decl(alias),
@@ -301,36 +348,51 @@ impl QasmCompiler {
             Stmt::SwitchCaseStmt(switch_case) => self.compile_switch_stmt(switch_case),
             Stmt::VersionString(version) => self.compile_version_stmt(version),
             Stmt::WhileStmt(while_stmt) => self.compile_while_stmt(while_stmt),
-            Stmt::Include(include) => {
-                // if we are not in the root we should not be able to include
-                if !self.symbols.is_current_scope_global() {
-                    let name = include.to_string();
-                    let span = span_for_syntax_node(include.syntax());
-                    let kind = SemanticErrorKind::IncludeNotInGlobalScope(name, span);
-                    self.push_semantic_error(kind);
-                    return None;
-                }
-                // if we are at the root and we have an include, we should have
-                // already handled it and we are in an invalid state
-                panic!("Include should have been handled in compile_source")
+            Stmt::Include(include) => self.compile_include_stmt(include),
+            Stmt::Cal(..) | Stmt::DefCal(..) | Stmt::DefCalGrammar(..) => {
+                self.compile_calibration_stmt(stmt)
             }
-            Stmt::Cal(_) | Stmt::DefCal(_) | Stmt::DefCalGrammar(_) => {
-                self.push_calibration_error(stmt.syntax());
-                None
-            }
-            Stmt::AnnotationStatement(_) => {
-                self.push_unsupported_error_message("Annotation statements", stmt.syntax());
-                None
-            }
-            Stmt::DelayStmt(_) => {
-                self.push_unsupported_error_message("Delay statements", stmt.syntax());
-                None
-            }
-            Stmt::PragmaStatement(_) => {
-                self.push_unsupported_error_message("Pragma statements", stmt.syntax());
-                None
-            }
+            Stmt::AnnotationStatement(annotation) => self.compile_annotation_stmt(annotation),
+            Stmt::DelayStmt(delay) => self.compile_delay_stmt(delay),
+            Stmt::PragmaStatement(pragma) => self.compile_pragma_stmt(pragma),
         }
+    }
+
+    fn compile_pragma_stmt(&mut self, stmt: &PragmaStatement) -> Option<ast::Stmt> {
+        self.push_unsupported_error_message("Pragma statements", stmt.syntax());
+        None
+    }
+
+    fn compile_delay_stmt(&mut self, stmt: &DelayStmt) -> Option<ast::Stmt> {
+        self.push_unsupported_error_message("Delay statements", stmt.syntax());
+        None
+    }
+
+    fn compile_annotation_stmt(&mut self, stmt: &AnnotationStatement) -> Option<ast::Stmt> {
+        self.push_unsupported_error_message("Annotation statements", stmt.syntax());
+        None
+    }
+
+    fn compile_calibration_stmt(&mut self, stmt: &Stmt) -> Option<ast::Stmt> {
+        self.push_calibration_error(stmt.syntax());
+        None
+    }
+
+    /// This function is always a indication of a error. Either the
+    /// program is declaring include in a non-global scope or the
+    /// include is not handled in `self.compile_source` properly.
+    fn compile_include_stmt(&mut self, include: &oq3_syntax::ast::Include) -> Option<ast::Stmt> {
+        // if we are not in the root we should not be able to include
+        if !self.symbols.is_current_scope_global() {
+            let name = include.to_string();
+            let span = span_for_syntax_node(include.syntax());
+            let kind = SemanticErrorKind::IncludeNotInGlobalScope(name, span);
+            self.push_semantic_error(kind);
+            return None;
+        }
+        // if we are at the root and we have an include, we should have
+        // already handled it and we are in an invalid state
+        panic!("Include should have been handled in compile_source")
     }
 
     fn compile_alias_decl(
@@ -341,6 +403,13 @@ impl QasmCompiler {
         None
     }
 
+    /// Assignment statements have two forms: simple and indexed.
+    /// Simple assignments are of the form `name = expr;` and indexed
+    /// assignments are of the form `name[index] = expr;`.
+    /// This function will dispatch to the appropriate function based
+    /// on the type of assignment.
+    ///
+    /// While they are similar, the indexed assignment is far more complex.
     fn compile_assignment_stmt(
         &mut self,
         assignment: &oq3_syntax::ast::AssignmentStmt,
@@ -359,7 +428,6 @@ impl QasmCompiler {
     ) -> Option<ast::Stmt> {
         let name_span = span_for_named_item(assignment);
         let assignment_span = span_for_syntax_node(assignment.syntax());
-        // resolve the rhs expression
         let lhs_symbol = self
             .symbols
             .get_symbol_by_name(name.to_string().as_str())?
@@ -368,9 +436,11 @@ impl QasmCompiler {
             let kind = SemanticErrorKind::CannotUpdateConstVariable(name.to_string(), name_span);
             self.push_semantic_error(kind);
             // usually we'd return None here, but we'll continue to compile the rhs
-            // looking for more errors
+            // looking for more errors. There is nothing in this type of error that
+            // would prevent us from compiling the rhs.
         }
-        let rhs = self.resolve_rhs_expr_with_casts(
+        // resolve the rhs expression to match the lhs type
+        let rhs = self.compile_expr_to_ty_with_casts(
             assignment.rhs(),
             &lhs_symbol.ty,
             assignment.syntax(),
@@ -389,18 +459,17 @@ impl QasmCompiler {
         let name = indexed_ident
             .identifier()
             .expect("indexed identifier must have a name");
+        let string_name = name.to_string();
         let name_span = span_for_named_item(&indexed_ident);
         let stmt_span = span_for_syntax_node(assignment.syntax());
         let rhs_span = span_for_syntax_node(assignment.rhs()?.syntax());
 
-        let lhs_symbol = self
-            .symbols
-            .get_symbol_by_name(name.to_string().as_str())?
-            .clone();
-
+        // resolve the index expression
+        // we only support single index expressions for now
+        // but in the future we may support slice/range/array indexing
         let indices: Vec<_> = indexed_ident
             .index_operators()
-            .filter_map(|op| self.convert_index_operator(&op))
+            .filter_map(|op| self.compile_index_operator(&op))
             .flatten()
             .collect();
 
@@ -414,19 +483,24 @@ impl QasmCompiler {
             return None;
         }
         let index = indices[0].clone();
+
+        let lhs_symbol = self
+            .symbols
+            .get_symbol_by_name(name.to_string().as_str())?
+            .clone();
         if index.ty.num_dims() > lhs_symbol.ty.num_dims() {
             let kind = SemanticErrorKind::TypeRankError(rhs_span);
             self.push_semantic_error(kind);
         }
         let index_expr = index.expr.clone();
-        let string_name = name.to_string();
+
         let Some(indexed_ty) = get_indexed_type(&lhs_symbol.ty) else {
             let kind = SemanticErrorKind::CannotIndexType(format!("{:?}", lhs_symbol.ty), rhs_span);
             self.push_semantic_error(kind);
             return None;
         };
         let rhs =
-            self.resolve_rhs_expr_with_casts(assignment.rhs(), &indexed_ty, assignment.syntax())?;
+            self.compile_expr_to_ty_with_casts(assignment.rhs(), &indexed_ty, assignment.syntax())?;
         let stmt =
             build_indexed_assignment_statement(name_span, string_name, index_expr, rhs, stmt_span);
         Some(stmt)
@@ -449,13 +523,13 @@ impl QasmCompiler {
             return None;
         }
         let call_span = span_for_syntax_node(barrier.syntax());
-
+        // we don't support barrier, but we can insert a runtime function
+        // which will generate a barrier call in QIR
         self.runtime.insert(RuntimeFunctions::Barrier);
-        let expr = build_call_no_params("__quantum__qis__barrier__body", &[], call_span);
-        let stmt = build_stmt_semi_from_expr(expr);
-        Some(stmt)
+        Some(build_barrier_call(call_span))
     }
 
+    /// Need to add break support in Q# to support break statements
     fn compile_break_stmt(&mut self, break_stmt: &oq3_syntax::ast::BreakStmt) -> Option<ast::Stmt> {
         self.push_unsupported_error_message("break statements", break_stmt.syntax());
         None
@@ -487,7 +561,7 @@ impl QasmCompiler {
             return None;
         }
 
-        let rhs = self.resolve_rhs_expr_with_casts(decl.expr(), &ty, decl.syntax())?;
+        let rhs = self.compile_expr_to_ty_with_casts(decl.expr(), &ty, decl.syntax())?;
 
         // create the let binding and assign the rhs to the lhs
         let ty_span = span_for_syntax_node(scalar_ty.syntax());
@@ -506,9 +580,9 @@ impl QasmCompiler {
         Some(stmt)
     }
 
-    /// The LHS type is fixed so we try to resolve the RHS expression to match the LHS type
-    /// via casts is possible
-    fn resolve_rhs_expr_with_casts(
+    /// The expr type is fixed so we try to resolve the expression to match the type
+    /// via implicit casts or literal conversion if possible.
+    fn compile_expr_to_ty_with_casts(
         &mut self,
         expr: Option<Expr>,
         ty: &Type,
@@ -522,7 +596,7 @@ impl QasmCompiler {
         };
 
         // since we have an expr, we can refine the node for errors
-        let node = expr.syntax();
+        let span = span_for_syntax_node(expr.syntax());
 
         let rhs = self.compile_expr(&expr)?;
         let rhs_ty = rhs.ty.clone();
@@ -543,7 +617,7 @@ impl QasmCompiler {
             let kind = SemanticErrorKind::CannotAssignToType(
                 format!("{:?}", rhs.ty),
                 format!("{ty:?}"),
-                span_for_syntax_node(node),
+                span,
             );
             self.push_semantic_error(kind);
             return None;
@@ -561,7 +635,7 @@ impl QasmCompiler {
             let kind = SemanticErrorKind::CannotAssignToType(
                 "Negative Int".to_string(),
                 format!("{ty:?}"),
-                span_for_syntax_node(node),
+                span,
             );
             self.push_semantic_error(kind);
             return None;
@@ -600,6 +674,7 @@ impl QasmCompiler {
         Some(self.cast_expr_to_type(ty, &rhs, node)?.expr)
     }
 
+    /// Need to add continue support in Q# to support continue statements
     fn compile_continue_stmt(
         &mut self,
         continue_stmt: &oq3_syntax::ast::ContinueStmt,
@@ -706,15 +781,12 @@ impl QasmCompiler {
         bin_expr: &oq3_syntax::ast::BinExpr,
         expr: &Expr,
     ) -> Option<QasmTypedExpr> {
-        let op = bin_expr
-            .op_kind()
-            .expect("Binary expression must have an operator");
-        let lhs_expr = bin_expr
-            .lhs()
-            .expect("Binary expression must have a lhs expression");
-        let rhs_expr = bin_expr
-            .rhs()
-            .expect("Binary expression must have a rhs expression");
+        // We don't need to worry about semantic errors as binary expression
+        // must have a lhs and rhs expression and an operator. This is
+        // verified in the binary expression tests.
+        let op = bin_expr.op_kind()?;
+        let lhs_expr = bin_expr.lhs()?;
+        let rhs_expr = bin_expr.rhs()?;
 
         let lhs = self.compile_expr(&lhs_expr)?;
         let rhs = self.compile_expr(&rhs_expr)?;
@@ -809,22 +881,23 @@ impl QasmCompiler {
                 let oq3_syntax::ast::BinaryOp::Assignment { op: arith_op } = op else {
                     unreachable!()
                 };
-                let (lhs, rhs) = if arith_op.is_some() && binop_requires_int_conversion(op) {
-                    let ty = Type::Int(None, IsConst::False);
-                    let lhs = self.cast_expr_to_type(&ty, &lhs, lhs_expr.syntax())?.expr;
-                    let rhs = self.cast_expr_to_type(&ty, &rhs, rhs_expr.syntax())?.expr;
-                    (lhs, rhs)
-                } else {
-                    let rhs = self.resolve_rhs_expr_with_casts(
-                        Some(rhs_expr.clone()),
-                        &left_type,
-                        rhs_expr.syntax(),
-                    )?;
-                    (lhs.expr, rhs)
-                };
+                let (lhs, rhs) =
+                    if arith_op.is_some() && binop_requires_symmetric_int_conversion(op) {
+                        let ty = Type::Int(None, IsConst::False);
+                        let lhs = self.cast_expr_to_type(&ty, &lhs, lhs_expr.syntax())?.expr;
+                        let rhs = self.cast_expr_to_type(&ty, &rhs, rhs_expr.syntax())?.expr;
+                        (lhs, rhs)
+                    } else {
+                        let rhs = self.compile_expr_to_ty_with_casts(
+                            Some(rhs_expr.clone()),
+                            &left_type,
+                            rhs_expr.syntax(),
+                        )?;
+                        (lhs.expr, rhs)
+                    };
 
                 (lhs, rhs, left_type)
-            } else if binop_requires_int_conversion(op) {
+            } else if binop_requires_symmetric_int_conversion(op) {
                 let ty = Type::Int(None, IsConst::False);
                 let new_rhs = self.cast_expr_to_type(&ty, &rhs, rhs_expr.syntax())?;
                 (lhs.expr, new_rhs.expr, left_type)
@@ -1197,7 +1270,7 @@ impl QasmCompiler {
                 let exprs = list
                     .exprs()
                     .map(|expr| {
-                        self.resolve_rhs_expr_with_casts(
+                        self.compile_expr_to_ty_with_casts(
                             Some(expr),
                             &Type::Float(None, IsConst::False),
                             gate_call_expr.syntax(),
@@ -1271,7 +1344,7 @@ impl QasmCompiler {
         let mapped_exprs: Vec<_> = exprs
             .into_iter()
             .filter_map(|expr| {
-                self.resolve_rhs_expr_with_casts(Some(expr.clone()), ty, expr.syntax())
+                self.compile_expr_to_ty_with_casts(Some(expr.clone()), ty, expr.syntax())
                     .map(|expr| QasmTypedExpr {
                         expr,
                         ty: ty.clone(),
@@ -1334,14 +1407,13 @@ impl QasmCompiler {
             }
         }
     }
-    fn convert_index_operator(
+    fn compile_index_operator(
         &mut self,
         op: &oq3_syntax::ast::IndexOperator,
     ) -> Option<Vec<QasmTypedExpr>> {
         match op.index_kind() {
             Some(oq3_syntax::ast::IndexKind::SetExpression(expr)) => {
                 let expr = expr.expression_list()?;
-
                 self.compile_expression_list(&expr)
             }
             Some(oq3_syntax::ast::IndexKind::ExpressionList(expr)) => {
@@ -1437,7 +1509,7 @@ impl QasmCompiler {
         let expr_span = span_for_syntax_node(index_expr.syntax());
         let texpr = self.compile_expr(&expr)?;
         let index = index_expr.index_operator()?;
-        let indices = self.convert_index_operator(&index)?;
+        let indices = self.compile_index_operator(&index)?;
         let index_span = span_for_syntax_node(index.syntax());
 
         if indices.len() != 1 {
@@ -1482,7 +1554,7 @@ impl QasmCompiler {
 
         let index: Vec<_> = indexed_ident
             .index_operators()
-            .filter_map(|op| self.convert_index_operator(&op))
+            .filter_map(|op| self.compile_index_operator(&op))
             .flatten()
             .collect();
 
@@ -1898,7 +1970,7 @@ impl QasmCompiler {
                 // bug in QASM parser, logical not and bitwise not are backwards
                 // THIS CODE IS FOR LOGICAL NOT
                 let ty = Type::Bool(IsConst::False);
-                let expr = self.resolve_rhs_expr_with_casts(
+                let expr = self.compile_expr_to_ty_with_casts(
                     prefix_expr.expr(),
                     &ty,
                     prefix_expr.syntax(),
@@ -2082,7 +2154,7 @@ impl QasmCompiler {
         let node = condition.syntax();
         let cond_ty = Type::Bool(IsConst::False);
         let cond = self
-            .resolve_rhs_expr_with_casts(Some(condition.clone()), &cond_ty, node)
+            .compile_expr_to_ty_with_casts(Some(condition.clone()), &cond_ty, node)
             .map(|expr| QasmTypedExpr { ty: cond_ty, expr });
 
         let Some(block) = if_stmt.then_branch() else {
@@ -2273,10 +2345,13 @@ impl QasmCompiler {
         &mut self,
         switch_case: &oq3_syntax::ast::SwitchCaseStmt,
     ) -> Option<ast::Stmt> {
-        let stmt_span = span_for_syntax_node(switch_case.syntax());
+        // The condition for the switch statement must be an integer type
+        // so instead of using `compile_expr` we use `resolve_rhs_expr_with_casts`
+        // forcing the type to be an integer type with implicit casts if necessary
         let cond_ty = Type::Int(None, IsConst::False);
+        // We try to compile all expressions first to accumulate errors
         let control = switch_case.control().and_then(|control| {
-            self.resolve_rhs_expr_with_casts(Some(control), &cond_ty, switch_case.syntax())
+            self.compile_expr_to_ty_with_casts(Some(control), &cond_ty, switch_case.syntax())
         });
         let cases: Vec<_> = switch_case
             .case_exprs()
@@ -2303,23 +2378,42 @@ impl QasmCompiler {
             || cases
                 .iter()
                 .any(|(lhs, rhs)| lhs.is_none() || rhs.is_none())
-            || cases.is_empty() && default_block.is_none()
+            || cases.is_empty()
         {
+            // See tests, but it is a parse error to have a switch statement with
+            // no cases, even if the default block is present. Getting here means
+            // the parser is broken or they changed the grammar. Either way, an
+            // empty switch is a noop
             return None;
         }
-        // we need to convert each case lhs into a sequence of equality checks
-        // that are the cond for an if block
-        // Semantics of switch case is that the outer block doesn't introduce a new scope
-        // but each case rhs does. Can we add a new scope anyway to hold a temporary variable?
-        // if we do that, we can refer to a new variable instead of the control expr
-        // this would allow us to avoid the need to resolve the control expr multiple times
-        // in the case where we have to coerce the control expr to the correct type
-        let control = control.expect("Control must be resolved");
+
+        // update bindings based on what we checked above
+        let control = control?;
         let cases: Vec<_> = cases
             .into_iter()
             .map(|(lhs, rhs)| {
                 let lhs = lhs.expect("Case must have a lhs");
                 let rhs = rhs.expect("Case must have a rhs");
+                (lhs, rhs)
+            })
+            .collect();
+
+        // Semantics of switch case is that the outer block doesn't introduce
+        // a new scope but each case rhs does.
+
+        // Can we add a new scope anyway to hold a temporary variable?
+        // if we do that, we can refer to a new variable instead of the control
+        // expr this would allow us to avoid the need to resolve the control
+        // expr multiple times in the case where we have to coerce the control
+        // expr to the correct type. Introducing a new variable without a new
+        // scope would effect output semantics.
+
+        // For each case, convert the lhs into a sequence of equality checks
+        // and then fold them into a single expression of logical ors for
+        // the if expr
+        let cases: Vec<_> = cases
+            .into_iter()
+            .map(|(lhs, rhs)| {
                 let case = lhs
                     .iter()
                     .map(|texpr| {
@@ -2335,31 +2429,25 @@ impl QasmCompiler {
                         None => Some(expr),
                         Some(acc) => {
                             let qsop = ast::BinOp::OrL;
-                            let span = expr.span;
-                            Some(ast_builder::build_binary_expr(false, qsop, acc, expr, span))
+                            let span = Span {
+                                lo: acc.span.lo,
+                                hi: expr.span.hi,
+                            };
+                            Some(build_binary_expr(false, qsop, acc, expr, span))
                         }
                     });
-                if let Some(case) = case {
-                    Some((case, rhs))
-                } else {
-                    let kind = SemanticErrorKind::SwitchCaseEmptyCase(stmt_span);
-                    self.push_semantic_error(kind);
-                    None
-                }
+                // The type checker doesn't know that we have at least one case
+                // so we have to unwrap here since the accumulation is guaranteed
+                // to have Some(value)
+                let case = case.expect("Case must have at least one expression");
+                (case, rhs)
             })
             .collect();
-        if cases.iter().any(Option::is_none) {
-            // we already pushed an error, bail
-            return None;
-        }
-        let cases: Vec<_> = cases.into_iter().map(Option::unwrap).collect();
+
         // cond is resolved, cases are resolved, default is resolved
-        // cases may be empty but we have a default block based on the
-        // check above
-        // Base case, there are no cases, just a default block
-        if cases.is_empty() {
-            return default_block.map(build_stmt_semi_from_block);
-        }
+        // we can now build the if expression backwards. The default block
+        // is the last else block, the last case is the then block, and the rest
+        // are built as if-else blocks with the last case as the else block
         let default_expr = default_block.map(build_wrapped_block_expr);
         let if_expr = cases
             .into_iter()
@@ -2410,7 +2498,7 @@ impl QasmCompiler {
         let node = condition.syntax();
         let cond_ty = Type::Bool(IsConst::False);
         let cond = self
-            .resolve_rhs_expr_with_casts(Some(condition.clone()), &cond_ty, node)
+            .compile_expr_to_ty_with_casts(Some(condition.clone()), &cond_ty, node)
             .map(|expr| QasmTypedExpr { ty: cond_ty, expr });
 
         // if cond is none, an error was pushed

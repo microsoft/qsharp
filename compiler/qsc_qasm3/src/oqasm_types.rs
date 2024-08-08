@@ -5,10 +5,16 @@ use std::cmp::max;
 
 use oq3_semantics::types::{IsConst, Type};
 
+/// When two types are combined, the result is a type that can represent both.
+/// For constness, the result is const iff both types are const.
 fn relax_constness(lhs_ty: &Type, rhs_ty: &Type) -> IsConst {
     IsConst::from(lhs_ty.is_const() && rhs_ty.is_const())
 }
 
+/// Having no width means that the type is not a fixed-width type
+/// and can hold any explicit width. If both types have a width,
+/// the result is the maximum of the two. Otherwise, the result
+/// is a type without a width.
 fn promote_width(lhs_ty: &Type, rhs_ty: &Type) -> Option<u32> {
     match (lhs_ty.width(), rhs_ty.width()) {
         (Some(w1), Some(w2)) => Some(max(w1, w2)),
@@ -16,6 +22,8 @@ fn promote_width(lhs_ty: &Type, rhs_ty: &Type) -> Option<u32> {
     }
 }
 
+/// If both can be promoted to a common type, the result is that type.
+/// If the types are not compatible, the result is `Type::Void`.
 pub fn promote_types(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     if types_equal_except_const(lhs_ty, rhs_ty) {
         return lhs_ty.clone();
@@ -31,6 +39,9 @@ pub fn promote_types(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     ty
 }
 
+/// Promotes two types if they share a common base type with
+/// their constness relaxed, and their width promoted.
+/// If the types are not compatible, the result is `Type::Void`.
 fn promote_types_symmetric(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     let is_const = relax_constness(lhs_ty, rhs_ty);
     match (lhs_ty, rhs_ty) {
@@ -47,6 +58,18 @@ fn promote_types_symmetric(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     }
 }
 
+/// Promotion follows casting rules. We only match one way, as the
+/// both combinations are covered by calling this function twice
+/// with the arguments swapped.
+///
+/// If the types are not compatible, the result is `Type::Void`.
+///
+/// The left-hand side is the type to promote from, and the right-hand
+/// side is the type to promote to. So any promotion goes from lesser
+/// type to greater type.
+///
+/// This is more complicated as we have C99 promotion for simple types,
+/// but complex types like `Complex`, and `Angle` don't follow those rules.
 fn promote_types_asymmetric(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     let is_const = relax_constness(lhs_ty, rhs_ty);
     #[allow(clippy::match_same_arms)]
@@ -80,6 +103,7 @@ fn promote_types_asymmetric(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     }
 }
 
+/// Compares two types for equality, ignoring constness.
 pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
     match (lhs, rhs) {
         (Type::Bit(_), Type::Bit(_))

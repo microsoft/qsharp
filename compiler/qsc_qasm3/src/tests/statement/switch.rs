@@ -8,7 +8,69 @@ use expect_test::expect;
 use miette::Report;
 
 #[test]
-fn spec_case_0() -> miette::Result<(), Vec<Report>> {
+fn default_is_optional() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        OPENQASM 3.0;
+        int i = 15;
+        switch (i) {
+            case 1 {
+                i = 2;
+            }
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![
+        r#"
+        mutable i = 15;
+        if i == 1 {
+            set i = 2;
+        };
+        "#
+    ]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn default_as_only_case_causes_parse_error() {
+    let source = r#"
+        OPENQASM 3.0;
+        int i = 15;
+        switch (i) {
+            default {
+                i = 2;
+            }
+        }
+    "#;
+
+    let res = compile_qasm_to_qsharp(source);
+    let Err(errors) = res else {
+        panic!("Expected an error, got {res:?}");
+    };
+    assert_eq!(errors.len(), 1);
+    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+}
+
+#[test]
+fn no_cases_causes_parse_error() {
+    let source = r#"
+        OPENQASM 3.0;
+        int i = 15;
+        switch (i) {
+        }
+    "#;
+
+    let res = compile_qasm_to_qsharp(source);
+    let Err(errors) = res else {
+        panic!("Expected an error, got {res:?}");
+    };
+    assert_eq!(errors.len(), 1);
+    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+}
+
+#[test]
+fn spec_case_1() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -53,7 +115,7 @@ fn spec_case_0() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn spec_case_1() -> miette::Result<(), Vec<Report>> {
+fn spec_case_2() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -102,7 +164,7 @@ fn spec_case_1() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn spec_case_2() -> miette::Result<(), Vec<Report>> {
+fn spec_case_3() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -147,7 +209,7 @@ fn spec_case_2() -> miette::Result<(), Vec<Report>> {
 
 #[test]
 #[ignore = "Function decls are not supported yet"]
-fn spec_case_3() -> miette::Result<(), Vec<Report>> {
+fn spec_case_4() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";
@@ -190,7 +252,7 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn spec_case_4() -> miette::Result<(), Vec<Report>> {
+fn spec_case_5() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.0;
         include "stdgates.inc";

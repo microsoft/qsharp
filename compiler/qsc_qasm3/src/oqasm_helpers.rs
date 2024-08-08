@@ -5,6 +5,7 @@ use oq3_semantics::types::Type;
 use oq3_syntax::ast::{ArithOp, BinaryOp, Designator, Expr, Literal, LiteralKind};
 use qsc::Span;
 
+/// Extracts a Q# ```Span``` from the QASM3 syntax named element
 pub(crate) fn span_for_named_item<T: oq3_syntax::ast::HasName>(value: &T) -> Span {
     let Some(name) = value.name() else {
         return Span::default();
@@ -15,6 +16,7 @@ pub(crate) fn span_for_named_item<T: oq3_syntax::ast::HasName>(value: &T) -> Spa
     text_range_to_span(ident.text_range())
 }
 
+/// Converts the QASM3 syntax ```TextRange``` to a Q# ```Span```
 pub(crate) fn text_range_to_span(range: oq3_syntax::TextRange) -> Span {
     Span {
         lo: range.start().into(),
@@ -22,13 +24,23 @@ pub(crate) fn text_range_to_span(range: oq3_syntax::TextRange) -> Span {
     }
 }
 
+/// Extracts a Q# ```Span``` from the QASM3 syntax node
 pub(crate) fn span_for_syntax_node(node: &oq3_syntax::SyntaxNode) -> Span {
     text_range_to_span(node.text_range())
 }
 
+/// Extracts a Q# ```Span``` from the QASM3 syntax token
 pub(crate) fn span_for_syntax_token(token: &oq3_syntax::SyntaxToken) -> Span {
     text_range_to_span(token.text_range())
 }
+
+/// The QASM3 parser stores integers as u128, any conversion we do
+/// must not crash if the value is too large to fit in the target type
+/// and instead return None.
+/// Safe in the following functions means that the conversion will not
+/// panic if the value is too large to fit in the target type.
+///
+/// Values may be truncated or rounded as necessary.
 
 pub(crate) fn safe_u128_to_f64(value: u128) -> Option<f64> {
     if value <= u128::from(i64::MAX as u64) {
@@ -60,6 +72,12 @@ pub(crate) fn safe_u64_to_f64(value: u64) -> Option<f64> {
     }
 }
 
+/// The spec defines a designator as ```designator: LBRACKET expression RBRACKET;```
+/// However, in every use case, the expression is a literal integer.
+/// This isn't enforced by the parser/grammar, but we can assume it here.
+/// For example, when describing qubit arrays, the spec says:
+///   - The label ```name[j]``` refers to a qubit of this register, where
+///     ```j element_of {0, 1, ... size(name)-1}``` is an integer.
 pub(crate) fn extract_dims_from_designator(designator: Option<Designator>) -> Option<u32> {
     let designator = designator?;
     match designator.expr() {
@@ -81,6 +99,9 @@ pub(crate) fn extract_dims_from_designator(designator: Option<Designator>) -> Op
     }
 }
 
+/// The designator must be accessed differently depending on the type.
+/// For complex types, the designator is stored in the scalar type.
+/// For other types, the designator is stored in the type itself.
 pub(crate) fn get_designator_from_scalar_type(
     ty: &oq3_syntax::ast::ScalarType,
 ) -> Option<oq3_syntax::ast::Designator> {
@@ -134,7 +155,7 @@ pub(crate) fn requires_types_already_match_conversion(op: BinaryOp) -> bool {
 
 // integer promotions are applied only to both operands of
 // the shift operators << and >>
-pub(crate) fn binop_requires_int_conversion(op: BinaryOp) -> bool {
+pub(crate) fn binop_requires_symmetric_int_conversion(op: BinaryOp) -> bool {
     match op {
         BinaryOp::ArithOp(arith_op) => matches!(arith_op, ArithOp::Shl | ArithOp::Shr),
         BinaryOp::Assignment { op } => matches!(op, Some(ArithOp::Shl | ArithOp::Shr)),
@@ -142,6 +163,8 @@ pub(crate) fn binop_requires_int_conversion(op: BinaryOp) -> bool {
     }
 }
 
+/// some literals can be cast to a specific type if the value is known
+/// This is useful to avoid generating a cast expression in the AST
 pub(crate) fn can_cast_literal_with_value_knowledge(lhs_ty: &Type, literal: &Literal) -> bool {
     if matches!(lhs_ty, &Type::Bit(..)) {
         if let LiteralKind::IntNumber(value) = literal.kind() {

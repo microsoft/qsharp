@@ -13,31 +13,31 @@ thread_local! {
         let mut m = FxHashMap::default();
         // p is rz, should have been replaced by rz by transpile
 
-        m.insert("x", "X");//
-        m.insert("y", "Y");//
-        m.insert("z", "Z");//
+        m.insert("x", "X");
+        m.insert("y", "Y");
+        m.insert("z", "Z");
 
-        m.insert("h", "H");//
+        m.insert("h", "H");
 
-        m.insert("s", "S");//
-        m.insert("sdg", "sdg");//special case
+        m.insert("s", "S");
+        m.insert("sdg", "sdg");
 
-        m.insert("t", "T");//
-        m.insert("tdg", "tdg");//special case
+        m.insert("t", "T");
+        m.insert("tdg", "tdg");
 
         // sx q is Rx(pi/2, q), should have been replaced by Rx by transpile
 
-        m.insert("crx", "crx");//special case
-        m.insert("cry", "cry");//special case
-        m.insert("crz", "crz");//special case
+        m.insert("crx", "crx");
+        m.insert("cry", "cry");
+        m.insert("crz", "crz");
 
-        m.insert("rx", "Rx");//
-        m.insert("ry", "Ry");//
-        m.insert("rz", "Rz");//
+        m.insert("rx", "Rx");
+        m.insert("ry", "Ry");
+        m.insert("rz", "Rz");
 
-        m.insert("rxx", "Rxx");//
-        m.insert("ryy", "Ryy");//
-        m.insert("rzz", "Rzz");//
+        m.insert("rxx", "Rxx");
+        m.insert("ryy", "Ryy");
+        m.insert("rzz", "Rzz");
 
         m.insert("cx", "CNOT");
         m.insert("cy", "CY");
@@ -45,11 +45,11 @@ thread_local! {
 
         // cp (controlled-phase), should have been replaced by transpile
 
-        m.insert("ch", "ch");//
+        m.insert("ch", "ch");
 
-        m.insert("id", "I"); // id,
+        m.insert("id", "I");
 
-        m.insert("swap", "SWAP");//
+        m.insert("swap", "SWAP");
 
         m.insert("ccx", "CCNOT");
 
@@ -67,6 +67,9 @@ pub(crate) fn get_qsharp_gate_name<S: AsRef<str>>(gate_name: S) -> Option<&'stat
     GATE_MAP.with(|map| map.get(gate_name.as_ref()).copied())
 }
 
+/// When compiling QASM3 expressions, we need to keep track of the sematic QASM
+/// type of the expression. This allows us to perform type checking and casting
+/// when necessary.
 #[derive(Debug, Clone, PartialEq)]
 pub struct QasmTypedExpr {
     pub ty: oq3_semantics::types::Type,
@@ -75,6 +78,7 @@ pub struct QasmTypedExpr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum GateModifier {
+    /// The `adjoint` modifier.
     Inv(Span),
     Pow(Option<i64>, Span),
     Ctrl(Option<usize>, Span),
@@ -255,6 +259,12 @@ fn types_equal_ignore_const(lhs: &Type, rhs: &Type) -> bool {
     }
 }
 
+/// Get the indexed type of a given type.
+/// For example, if the type is `Int[2][3]`, the indexed type is `Int[2]`.
+/// If the type is `Int[2]`, the indexed type is `Int`.
+/// If the type is `Int`, the indexed type is `None`.
+///
+/// This is useful for determining the type of an array element.
 pub(crate) fn get_indexed_type(
     ty: &oq3_semantics::types::Type,
 ) -> Option<oq3_semantics::types::Type> {

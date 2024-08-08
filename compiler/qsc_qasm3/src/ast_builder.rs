@@ -840,6 +840,7 @@ pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
         kind: Box::new(StmtKind::Semi(Box::new(expr))),
     }
 }
+
 pub(crate) fn build_stmt_semi_from_block(block: Block) -> Stmt {
     let expr = build_wrapped_block_expr(block);
     Stmt {
@@ -1281,4 +1282,9 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
         span,
         ..Default::default()
     }
+}
+
+pub(crate) fn build_barrier_call(span: Span) -> Stmt {
+    let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span);
+    build_stmt_semi_from_expr(expr)
 }

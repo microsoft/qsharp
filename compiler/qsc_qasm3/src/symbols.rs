@@ -5,6 +5,17 @@ use oq3_semantics::types::{IsConst, Type};
 use qsc::Span;
 use rustc_hash::FxHashMap;
 
+/// We need a symbol table to keep track of the symbols in the program.
+/// The scoping rules for QASM3 are slightly different from Q#. This also
+/// means that we need to keep track of the input and output symbols in the
+/// program. Additionally, we need to keep track of the types of the symbols
+/// in the program for type checking.
+/// Q# and QASM have different type systems, so we track the QASM semantic
+/// type in addition to the corresponding Q# type.
+
+/// A symbol ID is a unique identifier for a symbol in the symbol table.
+/// This is used to look up symbols in the symbol table.
+/// Every symbol in the symbol table has a unique ID.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SymbolId(pub u32);
 
@@ -85,6 +96,8 @@ pub(crate) struct Symbol {
     pub io_kind: IOKind,
 }
 
+/// A symbol in the symbol table.
+/// Default Q# type is Unit
 impl Default for Symbol {
     fn default() -> Self {
         Self {
@@ -99,10 +112,16 @@ impl Default for Symbol {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SymbolError {
+    /// The symbol was not found in the symbol table.
     NotFound,
+    /// The symbol already exists in the symbol table, at the current scope.
     AlreadyExists,
 }
 
+/// Symbols have a an I/O kind that determines if they are input or output, or unspecified.
+/// The default I/O kind means no explicit kind was part of the decl.
+/// There is a specific statement for io decls which sets the I/O kind appropriately.
+/// This is used to determine the input and output symbols in the program.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IOKind {
     Default,
@@ -115,10 +134,18 @@ impl Default for IOKind {
         Self::Default
     }
 }
+
+/// A scope is a collection of symbols and a kind. The kind determines semantic
+/// rules for compliation as shadowing and decl rules vary by scope kind.
 pub struct Scope {
+    /// A map from symbol name to symbol ID.
     name_to_id: FxHashMap<String, SymbolId>,
+    /// A map from symbol ID to symbol.
     id_to_symbol: FxHashMap<SymbolId, Symbol>,
+    /// The order in which symbols were inserted into the scope.
+    /// This is used to determine the order of symbols in the output.
     order: Vec<SymbolId>,
+    /// The kind of the scope.
     kind: ScopeKind,
 }
 
@@ -132,6 +159,13 @@ impl Scope {
         }
     }
 
+    /// Inserts the symbol into the current scope.
+    /// Returns the ID of the symbol.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if a symbol of the same name has already
+    /// been declared in this scope.
     pub fn insert_symbol(&mut self, id: SymbolId, symbol: Symbol) -> Result<(), SymbolError> {
         if self.name_to_id.contains_key(&symbol.name) {
             return Err(SymbolError::AlreadyExists);
@@ -142,7 +176,7 @@ impl Scope {
         Ok(())
     }
 
-    pub fn get_symbol(&self, name: &str) -> Option<&Symbol> {
+    pub fn get_symbol_by_name(&self, name: &str) -> Option<&Symbol> {
         self.name_to_id
             .get(name)
             .and_then(|id| self.id_to_symbol.get(id))
@@ -160,6 +194,7 @@ impl Scope {
     }
 }
 
+/// A symbol table is a collection of scopes and manages the symbol ids.
 pub struct SymbolTable {
     scopes: Vec<Scope>,
     current_id: SymbolId,
@@ -167,6 +202,8 @@ pub struct SymbolTable {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScopeKind {
+    /// Global scope, which is the current scope only when no other scopes are active.
+    /// This is the only scope where gates, qubits, and arrays can be declared.
     Global,
     Function,
     Gate,
@@ -222,7 +259,7 @@ impl SymbolTable {
 
     pub fn get_symbol_by_name(&self, name: &str) -> Option<&Symbol> {
         for scope in self.scopes.iter().rev() {
-            if let Some(symbol) = scope.get_symbol(name) {
+            if let Some(symbol) = scope.get_symbol_by_name(name) {
                 return Some(symbol);
             }
         }
@@ -249,6 +286,7 @@ impl SymbolTable {
             .any(|scope| scope.kind == ScopeKind::Function)
     }
 
+    /// Get the input symbols in the program.
     pub(crate) fn get_input(&self) -> Option<Vec<Symbol>> {
         let io_input = self.get_io_input();
         if io_input.is_empty() {
@@ -258,6 +296,10 @@ impl SymbolTable {
         }
     }
 
+    /// Get the output symbols in the program.
+    /// Output symbols are either inferred or explicitly declared.
+    /// If there are no explicitly declared output symbols, then the inferred
+    /// output symbols are returned.
     pub(crate) fn get_output(&self) -> Option<Vec<Symbol>> {
         let io_ouput = self.get_io_output();
         if io_ouput.is_some() {
@@ -267,6 +309,9 @@ impl SymbolTable {
         }
     }
 
+    /// Get all symbols in the global scope that are inferred output symbols.
+    /// Any global symbol that is not a built-in symbol and has a type that is
+    /// inferred to be an output type is considered an inferred output symbol.
     fn get_inferred_output(&self) -> Option<Vec<Symbol>> {
         let mut symbols = vec![];
         self.scopes
@@ -291,6 +336,7 @@ impl SymbolTable {
         }
     }
 
+    /// Get all symbols in the global scope that are output symbols.
     fn get_io_output(&self) -> Option<Vec<Symbol>> {
         let mut symbols = vec![];
         for scope in self
@@ -311,6 +357,7 @@ impl SymbolTable {
         }
     }
 
+    /// Get all symbols in the global scope that are input symbols.
     fn get_io_input(&self) -> Vec<Symbol> {
         let mut symbols = vec![];
         for scope in self

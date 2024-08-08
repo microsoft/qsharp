@@ -44,6 +44,13 @@ impl Error {
     }
 }
 
+/// Represents the kind of error that occurred during compilation of a QASM file(s).
+/// The errors fall into a few categories:
+/// - Unimplemented features
+/// - Not supported features
+/// - Parsing errors (converted from the parser)
+/// - Semantic errors
+/// - IO errors
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ErrorKind {
     #[error("this statement is not yet handled during OpenQASM 3 import: {0}")]
@@ -96,6 +103,13 @@ impl SemanticError {
     }
 }
 
+/// Represents the kind of semantic error that occurred during compilation of a QASM file(s).
+/// For the most part, these errors are fatal and prevent compilation and are
+/// safety checks to ensure that the QASM code is valid.
+///
+/// We can't use the semantics library for this:
+///   - it is unsafe to use (heavy use of panic and unwrap)
+///   - it is missing many language features
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 enum SemanticErrorKind {
     #[error("Cannot apply operator {0} to types {1} and {2}.")]
@@ -209,9 +223,6 @@ enum SemanticErrorKind {
     #[error("Return statements are only allowed within subroutines.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ReturnNotInSubroutine"))]
     ReturnNotInSubroutine(#[label] Span),
-    #[error("Switch statements cannot have empty cases.")]
-    #[diagnostic(code("Qsc.Qasm3.Compile.SwitchCaseEmptyCase"))]
-    SwitchCaseEmptyCase(#[label] Span),
     #[error("Too many controls specified.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TooManyControls"))]
     TooManyControls(#[label] Span),
@@ -233,6 +244,10 @@ enum SemanticErrorKind {
 }
 
 impl SemanticErrorKind {
+    /// The semantic errors are reported with the span of the syntax that caused the error.
+    /// This offset is relative to the start of the file in which the error occurred.
+    /// This method is used to adjust the span of the error to be relative to where the
+    /// error was reported in the entire compilation unit as part of the source map.
     #[allow(clippy::too_many_lines)]
     fn with_offset(self, offset: u32) -> Self {
         match self {
@@ -323,7 +338,6 @@ impl SemanticErrorKind {
                 Self::ResetExpressionMustHaveName(span + offset)
             }
             Self::ReturnNotInSubroutine(span) => Self::ReturnNotInSubroutine(span + offset),
-            Self::SwitchCaseEmptyCase(span) => Self::SwitchCaseEmptyCase(span + offset),
             Self::TooManyControls(span) => Self::TooManyControls(span + offset),
             Self::TypeRankError(span) => Self::TypeRankError(span + offset),
             Self::UndefinedSymbol(name, span) => Self::UndefinedSymbol(name, span + offset),
@@ -340,10 +354,23 @@ impl SemanticErrorKind {
     }
 }
 
+/// Represents the type of compilation out to create
 #[derive(Clone, PartialEq, Eq)]
 pub enum ProgramType {
+    /// Creates an operation in a namespace as if the program is a standalone
+    /// file. The param is the name of the operation to create. Input are
+    /// lifted to the operation params. Output are lifted to the operation
+    /// return type. The operation is marked as @EntryPoint as long as there
+    /// are no input parameters.
     File(String),
+    /// Creates an operation program is a standalone function. The param is the
+    /// name of the operation to create. Input are lifted to the operation
+    /// params. Output are lifted to the operation return type.
     Operation(String),
+    /// Creates a list of statements from the program. This is useful for
+    /// interactive environments where the program is a list of statements
+    /// imported into the current scope.
+    /// This is also useful for testing indifidual statements compilation.
     Fragments,
 }
 
@@ -353,12 +380,24 @@ use qsc::{ast::Package, error::WithSource, SourceMap};
 
 use crate::{io::SourceResolver, parse::parse_source};
 
+/// A unit of compilation for QASM source code.
+/// This is the result of parsing and compiling a QASM source file.
 pub struct QasmCompileUnit {
+    /// Source map created from the accumulated source files,
     source_map: SourceMap,
+    /// Errors encountered during parsing
+    /// These are always fatal errors that prevent compilation.
     errors: Vec<WithSource<crate::Error>>,
+    /// The compiled AST package, if compilation was successful.
+    /// There is no guarantee that this package is valid unless
+    /// there are no errors.
     package: Option<Package>,
 }
 
+/// Represents a QASM compilation unit.
+/// This is the result of parsing and compiling a QASM source file.
+/// The result contains the source map, errors, and the compiled package.
+/// The package is only valid if there are no errors.
 impl QasmCompileUnit {
     #[must_use]
     pub fn new(
@@ -372,7 +411,6 @@ impl QasmCompileUnit {
             package,
         }
     }
-
     #[must_use]
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
@@ -396,6 +434,13 @@ pub enum OutputSemantics {
     ResourceEstimation,
 }
 
+/// Compiles a QASM source file to a Q# AST package.
+/// This function is the main entry point for compiling QASM source code.
+/// The source string and path are the root of compilation. Any includes
+/// are resolved by the resolver and recursively compiled.
+///
+/// If there are any parse errors, the errors are returned in the result
+/// and compilation is stopped.
 pub fn compile_qasm_to_program<S, P, R>(
     source: S,
     path: P,
