@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from scipy import linalg as LA
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
+import pandas as pd
 
 
 @dataclass
@@ -488,11 +489,13 @@ qsharp_string = (
 
 # Collect resource estimation parameters
 if args.paramsfile is None:
-    params = {
-        "errorBudget": 0.01,
-        "qubitParams": {"name": "qubit_maj_ns_e6"},
-        "qecScheme": {"name": "floquet_code"},
-    }
+    params = [
+        {
+            "errorBudget": 0.01,
+            "qubitParams": {"name": "qubit_maj_ns_e6"},
+            "qecScheme": {"name": "floquet_code"},
+        }
+    ]
 else:
     params = []
     for paramsfile in args.paramsfile:
@@ -513,10 +516,45 @@ res = qsharp.estimate(
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
+data = {
+    'Run name': [],
+    'T factory fraction': [],
+    'Runtime': [],
+    'Physical qubits': [],
+    'rQOPS': []
+}
+
+result_obj = json.loads(res.json)
+
+if isinstance(result_obj,dict):
+    result_obj = [ result_obj ]
+
+for item in result_obj:
+    # Run name
+    data['Run name'].append(item["jobParams"]["qubitParams"]["name"])
+    # T factory fraction and Runtime
+    if "physicalCountsFormatted" in item:
+        data['T factory fraction'].append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data['Runtime'].append(item["physicalCountsFormatted"]["runtime"])
+    elif "frontierEntries" in item:
+        data['T factory fraction'].append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data['Runtime'].item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+    else:
+        data['T factory fraction'].append("-")
+        data['Runtime'].append("-")
+    # Physical qubits and rQOPS
+    if "physicalCounts" in item:
+        data['Physical qubits'].append(item["physicalCounts"]["physicalQubits"])
+        data['rQOPS'].append(item["physicalCounts"]["rqops"])
+    elif "frontierEntries" in item:
+        data['Physical qubits'].append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
+        data['rQOPS'].append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
+    else:
+        data['Physical qubits'].append("-")
+        data['rQOPS'].append("-")
+
+df = pd.DataFrame(data, columns=["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"])
 # Print high-level resource estimation results
-if "physicalCountsFormatted" in res:
-    print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
-    print(
-        f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
-    )
+print(df.to_markdown(index=False))
+
 print("For more detailed resource counts, see file resource_estimate.json")
