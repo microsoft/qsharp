@@ -13,10 +13,9 @@ use super::{
     ty::{self, array_or_arrow, ty},
 };
 
-use crate::lex::ClosedBinOp;
 use crate::{
     keyword::Keyword,
-    lex::{Delim, TokenKind},
+    lex::{ClosedBinOp, Delim, TokenKind},
     scan::ParserContext,
     Error, ErrorKind, Result,
 };
@@ -26,8 +25,7 @@ use qsc_cst::cst::{
     Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind,
     TyKind,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;

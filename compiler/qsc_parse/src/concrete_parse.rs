@@ -1,15 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::rc::Rc;
+use std::{rc::Rc, result};
 
-use crate::Error;
+use item::parse_doc;
+use qsc_cst::cst::{Expr, Namespace, TopLevelNode};
+use qsc_data_structures::language_features::LanguageFeatures;
 
-pub mod expr;
-pub mod item;
-pub mod prim;
-pub mod stmt;
-pub mod ty;
+use crate::{keyword::Keyword, lex::TokenKind, scan::ParserContext, Error};
+
+mod expr;
+mod item;
+mod prim;
+mod stmt;
+mod ty;
+
+type Result<T> = result::Result<T, Error>;
 
 #[must_use]
 pub fn namespaces(

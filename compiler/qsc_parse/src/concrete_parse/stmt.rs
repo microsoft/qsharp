@@ -4,13 +4,15 @@
 use super::{
     expr::{self, expr, expr_stmt},
     item,
-    prim::{ident, many, opt, pat, seq, token},
+    prim::{
+        barrier, ident, many, opt, pat, recovering, recovering_semi, recovering_token, seq, token,
+    },
 };
-use crate::{keyword::Keyword, scan::ParserContext, Error, Result};
 use crate::{
+    keyword::Keyword,
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_semi, recovering_token},
-    ErrorKind,
+    scan::ParserContext,
+    Error, ErrorKind, Result,
 };
 use qsc_cst::cst::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
