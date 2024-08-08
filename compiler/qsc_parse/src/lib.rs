@@ -5,6 +5,7 @@
 //! The parser produces a tree with placeholder node identifiers that are expected to be replaced with
 //! unique identifiers by a later stage.
 
+pub mod concrete_parse;
 mod expr;
 mod item;
 pub mod keyword;

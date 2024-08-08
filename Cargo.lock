@@ -1003,6 +1003,7 @@ dependencies = [
  "qsc_ast",
  "qsc_circuit",
  "qsc_codegen",
+ "qsc_cst",
  "qsc_data_structures",
  "qsc_doc_gen",
  "qsc_eval",
@@ -1075,6 +1076,16 @@ dependencies = [
  "qsc_rca",
  "qsc_rir",
  "rustc-hash",
+]
+
+[[package]]
+name = "qsc_cst"
+version = "0.0.0"
+dependencies = [
+ "indenter",
+ "miette",
+ "num-bigint",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -1210,6 +1221,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "qsc_ast",
+ "qsc_cst",
  "qsc_data_structures",
  "thiserror",
 ]

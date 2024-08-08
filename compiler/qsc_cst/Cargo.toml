@@ -1,0 +1,21 @@
+[package]
+name = "qsc_cst"
+
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indenter = { workspace = true }
+miette = { workspace = true }
+num-bigint = { workspace = true }
+qsc_data_structures = { path = "../qsc_data_structures" }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false

@@ -30,6 +30,10 @@ pub mod ast {
     pub use qsc_ast::{ast::*, *};
 }
 
+pub mod cst {
+    pub use qsc_cst::{cst::*, *};
+}
+
 pub mod project {
     pub use qsc_project::{
         DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,

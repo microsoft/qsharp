@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    ast::{
+    cst::{
         Attr, Block, CallableDecl, Expr, FieldAssign, FieldDef, FunctorExpr, Ident, Item,
         Namespace, NodeId, Package, Pat, Path, QubitInit, SpecDecl, Stmt, StructDecl, Ty, TyDef,
     },

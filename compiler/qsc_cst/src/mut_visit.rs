@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ast::{
+use crate::cst::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
     FunctorExprKind, Ident, Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
