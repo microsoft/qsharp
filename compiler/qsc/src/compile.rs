@@ -3,7 +3,7 @@
 
 use miette::{Diagnostic, Report};
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-pub use qsc_frontend::compile::Dependencies;
+pub use qsc_frontend::compile::Dependencies as Foo;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
@@ -44,7 +44,7 @@ pub enum ErrorKind {
 #[allow(clippy::module_name_repetitions)]
 pub fn compile_ast(
     store: &PackageStore,
-    dependencies: &Dependencies,
+    dependencies: &Foo,
     ast_package: qsc_ast::ast::Package,
     sources: SourceMap,
     package_type: PackageType,

@@ -1,0 +1,18 @@
+{
+    "author": "Microsoft",
+    "license": "MIT",
+    "files": [
+        "src/Addition.qs",
+        "src/Comparison.qs",
+        "src/Convert.qs",
+        "src/Facts.qs",
+        "src/Init.qs",
+        "src/LookupTable.qs",
+        "src/Math.qs",
+        "src/Measurement.qs",
+        "src/Multiplication.qs",
+        "src/Polynomial.qs",
+        "src/Reciprocal.qs",
+        "src/Types.qs"
+    ]
+}
