@@ -304,14 +304,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
     ///
-    /// # Description
-    /// The probability of getting `Zero` is
-    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
-    /// where $P_i$ is the $i$-th element of `bases`, and where
-    /// $N$ is the `Length(bases)`.
-    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
-    /// observed measurement effect is $(-1)^d$.
-    ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
     ///
@@ -325,6 +317,14 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Output
     /// `Zero` if the +1 eigenvalue is observed, and `One` if
     /// the -1 eigenvalue is observed.
+    ///
+    /// # Remarks
+    /// The probability of getting `Zero` is
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
+    /// where $P_i$ is the $i$-th element of `bases`, and where
+    /// $N$ is the `Length(bases)`.
+    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
+    /// observed measurement effect is $(-1)^d$.
     @Config(QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
@@ -353,6 +353,9 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
     ///
+    /// If the basis array and qubit array are different lengths, then the
+    /// operation will fail.
+    ///
     /// # Input
     /// ## bases
     /// Array of single-qubit Pauli values indicating the tensor product
@@ -365,21 +368,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// the -1 eigenvalue is observed.
     ///
     /// # Remarks
-    /// The output result is given by the distribution:
-    /// $$
-    /// \begin{align}
-    ///     \langle\psi|
-    ///         \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2}
-    ///     |\psi\rangle,
-    /// \end{align}
-    /// $$
-    /// where $P_i$ is the $i$'th element of `bases`, and where
-    /// $N = \texttt{Length}(\texttt{bases})$.
+    /// The probability of getting `Zero` is
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
+    /// where $P_i$ is the $i$-th element of `bases`, and where
+    /// $N$ is the `Length(bases)`.
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
     /// observed measurement effect is $(-1)^d$.
-    ///
-    /// If the basis array and qubit array are different lengths, then the
-    /// operation will fail.
     @Config(not QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
