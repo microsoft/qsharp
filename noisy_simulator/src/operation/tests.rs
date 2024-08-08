@@ -46,6 +46,20 @@ fn check_operation_number_of_qubits_is_computed_correctly() {
     assert_eq!(1, op.number_of_qubits());
 }
 
+#[test]
+fn check_non_square_kraus_operator_does_not_panic() {
+    let op = operation!(
+        [
+            0., 0.;
+        ]
+    );
+
+    assert!(matches!(
+        op,
+        Err(crate::Error::FailedToConstructOperation(_))
+    ));
+}
+
 /// Check that the inner matrices of the instrument are constructed correctly.
 #[test]
 fn check_effect_matrix_is_computed_correctly() {
