@@ -59,6 +59,7 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { activateChatParticipant } from "./copilot/chatParticipant.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -111,6 +112,7 @@ export async function activate(
   registerWebViewCommands(context);
   initFileSystem(context);
   initProjectCreator(context);
+  activateChatParticipant(context);
 
   log.info("Q# extension activated.");
 
@@ -389,6 +391,7 @@ export class QsTextDocumentContentProvider
   implements vscode.TextDocumentContentProvider
 {
   onDidChange?: vscode.Event<vscode.Uri> | undefined;
+
   provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
     return getLibrarySourceContent(uri.toString());
   }
