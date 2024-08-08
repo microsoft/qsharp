@@ -19,12 +19,15 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
+type FilesWithMetadata = Vec<(Arc<Metadata>, Arc<str>, Arc<str>, Arc<str>)>;
 
 /// Represents an immutable compilation state.
 #[derive(Debug)]
 struct Compilation {
     /// Package store, containing the current package and all its dependencies.
     package_store: PackageStore,
+    /// Current package id when provided.
+    current_package_id: Option<PackageId>,
 }
 
 impl Compilation {
@@ -38,6 +41,7 @@ impl Compilation {
         let actual_capabilities = capabilities.unwrap_or_default();
         let actual_language_features = language_features.unwrap_or_default();
 
+        let mut current_package_id: Option<PackageId> = None;
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
                 let unit = compile(
@@ -51,7 +55,7 @@ impl Compilation {
                 // documentation we can produce. In future we may consider
                 // displaying the fact of error presence on documentation page.
 
-                package_store.insert(unit);
+                current_package_id = Some(package_store.insert(unit));
                 package_store
             } else {
                 let mut package_store = PackageStore::new(compile::core());
@@ -60,7 +64,10 @@ impl Compilation {
                 package_store
             };
 
-        Self { package_store }
+        Self {
+            package_store,
+            current_package_id,
+        }
     }
 }
 
@@ -140,35 +147,74 @@ pub fn generate_docs(
     language_features: Option<LanguageFeatures>,
 ) -> Files {
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
-    let mut files: Files = vec![];
+    let mut files: FilesWithMetadata = vec![];
 
     let display = &CodeDisplay {
         compilation: &compilation,
     };
 
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
-    for (_, unit) in &compilation.package_store {
+    for (package_id, unit) in &compilation.package_store {
         let package = &unit.package;
         for (_, item) in &package.items {
-            if let Some((ns, line)) = generate_doc_for_item(package, item, display, &mut files) {
+            if let Some((ns, line)) = generate_doc_for_item(
+                package,
+                &package_id.to_string(),
+                compilation.current_package_id == Some(package_id),
+                item,
+                display,
+                &mut files,
+            ) {
                 toc.entry(ns).or_default().push(line);
             }
         }
     }
 
-    generate_toc(&mut toc, &mut files);
+    // We want to sort documentation files in a meaningful way.
+    // First, we want to put files for the current project, if it exists
+    // Then we want to put explicit dependencies of the current project, if they exist
+    // Then we want to add built-in std package. And finally built-in core package.
+    // Namespaces within packages should be sorted alphabetically and
+    // items with a namespace should be also sorted alphabetically.
+    // Also, items without any metadata should come last
+    // TODO: Implement properly
+    files.sort_unstable_by(|a, b| {
+        let package_compare = a.0.package.cmp(&b.0.package);
+        if package_compare == std::cmp::Ordering::Equal {
+            let namespace_compare = a.0.namespace.cmp(&b.0.namespace);
+            if namespace_compare == std::cmp::Ordering::Equal {
+                a.0.name.cmp(&b.0.name)
+            } else {
+                namespace_compare
+            }
+        } else {
+            package_compare.reverse()
+        }
+    });
 
-    files
+    let mut result: Files = files
+        .into_iter()
+        .map(|(_, name, metadata, content)| (name, metadata, content))
+        .collect();
+
+    generate_toc(&mut toc, &mut result);
+
+    result
 }
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
+    package_name: &str,
+    include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
-    files: &mut Files,
+    files: &mut FilesWithMetadata,
 ) -> Option<(Rc<str>, String)> {
     // Filter items
-    if item.visibility == Visibility::Internal || matches!(item.kind, ItemKind::Namespace(_, _)) {
+    if !include_internals && (item.visibility == Visibility::Internal) {
+        return None;
+    }
+    if matches!(item.kind, ItemKind::Namespace(_, _)) {
         return None;
     }
 
@@ -176,14 +222,16 @@ fn generate_doc_for_item<'a>(
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (metadata, content) = generate_file(&ns, item, display)?;
+    let (metadata, content) = generate_file(package_name, &ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
-    files.push((file_name, file_metadata, file_content));
 
     // Create toc line
     let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
+
+    let met: Arc<Metadata> = Arc::from(metadata);
+    files.push((met, file_name, file_metadata, file_content));
 
     // Return (ns, line)
     Some((ns.clone(), line))
@@ -211,8 +259,13 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(ns.clone(), item, display)?;
+fn generate_file(
+    package_name: &str,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(Metadata, String)> {
+    let metadata = get_metadata(package_name, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -221,7 +274,7 @@ fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Me
     let content = format!(
         "# {title}
 
-Namespace: {ns}
+**Namespace:** {ns}
 
 ```qsharp
 {sig}
@@ -243,6 +296,7 @@ struct Metadata {
     title: String,
     topic: String,
     kind: MetadataKind,
+    package: String,
     namespace: Rc<str>,
     name: Rc<str>,
     summary: String,
@@ -265,11 +319,19 @@ title: {}
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
+qsharp.package: {}
 qsharp.namespace: {}
 qsharp.name: {}
 qsharp.summary: \"{}\"
 ---",
-            self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
+            self.uid,
+            self.title,
+            self.topic,
+            kind,
+            self.package,
+            self.namespace,
+            self.name,
+            self.summary
         )
     }
 }
@@ -281,7 +343,12 @@ enum MetadataKind {
     Export,
 }
 
-fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
+fn get_metadata(
+    package_name: &str,
+    ns: Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<Metadata> {
     let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
             decl.name.name.clone(),
@@ -319,6 +386,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         },
         topic: "managed-reference".to_string(),
         kind,
+        package: String::from(package_name),
         namespace: ns,
         name,
         summary,
