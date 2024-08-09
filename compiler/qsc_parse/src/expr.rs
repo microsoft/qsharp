@@ -170,7 +170,11 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         let vars = match pat(s) {
             Ok(o) => o,
             Err(e) => {
-                if let (TokenKind::Open(Delim::Paren), ErrorKind::Token(..)) = (peeked.kind, &e.0) {
+                if let (
+                    TokenKind::Open(Delim::Paren),
+                    ErrorKind::Token(_, TokenKind::Keyword(Keyword::In), _),
+                ) = (peeked.kind, &e.0)
+                {
                     return Err(
                         e.with_help("parenthesis are not permitted around for-loop iterations")
                     );
