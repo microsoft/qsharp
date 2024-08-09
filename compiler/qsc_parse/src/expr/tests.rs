@@ -2527,6 +2527,24 @@ fn friendly_error_on_parenthesized_for() {
     check(
         expr,
         "for (x in xs) { () }",
-        &expect![[r#""#]]
+        &expect![[r#"
+            Error(
+                Token(
+                    Close(
+                        Paren,
+                    ),
+                    Keyword(
+                        In,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 9,
+                    },
+                ),
+                Some(
+                    "parenthesis are not permitted around for-loop iterations",
+                ),
+            )
+        "#]],
     );
 }

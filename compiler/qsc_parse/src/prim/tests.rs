@@ -63,7 +63,7 @@ fn ident_keyword() {
                 .expect("keyword length should fit into u32"),
         };
 
-        let expected = Error(match keyword {
+        let expected = Error::new(match keyword {
             Keyword::And => {
                 ErrorKind::Rule("identifier", TokenKind::ClosedBinOp(ClosedBinOp::And), span)
             }
