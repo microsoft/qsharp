@@ -8,6 +8,8 @@ open Microsoft.Quantum.Arrays;
 open Microsoft.Quantum.Intrinsic;
 open Microsoft.Quantum.Diagnostics;
 import Types.FixedPoint;
+import Signed.Invert2sSI;
+
 
 /// # Summary
 /// Computes the reciprocal of a number stored in a quantum register with
@@ -37,12 +39,14 @@ operation ComputeReciprocalFxP(x : FixedPoint, result : FixedPoint) : Unit is Ad
         use sign = Qubit();
         use tmpRes = Qubit[2 * n];
         CNOT(Tail(xs), sign);
-        (Controlled Invert2sSI)([sign], SignedLittleEndian(LittleEndian(xs)));
-        ComputeReciprocalI(LittleEndian(xs), LittleEndian(tmpRes));
+        (Controlled Invert2sSI)([sign], xs);
+        ComputeReciprocalI(xs, tmpRes);
         (Controlled ApplyToEachCA)(controls, (CNOT, Zipped(tmpRes[p + pRes-1 + n-Length(rs)..Min([n + p + pRes, 2 * n-1])], rs)));
         (Controlled Invert2sSI)([sign], SignedLittleEndian(LittleEndian(rs)));
-        (Adjoint ComputeReciprocalI)(LittleEndian(xs), LittleEndian(tmpRes));
-        (Controlled Adjoint Invert2sSI)([sign], SignedLittleEndian(LittleEndian(xs)));
+        (Adjoint ComputeReciprocalI)(xs, tmpRes);
+        (Controlled Adjoint Invert2sSI)([sign], SignedLittleEndian(xs));
         CNOT(Tail(xs), sign);
     }
 }
+
+

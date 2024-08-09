@@ -219,5 +219,5 @@ internal function MakeWriteBitsUnitary(bits : Bool[]) : Qubit[] => Unit is Adj +
 internal operation Select(data : Bool[][], addressRegister : Qubit[], outputRegister : Qubit[]) : Unit is Adj {
 
     let unitaries = Mapped(MakeWriteBitsUnitary, data);
-    MultiplexOperations(unitaries, LittleEndian(addressRegister), outputRegister);
+    MultiplexOperations(unitaries, addressRegister, outputRegister);
 }

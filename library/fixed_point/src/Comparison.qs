@@ -22,6 +22,6 @@ import Types.FixedPoint;
 operation CompareGreaterThanFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : Qubit) : Unit is Adj + Ctl {
     IdenticalFormatFactFxP([fp1, fp2]);
     
-    CompareGTSI(SignedLittleEndian(LittleEndian(fp1::Register)), SignedLittleEndian(LittleEndian(fp2::Register)), result);
+    CompareGTSI(SignedLittleEndian(fp1::Register), SignedLittleEndian(fp2::Register), result);
 }
 
