@@ -166,7 +166,19 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     } else if token(s, TokenKind::Keyword(Keyword::Fail)).is_ok() {
         Ok(Box::new(ExprKind::Fail(expr(s)?)))
     } else if token(s, TokenKind::Keyword(Keyword::For)).is_ok() {
-        let vars = pat(s)?;
+        let peeked = s.peek();
+        let vars = match pat(s) {
+            Ok(o) => o,
+            Err(e) => {
+                if let (TokenKind::Open(Delim::Paren), ErrorKind::Token(expected, received, span)) = (peeked.kind,& e.0) {
+                    return Err(Error(ErrorKind::RuleWithHelp(
+                                *expected, *received, *span, "parenthesis are not permitted around for loop iterations"
+                    )));
+                } else {
+                    return Err(e);
+                }
+            }
+        };
         token(s, TokenKind::Keyword(Keyword::In))?;
         let iter = expr(s)?;
         let body = stmt::parse_block(s)?;

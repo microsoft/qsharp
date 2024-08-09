@@ -2521,3 +2521,12 @@ fn invalid_initial_commas_in_pattern() {
             ]"#]],
     );
 }
+
+#[test]
+fn friendly_error_on_parenthesized_for() {
+    check(
+        expr,
+        "for (x in xs) { () }",
+        &expect![[r#""#]]
+    );
+}

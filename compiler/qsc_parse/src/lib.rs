@@ -30,12 +30,20 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
 #[diagnostic(transparent)]
-pub struct Error(ErrorKind);
+pub struct Error(ErrorKind, #[help] Option<String>);
 
 impl Error {
     #[must_use]
     pub fn with_offset(self, offset: u32) -> Self {
-        Self(self.0.with_offset(offset))
+        Self(self.0.with_offset(offset), self.1)
+    }
+
+    pub fn new(kind: ErrorKind) -> Self {
+        Self(kind, None)
+    }
+
+    pub fn with_help(self, help_text: String) -> Self {
+        Self(self.0, Some(help_text))
     }
 }
 
@@ -65,6 +73,10 @@ enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
+    #[error("expected {0}, found {1}")]
+    #[diagnostic(code("Qsc.Parse.Rule"))]
+    #[help("{3}")]
+    RuleWithHelp(&'static str, TokenKind, #[label] Span, &'static str),
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qsc.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
@@ -96,6 +108,7 @@ impl ErrorKind {
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
+            Self::RuleWithHelp(name, token, span, help) => Self::RuleWithHelp(name, token, span + offset, help),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
