@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from scipy import linalg as LA
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
-import pandas as pd
 
 
 @dataclass
@@ -436,7 +435,6 @@ def ndarray2d_to_string(arr):
         str_arr.append(np.array2string(elem, separator=","))
     return f"[{','.join(str_arr)}]"
 
-
 # The script takes one required positional argument, URI of the FCIDUMP file
 parser = ArgumentParser(description="Double-factorized chemistry sample")
 # Use n2-10e-8o as the default sample.
@@ -494,6 +492,11 @@ if args.paramsfile is None:
             "errorBudget": 0.01,
             "qubitParams": {"name": "qubit_maj_ns_e6"},
             "qecScheme": {"name": "floquet_code"},
+        },
+        {
+            "errorBudget": 0.01,
+            "qubitParams": {"name": "qubit_maj_ns_e6"},
+            "qecScheme": {"name": "floquet_code"},
         }
     ]
 else:
@@ -516,45 +519,60 @@ res = qsharp.estimate(
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
-data = {
-    'Run name': [],
-    'T factory fraction': [],
-    'Runtime': [],
-    'Physical qubits': [],
-    'rQOPS': []
-}
-
 result_obj = json.loads(res.json)
-
 if isinstance(result_obj,dict):
     result_obj = [ result_obj ]
 
+data = []
 for item in result_obj:
+    data_item = []
+    
     # Run name
-    data['Run name'].append(item["jobParams"]["qubitParams"]["name"])
+    data_item.append(item["jobParams"]["qubitParams"]["name"])
+    
     # T factory fraction and Runtime
     if "physicalCountsFormatted" in item:
-        data['T factory fraction'].append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
-        data['Runtime'].append(item["physicalCountsFormatted"]["runtime"])
+        data_item.append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["physicalCountsFormatted"]["runtime"])
     elif "frontierEntries" in item:
-        data['T factory fraction'].append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
-        data['Runtime'].item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
     else:
-        data['T factory fraction'].append("-")
-        data['Runtime'].append("-")
+        data_item.append("-")
+        data_item.append("-")
+    
     # Physical qubits and rQOPS
     if "physicalCounts" in item:
-        data['Physical qubits'].append(item["physicalCounts"]["physicalQubits"])
-        data['rQOPS'].append(item["physicalCounts"]["rqops"])
+        data_item.append(item["physicalCounts"]["physicalQubits"])
+        data_item.append(item["physicalCounts"]["rqops"])
     elif "frontierEntries" in item:
-        data['Physical qubits'].append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
-        data['rQOPS'].append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
     else:
-        data['Physical qubits'].append("-")
-        data['rQOPS'].append("-")
+        data_item.append("-")
+        data_item.append("-")
+        
+    data.append(data_item)
+    
+# Define the table headers
+headers = ["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"]
 
-df = pd.DataFrame(data, columns=["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"])
-# Print high-level resource estimation results
-print(df.to_markdown(index=False))
+# Determine the width of each column
+col_widths = [max(len(str(item)) for item in column) for column in zip(headers, *data)]
+
+# Function to format a row
+def format_row(row):
+    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, col_widths))
+
+# Create the table
+header_row = format_row(headers)
+separator_row = "-+-".join("-" * width for width in col_widths)
+data_rows = [format_row(row) for row in data]
+
+# Print the table
+print(header_row)
+print(separator_row)
+for row in data_rows:
+    print(row)
 
 print("For more detailed resource counts, see file resource_estimate.json")
