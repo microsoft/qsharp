@@ -2521,3 +2521,83 @@ fn invalid_initial_commas_in_pattern() {
             ]"#]],
     );
 }
+
+#[test]
+fn friendly_error_on_parenthesized_for() {
+    check(
+        expr,
+        "for (x in xs) { () }",
+        &expect![[r#"
+            Error(
+                Token(
+                    Close(
+                        Paren,
+                    ),
+                    Keyword(
+                        In,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 9,
+                    },
+                ),
+                Some(
+                    "parenthesis are not permitted around for-loop iterations",
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn no_help_text_on_non_parenthesized_for() {
+    check(
+        expr,
+        "for x in invalid syntax { () }",
+        &expect![[r#"
+            Error(
+                Token(
+                    Open(
+                        Brace,
+                    ),
+                    Ident,
+                    Span {
+                        lo: 17,
+                        hi: 23,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn parenthesized_pat_in_for_is_valid() {
+    check(
+        expr,
+        "for (x) in xs { () }",
+        &expect![[r#"
+            Expr _id_ [0-20]: For:
+                Pat _id_ [4-7]: Paren:
+                    Pat _id_ [5-6]: Bind:
+                        Ident _id_ [5-6] "x"
+                Expr _id_ [11-13]: Path: Path _id_ [11-13] (Ident _id_ [11-13] "xs")
+                Block _id_ [14-20]:
+                    Stmt _id_ [16-18]: Expr: Expr _id_ [16-18]: Unit"#]],
+    );
+}
+
+#[test]
+fn parenthesized_expr_in_for_is_valid() {
+    check(
+        expr,
+        "for x in (xs) { () }",
+        &expect![[r#"
+            Expr _id_ [0-20]: For:
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "x"
+                Expr _id_ [9-13]: Paren: Expr _id_ [10-12]: Path: Path _id_ [10-12] (Ident _id_ [10-12] "xs")
+                Block _id_ [14-20]:
+                    Stmt _id_ [16-18]: Expr: Expr _id_ [16-18]: Unit"#]],
+    );
+}

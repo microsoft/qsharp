@@ -74,7 +74,7 @@ fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
     } else if token(s, TokenKind::FatArrow).is_ok() {
         Ok(CallableKind::Operation)
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "arrow type",
             s.peek().kind,
             s.peek().span,
@@ -96,7 +96,11 @@ fn base(s: &mut ParserContext) -> Result<Ty> {
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {
-        Err(Error(ErrorKind::Rule("type", s.peek().kind, s.peek().span)))
+        Err(Error::new(ErrorKind::Rule(
+            "type",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }?;
 
     Ok(Ty {
@@ -124,7 +128,7 @@ fn functor_base(s: &mut ParserContext) -> Result<FunctorExpr> {
     } else if token(s, TokenKind::Keyword(Keyword::Ctl)).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Ctl))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "functor literal",
             s.peek().kind,
             s.peek().span,
