@@ -37,20 +37,21 @@ namespace Kata.Verification {
                 // Prepare the state to be input to the testImplementation
                 StateInitialize_StateSelection(alpha, qs);
 
-                // operate testImplementation
                 Kata.StateSelection(qs, ind);
-                // reset the first qubit, since its state does not matter
-                Reset(qs[0]);
 
-                // apply adjoint reference operation and check that the result is correct
+                // Apply adjoint of state preparation operation
                 Adjoint StatePrepare_StateSelection(alpha, ind, qs[1]);
 
-                if not CheckAllZero(qs) {
+                // We only care about the state of the second qubit; 
+                // if it's still entangled with the first one or not in zero state, this check will fail.
+                if not CheckZero(qs[1]) {
                     ResetAll(qs);
                     Message("Incorrect.");
                     Message($"The state of the second qubit for {params}, ind = {ind} does not match expectation.");
                     return false;
                 }
+
+                Reset(qs[0]);
             }
         }
         Message("Correct!");
