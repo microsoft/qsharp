@@ -468,7 +468,6 @@ impl CompletionListBuilder {
         current_namespace_name: Option<&'a [Rc<str>]>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, SortPriority)> + 'a {
-        log::info!("__DEBUG Getting callables for package: {:?}", package_id);
         let package = &compilation
             .package_store
             .get(package_id)
