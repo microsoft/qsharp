@@ -1,6 +1,6 @@
 While it's possible to prepare the state $\ket \psi$ directly using unitary rotations, it's simpler to use post-selection for preparing it.
 
-Initially, you prepare an equal superposition of all basis states on the first two qubits by applying the **H** gate to each of them, and allocate an extra qubit in the $\ket{0}$ state:
+Initially, you prepare an equal superposition of all basis states on the first two qubits by applying the $H$ gate to each of them, and allocate an extra qubit in the $\ket{0}$ state:
 $$\frac{1}{2} \big(\ket{00} + \ket{01} + \ket{10} + \ket{11}\big) \otimes \ket 0$$
 
 The state of the first two qubits is a superposition of the state you want to prepare and the $\ket{11}$ state that you want to discard.

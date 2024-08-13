@@ -407,8 +407,7 @@ For certain multi-qubit systems prepared in a superposition state, it's possible
 
 Any multi-qubit state can be prepared from the $\ket{0...0}$ state using an appropriate combination of quantum gates.
 However, sometimes it's easier and more efficient to prepare a state using partial measurements.
-You could prepare a simpler state involving additional qubits, which, when measured, result in a collapse of the remaining qubits to the desired state with a high probability. This is called **post-selection**, and is particularly useful if it'
-s easier to prepare the pre-measurement state with the extra qubits than to prepare the desired state directly using unitary gates alone. This is demonstrated by the following exercise.
+You could prepare a simpler state involving additional qubits, which, when measured, result in a collapse of the remaining qubits to the desired state with a high probability. This is called **post-selection**, and is particularly useful if it's easier to prepare the pre-measurement state with the extra qubits than to prepare the desired state directly using unitary gates alone. This is demonstrated by the following exercise.
 
 @[exercise]({
     "id": "multi_qubit_measurements__state_preparation_using_partial_measurements",
