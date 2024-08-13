@@ -64,7 +64,7 @@ Then, let's proceed with quantum strategies for Alice and Bob.
 })
 
 @[section]({
-    "id": "nonlocal_games__discussion",
+    "id": "nonlocal_games__chsh_discussion",
     "title": "Discussion: Probability of Victory for Quantum Strategy"
 })
 
@@ -238,11 +238,132 @@ Then, let's proceed with quantum strategy and game implementation.
     "path": "./ghz_quantum_strategy/"
 })
 
-@[exercise]({
-    "id": "nonlocal_games__ghz_quantum_game",
-    "title": "Quantum Game",
-    "path": "./ghz_quantum_game/"
+@[section]({
+    "id": "nonlocal_games__ghz_discussion",
+    "title": "Discussion: Why the GHZ quantum strategy has a 100% win rate"
 })
+---------------------------------------------------------------
+Recall the formula for the win condition:
+1. The sum of the answer bits must be even if the question bits are (0,0,0)
+2. The sum of the answer bits must be odd if the question bits are (1,1,0), (1,0,1) or (0,1,1).
+
+> As a reminder, the probability "wavefunction" for three qubits is given by the following vector of length 8:
+> $$\begin{bmatrix}
+\psi_{000}\\
+\psi_{001}\\
+\psi_{010}\\
+\psi_{011}\\
+\psi_{100}\\
+\psi_{101}\\
+\psi_{110}\\
+\psi_{111}
+\end{bmatrix}$$
+> $|\psi_{ijk}|^2$ gives the probability of observing the corresponding basis state $\ket{ijk}$ upon measuring the qubit trio.
+
+Now, the entangled state $\ket{\Phi}$ that Alice, Bob and Charlie have agreed to use is represented as
+
+$$\begin{bmatrix}
++1/2\\
+ 0\\
+ 0\\
+-1/2\\
+ 0\\
+-1/2\\
+-1/2\\
+ 0
+\end{bmatrix}$$
+
+Let's first consider the case in which **all three players got the 0 bit**.
+
+When the players make their measurements, they will collectively get one of the basis states of the original state - 000, 011, 101 or 110.
+This measn they'll report back zero \"1\" bits between them (with $25\%$ probability) or two \"1\" bits between them (with $75\%$ probability),
+either way satisfying the win condition for the team.
+
+Now, suppose **Alice gets a 0 bit and the others get 1**.
+
+Alice, looking at the 0, takes a Z basis measurement as before, while Bob and Charlie each take X basis measurements.
+(An X basis measurement is also equivalent to performing a Hadamard transform followed by a standard Z basis measurement,
+as the X basis is the $\ket{+}$ / $\ket{-}$, and a Hadamard transform rotates the $\ket{0}$ / $\ket{1}$ basis to $\ket{+}$ / $\ket{-}$.)
+So Bob and Charlie apply a Hadamard transform to their qubits, which corresponds to the following transformation applied to the whole system state:
+
+$$I \otimes H \otimes H = \begin{bmatrix}
+1/2 & 1/2 & 1/2 & 1/2 & 0 & 0 & 0 & 0\\
+1/2 & -1/2 & 1/2 & -1/2 & 0 & 0 & 0 & 0\\
+1/2 & 1/2 & -1/2 & -1/2 & 0 & 0 & 0 & 0\\
+1/2 & -1/2 & -1/2 & 1/2 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & 0 & 1/2 & 1/2 & 1/2 & 1/2\\
+0 & 0 & 0 & 0 & 1/2 & -1/2 & 1/2 & -1/2\\
+0 & 0 & 0 & 0 & 1/2 & 1/2 & -1/2 & -1/2\\
+0 & 0 & 0 & 0 & 1/2 & -1/2 & -1/2 & 1/2
+\end{bmatrix}$$
+
+When applied to the original entangled state, all the amplitude shifts to the states corresponding to $\ket{001}$, $\ket{010}$, $\ket{100}$, and $\ket{111}$.
+The precise configuration of the new entangled state is
+
+$$\begin{bmatrix}
+ 0\\
+ 1/2\\
+ 1/2\\
+ 0\\
+-1/2\\
+ 0\\
+ 0\\
+ 1/2
+\end{bmatrix}$$
+
+Now the players perform their measurements, and an odd number of them will see \"1\" (thanks to the new entangled state), again satisfying the win condition.
+Similarly, if **Alice and Charlie get \"1\" bits and Bob a \"0\"**, Alice and Charlie will apply Hadamard transforms to their qubits to give the tensor product
+
+$$ H \otimes I \otimes H = \begin{bmatrix}
+1/2 & 1/2  & 0   & 0    & 1/2  & 1/2  & 0    & 0\\
+1/2 & -1/2 & 0   & 0    & 1/2  & -1/2 & 0    & 0\\
+0   & 0    & 1/2 & 1/2  & 0    & 0    & 1/2  & 1/2\\
+0   & 0    & 1/2 & -1/2 & 0    & 0    & 1/2  & -1/2\\
+1/2 & 1/2  & 0   & 0    & -1/2 & -1/2 & 0    & 0\\
+1/2 & -1/2 & 0   & 0    & -1/2 & 1/2  & 0    & 0\\
+0   & 0    & 1/2 & 1/2  & 0    & 0    & -1/2 & -1/2\\
+0   & 0    & 1/2 & -1/2 & 0    & 0    & -1/2 & 1/2
+\end{bmatrix}$$
+
+The resulting state vector before the measurement will be the same as in the previous case, except that the $\ket{010}$ state
+ends up with the negative amplitude instead of $\ket{100}$. Again the players report back an odd number of true bits between them and the team wins.
+
+Finally if Charlie got the \"0\" bit and Alice and Bob both got \"1\", the latter two will apply Hadamard transform for the tensor product
+
+$$ H \otimes H \otimes I = \begin{bmatrix}
+1/2 & 0 & 1/2 & 0 & 1/2 & 0 & 1/2 & 0\\
+0 & 1/2 & 0 & 1/2 & 0 & 1/2 & 0 & 1/2\\
+1/2 & 0 & -1/2 & 0 & 1/2 & 0 & -1/2 & 0\\
+0 & 1/2 & 0 & -1/2 & 0 & 1/2 & 0 & -1/2\\
+1/2 & 0 & 1/2 & 0 & -1/2 & 0 & -1/2 & 0\\
+0 & 1/2 & 0 & 1/2 & 0 & -1/2 & 0 & -1/2\\
+1/2 & 0 & -1/2 & 0 & -1/2 & 0 & 1/2 & 0\\
+0 & 1/2 & 0 & -1/2 & 0 & -1/2 & 0 & 1/2
+\end{bmatrix}$$
+
+Operating with this on the original entangled state yields $(\ket{100} + \ket{010} - \ket{001} + \ket{111})/2$ and 
+once more the team will report back an odd number of true bits between them and win.
+
+@[section]({
+    "id": "nonlocal_games__ghz_e2e",
+    "title": "Running GHZ Game End to End"
+})
+
+Putting together the building blocks we've implemented into a strategy is very simple:
+
+1. Allocate three qubits and prepare our entangled state on them (using `CreateEntangledTriple`).
+2. Send one of the qubits to each of the players (this step is \"virtual\", not directly reflected in Q# code, other than making sure that the strategies each act on their qubit only).
+3. Have the players perform their measurements on their respective qubits using corresponding elements of the `strategies` array.
+4. Reset qubits to $\ket{0}$ before they are released.
+5. Return their measurement results.
+
+In the example below you can compare winning percentage of classical and quantum games.
+
+>You may play with the code and check if there is a difference in results when
+>1. The referee picks non-random bits. How can the referee minimize player's win probability?
+>2. Players get partially entangled qubit triple.
+
+@[example]({"id": "nonlocal_games__ghz_e2edemo", "codePath": "./examples/GHZGameDemo.qs"})
 
 @[section]({
     "id": "nonlocal_games__conclusion",
