@@ -114,8 +114,99 @@ Let's consider a simplified variant of the phase estimation problem, in which yo
     "title": "Quantum Phase Estimation Algorithm"
 })
 
-- theory
+Quantum phase estimation algorithm is the most common algorithm used for estimating the eigenphase that corresponds to the given unitary-eigenvector pair.
+It relies on quantum Fourier transform, and allows you to estimate $n$ binary digits of the eigenphase $\theta$.
+Let's see how this algorithm works.
+
+### Inputs
+
+1. A single-qubit unitary $U$ that acts on $m$ qubits.
+2. An $m$-qubit state $\ket{\psi}$ - an eigenvector of $U$.
+3. An integer $n$ that specifies the desired binary precision of the eigenphase estimate.
+
+### The starting state
+
+The algorithm acts on $n+m$ qubits, split in two registers.
+- The first $n$ qubits start in the state $\ket{0...0} = \ket{0}^{\otimes N}$. These qubits are used to get the eigenvalue.
+- The last $m$ qubits start in the state $\ket{\psi}$ - the eigenvector of $U$.
+
+### Step 1. Apply Hadamard transform to each qubit of the first register
+
+This step prepares the first qubit in an even superposition of all $n$-qubit basis states, or, equivalently, in an even superposition of all integers from $\ket{0}$ to $\ket{2^n-1}$.
+
+The state of the system will end up being
+
+$$\frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1} \ket{k} \otimes \ket{\psi}$$
+
+
+### Step 2. Apply the controlled $U$ ladder
+
+On this step, the algorithm applies a series of controlled $U$ gates, with different qubits of the first register as controls and the second register as the target.
+
+Let's assume that the first register stores integers in little-endian notation: the first qubit corresponds to the least-significant bit, and the last qubit - to the most-significant bit. Then, the sequence of gates applied on this step looks as follows:
+
+1. Controlled $U$ gate with the first qubit as control.
+2. Controlled $U^2$ gate with the second qubit as control.
+3. Controlled $U^4$ gate with the third qubit as control.
+4. And so on, ending with controlled $U^{2^{n-1}}$ gate with qubit $n$ as control.
+
+What does this sequence of gates do?
+
+Let's consider the scenario in which the first register is in the basis state $\ket{k} = \ket{k_0} \otimes \ket{k_1} \otimes ... \otimes \ket{k_{n-1}}$, where $k$ is an integer with $n$ bits in its binary notation: 
+$$k = 2^0k_0 + 2^1 k_1 + 2^2k_2 + ... + 2^{n-1}k_{n-1}$$
+
+In this case, this sequence of gates will apply the unitary $U^k$ to the second register! Indeed, 
+
+1. Controlled $U$ gate with the first qubit as control will apply $U$ gate if $k_0 = 1$, and do nothing if $k_0 = 0$.
+2. Controlled $U^2$ gate with the second qubit as control will apply $U^2$ gate if $k_1 = 1$, and do nothing if $k_1 = 0$.
+3. Controlled $U^4$ gate with the third qubit as control will apply $U^4$ gate if $k_2 = 1$, and do nothing if $k_2 = 0$.
+4. And so on.
+
+You can see that in the end all the powers of $U$ applied to the second register add up to exactly the number $k$ written in the first register.
+
+If the first register is in a superposition of states, as is the case for this algorithm, you can write the effect of controlled gates on the state of the system using linearity of unitary transformations:
+
+$$\frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1} \ket{k} \otimes \ket{\psi}\rightarrow \frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1} \ket{k} \otimes U^k\ket{\psi}$$
+
+Now, recall that $\ket{\psi}$ is an eigenvector of $U$: 
+$$U\ket{\psi} = e^{2 \pi i \theta} \ket{\psi}$$
+
+This means that
+$$U^k\ket{\psi} = (e^{2 \pi i \theta})^k \ket{\psi} = e^{2 \pi i \theta \cdot k} \ket{\psi}$$
+
+You can use this to write the following expression for the state of the system after this step:
+
+$$\frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1} e^{2 \pi i \theta \cdot k} \ket{k} \otimes \ket{\psi}$$
+
+Notice that the first and second registers end up not being entangled with each other.
+
+
+### Step 3. Apply inverse QFT
+
+Now, recall that quantum Fourier transform that acts on a basis state $\ket{j}$ that represents an $n$-bit integer $j$ performs the following transformation:
+
+$$\ket{j} \rightarrow \frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1}  e^{2\pi i jk/2^n} \ket{k} = \frac1{\sqrt{2^n}}\sum_{k=0}^{2^n-1}  e^{2\pi i (j/2^n) \cdot k} \ket{k}$$
+
+If you compare this expression with the state of the first register at the end of the previous step, you'll notice that they match exactly, with $\theta = j / {2^n}$.
+
+This means that you can use inverse Fourier transform (the adjoint of the Fourier transform) to convert the state of the first register to a binary notation of the integer that stores the first $n$ bits of $\theta$ written as a binary fraction.
+If $\theta = 0.\theta_1 \theta_2... \theta_n$, applying inverse QFT to the first register will yield a state 
+
+$$\ket{\theta_n} \otimes ... \otimes \ket{\theta_1}$$
+
+(Remember that the previous step assumed that the first register stores the integers in little-endian notation, so you have to use the same notation on this step.)
+
+### Step 4. Measure the first register
+
+On the last step, you measure the first register, convert the measurement results to an integer, and divide it by $2^n$ to get the eigenphase $\theta$.
+
 - exercise: task 1.4 to implement QPE
+
+@[section]({
+    "id": "phase_estimation__qpe_probabilistic",
+    "title": "QPE Algorithm: Probabilistic Outcomes"
+})
+
 - demo of end-to-end probabilistic behavior in case of lower precision (use R1 gate)
 
 
