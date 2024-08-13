@@ -8,7 +8,7 @@ $$
 \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ e^{i\pi/2} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\ e^{i\pi/4} \end{bmatrix} =
 \frac{1}{\sqrt2}\big(\ket{0} + e^{i\pi/2}\ket{1}\big) \otimes \frac{1}{\sqrt2}\big(\ket{0} + e^{i\pi/4}\ket{1}\big) $$
 
-You will again need to adjust the states of both qubits independently.
+You'll again need to adjust the states of both qubits independently.
 
 For the first qubit, you'll start by applying the $H$ gate, getting the state $\frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 1 \end{bmatrix}$, as you've seen in the previous task. Afterwards you'll apply the $S$ gate with the following result:
 

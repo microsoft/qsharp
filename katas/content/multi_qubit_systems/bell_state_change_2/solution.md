@@ -1,4 +1,4 @@
-You have seen in the Single-Qubit Gates kata that the Pauli X gate flips $\ket{0}$ to $\ket{1}$ and vice versa, and as you seem to need some flipping of states, perhaps this gate may be of use. (Bearing in mind, of course, that the X gate operates on a single qubit).
+You have seen in the Single-Qubit Gates kata that the Pauli X gate flips $\ket{0}$ to $\ket{1}$ and vice versa, and as you seem to need some flipping of states, perhaps this gate may be of use. (Bearing in mind, of course, that the $X$ gate operates on a single qubit).
 
 Let's compare the starting state $\frac{1}{\sqrt{2}} \big(\ket{0_A0_B} + \ket{1_A1_B}\big)$ with the goal state $\frac{1}{\sqrt{2}} \big(\ket{1_A0_B} + \ket{0_A1_B}\big)$ term by term and see how you need to transform it to reach the goal.
 
