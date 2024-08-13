@@ -16,15 +16,11 @@ $$\frac1{\sqrt2} \big(e^{-i\pi/4} \ket{010...0} + e^{i\pi/4} \ket{110...0}\big)$
 
 You can write out the result of applying QFT to this state as follows, using the fact that $e^{\pm i\pi/4} = \frac{1 \pm i}{\sqrt2}$:
 
-$$ QFT\bigg(\frac1{\sqrt2} \big(e^{-i\pi/4} \ket{010...0} + e^{i\pi/4} \ket{110...0}\big)\bigg) = \\
-
-= \frac1{\sqrt2}\bigg( \frac{1-i}{\sqrt2} QFT\ket{010...0} + \frac{1+i}{\sqrt2} QFT\ket{110...0} \bigg) = \\
-
-= \frac{(1-i)}{2\sqrt{2^n}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} + i\ket{1}) + \\
-
-+ \frac{(1+i)}{2\sqrt{2^n}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} - i\ket{1}) = \\
-
-= \frac{1}{\sqrt{2^{n}}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} + \ket{1})$$
+$$QFT\bigg(\frac1{\sqrt2} \big(e^{-i\pi/4} \ket{010...0} + e^{i\pi/4} \ket{110...0}\big)\bigg) =$$
+$$= \frac1{\sqrt2}\bigg( \frac{1-i}{\sqrt2} QFT\ket{010...0} + \frac{1+i}{\sqrt2} QFT\ket{110...0} \bigg) = $$
+$$= \frac{(1-i)}{2\sqrt{2^n}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} + i\ket{1}) + $$
+$$+ \frac{(1+i)}{2\sqrt{2^n}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} - i\ket{1}) =$$
+$$= \frac{1}{\sqrt{2^{n}}} (\ket{0} + \ket{1}) \otimes (\ket{0} + \ket{1}) \otimes ... \otimes (\ket{0} - \ket{1}) \otimes (\ket{0} + \ket{1})$$
  
 Creating the required initial superposition state can be done using the $T$ gate and its adjoint in addition to the more standard $X$ and $H$ gates:
 

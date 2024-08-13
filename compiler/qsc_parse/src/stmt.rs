@@ -82,7 +82,7 @@ fn parse_local(s: &mut ParserContext) -> Result<Box<StmtKind>> {
         Mutability::Mutable
     } else {
         let token = s.peek();
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "variable binding",
             token.kind,
             token.span,
@@ -102,7 +102,7 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {
         QubitSource::Dirty
     } else {
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "qubit binding",
             s.peek().kind,
             s.peek().span,
@@ -129,7 +129,7 @@ fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
-            return Err(Error(ErrorKind::Convert(
+            return Err(Error::new(ErrorKind::Convert(
                 "qubit initializer",
                 "identifier",
                 name.span,
@@ -143,7 +143,7 @@ fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
             QubitInitKind::Array(size)
         } else {
             let token = s.peek();
-            return Err(Error(ErrorKind::Rule(
+            return Err(Error::new(ErrorKind::Rule(
                 "qubit suffix",
                 token.kind,
                 token.span,
@@ -155,7 +155,7 @@ fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
         final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple)
     } else {
         let token = s.peek();
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "qubit initializer",
             token.kind,
             token.span,
@@ -177,7 +177,7 @@ pub(super) fn check_semis(s: &mut ParserContext, stmts: &[Box<Stmt>]) {
                 lo: stmt.span.hi,
                 hi: stmt.span.hi,
             };
-            s.push_error(Error(ErrorKind::MissingSemi(span)));
+            s.push_error(Error::new(ErrorKind::MissingSemi(span)));
         }
     }
 }

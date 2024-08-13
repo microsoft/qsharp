@@ -121,7 +121,7 @@ pub(super) enum Error {
 
     #[error("duplicate intrinsic `{0}`")]
     #[diagnostic(help(
-        "each callable declared as `body intrinsic` must have a globally unique name"
+        "each callable declared as `body intrinsic` or `@SimulatableIntrinsic` must have a globally unique name"
     ))]
     #[diagnostic(code("Qsc.Resolve.DuplicateIntrinsic"))]
     DuplicateIntrinsic(String, #[label] Span),
@@ -1733,7 +1733,8 @@ fn bind_callable(
     scope: &mut GlobalScope,
 ) -> Result<(), Vec<Error>> {
     let item_id = next_id();
-    let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+    let attrs = ast_attrs_as_hir_attrs(item.attrs.as_ref());
+    let status = ItemStatus::from_attrs(&attrs);
     let res = Res::Item(item_id, status);
     names.insert(decl.name.id, res.clone());
     let mut errors = Vec::new();
@@ -1759,7 +1760,7 @@ fn bind_callable(
         }
     }
 
-    if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
+    if decl_is_intrinsic(decl, &attrs) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
         errors.push(Error::DuplicateIntrinsic(
             decl.name.name.to_string(),
             decl.name.span,
@@ -1816,7 +1817,13 @@ fn bind_ty(
     }
 }
 
-fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
+fn decl_is_intrinsic(decl: &CallableDecl, attrs: &[hir::Attr]) -> bool {
+    if attrs
+        .iter()
+        .any(|attr| matches!(attr, hir::Attr::SimulatableIntrinsic))
+    {
+        return true;
+    }
     if let CallableBody::Specs(specs) = decl.body.as_ref() {
         specs
             .iter()
