@@ -1,16 +1,6 @@
 {
   "author": "Microsoft",
   "license": "MIT",
-  "dependencies": {
-    "Unstable": {
-      "github": {
-        "owner": "microsoft",
-        "repo": "qsharp",
-        "ref": "main",
-        "path": "library/unstable"
-      }
-    }
-  },
   "files": [
     "src/Addition.qs",
     "src/Comparison.qs",

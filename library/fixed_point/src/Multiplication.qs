@@ -7,6 +7,7 @@ open Microsoft.Quantum.Intrinsic;
 open Microsoft.Quantum.Canon;
 import Types.FixedPoint;
 import Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
+import Signed.MultiplySI, Signed.SquareSI;
 
 /// # Summary
 /// Multiplies two fixed-point numbers in quantum registers.
@@ -33,10 +34,10 @@ operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) :
         let n = Length(fp1::Register);
 
         use tmpResult = Qubit[2 * n];
-        let xsInt = SignedLittleEndian(LittleEndian(fp1::Register));
-        let ysInt = SignedLittleEndian(LittleEndian(fp2::Register));
-        let tmpResultInt = SignedLittleEndian(
-            LittleEndian(tmpResult)
+        let xsInt = ((fp1::Register));
+        let ysInt = ((fp2::Register));
+        let tmpResultInt = (
+            (tmpResult)
         );
 
         within {
@@ -66,9 +67,9 @@ operation SquareFxP(fp : FixedPoint, result : FixedPoint) : Unit is Adj {
         let n = Length(fp::Register);
 
         use tmpResult = Qubit[2 * n];
-        let xsInt = SignedLittleEndian(LittleEndian(fp::Register));
-        let tmpResultInt = SignedLittleEndian(
-            LittleEndian(tmpResult)
+        let xsInt = fp::Register;
+        let tmpResultInt = (
+            (tmpResult)
         );
         within {
             SquareSI(xsInt, tmpResultInt);
