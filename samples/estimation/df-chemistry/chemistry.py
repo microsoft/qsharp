@@ -492,11 +492,6 @@ if args.paramsfile is None:
             "errorBudget": 0.01,
             "qubitParams": {"name": "qubit_maj_ns_e6"},
             "qecScheme": {"name": "floquet_code"},
-        },
-        {
-            "errorBudget": 0.01,
-            "qubitParams": {"name": "qubit_maj_ns_e6"},
-            "qecScheme": {"name": "floquet_code"},
         }
     ]
 else:
