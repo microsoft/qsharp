@@ -3,8 +3,10 @@
 
 
 import Std.Math.*;
-
 import Types.FixedPoint;
+import Init.PrepareFxP;
+import Facts.IdenticalPointPosFactFxP;
+import Signed.*;
 
 /// # Summary
 /// Adds a classical constant to a quantum fixed-point number.
@@ -19,7 +21,11 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
     let n = Length(fp::Register);
     use ys = Qubit[n];
     let tmpFp = FixedPoint(fp::IntegerBits, ys);
-    ApplyWithCA(PrepareFxP(constant, _), AddFxP(_, fp), tmpFp);
+    within  { 
+        PrepareFxP(constant, tmpFp);
+    } apply {
+        AddFxP(tmpFp, fp);
+    }
 }
 
     /// # Summary
@@ -43,7 +49,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
 operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
     IdenticalPointPosFactFxP([fp1, fp2]);
 
-    AddI(LittleEndian(fp1::Register), LittleEndian(fp2::Register));
+    AddI(fp1::Register, fp2::Register);
 }
 
     /// # Summary
@@ -61,7 +67,7 @@ operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
 /// - Microsoft.Quantum.Arithmetic.SubtractFxP
 operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
     let (_, reg) = fp!;
-    Invert2sSI(SignedLittleEndian(LittleEndian(reg)));
+    Invert2sSI(reg);
 }
 
     /// # Summary

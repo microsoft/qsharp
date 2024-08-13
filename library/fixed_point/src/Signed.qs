@@ -695,20 +695,72 @@ function Zipped3<'T1, 'T2, 'T3>(first : 'T1[], second : 'T2[], third : 'T3[]) : 
     }
     return output;
 }
-operation ApplyWithCA<'T>(outerOperation : ('T => Unit is Adj), innerOperation : ('T => Unit is Adj + Ctl), target : 'T) : Unit {
-    body (...) {
-        outerOperation(target);
-        innerOperation(target);
-        Adjoint outerOperation(target);
+    operation MultiplySI(xs: Qubit[], ys: Qubit[], result: Qubit[]): Unit {
+        body (...) {
+            Controlled MultiplySI([], (xs, ys, result));
+        }
+        controlled (controls, ...) {
+            use signx = Qubit();
+            use signy = Qubit();
+
+            within {
+                CNOT(Tail(xs), signx);
+                CNOT(Tail(ys), signy);
+                Controlled Invert2sSI([signx], xs);
+                Controlled Invert2sSI([signy], ys);
+            } apply {
+                Controlled MultiplyI(controls, (xs, ys, result));
+                within {
+                    CNOT(signx, signy);
+                } apply {
+                    // No controls required since `result` will still be zero
+                    // if we did not perform the multiplication above.
+                    Controlled Invert2sSI([signy], result);
+                }
+            }
+        }
+        adjoint auto;
+        controlled adjoint auto;
     }
+   operation MultiplyI(xs: Qubit[], ys: Qubit[], result: Qubit[]) : Unit is Adj + Ctl {
+        body (...) {
+            let na = Length(xs);
+            let nb = Length(ys);
 
-    adjoint auto;
+            for (idx, actl) in Enumerated(xs) {
+                Controlled AddI([actl], (ys, (result[idx..idx + nb])));
+            }
+        }
+        controlled (controls, ...) {
+            let na = Length(xs);
+            let nb = Length(ys);
 
-    controlled (controlRegister, ...) {
-        outerOperation(target);
-        Controlled innerOperation(controlRegister, target);
-        Adjoint outerOperation(target);
+            // Perform various optimizations based on number of controls
+            let numControls = Length(controls);
+            if numControls == 0 {
+                MultiplyI(xs, ys, result);
+            } elif numControls == 1 {
+                use aux = Qubit();
+                for (idx, actl) in Enumerated(xs) {
+                    within {
+                        QIR.Intrinsic.AND(controls[0], actl, aux);
+                    } apply {
+                        Controlled AddI([aux], (ys, (result[idx..idx + nb])));
+                    }
+                }
+            } else {
+                use helper = Qubit[numControls];
+                within {
+                    AndLadder(CCNOTop(ApplyAnd), controls, Most(helper));
+                } apply {
+                    for (idx, actl) in Enumerated(xs) {
+                        within {
+                            ApplyAnd(Tail(Most(helper)), actl, Tail(helper));
+                        } apply {
+                            Controlled AddI([Tail(helper)], (ys, (result[idx..idx + nb])));
+                        }
+                    }
+                }
+            }
+        }
     }
-
-    controlled adjoint auto;
-}

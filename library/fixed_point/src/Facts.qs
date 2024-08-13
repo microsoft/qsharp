@@ -5,7 +5,6 @@
 open Microsoft.Quantum.Diagnostics;
 open Microsoft.Quantum.Arrays;
 import Types.FixedPoint;
-import ;
 
 /// # Summary
 /// Asserts that a quantum fixed-point number is

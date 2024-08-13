@@ -3,6 +3,8 @@
 
 
 import Types.FixedPoint;
+import Facts.IdenticalFormatFactFxP;
+import Signed.CompareGTSI;
 
 /// # Summary
 /// Compares two fixed-point numbers stored in quantum registers, and
@@ -22,6 +24,6 @@ import Types.FixedPoint;
 operation CompareGreaterThanFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : Qubit) : Unit is Adj + Ctl {
     IdenticalFormatFactFxP([fp1, fp2]);
     
-    CompareGTSI(SignedLittleEndian(fp1::Register), SignedLittleEndian(fp2::Register), result);
+    CompareGTSI((fp1::Register), (fp2::Register), result);
 }
 
