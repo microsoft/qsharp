@@ -18,9 +18,9 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 **What you should know to start working on this kata:**
 
 - Basic concepts of linear algebra
-- Basic concepts of single and multi-qubit systems
-- Basic concepts of single and multi-qubit gates
-- Basic concepts of single-qubit system measurements
+- Single and multi-qubit systems
+- Basic single and multi-qubit gates
+- Single-qubit system measurements
 
 If you need a refresher on any of these topics, you can check out the previous katas.
 
