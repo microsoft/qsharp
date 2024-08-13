@@ -102,7 +102,11 @@ $$\theta = 0.\theta_1 \theta_2... \theta_n = \frac{\theta_1}{2^1}+ \frac{\theta_
 
 Let's consider a simplified variant of the phase estimation problem, in which you are guaranteed that the phase $\theta$ has exactly one binary digit, that is, it's either $0$ or $\frac12$.
 
-- exercise: solve for one bit eigenphase
+@[exercise]({
+    "id": "phase_estimation__one_bit_eigenphase",
+    "title": "One-Bit Phase Estimation",
+    "path": "./one_bit_eigenphase/"
+})
 
 
 @[section]({
