@@ -226,6 +226,24 @@ Then, let's proceed with quantum strategy and game implementation.
     "path": "./ghz_classical_game/"
 })
 
+@[exercise]({
+    "id": "nonlocal_games__ghz_create_ghz_state",
+    "title": "Create Entangled Triple",
+    "path": "./ghz_create_entangled_triple/"
+})
+
+@[exercise]({
+    "id": "nonlocal_games__ghz_quantum_strategy",
+    "title": "Quantum Strategy",
+    "path": "./ghz_quantum_strategy/"
+})
+
+@[exercise]({
+    "id": "nonlocal_games__ghz_quantum_game",
+    "title": "Quantum Game",
+    "path": "./ghz_quantum_game/"
+})
+
 @[section]({
     "id": "nonlocal_games__conclusion",
     "title": "Conclusion"
