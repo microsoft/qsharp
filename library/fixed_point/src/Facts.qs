@@ -13,7 +13,7 @@ import Types.FixedPoint;
 /// # Description
 /// This assertion succeeds when all qubits are in state $\ket{0}$,
 /// representing that the register encodes the fixed-point number $0.0$.
-operation AssertAllZeroFxP(fp : FixedPoint) : Unit is Adj + Ctl {
+operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
     Fact(CheckAllZero(fp::Register), "Quantum fixed-point number was not zero.");
 }
 

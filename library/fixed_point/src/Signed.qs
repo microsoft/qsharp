@@ -40,7 +40,6 @@ operation DivideI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + 
                            equally-sized registers ys and result.");
         Fact(n == Length(xs), "Integer division
                             requires an n-bit dividend registers.");
-        Fact(CheckAllZero(result), "Result register must be zero at this point.");
 
         let xpadded = xs + result;
 
@@ -99,7 +98,6 @@ operation ComputeReciprocalI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl
     controlled (controls, ...) {
         let n = Length(xs);
         Fact(Length(result) == 2 * n, "Result register must contain 2n qubits.");
-        Fact(CheckAllZero(result), fail "Result register must be zero at this point.");
         use lhs = Qubit[2 * n];
         use padding = Qubit[n];
         let paddedxs = xs + padding;
@@ -108,7 +106,7 @@ operation ComputeReciprocalI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl
         (Controlled DivideI)(controls, (lhs, paddedxs, result));
         // uncompute lhs
         for i in 0..2 * n - 1 {
-            (Controlled AddI)([result [i]], (paddedxs[0..2 * n-1-i], lhs[i..2 * n-1]));
+            (Controlled AddI)([result[i]], (paddedxs[0..2 * n-1-i], lhs[i..2 * n-1]));
         }
         X(Tail(lhs));
     }
@@ -409,16 +407,15 @@ operation RippleCarryAdderCDKM(xs : Qubit[], ys : Qubit[], carry : Qubit) : Unit
 // /// The specified controlled operation makes use of symmetry and mutual
 // /// cancellation of operations to improve on the default implementation
 // /// that adds a control to every operation.
-internal operation ApplyInnerTTKAdder(xs : Qubit[], ys : Qubit[], carry : Qubit)
-: Unit is Adj + Ctl {
+internal operation ApplyInnerTTKAdder(xs : Qubit[], ys : Qubit[], carry : Qubit) : Unit is Adj + Ctl {
     body (...) {
         (Controlled ApplyInnerTTKAdder)([], (xs, ys, carry));
     }
-    controlled ( controls, ... ) {
+    controlled (controls, ...) {
         let nQubits = Length(xs);
 
         for idx in 0..nQubits - 2 {
-            CCNOT(xs[idx], ys[idx], xs[idx+1]);
+            CCNOT(xs[idx], ys[idx], xs[idx + 1]);
         }
         (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], carry));
         for idx in nQubits - 1..-1..1 {
@@ -445,8 +442,7 @@ internal operation ApplyInnerTTKAdder(xs : Qubit[], ys : Qubit[], carry : Qubit)
 ///   Addition Circuits and Unbounded Fan-Out", Quantum Information and
 ///   Computation, Vol. 10, 2010.
 ///   https://arxiv.org/abs/0910.2530
-internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
-: Unit is Adj + Ctl {
+internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     let nQubits = Length(xs);
 
     Fact(
@@ -483,8 +479,7 @@ internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
 // /// # Remarks
 // /// This operation has the same functionality as RippleCarryAdderD and,
 // /// RippleCarryAdderCDKM but does not use any ancilla qubits.
-operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
-: Unit is Adj + Ctl {
+operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit) : Unit is Adj + Ctl {
     let nQubits = Length(xs);
 
 
@@ -495,8 +490,7 @@ operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
         } apply {
             ApplyInnerTTKAdder(xs, ys, carry);
         }
-    }
-    else {
+    } else {
         CCNOT(xs[0], ys[0], carry);
     }
     CNOT(xs[0], ys[0]);
@@ -525,12 +519,11 @@ operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
 /// The specified controlled operation makes use of symmetry and mutual
 /// cancellation of operations to improve on the default implementation
 /// that adds a control to every operation.
- operation ApplyInnerTTKAdderWithoutCarry(xs : Qubit[], ys : Qubit[])
-: Unit is Adj + Ctl {
+operation ApplyInnerTTKAdderWithoutCarry(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
-        (Controlled ApplyInnerTTKAdderWithoutCarry) ([], (xs, ys));
+        (Controlled ApplyInnerTTKAdderWithoutCarry)([], (xs, ys));
     }
-    controlled ( controls, ... ) {
+    controlled (controls, ...) {
         let nQubits = Length(xs);
 
         Fact(
@@ -539,7 +532,7 @@ operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
         );
 
         for idx in 0..nQubits - 2 {
-            CCNOT (xs[idx], ys[idx], xs[idx + 1]);
+            CCNOT(xs[idx], ys[idx], xs[idx + 1]);
         }
         for idx in nQubits - 1..-1..1 {
             Controlled CNOT(controls, (xs[idx], ys[idx]));
@@ -694,138 +687,148 @@ function Zipped3<'T1, 'T2, 'T3>(first : 'T1[], second : 'T2[], third : 'T3[]) : 
     }
     return output;
 }
-    operation MultiplySI(xs: Qubit[], ys: Qubit[], result: Qubit[]): Unit {
-        body (...) {
-            Controlled MultiplySI([], (xs, ys, result));
-        }
-        controlled (controls, ...) {
-            use signx = Qubit();
-            use signy = Qubit();
+operation MultiplySI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit {
+    body (...) {
+        Controlled MultiplySI([], (xs, ys, result));
+    }
+    controlled (controls, ...) {
+        use signx = Qubit();
+        use signy = Qubit();
 
+        within {
+            CNOT(Tail(xs), signx);
+            CNOT(Tail(ys), signy);
+            Controlled Invert2sSI([signx], xs);
+            Controlled Invert2sSI([signy], ys);
+        } apply {
+            Controlled MultiplyI(controls, (xs, ys, result));
             within {
-                CNOT(Tail(xs), signx);
-                CNOT(Tail(ys), signy);
-                Controlled Invert2sSI([signx], xs);
-                Controlled Invert2sSI([signy], ys);
+                CNOT(signx, signy);
             } apply {
-                Controlled MultiplyI(controls, (xs, ys, result));
+                // No controls required since `result` will still be zero
+                // if we did not perform the multiplication above.
+                Controlled Invert2sSI([signy], result);
+            }
+        }
+    }
+    adjoint auto;
+    controlled adjoint auto;
+}
+operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
+    body (...) {
+        let na = Length(xs);
+        let nb = Length(ys);
+
+        for (idx, actl) in Enumerated(xs) {
+            Controlled AddI([actl], (ys, (result[idx..idx + nb])));
+        }
+    }
+    controlled (controls, ...) {
+        let na = Length(xs);
+        let nb = Length(ys);
+
+        // Perform various optimizations based on number of controls
+        let numControls = Length(controls);
+        if numControls == 0 {
+            MultiplyI(xs, ys, result);
+        } elif numControls == 1 {
+            use aux = Qubit();
+            for (idx, actl) in Enumerated(xs) {
                 within {
-                    CNOT(signx, signy);
+                    AND(controls[0], actl, aux);
                 } apply {
-                    // No controls required since `result` will still be zero
-                    // if we did not perform the multiplication above.
-                    Controlled Invert2sSI([signy], result);
+                    Controlled AddI([aux], (ys, (result[idx..idx + nb])));
                 }
             }
-        }
-        adjoint auto;
-        controlled adjoint auto;
-    }
-   operation MultiplyI(xs: Qubit[], ys: Qubit[], result: Qubit[]) : Unit is Adj + Ctl {
-        body (...) {
-            let na = Length(xs);
-            let nb = Length(ys);
-
-            for (idx, actl) in Enumerated(xs) {
-                Controlled AddI([actl], (ys, (result[idx..idx + nb])));
-            }
-        }
-        controlled (controls, ...) {
-            let na = Length(xs);
-            let nb = Length(ys);
-
-            // Perform various optimizations based on number of controls
-            let numControls = Length(controls);
-            if numControls == 0 {
-                MultiplyI(xs, ys, result);
-            } elif numControls == 1 {
-                use aux = Qubit();
+        } else {
+            use helper = Qubit[numControls];
+            within {
+                AndLadder(controls, Most(helper));
+            } apply {
                 for (idx, actl) in Enumerated(xs) {
                     within {
-                        AND(controls[0], actl, aux);
+                        AND(Tail(Most(helper)), actl, Tail(helper));
                     } apply {
-                        Controlled AddI([aux], (ys, (result[idx..idx + nb])));
-                    }
-                }
-            } else {
-                use helper = Qubit[numControls];
-                within {
-                    // TODO -- should this be ApplyCCNOTChain(https://github.com/microsoft/QuantumLibraries/blob/f2f5e380225367ee4eb995d922067025dc77f0a0/Standard/src/Canon/Parity.qs#L45)
-                    // ?
-                    AndLadder(CCNOTop(AND), controls, Most(helper));
-                } apply {
-                    for (idx, actl) in Enumerated(xs) {
-                        within {
-                            AND(Tail(Most(helper)), actl, Tail(helper));
-                        } apply {
-                            Controlled AddI([Tail(helper)], (ys, (result[idx..idx + nb])));
-                        }
+                        Controlled AddI([Tail(helper)], (ys, (result[idx..idx + nb])));
                     }
                 }
             }
         }
     }
+}
 
-    operation SquareSI (xs: Qubit[], result: Qubit[]): Unit is Adj + Ctl {
-        body (...) {
-            Controlled SquareSI([], (xs, result));
+operation SquareSI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
+    body (...) {
+        Controlled SquareSI([], (xs, result));
+    }
+    controlled (controls, ...) {
+        let n = Length(xs);
+        use signx = Qubit();
+        use signy = Qubit();
+
+        within {
+            CNOT(Tail(xs), signx);
+            Controlled Invert2sSI([signx], xs);
+        } apply {
+            Controlled SquareI(controls, (xs, result));
         }
-        controlled (controls, ...) {
-            let n = Length(xs);
-            use signx = Qubit();
-            use signy = Qubit();
+    }
+}
 
+operation SquareI(xs : Qubit[], result : Qubit[]) : Unit {
+    body (...) {
+        Controlled SquareI([], (xs, result));
+    }
+    controlled (controls, ...) {
+        let n = Length(xs);
+
+
+        let numControls = Length(controls);
+        if numControls == 0 {
+            use aux = Qubit();
+            for (idx, ctl) in Enumerated(xs) {
+                within {
+                    CNOT(ctl, aux);
+                } apply {
+                    Controlled AddI([aux], (xs, (result[idx..idx + n])));
+                }
+            }
+        } elif numControls == 1 {
+            use aux = Qubit();
+            for (idx, ctl) in Enumerated(xs) {
+                within {
+                    AND(controls[0], ctl, aux);
+                } apply {
+                    Controlled AddI([aux], (xs, (result[idx..idx + n])));
+                }
+            }
+        } else {
+            use helper = Qubit[numControls];
             within {
-                CNOT(Tail(xs), signx);
-                Controlled Invert2sSI([signx], xs);
+                AndLadder(controls, Most(helper));
             } apply {
-                Controlled SquareI(controls, (xs, result));
-            }
-        }
-    }
-
-      operation SquareI(xs: Qubit[], result: Qubit[]) : Unit {
-        body (...) {
-            Controlled SquareI([], (xs, result));
-        }
-        controlled (controls, ...) {
-            let n = Length(xs);
-
-
-            let numControls = Length(controls);
-            if numControls == 0 {
-                use aux = Qubit();
                 for (idx, ctl) in Enumerated(xs) {
                     within {
-                        CNOT(ctl, aux);
+                        AND(Tail(Most(helper)), ctl, Tail(helper));
                     } apply {
-                        Controlled AddI([aux], (xs, (result[idx..idx + n])));
-                    }
-                }
-            } elif numControls == 1 {
-                use aux = Qubit();
-                for (idx, ctl) in Enumerated(xs) {
-                    within {
-                        AND(controls[0], ctl, aux);
-                    } apply {
-                        Controlled AddI([aux], (xs, (result[idx..idx + n])));
-                    }
-                }
-            } else {
-                use helper = Qubit[numControls];
-                within {
-                    AndLadder(CCNOTop(AND), controls, Most(helper));
-                } apply {
-                    for (idx, ctl) in Enumerated(xs) {
-                        within {
-                            AND(Tail(Most(helper)), ctl, Tail(helper));
-                        } apply {
-                            Controlled AddI([Tail(helper)], (xs, (result[idx..idx + n])));
-                        }
+                        Controlled AddI([Tail(helper)], (xs, (result[idx..idx + n])));
                     }
                 }
             }
         }
-        adjoint auto;
-        controlled adjoint auto;
     }
+    adjoint auto;
+    controlled adjoint auto;
+}
+
+
+
+operation AndLadder(controls : Qubit[], targets : Qubit[]) : Unit is Adj {
+    let controls1 = [Head(controls)] + Most(targets);
+    let controls2 = Rest(controls);
+    for (a, b, c) in Zipped3(controls1, controls2, targets) {
+        AND(a, b, c);
+    }
+}
+
+

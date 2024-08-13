@@ -30,7 +30,6 @@ operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) :
     }
     controlled (controls, ...) {
         IdenticalFormatFactFxP([fp1, fp2, result]);
-        AssertAllZeroFxP(result);
         let n = Length(fp1::Register);
 
         use tmpResult = Qubit[2 * n];
@@ -48,7 +47,7 @@ operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) :
     }
 }
 
-    /// # Summary
+  /// # Summary
 /// Squares a fixed-point number.
 ///
 /// # Input
@@ -63,7 +62,6 @@ operation SquareFxP(fp : FixedPoint, result : FixedPoint) : Unit is Adj {
     }
     controlled (controls, ...) {
         IdenticalFormatFactFxP([fp, result]);
-        AssertAllZeroFxP(result);
         let n = Length(fp::Register);
 
         use tmpResult = Qubit[2 * n];

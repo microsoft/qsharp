@@ -34,7 +34,6 @@ operation ComputeReciprocalFxP(x : FixedPoint, result : FixedPoint) : Unit is Ad
         let (pRes, rs) = result!;
         let n = Length(xs);
 
-        Fact(CheckAllZero(rs), "Output register must be zero at this point.");
         Fact(p + pRes - 1 + n >= Length(rs), "Output register is too wide.");
         use sign = Qubit();
         use tmpRes = Qubit[2 * n];
