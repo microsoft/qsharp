@@ -192,7 +192,7 @@ If you compare this expression with the state of the first register at the end o
 This means that you can use inverse Fourier transform (the adjoint of the Fourier transform) to convert the state of the first register to a binary notation of the integer that stores the first $n$ bits of $\theta$ written as a binary fraction.
 If $\theta = 0.\theta_1 \theta_2... \theta_n$, applying inverse QFT to the first register will yield a state 
 
-$$\ket{\theta_n} \otimes ... \otimes \ket{\theta_1}$$
+$$\ket{j} = \ket{\theta_n} \otimes ... \otimes \ket{\theta_1}$$
 
 (Remember that the previous step assumed that the first register stores the integers in little-endian notation, so you have to use the same notation on this step.)
 
@@ -200,14 +200,53 @@ $$\ket{\theta_n} \otimes ... \otimes \ket{\theta_1}$$
 
 On the last step, you measure the first register, convert the measurement results to an integer, and divide it by $2^n$ to get the eigenphase $\theta$.
 
-- exercise: task 1.4 to implement QPE
-
-@[section]({
-    "id": "phase_estimation__qpe_probabilistic",
-    "title": "QPE Algorithm: Probabilistic Outcomes"
+@[exercise]({
+    "id": "phase_estimation__implement_qpe",
+    "title": "Implement QPE Algorithm",
+    "path": "./implement_qpe/"
 })
 
-- demo of end-to-end probabilistic behavior in case of lower precision (use R1 gate)
+
+@[section]({
+    "id": "phase_estimation__practicality",
+    "title": "QPE Algorithm: Practical Considerations"
+})
+
+Now that you've learned to implement the QPE algorithm, let's discuss several practical aspects of its applications.
+
+### Applying QPE to a superposition of eigenvectors
+
+First of all, the algorithm inputs include an eigenvector of the unitary for which you want to estimate the eigenphase. In some applications, the eigenvector is either unknown or hard to prepare accurately. Is there a workaround for these scenarios?
+
+To answer this, let's see what happens if you run the phase estimation algorithm for a state $\ket{\phi}$ that is not an eigenstate of the unitary $U$.
+
+For any unitary $U$, you can find a basis that consists of its eigenvectors. This means that any state $\ket{\phi}$ can be represented as a superposition of eigenvectors $\ket{\psi_k}$: 
+$$\ket{\phi} = \sum_k a_k\ket{\psi_k}$$
+
+You can notice that all the steps of the QPE algorithm until the final measurement are linear transformations. This means that you can apply them to each term in the superposition independently.
+
+The state of the system right before the final measurement will look as follows:
+
+$$\sum_k a_k \ket{j_k} \ket{\psi_k}$$
+
+Here $j_k$ is the integer representation of the $n$ binary digits of the eigenphase that corresponds to the eigenvector $\ket{\psi_k}$. 
+
+Now, when you measure the first register, this measurement will cause the collapse of the superposition: you'll get one of the values $j_k$ that describes one of the eigenphases, and the second register will collapse to the matching eigenvector.
+
+This means that if you're looking for *any* eigenphase of the unitary, you can just run the QPE algorithm with any state in place of the eigenvector. And if you know the eigenvector you want to use but it's tricky to prepare precisely, you can prepare it approximately and run the QPE algorithm on this state to get the eigenphase associated with it with high probability.
+
+
+### Eigenphases that are not $n$-bit binary fractions
+
+The algorithm derivation in the previous lesson assumed that the eigenphase $\theta$ can be written down with exactly $n$ binary bits of precision. However, this is not always the case. What happens if the eigenphase of the given eigenvector can't be written down using exactly $n$ binary bits?
+
+It turns out that the QPE algorithm running with $n$ bits of precision is deterministic only for eigenphases that can be represented precisely as $n$-bit binary fractions. Running it for any eigenphases that don't have such a representation yields probabilistic results. The outcomes that are the closest $n$-bit fractions to the true eigenphase are produced with the highest probability, but it's also possible to get outcomes that are pretty far away from the true eigenphase.
+
+The following demo allows you to play with the QPE algorithm for different eigenphases and to observe its behavior in different scenarios.
+For example, you can see that running phase estimation for the gate `R1Frac(1, 3, _)` which has eigenphase $\frac1{16} = 0.0625$
+with $n = 3$ bits of precision yields non-deterministic results, with the two most frequent outcomes being $0$ and $\frac18 = 0.125$.
+
+@[example]({"id": "phase_estimation__e2edemo", "codePath": "./examples/QuantumPhaseEstimationDemo.qs"})
 
 
 @[section]({
