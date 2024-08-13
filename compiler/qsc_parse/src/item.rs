@@ -51,19 +51,19 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         Box::new(ItemKind::ImportOrExport(decl))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
-        s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
+        s.push_error(Error::new(ErrorKind::FloatingVisibility(err_item.span)));
         return Ok(err_item);
     } else if !attrs.is_empty() {
         let err_item = default(s.span(lo));
-        s.push_error(Error(ErrorKind::FloatingAttr(err_item.span)));
+        s.push_error(Error::new(ErrorKind::FloatingAttr(err_item.span)));
         return Ok(err_item);
     } else if doc.is_some() {
         let err_item = default(s.span(lo));
-        s.push_error(Error(ErrorKind::FloatingDocComment(err_item.span)));
+        s.push_error(Error::new(ErrorKind::FloatingDocComment(err_item.span)));
         return Ok(err_item);
     } else {
         let p = s.peek();
-        return Err(Error(ErrorKind::Rule("item", p.kind, p.span)));
+        return Err(Error::new(ErrorKind::Rule("item", p.kind, p.span)));
     };
 
     Ok(Box::new(Item {
@@ -133,7 +133,7 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         if let StmtKind::Item(item) = &mut *stmt.kind {
             item.doc = doc.into();
         } else if !doc.is_empty() {
-            return Err(Error(ErrorKind::Rule("item", kind, span)));
+            return Err(Error::new(ErrorKind::Rule("item", kind, span)));
         }
         Ok(TopLevelNode::Stmt(stmt))
     }
@@ -153,7 +153,10 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
     let items = parse_namespace_block_contents(s)?;
     recovering_token(s, TokenKind::Eof);
     if items.is_empty() || s.peek().kind != TokenKind::Eof {
-        return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
+        return Err(Error::new(ErrorKind::ExpectedItem(
+            s.peek().kind,
+            s.span(lo),
+        )));
     }
     let span = s.span(lo);
     let namespace_name = source_name_to_namespace_name(source_name, span)?;
@@ -177,7 +180,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
         match component {
             std::path::Component::Normal(name) => {
                 // strip the extension off, if there is one
-                let mut name = name.to_str().ok_or(Error(ErrorKind::InvalidFileName(
+                let mut name = name.to_str().ok_or(Error::new(ErrorKind::InvalidFileName(
                     span,
                     name.to_string_lossy().to_string(),
                 )))?;
@@ -192,7 +195,12 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
 
                 namespace.push(ident);
             }
-            _ => return Err(Error(ErrorKind::InvalidFileName(span, raw.to_string()))),
+            _ => {
+                return Err(Error::new(ErrorKind::InvalidFileName(
+                    span,
+                    raw.to_string(),
+                )))
+            }
         }
     }
 
@@ -216,9 +224,9 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
     // we just directly use the ident parser here instead of trying to recreate
     // validation rules
     let ident = ident(&mut s)
-        .map_err(|_| Error(ErrorKind::InvalidFileName(error_span, name.to_string())))?;
+        .map_err(|_| Error::new(ErrorKind::InvalidFileName(error_span, name.to_string())))?;
     if s.peek().kind != TokenKind::Eof {
-        return Err(Error(ErrorKind::InvalidFileName(
+        return Err(Error::new(ErrorKind::InvalidFileName(
             error_span,
             name.to_string(),
         )));
@@ -311,7 +319,7 @@ fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     // Peek to see if the next token is a dot -- this means it is likely a dot ident alias, and
     // we want to provide a more helpful error message
     if s.peek().kind == TokenKind::Dot {
-        return Err(Error(ErrorKind::DotIdentAlias(s.peek().span)));
+        return Err(Error::new(ErrorKind::DotIdentAlias(s.peek().span)));
     }
 
     token(s, TokenKind::Semi)?;
@@ -410,7 +418,11 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
 
 fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     let TyKind::Path(path) = *ty.kind else {
-        return Err(Error(ErrorKind::Convert("identifier", "type", ty.span)));
+        return Err(Error::new(ErrorKind::Convert(
+            "identifier",
+            "type",
+            ty.span,
+        )));
     };
     if let Path {
         segments: None,
@@ -420,7 +432,11 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     {
         Ok(name)
     } else {
-        Err(Error(ErrorKind::Convert("identifier", "type", ty.span)))
+        Err(Error::new(ErrorKind::Convert(
+            "identifier",
+            "type",
+            ty.span,
+        )))
     }
 }
 
@@ -433,7 +449,7 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
         CallableKind::Operation
     } else {
         let token = s.peek();
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "callable declaration",
             token.kind,
             token.span,
@@ -510,7 +526,7 @@ fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
             Spec::Ctl
         }
     } else {
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "specialization",
             s.peek().kind,
             s.peek().span,
@@ -544,7 +560,7 @@ fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
     } else if token(s, TokenKind::Keyword(Keyword::Slf)).is_ok() {
         Ok(SpecGen::Slf)
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "specialization generator",
             s.peek().kind,
             s.peek().span,
@@ -557,7 +573,7 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     if matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
         Ok(())
     } else {
-        Err(Error(ErrorKind::MissingParens(inputs.span)))
+        Err(Error::new(ErrorKind::MissingParens(inputs.span)))
     }
 }
 
@@ -578,7 +594,7 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
         TokenKind::Keyword(Keyword::Export) => true,
         TokenKind::Keyword(Keyword::Import) => false,
         _ => {
-            return Err(Error(ErrorKind::Rule(
+            return Err(Error::new(ErrorKind::Rule(
                 "import or export",
                 s.peek().kind,
                 s.peek().span,
