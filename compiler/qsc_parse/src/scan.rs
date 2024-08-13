@@ -95,7 +95,7 @@ impl<'a> Scanner<'a> {
             barriers: Vec::new(),
             errors: errors
                 .into_iter()
-                .map(|e| Error(ErrorKind::Lex(e)))
+                .map(|e| Error::new(ErrorKind::Lex(e)))
                 .collect(),
             recovered_eof: false,
             peek: peek.unwrap_or_else(|| eof(input.len())),
@@ -123,7 +123,7 @@ impl<'a> Scanner<'a> {
             self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
             self.errors
-                .extend(errors.into_iter().map(|e| Error(ErrorKind::Lex(e))));
+                .extend(errors.into_iter().map(|e| Error::new(ErrorKind::Lex(e))));
             self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
         }
     }
