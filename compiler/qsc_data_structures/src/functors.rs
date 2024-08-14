@@ -8,7 +8,7 @@ use std::{
 };
 
 /// A functor application.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
     /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
     /// between the two, so a bool is sufficient to track.

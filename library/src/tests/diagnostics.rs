@@ -77,6 +77,25 @@ fn check_start_stop_counting_operation_called_0_times() {
 }
 
 #[test]
+fn check_lambda_counted_separately_from_operation() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingOperation;
+            import Microsoft.Quantum.Diagnostics.StopCountingOperation;
+
+            operation op1() : Unit {}
+            StartCountingOperation(op1);
+            let lambda = () => op1();
+            StartCountingOperation(lambda);
+            op1();
+            lambda();
+            (StopCountingOperation(op1), StopCountingOperation(lambda))
+        }",
+        &Value::Tuple([Value::Int(2), Value::Int(1)].into()),
+    );
+}
+
+#[test]
 fn check_stop_counting_operation_without_start() {
     test_expression(
         "{
@@ -86,6 +105,24 @@ fn check_stop_counting_operation_without_start() {
             StopCountingOperation(op1)
         }",
         &Value::Int(-1),
+    );
+}
+
+#[test]
+fn check_multiple_controls_counted_together() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingOperation;
+            import Microsoft.Quantum.Diagnostics.StopCountingOperation;
+
+            operation op1() : Unit is Adj + Ctl {}
+            StartCountingOperation(Controlled op1);
+            Controlled op1([], ());
+            Controlled Controlled op1([], ([], ()));
+            Controlled Controlled Controlled op1([], ([], ([], ())));
+            (StopCountingOperation(Controlled op1))
+        }",
+        &Value::Int(3),
     );
 }
 
@@ -100,12 +137,15 @@ fn check_counting_operation_differentiates_between_body_adj_ctl() {
             StartCountingOperation(op1);
             StartCountingOperation(Adjoint op1);
             StartCountingOperation(Controlled op1);
+            StartCountingOperation(Adjoint Controlled op1);
             op1();
             Adjoint op1(); Adjoint op1();
             Controlled op1([], ()); Controlled op1([], ()); Controlled op1([], ());
-            (StopCountingOperation(op1), StopCountingOperation(Adjoint op1), StopCountingOperation(Controlled op1))
+            Adjoint Controlled op1([], ()); Adjoint Controlled op1([], ());
+            Controlled Adjoint op1([], ()); Controlled Adjoint op1([], ());
+            (StopCountingOperation(op1), StopCountingOperation(Adjoint op1), StopCountingOperation(Controlled op1), StopCountingOperation(Adjoint Controlled op1))
         }",
-        &Value::Tuple([Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+        &Value::Tuple([Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into()),
     );
 }
 

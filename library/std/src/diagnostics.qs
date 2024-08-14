@@ -150,29 +150,49 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     /// # Summary
-    /// Starts counting the number of times the given operation is called. The counter is reset to zero.
+    /// Starts counting the number of times the given operation is called. Fails if the operation is already being counted.
     ///
     /// # Description
     /// This operation allows you to count the number of times a given operation is called. As part of
     /// starting the counting, the counter is reset to zero, which may override existing counts for the same operation.
     /// Counting is based on the specific specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
-    /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately.
+    /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately, as are `Controlled X`
+    /// and `Controlled Adjoint X`.
     ///
     /// # Input
     /// ## callable
     /// The operation to be counted.
+    ///
+    /// # Remarks
+    /// Counting operation calls requires specific care in what operation is passed as input. For example, `StartCountingOperation(H)` will
+    /// count only the number of times `H` is called, while `StartCountingOperation(Adjoint H)` will count only the number of times `Adjoint H` is called, even
+    /// though `H` is self-adjoint. This is due to how the execution treats the invocation of these operations as distinct by their specialization.
+    /// In the same way, `StartCountingOperation(Controlled X)` will count only the number of times `Controlled X` is called, while
+    /// `StartCountingOperation(CNOT)` will count only the number of times `CNOT` is called.
+    ///
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the operation and it is counted as a separate operation. For example,
+    /// ```qsharp
+    /// let myOp = q => H(q);
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// Will count specifically calls to `myOp` and not `H`. By contrast, the following code will count calls to `H` itself:
+    /// ```qsharp
+    /// let myOp = H;
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `H` directly.
     @Config(Unrestricted)
     operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
         body intrinsic;
     }
 
     /// # Summary
-    /// Stops counting the number of times the given operation is called and returns the count. Returns -1
+    /// Stops counting the number of times the given operation is called and returns the count. Fails
     /// if the operation was not being counted.
     ///
     /// # Description
     /// This operation allows you to stop counting the number of times a given operation is called and returns the count.
-    /// If the operation was not being counted, it returns -1.
+    /// If the operation was not being counted, it triggers a runtime failure.
     ///
     /// # Input
     /// ## callable
@@ -185,7 +205,7 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     /// # Summary
-    /// Starts counting the number of times the given function is called. The counter is reset to zero.
+    /// Starts counting the number of times the given function is called. Fails if the function is already being counted.
     ///
     /// # Description
     /// This operation allows you to count the number of times a given function is called. As part of
@@ -194,18 +214,31 @@ namespace Microsoft.Quantum.Diagnostics {
     /// # Input
     /// ## callable
     /// The function to be counted.
+    ///
+    /// # Remarks
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the function and it is counted as a separate function. For example,
+    /// ```qsharp
+    /// let myFunc = i -> AbsI(i);
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// Will count specifically calls to `myFunc` and not `AbsI`. By contrast, the following code will count calls to `AbsI` itself:
+    /// ```qsharp
+    /// let myFunc = AbsI;
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `AbsI` directly.
     @Config(Unrestricted)
     operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
         body intrinsic;
     }
 
     /// # Summary
-    /// Stops counting the number of times the given function is called and returns the count. Returns -1
+    /// Stops counting the number of times the given function is called and returns the count. Fails
     /// if the function was not being counted.
     ///
     /// # Description
     /// This operation allows you to stop counting the number of times a given function is called and returns the count.
-    /// If the function was not being counted, it returns -1.
+    /// If the function was not being counted, it triggers a runtime failure.
     ///
     /// # Input
     /// ## callable

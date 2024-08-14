@@ -61,6 +61,18 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.ArrayTooLarge"))]
     ArrayTooLarge(#[label("this array has too many items")] PackageSpan),
 
+    #[error("callable already counted")]
+    #[diagnostic(help(
+        "counting for a given callable must be stopped before it can be started again"
+    ))]
+    #[diagnostic(code("Qsc.Eval.CallableAlreadyCounted"))]
+    CallableAlreadyCounted(#[label] PackageSpan),
+
+    #[error("callable not counted")]
+    #[diagnostic(help("counting for a given callable must be started before it can be stopped"))]
+    #[diagnostic(code("Qsc.Eval.CallableNotCounted"))]
+    CallableNotCounted(#[label] PackageSpan),
+
     #[error("invalid array length: {0}")]
     #[diagnostic(code("Qsc.Eval.InvalidArrayLength"))]
     InvalidArrayLength(i64, #[label("cannot be used as a length")] PackageSpan),
@@ -150,6 +162,8 @@ impl Error {
     pub fn span(&self) -> &PackageSpan {
         match self {
             Error::ArrayTooLarge(span)
+            | Error::CallableAlreadyCounted(span)
+            | Error::CallableNotCounted(span)
             | Error::DivZero(span)
             | Error::EmptyRange(span)
             | Error::IndexOutOfRange(_, span)
@@ -435,6 +449,8 @@ struct Scope {
     frame_id: usize,
 }
 
+type CallableCountKey = (StoreItemId, bool, bool);
+
 pub struct State {
     exec_graph_stack: Vec<ExecGraph>,
     idx: u32,
@@ -446,7 +462,7 @@ pub struct State {
     call_stack: CallStack,
     current_span: Span,
     rng: RefCell<StdRng>,
-    call_counts: FxHashMap<(StoreItemId, FunctorApp), i64>,
+    call_counts: FxHashMap<CallableCountKey, i64>,
 }
 
 impl State {
@@ -967,7 +983,7 @@ impl State {
             CallableImpl::Intrinsic if is_counting_call(&callee.name.name) => {
                 self.push_frame(Vec::new().into(), callee_id, functor);
 
-                let val = self.counting_call(&callee.name.name, arg);
+                let val = self.counting_call(&callee.name.name, arg, arg_span)?;
 
                 self.set_val_register(val);
                 self.leave_frame();
@@ -1451,27 +1467,37 @@ impl State {
         }
     }
 
-    fn counting_call(&mut self, name: &str, arg: Value) -> Value {
+    fn counting_call(&mut self, name: &str, arg: Value, span: PackageSpan) -> Result<Value, Error> {
         let callable = if let Value::Closure(closure) = arg {
-            (closure.id, closure.functor)
+            make_counting_key(closure.id, closure.functor)
         } else {
-            arg.unwrap_global()
+            let callable = arg.unwrap_global();
+            make_counting_key(callable.0, callable.1)
         };
         match name {
             "StartCountingOperation" | "StartCountingFunction" => {
-                self.call_counts.insert(callable, 0);
-                Value::unit()
+                if self.call_counts.insert(callable, 0).is_some() {
+                    Err(Error::CallableAlreadyCounted(span))
+                } else {
+                    Ok(Value::unit())
+                }
             }
             "StopCountingOperation" | "StopCountingFunction" => {
-                let count = self.call_counts.remove(&callable).unwrap_or(-1);
-                Value::Int(count)
+                if let Some(count) = self.call_counts.remove(&callable) {
+                    Ok(Value::Int(count))
+                } else {
+                    Err(Error::CallableNotCounted(span))
+                }
             }
             _ => panic!("unknown counting call"),
         }
     }
 
     fn increment_call_count(&mut self, callee_id: StoreItemId, functor: FunctorApp) {
-        if let Some(count) = self.call_counts.get_mut(&(callee_id, functor)) {
+        if let Some(count) = self
+            .call_counts
+            .get_mut(&make_counting_key(callee_id, functor))
+        {
             *count += 1;
         }
     }
@@ -1973,4 +1999,8 @@ fn is_counting_call(name: &str) -> bool {
             | "StartCountingFunction"
             | "StopCountingFunction"
     )
+}
+
+fn make_counting_key(id: StoreItemId, functor: FunctorApp) -> CallableCountKey {
+    (id, functor.adjoint, functor.controlled > 0)
 }
