@@ -18,6 +18,8 @@ This kata is designed to get you familiar with quantum state preparation and to 
 - Dirac notation for single-qubit and multi-qubit quantum systems
 - Basic single-qubit and multi-qubit gates
 
+If you need a refresher on these topics, you can check out the previous katas.
+
 @[section]({
     "id": "preparing_states__even_superpositions",
     "title": "Even Superpositions"

@@ -5,5 +5,5 @@
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  Hadamard gate H will convert $\ket{0}$ state to $\ket{+}$ state.
+  Hadamard gate $H$ will convert $\ket{0}$ state to $\ket{+}$ state.
 </details>

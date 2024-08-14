@@ -1,4 +1,4 @@
-As we've seen in the 'Superposition of all basis vectors on two qubits' task, to prepare a superposition of all basis vectors on 2 qubits we need to apply a Hadamard gate to each of the qubits.
+As you've seen in the 'Superposition of all basis vectors on two qubits' task, to prepare a superposition of all basis vectors on 2 qubits you need to apply a Hadamard gate to each of the qubits.
 
 It seems that the solution for the general case might be to apply a Hadamard gate to every qubit as well. Let's check the first few examples:
 
@@ -13,7 +13,7 @@ $$\begin{align*}
                &= \frac{1}{\sqrt{2^N}} \big( \ket{\underset{N}{\underbrace{0 \cdots 0}}} + \cdots + \ket{\underset{N}{\underbrace{1 \cdots 1}}} \big) 
 \end{align*}$$
 
-Thus, the solution requires us to iterate over the qubit array and to apply the Hadamard gate to each element.
+Thus, the solution requires you to iterate over the qubit array and to apply the Hadamard gate to each element.
 
 @[solution]({
     "id": "preparing_states__all_basis_vectors_solution",
