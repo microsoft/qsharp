@@ -27,7 +27,6 @@ operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, resul
     }
     controlled (controls, ...) {
         IdenticalFormatFactFxP([fpx, result]);
-        AssertAllZeroFxP(result);
         let degree = Length(coefficients) - 1;
         let p = fpx::IntegerBits;
         let n = Length(fpx::Register);
@@ -76,7 +75,6 @@ operation EvaluateEvenPolynomialFxP(coefficients : Double[], fpx : FixedPoint, r
     }
     controlled (controls, ...) {
         IdenticalFormatFactFxP([fpx, result]);
-        AssertAllZeroFxP(result);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);
 
@@ -114,7 +112,6 @@ operation EvaluateOddPolynomialFxP(coefficients : Double[], fpx : FixedPoint, re
     }
     controlled (controls, ...) {
         IdenticalFormatFactFxP([fpx, result]);
-        AssertAllZeroFxP(result);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);
         if halfDegree >= 0 {
