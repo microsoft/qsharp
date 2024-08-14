@@ -97,3 +97,8 @@ operation GreaterThan(xs : Qubit[], ys : Qubit[], result : Qubit) : Unit is Adj 
         }
     }
 }
+
+export
+    CompareGTSI,
+    CompareGTI,
+    GreaterThan;
