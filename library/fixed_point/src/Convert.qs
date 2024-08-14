@@ -48,7 +48,7 @@ function FixedPointAsBoolArray(integerBits : Int, fractionalBits : Int, value : 
     return result;
 }
 
-    /// # Summary
+/// # Summary
 /// Returns the double value of a fixed-point approximation from of a `Bool` array.
 ///
 /// # Input
@@ -70,7 +70,7 @@ function BoolArrayAsFixedPoint(integerBits : Int, bits : Bool[]) : Double {
     return IntAsDouble(intPart) / (2.0 ^ IntAsDouble(numBits - integerBits));
 }
 
-    /// # Summary
+/// # Summary
 /// Discretizes a double value as a fixed-point approximation and returns its value as a double.
 ///
 /// # Input

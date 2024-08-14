@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-    /// # Summary
+/// # Summary
     /// This applies the in-place majority operation to 3 qubits.
     ///
     /// # Description
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         CCNOT(y, x, z);
     }
 
-    /// # Summary
+/// # Summary
     /// Reflects a quantum register about a given classical integer.
     ///
     /// # Description
@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     //     LookAheadDKRSAddLE
     //
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by an integer number c
     ///
     /// # Description
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         IncByIUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by a BigInt number c
     ///
     /// # Description
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         IncByLUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by a little-endian register xs
     ///
     /// # Description
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         RippleCarryTTKIncByLE(xs, ys);
     }
 
-    /// # Summary
+/// # Summary
     /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys
     ///
@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         RippleCarryCGAddLE(xs, ys, zs);
     }
 
-    /// # Summary
+/// # Summary
     /// Reversible, in-place ripple-carry addition of two integers.
     ///
     /// # Description
@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by a little-endian register xs
     /// using the ripple-carry algorithm.
     ///
@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys using the ripple-carry algorithm.
     ///
@@ -273,7 +273,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Sets a zero-initialized little-endian register zs to the sum of
     /// little-endian registers xs and ys using the carry-lookahead algorithm.
     ///
@@ -325,7 +325,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by a little-endian register xs
     /// using Quantum Fourier Transform.
     ///
@@ -347,7 +347,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by a BigInt number c
     /// using provided adder.
     ///
@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Increments a little-endian register ys by an Int number c
     /// using provided adder.
     ///
@@ -413,7 +413,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Generic operation to turn two out-place adders into one in-place adder
     ///
     /// # Description
@@ -533,7 +533,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     //   if x > y { action(target) }  | ApplyIfGreaterLE
     //
 
-    /// # Summary
+/// # Summary
     /// Computes `if (c < x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is less than the little-endian qubit register `x`
     operation ApplyIfLessL<'T>(
@@ -546,7 +546,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyActionIfGreaterThanOrEqualConstant(false, action, c + 1L, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if (c <= x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is less or equal to the little-endian qubit register `x`
     operation ApplyIfLessOrEqualL<'T>(
@@ -559,7 +559,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyActionIfGreaterThanOrEqualConstant(false, action, c, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if (c == x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is equal to the little-endian qubit register `x`
     operation ApplyIfEqualL<'T>(
@@ -581,7 +581,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if (c >= x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is greater or equal to the little-endian qubit register `x`
     operation ApplyIfGreaterOrEqualL<'T>(
@@ -594,7 +594,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyActionIfGreaterThanOrEqualConstant(true, action, c + 1L, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if (c > x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is greater than the little-endian qubit register `x`
     operation ApplyIfGreaterL<'T>(
@@ -607,7 +607,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyActionIfGreaterThanOrEqualConstant(true, action, c, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if x < y { action(target) }`, that is, applies `action` to `target`
     /// if register `x` is less than the register `y`.
     /// Both qubit registers should be in a little-endian format.
@@ -621,7 +621,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyIfGreaterLE(action, y, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if x <= y { action(target) }`, that is, applies `action` to `target`
     /// if register `x` is less or equal to the register `y`.
     /// Both qubit registers should be in a little-endian format.
@@ -641,7 +641,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if x == y { action(target) }`, that is, applies `action` to `target`
     /// if register `x` is equal to the register `y`.
     /// Both qubit registers should be in a little-endian format.
@@ -663,7 +663,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if x >= y { action(target) }`, that is, applies `action` to `target`
     /// if register `x` is greater or equal to the register `y`.
     /// Both qubit registers should be in a little-endian format.
@@ -677,7 +677,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         ApplyIfLessOrEqualLE(action, y, x, target);
     }
 
-    /// # Summary
+/// # Summary
     /// Computes `if x > y { action(target) }`, that is, applies `action` to `target`
     /// if register `x` is greater than the register `y`.
     /// Both qubit registers should be in a little-endian format.

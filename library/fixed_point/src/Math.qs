@@ -19,7 +19,7 @@ function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
     return -(2.0 ^ IntAsDouble(integerBits - 1));
 }
 
-    /// # Summary
+/// # Summary
 /// Returns the largest representable number for specific fixed point dimensions.
 ///
 /// # Input

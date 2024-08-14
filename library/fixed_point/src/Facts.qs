@@ -17,7 +17,7 @@ operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
     Fact(CheckAllZero(fp::Register), "Quantum fixed-point number was not zero.");
 }
 
-    /// # Summary
+/// # Summary
 /// Assert that all fixed-point numbers in the provided array
 /// have identical point positions and qubit numbers.
 ///

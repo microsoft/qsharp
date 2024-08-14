@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Canon {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-    /// # Summary
+/// # Summary
     /// Applies an operation to each element in a register.
     ///
     /// # Input
@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies an operation to each element in a register.
     /// The modifier `A` indicates that the single-element operation is adjointable.
     ///
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies an operation to each element in a register.
     /// The modifier `C` indicates that the single-element operation is controllable.
     ///
@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies an operation to each element in a register.
     /// The modifier `CA` indicates that the single-element operation is controllable and adjointable.
     ///
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies the controlled-X (CX) gate to a pair of qubits.
     ///
     /// # Input
@@ -160,7 +160,7 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    /// # Summary
+/// # Summary
     /// Applies the controlled-Y (CY) gate to a pair of qubits.
     ///
     /// # Input
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    /// # Summary
+/// # Summary
     /// Applies the controlled-Z (CZ) gate to a pair of qubits.
     ///
     /// # Input
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.Canon {
         return snd;
     }
 
-    /// # Summary
+/// # Summary
     /// Computes the parity of a register of qubits in-place.
     ///
     /// # Input
@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Given a single-qubit Pauli operator, applies the corresponding operation
     /// to a single qubit.
     ///
@@ -291,7 +291,7 @@ namespace Microsoft.Quantum.Canon {
         if pauli == PauliX { X(target); } elif pauli == PauliY { Y(target); } elif pauli == PauliZ { Z(target); }
     }
 
-    /// # Summary
+/// # Summary
     /// Given a multi-qubit Pauli operator, applies the corresponding operation
     /// to a quantum register.
     ///
@@ -319,7 +319,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies a Pauli operator on each qubit in an array if the corresponding
     /// bit of a Boolean array matches a given input.
     ///
@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies a Pauli operator on each qubit in an array if the corresponding
     /// bit of a Little-endian integer matches a given input.
     ///
@@ -400,7 +400,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies a unitary operation on the target if the control
     /// register state corresponds to a specified nonnegative integer.
     ///
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies `oracle` on `target` when `controlRegister`
     /// is in the state specified by `bits`.
     ///
@@ -488,7 +488,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies the rotations of Quantum Fourier Transform (QFT) to a little-endian quantum register.
     ///
     /// # Description
@@ -519,7 +519,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Uses SWAP gates to reverse the order of the qubits in a register.
     ///
     /// # Input
@@ -532,7 +532,7 @@ namespace Microsoft.Quantum.Canon {
         }
     }
 
-    /// # Summary
+/// # Summary
     /// Applies a bitwise-XOR operation between a classical integer and an
     /// integer represented by a register of qubits.
     ///
@@ -558,7 +558,7 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    /// # Summary
+/// # Summary
     /// Applies a bitwise-XOR operation between a classical integer and an
     /// integer represented by a register of qubits.
     ///

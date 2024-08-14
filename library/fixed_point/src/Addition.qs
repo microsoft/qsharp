@@ -28,7 +28,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Adds two fixed-point numbers stored in quantum registers.
 ///
 /// # Description
@@ -52,7 +52,7 @@ operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
     AddI(fp1::Register, fp2::Register);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes the additive inverse of `fp`.
 ///
 /// # Input
@@ -70,7 +70,7 @@ operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
     Invert2sSI(reg);
 }
 
-    /// # Summary
+/// # Summary
 /// Computes `minuend - subtrahend` and stores the difference in `minuend`.
 ///
 /// # Input

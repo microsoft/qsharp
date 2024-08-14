@@ -9,6 +9,14 @@
         "ref": "main",
         "path": "library/unstable"
       }
+    },
+    "Signed": {
+      "github": {
+        "owner": "microsoft",
+        "repo": "qsharp",
+        "ref": "a64c7884",
+        "path": "library/signed"
+      }
     }
   },
   "files": [
@@ -22,7 +30,6 @@
     "src/Multiplication.qs",
     "src/Polynomial.qs",
     "src/Reciprocal.qs",
-    "src/Signed.qs",
     "src/Tests.qs",
     "src/Types.qs"
   ]

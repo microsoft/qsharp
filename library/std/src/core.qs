@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-    /// # Summary
+/// # Summary
     /// Returns the defined start value of the given range.
     ///
     /// # Input
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.Core {
         r::Start
     }
 
-    /// # Summary
+/// # Summary
     /// Returns the defined end value of the given range,
     /// which is not necessarily the last element in the sequence.
     ///
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.Core {
     }
 
 
-    /// # Summary
+/// # Summary
     /// Returns the integer that specifies how the next value of a range is calculated.
     ///
     /// # Input
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.Core {
         r::Step
     }
 
-    /// # Summary
+/// # Summary
     /// Returns a new range which is the reverse of the input range.
     ///
     /// # Input
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.Core {
         start..-r::Step..r::Start
     }
 
-    /// # Summary
+/// # Summary
     /// Returns true if and only if the input range is empty.
     ///
     /// # Input

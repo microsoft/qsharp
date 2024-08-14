@@ -5,7 +5,7 @@ namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-    /// # Summary
+/// # Summary
     /// Converts a given integer `number` to an equivalent
     /// double-precision floating-point number.
     ///
@@ -25,13 +25,13 @@ namespace Microsoft.Quantum.Convert {
         body intrinsic;
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a given integer `number` to an equivalent big integer.
     function IntAsBigInt(number : Int) : BigInt {
         body intrinsic;
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a `Result` type to a `Bool` type, where `One` is mapped to
     /// `true` and `Zero` is mapped to `false`.
     ///
@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.Convert {
         input == One
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a `Bool` type to a `Result` type, where `true` is mapped to
     /// `One` and `false` is mapped to `Zero`.
     ///
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Convert {
         if input { One } else { Zero }
     }
 
-    /// # Summary
+/// # Summary
     /// Produces a non-negative integer from a string of bits in little-endian format.
     /// `bits[0]` represents the least significant bit.
     ///
@@ -80,7 +80,7 @@ namespace Microsoft.Quantum.Convert {
         number
     }
 
-    /// # Summary
+/// # Summary
     /// Produces a binary representation of a non-negative integer, using the
     /// little-endian representation for the returned array.
     ///
@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.Convert {
         result
     }
 
-    /// # Summary
+/// # Summary
     /// Converts an array of Boolean values into a non-negative BigInt, interpreting the
     /// array as a binary representation in little-endian format.
     ///
@@ -136,7 +136,7 @@ namespace Microsoft.Quantum.Convert {
         result
     }
 
-    /// # Summary
+/// # Summary
     /// Produces a binary representation of a non-negative BigInt, using the
     /// little-endian representation for the returned array.
     ///
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.Convert {
         result
     }
 
-    /// # Summary
+/// # Summary
     /// Produces a non-negative integer from a string of Results in little-endian format.
     ///
     /// # Input
@@ -195,7 +195,7 @@ namespace Microsoft.Quantum.Convert {
         number
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a `Result[]` type to a `Bool[]` type, where `One`
     /// is mapped to `true` and `Zero` is mapped to `false`.
     ///
@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.Convert {
         output
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a `Bool[]` type to a `Result[]` type, where `true`
     /// is mapped to `One` and `false` is mapped to `Zero`.
     ///
@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.Convert {
         output
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a complex number of type `Complex` to a complex
     /// number of type `ComplexPolar`.
     ///
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.Convert {
         return ComplexPolar(AbsComplex(input), ArgComplex(input));
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a complex number of type `ComplexPolar` to a complex
     /// number of type `Complex`.
     ///
@@ -264,7 +264,7 @@ namespace Microsoft.Quantum.Convert {
         );
     }
 
-    /// # Summary
+/// # Summary
     /// Converts a given double-precision floating-point number to a string representation with desired precision, rounding if required.
     ///
     /// # Input

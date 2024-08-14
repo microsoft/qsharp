@@ -6,7 +6,7 @@ import Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
 import Types.FixedPoint;
 import Init.PrepareFxP;
 import Multiplication.MultiplyFxP, Multiplication.SquareFxP;
-import  Addition.AddConstantFxP;
+import Addition.AddConstantFxP;
 
 /// # Summary
 /// Evaluates a polynomial in a fixed-point representation.
@@ -56,7 +56,7 @@ operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, resul
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Evaluates an even polynomial in a fixed-point representation.
 ///
 /// # Input
@@ -93,7 +93,7 @@ operation EvaluateEvenPolynomialFxP(coefficients : Double[], fpx : FixedPoint, r
     }
 }
 
-    /// # Summary
+/// # Summary
 /// Evaluates an odd polynomial in a fixed-point representation.
 ///
 /// # Input
