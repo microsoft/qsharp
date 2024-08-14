@@ -70,10 +70,10 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     /// # Summary
-    /// Checks whether a qubit is in the |0⟩ state (the ground state), returning true if it is.
+    /// Checks whether a qubit is in the |0⟩ state, returning true if it is.
     ///
     /// # Description
-    /// This operation checks whether a qubit is in the |0⟩ state (the ground state). It will return true only
+    /// This operation checks whether a qubit is in the |0⟩ state. It will return true only
     /// if the qubit is deterministically in the |0⟩ state, and will return false otherwise. This operation
     /// does not change the state of the qubit.
     ///
@@ -92,10 +92,10 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     /// # Summary
-    /// Checks whether all qubits in the provided array are in the |0⟩ state (the ground state). Returns true if they are.
+    /// Checks whether all qubits in the provided array are in the |0⟩ state. Returns true if they are.
     ///
     /// # Description
-    /// This operation checks whether all qubits in the provided array are in the |0⟩ state (the ground state). It will return true only
+    /// This operation checks whether all qubits in the provided array are in the |0⟩ state. It will return true only
     /// if all qubits are deterministically in the |0⟩ state, and will return false otherwise. This operation
     /// does not change the state of the qubits.
     ///
