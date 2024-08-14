@@ -1,4 +1,11 @@
 {
-    "author": "Microsoft",
-    "license": "MIT"
+  "author": "Microsoft",
+  "license": "MIT",
+  "files": [
+    "src/Comparison.qs",
+    "src/Operations.qs",
+    "src/RippleCarry.qs",
+    "src/Utils.qs",
+    "src/Tests.qs"
+  ]
 }

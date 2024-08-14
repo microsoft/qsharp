@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-    /// # Summary
+/// # Summary
     /// Returns the number of elements in the input array `a`.
     ///
     /// # Input
@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.Core {
         body intrinsic;
     }
 
-    /// # Summary
+/// # Summary
     /// Creates an array of given `length` with all elements equal to given
     /// `value`. `length` must be a non-negative integer.
     ///
