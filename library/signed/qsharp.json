@@ -3,6 +3,7 @@
   "license": "MIT",
   "files": [
     "src/Comparison.qs",
+    "src/Measurement.qs",
     "src/Operations.qs",
     "src/RippleCarry.qs",
     "src/Tests.qs",
