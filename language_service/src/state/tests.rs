@@ -171,13 +171,29 @@ async fn close_last_doc_in_project() {
                             Error(
                                 Parse(
                                     Error(
-                                        ExpectedItem(
+                                        Token(
+                                            Eof,
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 59,
+                                                hi: 60,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            Eof,
+                                            Span {
+                                                lo: 59,
+                                                hi: 140,
                                             },
                                         ),
                                     ),
@@ -296,11 +312,27 @@ async fn compile_error() {
                             Error(
                                 Parse(
                                     Error(
-                                        ExpectedItem(
+                                        Token(
+                                            Eof,
                                             Ident,
                                             Span {
                                                 lo: 0,
-                                                hi: 0,
+                                                hi: 9,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            Eof,
+                                            Span {
+                                                lo: 0,
+                                                hi: 9,
                                             },
                                         ),
                                     ),
@@ -1362,13 +1394,29 @@ async fn close_doc_prioritizes_fs() {
                             Error(
                                 Parse(
                                     Error(
-                                        ExpectedItem(
+                                        Token(
+                                            Eof,
                                             ClosedBinOp(
                                                 Slash,
                                             ),
                                             Span {
                                                 lo: 59,
-                                                hi: 59,
+                                                hi: 60,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            Eof,
+                                            Span {
+                                                lo: 59,
+                                                hi: 140,
                                             },
                                         ),
                                     ),
@@ -2120,11 +2168,27 @@ async fn error_from_dependency_reported() {
                         Error(
                             Parse(
                                 Error(
-                                    ExpectedItem(
+                                    Token(
+                                        Eof,
                                         Ident,
                                         Span {
                                             lo: 0,
-                                            hi: 0,
+                                            hi: 13,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    Frontend(
+                        Error(
+                            Parse(
+                                Error(
+                                    ExpectedItem(
+                                        Eof,
+                                        Span {
+                                            lo: 0,
+                                            hi: 13,
                                         },
                                     ),
                                 ),

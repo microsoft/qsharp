@@ -1927,10 +1927,28 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             ItemKind::Callable(decl) => {
                 self.visit_callable_decl(decl);
             }
+            ItemKind::Export(
+                _,
+                qsc_fir::fir::ItemId {
+                    package: Some(package),
+                    item,
+                },
+            ) => {
+                let package = self.package_store.get(*package);
+                let item = package
+                    .items
+                    .get(*item)
+                    .expect("item should exist in package");
+                self.visit_item(item);
+            }
+            ItemKind::Export(_, qsc_fir::fir::ItemId { package: None, .. }) => {
+                // if the package is none, then we know this item was defined in this package
+                // and therefore doesn't need to be analyzed -- the item itself will be analyzed.
+            }
         };
     }
 
-    fn visit_package(&mut self, _: &'a Package) {
+    fn visit_package(&mut self, _: &'a Package, _: &PackageStore) {
         // Should never be called.
         unimplemented!("should never be called");
     }

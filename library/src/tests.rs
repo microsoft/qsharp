@@ -69,6 +69,7 @@ pub fn test_expression_with_lib_and_profile_and_sim(
         &[(std_id, None)],
     )
     .expect("test should compile");
+
     let result = interpreter
         .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");
@@ -202,5 +203,17 @@ fn check_base_profile_measure_resets_aux_qubits() {
         "",
         Profile::Base,
         &Value::RESULT_ONE,
+    );
+}
+
+// just tests a single case of the stdlib reexports for the modern api,
+// to ensure that reexporting functionality doesn't break
+#[test]
+fn stdlib_reexport_single_case() {
+    test_expression(
+        r#" {
+    import Std.Arrays.Count;
+    }"#,
+        &Value::Tuple(vec![].into()),
     );
 }

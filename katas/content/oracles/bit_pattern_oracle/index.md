@@ -17,7 +17,7 @@ represented by `pattern`.
 <br/>
 <details>
   <summary><b>Before implementing this oracle, answer the question: are you implementing a marking or a phase oracle?</b></summary>
-    This is a marking oracle, because we are flipping the state of the target qubit $\ket{y}$ based on the state of the input $\ket{x}$.
+    This is a marking oracle, because you're flipping the state of the target qubit $\ket{y}$ based on the state of the input $\ket{x}$.
 </details>
 
 <br/>

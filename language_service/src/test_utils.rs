@@ -202,11 +202,6 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
                 }
                 export Fake, FakeWithParam, FakeCtlAdj, Udt, UdtWrapper, UdtFn, UdtFnWithUdtParams, TakesUdt, RefFake, FakeWithTypeParam;
                 export FakeStruct, StructWrapper, StructFn, StructFnWithStructParams, TakesStruct;
-            }
-
-            namespace Microsoft.Quantum.Unstable {
-                operation UnstableFake() : Unit {}
-                export UnstableFake;
             }"#
             .into(),
         )],

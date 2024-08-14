@@ -13,6 +13,7 @@ from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
+import os
 
 _interpreter = None
 
@@ -57,7 +58,8 @@ class Config:
             # For now, we only support local project roots, so use a file schema in the URI.
             # In the future, we may support other schemes, such as github, if/when
             # we have VS Code Web + Jupyter support.
-            self._config["projectRoot"] = "file://" + project_root
+            normalized_root = os.path.normpath(os.path.join(os.getcwd(), project_root))
+            self._config["projectRoot"] = "file://" + normalized_root
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -204,6 +206,9 @@ def run(
     """
     ipython_helper()
 
+    if shots < 1:
+        raise QSharpError("The number of shots must be greater than 0.")
+
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
@@ -213,7 +218,7 @@ def run(
         # Append the output to the last shot's output list
         results[-1]["events"].append(output)
 
-    for _ in range(shots):
+    for shot in range(shots):
         results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
             entry_expr, on_save_events if save_events else print_output
@@ -221,6 +226,10 @@ def run(
         results[-1]["result"] = run_results
         if on_result:
             on_result(results[-1])
+        # For every shot after the first, treat the entry expression as None to trigger
+        # a rerun of the last executed expression without paying the cost for any additional
+        # compilation.
+        entry_expr = None
 
     if save_events:
         return results

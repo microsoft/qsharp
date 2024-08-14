@@ -4,6 +4,7 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
+    noisy_simulator::register_noisy_simulator_submodule,
 };
 use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
@@ -41,7 +42,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
-
+    register_noisy_simulator_submodule(py, m)?;
     Ok(())
 }
 
@@ -193,7 +194,7 @@ impl Interpreter {
     fn run(
         &mut self,
         py: Python,
-        entry_expr: &str,
+        entry_expr: Option<&str>,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };

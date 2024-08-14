@@ -1,9 +1,9 @@
-In this problem we'll need to allocate extra qubits, one per each day of the week, to serve as temporary variables.
+In this problem you'll need to allocate extra qubits, one per each day of the week, to serve as temporary variables.
 Each of these variables will track whether both people are free on that day, that is, whether both input qubit arrays 
-have bit $0$ in the corresponding position. We can compute each of these variables using a $CCNOT$ gate after flipping 
+have bit $0$ in the corresponding position. You can compute each of these variables using a $CCNOT$ gate after flipping 
 the states of both qubits using $X$ gates. 
 
-After this, we can reuse the marking OR oracle to check whether any of the days are in $\ket{1}$ state.
+After this, you can reuse the marking OR oracle to check whether any of the days are in $\ket{1}$ state.
 
 When you allocate qubits for temporary use during a larger computation, you need to make sure they are returned to the $\ket{0}$ 
 state before being released. Unlike your previous experience allocating qubits in demos, though, this time you cannot 

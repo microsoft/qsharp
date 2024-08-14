@@ -25,7 +25,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -253,6 +253,8 @@ impl Display for Res {
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
+    /// The namespace tree defined by this package
+    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     /// The top-level statements in the package.
     pub stmts: Vec<Stmt>,
     /// The entry expression for an executable package.
@@ -335,6 +337,8 @@ pub enum ItemKind {
     Namespace(Idents, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
+    /// An export of an item.
+    Export(Ident, ItemId),
 }
 
 impl Display for ItemKind {
@@ -355,6 +359,7 @@ impl Display for ItemKind {
                 }
             }
             ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
+            ItemKind::Export(name, export) => write!(f, "Export ({name}): {export}"),
         }
     }
 }
@@ -1228,7 +1233,7 @@ impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in self.0.iter() {
+        for ident in &self.0 {
             buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
@@ -1239,10 +1244,36 @@ impl Display for Idents {
         }
     }
 }
+
+/// An iterator which yields string slices of the names of the idents in a [`Idents`].
+/// Note that [`Idents`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct IdentsStrIter<'a>(pub &'a Idents);
+
+impl<'a> IntoIterator for IdentsStrIter<'a> {
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
+    type Item = &'a str;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(|i| i.name.as_ref())
+    }
+}
+
+impl<'a> From<&'a Idents> for IdentsStrIter<'a> {
+    fn from(v: &'a Idents) -> Self {
+        IdentsStrIter(v)
+    }
+}
+
 impl Idents {
     /// constructs an iter over the [Ident]s that this contains.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
+    }
+
+    /// constructs an iterator over the elements of `self` as string slices.
+    /// see [`Self::iter`] for an iterator over the [Ident]s.
+    #[must_use]
+    pub fn str_iter(&self) -> IdentsStrIter {
+        self.into()
     }
 
     /// the conjoined span of all idents in the `Idents`
@@ -1282,7 +1313,7 @@ impl Idents {
             return self.0[0].name.clone();
         }
         let mut buf = String::new();
-        for ident in self.0.iter() {
+        for ident in &self.0 {
             if !buf.is_empty() {
                 buf.push('.');
             }

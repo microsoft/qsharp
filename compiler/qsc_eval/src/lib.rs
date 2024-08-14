@@ -36,9 +36,9 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, FieldAssign, Global,
-    Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
-    StmtId, StoreItemId, StringComponent, UnOp,
+    self, BinOp, CallableImpl, ExecGraph, ExecGraphNode, Expr, ExprId, ExprKind, Field,
+    FieldAssign, Global, Lit, LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId,
+    PatKind, PrimField, Res, StmtId, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use qsc_lowerer::map_fir_package_to_hir;
@@ -199,10 +199,7 @@ impl Display for Spec {
 /// Utility function to identify a subset of a control flow graph corresponding to a given
 /// range.
 #[must_use]
-pub fn exec_graph_section(
-    graph: &Rc<[ExecGraphNode]>,
-    range: ops::Range<usize>,
-) -> Rc<[ExecGraphNode]> {
+pub fn exec_graph_section(graph: &ExecGraph, range: ops::Range<usize>) -> ExecGraph {
     let start: u32 = range
         .start
         .try_into()
@@ -227,7 +224,7 @@ pub fn exec_graph_section(
 pub fn eval(
     package: PackageId,
     seed: Option<u64>,
-    exec_graph: Rc<[ExecGraphNode]>,
+    exec_graph: ExecGraph,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
@@ -439,7 +436,7 @@ struct Scope {
 }
 
 pub struct State {
-    exec_graph_stack: Vec<Rc<[ExecGraphNode]>>,
+    exec_graph_stack: Vec<ExecGraph>,
     idx: u32,
     idx_stack: Vec<u32>,
     val_register: Option<Value>,
@@ -453,11 +450,7 @@ pub struct State {
 
 impl State {
     #[must_use]
-    pub fn new(
-        package: PackageId,
-        exec_graph: Rc<[ExecGraphNode]>,
-        classical_seed: Option<u64>,
-    ) -> Self {
+    pub fn new(package: PackageId, exec_graph: ExecGraph, classical_seed: Option<u64>) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_entropy()),
@@ -476,12 +469,7 @@ impl State {
         }
     }
 
-    fn push_frame(
-        &mut self,
-        exec_graph: Rc<[ExecGraphNode]>,
-        id: StoreItemId,
-        functor: FunctorApp,
-    ) {
+    fn push_frame(&mut self, exec_graph: ExecGraph, id: StoreItemId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
             id,

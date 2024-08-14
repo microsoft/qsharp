@@ -69,7 +69,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             target_profile: Profile::Unrestricted,
-            package_type: PackageType::Exe,
+            package_type: PackageType::Lib,
             language_features: LanguageFeatures::default(),
             lints_config: Vec::default(),
         }
@@ -415,6 +415,12 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
+                        continue;
+                    }
+                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                        // Don't publish diagnostics for GitHub URIs.
+                        // This is temporary workaround to avoid spurious errors when a document
+                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 
