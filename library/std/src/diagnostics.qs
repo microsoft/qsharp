@@ -70,10 +70,10 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     /// # Summary
-    /// Checks whether a qubit is in the |0⟩ or ground state, returning true if it is.
+    /// Checks whether a qubit is in the |0⟩ state (the ground state), returning true if it is.
     ///
     /// # Description
-    /// This operation checks whether a qubit is in the |0⟩ or ground state. It will return true only
+    /// This operation checks whether a qubit is in the |0⟩ state (the ground state). It will return true only
     /// if the qubit is deterministically in the |0⟩ state, and will return false otherwise. This operation
     /// does not change the state of the qubit.
     ///
@@ -82,16 +82,20 @@ namespace Microsoft.Quantum.Diagnostics {
     /// The qubit to check.
     /// # Output
     /// True if the qubit is in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
     /// # Summary
-    /// Checks whether all qubits in the provided array are in the |0⟩ or ground state. Returns true if they are.
+    /// Checks whether all qubits in the provided array are in the |0⟩ state (the ground state). Returns true if they are.
     ///
     /// # Description
-    /// This operation checks whether all qubits in the provided array are in the |0⟩ or ground state. It will return true only
+    /// This operation checks whether all qubits in the provided array are in the |0⟩ state (the ground state). It will return true only
     /// if all qubits are deterministically in the |0⟩ state, and will return false otherwise. This operation
     /// does not change the state of the qubits.
     ///
@@ -100,6 +104,10 @@ namespace Microsoft.Quantum.Diagnostics {
     /// The qubits to check.
     /// # Output
     /// True if all qubits are in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
