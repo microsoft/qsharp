@@ -2,19 +2,11 @@
   "author": "Microsoft",
   "license": "MIT",
   "dependencies": {
-    "Unstable": {
-      "github": {
-        "owner": "microsoft",
-        "repo": "qsharp",
-        "ref": "main",
-        "path": "library/unstable"
-      }
-    },
     "Signed": {
       "github": {
         "owner": "microsoft",
         "repo": "qsharp",
-        "ref": "a64c7884",
+        "ref": "alex/signed-math",
         "path": "library/signed"
       }
     }
@@ -30,7 +22,6 @@
     "src/Multiplication.qs",
     "src/Polynomial.qs",
     "src/Reciprocal.qs",
-    "src/Tests.qs",
     "src/Types.qs"
   ]
 }

@@ -7,7 +7,7 @@ open Microsoft.Quantum.Intrinsic;
 open Microsoft.Quantum.Canon;
 import Types.FixedPoint;
 import Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
-import Signed.MultiplySI, Signed.SquareSI;
+import Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
 
 /// # Summary
 /// Multiplies two fixed-point numbers in quantum registers.

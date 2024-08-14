@@ -1,12 +1,12 @@
+import Signed.Operations.Invert2sSI;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 
-import Std.Math.*;
 import Types.FixedPoint;
 import Init.PrepareFxP;
 import Facts.IdenticalPointPosFactFxP;
-import Signed.*;
+import Signed.Operations.AddI, Signed.Operations.Invert2sSI;
 
 /// # Summary
 /// Adds a classical constant to a quantum fixed-point number.

@@ -8,8 +8,8 @@ open Microsoft.Quantum.Arrays;
 open Microsoft.Quantum.Intrinsic;
 open Microsoft.Quantum.Diagnostics;
 import Types.FixedPoint;
-import Signed.Invert2sSI;
-import Signed.ComputeReciprocalI;
+import Signed.Operations.Invert2sSI;
+import Signed.Operations.ComputeReciprocalI;
 
 /// # Summary
 /// Computes the reciprocal of a number stored in a quantum register with
