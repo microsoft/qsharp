@@ -409,8 +409,10 @@ operation RippleCarryAdderNoCarryTTK(xs : Qubit[], ys : Qubit[]) : Unit is Adj +
     CNOT(xs[0], ys[0]);
 }
 
-
-
-
-
-export RippleCarryAdderNoCarryTTK, ApplyInnerTTKAdderWithoutCarry, RippleCarryAdderTTK, RippleCarryAdderCDKM, RippleCarryAdderD, Carry;
+export
+    RippleCarryAdderNoCarryTTK,
+    ApplyInnerTTKAdderWithoutCarry,
+    RippleCarryAdderTTK,
+    RippleCarryAdderCDKM,
+    RippleCarryAdderD,
+    Carry;

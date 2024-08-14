@@ -53,4 +53,3 @@ operation ApplyCCNOTChain(register : Qubit[], targets : Qubit[]) : Unit is Adj +
 
     ApplyToEachCA(CCNOT, Zipped3(register, Most(targets), Rest(targets)));
 }
-

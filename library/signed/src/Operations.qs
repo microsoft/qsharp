@@ -7,7 +7,19 @@ import RippleCarry.RippleCarryAdderNoCarryTTK, RippleCarry.RippleCarryAdderTTK;
 import Std.Diagnostics.Fact;
 import Comparison.CompareGTI;
 
-
+/// # Summary
+/// Square signed integer `xs` and store
+/// the result in `result`, which must be zero initially.
+///
+/// # Input
+/// ## xs
+/// 𝑛-bit integer to square
+/// ## result
+/// 2𝑛-bit result, must be in state |0⟩
+/// initially.
+///
+/// # Remarks
+/// The implementation relies on `SquareI`.
 operation SquareSI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
         Controlled SquareSI([], (xs, result));
@@ -26,6 +38,21 @@ operation SquareSI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
+/// # Summary
+/// Computes the square of the integer `xs` into `result`,
+/// which must be zero initially.
+///
+/// # Input
+/// ## xs
+/// 𝑛-bit number to square
+/// ## result
+/// 2𝑛-bit result, must be in state |0⟩ initially.
+///
+/// # Remarks
+/// Uses a standard shift-and-add approach to compute the square. Saves
+/// 𝑛-1 qubits compared to the straight-forward solution which first
+/// copies out `xs` before applying a regular multiplier and then undoing
+/// the copy operation.
 operation SquareI(xs : Qubit[], result : Qubit[]) : Unit {
     body (...) {
         Controlled SquareI([], (xs, result));
@@ -73,7 +100,23 @@ operation SquareI(xs : Qubit[], result : Qubit[]) : Unit {
 }
 
 
-
+/// # Summary
+/// Multiply integer `xs` by integer `ys` and store the result in `result`,
+/// which must be zero initially.
+///
+/// # Input
+/// ## xs
+/// 𝑛₁-bit multiplicand
+/// ## ys
+/// 𝑛₂-bit multiplier
+/// ## result
+/// (𝑛₁+𝑛₂)-bit result, must be in state |0⟩ initially.
+///
+/// # Remarks
+/// Uses a standard shift-and-add approach to implement the multiplication.
+/// The controlled version was improved by copying out 𝑥ᵢ to an ancilla
+/// qubit conditioned on the control qubits, and then controlling the
+/// addition on the ancilla qubit.
 operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
         let na = Length(xs);
@@ -117,7 +160,18 @@ operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj 
     }
 }
 
-
+/// # Summary
+/// Multiply signed integer `xs` by signed integer `ys` and store
+/// the result in `result`, which must be zero initially.
+///
+/// # Input
+/// ## xs
+/// 𝑛₁-bit multiplicand
+/// ## ys
+/// 𝑛₂-bit multiplier
+/// ## result
+/// (𝑛₁+𝑛₂)-bit result, must be in state |0⟩
+/// initially.
 operation MultiplySI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit {
     body (...) {
         Controlled MultiplySI([], (xs, ys, result));
@@ -216,6 +270,27 @@ operation Invert2sSI(xs : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
+/// # Summary
+/// Divides two quantum integers.
+///
+/// # Description
+/// `xs` will hold the
+/// remainder `xs - floor(xs/ys) * ys` and `result` will hold
+/// `floor(xs/ys)`.
+///
+/// # Input
+/// ## xs
+/// $n$-bit dividend, will be replaced by the remainder.
+/// ## ys
+/// $n$-bit divisor
+/// ## result
+/// $n$-bit result, must be in state $\ket{0}$ initially
+/// and will be replaced by the result of the integer division.
+///
+/// # Remarks
+/// Uses a standard shift-and-subtract approach to implement the division.
+/// The controlled version is specialized such the subtraction does not
+/// require additional controls.
 operation DivideI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
         Controlled DivideI([], (xs, ys, result));
@@ -274,4 +349,13 @@ operation ComputeReciprocalI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl
     }
 }
 
-export Sum, MultiplyI, MultiplySI, SquareSI, SquareI, AddI, Invert2sSI, DivideI, ComputeReciprocalI;
+export
+    Sum,
+    MultiplyI,
+    MultiplySI,
+    SquareSI,
+    SquareI,
+    AddI,
+    Invert2sSI,
+    DivideI,
+    ComputeReciprocalI;
