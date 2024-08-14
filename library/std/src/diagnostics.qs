@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Description
     /// This operation allows you to count the number of times a given operation is called. As part of
-    /// starting teh counting, the counter is reset to zero, which may override existing counts for the same operation.
+    /// starting the counting, the counter is reset to zero, which may override existing counts for the same operation.
     /// Counting is based on the specific specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
     /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately.
     ///
