@@ -9,7 +9,7 @@ Quantum key distribution is a type of quantum communication protocol that allows
 
 Quantum key distribution protocols include two parties, commonly referred to as Alice and Bob, that have two communication channels between them, one quantum channel that allows Alice to send qubits to Bob and one bidirectional classical channel.
 The quantum channel in such protocols is usually implemented with photons acting as qubits.
-Note that the classical communication channel has to be authenticated, so that both parties can verify that the classical messages they receive indeed come from the party they are communicating with and are not tampered with in transit.
+Note that the classical communication channel has to be authenticated, so that both parties can verify that the classical messages they receive indeed come from the party they are communicating with and aren't tampered with in transit.
 
 @[section]({
     "id": "key_distribution__bb84",
@@ -20,7 +20,7 @@ BB84 protocol, named after its inventors Charles H. Bennett and Gilles Brassard 
 
 BB84 protocol consists of the two main phases:
 
-1. During the first phase, Alice prepares individual qubits following a certain procedure and then sends them to Bob via the quantum channel to be measured. Alice takes notes of the classical decisions she made when preparing the qubits, and Bob - of his decisions and the measurement results.
+1. During the first phase, Alice prepares individual qubits following a certain procedure and then sends them to Bob via the quantum channel to be measured. Alice takes notes of the classical decisions she made when preparing the qubits, and Bob takes notes of his decisions when measuring the qubits and the measurement results.
 
 2. The second phase is entirely classical post-processing and communication: Alice and Bob discuss their data from the first phase and extract a classical, random bit string they can use as a shared key.
 
@@ -55,13 +55,13 @@ If Alice decides to send $N$ qubits, she needs to make $2N$ random choices, usua
 
 Once Bob receives the qubits from Alice, he needs to decide in which basis, computational or Hadamard, to measure each of them, and these decisions are also random, with each basis chosen with $50\%$ probability.
 
-Finally, at the end of the first phase of the protocol Alice has a list of the bit values she sent as well as what basis she prepared each qubit in, and Bob has a list of bases he used to measure each qubit. 
+Finally, at the end of the first phase of the protocol, Alice has a list of the bit values she sent as well as what basis she prepared each qubit in, and Bob has a list of bases he used to measure each qubit. 
 
-To extract the shared key, they need to figure out when they both used the same basis, and toss the data from qubits where they used different bases. If Alice and Bob did not use the same basis to prepare and measure the qubits in, the measurement results Bob got will be just random bits with $50\%$ probability for both the `Zero` and `One` outcomes. But if they used the same basis, Bob's measurement result will match the bit Alice sent.
+To extract the shared key, they need to figure out when they both used the same basis, and toss the data from qubits where they used different bases. If Alice and Bob didn't use the same basis to prepare and measure the qubits in, the measurement results Bob got will be just random bits with $50\%$ probability for both the 0 and 1 outcomes. But if they used the same basis, Bob's measurement result will match the bit Alice sent.
 
 This means that by exchanging information about the bases Alice and Bob used for preparation and measurements via a public classical communication channel, they can deduce which parts of their lists of bits they kept private are identical, and use them as their shared key!
 
-Now that we've learned the theory behind the BB84 protocol, let's implement its steps to see it in action!
+Now that you've learned the theory behind the BB84 protocol, let's implement its steps to see it in action!
 
 @[exercise]({
     "id": "key_distribution__random_array",
@@ -95,7 +95,7 @@ Now that we've learned the theory behind the BB84 protocol, let's implement its 
 
 In this lesson, your goal is to put together the code from the previous exercises to simulate the complete BB84 protocol, from Alice choosing her bits and sending qubits to Bob to them figuring out the shared key.
 
-> This is an open-ended task that is not tested automatically, unlike the previous exercises. Follow the suggestions in the comments to write your code and test it!
+> This is an open-ended task that isn't tested automatically, unlike the previous exercises. Follow the suggestions in the comments to write your code and test it!
 
 @[example]({"id": "key_distribution__bb84_demo", "codePath": "./examples/BB84Demo.qs"})
 
@@ -105,7 +105,7 @@ In this lesson, your goal is to put together the code from the previous exercise
     "title": "Detecting an Eavesdropper"
 })
 
-Now, let's consider adding an eavesdropper Eve in the protocol.
+Now, let's consider adding an eavesdropper, known as Eve, in the protocol.
 
 Eve can intercept a qubit from the quantum channel that Alice and Bob are using. 
 She can try to get some information from it by measuring it. Then she prepares a new qubit and sends it back to the channel for Bob to receive. 
