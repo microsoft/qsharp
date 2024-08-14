@@ -361,7 +361,8 @@ In the example below you can compare winning percentage of classical and quantum
 
 >You may play with the code and check if there is a difference in results when
 >1. The referee picks non-random bits. How can the referee minimize player's win probability?
->2. Players get partially entangled qubit triple.
+>2. Players get the [GHZ state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state).
+> How to change the quantum strategies to get $100\%$ win rate?
 
 @[example]({"id": "nonlocal_games__ghz_e2edemo", "codePath": "./examples/GHZGameDemo.qs"})
 

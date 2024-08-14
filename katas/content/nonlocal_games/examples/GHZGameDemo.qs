@@ -56,19 +56,15 @@ namespace Quantum.Kata.GHZGame {
     }
 
     operation getRandomRefereeBits () : Bool[] {
-        let mode = DrawRandomInt(0, 3);
-        if mode == 0 {
-            return [false, false, false];
-        } elif mode == 1 {
-            return [true, true, false];
-        } elif mode == 2 {
-            return [false, true, true];
-        }
-        return [true, false, true];
+        let bits = [[false, false, false],
+                    [true, true, false],
+                    [false, true, true],
+                    [true, false, true]];
+        return bits[DrawRandomInt(0, 3)];
     }
 
     @EntryPoint()
-    operation GHZ_GameDemo() : Unit {
+    operation GHZ_GameDemo () : Unit {
         use (aliceQubit, bobQubit, charlieQubit) = (Qubit(), Qubit(), Qubit());
         mutable classicalWins = 0;
         mutable quantumWins = 0;
