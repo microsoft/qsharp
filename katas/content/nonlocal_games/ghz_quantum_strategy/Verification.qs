@@ -50,7 +50,7 @@ namespace Kata.Verification {
             }
         }
         if wins < iterations*Length(inputs) {
-            Message($"Alice, Bob, and Charlie's classical strategy gets {wins} wins out of {iterations*Length(inputs)} possible inputs, which is not optimal");
+            Message($"Player's quantum strategies get {wins} wins out of {iterations*Length(inputs)} possible inputs, which is not optimal");
             return false;
         }
         Message("Correct!");
