@@ -21,6 +21,13 @@ namespace MyQuantumApp {
         // Any code following a return statement is inaccessible.
     }
 
+    function Returns42Implicit() : Int {
+        // If the last expression is not followed by a semicolon,
+        // its value is implicitly returned, in which case the return keyword is not necessary.
+        42 // This literal value is implicitly returned.
+        // Any code following an implicit return would cause the compilation to fail.
+    }
+
     function ReturnsUnit() : Unit {
         // If a callable returns `Unit`, no return statement is necessary.
         // If a callable is annotated to return any other type besides `Unit`, then it
