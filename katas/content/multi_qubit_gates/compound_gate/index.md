@@ -16,7 +16,7 @@ i & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
 \end{bmatrix}
 $$
 
-> We recommend to keep a list of common quantum gates on hand.
+> It's recommended to keep a list of common quantum gates on hand.
 
 <details>
     <summary><b>Need a hint?</b></summary>
