@@ -6,7 +6,7 @@
       "github": {
         "owner": "microsoft",
         "repo": "qsharp",
-        "ref": "alex/signed-math",
+        "ref": "f744b1fc",
         "path": "library/signed"
       }
     }

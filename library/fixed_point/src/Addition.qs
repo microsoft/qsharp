@@ -2,7 +2,6 @@ import Signed.Operations.Invert2sSI;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 import Types.FixedPoint;
 import Init.PrepareFxP;
 import Facts.IdenticalPointPosFactFxP;

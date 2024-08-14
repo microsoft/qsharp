@@ -4,7 +4,7 @@
 
 import Types.FixedPoint;
 import Facts.IdenticalFormatFactFxP;
-import Signed.CompareGTSI;
+import Signed.Comparison.CompareGTSI;
 
 /// # Summary
 /// Compares two fixed-point numbers stored in quantum registers, and
