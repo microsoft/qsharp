@@ -240,7 +240,7 @@ Then, let's proceed with quantum strategy and game implementation.
 
 @[section]({
     "id": "nonlocal_games__ghz_discussion",
-    "title": "Discussion: Why the GHZ quantum strategy has a 100% win rate"
+    "title": "Discussion: Why the GHZ Quantum Strategy has a 100% Win Rate"
 })
 ---------------------------------------------------------------
 Recall the formula for the win condition:
