@@ -16,8 +16,10 @@ Quantum oracles are a key part of many quantum algorithms that rely on quantum i
 
 **What you should know to start working on this kata:**
 
-- Basic knowledge of fundamental quantum concepts
-- Basic knowledge of multi-qubit gates, especially controlled gates. If you're not familiar with these concepts, you can find them in the Multi-Qubit Gates kata. 
+- Fundamental quantum concepts
+- Basic multi-qubit gates, especially controlled gates
+
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({
     "id": "oracles__classical_oracles",
