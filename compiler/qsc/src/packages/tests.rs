@@ -191,6 +191,7 @@ fn missing_dependency_doesnt_force_failure() {
     .assert_debug_eq(&errors);
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn dependency_error() {
     let mut program = mock_program();
@@ -210,33 +211,58 @@ fn dependency_error() {
     );
 
     expect![[r#"
-            [
-                WithSource {
-                    sources: [
-                        Source {
-                            name: "librarymain",
-                            contents: "broken_syntax",
-                            offset: 0,
-                        },
-                    ],
-                    error: Frontend(
-                        Error(
-                            Parse(
-                                Error(
-                                    ExpectedItem(
-                                        Ident,
-                                        Span {
-                                            lo: 0,
-                                            hi: 0,
-                                        },
-                                    ),
+        [
+            WithSource {
+                sources: [
+                    Source {
+                        name: "librarymain",
+                        contents: "broken_syntax",
+                        offset: 0,
+                    },
+                ],
+                error: Frontend(
+                    Error(
+                        Parse(
+                            Error(
+                                Token(
+                                    Eof,
+                                    Ident,
+                                    Span {
+                                        lo: 0,
+                                        hi: 13,
+                                    },
                                 ),
                             ),
                         ),
                     ),
-                },
-            ]
-        "#]]
+                ),
+            },
+            WithSource {
+                sources: [
+                    Source {
+                        name: "librarymain",
+                        contents: "broken_syntax",
+                        offset: 0,
+                    },
+                ],
+                error: Frontend(
+                    Error(
+                        Parse(
+                            Error(
+                                ExpectedItem(
+                                    Eof,
+                                    Span {
+                                        lo: 0,
+                                        hi: 13,
+                                    },
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            },
+        ]
+    "#]]
     .assert_debug_eq(&buildable_program.dependency_errors);
 
     // compile the user code

@@ -55,20 +55,6 @@ impl Operation {
     /// Matrices must be of dimension 2^k x 2^k, where k is an integer.
     /// Returns `None` if the kraus matrices are ill formed.
     pub fn new(mut kraus_operators: Vec<SquareMatrix>) -> Result<Self, Error> {
-        // Performance note: Because `nalgebra` stores its matrices in column major
-        // form, we use `gemv_tr` in the `apply_kernel` function when multiplying to avoid
-        // incurring cache misses. That is why we transpose all Kraus operators when they
-        // enter the simulator:
-        //   `gemv(1, matrix, vec, 0)` is equivalent to `gemv_tr(1, matrix_tr, vec, 0)`,
-        // but the later has much better performance.
-        //
-        // SAFETY of transposing: all these matrices are only consumed by the
-        // `kernel.rs/apply_kernel` function which effectively transposes them
-        // back when multypling, so it is safe to do this transformation.
-        for kraus_operator in &mut kraus_operators {
-            kraus_operator.transpose_mut();
-        }
-
         let (dim, _) = kraus_operators
             .first()
             .ok_or(Error::FailedToConstructOperation(
@@ -91,6 +77,20 @@ impl Operation {
                         .to_string(),
                 ));
             }
+        }
+
+        // Performance note: Because `nalgebra` stores its matrices in column major
+        // form, we use `gemv_tr` in the `apply_kernel` function when multiplying to avoid
+        // incurring cache misses. That is why we transpose all Kraus operators when they
+        // enter the simulator:
+        //   `gemv(1, matrix, vec, 0)` is equivalent to `gemv_tr(1, matrix_tr, vec, 0)`,
+        // but the later has much better performance.
+        //
+        // SAFETY of transposing: all these matrices are only consumed by the
+        // `kernel.rs/apply_kernel` function which effectively transposes them
+        // back when multypling, so it is safe to do this transformation.
+        for kraus_operator in &mut kraus_operators {
+            kraus_operator.transpose_mut();
         }
 
         // Performance note: The effect_matrix = Σᵢ (kᵢ† ⋅ k), but due to performance

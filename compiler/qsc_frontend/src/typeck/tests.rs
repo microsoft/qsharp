@@ -315,6 +315,65 @@ fn call_generic_length() {
 }
 
 #[test]
+fn nested_generic_with_lambda() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo<'I, 'O>(f : 'I -> 'O, x : 'I) : 'O { f(x) }
+                function Bar() : Unit {
+                    let r0 = Foo(Foo, (() -> (), ()));
+                    let r1 = Foo(Foo, (a -> (), ()));
+                    let r2 = Foo(Foo, (b -> b, ()));
+                }
+        }"
+        },
+        "",
+        &expect![[r##"
+            #8 46-68 "(f : 'I -> 'O, x : 'I)" : ((Param<"'I": 0> -> Param<"'O": 1>), Param<"'I": 0>)
+            #9 47-59 "f : 'I -> 'O" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #16 61-67 "x : 'I" : Param<"'I": 0>
+            #22 74-82 "{ f(x) }" : Param<"'O": 1>
+            #24 76-80 "f(x)" : Param<"'O": 1>
+            #25 76-77 "f" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #28 77-80 "(x)" : Param<"'I": 0>
+            #29 78-79 "x" : Param<"'I": 0>
+            #35 103-105 "()" : Unit
+            #39 113-262 "{\n            let r0 = Foo(Foo, (() -> (), ()));\n            let r1 = Foo(Foo, (a -> (), ()));\n            let r2 = Foo(Foo, (b -> b, ()));\n        }" : Unit
+            #41 131-133 "r0" : Unit
+            #43 136-160 "Foo(Foo, (() -> (), ()))" : Unit
+            #44 136-139 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #47 139-160 "(Foo, (() -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #48 140-143 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #51 145-159 "(() -> (), ())" : ((Unit -> Unit), Unit)
+            #52 146-154 "() -> ()" : (Unit -> Unit)
+            #53 146-148 "()" : Unit
+            #54 152-154 "()" : Unit
+            #55 156-158 "()" : Unit
+            #57 178-180 "r1" : Unit
+            #59 183-206 "Foo(Foo, (a -> (), ()))" : Unit
+            #60 183-186 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #63 186-206 "(Foo, (a -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #64 187-190 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #67 192-205 "(a -> (), ())" : ((Unit -> Unit), Unit)
+            #68 193-200 "a -> ()" : (Unit -> Unit)
+            #69 193-194 "a" : Unit
+            #71 198-200 "()" : Unit
+            #72 202-204 "()" : Unit
+            #74 224-226 "r2" : Unit
+            #76 229-251 "Foo(Foo, (b -> b, ()))" : Unit
+            #77 229-232 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #80 232-251 "(Foo, (b -> b, ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #81 233-236 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #84 238-250 "(b -> b, ())" : ((Unit -> Unit), Unit)
+            #85 239-245 "b -> b" : (Unit -> Unit)
+            #86 239-240 "b" : Unit
+            #88 244-245 "b" : Unit
+            #91 247-249 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
 fn add_wrong_types() {
     check(
         indoc! {"
@@ -4149,7 +4208,7 @@ fn inference_infinite_recursion_should_fail() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #8 41-59 "(x : ('T1 -> 'U1))" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #9 42-58 "x : ('T1 -> 'U1)" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #20 68-75 "{\n    }" : Unit
@@ -4163,10 +4222,8 @@ fn inference_infinite_recursion_should_fail() {
             #54 186-187 "B" : (((?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
             Error(Type(Error(TyMismatch("Unit", "'U1[]", Span { lo: 62, hi: 67 }))))
             Error(Type(Error(TyMismatch("Unit", "'T2", Span { lo: 129, hi: 132 }))))
-            Error(Type(Error(TyMismatch("Bool", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
-            Error(Type(Error(TyMismatch("Unit", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
-        "#]],
+        "##]],
     );
 }
 

@@ -121,7 +121,7 @@ pub(super) enum Error {
 
     #[error("duplicate intrinsic `{0}`")]
     #[diagnostic(help(
-        "each callable declared as `body intrinsic` must have a globally unique name"
+        "each callable declared as `body intrinsic` or `@SimulatableIntrinsic` must have a globally unique name"
     ))]
     #[diagnostic(code("Qsc.Resolve.DuplicateIntrinsic"))]
     DuplicateIntrinsic(String, #[label] Span),
@@ -494,7 +494,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             // we are re-opening a namespace. This is important, as without this,
             // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None, root_id);
-            for item in &*namespace.items {
+            for item in &namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(decl) => {
                         visitor
@@ -1216,7 +1216,7 @@ impl AstVisitor<'_> for With<'_> {
 
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            for item in &*namespace.items {
+            for item in &namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(..) | ItemKind::Open(..) => {
                         // Global imports and exports should have been handled
@@ -1314,7 +1314,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_block(&mut self, block: &ast::Block) {
         self.with_scope(block.span, ScopeKind::Block, |visitor| {
-            for stmt in &*block.stmts {
+            for stmt in &block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
                     visitor
                         .resolver
@@ -1449,7 +1449,7 @@ impl GlobalTable {
         package: &ast::Package,
     ) -> Vec<Error> {
         let mut errors = Vec::new();
-        for node in &*package.nodes {
+        for node in &package.nodes {
             match node {
                 TopLevelNode::Namespace(namespace) => {
                     bind_global_items(
@@ -1601,7 +1601,7 @@ fn bind_global_items(
 
     let namespace_id = scope.insert_or_find_namespace(&namespace.name);
 
-    for item in &*namespace.items {
+    for item in &namespace.items {
         match bind_global_item(
             names,
             scope,
@@ -1674,7 +1674,7 @@ fn bind_global_item(
             if decl.is_import() {
                 Ok(())
             } else {
-                for decl_item in decl.items.iter() {
+                for decl_item in &decl.items {
                     // if the item is a namespace, bind it here as an item
                     let Some(ns) = scope
                         .namespaces
@@ -1733,7 +1733,8 @@ fn bind_callable(
     scope: &mut GlobalScope,
 ) -> Result<(), Vec<Error>> {
     let item_id = next_id();
-    let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+    let attrs = ast_attrs_as_hir_attrs(item.attrs.as_ref());
+    let status = ItemStatus::from_attrs(&attrs);
     let res = Res::Item(item_id, status);
     names.insert(decl.name.id, res.clone());
     let mut errors = Vec::new();
@@ -1759,7 +1760,7 @@ fn bind_callable(
         }
     }
 
-    if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
+    if decl_is_intrinsic(decl, &attrs) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
         errors.push(Error::DuplicateIntrinsic(
             decl.name.name.to_string(),
             decl.name.span,
@@ -1816,7 +1817,13 @@ fn bind_ty(
     }
 }
 
-fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
+fn decl_is_intrinsic(decl: &CallableDecl, attrs: &[hir::Attr]) -> bool {
+    if attrs
+        .iter()
+        .any(|attr| matches!(attr, hir::Attr::SimulatableIntrinsic))
+    {
+        return true;
+    }
     if let CallableBody::Specs(specs) = decl.body.as_ref() {
         specs
             .iter()
@@ -1832,6 +1839,7 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// - Next, we check open statements for a non-prelude open.
 /// - Then, we check the prelude.
 /// - Lastly, we check the global namespace.
+///
 /// In the example `Foo.Bar.Baz()` -- the `provided_namespace_name` would be
 ///`Foo.Bar` and the `provided_symbol_name` would be `Baz`.
 ///
@@ -1960,6 +1968,7 @@ fn check_all_scopes<'a>(
 /// 1. if any locally declared symbols match `provided_symbol_name`
 /// 2. if any aliases in this scope match the provided namespace, and if they contain `provided_symbol_name`
 /// 3. if any opens in this scope contain the `provided_symbol_name`
+///
 /// It follows the Q# shadowing rules:
 /// - Local variables shadow everything. They are the first priority.
 /// - Next, we check open statements for an explicit open.
@@ -2046,8 +2055,8 @@ fn check_scoped_resolutions(
 /// * `globals` - The global scope to resolve the name against.
 /// * `provided_symbol_name` - The symbol name that is ambiguous.
 /// * `candidates` - A map of possible resolutions for the symbol, each associated with the `Open`
-/// statement that brought it into scope. Note that only the first two opens in
-/// the candidates are actually used in the error message.
+///   statement that brought it into scope. Note that only the first two opens in
+///   the candidates are actually used in the error message.
 fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
