@@ -25,3 +25,9 @@ function ReturnsUnit() : Unit {
     // If a callable is annotated to return any other type besides `Unit`, then it
     // must return a value of that type.
 }
+
+function Main() : Unit {
+    let fortyTwo = Returns42();
+    let fortyTwoImplicit = Returns42Implicit();
+    ReturnsUnit();
+}

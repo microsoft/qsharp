@@ -10,9 +10,9 @@
 
 import Particle.*;
 function Main() : Unit {
-    let particleA = Particle(0, 0, 0);
-    let particleB = Particle(1, 1, 1);
+    let particleA = new Particle { X = 0, Y = 0, Z = 0 };
+    let particleB = new Particle { X = 1, Y = 1, Z = 1 };
 
     let particleC = addParticles(particleA, particleB);
-    Message($"Particle C: Particle({particleC::x}, {particleC::y}, {particleC::z})")
+    Message($"Particle C: Particle({particleC.X}, {particleC.Y}, {particleC.Z})")
 }

@@ -8,8 +8,6 @@
 // Documentation comments, or doc comments, are denoted with three
 // forward slashes (`///`) instead of two.
 
-import Std.Diagnostics.Result;
-
 /// This is a doc-comment for the `Main` operation.
 function Main() : Result[] {
     // Comments can go anywhere in a program, although they typically

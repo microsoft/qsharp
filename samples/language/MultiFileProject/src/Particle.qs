@@ -1,5 +1,9 @@
-struct Particle { x : Int, y : Int, z : Int }
+struct Particle { X : Int, Y : Int, Z : Int }
 
 function addParticles(a : Particle, b : Particle) : Particle {
-    return Particle(a.x + b.x, a.y + b.y, a.z + b.z);
+    return new Particle {
+        X = a.X + b.X, 
+        Y = a.Y + b.Y, 
+        Z = a.Z + b.Z
+    };
 }

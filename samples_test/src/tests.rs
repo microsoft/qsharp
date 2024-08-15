@@ -151,7 +151,11 @@ fn compile_project(project_folder: &str) {
 }
 
 fn check_lints(interpreter: &Interpreter) {
-    let lints = interpreter.check_source_lints();
+    let lints: Vec<_> = interpreter
+        .check_source_lints()
+        .into_iter()
+        .filter(|lint| lint.level != qsc::linter::LintLevel::Allow)
+        .collect();
     if !lints.is_empty() {
         for lint in &lints {
             eprintln!("lint: {lint}");

@@ -6,7 +6,7 @@
 // operation is a quantum subroutine. That is, it's a callable routine
 // that contains quantum operations that modify the state of qubits.
 
-operation MeasureOneQubit() : Result {
+operation Main() : Result {
     // Allocate a qubit, by default it is in zero state
     use q = Qubit();
     // We apply a Hadamard operation H to the state

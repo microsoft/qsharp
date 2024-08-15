@@ -58,13 +58,7 @@ The number $i$ and its real multiples (numbers obtained by multiplying $i$ by a 
     "title": "Complex Numbers"
 })
 
-<<<<<<< HEAD
-Adding imaginary numbers to each other is quite simple, but what happens when we add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers:
-||||||| 5ae1f247
-Adding imaginary numbers to each other is quite simple, but what happens when we add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers: 
-=======
 Adding imaginary numbers to each other is quite simple, but what happens when you add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers: 
->>>>>>> f02df412450902b5d4f346c56aba62e95ff3700b
 
 $$a+bi$$
 
@@ -204,16 +198,8 @@ $$e^{2i\pi} = 1$$
 > One interesting consequence of this is Euler's identity:
 >
 > $$e^{i\pi} + 1 = 0$$
-<<<<<<< HEAD
->
-> While this doesn't have any notable uses, it is still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
-||||||| 5ae1f247
-> 
-> While this doesn't have any notable uses, it is still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
-=======
 > 
 > While this doesn't have any notable uses, it's still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
->>>>>>> f02df412450902b5d4f346c56aba62e95ff3700b
 
 You can also calculate complex powers of $e$ as follows:
 

@@ -9,6 +9,12 @@
 function ExplicitReturn() : Unit {
     return ();
 }
-operation NoReturn() : Unit {
+
+function NoReturn() : Unit {
     // No return, thus implicitly returning `Unit`.
+}
+
+function Main() : Unit {
+    ExplicitReturn();
+    NoReturn();
 }

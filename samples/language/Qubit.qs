@@ -12,7 +12,7 @@
 import Std.Diagnostics.DumpMachine;
 
 /// In the below code, all varibles have type annotations to showcase their type.
-operation MeasureOneQubit() : Unit {
+operation Main() : Unit {
     // The following statement allocates three qubits.
     use qs = Qubit[3];
 

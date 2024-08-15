@@ -141,26 +141,24 @@ pub const CONDITIONALBRANCHING_EXPECT_DEBUG: Expect = expect![[r#"
 pub const COPYANDUPDATEOPERATOR_EXPECT: Expect = expect![[r#"
     Updated array: [10, 11, 100, 13]
     Updated array: [10, 100, 12, 200]
-    Updated struct: (first:20, second:100)
     ()"#]];
 pub const COPYANDUPDATEOPERATOR_EXPECT_DEBUG: Expect = expect![[r#"
     Updated array: [10, 11, 100, 13]
     Updated array: [10, 100, 12, 200]
-    Updated struct: (first:20, second:100)
     ()"#]];
 pub const DATATYPES_EXPECT: Expect = expect![[r#"
     Binary BigInt: 42
     Octal BigInt: 42
     Decimal BigInt: 42
     Hexadecimal BigInt: 42
-    Complex Bool: (real: 42.0, imaginary: 0.0, anonymous: false)
+    Complex: (real: 42.0, imaginary: 0.0)
     ()"#]];
 pub const DATATYPES_EXPECT_DEBUG: Expect = expect![[r#"
     Binary BigInt: 42
     Octal BigInt: 42
     Decimal BigInt: 42
     Hexadecimal BigInt: 42
-    Complex Bool: (real: 42.0, imaginary: 0.0, anonymous: false)
+    Complex: (real: 42.0, imaginary: 0.0)
     ()"#]];
 pub const DIAGNOSTICS_EXPECT: Expect = expect![[r#"
     Program is starting.
@@ -336,13 +334,11 @@ pub const VARIABLES_EXPECT: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
-    Shadowed Immutable Int: 0
     ()"#]];
 pub const VARIABLES_EXPECT_DEBUG: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
-    Shadowed Immutable Int: 0
     ()"#]];
 pub const WHILELOOPS_EXPECT: Expect = expect!["()"];
 pub const WHILELOOPS_EXPECT_DEBUG: Expect = expect!["()"];
