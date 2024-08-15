@@ -217,7 +217,7 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self
             .interpreter
-            .run_with_sim(sim, &mut receiver, entry_expr)
+            .run_with_sim(sim, &mut receiver, Some(entry_expr))
         {
             Ok(result) => match result {
                 Ok(v) => Ok(ValueWrapper(v).into_py(py)),

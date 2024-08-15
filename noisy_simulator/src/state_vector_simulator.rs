@@ -7,7 +7,6 @@
 #[cfg(test)]
 mod tests;
 
-use qsc::Backend;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
