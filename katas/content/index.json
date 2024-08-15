@@ -23,5 +23,6 @@
   "solving_sat",
   "solving_graph_coloring",
   "qft",
+  "phase_estimation",
   "qec_shor"
 ]

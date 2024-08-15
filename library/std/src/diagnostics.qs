@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
+    /// the Bell state (|00⟩ + |11⟩ ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
+    /// the Bell state (|00⟩ + |11⟩ ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
@@ -69,11 +69,45 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Checks whether a qubit is in the |0⟩ state, returning true if it is.
+    ///
+    /// # Description
+    /// This operation checks whether a qubit is in the |0⟩ state. It will return true only
+    /// if the qubit is deterministically in the |0⟩ state, and will return false otherwise. This operation
+    /// does not change the state of the qubit.
+    ///
+    /// # Input
+    /// ## qubit
+    /// The qubit to check.
+    /// # Output
+    /// True if the qubit is in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Checks whether all qubits in the provided array are in the |0⟩ state. Returns true if they are.
+    ///
+    /// # Description
+    /// This operation checks whether all qubits in the provided array are in the |0⟩ state. It will return true only
+    /// if all qubits are deterministically in the |0⟩ state, and will return false otherwise. This operation
+    /// does not change the state of the qubits.
+    ///
+    /// # Input
+    /// ## qubits
+    /// The qubits to check.
+    /// # Output
+    /// True if all qubits are in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
@@ -85,7 +119,18 @@ namespace Microsoft.Quantum.Diagnostics {
         return true;
     }
 
-    /// Checks whether a classical condition is true, and throws an exception if it is not.
+    /// # Summary
+    /// Checks whether a given condition is true, failing with a message if it is not.
+    ///
+    /// # Description
+    /// This function checks whether a given condition is true. If the condition is false, the operation fails with the given message,
+    /// terminating the program.
+    ///
+    /// # Input
+    /// ## actual
+    /// The condition to check.
+    /// ## message
+    /// The message to use in the failure if the condition is false.
     function Fact(actual : Bool, message : String) : Unit {
         if (not actual) {
             fail message;
