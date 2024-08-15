@@ -194,5 +194,143 @@ namespace Microsoft.Quantum.Diagnostics {
         areEqual
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual;
+    /// # Summary
+    /// Starts counting the number of times the given operation is called. Fails if the operation is already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given operation is called. If the given operation is already
+    /// being counted, calling `StartCountingOperation` again will trigger a runtime failure. Counting is based on the specific
+    /// specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
+    /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately, as are `Controlled X`
+    /// and `Controlled Adjoint X`.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation to be counted.
+    ///
+    /// # Remarks
+    /// Counting operation calls requires specific care in what operation is passed as input. For example, `StartCountingOperation(H)` will
+    /// count only the number of times `H` is called, while `StartCountingOperation(Adjoint H)` will count only the number of times `Adjoint H` is called, even
+    /// though `H` is self-adjoint. This is due to how the execution treats the invocation of these operations as distinct by their specialization.
+    /// In the same way, `StartCountingOperation(Controlled X)` will count only the number of times `Controlled X` is called, while
+    /// `StartCountingOperation(CNOT)` will count only the number of times `CNOT` is called.
+    ///
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the operation and it is counted as a separate operation. For example,
+    /// ```qsharp
+    /// let myOp = q => H(q);
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// Will count specifically calls to `myOp` and not `H`. By contrast, the following code will count calls to `H` itself:
+    /// ```qsharp
+    /// let myOp = H;
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `H` directly.
+    @Config(Unrestricted)
+    operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of times the given operation is called and returns the count. Fails
+    /// if the operation was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given operation is called and returns the count.
+    /// If the operation was not being counted, it triggers a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation whose count will be returned.
+    /// # Output
+    /// The number of times the operation was called since the last call to `StartCountingOperation`.
+    @Config(Unrestricted)
+    operation StopCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Int {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Starts counting the number of times the given function is called. Fails if the function is already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given function is called. If the given function is already
+    /// being counted, calling `StartCountingFunction` again will trigger a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function to be counted.
+    ///
+    /// # Remarks
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the function and it is counted as a separate function. For example,
+    /// ```qsharp
+    /// let myFunc = i -> AbsI(i);
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// Will count specifically calls to `myFunc` and not `AbsI`. By contrast, the following code will count calls to `AbsI` itself:
+    /// ```qsharp
+    /// let myFunc = AbsI;
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `AbsI` directly.
+    @Config(Unrestricted)
+    operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of times the given function is called and returns the count. Fails
+    /// if the function was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given function is called and returns the count.
+    /// If the function was not being counted, it triggers a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function whose count will be returned.
+    /// # Output
+    /// The number of times the function was called since the last call to `StartCountingFunction`.
+    @Config(Unrestricted)
+    operation StopCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Int {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Starts counting the number of qubits allocated. Fails if qubits are already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of qubits allocated until `StopCountingQubits` is called.
+    /// The counter is incremented only when a new unique qubit is allocated, so reusing the same qubit multiple times
+    /// across separate allocations does not increment the counter.
+    ///
+    /// # Remarks
+    /// This operation is useful for tracking the number of unique qubits allocated in a given scope. Along with
+    /// `StopCountingQubits`, it can be used to verify that a given operation does not allocate more qubits than
+    /// expected. For example,
+    /// ```qsharp
+    /// StartCountingQubits();
+    /// testOperation();
+    /// let qubitsAllocated = StopCountingQubits();
+    /// Fact(qubitsAllocated <= 4, "Operation should not allocate more than 4 qubits.");
+    /// ```
+    @Config(Unrestricted)
+    operation StartCountingQubits() : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of qubits allocated and returns the count. Fails if the qubits were not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of qubits allocated and returns the count since the
+    /// last call to `StartCountingQubits`. If the qubits were not being counted, it triggers a runtime failure.
+    ///
+    /// # Output
+    /// The number of unique qubits allocated since the last call to `StartCountingQubits`.
+    @Config(Unrestricted)
+    operation StopCountingQubits() : Int {
+        body intrinsic;
+    }
+
+    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
 }
