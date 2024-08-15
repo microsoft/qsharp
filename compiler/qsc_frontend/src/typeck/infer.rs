@@ -544,9 +544,16 @@ impl Solver {
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
-        substitute_ty(&self.solution, &mut expected);
-        substitute_ty(&self.solution, &mut actual);
-        self.unify(&expected, &actual, span)
+        // Only attempt to unify the types if they are fully substituted. If they are not,
+        // this usually indicates an infinite recursion in the type inference, so further
+        // unification would get stuck in a loop by creating recursive constraints.
+        if substitute_ty(&self.solution, &mut expected)
+            && substitute_ty(&self.solution, &mut actual)
+        {
+            self.unify(&expected, &actual, span)
+        } else {
+            Vec::new()
+        }
     }
 
     fn superset(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
@@ -644,15 +651,24 @@ impl Solver {
     }
 
     fn bind_ty(&mut self, infer: InferTyId, ty: Ty, span: Span) -> Vec<Constraint> {
-        self.solution.tys.insert(infer, ty);
-        self.pending_tys
-            .remove(&infer)
-            .map_or(Vec::new(), |pending| {
-                pending
-                    .into_iter()
-                    .map(|class| Constraint::Class(class, span))
-                    .collect()
-            })
+        self.solution.tys.insert(infer, ty.clone());
+        let mut constraint = vec![Constraint::Eq {
+            expected: ty,
+            actual: Ty::Infer(infer),
+            span,
+        }];
+        constraint.append(
+            &mut self
+                .pending_tys
+                .remove(&infer)
+                .map_or(Vec::new(), |pending| {
+                    pending
+                        .into_iter()
+                        .map(|class| Constraint::Class(class, span))
+                        .collect()
+                }),
+        );
+        constraint
     }
 
     fn bind_functor(
@@ -688,36 +704,43 @@ impl Solver {
     }
 }
 
-fn substitute_ty(solution: &Solution, ty: &mut Ty) {
-    fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) {
+fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
+    fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) -> bool {
         if limit == 0 {
             // We've hit the recursion limit. Give up and leave the inferred types
             // as is. This should trigger an ambiguous type error later.
-            return;
+            // Return false only when recursion limit is hit so the caller can know
+            // types have not been fully substituted.
+            return false;
         }
         match ty {
-            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => {}
+            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => true,
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
-                substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
-                substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
+                let a = substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
+                let b = substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
                 substitute_functor(solution, &mut arrow.functors);
+                a && b
             }
             Ty::Tuple(items) => {
+                let mut all_known = true;
                 for item in items {
-                    substitute_ty_recursive(solution, item, limit - 1);
+                    all_known = substitute_ty_recursive(solution, item, limit - 1) && all_known;
                 }
+                all_known
             }
             &mut Ty::Infer(infer) => {
                 if let Some(new_ty) = solution.tys.get(infer) {
                     *ty = new_ty.clone();
-                    substitute_ty_recursive(solution, ty, limit - 1);
+                    substitute_ty_recursive(solution, ty, limit - 1)
+                } else {
+                    true
                 }
             }
         }
     }
 
-    substitute_ty_recursive(solution, ty, MAX_TY_RECURSION_DEPTH);
+    substitute_ty_recursive(solution, ty, MAX_TY_RECURSION_DEPTH)
 }
 
 fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {
@@ -925,10 +948,10 @@ fn check_has_field(
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
                     vec![Constraint::Eq {
-                        expected: item,
-                        actual: id
+                        expected: id
                             .package
                             .map_or_else(|| ty.clone(), |package_id| ty.with_package(package_id)),
+                        actual: item,
                         span,
                     }],
                     Vec::new(),

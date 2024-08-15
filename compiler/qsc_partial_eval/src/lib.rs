@@ -30,10 +30,10 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId,
-        ExprKind, Global, Ident, LocalVarId, Mutability, PackageId, PackageStore,
-        PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
-        StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId, UnOp,
+        self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraph, Expr, ExprId, ExprKind,
+        Global, Ident, LocalVarId, Mutability, PackageId, PackageStore, PackageStoreLookup, Pat,
+        PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId,
+        StoreItemId, StorePatId, StoreStmtId, UnOp,
     },
     ty::{Prim, Ty},
 };
@@ -127,7 +127,7 @@ impl Error {
 /// An entry to the program to be partially evaluated.
 pub struct ProgramEntry {
     /// The execution graph that corresponds to the entry expression.
-    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub exec_graph: ExecGraph,
     /// The entry expression unique identifier within a package store.
     pub expr: fir::StoreExprId,
 }
@@ -2088,7 +2088,7 @@ impl<'a> PartialEvaluator<'a> {
         self.get_program_block_mut(self.eval_context.get_current_block_id())
     }
 
-    fn get_current_scope_exec_graph(&self) -> &Rc<[ExecGraphNode]> {
+    fn get_current_scope_exec_graph(&self) -> &ExecGraph {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {

@@ -54,7 +54,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ty_from_ast(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -74,10 +74,16 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
         // as there is a syntactic difference between
         // paths and parameters.
         // So realistically, by construction, `Param` here is unreachable.
-        Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
-            "A path should never resolve \
+        // A path can also never resolve to an export, because in typeck/check,
+        // we resolve exports to their original definition.
+        Some(
+            resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_, _),
+        ) => {
+            unreachable!(
+                "A path should never resolve \
             to a local or a parameter, as there is syntactic differentiation."
-        ),
+            )
+        }
         None => Ty::Err,
     }
 }
@@ -126,7 +132,7 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
         TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ast_ty_def_base(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -279,7 +285,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
         PatKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ast_pat_ty(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -297,7 +303,7 @@ pub(crate) fn ast_callable_functors(callable: &CallableDecl) -> FunctorSetValue 
         .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
 
     if let CallableBody::Specs(specs) = callable.body.as_ref() {
-        for spec in specs.iter() {
+        for spec in specs {
             let spec_functors = match spec.spec {
                 Spec::Body => FunctorSetValue::Empty,
                 Spec::Adj => FunctorSetValue::Adj,

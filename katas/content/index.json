@@ -19,5 +19,10 @@
   "marking_oracles",
   "deutsch_algo",
   "deutsch_jozsa",
+  "grovers_search",
+  "solving_sat",
+  "solving_graph_coloring",
+  "qft",
+  "phase_estimation",
   "qec_shor"
 ]

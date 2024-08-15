@@ -126,7 +126,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
         ItemKind::ImportOrExport(export) => {
             vis.visit_span(&mut export.span);
-            for item in export.items.iter_mut() {
+            for item in &mut *export.items {
                 vis.visit_path(&mut item.path);
                 if let Some(ref mut alias) = item.alias {
                     vis.visit_ident(alias);
@@ -389,7 +389,7 @@ pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
 }
 
 pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
-    for ref mut ident in ident.0.iter_mut() {
+    for ref mut ident in &mut *ident.0 {
         vis.visit_ident(ident);
     }
 }

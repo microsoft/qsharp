@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+mod multiple_packages;
+
 use std::sync::Arc;
 
 use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
@@ -971,17 +973,17 @@ fn unimplemented_call_from_dependency_produces_error() {
     );
     expect![[r#"
         [
-            Error(
-                Resolve(
-                     Unimplemented(
-                         "Bar",
-                         Span {
-                            lo: 69,
-                            hi: 72,
+           Error(
+               Resolve(
+                   Unimplemented(
+                        "Bar",
+                        Span {
+                           lo: 69,
+                           hi: 72,
                         },
-                    ),
-                ),
-            ),
+                   ),
+               ),
+           ),
         ]
     "#]]
     .assert_debug_eq(&unit.errors);
@@ -1471,101 +1473,14 @@ fn test_longest_common_prefix_only_root_common_no_leading() {
 }
 
 #[test]
-fn multiple_packages_reference_exports() {
-    let mut store = PackageStore::new(super::core());
-
-    let package_a = SourceMap::new(
+fn export_namespace_with_same_name_as_newtype_does_not_cause_panic() {
+    let sources = SourceMap::new(
         [(
-            "PackageA.qs".into(),
+            "test".into(),
             indoc! {"
-                function FunctionA() : Int {
-                    1
-                }
-                export FunctionA;
-            "}
-            .into(),
-        )],
-        None,
-    );
-
-    let package_a = compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_b = SourceMap::new(
-        [(
-            "PackageB".into(),
-            indoc! {"
-                function FunctionB() : Int {
-                    1
-                }
-                export FunctionB;
-            "}
-            .into(),
-        )],
-        None,
-    );
-
-    let package_b = compile(
-        &store,
-        &[],
-        package_b,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-
-    assert!(package_b.errors.is_empty(), "{:#?}", package_b.errors);
-
-    let package_a = store.insert(package_a);
-    let package_b = store.insert(package_b);
-
-    let user_code = SourceMap::new(
-        [(
-            "UserCode".into(),
-            indoc! {"
-                    import A.PackageA.FunctionA;
-                    import B.PackageB.FunctionB;
-                    @EntryPoint()
-                    function Main() : Unit {
-                       FunctionA();
-                       FunctionB();
-                    }
-                "}
-            .into(),
-        )],
-        None,
-    );
-
-    let user_code = compile(
-        &store,
-        &[
-            (package_a, Some(Arc::from("A"))),
-            (package_b, Some(Arc::from("B"))),
-        ],
-        user_code,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-
-    assert!(user_code.errors.is_empty(), "{:#?}", user_code.errors);
-}
-
-#[test]
-#[allow(clippy::too_many_lines)]
-fn multiple_packages_disallow_unexported_imports() {
-    let mut store = PackageStore::new(super::core());
-
-    let package_a = SourceMap::new(
-        [(
-            "PackageA.qs".into(),
-            indoc! {"
-                function FunctionA() : Int {
-                    1
+                namespace A {
+                    export A;
+                    newtype A = Int;
                 }
             "}
             .into(),
@@ -1573,76 +1488,6 @@ fn multiple_packages_disallow_unexported_imports() {
         None,
     );
 
-    let package_a = compile(
-        &store,
-        &[],
-        package_a,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    assert!(package_a.errors.is_empty(), "{:#?}", package_a.errors);
-
-    let package_a = store.insert(package_a);
-
-    let user_code = SourceMap::new(
-        [(
-            "UserCode".into(),
-            indoc! {"
-                    import A.PackageA.FunctionA;
-                    @EntryPoint()
-                    function Main() : Unit {
-                       FunctionA();
-                    }
-                "}
-            .into(),
-        )],
-        None,
-    );
-
-    let user_code = compile(
-        &store,
-        &[(package_a, Some(Arc::from("A")))],
-        user_code,
-        TargetCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-
-    expect![[r#"
-        [
-            Error(
-                Resolve(
-                    NotFound(
-                        "A.PackageA.FunctionA",
-                        Span {
-                            lo: 7,
-                            hi: 27,
-                        },
-                    ),
-                ),
-            ),
-            Error(
-                Resolve(
-                    NotFound(
-                        "FunctionA",
-                        Span {
-                            lo: 71,
-                            hi: 80,
-                        },
-                    ),
-                ),
-            ),
-            Error(
-                Type(
-                    Error(
-                        AmbiguousTy(
-                            Span {
-                                lo: 71,
-                                hi: 82,
-                            },
-                        ),
-                    ),
-                ),
-            ),
-        ]"#]]
-    .assert_eq(&format!("{:#?}", user_code.errors));
+    let unit = default_compile(sources);
+    expect!["[]"].assert_eq(&format!("{:?}", unit.errors));
 }

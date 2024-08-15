@@ -152,7 +152,7 @@ fn ignore_unstable_callable() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n            ",
+                                    new_text: "import FakeStdLib.Fake;\n            ",
                                     range: Range {
                                         start: Position {
                                             line: 2,
@@ -166,84 +166,6 @@ fn ignore_unstable_callable() {
                                 },
                             ],
                         ),
-                    },
-                ),
-                None,
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn ignore_internal_callable() {
-    check(
-        r#"
-        namespace Test {
-            internal operation Foo() : Unit {}
-            operation Bar() : Unit {
-                ↘
-            }
-        }
-
-        namespace Test {
-            internal operation Baz() : Unit {}
-        }"#,
-        &["Fake", "Foo", "Baz", "Hidden"],
-        &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0700Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "open FakeStdLib;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
                     },
                 ),
                 None,
@@ -335,7 +257,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.Fake;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -364,7 +286,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.FakeWithParam;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -393,7 +315,7 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.FakeCtlAdj;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -569,7 +491,7 @@ fn in_block_from_other_namespace() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open Other;\n    ",
+                                    new_text: "import Other.Foo;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -621,7 +543,7 @@ fn auto_open_multiple_files() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open Foo;\n ",
+                                    new_text: "import Foo.FooOperation;\n ",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -800,7 +722,7 @@ fn stdlib_udt() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n    ",
+                                    new_text: "import FakeStdLib.TakesUdt;\n    ",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -879,7 +801,7 @@ fn notebook_top_level() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -925,7 +847,7 @@ fn notebook_top_level_global() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -1004,7 +926,7 @@ fn notebook_block() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 0,
@@ -1071,7 +993,7 @@ fn notebook_auto_open_start_of_cell_empty() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -1128,7 +1050,7 @@ fn notebook_auto_open_start_of_cell() {
                         additional_text_edits: Some(
                             [
                                 TextEdit {
-                                    new_text: "open FakeStdLib;\n",
+                                    new_text: "import FakeStdLib.Fake;\n",
                                     range: Range {
                                         start: Position {
                                             line: 1,
@@ -1410,6 +1332,124 @@ fn local_var_and_open_shadowing_rules() {
                             "operation Bar() : Unit",
                         ),
                         additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo or Bar because FooNs is already glob imported
+#[test]
+fn dont_import_if_already_glob_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit {
+            }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.*;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo because Foo is directly imported,
+// but additional text edits for Bar because Bar is not directly imported
+#[test]
+fn dont_import_if_already_directly_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit { }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.Foo;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import FooNs.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
                     },
                 ),
             ]

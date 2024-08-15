@@ -114,7 +114,13 @@ impl<'a> Context<'a> {
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+                // A path can also never resolve to an export, because in typeck/check,
+                // we resolve exports to their original definition.
+                Some(
+                    resolve::Res::Local(_)
+                    | resolve::Res::Param(_)
+                    | resolve::Res::ExportedItem(_, _),
+                ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
@@ -137,7 +143,7 @@ impl<'a> Context<'a> {
     fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
-        for stmt in &*block.stmts {
+        for stmt in &block.stmts {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);
@@ -336,7 +342,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Interpolate(components) => {
                 let mut diverges = false;
-                for component in components.iter() {
+                for component in components {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
@@ -459,7 +465,7 @@ impl<'a> Context<'a> {
                     self.inferrer.eq(copy.span, container.clone(), copy_ty.ty);
                 }
 
-                for field in fields.iter() {
+                for field in fields {
                     self.infer_field_assign(
                         field.span,
                         container.clone(),
@@ -493,7 +499,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_expr(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -570,7 +576,9 @@ impl<'a> Context<'a> {
             None => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item, _)) => {
-                    let scheme = self.globals.get(item).expect("item should have scheme");
+                    let Some(scheme) = self.globals.get(item) else {
+                        return converge(Ty::Err);
+                    };
                     let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
@@ -582,6 +590,13 @@ impl<'a> Context<'a> {
                         .expect("local should have type")
                         .clone(),
                 ),
+                Some(Res::ExportedItem(item, _)) => {
+                    // get the underlying item this refers to
+                    let item_scheme = self.globals.get(item).expect("item should have scheme");
+                    let (ty, args) = self.inferrer.instantiate(item_scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
+                }
                 Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
                     panic!("expression should not resolve to type reference")
                 }
@@ -611,7 +626,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_hole_tuple(hole, given, tuple, to_ty, item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -832,7 +847,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_qubit_init(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);

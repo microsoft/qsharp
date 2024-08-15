@@ -190,6 +190,14 @@
         {
           "command": "qsharp-vscode.webOpener",
           "when": "false"
+        },
+        {
+          "command": "qsharp-vscode.populateFilesList",
+          "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.addProjectReference",
+          "when": "resourceFilename == qsharp.json"
         }
       ],
       "view/title": [
@@ -233,6 +241,14 @@
         {
           "command": "qsharp-vscode.createProject",
           "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "qsharp-vscode.populateFilesList",
+          "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.addProjectReference",
+          "when": "resourceFilename == qsharp.json"
         }
       ]
     },
@@ -365,6 +381,16 @@
         "command": "qsharp-vscode.openPlayground",
         "category": "Q#",
         "title": "Open Q# playground"
+      },
+      {
+        "command": "qsharp-vscode.populateFilesList",
+        "category": "Q#",
+        "title": "Populate qsharp.json files list"
+      },
+      {
+        "command": "qsharp-vscode.addProjectReference",
+        "category": "Q#",
+        "title": "Add Q# project reference"
       }
     ],
     "breakpoints": [

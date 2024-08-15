@@ -1,4 +1,4 @@
-We can recognize that the Hadamard gate changes states $\ket{0}$ and $\ket{1}$ to $\ket{+}$ and $\ket{-}$, respectively, and vice versa.
+You can recognize that the Hadamard gate changes states $\ket{0}$ and $\ket{1}$ to $\ket{+}$ and $\ket{-}$, respectively, and vice versa.
 
 As a reminder, the Hadamard gate is defined by the following matrix:
 
@@ -6,7 +6,7 @@ $$
 \frac{1}{\sqrt{2}}\begin{bmatrix}1 & 1 \\1 & -1\end{bmatrix}
 $$
 
-For example, we can work out $H\ket{1}$ as follows:
+For example, you can work out $H\ket{1}$ as follows:
 
 $$
 H\ket{1}=
@@ -17,7 +17,7 @@ H\ket{1}=
 \frac{1}{\sqrt{2}} \big(\ket{0} - \ket{1}\big) = \ket{-}
 $$
 
-Similarly, we can consider the effect of the Hadamard gate on the superposition state $\ket{\psi} = 0.6\ket{0} + 0.8\ket{1}$ (rounding the numbers to 4 decimal places):
+Similarly, you can consider the effect of the Hadamard gate on the superposition state $\ket{\psi} = 0.6\ket{0} + 0.8\ket{1}$ (rounding the numbers to 4 decimal places):
 
 $$
 H|\psi⟩ =

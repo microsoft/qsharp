@@ -241,7 +241,16 @@ export function Editor(props: {
     });
 
     editor.current = newEditor;
-    const srcModel = monaco.editor.createModel(props.code, "qsharp");
+    const srcModel =
+      monaco.editor.getModel(
+        monaco.Uri.parse(props.kataExercise?.id ?? "main.qs"),
+      ) ??
+      monaco.editor.createModel(
+        "",
+        "qsharp",
+        monaco.Uri.parse(props.kataExercise?.id ?? "main.qs"),
+      );
+    srcModel.setValue(props.code);
     newEditor.setModel(srcModel);
     srcModel.onDidChangeContent(() => irRef.current());
 

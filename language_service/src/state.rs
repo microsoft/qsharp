@@ -69,7 +69,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             target_profile: Profile::Unrestricted,
-            package_type: PackageType::Exe,
+            package_type: PackageType::Lib,
             language_features: LanguageFeatures::default(),
             lints_config: Vec::default(),
         }
@@ -186,6 +186,13 @@ impl<'a> CompilationStateUpdater<'a> {
     ) -> Result<Option<Project>, Vec<project::Error>> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
+        self.load_manifest_from_dir(dir).await
+    }
+
+    async fn load_manifest_from_dir(
+        &self,
+        dir: Option<Arc<str>>,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
         if let Some(dir) = dir {
             let dir = PathBuf::from(dir.to_string());
             let res = self
@@ -303,7 +310,7 @@ impl<'a> CompilationStateUpdater<'a> {
         })
     }
 
-    pub(super) fn update_notebook_document<'b, I>(
+    pub(super) async fn update_notebook_document<'b, I>(
         &mut self,
         notebook_uri: &str,
         notebook_metadata: &NotebookMetadata,
@@ -313,6 +320,15 @@ impl<'a> CompilationStateUpdater<'a> {
     {
         let notebook_metadata = notebook_metadata.clone();
         let configuration = self.configuration.clone();
+
+        // Load the project from any provided project directory, ignoring errors if they occur. Those are reported by the interpreter
+        // in notebook environments.
+        let project = self
+            .load_manifest_from_dir(notebook_metadata.project_root.clone().map(Arc::from))
+            .await
+            .ok()
+            .flatten();
+
         self.with_state_mut(|state| {
             let compilation_uri: Arc<str> = notebook_uri.into();
             // First remove all previously known cells for this notebook
@@ -348,6 +364,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 configuration.target_profile,
                 configuration.language_features,
                 &configuration.lints_config,
+                project,
             );
 
             state.compilations.insert(
@@ -398,6 +415,12 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
+                        continue;
+                    }
+                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                        // Don't publish diagnostics for GitHub URIs.
+                        // This is temporary workaround to avoid spurious errors when a document
+                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 

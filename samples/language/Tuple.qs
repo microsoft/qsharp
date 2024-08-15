@@ -11,7 +11,7 @@
 namespace MyQuantumApp {
 
     @EntryPoint()
-    operation Main() : (Int, String) {
+    function Main() : (Int, String) {
         // A tuple of type `String`, `Int`, and `Double`
         let myTuple = ("Id", 0, 1.);
         Message($"Tuple: {myTuple}");

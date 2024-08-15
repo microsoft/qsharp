@@ -15,5 +15,6 @@ namespace MyQuantumApp {
         let particleB = Particle(1, 1, 1);
 
         let particleC = addParticles(particleA, particleB);
+        Message($"Particle C: Particle({particleC::x}, {particleC::y}, {particleC::z})")
     }
 }
