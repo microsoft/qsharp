@@ -18,7 +18,7 @@ This kata introduces you to complex arithmetic. This topic isn't particularly ex
 
 If you are curious to learn more, you can find more information at [Wikipedia](https://en.wikipedia.org/wiki/Complex_number).
 
-This kata has several tasks that require you to write Q# code to test your understanding of the concepts. It will introduce the necessary Q# language constructs as it goes.
+This kata has several tasks that require you to write Q# code to test your understanding of the concepts. The kata will introduce the necessary Q# language constructs as it goes.
 
 @[section]({
     "id": "complex_arithmetic__algebraic_perspective",
@@ -29,11 +29,11 @@ For some purposes, real numbers aren't enough. Probably the most famous example 
 
 $$x^{2} = -1$$
 
-This equation has no solution among real numbers. If, however, we abandon that constraint, we can do something interesting - we can define our own number. Let's say there exists some number that solves that equation. Let's call that number $i$.
+This equation has no solution among real numbers. But if you abandon that constraint, you can do something interesting - you can define your own number. Let's say there exists some number that solves that equation. Let's call that number $i$.
 
 $$i^2 = -1$$
 
-As we said before, $i$ can't be a real number. In that case, we'll call it an **imaginary unit**. However, there is no reason for us to define it as acting any different from any other number, other than the fact that $i^2 = -1$:
+As said before, the number $i$ can't be a real number. In that case, let's call it an **imaginary number**. However, there's no reason to define it as acting any different from any other number, other than the fact that $i^2 = -1$. This means that you can do all the same operations on $i$ that you can do on any other number. For example:
 
 $$i+i=2i$$
 
@@ -43,7 +43,7 @@ $$-1 \cdot i=-i$$
 
 $$(-i)^{2} = -1$$
 
-We'll call the number $i$ and its real multiples (numbers obtained by multiplying $i$ by a real number) **imaginary numbers**.
+The number $i$ and its real multiples (numbers obtained by multiplying $i$ by a real number) are called **imaginary numbers**.
 
 > A good video introduction to imaginary numbers can be found [here](https://youtu.be/SP-YJe7Vldo).
 
@@ -58,13 +58,19 @@ We'll call the number $i$ and its real multiples (numbers obtained by multiplyin
     "title": "Complex Numbers"
 })
 
+<<<<<<< HEAD
 Adding imaginary numbers to each other is quite simple, but what happens when we add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers:
+||||||| 5ae1f247
+Adding imaginary numbers to each other is quite simple, but what happens when we add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers: 
+=======
+Adding imaginary numbers to each other is quite simple, but what happens when you add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers: 
+>>>>>>> f02df412450902b5d4f346c56aba62e95ff3700b
 
 $$a+bi$$
 
 For example, $3+4i$ or $-5-7i$ are valid complex numbers. Note that purely real or purely imaginary numbers can also be written as complex numbers: $2$ is $2+0i$, and $-3i$ is $0-3i$.
 
-When performing operations on complex numbers, it is often helpful to treat them as polynomials in terms of $i$.
+When performing operations on complex numbers, it's often helpful to treat them as polynomials in terms of $i$.
 Let's see how to do the main arithmetic operations on complex numbers.
 
 > In Q#, complex numbers are represented as user-defined struct type `Complex` from the `Microsoft.Quantum.Math` namespace.
@@ -90,9 +96,9 @@ Let's see how to do the main arithmetic operations on complex numbers.
     "title": "Complex Conjugate"
 })
 
-Before we discuss any other operations on complex numbers, we have to cover the **complex conjugate**. The conjugate is a simple operation: given a complex number  $x = a + bi$, its complex conjugate is $\overline{x} = a - bi$.
+Before discussing any other operations on complex numbers, let's review the **complex conjugate**. The conjugate is a simple operation: given a complex number  $x = a + bi$, its complex conjugate is $\overline{x} = a - bi$.
 
-The conjugate allows us to do some interesting things. The first and probably most important is multiplying a complex number by its conjugate:
+The conjugate allows you to do some interesting things. The first and probably most important is multiplying a complex number by its conjugate:
 
 $$x \cdot \overline{x} = (a + bi)(a - bi)$$
 
@@ -124,11 +130,11 @@ Let's expand $x$ and $y$ into their component forms:
 
 $$\frac{x}{y} = \frac{a + bi}{c + di}$$
 
-Unfortunately, it isn't very clear what it means to divide by a complex number. We need some way to move either all real parts or all imaginary parts into the numerator. And thanks to the conjugate, we can do just that. Using the fact that any number (except $0$) divided by itself equals $1$, and any number multiplied by $1$ equals itself, we get:
+Unfortunately, it isn't very clear what it means to divide by a complex number. You need some way to move either all real parts or all imaginary parts into the numerator. And thanks to the conjugate, you can do just that. Using the fact that any number (except $0$) divided by itself equals $1$, and any number multiplied by $1$ equals itself, you get:
 
 $$\frac{x}{y} = \frac{x}{y} \cdot 1 = \frac{x}{y} \cdot \frac{\overline{y}}{\overline{y}} = \frac{x\overline{y}}{y\overline{y}} = \frac{(a + bi)(c - di)}{(c + di)(c - di)} = \frac{(a + bi)(c - di)}{c^2 + d^2}$$
 
-By doing this, we re-wrote our division problem to have a complex multiplication expression in the numerator, and a real number in the denominator. We already know how to multiply complex numbers, and dividing a complex number by a real number is as simple as dividing both parts of the complex number separately:
+By doing this, you re-wrote your division problem to have a complex multiplication expression in the numerator, and a real number in the denominator. You already know how to multiply complex numbers, and dividing a complex number by a real number is as simple as dividing both parts of the complex number separately:
 
 $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 
@@ -143,11 +149,11 @@ $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
     "title": "Geometric Perspective: the Complex Plane"
 })
 
-You may recall that real numbers can be represented geometrically using the number line - a line on which each point represents a real number. We can extend this representation to include imaginary and complex numbers, which gives rise to an entirely different number line: the imaginary number line, which is orthogonal to the real number line and only intersects with it at $0$.
+You may recall that real numbers can be represented geometrically using the number line - a line on which each point represents a real number. You can extend this representation to include imaginary and complex numbers, which gives rise to an entirely different number line: the imaginary number line, which is orthogonal to the real number line and only intersects with it at $0$.
 
-A complex number has two components - a real component and an imaginary component. As you no doubt noticed from the exercises, these can be represented by two real numbers - the real component, and the real coefficient of the imaginary component. This allows us to map complex numbers onto a two-dimensional plane - the **complex plane**. The most common mapping is the obvious one: $a+bi$ can be represented by the point $(a,b)$ in the **Cartesian coordinate system**.
+A complex number has two components - a real component and an imaginary component. As you no doubt noticed from the exercises, these can be represented by two real numbers - the real component, and the real coefficient of the imaginary component. This allows you to map complex numbers onto a two-dimensional plane - the **complex plane**. The most common mapping is the obvious one: $a+bi$ can be represented by the point $(a,b)$ in the **Cartesian coordinate system**.
 
-This mapping allows us to apply complex arithmetic to geometry, and, more importantly, apply geometric concepts to complex numbers. Many properties of complex numbers become easier to understand when viewed through a geometric lens.
+This mapping allows you to apply complex arithmetic to geometry, and, more importantly, apply geometric concepts to complex numbers. Many properties of complex numbers become easier to understand when viewed through a geometric lens.
 
 ## Modulus
 
@@ -178,7 +184,7 @@ $$|x + y| \leq |x| + |y|$$
     "title": "Imaginary Exponents"
 })
 
-The next complex operation we're going to need is exponentiation. Raising an imaginary number to an integer power is a fairly simple task, but raising a number to an imaginary power, or raising an imaginary (or complex) number to a real power isn't quite as simple.
+The next complex operation is **exponentiation**. Raising an imaginary number to an integer power is a fairly simple task, but raising a number to an imaginary power, or raising an imaginary (or complex) number to a real power isn't quite as simple.
 
 Let's start with raising real numbers to imaginary powers. Specifically, let's start with a rather special real number - Euler's constant, $e$:
 
@@ -186,7 +192,7 @@ $$e^{i\theta} = \cos \theta + i\sin \theta$$
 
 Here and later in this tutorial $\theta$ is measured in radians.
 
-> Explaining why that happens is somewhat beyond the scope of this tutorial, as it requires some calculus, so we won't do that here. If you are curious, you can see [this video](https://youtu.be/v0YEaeIClKY) for a beautiful intuitive explanation, or [this Wikipedia article](https://en.wikipedia.org/wiki/Complex_number) for a more mathematically rigorous proof.
+> Explaining why that happens is beyond the scope of this tutorial. If you are curious, you can see [this video](https://youtu.be/v0YEaeIClKY) for a beautiful intuitive explanation, or [this Wikipedia article](https://en.wikipedia.org/wiki/Complex_number) for a more mathematically rigorous proof.
 
 Here are some examples of this formula in action:
 
@@ -198,14 +204,22 @@ $$e^{2i\pi} = 1$$
 > One interesting consequence of this is Euler's identity:
 >
 > $$e^{i\pi} + 1 = 0$$
+<<<<<<< HEAD
 >
 > While this doesn't have any notable uses, it is still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
+||||||| 5ae1f247
+> 
+> While this doesn't have any notable uses, it is still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
+=======
+> 
+> While this doesn't have any notable uses, it's still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
+>>>>>>> f02df412450902b5d4f346c56aba62e95ff3700b
 
-We can also calculate complex powers of $e$ as follows:
+You can also calculate complex powers of $e$ as follows:
 
 $$e^{a + bi} = e^a \cdot e^{bi}$$
 
-Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$, we can use this to find complex powers of any positive real number.
+Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$, you can use this to find complex powers of any positive real number.
 
 @[exercise]({
     "id": "complex_arithmetic__complex_exponents_exercise",
@@ -224,11 +238,11 @@ Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$
     "title": "Polar Coordinates"
 })
 
-Consider the expression  $e^{i\theta} = \cos\theta + i\sin\theta$. Notice that if we map this number onto the complex plane, it will land on a **unit circle** around $0 + 0i$. This means that its modulus is always $1$. You can also verify this algebraically: $\cos^2\theta + \sin^2\theta = 1$.
+Consider the expression  $e^{i\theta} = \cos\theta + i\sin\theta$. Notice that if you map this number onto the complex plane, it'll land on a **unit circle** around $0 + 0i$. This means that its modulus is always $1$. You can also verify this algebraically: $\cos^2\theta + \sin^2\theta = 1$.
 
-Using this fact we can represent complex numbers using **polar coordinates**. In a polar coordinate system, a point is represented by two numbers: its direction from origin, represented by an angle from the $x$ axis, and how far away it is in that direction.
+Using this fact you can represent complex numbers using **polar coordinates**. In a polar coordinate system, a point is represented by two numbers: its direction from origin, represented by an angle from the $x$ axis, and how far away it is in that direction.
 
-Another way to think about this is that we're taking a point that is $1$ unit away (which is on the unit circle) in the specified direction, and multiplying it by the desired distance. And to get the point on the unit circle, we can use $e^{i\theta}$.
+Another way to think about this is that you're taking a point that is $1$ unit away (which is on the unit circle) in the specified direction, and multiplying it by the desired distance. And to get the point on the unit circle, you can use $e^{i\theta}$.
 
 A complex number of the format $r \cdot e^{i\theta}$ will be represented by a point which is $r$ units away from the origin, in the direction specified by the angle $\theta$.
 Sometimes $\theta$ will be referred to as the number's **argument** or **phase**.

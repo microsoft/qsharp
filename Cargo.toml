@@ -77,7 +77,7 @@ tokio = { version = "1.35", features = ["macros", "rt"] }
 
 [workspace.lints.clippy]
 mod_module_files = "warn"
-pedantic = "warn"
+pedantic = { level = "warn", priority = -1 }
 unwrap_used = "warn"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"

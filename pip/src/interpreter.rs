@@ -194,7 +194,7 @@ impl Interpreter {
     fn run(
         &mut self,
         py: Python,
-        entry_expr: &str,
+        entry_expr: Option<&str>,
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };

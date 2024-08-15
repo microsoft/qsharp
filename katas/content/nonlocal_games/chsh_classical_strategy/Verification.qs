@@ -6,8 +6,8 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         mutable wins = 0;
         for i in 1..1000 {
-            let x = DrawRandomInt(0, 1) == 1 ? true | false;
-            let y = DrawRandomInt(0, 1) == 1 ? true | false;
+            let x = DrawRandomBool(0.5);
+            let y = DrawRandomBool(0.5);
             let (a, b) = (Kata.AliceClassical(x), Kata.BobClassical(y));
             if ((x and y) == (a != b)) {
                 set wins = wins + 1;

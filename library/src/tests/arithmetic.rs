@@ -69,7 +69,7 @@ fn check_reflect_about_integer() {
 // IncByLE
 //
 
-const INC_BY_LE_TEST_LIB: &str = include_str!("resources/inc_by_le.qs");
+const INC_BY_LE_TEST_LIB: &str = include_str!("resources/src/inc_by_le.qs");
 
 #[test]
 fn check_inc_by_le_exhaustive_bitwidth_1() {
@@ -635,7 +635,7 @@ fn check_ripple_carry_cg_inc_by_l_general() {
 // AddLE
 //
 
-const ADD_LE_TEST_LIB: &str = include_str!("resources/add_le.qs");
+const ADD_LE_TEST_LIB: &str = include_str!("resources/src/add_le.qs");
 
 #[test]
 fn check_add_le_exhaustive_bitwidth_1() {
@@ -836,7 +836,7 @@ fn check_lookahead_dkrs_add_le_general() {
     );
 }
 
-const COMPARE_TEST_LIB: &str = include_str!("resources/compare.qs");
+const COMPARE_TEST_LIB: &str = include_str!("resources/src/compare.qs");
 
 #[test]
 fn check_apply_if_less_l_exhaustive() {

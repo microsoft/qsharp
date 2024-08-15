@@ -6,7 +6,7 @@ $$i^4 = i^2 \cdot i^2 = (-1) \cdot (-1) = 1$$
 Thus, when the exponent $n$ is divisible by 4, $i^n$ will always be 1.
 
 When the exponent $n$ is not divisible by 4, you can use the previous observation to see that $i^n = i^{n \mod 4}$.
-For an even exponent $n$ that is not divisible by 4 you'll have $i^n = i^2 = -1.$
+For an even exponent $n$ that isn't divisible by 4 you'll have $i^n = i^2 = -1.$
 
 Here is the complete pattern that arises when raising $i$ to non-negative powers. Note that it is periodic with period $4$.
 

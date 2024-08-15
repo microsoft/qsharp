@@ -372,7 +372,7 @@ impl Compiler {
         let offset = sources.push(source_name.into(), source_contents.into());
 
         let mut offsetter = Offsetter(offset);
-        for node in package.nodes.iter_mut() {
+        for node in &mut *package.nodes {
             match node {
                 ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
                 ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),

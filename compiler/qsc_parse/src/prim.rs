@@ -39,7 +39,11 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(Error(ErrorKind::Token(t, s.peek().kind, s.peek().span)))
+        Err(Error::new(ErrorKind::Token(
+            t,
+            s.peek().kind,
+            s.peek().span,
+        )))
     }
 }
 
@@ -54,7 +58,7 @@ pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
             name,
         }))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "generic parameter",
             peek.kind,
             peek.span,
@@ -73,7 +77,11 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
             name,
         }))
     } else {
-        Err(Error(ErrorKind::Rule("identifier", peek.kind, peek.span)))
+        Err(Error::new(ErrorKind::Rule(
+            "identifier",
+            peek.kind,
+            peek.span,
+        )))
     }
 }
 
@@ -187,7 +195,7 @@ where
     while s.peek().kind == TokenKind::Comma {
         let mut span = s.peek().span;
         span.hi = span.lo;
-        s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+        s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
         xs.push(T::default().with_span(span));
         s.advance();
     }
@@ -197,7 +205,7 @@ where
             while s.peek().kind == TokenKind::Comma {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
-                s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+                s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
                 xs.push(T::default().with_span(span));
                 s.advance();
             }
@@ -262,7 +270,7 @@ fn advanced(s: &ParserContext, from: u32) -> bool {
 }
 
 fn map_rule_name(name: &'static str, error: Error) -> Error {
-    Error(match error.0 {
+    Error::new(match error.0 {
         ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
         ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
         kind => kind,

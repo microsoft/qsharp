@@ -206,6 +206,9 @@ def run(
     """
     ipython_helper()
 
+    if shots < 1:
+        raise QSharpError("The number of shots must be greater than 0.")
+
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
@@ -215,7 +218,7 @@ def run(
         # Append the output to the last shot's output list
         results[-1]["events"].append(output)
 
-    for _ in range(shots):
+    for shot in range(shots):
         results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
             entry_expr, on_save_events if save_events else print_output
@@ -223,6 +226,10 @@ def run(
         results[-1]["result"] = run_results
         if on_result:
             on_result(results[-1])
+        # For every shot after the first, treat the entry expression as None to trigger
+        # a rerun of the last executed expression without paying the cost for any additional
+        # compilation.
+        entry_expr = None
 
     if save_events:
         return results
@@ -418,6 +425,12 @@ class StateDump:
                 # within tolerance, so the equivalence check fails.
                 return False
         return True
+
+    def as_dense_state(self) -> List[complex]:
+        """
+        Returns the state dump as a dense list of complex amplitudes. This will include zero amplitudes.
+        """
+        return [self.__inner.get(i, complex(0)) for i in range(2**self.qubit_count)]
 
 
 def dump_machine() -> StateDump:

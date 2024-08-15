@@ -166,7 +166,22 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     } else if token(s, TokenKind::Keyword(Keyword::Fail)).is_ok() {
         Ok(Box::new(ExprKind::Fail(expr(s)?)))
     } else if token(s, TokenKind::Keyword(Keyword::For)).is_ok() {
-        let vars = pat(s)?;
+        let peeked = s.peek();
+        let vars = match pat(s) {
+            Ok(o) => o,
+            Err(e) => {
+                if let (
+                    TokenKind::Open(Delim::Paren),
+                    ErrorKind::Token(_, TokenKind::Keyword(Keyword::In), _),
+                ) = (peeked.kind, &e.0)
+                {
+                    return Err(
+                        e.with_help("parenthesis are not permitted around for-loop iterations")
+                    );
+                }
+                return Err(e);
+            }
+        };
         token(s, TokenKind::Keyword(Keyword::In))?;
         let iter = expr(s)?;
         let body = stmt::parse_block(s)?;
@@ -209,7 +224,7 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     } else if let Some(p) = opt(s, single_ident_path)? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "expression",
             s.peek().kind,
             s.peek().span,
@@ -294,7 +309,7 @@ fn expr_set(s: &mut ParserContext) -> Result<Box<ExprKind>> {
         let rhs = expr(s)?;
         Ok(Box::new(ExprKind::AssignOp(closed_bin_op(op), lhs, rhs)))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "assignment operator",
             s.peek().kind,
             s.peek().span,
@@ -355,7 +370,7 @@ fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
     let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind
     else {
-        return Err(Error(ErrorKind::Rule(
+        return Err(Error::new(ErrorKind::Rule(
             "interpolated string",
             token.kind,
             token.span,
@@ -376,7 +391,7 @@ fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
             token.kind
         else {
-            return Err(Error(ErrorKind::Rule(
+            return Err(Error::new(ErrorKind::Rule(
                 "interpolated string",
                 token.kind,
                 token.span,
@@ -419,20 +434,20 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
             let value = BigInt::from_str_radix(lexeme, radix.into())
-                .map_err(|_| Error(ErrorKind::Lit("big-integer", token.span)))?;
+                .map_err(|_| Error::new(ErrorKind::Lit("big-integer", token.span)))?;
             Ok(Some(Lit::BigInt(Box::new(value))))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
             let value = lexeme
                 .parse()
-                .map_err(|_| Error(ErrorKind::Lit("floating-point", token.span)))?;
+                .map_err(|_| Error::new(ErrorKind::Lit("floating-point", token.span)))?;
             Ok(Some(Lit::Double(value)))
         }
         TokenKind::Int(radix) => {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let value = lit_int(&lexeme[offset..], radix.into())
-                .ok_or(Error(ErrorKind::Lit("integer", token.span)))?;
+                .ok_or(Error::new(ErrorKind::Lit("integer", token.span)))?;
             Ok(Some(Lit::Int(value)))
         }
         TokenKind::String(StringToken::Normal) => {
@@ -445,7 +460,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 let index: u32 = index.try_into().expect("index should fit into u32");
                 let lo = token.span.lo + index + 2;
                 let span = Span { lo, hi: lo + 1 };
-                Error(ErrorKind::Escape(ch, span))
+                Error::new(ErrorKind::Escape(ch, span))
             })?;
             Ok(Some(Lit::String(string.into())))
         }
@@ -759,7 +774,7 @@ fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
                 .collect::<Result<_>>()?;
             Ok(PatKind::Tuple(pats))
         }
-        _ => Err(Error(ErrorKind::Convert(
+        _ => Err(Error::new(ErrorKind::Convert(
             "pattern",
             "expression",
             expr.span,

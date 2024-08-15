@@ -248,7 +248,7 @@ pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
 }
 
 pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
-    for ref mut ident in ident.0.iter_mut() {
+    for ref mut ident in &mut *ident.0 {
         vis.visit_ident(ident);
     }
 }
