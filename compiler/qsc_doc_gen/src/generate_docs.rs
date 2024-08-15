@@ -28,6 +28,8 @@ struct Compilation {
     package_store: PackageStore,
     /// Current package id when provided.
     current_package_id: Option<PackageId>,
+    /// Aliases for packages.
+    package_aliases: FxHashMap<PackageId, Arc<str>>,
 }
 
 impl Compilation {
@@ -42,6 +44,8 @@ impl Compilation {
         let actual_language_features = language_features.unwrap_or_default();
 
         let mut current_package_id: Option<PackageId> = None;
+        let mut package_aliases: FxHashMap<PackageId, Arc<str>> = FxHashMap::default();
+
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
                 let unit = compile(
@@ -55,6 +59,12 @@ impl Compilation {
                 // documentation we can produce. In future we may consider
                 // displaying the fact of error presence on documentation page.
 
+                for (package_id, package_alias) in dependencies {
+                    if let Some(package_alias) = package_alias {
+                        package_aliases.insert(*package_id, package_alias.clone());
+                    }
+                }
+
                 current_package_id = Some(package_store.insert(unit));
                 package_store
             } else {
@@ -67,6 +77,7 @@ impl Compilation {
         Self {
             package_store,
             current_package_id,
+            package_aliases,
         }
     }
 }
@@ -156,10 +167,28 @@ pub fn generate_docs(
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
     for (package_id, unit) in &compilation.package_store {
         let package = &unit.package;
+        // The below is not actually enforced by the compiler,
+        // but it is currently the case as long as you're compiling with stdlib
+        let package_kind = match Into::<usize>::into(package_id) {
+            0 => PackageKind::Core,
+            1 => PackageKind::StandardLibrary,
+            2 => PackageKind::UserCode,
+            _ => PackageKind::AliasedPackage(
+                compilation
+                    .package_aliases
+                    .get(&package_id)
+                    .expect("Non-stdlib dependency did not have alias")
+                    .to_string(),
+            ),
+        };
+        // let package_alias = match compilation.package_aliases.get(&package_id) {
+        //     Some(Some(alias)) => alias.to_string(),
+        //     _ => String::default(),
+        // };
         for (_, item) in &package.items {
             if let Some((ns, line)) = generate_doc_for_item(
                 package,
-                &package_id.to_string(),
+                package_kind.clone(),
                 compilation.current_package_id == Some(package_id),
                 item,
                 display,
@@ -178,18 +207,12 @@ pub fn generate_docs(
     // items with a namespace should be also sorted alphabetically.
     // Also, items without any metadata should come last
     // TODO: Implement properly
-    files.sort_unstable_by(|a, b| {
-        let package_compare = a.0.package.cmp(&b.0.package);
-        if package_compare == std::cmp::Ordering::Equal {
-            let namespace_compare = a.0.namespace.cmp(&b.0.namespace);
-            if namespace_compare == std::cmp::Ordering::Equal {
-                a.0.name.cmp(&b.0.name)
-            } else {
-                namespace_compare
-            }
-        } else {
-            package_compare.reverse()
-        }
+    files.sort_by_key(|file| {
+        (
+            file.0.package.clone(),
+            file.0.namespace.clone(),
+            file.0.name.clone(),
+        )
     });
 
     let mut result: Files = files
@@ -204,7 +227,7 @@ pub fn generate_docs(
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
-    package_name: &str,
+    package_kind: PackageKind,
     include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
@@ -222,7 +245,7 @@ fn generate_doc_for_item<'a>(
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (metadata, content) = generate_file(package_name, &ns, item, display)?;
+    let (metadata, content) = generate_file(package_kind, &ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
@@ -260,12 +283,12 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
 }
 
 fn generate_file(
-    package_name: &str,
+    package_kind: PackageKind,
     ns: &Rc<str>,
     item: &Item,
     display: &CodeDisplay,
 ) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(package_name, ns.clone(), item, display)?;
+    let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -296,11 +319,48 @@ struct Metadata {
     title: String,
     topic: String,
     kind: MetadataKind,
-    package: String,
+    package: PackageKind,
     namespace: Rc<str>,
     name: Rc<str>,
     summary: String,
     signature: String,
+}
+
+impl Metadata {
+    fn fully_qualified_name(&self) -> String {
+        let mut buf = if let PackageKind::AliasedPackage(ref package_alias) = self.package {
+            vec![format!("{package_alias}")]
+        } else {
+            vec![]
+        };
+
+        buf.push(self.namespace.to_string());
+        buf.push(self.name.to_string());
+        buf.join(".")
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
+enum PackageKind {
+    UserCode,
+    AliasedPackage(String),
+    StandardLibrary,
+    Core,
+}
+
+impl Display for PackageKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PackageKind::UserCode => "",
+                PackageKind::AliasedPackage(name) => name,
+                PackageKind::StandardLibrary => "Std",
+                PackageKind::Core => "Core",
+            }
+        )
+    }
 }
 
 impl Display for Metadata {
@@ -344,7 +404,7 @@ enum MetadataKind {
 }
 
 fn get_metadata(
-    package_name: &str,
+    package_kind: PackageKind,
     ns: Rc<str>,
     item: &Item,
     display: &CodeDisplay,
@@ -386,7 +446,7 @@ fn get_metadata(
         },
         topic: "managed-reference".to_string(),
         kind,
-        package: String::from(package_name),
+        package: package_kind,
         namespace: ns,
         name,
         summary,
