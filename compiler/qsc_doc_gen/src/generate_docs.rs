@@ -172,19 +172,15 @@ pub fn generate_docs(
         let package_kind = match Into::<usize>::into(package_id) {
             0 => PackageKind::Core,
             1 => PackageKind::StandardLibrary,
-            2 => PackageKind::UserCode,
-            _ => PackageKind::AliasedPackage(
-                compilation
-                    .package_aliases
-                    .get(&package_id)
-                    .expect("Non-stdlib dependency did not have alias")
-                    .to_string(),
-            ),
+            _ => {
+                if let Some(package_alias) = compilation.package_aliases.get(&package_id) {
+                    PackageKind::AliasedPackage(package_alias.to_string())
+                } else {
+                    PackageKind::UserCode
+                }
+            }
         };
-        // let package_alias = match compilation.package_aliases.get(&package_id) {
-        //     Some(Some(alias)) => alias.to_string(),
-        //     _ => String::default(),
-        // };
+
         for (_, item) in &package.items {
             if let Some((ns, line)) = generate_doc_for_item(
                 package,
@@ -206,7 +202,6 @@ pub fn generate_docs(
     // Namespaces within packages should be sorted alphabetically and
     // items with a namespace should be also sorted alphabetically.
     // Also, items without any metadata should come last
-    // TODO: Implement properly
     files.sort_by_key(|file| {
         (
             file.0.package.clone(),
@@ -292,12 +287,13 @@ fn generate_file(
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
+    let full_name = metadata.fully_qualified_name();
     let sig = &metadata.signature;
 
     let content = format!(
         "# {title}
 
-**Namespace:** {ns}
+**Fully qualified name:** {full_name}
 
 ```qsharp
 {sig}
