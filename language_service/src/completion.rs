@@ -716,7 +716,7 @@ impl Visitor<'_> for ContextFinder {
 
 #[allow(clippy::too_many_arguments)]
 fn package_item_to_completion_item(
-    i: &qsc::hir::Item,
+    item: &qsc::hir::Item,
     package: &qsc::hir::Package,
     is_user_package: bool,
     current_namespace_name: Option<&[Rc<str>]>,
@@ -727,16 +727,16 @@ fn package_item_to_completion_item(
     indent: &String,
 ) -> Option<(CompletionItem, SortPriority)> {
     // We only want items whose parents are namespaces
-    if let Some(item_id) = i.parent {
+    if let Some(item_id) = item.parent {
         if let Some(parent) = package.items.get(item_id) {
             if let ItemKind::Namespace(callable_namespace, _) = &parent.kind {
                 // filter out internal packages that are not from the user's
                 // compilation
-                if matches!(i.visibility, Visibility::Internal) && !is_user_package {
+                if matches!(item.visibility, Visibility::Internal) && !is_user_package {
                     return None; // ignore item if not in the user's package
                 }
 
-                match &i.kind {
+                match &item.kind {
                     ItemKind::Callable(callable_decl) => {
                         return callable_decl_to_completion_item(
                             callable_decl,
