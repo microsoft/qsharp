@@ -117,6 +117,16 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] PackageSpan),
 
+    #[error("qubits already counted")]
+    #[diagnostic(help("counting for qubits must be stopped before it can be started again"))]
+    #[diagnostic(code("Qsc.Eval.QubitsAlreadyCounted"))]
+    QubitsAlreadyCounted(#[label] PackageSpan),
+
+    #[error("qubits not counted")]
+    #[diagnostic(help("counting for qubits must be started before it can be stopped"))]
+    #[diagnostic(code("Qsc.Eval.QubitsNotCounted"))]
+    QubitsNotCounted(#[label] PackageSpan),
+
     #[error("qubits are not separable")]
     #[diagnostic(help("subset of qubits provided as arguments must not be entangled with any qubits outside of the subset"))]
     #[diagnostic(code("Qsc.Eval.QubitsNotSeparable"))]
@@ -174,6 +184,8 @@ impl Error {
             | Error::InvalidNegativeInt(_, span)
             | Error::OutputFail(span)
             | Error::QubitUniqueness(span)
+            | Error::QubitsAlreadyCounted(span)
+            | Error::QubitsNotCounted(span)
             | Error::QubitsNotSeparable(span)
             | Error::RangeStepZero(span)
             | Error::ReleasedQubitNotZero(_, span)
@@ -463,6 +475,7 @@ pub struct State {
     current_span: Span,
     rng: RefCell<StdRng>,
     call_counts: FxHashMap<CallableCountKey, i64>,
+    qubit_counter: Option<QubitCounter>,
 }
 
 impl State {
@@ -484,6 +497,7 @@ impl State {
             current_span: Span::default(),
             rng,
             call_counts: FxHashMap::default(),
+            qubit_counter: None,
         }
     }
 
@@ -1010,6 +1024,14 @@ impl State {
                         callee_span,
                     ));
                 }
+
+                // If qubit counting is enabled, update the qubit counter when the intrinsic for allocation is called.
+                if let (Some(counter), "__quantum__rt__qubit_allocate", Value::Qubit(q)) =
+                    (&mut self.qubit_counter, name.as_ref(), &val)
+                {
+                    counter.allocated(q.0);
+                }
+
                 self.set_val_register(val);
                 self.leave_frame();
                 Ok(())
@@ -1468,25 +1490,42 @@ impl State {
     }
 
     fn counting_call(&mut self, name: &str, arg: Value, span: PackageSpan) -> Result<Value, Error> {
-        let callable = if let Value::Closure(closure) = arg {
-            make_counting_key(closure.id, closure.functor)
-        } else {
-            let callable = arg.unwrap_global();
-            make_counting_key(callable.0, callable.1)
+        let counting_key = |arg: Value| match arg {
+            Value::Closure(closure) => make_counting_key(closure.id, closure.functor),
+            Value::Global(id, functor) => make_counting_key(id, functor),
+            _ => panic!("value should be callable"),
         };
         match name {
             "StartCountingOperation" | "StartCountingFunction" => {
-                if self.call_counts.insert(callable, 0).is_some() {
+                if self.call_counts.insert(counting_key(arg), 0).is_some() {
                     Err(Error::CallableAlreadyCounted(span))
                 } else {
                     Ok(Value::unit())
                 }
             }
             "StopCountingOperation" | "StopCountingFunction" => {
-                if let Some(count) = self.call_counts.remove(&callable) {
+                if let Some(count) = self.call_counts.remove(&counting_key(arg)) {
                     Ok(Value::Int(count))
                 } else {
                     Err(Error::CallableNotCounted(span))
+                }
+            }
+            "StartCountingQubits" => {
+                if self
+                    .qubit_counter
+                    .replace(QubitCounter::default())
+                    .is_some()
+                {
+                    Err(Error::QubitsAlreadyCounted(span))
+                } else {
+                    Ok(Value::unit())
+                }
+            }
+            "StopCountingQubits" => {
+                if let Some(qubit_counter) = self.qubit_counter.take() {
+                    Ok(Value::Int(qubit_counter.into_count()))
+                } else {
+                    Err(Error::QubitsNotCounted(span))
                 }
             }
             _ => panic!("unknown counting call"),
@@ -1998,9 +2037,29 @@ fn is_counting_call(name: &str) -> bool {
             | "StopCountingOperation"
             | "StartCountingFunction"
             | "StopCountingFunction"
+            | "StartCountingQubits"
+            | "StopCountingQubits"
     )
 }
 
 fn make_counting_key(id: StoreItemId, functor: FunctorApp) -> CallableCountKey {
     (id, functor.adjoint, functor.controlled > 0)
+}
+
+#[derive(Default)]
+struct QubitCounter {
+    seen: FxHashSet<usize>,
+    count: i64,
+}
+
+impl QubitCounter {
+    fn allocated(&mut self, qubit: usize) {
+        if self.seen.insert(qubit) {
+            self.count += 1;
+        }
+    }
+
+    fn into_count(self) -> i64 {
+        self.count
+    }
 }

@@ -170,3 +170,125 @@ fn check_start_stop_counting_function_called_0_times() {
         &Value::Tuple([Value::Int(0), Value::Int(0)].into()),
     );
 }
+
+#[test]
+fn check_start_counting_qubits_for_one_allocation() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+
+            StartCountingQubits();
+            use q = Qubit();
+            StopCountingQubits()
+        }",
+        &Value::Int(1),
+    );
+}
+
+#[test]
+fn check_start_counting_qubits_for_tuple_allocation() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+
+            StartCountingQubits();
+            use (q0, q1) = (Qubit(), Qubit());
+            StopCountingQubits()
+        }",
+        &Value::Int(2),
+    );
+}
+
+#[test]
+fn check_start_counting_qubits_for_array_allocation() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+
+            StartCountingQubits();
+            use qs = Qubit[2];
+            StopCountingQubits()
+        }",
+        &Value::Int(2),
+    );
+}
+
+#[test]
+fn check_start_counting_qubits_after_allocation_gives_zero() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+
+            use q = Qubit();
+            StartCountingQubits();
+            StopCountingQubits()
+        }",
+        &Value::Int(0),
+    );
+}
+
+#[test]
+fn check_start_counting_qubits_sees_same_qubit_as_single_count() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+
+            StartCountingQubits();
+            {
+                use q = Qubit();
+            }
+            {
+                use q = Qubit();
+            }
+            StopCountingQubits()
+        }",
+        &Value::Int(1),
+    );
+}
+
+#[test]
+fn check_start_counting_qubits_works_with_manual_out_of_order_allocation_release() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+            import QIR.Runtime.__quantum__rt__qubit_allocate;
+            import QIR.Runtime.__quantum__rt__qubit_release;
+
+            let (q0, q1, q2) = (__quantum__rt__qubit_allocate(), __quantum__rt__qubit_allocate(), __quantum__rt__qubit_allocate());
+            StartCountingQubits();
+            __quantum__rt__qubit_release(q2);
+            use q = Qubit();
+            __quantum__rt__qubit_release(q0);
+            __quantum__rt__qubit_release(q1);
+            use qs = Qubit[2];
+            StopCountingQubits()
+        }",
+        &Value::Int(3),
+    );
+}
+
+#[test]
+fn check_counting_qubits_works_with_allocation_in_operation_calls() {
+    test_expression(
+        "{
+            import Microsoft.Quantum.Diagnostics.StartCountingQubits;
+            import Microsoft.Quantum.Diagnostics.StopCountingQubits;
+            import Microsoft.Quantum.Diagnostics.CheckOperationsAreEqual;
+
+            StartCountingQubits();
+            let numQubits = 2;
+            let equal = CheckOperationsAreEqual(2,
+                qs => SWAP(qs[0], qs[1]),
+                qs => { CNOT(qs[0], qs[1]); CNOT(qs[1], qs[0]); CNOT(qs[0], qs[1]); }
+            );
+            (true, 2 * numQubits) == (equal, StopCountingQubits())
+        }",
+        &Value::Bool(true),
+    );
+}

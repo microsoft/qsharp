@@ -1550,3 +1550,26 @@ fn start_counting_function_called_twice_before_stop_fails() {
         &expect!["callable already counted"],
     );
 }
+
+#[test]
+fn stop_counting_qubits_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StopCountingQubits();
+        }"},
+        &expect!["qubits not counted"],
+    );
+}
+
+#[test]
+fn start_counting_qubits_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StartCountingQubits();
+            Std.Diagnostics.StartCountingQubits();
+        }"},
+        &expect!["qubits already counted"],
+    );
+}
