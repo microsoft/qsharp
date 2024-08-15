@@ -80,7 +80,7 @@ class DensityMatrix:
     performance reasons.
     """
 
-    def data(self) -> List[complex]:
+    def data(self) -> List[List[complex]]:
         """
         Returns a copy of the matrix data.
         """
