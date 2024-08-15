@@ -295,5 +295,42 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction;
+    /// # Summary
+    /// Starts counting the number of qubits allocated. Fails if qubits are already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of qubits allocated until `StopCountingQubits` is called.
+    /// The counter is incremented only when a new unique qubit is allocated, so reusing the same qubit multiple times
+    /// across separate allocations does not increment the counter.
+    ///
+    /// # Remarks
+    /// This operation is useful for tracking the number of unique qubits allocated in a given scope. Along with
+    /// `StopCountingQubits`, it can be used to verify that a given operation does not allocate more qubits than
+    /// expected. For example,
+    /// ```qsharp
+    /// StartCountingQubits();
+    /// testOperation();
+    /// let qubitsAllocated = StopCountingQubits();
+    /// Fact(qubitsAllocated <= 4, "Operation should not allocate more than 4 qubits.");
+    /// ```
+    @Config(Unrestricted)
+    operation StartCountingQubits() : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of qubits allocated and returns the count. Fails if the qubits were not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of qubits allocated and returns the count since the
+    /// last call to `StartCountingQubits`. If the qubits were not being counted, it triggers a runtime failure.
+    ///
+    /// # Output
+    /// The number of unique qubits allocated since the last call to `StartCountingQubits`.
+    @Config(Unrestricted)
+    operation StopCountingQubits() : Int {
+        body intrinsic;
+    }
+
+    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
 }
