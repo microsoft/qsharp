@@ -54,7 +54,7 @@ import
 /// # See Also
 /// - Unstable.StatePreparation.ApproximatelyPreparePureStateCP
 operation PreparePureStateD(coefficients : Double[], qubits : Qubit[]) : Unit is Adj + Ctl {
-    let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(new Complex { Real = a,  Imag = 0.0 }), coefficients);
+    let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(new Complex { Real = a, Imag = 0.0 }), coefficients);
     ApproximatelyPreparePureStateCP(0.0, coefficientsAsComplexPolar, qubits);
 }
 
