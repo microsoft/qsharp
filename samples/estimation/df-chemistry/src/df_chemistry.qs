@@ -127,11 +127,10 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         let NGarbageQubits = oneElectronOperator.NGarbageQubits + twoElectronOperator.NGarbageQubits;
 
-        new WalkStep
-         {
+        new WalkStep {
             NGarbageQubits = NGarbageQubits,
             StepOp = WalkStepOperation(problem, oneElectronOperator, twoElectronOperator, _, _, _, _)
-         }
+        }
     }
 
     internal operation WalkStepOperation(
@@ -178,7 +177,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let prepare = MakePrepareArbitrarySuperpositionWithData(constants.TargetError, eigenValues, data);
 
         new OneElectronOperator {
-          NGarbageQubits =  prepare.NGarbageQubits,
+            NGarbageQubits = prepare.NGarbageQubits,
             Apply = OneElectronOperatorOperation(eigenVectors, constants, prepare, _, _, _, _, _)
         }
     }
@@ -255,10 +254,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         let numGarbageQubits = lambdaPrepare.NGarbageQubits + oneElectronOperator.NGarbageQubits;
 
-       new TwoElectronOperator
-        { NGarbageQubits = numGarbageQubits, 
-        Apply = TwoElectronOperatorOperation(problem, lambdaPrepare, oneElectronOperator, _, _, _, _)
-        }
+        new TwoElectronOperator { NGarbageQubits = numGarbageQubits, Apply = TwoElectronOperatorOperation(problem, lambdaPrepare, oneElectronOperator, _, _, _, _) }
     }
 
     internal operation TwoElectronOperatorOperation(

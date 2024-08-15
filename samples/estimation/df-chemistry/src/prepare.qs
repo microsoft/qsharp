@@ -81,11 +81,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let op = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, data, Select, _, _, _);
         let opWithSelect = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, data, _, _, _, _);
         let (nIndexQubits, nGarbageQubits) = ArbitrarySuperpositionRegisterLengths(targetError, nCoeffs);
-        return 
-        new PrepareArbitrarySuperposition
-         { NIndexQubits = nIndexQubits, 
-         NGarbageQubits = nGarbageQubits + Length(data[0]),
-         Prepare =  op, PrepareWithSelect =  opWithSelect };
+        return new PrepareArbitrarySuperposition { NIndexQubits = nIndexQubits, NGarbageQubits = nGarbageQubits + Length(data[0]), Prepare = op, PrepareWithSelect = opWithSelect };
     }
 
     // -------------------------------------- //
