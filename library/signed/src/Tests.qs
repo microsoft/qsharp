@@ -1,21 +1,61 @@
-import Operations.Invert2sSI;
-import Measurement.MeasureSignedInteger;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 import Std.Diagnostics.Fact;
+import Operations.Invert2sSI;
+import Measurement.MeasureSignedInteger;
 
 /// This entrypoint runs tests for the signed integer library.
 operation Main() : Unit {
-    UnsignedTests();
-    SignedTests();
+    UnsignedOpTests();
+    MeasureSignedIntTests();
+    SignedOpTests();
 
 }
-operation SignedTests() : Unit {
+
+operation MeasureSignedIntTests() : Unit {
+    use a = Qubit[4];
+
+    // 0b0001 == 1
+    X(a[0]);
+    let res = MeasureSignedInteger(a, 4);
+    Fact(res == 1, $"Expected 1, received {res}");
+
+    // 0b1111 == -1
+    X(a[0]);
+    X(a[1]);
+    X(a[2]);
+    X(a[3]);
+    let res = MeasureSignedInteger(a, 4);
+    Fact(res == -1, $"Expected -1, received {res}");
+
+    // 0b01000 == 8
+    use a = Qubit[5];
+    X(a[3]);
+    let res = MeasureSignedInteger(a, 5);
+    Fact(res == 8, $"Expected 8, received {res}");
+
+    // 0b11110 == -2
+    X(a[1]);
+    X(a[2]);
+    X(a[3]);
+    X(a[4]);
+    let res = MeasureSignedInteger(a, 5);
+    Fact(res == -2, $"Expected -2, received {res}");
+
+    // 0b11000 == -8
+    X(a[3]);
+    X(a[4]);
+    let res = MeasureSignedInteger(a, 5);
+    Fact(res == -8, $"Expected -8, received {res}");
+
+}
+
+operation SignedOpTests() : Unit {
     use a = Qubit[32];
     use b = Qubit[32];
     use c = Qubit[64];
-    
+
     // 0b11111110 (-2 in twos complement) * 0b00000001 == 0b11111110 (-2)
     X(a[1]);
     Operations.Invert2sSI(a);
@@ -34,10 +74,10 @@ operation SignedTests() : Unit {
     X(a[1]);
     Operations.Invert2sSI(a);
     TestSignedIntOp((a, b, _) => Operations.SquareSI(a, c), a, b, c, 4);
-    
+
 }
 
-operation UnsignedTests() : Unit {
+operation UnsignedOpTests() : Unit {
     use a = Qubit[2];
     use b = Qubit[2];
     use c = Qubit[4];
@@ -104,7 +144,7 @@ operation TestIntOp(op : (Qubit[], Qubit[], Qubit[]) => Unit, a : Qubit[], b : Q
 
 operation TestSignedIntOp(op : (Qubit[], Qubit[], Qubit[]) => Unit, a : Qubit[], b : Qubit[], c : Qubit[], expect : Int) : Unit {
     op(a, b, c);
-    let res = MeasureSignedInteger(c);
+    let res = MeasureSignedInteger(c, 64);
     Fact(res == expect, $"Expected {expect}, got {res}");
     ResetAll(a + b + c);
 }
