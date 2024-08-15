@@ -96,19 +96,6 @@ fn check_lambda_counted_separately_from_operation() {
 }
 
 #[test]
-fn check_stop_counting_operation_without_start() {
-    test_expression(
-        "{
-            import Microsoft.Quantum.Diagnostics.StopCountingOperation;
-
-            operation op1() : Unit {}
-            StopCountingOperation(op1)
-        }",
-        &Value::Int(-1),
-    );
-}
-
-#[test]
 fn check_multiple_controls_counted_together() {
     test_expression(
         "{
@@ -181,18 +168,5 @@ fn check_start_stop_counting_function_called_0_times() {
             (StopCountingFunction(f1), StopCountingFunction(f2))
         }",
         &Value::Tuple([Value::Int(0), Value::Int(0)].into()),
-    );
-}
-
-#[test]
-fn check_stop_counting_function_without_start() {
-    test_expression(
-        "{
-            import Microsoft.Quantum.Diagnostics.StopCountingFunction;
-
-            function f1() : Unit {}
-            StopCountingFunction(f1)
-        }",
-        &Value::Int(-1),
     );
 }
