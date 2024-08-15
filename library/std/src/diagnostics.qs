@@ -153,9 +153,9 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Starts counting the number of times the given operation is called. Fails if the operation is already being counted.
     ///
     /// # Description
-    /// This operation allows you to count the number of times a given operation is called. As part of
-    /// starting the counting, the counter is reset to zero, which may override existing counts for the same operation.
-    /// Counting is based on the specific specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
+    /// This operation allows you to count the number of times a given operation is called. If the given operation is already
+    /// being counted, calling `StartCountingOperation` again will trigger a runtime failure. Counting is based on the specific
+    /// specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
     /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately, as are `Controlled X`
     /// and `Controlled Adjoint X`.
     ///
@@ -208,8 +208,8 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Starts counting the number of times the given function is called. Fails if the function is already being counted.
     ///
     /// # Description
-    /// This operation allows you to count the number of times a given function is called. As part of
-    /// starting the counting, the counter is reset to zero, which may override existing counts for the same function.
+    /// This operation allows you to count the number of times a given function is called. If the given function is already
+    /// being counted, calling `StartCountingFunction` again will trigger a runtime failure.
     ///
     /// # Input
     /// ## callable
