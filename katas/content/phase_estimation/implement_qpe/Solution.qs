@@ -10,7 +10,7 @@ namespace Kata {
         for k in 0 .. n - 1 {
             for _ in 1 .. 1 <<< k {
                 Controlled U([phaseRegister[k]], eigenstate);
-            }        
+            }
         }
         SwapReverseRegister(phaseRegister);
         Adjoint ApplyQFT(phaseRegister);
