@@ -21,7 +21,7 @@
 /// ## qubit
 /// Qubit to which the gate should be applied.
 operation Rx(theta : Double, q : Qubit) : Unit {
-    __quantum__qis__rx__body(theta, q);
+    QIR.Intrinsic.__quantum__qis__rx__body(theta, q);
 }
 
 /// # Summary
@@ -33,7 +33,7 @@ operation Rx(theta : Double, q : Qubit) : Unit {
 /// ## qubit
 /// Qubit to which the gate should be applied.
 operation Rz(theta : Double, q : Qubit) : Unit {
-    __quantum__qis__rz__body(theta, q);
+    QIR.Intrinsic.__quantum__qis__rz__body(theta, q);
 }
 
 /// # Summary
@@ -47,7 +47,7 @@ operation Rz(theta : Double, q : Qubit) : Unit {
 /// ## qubit1
 /// The second qubit input to the gate.
 operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
-    __quantum__qis__rzz__body(theta, qubit0, qubit1);
+    QIR.Intrinsic.__quantum__qis__rzz__body(theta, qubit0, qubit1);
 }
 
 /// # Summary
@@ -72,25 +72,6 @@ operation MResetZ(q : Qubit) : Result {
 /// The qubit whose state is to be reset to |0⟩.
 operation Reset(q : Qubit) : Unit {
     QIR.Intrinsic.__quantum__qis__reset__body(q);
-}
-
-@SimulatableIntrinsic()
-operation __quantum__qis__rx__body(theta : Double, q : Qubit) : Unit {
-    Std.Intrinsic.Rx(theta, q);
-}
-
-@SimulatableIntrinsic()
-operation __quantum__qis__rz__body(theta : Double, q : Qubit) : Unit {
-    Std.Intrinsic.Rz(theta, q);
-}
-
-@SimulatableIntrinsic()
-operation __quantum__qis__rzz__body(
-    theta : Double,
-    qubit0 : Qubit,
-    qubit1 : Qubit
-) : Unit {
-    Std.Intrinsic.Rzz(theta, qubit0, qubit1);
 }
 
 export Rx, Rz, Rzz, MResetZ, Reset;
