@@ -462,8 +462,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// WARNING:
     /// This operation uses the **opposite** sign convention from
-    /// Microsoft.Quantum.Intrinsic.R, and does not include the
-    /// factor of 1/2 included by Microsoft.Quantum.Intrinsic.R1.
+    /// Microsoft.Quantum.Intrinsic.R.
     ///
     /// # Input
     /// ## numerator
@@ -479,7 +478,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// $$
     /// \begin{align}
     ///     R_1(n, k) \mathrel{:=}
-    ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
+    ///     \operatorname{diag}(1, e^{i \pi n / 2^k}).
     /// \end{align}
     /// $$
     ///
