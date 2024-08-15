@@ -30,7 +30,7 @@
         "properties": {
           "lint": {
             "type": "string",
-            "enum": ["divisionByZero", "needlessParens", "redundantSemicolons"]
+            "enum": ["divisionByZero", "needlessParens", "redundantSemicolons", "deprecatedFunctionConstructor", "deprecatedWithOperator", "deprecatedDoubleColonOperator", "deprecatedNewtype"]
           },
           "level": {
             "type": "string",
