@@ -1338,3 +1338,121 @@ fn local_var_and_open_shadowing_rules() {
         "#]],
     );
 }
+
+// no additional text edits for Foo or Bar because FooNs is already glob imported
+#[test]
+fn dont_import_if_already_glob_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit {
+            }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.*;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo because Foo is directly imported,
+// but additional text edits for Bar because Bar is not directly imported
+#[test]
+fn dont_import_if_already_directly_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit { }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.Foo;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import FooNs.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
