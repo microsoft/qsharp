@@ -20,7 +20,7 @@ pub struct Builder {
 }
 
 impl Backend for Builder {
-    type ResultType = usize;
+    type MeasurementType = usize;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         let ctl0 = self.map(ctl0);
@@ -52,7 +52,7 @@ impl Backend for Builder {
         self.push_gate(gate("H", [q]));
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Self::MeasurementType {
         if self.config.base_profile {
             // defer the measurement and reset the qubit
             self.remapper.mreset(q)
@@ -69,7 +69,7 @@ impl Backend for Builder {
         }
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
         if self.config.base_profile {
             // defer the measurement
             self.remapper.mreset(q)

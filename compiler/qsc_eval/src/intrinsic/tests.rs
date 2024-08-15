@@ -3,6 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::convert::Infallible;
 use std::f64::consts;
 
 use crate::backend::{Backend, SparseSim};
@@ -29,7 +30,8 @@ struct CustomSim {
 }
 
 impl Backend for CustomSim {
-    type ResultType = bool;
+    type MeasurementType = bool;
+    type ErrType = Infallible;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.ccx(ctl0, ctl1, q);
@@ -51,11 +53,11 @@ impl Backend for CustomSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Self::MeasurementType {
         self.sim.m(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
         self.sim.mresetz(q)
     }
 

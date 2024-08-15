@@ -399,7 +399,7 @@ impl LogicalCounter {
 }
 
 impl Backend for LogicalCounter {
-    type ResultType = bool;
+    type MeasurementType = bool;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.ccz_count += 1;
@@ -420,13 +420,13 @@ impl Backend for LogicalCounter {
 
     fn h(&mut self, _q: usize) {}
 
-    fn m(&mut self, _q: usize) -> Self::ResultType {
+    fn m(&mut self, _q: usize) -> Self::MeasurementType {
         self.m_count += 1;
 
         self.rnd.borrow_mut().gen_bool(0.5)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
         self.m(q)
     }
 

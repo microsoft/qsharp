@@ -25,7 +25,7 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Returns the first error encountered during execution.
 pub(super) fn eval_graph(
     graph: ExecGraph,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
     globals: &impl PackageStoreLookup,
     package: PackageId,
     env: &mut Env,

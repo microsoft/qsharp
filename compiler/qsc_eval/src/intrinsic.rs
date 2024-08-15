@@ -25,7 +25,7 @@ pub(crate) fn call(
     name_span: PackageSpan,
     arg: Value,
     arg_span: PackageSpan,
-    sim: &mut dyn Backend<ResultType = impl Into<val::Result>>,
+    sim: &mut dyn Backend<MeasurementType = impl Into<val::Result>>,
     rng: &mut StdRng,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {

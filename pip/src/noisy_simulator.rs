@@ -427,7 +427,8 @@ impl SimulationBackend {
 }
 
 impl Backend for SimulationBackend {
-    type ResultType = bool;
+    type MeasurementType = bool;
+    type ErrType = noisy_simulator::Error;
 
     fn h(&mut self, q: usize) {
         let h = self.h_gate.clone();
@@ -443,7 +444,7 @@ impl Backend for SimulationBackend {
             .expect("operation should succeed");
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Self::MeasurementType {
         let outcome = self
             .simulator
             .sample_instrument(noisy_simulator::Instrument::mz(), &[q])
@@ -451,7 +452,7 @@ impl Backend for SimulationBackend {
         outcome != 0
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
         let res = self.m(q);
         if res {
             self.x(q);

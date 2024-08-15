@@ -319,7 +319,7 @@ impl Interpreter {
     /// and a new instance of the environment.
     pub fn eval_entry_with_sim(
         &mut self,
-        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
         let graph = self.get_entry_exec_graph()?;
@@ -541,7 +541,7 @@ impl Interpreter {
     /// but using the current compilation.
     pub fn run_with_sim(
         &mut self,
-        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: Option<&str>,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
@@ -572,7 +572,7 @@ impl Interpreter {
     fn run_with_sim_no_output(
         &mut self,
         entry_expr: Option<String>,
-        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
     ) -> InterpretResult {
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
@@ -910,7 +910,7 @@ fn eval(
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> InterpretResult {
     qsc_eval::eval(

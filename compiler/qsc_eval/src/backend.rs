@@ -1,17 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::convert::Infallible;
+
+use crate::val::Value;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
 use rand::RngCore;
 
-use crate::val::Value;
-
 /// The trait that must be implemented by a quantum backend, whose functions will be invoked when
 /// quantum intrinsics are called.
 pub trait Backend {
-    type ResultType;
+    type MeasurementType;
+    type ErrType;
 
     fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
         unimplemented!("ccx gate");
@@ -28,10 +30,10 @@ pub trait Backend {
     fn h(&mut self, _q: usize) {
         unimplemented!("h gate");
     }
-    fn m(&mut self, _q: usize) -> Self::ResultType {
+    fn m(&mut self, _q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         unimplemented!("m operation");
     }
-    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, _q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         unimplemented!("mresetz operation");
     }
     fn reset(&mut self, _q: usize) {
@@ -120,7 +122,8 @@ impl SparseSim {
 }
 
 impl Backend for SparseSim {
-    type ResultType = bool;
+    type MeasurementType = bool;
+    type ErrType = Infallible;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.sim.mcx(&[ctl0, ctl1], q);
@@ -142,16 +145,16 @@ impl Backend for SparseSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
-        self.sim.measure(q)
+    fn m(&mut self, q: usize) -> Result<bool, Infallible> {
+        Ok(self.sim.measure(q))
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Result<bool, Infallible> {
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
         }
-        res
+        Ok(res)
     }
 
     fn reset(&mut self, q: usize) {
@@ -331,7 +334,8 @@ where
     T1: Backend,
     T2: Backend,
 {
-    type ResultType = T1::ResultType;
+    type MeasurementType = T1::MeasurementType;
+    type ErrType = T1::ErrType;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.chained.ccx(ctl0, ctl1, q);
@@ -358,12 +362,12 @@ where
         self.main.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Self::ResultType {
+    fn m(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         let _ = self.chained.m(q);
         self.main.m(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::ResultType {
+    fn mresetz(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         let _ = self.chained.mresetz(q);
         self.main.mresetz(q)
     }
