@@ -1,1 +1,6 @@
-{}
+{
+    "lints":
+    [
+        {"lint": "deprecatedFunctionConstructor", "level": "error"}
+    ]
+}

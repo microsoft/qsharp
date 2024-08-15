@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let op = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, [], Select, _, _, _);
         let opWithSelect = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, [], _, _, _, _);
         let (nIndexQubits, nGarbageQubits) = ArbitrarySuperpositionRegisterLengths(targetError, nCoeffs);
-        return PrepareArbitrarySuperposition(nIndexQubits, nGarbageQubits, op, opWithSelect);
+        return new PrepareArbitrarySuperposition { NIndexQubits = nIndexQubits, NGarbageQubits = nGarbageQubits, Prepare = op, PrepareWithSelect = opWithSelect };
     }
 
     function MakePrepareArbitrarySuperpositionWithData(targetError : Double, coefficients : Double[], data : Bool[][]) : PrepareArbitrarySuperposition {
@@ -81,7 +81,11 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let op = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, data, Select, _, _, _);
         let opWithSelect = PrepareQuantumROMState(nBitsPrecision, nCoeffs, nBitsIndices, keepCoeff, altIndex, data, _, _, _, _);
         let (nIndexQubits, nGarbageQubits) = ArbitrarySuperpositionRegisterLengths(targetError, nCoeffs);
-        return PrepareArbitrarySuperposition(nIndexQubits, nGarbageQubits + Length(data[0]), op, opWithSelect);
+        return 
+        new PrepareArbitrarySuperposition
+         { NIndexQubits = nIndexQubits, 
+         NGarbageQubits = nGarbageQubits + Length(data[0]),
+         Prepare =  op, PrepareWithSelect =  opWithSelect };
     }
 
     // -------------------------------------- //

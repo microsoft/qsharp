@@ -104,11 +104,11 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let StatePreparationBitPrecision = Ceiling(Lg(1.0 / epsilon) + 2.5);
         let TargetError = 2.0^IntAsDouble(1 - StatePreparationBitPrecision);
 
-        DoubleFactorizedChemistryConstants(
-            RotationAngleBitPrecision,
-            StatePreparationBitPrecision,
-            TargetError
-        )
+        new DoubleFactorizedChemistryConstants {
+            RotationAngleBitPrecision = RotationAngleBitPrecision,
+            StatePreparationBitPrecision = StatePreparationBitPrecision,
+            TargetError = TargetError
+        }
     }
 
     internal struct WalkStep {
@@ -127,7 +127,11 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         let NGarbageQubits = oneElectronOperator.NGarbageQubits + twoElectronOperator.NGarbageQubits;
 
-        WalkStep(NGarbageQubits, WalkStepOperation(problem, oneElectronOperator, twoElectronOperator, _, _, _, _))
+        new WalkStep
+         {
+            NGarbageQubits = NGarbageQubits,
+            StepOp = WalkStepOperation(problem, oneElectronOperator, twoElectronOperator, _, _, _, _)
+         }
     }
 
     internal operation WalkStepOperation(
@@ -173,10 +177,10 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         let data = Mapped(eigenValue -> [eigenValue < 0.0], eigenValues);
         let prepare = MakePrepareArbitrarySuperpositionWithData(constants.TargetError, eigenValues, data);
 
-        OneElectronOperator(
-            prepare.NGarbageQubits,
-            OneElectronOperatorOperation(eigenVectors, constants, prepare, _, _, _, _, _)
-        )
+        new OneElectronOperator {
+          NGarbageQubits =  prepare.NGarbageQubits,
+            Apply = OneElectronOperatorOperation(eigenVectors, constants, prepare, _, _, _, _, _)
+        }
     }
 
     internal operation OneElectronOperatorOperation(
@@ -251,7 +255,10 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         let numGarbageQubits = lambdaPrepare.NGarbageQubits + oneElectronOperator.NGarbageQubits;
 
-        TwoElectronOperator(numGarbageQubits, TwoElectronOperatorOperation(problem, lambdaPrepare, oneElectronOperator, _, _, _, _))
+       new TwoElectronOperator
+        { NGarbageQubits = numGarbageQubits, 
+        Apply = TwoElectronOperatorOperation(problem, lambdaPrepare, oneElectronOperator, _, _, _, _)
+        }
     }
 
     internal operation TwoElectronOperatorOperation(
