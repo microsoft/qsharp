@@ -254,7 +254,9 @@ impl<'a> Context<'a> {
                 self.diverge_if(callee.diverges || input.diverges, converge(output_ty))
             }
             ExprKind::Conjugate(within, apply) => {
+                let within_span = within.span;
                 let within = self.infer_block(within);
+                self.inferrer.eq(within_span, Ty::UNIT, within.ty);
                 let apply = self.infer_block(apply);
                 self.diverge_if(within.diverges, apply)
             }
@@ -288,7 +290,9 @@ impl<'a> Context<'a> {
                         item: item_ty,
                     },
                 );
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 self.diverge_if(container.diverges || body.diverges, converge(Ty::UNIT))
             }
             ExprKind::If(cond, if_true, if_false) => {
@@ -413,13 +417,21 @@ impl<'a> Context<'a> {
                 self.diverge_if(diverges, converge(Ty::Prim(ty)))
             }
             ExprKind::Repeat(body, until, fixup) => {
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 let until_span = until.span;
                 let until = self.infer_expr(until);
                 self.inferrer.eq(until_span, Ty::Prim(Prim::Bool), until.ty);
-                let fixup_diverges = fixup
-                    .as_ref()
-                    .map_or(false, |f| self.infer_block(f).diverges);
+                let fixup_diverges = match fixup {
+                    None => false,
+                    Some(f) => {
+                        let f_span = f.span;
+                        let f = self.infer_block(f);
+                        self.inferrer.eq(f_span, Ty::UNIT, f.ty);
+                        f.diverges
+                    }
+                };
                 self.diverge_if(
                     body.diverges || until.diverges || fixup_diverges,
                     converge(Ty::UNIT),
@@ -511,7 +523,9 @@ impl<'a> Context<'a> {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
                 self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
             ExprKind::Hole => {
