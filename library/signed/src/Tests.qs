@@ -131,8 +131,6 @@ operation UnsignedOpTests() : Unit {
     X(b[0]);
     X(b[1]);
     TestIntOp((a, b, _) => Operations.AddI(a, b), a, b, b, 13);
-
-
 }
 
 operation TestIntOp(op : (Qubit[], Qubit[], Qubit[]) => Unit, a : Qubit[], b : Qubit[], c : Qubit[], expect : Int) : Unit {

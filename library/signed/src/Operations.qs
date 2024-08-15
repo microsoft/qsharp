@@ -3,7 +3,7 @@
 
 import Std.Arrays.Tail, Std.Arrays.Most, Std.Arrays.Enumerated;
 import Utils.AndLadder;
-import RippleCarry.RippleCarryAdderNoCarryTTK, RippleCarry.RippleCarryAdderTTK;
+import Unstable.Arithmetic.RippleCarryTTKIncByLE;
 import Std.Diagnostics.Fact;
 import Comparison.CompareGTI;
 
@@ -236,10 +236,10 @@ operation Sum(carryIn : Qubit, summand1 : Qubit, summand2 : Qubit) : Unit is Adj
 /// Addend with at least $n$ qubits. Will hold the result.
 operation AddI(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
     if Length(xs) == Length(ys) {
-        RippleCarryAdderNoCarryTTK(xs, ys);
+        RippleCarryTTKIncByLE(xs, ys);
     } elif Length(ys) > Length(xs) {
         use qs = Qubit[Length(ys) - Length(xs) - 1];
-        RippleCarryAdderTTK(xs + qs, Most(ys), Tail(ys));
+        RippleCarryTTKIncByLE(xs + qs, ys);
     } else {
         fail "xs must not contain more qubits than ys";
     }
