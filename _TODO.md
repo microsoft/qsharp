@@ -1,5 +1,5 @@
 # TODO
 
-- Get CSS to match the built-in Copilot Chat
-- Make the input box and submit button look & behavior similar to VS Code
-- See if we can get it to render a command button to estimate current project
+- Get a table response for 'last 5 jobs tagged carbon'
+- Have a button that fetches the histogram for the job
+- Add an embedding for a 'histogram' widget and see if it renders

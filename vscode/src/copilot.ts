@@ -144,12 +144,24 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       localResourceRoots: [this.extensionUri],
     };
 
+    const getUri = (pathList: string[]) =>
+      webviewView.webview.asWebviewUri(
+        Uri.joinPath(this.extensionUri, ...pathList),
+      );
+    const copilotJs = getUri(["out", "copilot", "copilot.js"]);
+    const copilotCss = getUri(["out", "copilot", "copilot.css"]);
+    const katexCss = getUri(["out", "katex", "katex.min.css"]);
+    const githubCss = getUri(["out", "katex", "github-markdown-light.css"]);
+
     webviewView.webview.html = `<!DOCTYPE html>
     <html lang="en">
     <head>
+    <link rel="stylesheet" href="${githubCss}" />
+    <link rel="stylesheet" href="${katexCss}" />
+    <link rel="stylesheet" href="${copilotCss}" />
     </head>
-    <body>
-    Quantum Copilot
+    <body class="markdown-body" data-theme="light">
+    <script src="${copilotJs}"></script>
     </body>
     </html>`;
   }

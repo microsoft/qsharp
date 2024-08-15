@@ -3,6 +3,7 @@ body {
 }
 textarea {
   height: 3em;
+  background: inherit;
   width: 100%;
   border: none;
   outline: none;
@@ -11,6 +12,10 @@ textarea {
   line-height: 1.33;
   vertical-align: middle;
   cursor: text;
+}
+
+textarea:focus {
+  outline: none;
 }
 
 .requestBox {
@@ -27,6 +32,14 @@ textarea {
 
 .responseBox {
   margin-bottom: 16px;
+}
+
+.responseBox pre code {
+  background: inherit;
+  /* border: 0.5px solid gray; */
+  display: block;
+  padding: 8px;
+  margin: 8px 0;
 }
 
 .inputDiv {

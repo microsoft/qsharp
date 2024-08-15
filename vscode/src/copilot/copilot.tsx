@@ -14,13 +14,12 @@ import markdownIt from "markdown-it";
 
 import hljs from "highlight.js";
 
-import { Histogram, Markdown } from "qsharp-lang/ux";
+import { Histogram, Markdown, ResultsTable } from "qsharp-lang/ux";
 import { setRenderer } from "qsharp-lang/ux";
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 import hlsjQsharp from "./hlsj-qsharp";
 import samples, { mock_stream } from "./copilot-samples";
-import { ResultsTable } from "../../npm/qsharp/ux/resultsTable";
 
 hljs.registerLanguage("qsharp", hlsjQsharp);
 const md = markdownIt("commonmark", {
@@ -35,7 +34,7 @@ const md = markdownIt("commonmark", {
     return "";
   },
 });
-md.use((mk as any).default, {
+md.use(mk as any, {
   enableMathBlockInHtml: true,
   enableMathInlineInHtml: true,
 });
@@ -43,6 +42,11 @@ setRenderer((input: string) => md.render(input));
 
 function InputBox(props: { onSubmit: (text: string) => void }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const hrRef = useRef<HTMLHRElement>(null);
+
+  useEffect(() => {
+    hrRef.current?.scrollIntoView(false);
+  });
 
   function submit() {
     if (textRef.current) {
@@ -52,23 +56,26 @@ function InputBox(props: { onSubmit: (text: string) => void }) {
   }
 
   return (
-    <div class="inputDiv">
-      <textarea
-        ref={textRef}
-        autocorrect="off"
-        spellcheck={false}
-        placeholder="How can I help you?"
-      ></textarea>
-      <svg
-        onClick={submit}
-        focusable="false"
-        viewBox="0 0 16 16"
-        width="16"
-        height="16"
-      >
-        <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
-      </svg>
-    </div>
+    <>
+      <div class="inputDiv">
+        <textarea
+          ref={textRef}
+          autocorrect="off"
+          spellcheck={false}
+          placeholder="How can I help you?"
+        ></textarea>
+        <svg
+          onClick={submit}
+          focusable="false"
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+        >
+          <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
+        </svg>
+      </div>
+      <div style="height: 8px" ref={hrRef} />
+    </>
   );
 }
 
@@ -197,8 +204,8 @@ function App() {
   }
 
   return (
-    <div style="max-width: 800px">
-      <h1>Welcome to Quantum Copilot</h1>
+    <div style="max-width: 800px; font-size: 0.9em;">
+      <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
       {state.map((qa) => (
         <Response request={qa.request} response={qa.response} />
       ))}
