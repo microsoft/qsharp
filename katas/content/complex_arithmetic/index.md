@@ -71,7 +71,7 @@ Let's see how to do the main arithmetic operations on complex numbers.
 >
 > Given a complex number $x = a + bi$, you can access its real and imaginary parts using their names: `let (a, b) = (x.Real, x.Imag);`.
 >
-> You can construct a complex number from its real and imaginary parts as follows: `let x = new Complex { Real = a, Imag = b };`.
+> You can construct a complex number from its real and imaginary parts as follows: `let x = Complex(a, b);`.
 
 @[exercise]({
     "id": "complex_arithmetic__complex_addition",
@@ -237,7 +237,7 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 >
 > Given a complex number $x = r \cdot e^{i\theta}$, you can access its magnitude and phase using their names: `let (r, theta) = (x.Magnitude, x.Argument);`.
 >
-> You can construct a complex number from its magnitude and phase as follows: `let x = new ComplexPolar{ Magnitude = r, Argument = theta };`.
+> You can construct a complex number from its magnitude and phase as follows: `let x = ComplexPolar(r, theta);`.
 
 @[exercise]({
     "id": "complex_arithmetic__cartesian_to_polar",
