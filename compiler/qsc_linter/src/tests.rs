@@ -270,7 +270,7 @@ fn needless_operation_lambda_operations() {
         &expect![[r#"
             [
                 SrcLint {
-                    source: "",
+                    source: "(a) => a + 1",
                     level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
