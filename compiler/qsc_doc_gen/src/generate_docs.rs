@@ -29,7 +29,7 @@ struct Compilation {
     /// Current package id when provided.
     current_package_id: Option<PackageId>,
     /// Aliases for packages.
-    package_aliases: FxHashMap<PackageId, Arc<str>>, // TODO: Change to dependencies.
+    dependencies: FxHashMap<PackageId, Arc<str>>,
 }
 
 impl Compilation {
@@ -77,7 +77,7 @@ impl Compilation {
         Self {
             package_store,
             current_package_id,
-            package_aliases,
+            dependencies: package_aliases,
         }
     }
 }
@@ -182,7 +182,7 @@ pub fn generate_docs(
             }
 
             _ => {
-                if let Some(alias) = compilation.package_aliases.get(&package_id) {
+                if let Some(alias) = compilation.dependencies.get(&package_id) {
                     // This is a direct dependency of the user code.
                     package_kind = PackageKind::AliasedPackage(alias.to_string());
                 } else {
@@ -297,14 +297,11 @@ fn generate_file(
     let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
-    let title = &metadata.title;
-    let full_name = metadata.fully_qualified_name();
+    let title = format!("{} {}", metadata.fully_qualified_name(), metadata.kind);
     let sig = &metadata.signature;
 
     let content = format!(
         "# {title}
-
-**Fully qualified name:** {full_name}
 
 ```qsharp
 {sig}
@@ -387,6 +384,18 @@ enum MetadataKind {
     Export,
 }
 
+impl Display for MetadataKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            MetadataKind::Function => "function",
+            MetadataKind::Operation => "operation",
+            MetadataKind::Udt => "user defined type",
+            MetadataKind::Export => "exported item",
+        };
+        write!(f, "{s}")
+    }
+}
+
 fn get_metadata(
     package_kind: PackageKind,
     ns: Rc<str>,
@@ -422,12 +431,7 @@ fn get_metadata(
 
     Some(Metadata {
         uid: format!("Qdk.{ns}.{name}"),
-        title: match &kind {
-            MetadataKind::Function => format!("{name} function"),
-            MetadataKind::Operation => format!("{name} operation"),
-            MetadataKind::Udt => format!("{name} user defined type"),
-            MetadataKind::Export => format!("{name} exported item"),
-        },
+        title: format!("{name} {kind}"),
         topic: "managed-reference".to_string(),
         kind,
         package: package_kind,
