@@ -19,7 +19,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
-type FilesWithMetadata = Vec<(Arc<Metadata>, Arc<str>, Arc<str>, Arc<str>)>;
+type FilesWithMetadata = Vec<(Arc<Metadata>, Arc<str>, Arc<str>)>;
 
 /// Represents an immutable compilation state.
 #[derive(Debug)]
@@ -29,7 +29,7 @@ struct Compilation {
     /// Current package id when provided.
     current_package_id: Option<PackageId>,
     /// Aliases for packages.
-    package_aliases: FxHashMap<PackageId, Arc<str>>,
+    package_aliases: FxHashMap<PackageId, Arc<str>>, // TODO: Change to dependencies.
 }
 
 impl Compilation {
@@ -165,27 +165,39 @@ pub fn generate_docs(
     };
 
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
+
     for (package_id, unit) in &compilation.package_store {
-        let package = &unit.package;
-        // The below is not actually enforced by the compiler,
-        // but it is currently the case as long as you're compiling with stdlib
-        let package_kind = match Into::<usize>::into(package_id) {
-            0 => PackageKind::Core,
-            1 => PackageKind::StandardLibrary,
+        let is_current_package = compilation.current_package_id == Some(package_id);
+        let package_kind;
+        match package_id {
+            // Core package is always included in the compilation.
+            PackageId::CORE => package_kind = PackageKind::Core,
+
+            // Standard package is currently always included, but this isn't enforced by the compiler.
+            _ if package_id == 1.into() => package_kind = PackageKind::StandardLibrary,
+
+            // This package could be user code if current package is specified.
+            _ if is_current_package => {
+                package_kind = PackageKind::UserCode;
+            }
+
             _ => {
-                if let Some(package_alias) = compilation.package_aliases.get(&package_id) {
-                    PackageKind::AliasedPackage(package_alias.to_string())
+                if let Some(alias) = compilation.package_aliases.get(&package_id) {
+                    // This is a direct dependency of the user code.
+                    package_kind = PackageKind::AliasedPackage(alias.to_string());
                 } else {
-                    PackageKind::UserCode
+                    // This is not a package user can access (an indirect dependency).
+                    continue;
                 }
             }
-        };
+        }
 
+        let package = &unit.package;
         for (_, item) in &package.items {
             if let Some((ns, line)) = generate_doc_for_item(
                 package,
                 package_kind.clone(),
-                compilation.current_package_id == Some(package_id),
+                is_current_package,
                 item,
                 display,
                 &mut files,
@@ -201,7 +213,7 @@ pub fn generate_docs(
     // Then we want to add built-in std package. And finally built-in core package.
     // Namespaces within packages should be sorted alphabetically and
     // items with a namespace should be also sorted alphabetically.
-    // Also, items without any metadata should come last
+    // Also, items without any metadata (table of content) should come last
     files.sort_by_key(|file| {
         (
             file.0.package.clone(),
@@ -212,7 +224,7 @@ pub fn generate_docs(
 
     let mut result: Files = files
         .into_iter()
-        .map(|(_, name, metadata, content)| (name, metadata, content))
+        .map(|(metadata, name, content)| (name, Arc::from(metadata.to_string().as_str()), content))
         .collect();
 
     generate_toc(&mut toc, &mut result);
@@ -242,14 +254,13 @@ fn generate_doc_for_item<'a>(
     // Add file
     let (metadata, content) = generate_file(package_kind, &ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
-    let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
 
     // Create toc line
     let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
 
     let met: Arc<Metadata> = Arc::from(metadata);
-    files.push((met, file_name, file_metadata, file_content));
+    files.push((met, file_name, file_content));
 
     // Return (ns, line)
     Some((ns.clone(), line))
@@ -344,21 +355,6 @@ enum PackageKind {
     Core,
 }
 
-impl Display for PackageKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                PackageKind::UserCode => "",
-                PackageKind::AliasedPackage(name) => name,
-                PackageKind::StandardLibrary => "Std",
-                PackageKind::Core => "Core",
-            }
-        )
-    }
-}
-
 impl Display for Metadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let kind = match &self.kind {
@@ -375,19 +371,11 @@ title: {}
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
-qsharp.package: {}
 qsharp.namespace: {}
 qsharp.name: {}
 qsharp.summary: \"{}\"
 ---",
-            self.uid,
-            self.title,
-            self.topic,
-            kind,
-            self.package,
-            self.namespace,
-            self.name,
-            self.summary
+            self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
         )
     }
 }
