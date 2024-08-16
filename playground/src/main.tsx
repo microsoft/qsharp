@@ -141,11 +141,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   function onNavItemSelected(name: string) {
     // If there was a ?code link on the URL before, clear it out
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("code")) {
-      // Get current URL without query parameters to use as the URL
-      const newUrl = `${window.location.href.split("?")[0]}`;
-      window.history.pushState({}, "", newUrl);
+    const newURL = new URL(window.location.href);
+    if (newURL.searchParams.get("code")) {
+      newURL.searchParams.delete("code");
+      newURL.searchParams.delete("profile");
+      window.history.pushState({}, "", newURL.toString());
+      props.linkedCode = undefined;
     }
     setCurrentNavItem(name);
   }
