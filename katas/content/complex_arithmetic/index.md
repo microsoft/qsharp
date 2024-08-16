@@ -235,7 +235,7 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 
 > In Q#, complex numbers in polar form are represented as user-defined struct type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace.
 >
-> Given a complex number $x = r \cdot e^{i\theta}$, you can access its magnitude and phase using their names: `let (r, theta) = (x.Magnitude, x.Argument);`.
+> Given a complex number $x = r \cdot e^{i\theta}$, you can access its magnitude and phase using their names: `let r = x.Magnitude;` and `let theta = x.Argument;`.
 >
 > You can construct a complex number from its magnitude and phase as follows: `let x = ComplexPolar(r, theta);`.
 
