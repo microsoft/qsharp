@@ -87,10 +87,10 @@ operation Select(
         } else {
             use andChainTarget = Qubit();
             let andChain = MakeAndChain(ctls, andChainTarget);
-            use helper = Qubit[andChain.NGarbageQubits];
+            use helper = Qubit[andChain::NGarbageQubits];
 
             within {
-                andChain.Apply(helper);
+                andChain::Apply(helper);
             } apply {
                 SinglyControlledSelect(andChainTarget, data, address, target);
             }
@@ -254,7 +254,10 @@ newtype AndChain = (
 );
 
 function MakeAndChain(ctls : Qubit[], target : Qubit) : AndChain {
-    new AndChain { NGarbageQubits = MaxI(Length(ctls) - 2, 0), Apply = helper => AndChainOperation(ctls, helper, target) }
+    AndChain(
+        MaxI(Length(ctls) - 2, 0),
+        helper => AndChainOperation(ctls, helper, target)
+    )
 }
 
 operation AndChainOperation(ctls : Qubit[], helper : Qubit[], target : Qubit) : Unit is Adj {

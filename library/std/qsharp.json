@@ -1,20 +1,6 @@
 {
   "author": "Microsoft",
   "license": "MIT",
-    "lints": [
-      {
-        "lint": "deprecatedFunctionConstructor",
-        "level": "error"
-      },
-      {
-        "lint": "deprecatedWithOperator",
-        "level": "error"
-      },
-      {
-        "lint": "deprecatedDoubleColonOperator",
-        "level": "error"
-      }
-    ],
   "files": [
     "src/arrays.qs",
     "src/canon.qs",

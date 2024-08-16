@@ -54,7 +54,7 @@ import
 /// # See Also
 /// - Unstable.StatePreparation.ApproximatelyPreparePureStateCP
 operation PreparePureStateD(coefficients : Double[], qubits : Qubit[]) : Unit is Adj + Ctl {
-    let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(new Complex { Real = a, Imag = 0.0 }), coefficients);
+    let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(Complex(a, 0.0)), coefficients);
     ApproximatelyPreparePureStateCP(0.0, coefficientsAsComplexPolar, qubits);
 }
 
@@ -113,7 +113,7 @@ operation ApproximatelyPreparePureStateCP(
 
     let nQubits = Length(qubits);
     // pad coefficients at tail length to a power of 2.
-    let coefficientsPadded = Padded(-2^nQubits, new ComplexPolar { Magnitude = 0.0, Argument = 0.0 }, coefficients);
+    let coefficientsPadded = Padded(-2^nQubits, ComplexPolar(0.0, 0.0), coefficients);
     let idxTarget = 0;
     // Determine what controls to apply
     let rngControl = nQubits > 1 ? (1..(nQubits - 1)) | (1..0);
@@ -276,7 +276,7 @@ function BlochSphereCoordinates(
     let t = 0.5 * (arg0 + arg1);
     let phi = arg1 - arg0;
     let theta = 2.0 * ArcTan2(abs1, abs0);
-    return (new ComplexPolar { Magnitude = r, Argument = t }, phi, theta);
+    return (ComplexPolar(r, t), phi, theta);
 }
 
 /// # Summary
