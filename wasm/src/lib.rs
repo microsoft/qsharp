@@ -270,7 +270,36 @@ where
     }
 
     fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), output::Error> {
-        todo!()
+        let mut dump_json = String::new();
+
+        // Write the type and open the array or rows.
+        write!(dump_json, r#"{{"type": "Matrix","matrix": ["#)
+            .expect("writing to string should succeed");
+
+        // Map each row to a string representation of the row, and join them with commas.
+        // The row is an array, and each element is a tuple formatted as "[re, im]".
+        // e.g. {"type": "Matrix", "matrix": [
+        //   [[1, 2], [3, 4], [5, 6]],
+        //   [[7, 8], [9, 10], [11, 12]]
+        // ]}
+        let row_strings = matrix
+            .iter()
+            .map(|row| {
+                let row_str = row
+                    .iter()
+                    .map(|elem| format!("[{}, {}]", elem.re, elem.im))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("[{row_str}]")
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        // Close the array of rows and the JSON object.
+        write!(dump_json, r#"{row_strings}]}}"#).expect("writing to string should succeed");
+
+        (self.event_cb)(&dump_json);
+        Ok(())
     }
 
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {

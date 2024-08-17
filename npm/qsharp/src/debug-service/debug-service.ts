@@ -163,6 +163,9 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);
       break;
+    case "Matrix":
+      qscEvent = makeEvent("Matrix", qscMsg.matrix);
+      break;
     default:
       log.never(msgType);
       throw "Unexpected message type";

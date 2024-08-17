@@ -19,6 +19,11 @@ interface DumpMsg {
   stateLatex: string | null;
 }
 
+interface MatrixMsg {
+  type: "Matrix";
+  matrix: number[][][]; // Array or rows, which are an array of elements, which are complex numbers as [re, im]
+}
+
 interface MessageMsg {
   type: "Message";
   message: string;
@@ -29,7 +34,7 @@ interface ResultMsg {
   result: Result;
 }
 
-type EventMsg = ResultMsg | DumpMsg | MessageMsg;
+type EventMsg = ResultMsg | DumpMsg | MatrixMsg | MessageMsg;
 
 function outputAsResult(msg: string): ResultMsg | null {
   try {
@@ -73,12 +78,29 @@ function outputAsDump(msg: string): DumpMsg | null {
   return null;
 }
 
+function outputAsMatrix(msg: string): MatrixMsg | null {
+  try {
+    const obj = JSON.parse(msg);
+    if (obj?.type == "Matrix" && Array.isArray(obj.matrix)) {
+      return obj as MatrixMsg;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function eventStringToMsg(msg: string): EventMsg | null {
-  return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
+  return (
+    outputAsResult(msg) ||
+    outputAsMessage(msg) ||
+    outputAsDump(msg) ||
+    outputAsMatrix(msg)
+  );
 }
 
 export type ShotResult = {
   success: boolean;
   result: string | VSDiagnostic;
-  events: Array<MessageMsg | DumpMsg>;
+  events: Array<MessageMsg | DumpMsg | MatrixMsg>;
 };
