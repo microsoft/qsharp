@@ -13,7 +13,7 @@ The first term $\frac{1}{\sqrt{N}}\ket{10 \dots 0}$ already matches the first te
 
 To prepare a term that matches the second term of the $\ket{W_N}$ state, you can apply another $R_y$ gate to the term $\ket{00 \dots 0}$, this time to the second qubit, with an angle $2 \theta_2 = 2\arcsin \frac{1}{\sqrt{N-1}}$.
 To make sure it doesn't affect the term that you're already happy with, you'll apply a controlled version of the $R_y$ gate, with the first qubit of the register in state $\ket{0}$ as control.
-This will change your state to
+This will change the state to
 
 $$\frac{1}{\sqrt{N}}\ket{10 \dots 0} + \frac{\sqrt{N-1}}{\sqrt{N}} \ket{0} \otimes (\cos \theta_2 \ket{0} + \sin \theta_2 \ket{1}) \otimes \ket{0 \dots 0} = $$
 $$= \frac{1}{\sqrt{N}}\ket{10 \dots 0} + \frac{\sqrt{N-1}}{\sqrt{N}} \frac{1}{\sqrt{N-1}} \ket{010 \dots 0} + \frac{\sqrt{N-1}}{\sqrt{N}} \frac{\sqrt{N-2}}{\sqrt{N-1}} \ket{000 \dots 0}$$
