@@ -11,7 +11,7 @@ $$
 
 The fact that you were able to factor out the state into a tensor product of two terms means the state is separable.
 
-This is looking promising. Now let’s try to approach the problem from the other end, that is from the starting state of $\ket{00}$. 
+This is looking promising. Now let’s try to approach the problem from the other end, that is, from the starting state of $\ket{00}$. 
 As you've seen in the previous task, applying a Hadamard operation to each $\ket{0}$ gets you closer to the factored-out expression:
 
 $$
