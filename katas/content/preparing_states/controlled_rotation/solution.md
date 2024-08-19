@@ -1,6 +1,6 @@
 You'll start by putting the first qubit in the state $\alpha\ket{0} + \beta\ket{1}$, where $\alpha$ and $\beta$ are the square roots of relative weights of all basis states which start with 0 and with 1, respectively.  
 
-In this case, your state can be represented as $\frac{1}{\sqrt{2}} \big( \ket{0} \otimes \ket{0} + \ket{1} \otimes \frac{1}{\sqrt2}(\ket{0}+\ket{1}) \big)$.
+In this case, the state can be represented as $\frac{1}{\sqrt{2}} \big( \ket{0} \otimes \ket{0} + \ket{1} \otimes \frac{1}{\sqrt2}(\ket{0}+\ket{1}) \big)$.
 
 You see that the relative weights of $\ket{0}$ and $\ket{1}$ states of the first qubit are both $\frac12$ (the squares of their amplitudes in the decomposition above). This means that you can do the first step by applying the $H$ gate to the first qubit, which gives the $\frac{1}{\sqrt{2}}\ket{00} + \frac{1}{\sqrt{2}}\ket{10}$ state. In matrix form this will look as follows:  
 
