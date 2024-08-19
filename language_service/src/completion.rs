@@ -337,7 +337,7 @@ impl CompletionListBuilder {
         current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
     ) {
-        for (package_id, _) in &compilation.package_store {
+        for (package_id, _) in compilation.package_store.iter().rev() {
             self.push_sorted_completions(Self::get_callables(
                 compilation,
                 package_id,
@@ -348,7 +348,7 @@ impl CompletionListBuilder {
             ));
         }
 
-        for (id, unit) in &compilation.package_store {
+        for (id, unit) in compilation.package_store.iter().rev() {
             let alias = compilation.dependencies.get(&id).cloned().flatten();
             self.push_completions(Self::get_namespaces(&unit.package, alias));
         }

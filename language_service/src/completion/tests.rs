@@ -498,7 +498,7 @@ fn in_block_from_other_namespace() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0800Foo",
+                            "0600Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -550,7 +550,7 @@ fn auto_open_multiple_files() {
                         label: "FooOperation",
                         kind: Function,
                         sort_text: Some(
-                            "0800FooOperation",
+                            "0600FooOperation",
                         ),
                         detail: Some(
                             "operation FooOperation() : Unit",
@@ -1379,7 +1379,7 @@ fn dont_import_if_already_glob_imported() {
                         label: "Foo",
                         kind: Function,
                         sort_text: Some(
-                            "0800Foo",
+                            "0600Foo",
                         ),
                         detail: Some(
                             "operation Foo() : Unit",
@@ -1392,7 +1392,7 @@ fn dont_import_if_already_glob_imported() {
                         label: "Bar",
                         kind: Function,
                         sort_text: Some(
-                            "0800Bar",
+                            "0600Bar",
                         ),
                         detail: Some(
                             "operation Bar() : Unit",
@@ -1443,7 +1443,7 @@ fn dont_import_if_already_directly_imported() {
                         label: "Bar",
                         kind: Function,
                         sort_text: Some(
-                            "0800Bar",
+                            "0600Bar",
                         ),
                         detail: Some(
                             "operation Bar() : Unit",
@@ -1489,7 +1489,7 @@ fn auto_import_from_qir_runtime() {
                         label: "AllocateQubitArray",
                         kind: Function,
                         sort_text: Some(
-                            "0600AllocateQubitArray",
+                            "0800AllocateQubitArray",
                         ),
                         detail: Some(
                             "operation AllocateQubitArray(size : Int) : Qubit[]",
@@ -1536,7 +1536,7 @@ fn dont_generate_import_for_core_prelude() {
                         label: "Length",
                         kind: Function,
                         sort_text: Some(
-                            "0600Length",
+                            "0800Length",
                         ),
                         detail: Some(
                             "function Length<'T>(a : 'T[]) : Int",
