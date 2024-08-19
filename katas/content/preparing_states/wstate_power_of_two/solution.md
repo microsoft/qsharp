@@ -21,7 +21,7 @@ The last step to bring the register to the desired state is to uncompute the aux
 
 To do this, you need to consider the explicit expression of the state $\ket{0}\ket{W_1} = \ket{01}$. Similarly to the previous tasks, you'll uncompute the auxiliary qubit for this term by using a controlled $X$ gate, with the auxiliary qubit as the target and the main register in the $\ket{01}$ state as a control. This will make sure that the gate is applied only for this term and not for any others.
 
-The last step can be simplified to use fewer qubits as controls: youcan use just the second qubit of the main register in state $\ket{1}$ as control, since you know that if the second qubit is in state $\ket{1}$, the first one has to be in state $\ket{0}$ (you don't need to use both of them as the control pattern).
+The last step can be simplified to use fewer qubits as controls: you can use just the second qubit of the main register in state $\ket{1}$ as control, since you know that if the second qubit is in state $\ket{1}$, the first one has to be in state $\ket{0}$ (you don't need to use both of them as the control pattern).
 
 3. If you take this one step further, to $N = 4$, you'll see that the same recursive logic can be applied to the larger and larger sizes of the problem. Indeed,
 
