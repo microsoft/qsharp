@@ -18,7 +18,7 @@ Finally, you measure just the extra qubit; this causes a partial collapse of the
 * If the result is $\ket{1}$, the first two qubits collapse to a state $\ket{11}$, so your goal is not achieved. The good thing is, this only happens in 25% of the cases, and you can just reset our qubits to the $\ket{00}$ state and try again.
 
 > Q# has a built-in <a href="https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/conditionalloops#repeat-expression" target="_blank">repeat-until-success (RUS) loop</a>, which comes in handy in this case.
-> * You'll describe the main operations (applying $H$ and $CCNOT$ gates and the measurement) in the `repeat` part of the loop, which specifies its body.  
+> * The main operations (applying $H$ and $CCNOT$ gates and the measurement) are described in the `repeat` part of the loop, which specifies its body.  
 > * `until` section specifies the condition which will break the loop. In this case, the result of the measurement needs to be `Zero` to indicate your success.  
 > * Finally, the `fixup` section allows you to clean up the results of the loop body execution before trying again if the success criteria isn't met. In this case, you reset the first two qubits back to the $\ket{00}$ state.
 
