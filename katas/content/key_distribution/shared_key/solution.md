@@ -3,7 +3,7 @@ If Alice and Bob exchanged a qubit and used the same bases for preparing and mea
 To complete this task, you need to perform the following steps:
 
 1. Declare an empty mutable array, let's name it `key`.
-2. Decide which bits you can add to our key based on the comparison between bases used by Alice and Bob. You can iterate using an index in the range from $0$ to $N - 1$ and compare the bases in the corresponding positions.
+2. Decide which bits you can add to the key based on the comparison between bases used by Alice and Bob. You can iterate using an index in the range from $0$ to $N - 1$ and compare the bases in the corresponding positions.
 3. Return the required `key`.
 
 @[solution]({
