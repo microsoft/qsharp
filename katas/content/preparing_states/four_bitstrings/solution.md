@@ -48,8 +48,8 @@ The second qubit of the recursion follows similarly but depends on the first qub
 
 The third qubit in this example will have three cases because it depends on the first two qubits; this follows naturally from the recursion.
 
-1. If the first two qubits measure $\ket{00}$, then you need the third qubit to measure $\ket{0}$ with $100%$ probability.
-2. If the first two qubits measure $\ket{10}$, then you need the third qubit to measure $\ket{1}$ with $100%$ probability.
+1. If the first two qubits measure $\ket{00}$, then you need the third qubit to measure $\ket{0}$ with $100\%$ probability.
+2. If the first two qubits measure $\ket{10}$, then you need the third qubit to measure $\ket{1}$ with $100\%$ probability.
 3. If the first two qubits measure $\ket{11}$, then you need the third qubit to measure $\ket{0}$ with $\frac12$ probability and $\ket{1}$ with $\frac12$ probability.  Just as with the second qubit, a controlled [`Ry`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/ry) rotation on the third qubit will accomplish this goal.
 
 > You'll use [`ApplyControlledOnBitString`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonbitstring) operation to perform rotations depending on the state of several previous qubits.
