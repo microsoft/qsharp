@@ -203,12 +203,12 @@ pub fn generate_docs(
     }
 
     // We want to sort documentation files in a meaningful way.
-    // First, we want to put files for the current project, if it exists
-    // Then we want to put explicit dependencies of the current project, if they exist
+    // First, we want to put files for the current project, if it exists.
+    // Then we want to put explicit dependencies of the current project, if they exist.
     // Then we want to add built-in std package. And finally built-in core package.
     // Namespaces within packages should be sorted alphabetically and
     // items with a namespace should be also sorted alphabetically.
-    // Also, items without any metadata (table of content) should come last
+    // Also, items without any metadata (table of content) should come last.
     files.sort_by_key(|file| {
         (
             file.1.package.clone(),
