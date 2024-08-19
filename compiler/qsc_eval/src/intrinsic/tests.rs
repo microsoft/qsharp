@@ -53,11 +53,11 @@ impl Backend for CustomSim {
         self.sim.h(q);
     }
 
-    fn m(&mut self, q: usize) -> Self::MeasurementType {
+    fn m(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         self.sim.m(q)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
+    fn mresetz(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         self.sim.mresetz(q)
     }
 

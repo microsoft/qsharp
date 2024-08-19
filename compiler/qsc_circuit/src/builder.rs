@@ -10,7 +10,7 @@ use num_complex::Complex;
 use qsc_codegen::remapper::{HardwareId, Remapper};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{backend::Backend, val::Value};
-use std::{fmt::Write, mem::take, rc::Rc};
+use std::{convert::Infallible, fmt::Write, mem::take, rc::Rc};
 
 /// Backend implementation that builds a circuit representation.
 pub struct Builder {
@@ -21,6 +21,7 @@ pub struct Builder {
 
 impl Backend for Builder {
     type MeasurementType = usize;
+    type ErrType = Infallible;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         let ctl0 = self.map(ctl0);
@@ -52,10 +53,10 @@ impl Backend for Builder {
         self.push_gate(gate("H", [q]));
     }
 
-    fn m(&mut self, q: usize) -> Self::MeasurementType {
+    fn m(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         if self.config.base_profile {
             // defer the measurement and reset the qubit
-            self.remapper.mreset(q)
+            Ok(self.remapper.mreset(q))
         } else {
             let mapped_q = self.map(q);
             // In the Circuit schema, result id is per-qubit
@@ -65,14 +66,14 @@ impl Backend for Builder {
             let id = self.remapper.m(q);
 
             self.push_gate(measurement_gate(mapped_q.0, res_id));
-            id
+            Ok(id)
         }
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
+    fn mresetz(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         if self.config.base_profile {
             // defer the measurement
-            self.remapper.mreset(q)
+            Ok(self.remapper.mreset(q))
         } else {
             let mapped_q = self.map(q);
             // In the Circuit schema, result id is per-qubit
@@ -86,7 +87,7 @@ impl Backend for Builder {
             // a measurement and a reset gate.
             self.push_gate(measurement_gate(mapped_q.0, res_id));
             self.push_gate(gate(KET_ZERO, [mapped_q]));
-            id
+            Ok(id)
         }
     }
 

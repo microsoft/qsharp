@@ -13,7 +13,7 @@ use rand::RngCore;
 /// quantum intrinsics are called.
 pub trait Backend {
     type MeasurementType;
-    type ErrType;
+    type ErrType: std::error::Error;
 
     fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
         unimplemented!("ccx gate");
@@ -158,7 +158,7 @@ impl Backend for SparseSim {
     }
 
     fn reset(&mut self, q: usize) {
-        self.mresetz(q);
+        _ = self.mresetz(q);
     }
 
     fn rx(&mut self, theta: f64, q: usize) {

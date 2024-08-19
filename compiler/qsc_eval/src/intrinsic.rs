@@ -25,7 +25,10 @@ pub(crate) fn call(
     name_span: PackageSpan,
     arg: Value,
     arg_span: PackageSpan,
-    sim: &mut dyn Backend<MeasurementType = impl Into<val::Result>>,
+    sim: &mut dyn Backend<
+        MeasurementType = impl Into<val::Result>,
+        ErrType = impl std::error::Error,
+    >,
     rng: &mut StdRng,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
@@ -167,10 +170,14 @@ pub(crate) fn call(
         "__quantum__qis__z__body" => Ok(one_qubit_gate(|q| sim.z(q), arg)),
         "__quantum__qis__swap__body" => two_qubit_gate(|q0, q1| sim.swap(q0, q1), arg, arg_span),
         "__quantum__qis__reset__body" => Ok(one_qubit_gate(|q| sim.reset(q), arg)),
-        "__quantum__qis__m__body" => Ok(Value::Result(sim.m(arg.unwrap_qubit().0).into())),
-        "__quantum__qis__mresetz__body" => {
-            Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0).into()))
-        }
+        "__quantum__qis__m__body" => match sim.m(arg.unwrap_qubit().0) {
+            Ok(result) => Ok(Value::Result(result.into())),
+            Err(err) => Err(Error::NoisySimulatorError(err.to_string(), arg_span)),
+        },
+        "__quantum__qis__mresetz__body" => match sim.mresetz(arg.unwrap_qubit().0) {
+            Ok(result) => Ok(Value::Result(result.into())),
+            Err(err) => Err(Error::NoisySimulatorError(err.to_string(), arg_span)),
+        },
         _ => {
             if let Some(result) = sim.custom_intrinsic(name, arg) {
                 match result {

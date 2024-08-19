@@ -9,7 +9,7 @@ use num_complex::Complex;
 use qsc::{interpret::Value, Backend};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
-use std::{array, cell::RefCell, f64::consts::PI, fmt::Debug, iter::Sum};
+use std::{array, cell::RefCell, convert::Infallible, f64::consts::PI, fmt::Debug, iter::Sum};
 
 use crate::system::LogicalResourceCounts;
 
@@ -400,6 +400,7 @@ impl LogicalCounter {
 
 impl Backend for LogicalCounter {
     type MeasurementType = bool;
+    type ErrType = Infallible;
 
     fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize) {
         self.ccz_count += 1;
@@ -420,13 +421,13 @@ impl Backend for LogicalCounter {
 
     fn h(&mut self, _q: usize) {}
 
-    fn m(&mut self, _q: usize) -> Self::MeasurementType {
+    fn m(&mut self, _q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         self.m_count += 1;
 
-        self.rnd.borrow_mut().gen_bool(0.5)
+        Ok(self.rnd.borrow_mut().gen_bool(0.5))
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
+    fn mresetz(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
         self.m(q)
     }
 

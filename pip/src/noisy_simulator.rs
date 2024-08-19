@@ -444,24 +444,22 @@ impl Backend for SimulationBackend {
             .expect("operation should succeed");
     }
 
-    fn m(&mut self, q: usize) -> Self::MeasurementType {
-        let outcome = self
-            .simulator
+    fn m(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
+        self.simulator
             .sample_instrument(noisy_simulator::Instrument::mz(), &[q])
-            .expect("measurement should succeed");
-        outcome != 0
+            .map(|outcome| outcome != 0)
     }
 
-    fn mresetz(&mut self, q: usize) -> Self::MeasurementType {
-        let res = self.m(q);
+    fn mresetz(&mut self, q: usize) -> Result<Self::MeasurementType, Self::ErrType> {
+        let res = self.m(q)?;
         if res {
             self.x(q);
         }
-        res
+        Ok(res)
     }
 
     fn reset(&mut self, q: usize) {
-        self.mresetz(q);
+        _ = self.mresetz(q);
     }
 
     fn qubit_allocate(&mut self) -> usize {

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::convert::Infallible;
+
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_eval::{
@@ -85,6 +87,7 @@ pub struct QuantumIntrinsicsChecker {}
 
 impl Backend for QuantumIntrinsicsChecker {
     type MeasurementType = usize;
+    type ErrType = Infallible;
 
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
         // Because `qubit_is_zero` is called on every qubit release, this must return

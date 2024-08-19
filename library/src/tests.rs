@@ -50,7 +50,7 @@ pub fn test_expression_with_lib_and_profile_and_sim(
     expr: &str,
     lib: &str,
     profile: Profile,
-    sim: &mut impl Backend<ResultType = impl Into<Result>>,
+    sim: &mut impl Backend<MeasurementType = impl Into<Result>>,
     expected: &Value,
 ) -> String {
     let mut stdout = vec![];

@@ -143,6 +143,9 @@ pub enum Error {
     #[error("program failed: {0}")]
     #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] PackageSpan),
+
+    #[error("noisy simulator error: {0}")]
+    NoisySimulatorError(String, #[label] PackageSpan),
 }
 
 impl Error {
@@ -168,7 +171,8 @@ impl Error {
             | Error::UnknownIntrinsic(_, span)
             | Error::UnsupportedIntrinsicType(_, span)
             | Error::UserFail(_, span)
-            | Error::InvalidArrayLength(_, span) => span,
+            | Error::InvalidArrayLength(_, span)
+            | Error::NoisySimulatorError(_, span) => span,
         }
     }
 }
@@ -695,7 +699,10 @@ impl State {
     fn eval_expr(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
+        sim: &mut impl Backend<
+            MeasurementType = impl Into<val::Result>,
+            ErrType = impl std::error::Error,
+        >,
         globals: &impl PackageStoreLookup,
         out: &mut impl Receiver,
         expr: ExprId,
@@ -934,7 +941,10 @@ impl State {
     fn eval_call(
         &mut self,
         env: &mut Env,
-        sim: &mut impl Backend<MeasurementType = impl Into<val::Result>>,
+        sim: &mut impl Backend<
+            MeasurementType = impl Into<val::Result>,
+            ErrType = impl std::error::Error,
+        >,
         globals: &impl PackageStoreLookup,
         callable_span: Span,
         arg_span: Span,
