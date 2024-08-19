@@ -12,7 +12,7 @@ $$R_y(\theta) \ket{0} =
 \begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 
 \begin{bmatrix} \cos\frac{\theta}{2} \\ \sin\frac{\theta}{2} \end{bmatrix} = \cos\frac{\theta}{2}\ket{0} + \sin\frac{\theta}{2}\ket{1}$$
 
-Therefore, applying the $R_y(2\alpha)$ gate to $\ket{0}$ is the solution to your problem. 
+Therefore, applying the $R_y(2\alpha)$ gate to $\ket{0}$ is the solution to this problem. 
 
 @[solution]({
     "id": "preparing_states__unequal_superposition_solution",
