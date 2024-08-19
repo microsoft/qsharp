@@ -127,7 +127,7 @@ class DensityMatrixSimulator:
         """
         ...
 
-    def sample_instrument(self, instrument: Instrument, qubits: List[int]):
+    def sample_instrument(self, instrument: Instrument, qubits: List[int]) -> int:
         """
         Performs selective evolution under the given instrument.
         Returns the index of the observed outcome.
@@ -210,7 +210,7 @@ class StateVectorSimulator:
         """
         ...
 
-    def sample_instrument(self, instrument: Instrument, qubits: List[int]):
+    def sample_instrument(self, instrument: Instrument, qubits: List[int]) -> int:
         """
         Performs selective evolution under the given instrument.
         Returns the index of the observed outcome.
