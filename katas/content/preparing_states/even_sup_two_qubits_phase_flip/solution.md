@@ -6,7 +6,7 @@ This gate will perform a phase flip only on the $\ket{1}$ state:
 
 $$Z(\alpha\ket{0} + \beta\ket{1}) = \alpha\ket{0} - \beta\ket{1}$$
 
-In your case, you only want to flip the phase of the $\ket{11}$ state and not the $\ket{01}$ state. To accomplish this, you can use a controlled $Z$ gate; this will make sure that the $Z$ gate is only applied if the control bit is in the $\ket{1}$ state, and the $\ket{01}$ state won't change.
+In this case, you only want to flip the phase of the $\ket{11}$ state and not the $\ket{01}$ state. To accomplish this, you can use a controlled $Z$ gate; this will make sure that the $Z$ gate is only applied if the control bit is in the $\ket{1}$ state, and the $\ket{01}$ state won't change.
 
 > In Q#, you can apply a controlled gate by using the `Controlled` keyword before the gate. The controlled gate will take two parameters; the first parameter is an array of control qubits (you can have multiple qubits used as a control), and the second parameter is a tuple of parameters passed to the original gate (in this case it's just the qubit to which you want to apply the gate if the control bit is $\ket{1}$).
 
