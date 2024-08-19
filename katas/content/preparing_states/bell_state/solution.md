@@ -25,7 +25,7 @@ You can take advantage of controlled gates, specifically the [controlled NOT gat
 
 $$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
 
-If youapply the $CNOT$ gate to the state $\frac{1}{\sqrt2} (\ket{00} + \ket{10})$, taking the first qubit as the control and the second one as target, you'll get exactly the desired goal state. 
+If you apply the $CNOT$ gate to the state $\frac{1}{\sqrt2} (\ket{00} + \ket{10})$, taking the first qubit as the control and the second one as target, you'll get exactly the desired goal state. 
  
 Steps required to reach goal state:
 1. Apply a Hadamard gate to the first qubit.
