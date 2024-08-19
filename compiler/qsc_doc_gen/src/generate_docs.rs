@@ -18,8 +18,9 @@ use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
 
+// Name, Metadata, Content
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
-type FilesWithMetadata = Vec<(Arc<Metadata>, Arc<str>, Arc<str>)>;
+type FilesWithMetadata = Vec<(Arc<str>, Arc<Metadata>, Arc<str>)>;
 
 /// Represents an immutable compilation state.
 #[derive(Debug)]
@@ -169,27 +170,21 @@ pub fn generate_docs(
     for (package_id, unit) in &compilation.package_store {
         let is_current_package = compilation.current_package_id == Some(package_id);
         let package_kind;
-        match package_id {
+        if package_id == PackageId::CORE {
             // Core package is always included in the compilation.
-            PackageId::CORE => package_kind = PackageKind::Core,
-
+            package_kind = PackageKind::Core;
+        } else if package_id == 1.into() {
             // Standard package is currently always included, but this isn't enforced by the compiler.
-            _ if package_id == 1.into() => package_kind = PackageKind::StandardLibrary,
-
+            package_kind = PackageKind::StandardLibrary;
+        } else if is_current_package {
             // This package could be user code if current package is specified.
-            _ if is_current_package => {
-                package_kind = PackageKind::UserCode;
-            }
-
-            _ => {
-                if let Some(alias) = compilation.dependencies.get(&package_id) {
-                    // This is a direct dependency of the user code.
-                    package_kind = PackageKind::AliasedPackage(alias.to_string());
-                } else {
-                    // This is not a package user can access (an indirect dependency).
-                    continue;
-                }
-            }
+            package_kind = PackageKind::UserCode;
+        } else if let Some(alias) = compilation.dependencies.get(&package_id) {
+            // This is a direct dependency of the user code.
+            package_kind = PackageKind::AliasedPackage(alias.to_string());
+        } else {
+            // This is not a package user can access (an indirect dependency).
+            continue;
         }
 
         let package = &unit.package;
@@ -216,15 +211,15 @@ pub fn generate_docs(
     // Also, items without any metadata (table of content) should come last
     files.sort_by_key(|file| {
         (
-            file.0.package.clone(),
-            file.0.namespace.clone(),
-            file.0.name.clone(),
+            file.1.package.clone(),
+            file.1.namespace.clone(),
+            file.1.name.clone(),
         )
     });
 
     let mut result: Files = files
         .into_iter()
-        .map(|(metadata, name, content)| (name, Arc::from(metadata.to_string().as_str()), content))
+        .map(|(name, metadata, content)| (name, Arc::from(metadata.to_string().as_str()), content))
         .collect();
 
     generate_toc(&mut toc, &mut result);
@@ -260,7 +255,7 @@ fn generate_doc_for_item<'a>(
     let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
 
     let met: Arc<Metadata> = Arc::from(metadata);
-    files.push((met, file_name, file_content));
+    files.push((file_name, met, file_content));
 
     // Return (ns, line)
     Some((ns.clone(), line))
