@@ -7,6 +7,6 @@
 * 2 if they were in the $\ket{10}$ state, 
 * 3 if they were in the $\ket{11}$ state.
 
-In this task and the subsequent ones the order of qubit states in task description matches the order of qubits in the array (i.e., $\ket{10}$ state corresponds to `qs[0]` in state $\ket{1}$ and `qs[1]` in state $\ket{0}$).
+In this task and the subsequent ones the order of qubit states in task description matches the order of qubits in the array (that is, $\ket{10}$ state corresponds to `qs[0]` in state $\ket{1}$ and `qs[1]` in state $\ket{0}$).
 
-The state of the qubits at the end of the operation does not matter.
+The state of the qubits at the end of the operation doesn't matter.
