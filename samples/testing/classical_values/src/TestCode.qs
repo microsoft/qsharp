@@ -1,6 +1,6 @@
 import Std.Diagnostics.Fact;
-open Std.Arrays;
-open Std.Random;
+import Std.Arrays.*;
+import Std.Random.*;
 import ClassicalFunction.Square;
 import Measurement.MeasureBasisState;
 
