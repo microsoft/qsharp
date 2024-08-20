@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
+    /// the Bell state (|00⟩ + |11⟩ ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
+    /// the Bell state (|00⟩ + |11⟩ ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
@@ -69,11 +69,45 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Checks whether a qubit is in the |0⟩ state, returning true if it is.
+    ///
+    /// # Description
+    /// This operation checks whether a qubit is in the |0⟩ state. It will return true only
+    /// if the qubit is deterministically in the |0⟩ state, and will return false otherwise. This operation
+    /// does not change the state of the qubit.
+    ///
+    /// # Input
+    /// ## qubit
+    /// The qubit to check.
+    /// # Output
+    /// True if the qubit is in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Checks whether all qubits in the provided array are in the |0⟩ state. Returns true if they are.
+    ///
+    /// # Description
+    /// This operation checks whether all qubits in the provided array are in the |0⟩ state. It will return true only
+    /// if all qubits are deterministically in the |0⟩ state, and will return false otherwise. This operation
+    /// does not change the state of the qubits.
+    ///
+    /// # Input
+    /// ## qubits
+    /// The qubits to check.
+    /// # Output
+    /// True if all qubits are in the |0⟩ state, false otherwise.
+    ///
+    /// # Remarks
+    /// This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+    /// this on hardware without measuring the qubit, which could change the state.
     @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
@@ -85,7 +119,18 @@ namespace Microsoft.Quantum.Diagnostics {
         return true;
     }
 
-    /// Checks whether a classical condition is true, and throws an exception if it is not.
+    /// # Summary
+    /// Checks whether a given condition is true, failing with a message if it is not.
+    ///
+    /// # Description
+    /// This function checks whether a given condition is true. If the condition is false, the operation fails with the given message,
+    /// terminating the program.
+    ///
+    /// # Input
+    /// ## actual
+    /// The condition to check.
+    /// ## message
+    /// The message to use in the failure if the condition is false.
     function Fact(actual : Bool, message : String) : Unit {
         if (not actual) {
             fail message;
@@ -149,5 +194,143 @@ namespace Microsoft.Quantum.Diagnostics {
         areEqual
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual;
+    /// # Summary
+    /// Starts counting the number of times the given operation is called. Fails if the operation is already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given operation is called. If the given operation is already
+    /// being counted, calling `StartCountingOperation` again will trigger a runtime failure. Counting is based on the specific
+    /// specialization of the operation invoked, so `X` and `Adjoint X` are counted separately.
+    /// Likewise `Controlled X`, `CNOT`, and `CX` are independent operations that are counted separately, as are `Controlled X`
+    /// and `Controlled Adjoint X`.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation to be counted.
+    ///
+    /// # Remarks
+    /// Counting operation calls requires specific care in what operation is passed as input. For example, `StartCountingOperation(H)` will
+    /// count only the number of times `H` is called, while `StartCountingOperation(Adjoint H)` will count only the number of times `Adjoint H` is called, even
+    /// though `H` is self-adjoint. This is due to how the execution treats the invocation of these operations as distinct by their specialization.
+    /// In the same way, `StartCountingOperation(Controlled X)` will count only the number of times `Controlled X` is called, while
+    /// `StartCountingOperation(CNOT)` will count only the number of times `CNOT` is called.
+    ///
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the operation and it is counted as a separate operation. For example,
+    /// ```qsharp
+    /// let myOp = q => H(q);
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// Will count specifically calls to `myOp` and not `H`. By contrast, the following code will count calls to `H` itself:
+    /// ```qsharp
+    /// let myOp = H;
+    /// StartCountingOperation(myOp);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `H` directly.
+    @Config(Unrestricted)
+    operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of times the given operation is called and returns the count. Fails
+    /// if the operation was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given operation is called and returns the count.
+    /// If the operation was not being counted, it triggers a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The operation whose count will be returned.
+    /// # Output
+    /// The number of times the operation was called since the last call to `StartCountingOperation`.
+    @Config(Unrestricted)
+    operation StopCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Int {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Starts counting the number of times the given function is called. Fails if the function is already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of times a given function is called. If the given function is already
+    /// being counted, calling `StartCountingFunction` again will trigger a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function to be counted.
+    ///
+    /// # Remarks
+    /// When counting lambdas, the symbol the lambda is bound to is used to identify the function and it is counted as a separate function. For example,
+    /// ```qsharp
+    /// let myFunc = i -> AbsI(i);
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// Will count specifically calls to `myFunc` and not `AbsI`. By contrast, the following code will count calls to `AbsI` itself:
+    /// ```qsharp
+    /// let myFunc = AbsI;
+    /// StartCountingFunction(myFunc);
+    /// ```
+    /// This is because this code does not define a lambda and instead just creates a binding to `AbsI` directly.
+    @Config(Unrestricted)
+    operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of times the given function is called and returns the count. Fails
+    /// if the function was not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of times a given function is called and returns the count.
+    /// If the function was not being counted, it triggers a runtime failure.
+    ///
+    /// # Input
+    /// ## callable
+    /// The function whose count will be returned.
+    /// # Output
+    /// The number of times the function was called since the last call to `StartCountingFunction`.
+    @Config(Unrestricted)
+    operation StopCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Int {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Starts counting the number of qubits allocated. Fails if qubits are already being counted.
+    ///
+    /// # Description
+    /// This operation allows you to count the number of qubits allocated until `StopCountingQubits` is called.
+    /// The counter is incremented only when a new unique qubit is allocated, so reusing the same qubit multiple times
+    /// across separate allocations does not increment the counter.
+    ///
+    /// # Remarks
+    /// This operation is useful for tracking the number of unique qubits allocated in a given scope. Along with
+    /// `StopCountingQubits`, it can be used to verify that a given operation does not allocate more qubits than
+    /// expected. For example,
+    /// ```qsharp
+    /// StartCountingQubits();
+    /// testOperation();
+    /// let qubitsAllocated = StopCountingQubits();
+    /// Fact(qubitsAllocated <= 4, "Operation should not allocate more than 4 qubits.");
+    /// ```
+    @Config(Unrestricted)
+    operation StartCountingQubits() : Unit {
+        body intrinsic;
+    }
+
+    /// # Summary
+    /// Stops counting the number of qubits allocated and returns the count. Fails if the qubits were not being counted.
+    ///
+    /// # Description
+    /// This operation allows you to stop counting the number of qubits allocated and returns the count since the
+    /// last call to `StartCountingQubits`. If the qubits were not being counted, it triggers a runtime failure.
+    ///
+    /// # Output
+    /// The number of unique qubits allocated since the last call to `StartCountingQubits`.
+    @Config(Unrestricted)
+    operation StopCountingQubits() : Int {
+        body intrinsic;
+    }
+
+    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
 }

@@ -462,8 +462,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// WARNING:
     /// This operation uses the **opposite** sign convention from
-    /// Microsoft.Quantum.Intrinsic.R, and does not include the
-    /// factor of 1/2 included by Microsoft.Quantum.Intrinsic.R1.
+    /// Microsoft.Quantum.Intrinsic.R.
     ///
     /// # Input
     /// ## numerator
@@ -479,7 +478,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// $$
     /// \begin{align}
     ///     R_1(n, k) \mathrel{:=}
-    ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
+    ///     \operatorname{diag}(1, e^{i \pi n / 2^k}).
     /// \end{align}
     /// $$
     ///
@@ -549,7 +548,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Equivalent to:
     /// ```qsharp
     /// // PI() is a Q# function that returns an approximation of π.
-    /// R(pauli, -PI() * IntAsDouble(numerator) / IntAsDouble(2 ^ (power - 1)), qubit);
+    /// R(pauli, -2.0 * PI() * IntAsDouble(numerator) / IntAsDouble(2 ^ (power - 1)), qubit);
     /// ```
     operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl {
         // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for

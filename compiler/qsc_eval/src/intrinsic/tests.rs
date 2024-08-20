@@ -1502,3 +1502,74 @@ fn two_qubit_rotation_neg_inf_error() {
         &expect!["invalid rotation angle: -inf"],
     );
 }
+
+#[test]
+fn stop_counting_operation_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StopCountingOperation(I);
+        }"},
+        &expect!["callable not counted"],
+    );
+}
+
+#[test]
+fn stop_counting_function_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            function Foo() : Unit {}
+            Std.Diagnostics.StopCountingFunction(Foo);
+        }"},
+        &expect!["callable not counted"],
+    );
+}
+
+#[test]
+fn start_counting_operation_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StartCountingOperation(I);
+            Std.Diagnostics.StartCountingOperation(I);
+        }"},
+        &expect!["callable already counted"],
+    );
+}
+
+#[test]
+fn start_counting_function_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            function Foo() : Unit {}
+            Std.Diagnostics.StartCountingFunction(Foo);
+            Std.Diagnostics.StartCountingFunction(Foo);
+        }"},
+        &expect!["callable already counted"],
+    );
+}
+
+#[test]
+fn stop_counting_qubits_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StopCountingQubits();
+        }"},
+        &expect!["qubits not counted"],
+    );
+}
+
+#[test]
+fn start_counting_qubits_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StartCountingQubits();
+            Std.Diagnostics.StartCountingQubits();
+        }"},
+        &expect!["qubits already counted"],
+    );
+}

@@ -175,84 +175,6 @@ fn ignore_unstable_callable() {
 }
 
 #[test]
-fn ignore_internal_callable() {
-    check(
-        r#"
-        namespace Test {
-            internal operation Foo() : Unit {}
-            operation Bar() : Unit {
-                ↘
-            }
-        }
-
-        namespace Test {
-            internal operation Baz() : Unit {}
-        }"#,
-        &["Fake", "Foo", "Baz", "Hidden"],
-        &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0700Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn in_block_contains_std_functions_from_open_namespace() {
     check(
         r#"
@@ -1410,6 +1332,124 @@ fn local_var_and_open_shadowing_rules() {
                             "operation Bar() : Unit",
                         ),
                         additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo or Bar because FooNs is already glob imported
+#[test]
+fn dont_import_if_already_glob_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit {
+            }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.*;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo because Foo is directly imported,
+// but additional text edits for Bar because Bar is not directly imported
+#[test]
+fn dont_import_if_already_directly_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit { }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.Foo;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import FooNs.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
                     },
                 ),
             ]
