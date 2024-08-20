@@ -292,11 +292,14 @@ fn generate_file(
     let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
-    let title = format!("{} {}", metadata.fully_qualified_name(), metadata.kind);
+    let title = &metadata.title;
+    let fqn = &metadata.fully_qualified_name();
     let sig = &metadata.signature;
 
     let content = format!(
         "# {title}
+
+Fully qualified name: {fqn}
 
 ```qsharp
 {sig}
