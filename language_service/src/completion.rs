@@ -811,11 +811,11 @@ fn callable_decl_to_completion_item(
     // cases, we do not need to add an import statement.
     // The third condition is if there is no existing imports, and no existing package alias (a
     // form of import), then we need to add an import statement.
-    let additional_text_edit =  
+    let additional_text_edit =
         // first condition
         if current_namespace_name == Some(namespace_as_strs.as_slice()) ||
         // second condition
-        (preexisting_exact_import || preexisting_glob_import) { None } 
+        (preexisting_exact_import || preexisting_glob_import) { None }
         // third condition
         else if preexisting_namespace_alias.is_none() {
             // if there is no place to insert an import, then we can't add an import.
@@ -829,7 +829,7 @@ fn callable_decl_to_completion_item(
                     new_text: format!("import {import_text};{indent}",),
                     range,
                 })
-            } else { None } 
+            } else { None }
         } else {
             None
         };
