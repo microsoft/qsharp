@@ -1,4 +1,4 @@
-branch=main
+branch="alex/benching"
 echo $(git rev-list --since="1 week ago" $branch)
 for commit in $(git rev-list --since="1 week ago" $branch)
 do
