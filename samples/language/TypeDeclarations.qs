@@ -5,7 +5,7 @@
 // User-defined struct types are supported in Q#.
 // They are immutable but support a copy-constructor syntax.
 
-operation Main() : Unit {
+function Main() : Unit {
     // Structs are defined with the `struct` keyword.
     struct Point3d { X : Double, Y : Double, Z : Double }
 

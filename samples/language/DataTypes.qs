@@ -72,5 +72,6 @@ operation Main() : Unit {
     // A function that takes an integer and returns a boolean. This variable declaration
     // uses a Lambda function as its right hand side.
     // The function signature is provided as an annotation here, for clarity.
-    let functionType : Int => Bool = (int) => int == 0;
+    // To define an operation as a lambda, use the `=>` operator instead of `->`.
+    let functionType : Int -> Bool = (int) -> int == 0;
 }
