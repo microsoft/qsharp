@@ -6,8 +6,12 @@
 /// Values range from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807.
 namespace MyQuantumApp {
 
+    function otherFunc() : Unit {
+
+    }
     @EntryPoint()
     function Main() : Int {
+    
         // Numbers can be declared in hex, octal, decimal, or binary.
         let foo = 0x42;
         Message($"Hexadecimal: {foo}");

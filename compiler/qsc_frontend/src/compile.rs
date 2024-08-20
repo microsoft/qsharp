@@ -50,6 +50,13 @@ pub struct CompileUnit {
 
 impl CompileUnit {
     pub fn expose(&mut self) {
+        // expose AST items
+        /*
+        for (_item_id, item) in self.ast.package.nodes.iter_mut() {
+            item.visibility = ast::Visibility::Public;
+        }
+        */
+        // expose HIR items
         for (_item_id, item) in self.package.items.iter_mut() {
             item.visibility = hir::Visibility::Public;
         }
@@ -244,6 +251,10 @@ impl PackageStore {
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
         self.units.get(id)
+    }
+
+    pub fn get_mut(&mut self, user_package_id: PackageId) -> Option<&mut CompileUnit> {
+        self.units.get_mut(user_package_id)
     }
 
     #[must_use]
