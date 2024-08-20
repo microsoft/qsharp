@@ -142,7 +142,7 @@ class DensityMatrixSimulator:
         """
         ...
 
-    def set_state(self) -> None:
+    def set_state(self, state: DensityMatrix) -> None:
         """
         Set state of the quantum system to another `DensityMatrix` of the
         same dimensions.
@@ -218,14 +218,14 @@ class StateVectorSimulator:
         Use this method to perform measurements on the quantum system.
         """
 
-    def get_state(self) -> Optional[DensityMatrix]:
+    def get_state(self) -> Optional[StateVector]:
         """
         Returns the `StateVector` if the simulator is in a valid state,
         otherwise returns None.
         """
         ...
 
-    def set_state(self) -> None:
+    def set_state(self, state: StateVector) -> None:
         """
         Set state of the quantum system to another `StateVector` of the
         same dimensions.
