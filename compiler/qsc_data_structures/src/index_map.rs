@@ -227,6 +227,16 @@ pub struct IterMut<'a, K, V> {
     base: Enumerate<slice::IterMut<'a, Option<V>>>,
 }
 
+impl<K: From<usize>, V> DoubleEndedIterator for Iter<'_, K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if let (index, Some(value)) = self.base.next_back()? {
+                break Some((index.into(), value));
+            }
+        }
+    }
+}
+
 impl<'a, K: From<usize>, V> Iterator for IterMut<'a, K, V> {
     type Item = (K, &'a mut V);
 

@@ -337,25 +337,10 @@ impl CompletionListBuilder {
         current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
     ) {
-        let core = &compilation
-            .package_store
-            .get(PackageId::CORE)
-            .expect("expected to find core package")
-            .package;
-
-        let mut all_except_core = compilation
-            .package_store
-            .iter()
-            .filter(|p| p.0 != PackageId::CORE)
-            .collect::<Vec<_>>();
-
-        // Reverse to collect symbols starting at the current package backwards
-        all_except_core.reverse();
-
-        for (package_id, _) in &all_except_core {
+        for (package_id, _) in compilation.package_store.iter().rev() {
             self.push_sorted_completions(Self::get_callables(
                 compilation,
-                *package_id,
+                package_id,
                 imports,
                 insert_open_range,
                 current_namespace_name.as_deref(),
@@ -363,14 +348,10 @@ impl CompletionListBuilder {
             ));
         }
 
-        self.push_sorted_completions(Self::get_core_callables(compilation, core));
-
-        for (id, unit) in &all_except_core {
-            let alias = compilation.dependencies.get(id).cloned().flatten();
+        for (id, unit) in compilation.package_store.iter().rev() {
+            let alias = compilation.dependencies.get(&id).cloned().flatten();
             self.push_completions(Self::get_namespaces(&unit.package, alias));
         }
-
-        self.push_completions(Self::get_namespaces(core, None));
     }
 
     fn push_locals(
@@ -497,34 +478,6 @@ impl CompletionListBuilder {
                 insert_open_at,
                 indent,
             )
-        })
-    }
-
-    /// Get all callables in the core package
-    fn get_core_callables<'a>(
-        compilation: &'a Compilation,
-        package: &'a Package,
-    ) -> impl Iterator<Item = (CompletionItem, SortPriority)> + 'a {
-        let display = CodeDisplay { compilation };
-
-        package.items.values().filter_map(move |i| match &i.kind {
-            ItemKind::Callable(callable_decl) => {
-                let name = callable_decl.name.name.as_ref();
-                let detail = Some(display.hir_callable_decl(callable_decl).to_string());
-                // Everything that starts with a __ goes last in the list
-                let sort_group = SortPriority::from(name.starts_with("__"));
-                Some((
-                    CompletionItem {
-                        label: name.to_string(),
-                        kind: CompletionItemKind::Function,
-                        sort_text: None, // This will get filled in during `push_sorted_completions`
-                        detail,
-                        additional_text_edits: None,
-                    },
-                    sort_group,
-                ))
-            }
-            _ => None,
         })
     }
 

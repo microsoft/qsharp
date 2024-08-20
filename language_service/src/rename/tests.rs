@@ -5,9 +5,7 @@
 
 use super::{get_rename, prepare_rename};
 use crate::{
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-    },
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
 };
 use expect_test::{expect, Expect};
@@ -17,7 +15,7 @@ use expect_test::{expect, Expect};
 /// The expected rename location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual = get_rename(&compilation, "<source>", cursor_position, Encoding::Utf8)
         .into_iter()
         .map(|l| l.range)
@@ -31,22 +29,19 @@ fn check(source_with_markers: &str) {
 /// Asserts that the prepare rename given at the cursor position returns None.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn assert_no_rename(source_with_markers: &str) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual = prepare_rename(&compilation, "<source>", cursor_position, Encoding::Utf8);
     assert!(actual.is_none());
 }
 
 fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
-    let (compilation, cell_uri, position, _) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let (compilation, cell_uri, position, _) = compile_notebook_with_markers(cells_with_markers);
     let actual = get_rename(&compilation, &cell_uri, position, Encoding::Utf8);
     expect.assert_debug_eq(&actual);
 }
 
 fn check_prepare_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
-    let (compilation, cell_uri, position, _) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let (compilation, cell_uri, position, _) = compile_notebook_with_markers(cells_with_markers);
     let actual = prepare_rename(&compilation, &cell_uri, position, Encoding::Utf8);
     expect.assert_debug_eq(&actual);
 }
