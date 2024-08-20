@@ -334,11 +334,13 @@ pub const VARIABLES_EXPECT: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
+    Shadowed Immutable Int: 0
     ()"#]];
 pub const VARIABLES_EXPECT_DEBUG: Expect = expect![[r#"
     Immutable Int: 42
     Mutable Int: 43
     Mutable Int after mutation: 42
+    Shadowed Immutable Int: 0
     ()"#]];
 pub const WHILELOOPS_EXPECT: Expect = expect!["()"];
 pub const WHILELOOPS_EXPECT_DEBUG: Expect = expect!["()"];
