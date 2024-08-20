@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 import Types.FixedPoint;
 import Facts.IdenticalFormatFactFxP;
 import Signed.Comparison.CompareGTSI;
@@ -27,3 +26,4 @@ operation CompareGreaterThanFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : Qub
     CompareGTSI((fp1::Register), (fp2::Register), result);
 }
 
+export CompareGreaterThanFxP;

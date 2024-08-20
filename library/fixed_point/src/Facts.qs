@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
-open Microsoft.Quantum.Diagnostics;
-open Microsoft.Quantum.Arrays;
 import Types.FixedPoint;
+import Std.Arrays.IsEmpty, Std.Arrays.Rest;
+import Std.Diagnostics.Fact, Std.Diagnostics.CheckAllZero;
 
 /// # Summary
 /// Asserts that a quantum fixed-point number is
@@ -59,3 +58,5 @@ function IdenticalPointPosFactFxP(fixedPoints : FixedPoint[]) : Unit {
         Fact((Length(fp::Register) - fp::IntegerBits) == (n - position), "FixedPoint numbers must have identical point alignment.");
     }
 }
+
+export AssertAllZeroFxP, IdenticalFormatFactFxP, IdenticalPointPosFactFxP;

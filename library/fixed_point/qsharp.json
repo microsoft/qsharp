@@ -12,16 +12,16 @@
     }
   },
   "files": [
-    "src/Addition.qs",
     "src/Comparison.qs",
     "src/Convert.qs",
     "src/Facts.qs",
     "src/Init.qs",
-    "src/Math.qs",
+    "src/Main.qs",
     "src/Measurement.qs",
-    "src/Multiplication.qs",
+    "src/Operations.qs",
     "src/Polynomial.qs",
     "src/Reciprocal.qs",
+    "src/Tests.qs",
     "src/Types.qs"
   ]
 }

@@ -2,14 +2,11 @@
 // Licensed under the MIT License.
 
 
-open Microsoft.Quantum.Math;
-open Microsoft.Quantum.Canon;
-open Microsoft.Quantum.Arrays;
-open Microsoft.Quantum.Intrinsic;
-open Microsoft.Quantum.Diagnostics;
 import Types.FixedPoint;
-import Signed.Operations.Invert2sSI;
-import Signed.Operations.ComputeReciprocalI;
+import Signed.Operations.ComputeReciprocalI, Signed.Operations.Invert2sSI;
+import Std.Diagnostics.Fact;
+import Std.Arrays.Tail, Std.Arrays.Zipped;
+import Std.Math.Min;
 
 /// # Summary
 /// Computes the reciprocal of a number stored in a quantum register with
@@ -47,5 +44,4 @@ operation ComputeReciprocalFxP(x : FixedPoint, result : FixedPoint) : Unit is Ad
         CNOT(Tail(xs), sign);
     }
 }
-
 

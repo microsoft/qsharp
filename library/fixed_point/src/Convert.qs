@@ -1,10 +1,9 @@
-import Microsoft.Quantum.Arrays.Most;
-import Microsoft.Quantum.Arrays.Tail;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import Std.Convert.*;
-import Std.Math.*;
+import Std.Convert.IntAsDouble, Std.Convert.BoolArrayAsInt;
+import Std.Math.AbsD, Std.Math.Floor;
+import Std.Arrays.Most, Std.Arrays.Tail;
 
 /// # Summary
 /// Computes fixed-point approximation for a double and returns it as `Bool` array.
@@ -90,3 +89,7 @@ function DoubleAsFixedPoint(integerBits : Int, fractionalBits : Int, value : Dou
     return BoolArrayAsFixedPoint(integerBits, FixedPointAsBoolArray(integerBits, fractionalBits, value));
 }
 
+export
+    FixedPointAsBoolArray,
+    BoolArrayAsFixedPoint,
+    DoubleAsFixedPoint;
