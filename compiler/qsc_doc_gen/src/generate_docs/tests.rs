@@ -27,7 +27,9 @@ fn docs_generation() {
         qsharp.summary: "Returns the number of elements in the input array `a`."
         ---
 
-        # Microsoft.Quantum.Core.Length function
+        # Length function
+
+        Fully qualified name: Microsoft.Quantum.Core.Length
 
         ```qsharp
         function Length<'T>(a : 'T[]) : Int
