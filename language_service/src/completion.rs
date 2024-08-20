@@ -774,17 +774,17 @@ fn callable_decl_to_completion_item(
     // Everything that starts with a __ goes last in the list
     let sort_group = u32::from(name.starts_with("__"));
 
-    // calculate the qualification that goes before the import
-    // item
-    // if an exact import already exists, or if that namespace
-    // is glob imported, then there is no qualification
-
-    // If there is no matching import or glob import, then the
-    // qualification is the full namespace name
-
-    // an exact import is an import that matches the namespace
-    // and item name exactly
     let namespace_as_strs = Into::<Vec<_>>::into(callable_namespace);
+
+    // Now, we calculate the qualification that goes before the import
+    // item.
+    // if an exact import already exists, or if that namespace
+    // is glob imported, then there is no qualification.
+    // If there is no matching import or glob import, then the
+    // qualification is the full namespace name.
+    //
+    // An exact import is an import that matches the namespace
+    // and item name exactly
     let preexisting_exact_import = imports.iter().any(|import_item| {
         let import_item_namespace = &import_item.path[..import_item.path.len() - 1];
         let import_item_name = import_item.path.last().map(|x| &**x);
