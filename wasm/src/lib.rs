@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use project_system::{into_qsc_args, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
-    format_state_id, get_latex,
+    format_state_id, get_latex, get_matrix_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -296,7 +296,13 @@ where
             .join(", ");
 
         // Close the array of rows and the JSON object.
-        write!(dump_json, r#"{row_strings}]}}"#).expect("writing to string should succeed");
+        let latex_string = serde_json::to_string(&get_matrix_latex(&matrix))
+            .expect("serialization should succeed");
+        write!(
+            dump_json,
+            r#"{row_strings}], "matrixLatex": {latex_string} }}"#
+        )
+        .expect("writing to string should succeed");
 
         (self.event_cb)(&dump_json);
         Ok(())
