@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-
 import Types.FixedPoint;
 import Signed.Operations.ComputeReciprocalI, Signed.Operations.Invert2sSI;
 import Std.Diagnostics.Fact;

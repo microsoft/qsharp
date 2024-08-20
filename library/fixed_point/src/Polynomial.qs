@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-
 import Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
 import Types.FixedPoint;
 import Init.PrepareFxP;
