@@ -8,7 +8,6 @@ env:
   NODE_VERSION: "18.17.1"
   PYTHON_VERSION: "3.11"
   RUST_TOOLCHAIN_VERSION: "1.80"
-  RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
   runBenchmark:
@@ -26,7 +25,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: setup cargo criterion
         run: cargo install cargo-criterion
       - name: run benching script
