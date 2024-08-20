@@ -247,7 +247,7 @@ Full measurements can also be used to identify the state of the system, if it's 
 
 For a system with $n>1$ qubits, it's possible to measure $m<n$ qubits one after another. The number of measurement outcomes is then $2^m$ instead of $2^n$. The probabilities of each of the outcomes and the post-measurement states of the qubits can be found using the projection formalism for measurements.
 
-First, you recall the concept of projection operators introduced in the Measurements in Single-Qubit Systems kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
+First, recall the concept of projection operators introduced in the Measurements in Single-Qubit Systems kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
 $$P^2 = P^\dagger = P$$
 Consider an $n$-qubit system in a state $\ket{\psi}$, for which the first $m<n$ qubits are measured in an orthogonal basis $\{ \ket{b_0} , \ket{b_1}, \dotsc, \ket{b_{2^m-1}}\}$ corresponding to the $m$ qubits being measured. Then, you define $2^m$ projectors corresponding to each of the $\ket{b_i}$ states as
 
