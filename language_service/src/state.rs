@@ -246,7 +246,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
-            let mut compilation = Compilation::new(
+            let compilation = Compilation::new(
                 configuration.package_type,
                 configuration.target_profile,
                 configuration.language_features,
@@ -254,9 +254,6 @@ impl<'a> CompilationStateUpdater<'a> {
                 loaded_project.package_graph_sources,
                 loaded_project.errors,
             );
-
-            // expose the user unit so that we can use it in completions etc
-            compilation.user_unit_mut().expose();
 
             state
                 .compilations

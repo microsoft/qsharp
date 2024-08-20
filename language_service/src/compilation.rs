@@ -229,12 +229,6 @@ impl Compilation {
             .expect("expected to find user package")
     }
 
-    /// Gets a mutable ref to `CompileUnit` associated with user (non-library) code.
-    pub fn user_unit_mut(&mut self) -> &mut CompileUnit {
-        self.package_store
-            .get_mut(self.user_package_id)
-            .expect("expected to find user package")
-    }
     /// Maps a source position from the user package
     /// to a package (`SourceMap`) offset.
     pub(crate) fn source_position_to_package_offset(

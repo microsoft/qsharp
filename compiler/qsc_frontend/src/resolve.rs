@@ -2246,7 +2246,6 @@ fn resolve_scope_locals(
 }
 
 fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
-    println!("getting scope locals");
     let mut names = Vec::new();
 
     // variables
@@ -2271,11 +2270,10 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
         }));
     }
 
-    println!("I have {} termS", scope.terms.len());
     // items
     // skip adding newtypes since they're already in the terms map
     names.extend(scope.terms.iter().map(|term| Local {
-        name: dbg!(term.0.clone()),
+        name: term.0.clone(),
         kind: LocalKind::Item(term.1.id),
     }));
 
