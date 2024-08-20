@@ -29,7 +29,7 @@ fn docs_generation() {
 
         # Length function
 
-        Namespace: Microsoft.Quantum.Core
+        Fully qualified name: Microsoft.Quantum.Core.Length
 
         ```qsharp
         function Length<'T>(a : 'T[]) : Int
