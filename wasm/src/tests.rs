@@ -129,6 +129,32 @@ fn test_message() {
     );
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_matrix() {
+    let code = r"namespace Test {
+        import Microsoft.Quantum.Diagnostics.DumpOperation;
+        operation Main() : Unit {
+            DumpOperation(2, Bell);
+        }
+
+        operation Bell(q: Qubit[]) : Unit {
+            H(q[0]);
+            CX(q[0], q[1]);
+        }
+    }";
+    let expr = "Test.Main()";
+    let result = run_internal(
+        SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
+        |msg| {
+            // TODO: Validate the matrix output
+            assert!(msg.contains("Matrix") || msg.contains("result"));
+        },
+        1,
+    );
+    assert!(result.is_ok());
+}
+
 #[test]
 fn message_with_escape_sequences() {
     let code = r#"namespace Sample {
