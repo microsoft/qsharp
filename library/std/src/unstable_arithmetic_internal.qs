@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-/// # Summary
+    /// # Summary
     /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate
     /// the inner operation to construct the full adder. Only Length(xs)
     /// qubits are processed.
@@ -402,7 +402,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     // Internal operations for comparisons
     //
 
-/// # Summary
+    /// # Summary
     /// Applies `action` to `target` if register `x` is greater or equal to BigInt `c`
     /// (if `invertControl` is false). If `invertControl` is true, the `action`
     /// is applied in the opposite situation.

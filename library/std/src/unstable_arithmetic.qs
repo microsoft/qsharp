@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-/// # Summary
+    /// # Summary
     /// This applies the in-place majority operation to 3 qubits.
     ///
     /// # Description
@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     //     LookAheadDKRSAddLE
     //
 
-/// # Summary
+    /// # Summary
     /// Increments a little-endian register ys by an integer number c
     ///
     /// # Description
@@ -533,7 +533,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     //   if x > y { action(target) }  | ApplyIfGreaterLE
     //
 
-/// # Summary
+    /// # Summary
     /// Computes `if (c < x) { action(target) }`, that is, applies `action` to `target`
     /// if a BigInt value `c` is less than the little-endian qubit register `x`
     operation ApplyIfLessL<'T>(

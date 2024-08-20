@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Measurement {
     open Microsoft.Quantum.Diagnostics;
     open QIR.Intrinsic;
 
-/// # Summary
+    /// # Summary
     /// Jointly measures a register of qubits in the Pauli Z basis.
     ///
     /// # Description

@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Random {
 
-/// # Summary
+    /// # Summary
     /// Draws a random integer from a uniform distribution
     /// in a given inclusive range. Fails if `max < min`.
     ///

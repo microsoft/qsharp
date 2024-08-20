@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Canon {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-/// # Summary
+    /// # Summary
     /// Applies an operation to each element in a register.
     ///
     /// # Input

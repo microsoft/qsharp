@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.Diagnostics {
     open QIR.Intrinsic;
 
-/// # Summary
+    /// # Summary
     /// Dumps the current target machine's status.
     ///
     /// # Description

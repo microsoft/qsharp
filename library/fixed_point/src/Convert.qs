@@ -29,7 +29,7 @@ function FixedPointAsBoolArray(integerBits : Int, fractionalBits : Int, value : 
     let sign = value < 0.0;
 
     mutable result = [false, size = numBits];
-    mutable rescaledConstant = 2.0 ^ IntAsDouble(fractionalBits) * AbsD(value) + 0.5;
+    mutable rescaledConstant = 2.0^IntAsDouble(fractionalBits) * AbsD(value) + 0.5;
     mutable keepAdding = sign;
 
     for idx in 0..numBits - 1 {
@@ -67,7 +67,7 @@ function FixedPointAsBoolArray(integerBits : Int, fractionalBits : Int, value : 
 function BoolArrayAsFixedPoint(integerBits : Int, bits : Bool[]) : Double {
     let numBits = Length(bits);
     let intPart = (Tail(bits) ? -(1 <<< (numBits - 1)) | 0) + BoolArrayAsInt(Most(bits));
-    return IntAsDouble(intPart) / (2.0 ^ IntAsDouble(numBits - integerBits));
+    return IntAsDouble(intPart) / (2.0^IntAsDouble(numBits - integerBits));
 }
 
 /// # Summary

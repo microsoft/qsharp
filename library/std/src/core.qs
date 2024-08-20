@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-/// # Summary
+    /// # Summary
     /// Returns the defined start value of the given range.
     ///
     /// # Input

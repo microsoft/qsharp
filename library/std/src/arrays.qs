@@ -5,7 +5,7 @@ namespace Microsoft.Quantum.Arrays {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-/// # Summary
+    /// # Summary
     /// Given an array and a predicate that is defined
     /// for the elements of the array, and checks if all elements of the
     /// array satisfy the predicate.

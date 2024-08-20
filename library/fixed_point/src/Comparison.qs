@@ -23,7 +23,7 @@ import Signed.Comparison.CompareGTSI;
 /// to have the same point position and the same number of qubits.
 operation CompareGreaterThanFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : Qubit) : Unit is Adj + Ctl {
     IdenticalFormatFactFxP([fp1, fp2]);
-    
+
     CompareGTSI((fp1::Register), (fp2::Register), result);
 }
 

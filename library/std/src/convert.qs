@@ -5,7 +5,7 @@ namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
-/// # Summary
+    /// # Summary
     /// Converts a given integer `number` to an equivalent
     /// double-precision floating-point number.
     ///

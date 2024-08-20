@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-/// # Summary
+    /// # Summary
     /// Returns the number of elements in the input array `a`.
     ///
     /// # Input

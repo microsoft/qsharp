@@ -7,7 +7,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Math;
 
-/// # Summary
+    /// # Summary
     /// Given a set of coefficients and a big-endian quantum register,
     /// prepares a state on that register described by the given coefficients.
     ///

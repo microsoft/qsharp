@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.Math {
     // Constants PI, E, LogOf2.
     //
 
-/// # Summary
+    /// # Summary
     /// Returns a double-precision approximation of the
     /// matematical constant 𝝅 ≈ 3.14159265358979323846
     ///
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.Math {
     // Special numbers in IEEE floating-point representation
     //
 
-/// # Summary
+    /// # Summary
     /// Returns whether a given floating-point value is not a number (i.e. is
     /// NaN).
     ///
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.Math {
     // Sign, Abs, Min, Max, etc.
     //
 
-/// # Summary
+    /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignI(a : Int) : Int {
         if (a < 0) {
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.Math {
     // Trigonometric functions
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the angle whose cosine is the specified number.
     function ArcCos(x : Double) : Double {
         body intrinsic;
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.Math {
     // Sqrt, Log, exp, etc.
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the square root of a specified number.
     function Sqrt(d : Double) : Double {
         body intrinsic;
@@ -358,7 +358,7 @@ namespace Microsoft.Quantum.Math {
     // Truncation and Rounding
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the integral part of a number.
     /// For example: Truncate(3.7) = 3; Truncate(-3.7) = -3
     function Truncate(value : Double) : Int {
@@ -411,7 +411,7 @@ namespace Microsoft.Quantum.Math {
     // Modular arithmetic
     //
 
-/// # Summary
+    /// # Summary
     /// Divides one Integer value by another, returns the result and the remainder as a tuple.
     function DivRemI(dividend : Int, divisor : Int) : (Int, Int) {
         (dividend / divisor, dividend % divisor)
@@ -533,7 +533,7 @@ namespace Microsoft.Quantum.Math {
     // GCD, etc.
     //
 
-/// # Summary
+    /// # Summary
     /// Computes the greatest common divisor of two integers.
     /// Note: GCD is always positive except that GCD(0,0)=0.
     function GreatestCommonDivisorI(a : Int, b : Int) : Int {
@@ -730,7 +730,7 @@ namespace Microsoft.Quantum.Math {
     // Binary, bits, etc.
     //
 
-/// # Summary
+    /// # Summary
     /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
     /// NOTE: This function returns the smallest n such that a < 2^n.
     function BitSizeI(a : Int) : Int {
@@ -805,7 +805,7 @@ namespace Microsoft.Quantum.Math {
     // Combinatorics
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the factorial of a given number.
     ///
     /// # Description
@@ -1013,7 +1013,7 @@ namespace Microsoft.Quantum.Math {
     // Norms
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the squared 2-norm of a vector.
     ///
     /// # Description
@@ -1094,7 +1094,7 @@ namespace Microsoft.Quantum.Math {
     // Complex numbers
     //
 
-/// # Summary
+    /// # Summary
     /// Represents a complex number by its real and imaginary components.
     /// The first element of the tuple is the real component,
     /// the second one - the imaginary component.
@@ -1106,7 +1106,7 @@ namespace Microsoft.Quantum.Math {
     /// ```
     newtype Complex = (Real : Double, Imag : Double);
 
-/// # Summary
+    /// # Summary
     /// Represents a complex number in polar form.
     /// The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
     ///
@@ -1117,7 +1117,7 @@ namespace Microsoft.Quantum.Math {
     /// The phase t ∈ ℝ of c.
     newtype ComplexPolar = (Magnitude : Double, Argument : Double);
 
-/// # Summary
+    /// # Summary
     /// Returns the squared absolute value of a complex number of type
     /// `Complex`.
     ///
@@ -1423,7 +1423,7 @@ namespace Microsoft.Quantum.Math {
     // Fixed point
     //
 
-/// # Summary
+    /// # Summary
     /// Returns the smallest representable number for specific fixed point dimensions.
     ///
     /// # Input

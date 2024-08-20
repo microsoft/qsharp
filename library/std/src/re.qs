@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     // is only available when using resource estimator execution target. `BeginCostCaching`
     // and `EndCostCaching` are not defined for other execution targets.
 
-/// # Summary
+    /// # Summary
     /// Used to specify that there's only one execution variant in `BeginEstimateCaching`
     /// function
     function SingleVariant() : Int {
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     // This functionality is only available when using resource estimator execution target.
     // `AccountForEstimates' is not defined for other execution targets.
 
-/// # Summary
+    /// # Summary
     /// Returns a tuple that can be passed to the `AccountForEstimates` operation
     /// to specify that the number of auxiliary qubits is equal to the `amount`.
     function AuxQubitCount(amount : Int) : (Int, Int) {

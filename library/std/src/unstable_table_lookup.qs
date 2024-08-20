@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Unstable.Arithmetic;
 
-/// # Summary
+    /// # Summary
     /// Performs table lookup using a SELECT network
     ///
     /// # Description

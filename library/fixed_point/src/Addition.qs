@@ -20,7 +20,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
     let n = Length(fp::Register);
     use ys = Qubit[n];
     let tmpFp = FixedPoint(fp::IntegerBits, ys);
-    within  { 
+    within {
         PrepareFxP(constant, tmpFp);
     } apply {
         AddFxP(tmpFp, fp);
