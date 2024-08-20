@@ -6,7 +6,7 @@ mod tests;
 
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64};
-use std::fmt::Write;
+use std::{f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
 #[must_use]
 pub fn format_state_id(id: &BigUint, qubit_count: usize) -> String {
@@ -379,6 +379,63 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Optio
     latex.shrink_to_fit();
 
     Some(latex)
+}
+
+#[must_use]
+pub fn get_matrix_latex(matrix: &Vec<Vec<Complex64>>) -> String {
+    let mut latex: String = String::with_capacity(500);
+    latex.push_str("$ \\begin{bmatrix} ");
+    for row in matrix {
+        let mut is_first: bool = true;
+        for element in row {
+            if !is_first {
+                latex.push_str(" & ");
+            }
+
+            if (element.re - 0.0).abs() < 1e-9 && (element.im - 0.0).abs() < 1e-9 {
+                latex.push('0');
+                is_first = false;
+                continue;
+            }
+            // Handle 1/sqrt(2)
+            if ((element.re).abs() - FRAC_1_SQRT_2).abs() < 1e-9 && (element.im - 0.0).abs() < 1e-9
+            {
+                if element.re < 0.0 {
+                    latex.push('-');
+                }
+                latex.push_str("\\frac{1}{\\sqrt{2}}");
+                is_first = false;
+                continue;
+            }
+
+            if (element.re - 0.0).abs() < 1e-9 && (element.im.abs() - FRAC_1_SQRT_2).abs() < 1e-9 {
+                if element.im < 0.0 {
+                    latex.push('-');
+                }
+                latex.push_str("\\frac{i}{\\sqrt{2}}");
+                is_first = false;
+                continue;
+            }
+
+            let cpl = ComplexNumber::recognize(element.re, element.im);
+
+            match &cpl {
+                ComplexNumber::Cartesian(cartesian_form) => {
+                    write_latex_for_cartesian_form(&mut latex, cartesian_form, false);
+                }
+                ComplexNumber::Polar(polar_form) => {
+                    write_latex_for_polar_form(&mut latex, polar_form, false);
+                }
+            }
+
+            // write!(latex, "{}", fmt_complex(element)).expect("Expected to write complex number.");
+            is_first = false;
+        }
+        latex.push_str(" \\\\ ");
+    }
+    latex.push_str("\\end{bmatrix} $");
+    latex.shrink_to_fit();
+    latex
 }
 
 /// Write latex for one term of quantum state.

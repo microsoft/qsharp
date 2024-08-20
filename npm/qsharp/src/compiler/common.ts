@@ -22,6 +22,7 @@ interface DumpMsg {
 interface MatrixMsg {
   type: "Matrix";
   matrix: number[][][]; // Array or rows, which are an array of elements, which are complex numbers as [re, im]
+  matrixLatex: string;
 }
 
 interface MessageMsg {

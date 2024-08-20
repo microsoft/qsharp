@@ -4,7 +4,7 @@
 import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp-lang";
 import { useEffect, useState } from "preact/hooks";
 
-import { Histogram } from "qsharp-lang/ux";
+import { Histogram, Markdown } from "qsharp-lang/ux";
 import { StateTable } from "./state.js";
 import { ActiveTab } from "./main.js";
 
@@ -53,6 +53,7 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
   return true;
 }
 
+/*
 function Matrix(props: { matrix: number[][][] }) {
   const style = `display: grid; grid-template-columns: repeat(${props.matrix[0].length}, 1fr);`;
   function complexToString(re: number, im: number) {
@@ -78,6 +79,18 @@ function Matrix(props: { matrix: number[][][] }) {
           });
         })}
       </div>
+    </>
+  );
+}
+*/
+
+function MatrixLatex(props: { latex: string }) {
+  return (
+    <>
+      <div style="margin: 12px 4px; font-size: 1em; font-style: italic;">
+        DumpOperation
+      </div>
+      <Markdown markdown={props.latex} />
     </>
   );
 }
@@ -277,7 +290,7 @@ export function ResultsTab(props: {
                   ></StateTable>
                 </div>
               ) : (
-                <Matrix matrix={evt.matrix} />
+                <MatrixLatex latex={evt.matrixLatex} />
               );
             })}
           </div>
