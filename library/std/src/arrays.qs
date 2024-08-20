@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.Arrays {
         true
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a predicate that is defined
     /// for the elements of the array, checks if at least one element of
     /// the array satisfies the predicate.
@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.Arrays {
         false
     }
 
-/// # Summary
+    /// # Summary
     /// Splits an array into multiple parts of equal length.
     ///
     /// # Input
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Shift an array circularly left or right by a specific step size.
     ///
     /// # Type Parameters
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.Arrays {
         rightPart + leftPart
     }
 
-/// # Summary
+    /// # Summary
     /// Extracts a column from a matrix.
     ///
     /// # Description
@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.Arrays {
         columnValues
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a predicate that is defined
     /// for the elements of the array, returns the number of elements
     /// an array that consists of those elements that satisfy the predicate.
@@ -216,7 +216,7 @@ namespace Microsoft.Quantum.Arrays {
         count
     }
 
-/// # Summary
+    /// # Summary
     /// Returns an array of diagonal elements of a 2-dimensional array
     ///
     /// # Description
@@ -253,7 +253,7 @@ namespace Microsoft.Quantum.Arrays {
         diagonal
     }
 
-/// # Summary
+    /// # Summary
     /// Repeats an operation for a given number of samples, collecting its outputs
     /// in an array.
     ///
@@ -285,7 +285,7 @@ namespace Microsoft.Quantum.Arrays {
         outputs
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array, returns a new array containing elements of the original
     /// array along with the indices of each element.
     ///
@@ -314,7 +314,7 @@ namespace Microsoft.Quantum.Arrays {
         MappedByIndex((index, element) -> (index, element), array)
     }
 
-/// # Summary
+    /// # Summary
     /// Returns an array containing the elements of another array,
     /// excluding elements at a given list of indices.
     ///
@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a predicate that is defined
     /// for the elements of the array, returns an array that consists of
     /// those elements that satisfy the predicate.
@@ -389,7 +389,7 @@ namespace Microsoft.Quantum.Arrays {
         filtered
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a function that maps an array element to some output
     /// array, returns the concatenated output arrays for each array element.
     ///
@@ -423,7 +423,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array of arrays, returns the concatenation of all arrays.
     ///
     /// # Type Parameters
@@ -450,7 +450,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Iterates a function `f` through an array `array`, returning
     /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
     ///
@@ -485,7 +485,7 @@ namespace Microsoft.Quantum.Arrays {
         current
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and an operation that is defined
     /// for the elements of the array, returns a new array that consists
     /// of the images of the original array under the operation.
@@ -515,7 +515,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Returns the first element of the array.
     ///
     /// # Type Parameters
@@ -533,7 +533,7 @@ namespace Microsoft.Quantum.Arrays {
         array[0]
     }
 
-/// # Summary
+    /// # Summary
     /// Returns a tuple of first and all remaining elements of the array.
     ///
     /// # Type Parameters
@@ -550,7 +550,7 @@ namespace Microsoft.Quantum.Arrays {
         (Head(array), Rest(array))
     }
 
-/// # Summary
+    /// # Summary
     /// Returns the first index of the first element in an array that satisfies
     /// a given predicate. If no such element exists, returns -1.
     ///
@@ -579,7 +579,7 @@ namespace Microsoft.Quantum.Arrays {
         -1
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array, returns a range over the indices of that array, suitable
     /// for use in a for loop.
     ///
@@ -604,7 +604,7 @@ namespace Microsoft.Quantum.Arrays {
         0..Length(array) - 1
     }
 
-/// # Summary
+    /// # Summary
     /// Interleaves two arrays of (almost) same size.
     ///
     /// # Description
@@ -652,7 +652,7 @@ namespace Microsoft.Quantum.Arrays {
         interleaved
     }
 
-/// # Summary
+    /// # Summary
     /// Returns true if and only if an array is empty.
     ///
     /// # Input
@@ -665,7 +665,7 @@ namespace Microsoft.Quantum.Arrays {
         Length(array) == 0
     }
 
-/// # Summary
+    /// # Summary
     /// Returns whether a 2-dimensional array has a rectangular shape
     ///
     /// # Type Parameters
@@ -701,7 +701,7 @@ namespace Microsoft.Quantum.Arrays {
         true
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array, returns whether that array is sorted as defined by
     /// a given comparison function.
     ///
@@ -733,7 +733,7 @@ namespace Microsoft.Quantum.Arrays {
         true
     }
 
-/// # Summary
+    /// # Summary
     /// Returns whether a 2-dimensional array has a square shape
     ///
     /// # Type Parameters
@@ -769,7 +769,7 @@ namespace Microsoft.Quantum.Arrays {
         true
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a function that is defined
     /// for the elements of the array, returns a new array that consists
     /// of the images of the original array under the function.
@@ -799,7 +799,7 @@ namespace Microsoft.Quantum.Arrays {
         mapped
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array and a function that is defined
     /// for the indexed elements of the array, returns a new array that consists
     /// of the images of the original array under the function.
@@ -840,7 +840,7 @@ namespace Microsoft.Quantum.Arrays {
         mapped
     }
 
-/// # Summary
+    /// # Summary
     /// Given a range and a function that takes an integer as input,
     /// returns a new array that consists
     /// of the images of the range values under the function.
@@ -875,7 +875,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Creates an array that is equal to an input array except that the last array
     /// element is dropped.
     ///
@@ -893,7 +893,7 @@ namespace Microsoft.Quantum.Arrays {
         array[...Length(array) - 2]
     }
 
-/// # Summary
+    /// # Summary
     /// Returns a tuple of all but one and the last element of the array.
     ///
     /// # Type Parameters
@@ -910,7 +910,7 @@ namespace Microsoft.Quantum.Arrays {
         (Most(array), Tail(array))
     }
 
-/// # Summary
+    /// # Summary
     /// Returns an array padded at with specified values up to a
     /// specified length.
     ///
@@ -955,7 +955,7 @@ namespace Microsoft.Quantum.Arrays {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Splits an array into multiple parts.
     ///
     /// # Input
@@ -995,7 +995,7 @@ namespace Microsoft.Quantum.Arrays {
         output
     }
 
-/// # Summary
+    /// # Summary
     /// Creates an array that is equal to an input array except that the first array
     /// element is dropped.
     ///
@@ -1013,7 +1013,7 @@ namespace Microsoft.Quantum.Arrays {
         array[1...]
     }
 
-/// # Summary
+    /// # Summary
     /// Create an array that contains the same elements as an input array but in reversed
     /// order.
     ///
@@ -1031,7 +1031,7 @@ namespace Microsoft.Quantum.Arrays {
         array[...-1...]
     }
 
-/// # Summary
+    /// # Summary
     /// Get an array of integers in a given interval.
     ///
     /// # Input
@@ -1062,7 +1062,7 @@ namespace Microsoft.Quantum.Arrays {
         array
     }
 
-/// # Summary
+    /// # Summary
     /// Get an array of integers in a given interval.
     ///
     /// # Input
@@ -1096,7 +1096,7 @@ namespace Microsoft.Quantum.Arrays {
         array
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array, returns the elements of that array sorted by a given
     /// comparison function.
     ///
@@ -1146,7 +1146,7 @@ namespace Microsoft.Quantum.Arrays {
         )
     }
 
-/// # Summary
+    /// # Summary
     /// Given two sorted arrays, returns a single array containing the
     /// elements of both in sorted order. Used internally by `Sorted`.
     internal function SortedMerged<'T>(comparison : (('T, 'T) -> Bool), left : 'T[], right : 'T[]) : 'T[] {
@@ -1168,7 +1168,7 @@ namespace Microsoft.Quantum.Arrays {
         output + remainingLeft + remainingRight
     }
 
-/// # Summary
+    /// # Summary
     /// Takes an array and a list of locations and
     /// produces a new array formed from the elements of the original
     /// array that match the given locations.
@@ -1206,7 +1206,7 @@ namespace Microsoft.Quantum.Arrays {
         subarray
     }
 
-/// # Summary
+    /// # Summary
     /// Applies a swap of two elements in an array.
     ///
     /// # Input
@@ -1233,7 +1233,7 @@ namespace Microsoft.Quantum.Arrays {
             w/ secondIndex <- array[firstIndex]
     }
 
-/// # Summary
+    /// # Summary
     /// Returns the transpose of a matrix represented as an array
     /// of arrays.
     ///
@@ -1277,7 +1277,7 @@ namespace Microsoft.Quantum.Arrays {
         transposed
     }
 
-/// # Summary
+    /// # Summary
     /// Returns the last element of the array.
     ///
     /// # Type Parameters
@@ -1296,7 +1296,7 @@ namespace Microsoft.Quantum.Arrays {
         array[size - 1]
     }
 
-/// # Summary
+    /// # Summary
     /// Given an array of 2-tuples, returns a tuple of two arrays, each containing
     /// the elements of the tuples of the input array.
     ///
@@ -1333,7 +1333,7 @@ namespace Microsoft.Quantum.Arrays {
         return (first, second);
     }
 
-/// # Summary
+    /// # Summary
     /// Given a predicate and an array, returns the indices of that
     /// array where the predicate is true.
     ///
@@ -1359,7 +1359,7 @@ namespace Microsoft.Quantum.Arrays {
         indexes
     }
 
-/// # Summary
+    /// # Summary
     /// Returns all consecutive subarrays of length `size`.
     ///
     /// # Description
@@ -1401,7 +1401,7 @@ namespace Microsoft.Quantum.Arrays {
         windows
     }
 
-/// # Summary
+    /// # Summary
     /// Given two arrays, returns a new array of pairs such that each pair
     /// contains an element from each original array.
     ///

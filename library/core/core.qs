@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.Core {
         body intrinsic;
     }
 
-/// # Summary
+    /// # Summary
     /// Creates an array of given `length` with all elements equal to given
     /// `value`. `length` must be a non-negative integer.
     ///

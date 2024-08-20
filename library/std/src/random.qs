@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Random {
         body intrinsic;
     }
 
-/// # Summary
+    /// # Summary
     /// Draws a random real number from a uniform distribution
     /// in a given inclusive interval. Fails if `max < min`.
     ///
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.Random {
         body intrinsic;
     }
 
-/// # Summary
+    /// # Summary
     /// Given a success probability, returns a single Bernoulli trial
     /// that is true with the given probability.
     ///

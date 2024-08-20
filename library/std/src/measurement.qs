@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.Measurement {
         Measure(Repeated(PauliZ, Length(register)), register)
     }
 
-/// # Summary
+    /// # Summary
     /// Measures each qubit in a given array in the standard basis.
     ///
     /// # Description
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.Measurement {
         results
     }
 
-/// # Summary
+    /// # Summary
     /// Measures each qubit in a given array in the Z basis
     /// and resets them to a fixed initial state.
     ///
@@ -85,7 +85,7 @@ namespace Microsoft.Quantum.Measurement {
         results
     }
 
-/// # Summary
+    /// # Summary
     /// Measures a single qubit in the X basis,
     /// and resets it to a fixed initial state
     /// following the measurement.
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.Measurement {
         MResetZ(target)
     }
 
-/// # Summary
+    /// # Summary
     /// Measures a single qubit in the Y basis,
     /// and resets it to a fixed initial state
     /// following the measurement.
@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.Measurement {
         MResetZ(target)
     }
 
-/// # Summary
+    /// # Summary
     /// Measures a single qubit in the Z basis,
     /// and resets it to a fixed initial state
     /// following the measurement.
@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.Measurement {
         __quantum__qis__mresetz__body(target)
     }
 
-/// # Summary
+    /// # Summary
     /// Measures the content of a quantum register and converts
     /// it to an integer. The measurement is performed with respect
     /// to the standard computational basis, i.e., the eigenbasis of `PauliZ`.

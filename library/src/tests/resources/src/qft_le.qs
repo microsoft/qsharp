@@ -32,14 +32,14 @@ namespace Test {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Hard-code 1 qubit QFT
     operation QFT1(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 1, $"`Length(target!)` must be 1");
         H((target)[0]);
     }
 
-/// # Summary
+    /// # Summary
     /// Hard-code 2 qubit QFT
     operation QFT2(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 2, $"`Length(target!)` must be 2");
@@ -49,7 +49,7 @@ namespace Test {
         H(q2);
     }
 
-/// # Summary
+    /// # Summary
     /// Hard-code 3 qubit QFT
     operation QFT3(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 3, $"`Length(target)` must be 3");
@@ -62,7 +62,7 @@ namespace Test {
         H(q3);
     }
 
-/// # Summary
+    /// # Summary
     /// Hard-code 4 qubit QFT
     operation QFT4(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 4, $"`Length(target!)` must be 4");
@@ -79,7 +79,7 @@ namespace Test {
         H(q4);
     }
 
-/// # Summary
+    /// # Summary
     /// Compares QFT to the hard-coded implementations
     operation TestQFT(n : Int) : Unit {
         Fact(n >= 1 and n <= 4, "Only have four tests for QFT.");

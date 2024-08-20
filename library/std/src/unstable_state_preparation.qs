@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         ApproximatelyPreparePureStateCP(0.0, coefficientsAsComplexPolar, qubits);
     }
 
-/// # Summary
+    /// # Summary
     /// Given a set of coefficients and a big-endian quantum register,
     /// prepares a state on that register described by the given coefficients,
     /// up to a given approximation tolerance.
@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         );
     }
 
-/// # Summary
+    /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
     internal operation ApproximatelyUnprepareArbitraryState(
         tolerance : Double,
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Applies a Pauli rotation conditioned on an array of qubits, truncating
     /// small rotation angles according to a given tolerance.
     ///
@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
     internal function StatePreparationSBMComputeCoefficients(
         coefficients : ComplexPolar[]
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         return (disentanglingY, disentanglingZ, newCoefficients);
     }
 
-/// # Summary
+    /// # Summary
     /// Computes the Bloch sphere coordinates for a single-qubit state.
     ///
     /// Given two complex numbers $a0, a1$ that represent the qubit state, computes coordinates
@@ -278,7 +278,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         return (ComplexPolar(r, t), phi, theta);
     }
 
-/// # Summary
+    /// # Summary
     /// Applies a Pauli Z rotation conditioned on an array of qubits, truncating
     /// small rotation angles according to a given tolerance.
     ///
@@ -362,7 +362,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implementation step of multiply-controlled Z rotations.
     internal function MultiplexZCoefficients(coefficients : Double[]) : (Double[], Double[]) {
         let newCoefficientsLength = Length(coefficients) / 2;

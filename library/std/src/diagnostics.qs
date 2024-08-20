@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-/// # Summary
+    /// # Summary
     /// Dumps the current target machine's status associated with the given qubits.
     ///
     /// # Input
@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.Diagnostics {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Given two operations, checks that they act identically for all input states.
     ///
     /// # Description

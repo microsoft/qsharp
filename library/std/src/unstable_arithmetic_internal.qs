@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implements the inner addition function for the operation
     /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
     /// with the outer operation to construct the full adder.
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implements the inner addition function for the operation
     /// RippleCarryTTKIncByLE. This is the inner operation that is conjugated
     /// with the outer operation to construct the full adder.
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Implements Half-adder. Adds qubit x to qubit y and sets carryOut appropriately
     internal operation HalfAdderForInc(x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
         body (...) {
@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled adjoint auto;
     }
 
-/// # Summary
+    /// # Summary
     /// Implements Full-adder. Adds qubit carryIn and x to qubit y and sets carryOut appropriately.
     internal operation FullAdderForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
         body (...) {
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         CNOT(y, carryIn);
     }
 
-/// # Summary
+    /// # Summary
     /// Computes carry bit for a full adder.
     internal operation CarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
         body (...) {
@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled adjoint auto;
     }
 
-/// # Summary
+    /// # Summary
     /// Uncomputes carry bit for a full adder.
     internal operation UncarryForInc(carryIn : Qubit, x : Qubit, y : Qubit, carryOut : Qubit) : Unit is Adj + Ctl {
         body (...) {
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled adjoint auto;
     }
 
-/// # Summary
+    /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
     ///
@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Applies AND gate between `control1` and `control2` and stores the result
     /// in `target` assuming `target` is in |0> state.
     ///
@@ -303,7 +303,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         S(target);
     }
 
-/// # Summary
+    /// # Summary
     /// Computes carries for the look-ahead adder
     internal operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
@@ -326,7 +326,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Computes all p[i, j] values in workspace for the look-ahead adder.
     ///
     /// The register array `pWorkspace` has T entries, where T = ⌊log₂ n⌋.
@@ -354,7 +354,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Computes g[i ∧ (i + 1), i + 1] into gs[i] for the look-ahead adder.
     ///
     /// The register gs has n entries initialized to gs[i] = g[i, i + 1].
@@ -376,7 +376,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Computes carries into gs for the look-ahead adder.
     internal operation CRounds(pWorkspace : Qubit[][], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
@@ -458,7 +458,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Applies `action` to `target` if the sum of `x` and `y` registers
     /// overflows, i.e. there's a carry out (if `invertControl` is false).
     /// If `invertControl` is true, the `action` is applied when there's no carry out.
@@ -492,7 +492,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// Computes carry out assuming carry in is 1.
     /// Simplified version that is only applicable for scenarios
     /// where controlled version is the same as non-controlled.
@@ -519,7 +519,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled adjoint auto;
     }
 
-/// # Summary
+    /// # Summary
     /// This wrapper allows operations that support only one control
     /// qubit to be used in a multi-controlled scenarios. It provides
     /// controlled version that collects controls into one qubit
@@ -550,7 +550,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         }
     }
 
-/// # Summary
+    /// # Summary
     /// This helper function computes the AND of all control bits in `ctls` into
     /// the last qubit of `tgts`, using the other qubits in `tgts` as helper
     /// qubits for the AND of subsets of control bits.  The operation has a
