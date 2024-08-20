@@ -29,37 +29,41 @@ operation TestConstantMeasurement(constant : Double) : Unit {
 }
 
 operation FxpOperationTests() : Unit {
-    for i in 0..100 {
-        let constant1 = 0.1 * IntAsDouble(i);
-        let constant2 = 0.1 * IntAsDouble(i + 1);
+    for i in 0..50 {
+        let constant1 = 0.2 * IntAsDouble(i);
+        let constant2 = 0.2 * IntAsDouble(100 - i);
         TestOperation(constant1, constant2, AddFxP, (a, b) -> a + b, "Add");
         TestOperation(constant1, constant2, SubtractFxP, (a, b) -> a - b, "Subtract");
-
         TestOperation3(constant1, constant2, (a, b, c) => MultiplyFxP(a, b, c), (a, b) -> a * b, "Multiply");
         // manually test square, since it requires higher precision to test well
-        use resultRegister = Qubit[30];
-        let resultFxp = new FixedPoint { IntegerBits = 8, Register = resultRegister };
-        PrepareFxP(0.0, resultFxp);
-
-        use aRegister = Qubit[30];
-        let aFxp = new FixedPoint { IntegerBits = 8, Register = aRegister };
-        PrepareFxP(constant1, aFxp);
-
-        SquareFxP(aFxp, resultFxp);
-        let measured = MeasureFxP(resultFxp);
-        Fact(AbsD(constant1 * constant1 - measured) < 0.001, $"Difference of {AbsD(constant1 * constant1 - measured)} is outside of the expected range. Expected {constant1 * constant1} and measured result was {measured}. (Inputs were Square({constant1})");
-        ResetAll(resultRegister);
-        ResetAll(aRegister);
+        TestSquare(constant1);
     }
+}
+operation TestSquare(a : Double) : Unit {
+    Message($"Testing Square({a})");
+    use resultRegister = Qubit[30];
+    let resultFxp = new FixedPoint { IntegerBits = 8, Register = resultRegister };
+    PrepareFxP(0.0, resultFxp);
+
+    use aRegister = Qubit[30];
+    let aFxp = new FixedPoint { IntegerBits = 8, Register = aRegister };
+    PrepareFxP(a, aFxp);
+
+    SquareFxP(aFxp, resultFxp);
+    let measured = MeasureFxP(resultFxp);
+    Fact(AbsD(a * a - measured) < 0.001, $"Difference of {AbsD(a * a - measured)} is outside of the expected range. Expected {a * a} and measured result was {measured}. (Inputs were Square({a})");
+    ResetAll(resultRegister);
+    ResetAll(aRegister);
 }
 
 // assume the second register that `op` takes is the result register
 operation TestOperation(a : Double, b : Double, op : (FixedPoint, FixedPoint) => (), reference : (Double, Double) -> Double, name : String) : Unit {
-    use register1 = Qubit[18];
+    Message($"Testing {name}({a}, {b})");
+    use register1 = Qubit[20];
     let aFxp = new FixedPoint { IntegerBits = 8, Register = register1 };
     PrepareFxP(a, aFxp);
 
-    use register2 = Qubit[18];
+    use register2 = Qubit[20];
     let bFxp = new FixedPoint { IntegerBits = 8, Register = register2 };
     PrepareFxP(b, bFxp);
 
@@ -75,15 +79,16 @@ operation TestOperation(a : Double, b : Double, op : (FixedPoint, FixedPoint) =>
 
 // assume the third register that `op` takes is the result register
 operation TestOperation3(a : Double, b : Double, op : (FixedPoint, FixedPoint, FixedPoint) => (), reference : (Double, Double) -> Double, name : String) : Unit {
-    use register1 = Qubit[20];
+    Message($"Testing {name}({a}, {b})");
+    use register1 = Qubit[24];
     let aFxp = new FixedPoint { IntegerBits = 8, Register = register1 };
     PrepareFxP(a, aFxp);
 
-    use register2 = Qubit[20];
+    use register2 = Qubit[24];
     let bFxp = new FixedPoint { IntegerBits = 8, Register = register2 };
     PrepareFxP(b, bFxp);
 
-    use resultRegister = Qubit[20];
+    use resultRegister = Qubit[24];
     let result = new FixedPoint { IntegerBits = 8, Register = resultRegister };
 
     op(aFxp, bFxp, result);
