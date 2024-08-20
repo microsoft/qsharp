@@ -1456,3 +1456,34 @@ fn dont_import_if_already_directly_imported() {
         "#]],
     );
 }
+
+#[test]
+fn callable_from_same_file() {
+    check(
+        r#"
+        namespace Test {
+            function MyCallable() : Unit {}
+            operation Main() : Unit {
+               MyCall↘
+            }
+        }"#,
+        &["MyCallable"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "MyCallable",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600MyCallable",
+                        ),
+                        detail: Some(
+                            "function MyCallable() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
