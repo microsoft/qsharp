@@ -88,3 +88,16 @@ fn check_dumpoperation_for_ccnot() {
         0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 0.0000+0.0000𝑖 1.0000+0.0000𝑖 0.0000+0.0000𝑖
     "#]].assert_eq(&output);
 }
+
+#[test]
+fn check_dumpoperation_with_extra_qubits_allocated() {
+    let output = test_expression(
+        "{use qs = Qubit[2]; Microsoft.Quantum.Diagnostics.DumpOperation(1, qs => H(qs[0]))}",
+        &Value::unit(),
+    );
+    expect![[r#"
+        MATRIX:
+        0.7071+0.0000𝑖 0.7071+0.0000𝑖
+        0.7071+0.0000𝑖 −0.7071+0.0000𝑖
+    "#]].assert_eq(&output);
+}
