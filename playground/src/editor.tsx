@@ -19,6 +19,8 @@ import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
 
+import type { KataSection } from "qsharp-lang/katas";
+
 type ErrCollection = {
   checkDiags: VSDiagnostic[];
   shotDiags: VSDiagnostic[];
@@ -80,7 +82,7 @@ export function Editor(props: {
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
-  kataExercise?: Exercise;
+  kataSection?: KataSection;
   onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
   showExpr: boolean;
@@ -197,9 +199,9 @@ export function Editor(props: {
     } as ProgramConfig;
 
     try {
-      if (props.kataExercise) {
+      if (props.kataSection?.type === "exercise") {
         // This is for a kata exercise. Provide the sources that implement the solution verification.
-        const sources = await getExerciseSources(props.kataExercise);
+        const sources = await getExerciseSources(props.kataSection as Exercise);
         // check uses the unrestricted profile and doesn't do code gen,
         // so we just pass the sources
         await props.compiler.checkExerciseSolution(
@@ -243,12 +245,12 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel =
       monaco.editor.getModel(
-        monaco.Uri.parse(props.kataExercise?.id ?? "main.qs"),
+        monaco.Uri.parse(props.kataSection?.id ?? "main.qs"),
       ) ??
       monaco.editor.createModel(
         "",
         "qsharp",
-        monaco.Uri.parse(props.kataExercise?.id ?? "main.qs"),
+        monaco.Uri.parse(props.kataSection?.id ?? "main.qs"),
       );
     srcModel.setValue(props.code);
     newEditor.setModel(srcModel);
@@ -293,8 +295,8 @@ export function Editor(props: {
   useEffect(() => {
     props.languageService.updateConfiguration({
       targetProfile: profile,
-      packageType: props.kataExercise ? "lib" : "exe",
-      lints: props.kataExercise
+      packageType: props.kataSection ? "lib" : "exe",
+      lints: props.kataSection
         ? []
         : [{ lint: "needlessOperation", level: "warn" }],
     });
@@ -314,7 +316,7 @@ export function Editor(props: {
       log.info("Removing diagnostics listener");
       props.languageService.removeEventListener("diagnostics", onDiagnostics);
     };
-  }, [props.languageService, props.kataExercise]);
+  }, [props.languageService, props.kataSection]);
 
   useEffect(() => {
     const theEditor = editor.current;

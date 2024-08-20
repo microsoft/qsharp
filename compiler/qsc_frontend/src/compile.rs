@@ -334,6 +334,12 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
+impl DoubleEndedIterator for Iter<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
 pub(super) struct Offsetter(pub(super) u32);
 
 impl MutVisitor for Offsetter {
