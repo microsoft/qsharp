@@ -11,7 +11,7 @@
 // Std.Diagnostics namespace.
 import Std.Diagnostics.*;
 
-operation Main() : Result[] {
+function Main() : Result[] {
     // `DumpMachine` is in the Microsoft.Quantum.Diagnostics namespace
     DumpMachine();
     return [];
