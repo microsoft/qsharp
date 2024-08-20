@@ -9,16 +9,31 @@ use super::{get_completions, CompletionItem};
 use crate::{
     protocol::CompletionList,
     test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers,
-        compile_project_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
+        compile_notebook_with_markers, compile_project_with_markers, compile_with_markers,
     },
     Encoding,
 };
 use indoc::indoc;
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_cursor);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+    let actual_completions =
+        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
+    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
+        .iter()
+        .map(|comp| {
+            actual_completions
+                .items
+                .iter()
+                .find(|item| item.label == **comp)
+        })
+        .collect();
+
+    expect.assert_debug_eq(&checked_completions);
+}
+
+fn check_with_stdlib(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, false);
     let actual_completions =
         get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
@@ -40,7 +55,7 @@ fn check_project(
     expect: &Expect,
 ) {
     let (compilation, cursor_uri, cursor_position, _) =
-        compile_project_with_fake_stdlib_and_markers(sources_with_markers);
+        compile_project_with_markers(sources_with_markers, true);
     let actual_completions =
         get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
@@ -63,7 +78,7 @@ fn check_notebook(
     expect: &Expect,
 ) {
     let (compilation, cell_uri, cursor_position, _) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
     let actual_completions =
         get_completions(&compilation, &cell_uri, cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
@@ -166,84 +181,6 @@ fn ignore_unstable_callable() {
                                 },
                             ],
                         ),
-                    },
-                ),
-                None,
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn ignore_internal_callable() {
-    check(
-        r#"
-        namespace Test {
-            internal operation Foo() : Unit {}
-            operation Bar() : Unit {
-                ↘
-            }
-        }
-
-        namespace Test {
-            internal operation Baz() : Unit {}
-        }"#,
-        &["Fake", "Foo", "Baz", "Hidden"],
-        &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0700Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0600Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
                     },
                 ),
                 None,
@@ -1408,6 +1345,264 @@ fn local_var_and_open_shadowing_rules() {
                         ),
                         detail: Some(
                             "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo or Bar because FooNs is already glob imported
+#[test]
+fn dont_import_if_already_glob_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit {
+            }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.*;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// no additional text edits for Foo because Foo is directly imported,
+// but additional text edits for Bar because Bar is not directly imported
+#[test]
+fn dont_import_if_already_directly_imported() {
+    check(
+        r#"
+        namespace FooNs {
+            operation Foo() : Unit { }
+            operation Bar() : Unit { }
+        }
+
+        namespace Test {
+            import FooNs.Foo;
+            operation Main() : Unit {
+                ↘
+            }
+        }"#,
+        &["Foo", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "operation Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import FooNs.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 7,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn auto_import_from_qir_runtime() {
+    check_with_stdlib(
+        r#"
+        namespace Test {
+            operation Main() : Unit {
+               AllocateQubitA↘
+            }
+        }"#,
+        &["AllocateQubitArray"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "AllocateQubitArray",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800AllocateQubitArray",
+                        ),
+                        detail: Some(
+                            "operation AllocateQubitArray(size : Int) : Qubit[]",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import QIR.Runtime.AllocateQubitArray;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn dont_generate_import_for_core_prelude() {
+    check_with_stdlib(
+        r#"
+        namespace Test {
+            operation Main() : Unit {
+               Length↘
+            }
+        }"#,
+        &["Length"],
+        // additional text edits should be None because Length is in the core prelude
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Length",
+                        kind: Function,
+                        sort_text: Some(
+                            "0800Length",
+                        ),
+                        detail: Some(
+                            "function Length<'T>(a : 'T[]) : Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn dont_generate_import_for_stdlib_prelude() {
+    check_with_stdlib(
+        r#"
+        namespace Test {
+            operation Main() : Unit {
+               MResetZ↘
+            }
+        }"#,
+        &["MResetZ"],
+        // additional text edits should be None because MResetZ is in Std.Measurement, which
+        // is in the prelude.
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "MResetZ",
+                        kind: Function,
+                        sort_text: Some(
+                            "0700MResetZ",
+                        ),
+                        detail: Some(
+                            "operation MResetZ(target : Qubit) : Result",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn callable_from_same_file() {
+    check(
+        r#"
+        namespace Test {
+            function MyCallable() : Unit {}
+            operation Main() : Unit {
+               MyCall↘
+            }
+        }"#,
+        &["MyCallable"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "MyCallable",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600MyCallable",
+                        ),
+                        detail: Some(
+                            "function MyCallable() : Unit",
                         ),
                         additional_text_edits: None,
                     },

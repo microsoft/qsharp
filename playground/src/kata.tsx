@@ -81,6 +81,9 @@ function LessonElem(props: Props & { section: KataSection }) {
   if (props.section.type !== "lesson") throw "Invalid section type";
   const lesson = props.section;
 
+  const [shotError, setShotError] = useState<VSDiagnostic>();
+  const [evtHandler] = useState(() => new QscEventTarget(true));
+
   return (
     <div>
       <div class="section-title">
@@ -94,9 +97,38 @@ function LessonElem(props: Props & { section: KataSection }) {
           switch (item.type) {
             case "example":
               return (
-                <pre>
-                  <code>{item.code}</code>
-                </pre>
+                <>
+                  <Editor
+                    code={item.code}
+                    compiler={props.compiler}
+                    compiler_worker_factory={props.compiler_worker_factory}
+                    compilerState={props.compilerState}
+                    onRestartCompiler={props.onRestartCompiler}
+                    kataSection={lesson}
+                    evtTarget={evtHandler}
+                    defaultShots={1}
+                    showShots={false}
+                    showExpr={false}
+                    shotError={shotError}
+                    profile={getProfile()}
+                    setAst={() => ({})}
+                    setHir={() => ({})}
+                    setQir={() => ({})}
+                    activeTab="results-tab"
+                    languageService={props.languageService}
+                  ></Editor>
+                  <OutputTabs
+                    evtTarget={evtHandler}
+                    showPanel={false}
+                    kataMode={true}
+                    onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+                    ast=""
+                    hir=""
+                    qir=""
+                    activeTab="results-tab"
+                    setActiveTab={() => undefined}
+                  ></OutputTabs>
+                </>
               );
             case "text-content":
               return <Markdown markdown={item.content}></Markdown>;
@@ -140,8 +172,7 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           compiler_worker_factory={props.compiler_worker_factory}
           onRestartCompiler={props.onRestartCompiler}
           code={exercise.placeholderCode}
-          kataExercise={exercise}
-          key={exercise.id}
+          kataSection={exercise}
           profile={getProfile()}
           setAst={() => ({})}
           setHir={() => ({})}
@@ -150,7 +181,6 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           languageService={props.languageService}
         ></Editor>
         <OutputTabs
-          key={exercise.id + "-results"}
           evtTarget={evtHandler}
           showPanel={false}
           kataMode={true}

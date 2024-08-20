@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 namespace CustomOperation {
-    // # Summary
-    /// CNOT based operation for testing with `TestEquivalence` operation.
+    /// # Summary
+    /// CNOT based SWAP operation for testing with `TestEquivalence` operation.
     ///
     /// # Input
     /// ## q1

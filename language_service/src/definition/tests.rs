@@ -8,9 +8,7 @@ use qsc::location::Location;
 
 use super::get_definition;
 use crate::{
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-    },
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
 };
 
@@ -19,7 +17,7 @@ use crate::{
 /// The expected definition range is indicated by `◉` markers in the source text.
 fn assert_definition(source_with_markers: &str) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual_definition =
         get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
@@ -35,7 +33,7 @@ fn assert_definition(source_with_markers: &str) {
 
 fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
     let actual_definition = get_definition(&compilation, &cell_uri, position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
         None
@@ -46,8 +44,7 @@ fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
 }
 
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual_definition =
         get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     expect.assert_debug_eq(&actual_definition);

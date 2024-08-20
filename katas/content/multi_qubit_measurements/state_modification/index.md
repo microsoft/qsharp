@@ -10,4 +10,4 @@ where the constants $a$ and $b$ satisfying $|a|^2 + |b|^2 = 1$ are unknown.
 - If $ind$ equals 0, convert the state of the second qubit into $a\ket{0} + b\ket{1}$
 - If $ind$ equals 1, convert the state of the second qubit into $b\ket{0} + a\ket{1}$. 
 
-The state of the first qubit at the end does not matter (it has to be not entangled with the second qubit).
+The state of the first qubit at the end doesn't matter (it has to be not entangled with the second qubit).
