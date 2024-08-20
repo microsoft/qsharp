@@ -35,4 +35,6 @@ jobs:
           name: benchmarks
           path: |
             target/criterion/**/*
+            week_ago.json
+            latest.json
 
