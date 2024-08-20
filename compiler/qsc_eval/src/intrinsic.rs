@@ -90,7 +90,7 @@ pub(crate) fn call(
             let (state, qubit_count) = sim.capture_quantum_state();
             let state = utils::split_state(&qubits, &state, qubit_count)
                 .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
-            let matrix = utils::state_to_matrix(state, qubit_count / 2);
+            let matrix = utils::state_to_matrix(state, qubits.len() / 2);
             match out.matrix(matrix) {
                 Ok(()) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
