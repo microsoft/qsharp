@@ -303,7 +303,7 @@ def run_python_integration_tests(cwd, interpreter):
 def run_ci_historic_benchmark():
     branch = "main"
     output = subprocess.check_output(
-        ["git", "rev-list", "--since=1 day ago", "--pretty=format:%ad__%h", "--date=short", branch]
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
     ).decode("utf-8")
     print('\n'.join([line for i, line in enumerate(output.split('\n')) if i % 2 == 1]))
 
