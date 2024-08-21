@@ -301,7 +301,7 @@ def run_python_integration_tests(cwd, interpreter):
 
 
 def run_ci_historic_benchmark():
-    branch = "alex/benching"
+    branch = "main"
     output = subprocess.check_output(
         ["git", "rev-list", "--since=1 day ago", "--pretty=format:%ad__%h", "--date=short", branch]
     ).decode("utf-8")
