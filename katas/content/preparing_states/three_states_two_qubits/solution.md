@@ -17,7 +17,7 @@ $$CCNOT\frac{1}{2} \big(\ket{00\textbf{0}} + \ket{01\textbf{0}} + \ket{10\textbf
 
 Finally, you measure just the extra qubit; this causes a partial collapse of the system to the state defined by the measurement result:
 * If the result is $\ket{0}$, the system collapses to a state that is a linear combination of basis states which had the extra qubit in state $\ket{0}$, that is, the two qubits end up in the target state $\frac{1}{\sqrt3}\big(\ket{00} + \ket{01} + \ket{10}\big)$. 
-* If the result is $\ket{1}$, the system collapses to a state $\ket{11}$, so your goal isn't achieved. The good thing is, this only happens in $25%$ of the cases, and you can just reset your qubits to the $\ket{00}$ state and try again.
+* If the result is $\ket{1}$, the system collapses to a state $\ket{11}$, so your goal isn't achieved. The good thing is, this only happens in $25\%$ of the cases, and you can just reset your qubits to the $\ket{00}$ state and try again.
 
 > Q# has a built-in [repeat-until-success (RUS) loop](https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/conditionalloops#repeat-expression), which comes in handy in this case. 
 > * You'll describe the main operations (applying $H$ and $CCNOT$ gates and the measurement) in the `repeat` part of the loop, which specifies its body.  

@@ -1,4 +1,4 @@
-There are multiple ways to approach this problem. In your first solution, you're going to use a recursive approach that was hinted at in the task.
+There are multiple ways to approach this problem. The first solution uses the recursive approach that was hinted at in the task.
 
 Let's denote the required state on $N$ qubits as $\ket{P_{N,0}}$ for `parity = 0` and $\ket{P_{N,1}}$ for `parity = 1`. You can group the $2^{N-1}$ basis states included in the state $\ket{P_{N,0}}$ by their first bit ($0$ or $1$) and write the state as follows:
 
