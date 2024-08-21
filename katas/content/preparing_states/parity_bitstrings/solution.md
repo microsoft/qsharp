@@ -22,7 +22,7 @@ Now you can use this expression to prepare the state using a recursive approach 
 
 @[solution]({ "id": "preparing_states__parity_bitstrings_solution_a", "codePath": "./SolutionA.qs" })
 
-In the second solution, you'll use post-selection. You start by preparing an equal superposition of all basis states and allocating an extra qubit.
+The second solution uses post-selection. You start by preparing an equal superposition of all basis states and allocating an extra qubit.
 
 This time you use the extra qubit to calculate the parity of the input state: applying a series of $CNOT$ gates, each one with one of the input qubits as control and the extra qubit as a target will compute the parity of the state.
 
