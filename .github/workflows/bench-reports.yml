@@ -20,6 +20,9 @@ jobs:
         with:
           fetch-depth: 0
           ref: alex/benching
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: setup rust
         uses: actions-rs/toolchain@v1
         with:
