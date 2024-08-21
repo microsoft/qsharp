@@ -30,7 +30,7 @@ jobs:
       - name: setup cargo criterion
         run: cargo install cargo-criterion
       - name: run benching script
-        run: ./build.py --ci-bench
+        run: ./build.py --ci-bench --no-check
       - name: preserve bench artifacts
         uses: actions/upload-artifact@v4
         with:
