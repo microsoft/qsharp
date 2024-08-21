@@ -9,8 +9,7 @@ env:
   PYTHON_VERSION: "3.11"
   RUST_TOOLCHAIN_VERSION: "1.80"
 
-jobs:
-  runBenchmark:
+jobs: runBenchmark:
     runs-on: ubuntu-latest
     name: run benchmark
     permissions:
@@ -28,13 +27,10 @@ jobs:
       - name: setup cargo criterion
         run: cargo install cargo-criterion
       - name: run benching script
-        run: ./bench.sh
+        run: ./build.py --ci-bench
       - name: preserve bench artifacts
         uses: actions/upload-artifact@v4
         with:
           name: benchmarks
-          path: |
-            target/criterion/**/*
-            week_ago.json
-            latest.json
+          path: *.json
 
