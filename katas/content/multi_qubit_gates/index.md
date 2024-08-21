@@ -83,7 +83,7 @@ It can be less straightforward when a multi-qubit gate is applied to a subset of
     "title": "CNOT Gate"
 })
 
-The first multi-qubit gate you're going to review is the $CNOT$ ("controlled NOT") gate. The $CNOT$ gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other qubit as the **target** qubit (usually the first qubit is the control, and the second qubit is the target).
+The first multi-qubit gate this kata introduces is the $CNOT$ ("controlled NOT") gate. The $CNOT$ gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other qubit as the **target** qubit (usually the first qubit is the control, and the second qubit is the target).
 
 $CNOT$ acts as a conditional gate of sorts: if the control qubit is in state $\ket{1}$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
 
