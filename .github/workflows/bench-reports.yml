@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
           ref: alex/benching
       - name: setup rust
-        uses: actions-rs/toolchain@v3
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: setup cargo criterion
