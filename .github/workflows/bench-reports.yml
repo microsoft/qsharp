@@ -1,7 +1,6 @@
 name: Benchmark Reports
 
-on:
-  push
+on: push
 
 env:
   CARGO_TERM_COLOR: always
@@ -9,7 +8,8 @@ env:
   PYTHON_VERSION: "3.11"
   RUST_TOOLCHAIN_VERSION: "1.80"
 
-jobs: runBenchmark:
+jobs:
+  runBenchmark:
     runs-on: ubuntu-latest
     name: run benchmark
     permissions:
@@ -21,7 +21,7 @@ jobs: runBenchmark:
           fetch-depth: 0
           ref: alex/benching
       - name: setup rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v3
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
       - name: setup cargo criterion
@@ -32,5 +32,5 @@ jobs: runBenchmark:
         uses: actions/upload-artifact@v4
         with:
           name: benchmarks
-          path: *.json
-
+          path: |
+            *.json
