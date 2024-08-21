@@ -381,6 +381,68 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Optio
     Some(latex)
 }
 
+fn is_close_enough(val: &Complex64, target: &Complex64) -> bool {
+    (val.re - target.re).abs() < 1e-9 && (val.im - target.im).abs() < 1e-9
+}
+
+// Quick and dirty matching for the most common matrix terms we care about rendering
+// LaTeX for, e.g.  1/sqrt(2), -i/sqrt(2), etc.
+// Anything not in this list gets a floating point form.
+fn get_latex_for_simple_term(val: &Complex64) -> Option<String> {
+    if is_close_enough(val, &Complex64::new(0.0, 0.0)) {
+        return Some("0".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(1.0, 0.0)) {
+        return Some("1".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, 1.0)) {
+        return Some("i".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(-1.0, 0.0)) {
+        return Some("-1".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, -1.0)) {
+        return Some("-i".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(FRAC_1_SQRT_2, 0.0)) {
+        return Some("\\frac{1}{\\sqrt{2}}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, FRAC_1_SQRT_2)) {
+        return Some("\\frac{i}{\\sqrt{2}}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(-FRAC_1_SQRT_2, 0.0)) {
+        return Some("-\\frac{1}{\\sqrt{2}}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, -FRAC_1_SQRT_2)) {
+        return Some("-\\frac{i}{\\sqrt{2}}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.5, 0.0)) {
+        return Some("\\frac{1}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, 0.5)) {
+        return Some("\\frac{i}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(-0.5, 0.0)) {
+        return Some("-\\frac{1}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.0, -0.5)) {
+        return Some("-\\frac{i}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.5, 0.5)) {
+        return Some("\\frac{1}{2} + \\frac{i}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(-0.5, -0.5)) {
+        return Some("-\\frac{1}{2} - \\frac{i}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(-0.5, 0.5)) {
+        return Some("-\\frac{1}{2} + \\frac{i}{2}".to_string());
+    }
+    if is_close_enough(val, &Complex64::new(0.5, -0.5)) {
+        return Some("\\frac{1}{2} - \\frac{i}{2}".to_string());
+    }
+    None
+}
+
 #[must_use]
 pub fn get_matrix_latex(matrix: &Vec<Vec<Complex64>>) -> String {
     let mut latex: String = String::with_capacity(500);
