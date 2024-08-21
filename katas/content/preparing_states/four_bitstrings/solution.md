@@ -44,7 +44,7 @@ As the first step of the solution, you need to prepare a state $\frac12 \ket{0} 
 
 After this, you'll need to prepare the rest of the qubits in appropriate states depending on the state of the first qubit - state $\ket{01}$ if the first qubit is in state $\ket{0}$ and state $\frac{1}{\sqrt3} \big(\ket{10} + \ket{11} + \ket{10} \big)$ if the first qubit is in state $\ket{1}$. You can do this recursively using the same logic. Let's finish walking through this example in detail.
 
-The second qubit of the recursion follows similarly but depends on the first qubit. If the first qubit measures $\ket{0}$, then you want the second qubit to measure $\ket{0}$ with $100%$ probability, but if it measures $\ket{1}$, you want it to measure $\ket{0}$ with $\frac13$ probability and $\ket{1}$ with $\frac23$ probability.  For this, you can do a controlled [`Ry`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/ry) rotation on the second qubit with the first qubit as control.
+The second qubit of the recursion follows similarly but depends on the first qubit. If the first qubit measures $\ket{0}$, then you want the second qubit to measure $\ket{0}$ with $100\%$ probability, but if it measures $\ket{1}$, you want it to measure $\ket{0}$ with $\frac13$ probability and $\ket{1}$ with $\frac23$ probability.  For this, you can do a controlled [`Ry`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/ry) rotation on the second qubit with the first qubit as control.
 
 The third qubit in this example will have three cases because it depends on the first two qubits; this follows naturally from the recursion.
 

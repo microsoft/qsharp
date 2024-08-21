@@ -64,7 +64,7 @@ As you can see, if the extra qubit is in the $\ket{0}$ state, the main 3 qubits 
 
 What happens if you measure just the extra qubit? This causes a partial collapse of the system to the state defined by the measurement result:
 * If the result is $\ket{0}$, the system collapses to the $\ket{W_3}$ state - which is exactly what you wanted to achieve.
-* If the result is $\ket{1}$, the system collapses to a state $\ket{000}$, so your goal is not achieved. The good thing is, this only happens in $25%$ of the cases, and you can just try again.
+* If the result is $\ket{1}$, the system collapses to a state $\ket{000}$, so your goal is not achieved. The good thing is, this only happens in $25\%$ of the cases, and you can just try again.
 
 If you generalize this approach to an arbitrary $N$, you'll have 
 
