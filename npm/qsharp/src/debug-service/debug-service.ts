@@ -164,7 +164,10 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("Result", qscMsg.result);
       break;
     case "Matrix":
-      qscEvent = makeEvent("Matrix", qscMsg.matrix);
+      qscEvent = makeEvent("Matrix", {
+        matrix: qscMsg.matrix,
+        matrixLatex: qscMsg.matrixLatex,
+      });
       break;
     default:
       log.never(msgType);
