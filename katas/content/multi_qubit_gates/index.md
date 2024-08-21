@@ -226,7 +226,7 @@ $$=\ket{00}\braket{00|10} + \ket{01}\braket{01|10} + \ket{10}\braket{11|10} + \k
 $$=\ket{00}\big(\braket{00|10}\big) + \ket{01}\big(\braket{01|10}\big) + \ket{10}\big(\braket{11|10}\big) + \ket{11}\big(\braket{10|10}\big) =$$
 $$=\ket{00}(0) + \ket{01}(0) + \ket{10}(0) + \ket{11}(1) = \ket{11}$$
 
-> Notice how a lot of the inner product terms turn out to equal 0, and the expression is easily simplified. The $CNOT$ gate is expressed in terms of outer product of computational basis states, which are orthonormal, and is applied to another computational basis state, so the individual inner products are going to always be 0 or 1.
+> Notice how a lot of the inner product terms turn out to equal 0, and the expression is easily simplified. The $CNOT$ gate is expressed in terms of the outer product of computational basis states, which are orthonormal, and is applied to another computational basis state, so the individual inner products will always be 0 or 1.
 
 In general case, a $4 \times 4$ matrix that describes a 2-qubit gate
 $$A =
