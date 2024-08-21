@@ -13,7 +13,8 @@ export function isQsharpDocument(document: TextDocument): boolean {
   return (
     document.languageId === qsharpLanguageId &&
     (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
-    document.uri.scheme !== "git"
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
   );
 }
 
