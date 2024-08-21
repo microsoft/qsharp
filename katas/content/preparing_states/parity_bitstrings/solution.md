@@ -26,7 +26,7 @@ The second solution uses post-selection. You start by preparing an equal superpo
 
 This time you use the extra qubit to calculate the parity of the input state: applying a series of $CNOT$ gates, each one with one of the input qubits as control and the extra qubit as a target will compute the parity of the state.
 
-Now you measure the extra qubit: if the measurement result matches our parity, you're done — the input qubits collapsed to an equal superposition of all states that have this parity. If the measurement result is the opposite, you can retry the whole process.
+Now, you measure the extra qubit: if the measurement result matches the parity, you're done — the input qubits collapsed to an equal superposition of all states that have this parity. If the measurement result is the opposite, you can retry the whole process.
 
 You can avoid retrying the state preparation if your measurement result doesn't match the required parity: notice that applying an $X$ gate to any one of the qubits changes the parity of each basis state to the opposite one, and thus converts the state you got to the state you need.
 

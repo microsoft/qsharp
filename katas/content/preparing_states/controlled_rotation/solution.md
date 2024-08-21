@@ -13,7 +13,7 @@ To do this, you use the controlled $H$ gate. The matrix representation of the co
 
 $$\text{Controlled } H = \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ 0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix}$$
 
-When this is applied to our current state, you get your goal state:
+When this is applied to the current state, you get your goal state:
 
 $$\text{Controlled } H \cdot \frac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ 1 \\0 \end{bmatrix} = \begin{bmatrix}\frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{2} \\ \frac{1}{2} \end{bmatrix} = \frac{1}{\sqrt{2}}\ket{00}+\frac{1}{2}\ket{10}+\frac{1}{2}\ket{11}  $$
 

@@ -32,7 +32,7 @@ You'll uncompute each of them separately, so one of the auxiliary qubits will be
 
 Alternatively, you can leverage the recursion abilities of Q# to create a superposition of the four bit strings.  This solution also extends to an arbitrary number of bit strings with no code changes.
 
-For this process, you'll look at the first bits of each string and adjust the probability of measuring a $\ket{0}$ or $\ket{1}$ accordingly on the first qubit of our answer. You'll then recursively call (as needed) the process again to adjust the probabilities of measurement on the second bit depending on the first bit.  This process recurses until no more input bits are provided.
+For this process, you'll look at the first bits of each string and adjust the probability of measuring a $\ket{0}$ or $\ket{1}$ accordingly on the first qubit of your answer. You'll then recursively call (as needed) the process again to adjust the probabilities of measurement on the second bit depending on the first bit.  This process recurses until no more input bits are provided.
 
 Consider, for example, the following four bit strings on which to create a superposition: $\ket{001}, \ket{101}, \ket{111}, \ket{110}$.
 

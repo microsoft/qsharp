@@ -61,7 +61,7 @@ The type of oracles used in this tutorial are called *phase oracles*. A phase or
 
 $$U_f \ket{x} = (-1)^{f(x)} \ket{x}$$
 
-In our case $f$ can return only two values, 0 or 1, which result in no phase change or multiplication by a relative phase $-1$, respectively.
+In this case $f$ can return only two values, 0 or 1, which result in no phase change or multiplication by a relative phase $-1$, respectively.
 
 The effect of such an oracle on any single basis state isn't particularly interesting: it just adds a global phase which isn't something you can observe. However, if you apply this oracle to a *superposition* of basis states, its effect becomes noticeable. 
 Remember that quantum operations are linear: if you define the effect of an operation on the basis states, you'll be able to deduce its effect on superposition states (which are just linear combinations of the basis states) using its linearity.

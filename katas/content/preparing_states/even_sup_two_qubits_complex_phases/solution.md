@@ -30,7 +30,7 @@ $$
 $$
 
 
-Next lets take a look at our basic gates, in particular the Pauli Z gate:
+Next, let's take a look at the basic gates, in particular the Pauli Z gate:
 
 $$Z = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
 

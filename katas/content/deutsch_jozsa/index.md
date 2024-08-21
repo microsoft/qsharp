@@ -227,7 +227,7 @@ The last demo in this kata shows you how to combine the oracles you've seen so f
     "title": "Bernstein-Vazirani Algorithm"
 })
 
-To wrap up our discussion in this kata, let's take a look at a problem solved using a similar approach - the Bernstein-Vazirani algorithm.
+To wrap up the discussion in this kata, let's take a look at a problem solved using a similar approach - the Bernstein-Vazirani algorithm.
 In this problem, you are also given an oracle implementing an $N$-bit function $f(x): \{0, 1\}^N \to \{0, 1\}$.
 However, this time the function is guaranteed to be a *scalar product function*, that is, there exists an $N$-bit string $s$
 that allows the following representation ($\cdot$ is bitwise inner product of integers modulo $2$):

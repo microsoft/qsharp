@@ -14,7 +14,7 @@ $$\frac{1}{\sqrt2} (\ket{0} + \ket{1}) \otimes \ket{0 \dots 0} = \frac{1}{\sqrt2
 
 The first term of the superposition already matches the desired state, so you need to fix the second term.
 To do that, you'll walk through the remaining qubits in the register, checking if the bit in the corresponding position of the bit string `bits` is `true`. 
-If it is, that qubit's state needs to be adjusted from $0$ to $1$ in the second term of our superposition (and left unchanged in the first term). 
+If it is, that qubit's state needs to be adjusted from $0$ to $1$ in the second term of the superposition (and left unchanged in the first term). 
 You can do this change using the $CNOT$ gate with the first qubit as the control and the current qubit as the target.
 When you have finished walking through the register like this, the register will be in the desired superposition.
 

@@ -3,7 +3,7 @@ You can check that the norm of each of these states is 1, and their inner produc
 
 The goal is to transform the $\ket{00}$ basis state into one of the Bell basis states, depending on the value of `index` given as an input.
 
-You'll describe two solutions, one of which will be based on the previous task, and the second one will help you understand the unitary transformation that converts the computational basis into the Bell basis.
+This exercise provides two solutions, one of which is based on the previous task, and the second one helps you understand the unitary transformation that converts the computational basis into the Bell basis.
 
 #### Solution 1
 
