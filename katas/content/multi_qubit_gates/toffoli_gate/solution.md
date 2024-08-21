@@ -11,7 +11,7 @@ $$
  0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
  \end{bmatrix}
 $$
-and your initial state is:
+and the initial state is:
 $$
 \begin{bmatrix} \alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \zeta \\ \eta \\ \theta
 \end{bmatrix}
