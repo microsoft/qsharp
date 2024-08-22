@@ -16,14 +16,15 @@ import Utils.ApplyCCNOTChain;
 /// Will be flipped if $xs > ys$
 operation CompareGTSI(xs : Qubit[], ys : Qubit[], result : Qubit) : Unit is Adj + Ctl {
     use tmp = Qubit();
-    CNOT(Tail(xs), tmp);
-    CNOT(Tail(ys), tmp);
-    X(tmp);
-    Controlled CompareGTI([tmp], (xs, ys, result));
-    X(tmp);
-    CCNOT(tmp, Tail(ys), result);
-    CNOT(Tail(xs), tmp);
-    CNOT(Tail(ys), tmp);
+    within {
+        CNOT(Tail(xs), tmp);
+        CNOT(Tail(ys), tmp);
+    } apply {
+        X(tmp);
+        Controlled CompareGTI([tmp], (xs, ys, result));
+        X(tmp);
+        CCNOT(tmp, Tail(ys), result);    
+    }
 }
 
 
