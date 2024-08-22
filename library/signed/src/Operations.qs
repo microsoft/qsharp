@@ -53,7 +53,7 @@ operation SquareSI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
 /// 𝑛-1 qubits compared to the straight-forward solution which first
 /// copies out `xs` before applying a regular multiplier and then undoing
 /// the copy operation.
-operation SquareI(xs : Qubit[], result : Qubit[]) : Unit {
+operation SquareI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
         Controlled SquareI([], (xs, result));
     }
@@ -81,24 +81,21 @@ operation SquareI(xs : Qubit[], result : Qubit[]) : Unit {
                 }
             }
         } else {
-            use helper = Qubit[numControls];
+            use aux = Qubit[numControls];
             within {
-                AndLadder(controls, Most(helper));
+                AndLadder(controls, Most(aux));
             } apply {
                 for (idx, ctl) in Enumerated(xs) {
                     within {
-                        AND(Tail(Most(helper)), ctl, Tail(helper));
+                        AND(Tail(Most(aux)), ctl, Tail(aux));
                     } apply {
-                        Controlled AddI([Tail(helper)], (xs, (result[idx..idx + n])));
+                        Controlled AddI([Tail(aux)], (xs, (result[idx..idx + n])));
                     }
                 }
             }
         }
     }
-    adjoint auto;
-    controlled adjoint auto;
 }
-
 
 /// # Summary
 /// Multiply integer `xs` by integer `ys` and store the result in `result`,
@@ -172,7 +169,7 @@ operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj 
 /// ## result
 /// (𝑛₁+𝑛₂)-bit result, must be in state |0⟩
 /// initially.
-operation MultiplySI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit {
+operation MultiplySI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
     body (...) {
         Controlled MultiplySI([], (xs, ys, result));
     }
@@ -196,8 +193,6 @@ operation MultiplySI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit {
             }
         }
     }
-    adjoint auto;
-    controlled adjoint auto;
 }
 
 

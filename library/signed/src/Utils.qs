@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-// Util functions for interal use by the signed integer library.
+// Util functions for internal use by the signed integer library.
 
 import Std.Math.Min;
 import Std.Diagnostics.Fact;

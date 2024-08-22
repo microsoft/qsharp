@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import Std.Arrays.Tail, Std.Arrays.Zipped, Std.Arrays.Most, Std.Arrays.Rest;
+import Std.Diagnostics.Fact;
 import Utils.ApplyCCNOTChain;
 
 /// # Summary
@@ -23,7 +24,7 @@ operation CompareGTSI(xs : Qubit[], ys : Qubit[], result : Qubit) : Unit is Adj 
         X(tmp);
         Controlled CompareGTI([tmp], (xs, ys, result));
         X(tmp);
-        CCNOT(tmp, Tail(ys), result);    
+        CCNOT(tmp, Tail(ys), result);
     }
 }
 
@@ -76,6 +77,7 @@ operation GreaterThan(xs : Qubit[], ys : Qubit[], result : Qubit) : Unit is Adj 
         (Controlled GreaterThan)([], (xs, ys, result));
     }
     controlled (controls, ...) {
+        Fact(Length(xs) == Length(ys), "Input qubit arrays must have the same length.");
         let nQubits = Length(xs);
 
         if (nQubits == 1) {

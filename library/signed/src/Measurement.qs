@@ -26,6 +26,7 @@ operation MeasureSignedInteger(target : Qubit[], width : Int) : Int {
     let nBits = Length(target);
     Fact(nBits <= 64, $"`Length(target)` must be less than or equal to 64, but was {nBits}.");
     Fact(nBits <= width, $"`Length(target)` must be less than or equal to `width`, but was {nBits}.");
+    Fact(nBits > 0, $"`width` must be greater than 0, but was {width}.");
 
     mutable coefficient = 1;
     let signBit = MResetZ(target[nBits - 1]);
