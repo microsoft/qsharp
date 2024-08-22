@@ -1050,7 +1050,7 @@ dependencies = [
  "qsc_passes",
  "qsc_project",
  "qsc_rca",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1081,7 +1081,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1108,7 +1108,7 @@ dependencies = [
  "qsc_passes",
  "qsc_rca",
  "qsc_rir",
- "rustc-hash 2.0.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1118,7 +1118,7 @@ dependencies = [
  "bitflags",
  "expect-test",
  "miette",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
 ]
 
@@ -1132,7 +1132,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "regex-lite",
- "rustc-hash 2.0.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1153,7 +1153,7 @@ dependencies = [
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1164,7 +1164,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
- "rustc-hash 2.0.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1190,7 +1190,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1201,7 +1201,7 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
- "rustc-hash 2.0.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1265,7 +1265,7 @@ dependencies = [
  "qsc_lowerer",
  "qsc_rca",
  "qsc_rir",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1284,7 +1284,7 @@ dependencies = [
  "qsc_hir",
  "qsc_lowerer",
  "qsc_rca",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1301,7 +1301,7 @@ dependencies = [
  "qsc_linter",
  "qsc_project",
  "regex-lite",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1321,7 +1321,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_lowerer",
  "qsc_passes",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1332,7 +1332,7 @@ dependencies = [
  "expect-test",
  "indenter",
  "qsc_data_structures",
- "rustc-hash 2.0.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1356,7 +1356,7 @@ dependencies = [
  "qsc_project",
  "qsls",
  "resource_estimator",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -1376,7 +1376,7 @@ dependencies = [
  "pyo3",
  "qsc",
  "resource_estimator",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde_json",
 ]
 
@@ -1394,7 +1394,7 @@ dependencies = [
  "qsc",
  "qsc_linter",
  "qsc_project",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1411,7 +1411,7 @@ dependencies = [
  "num-complex",
  "num-traits",
  "rand",
- "rustc-hash 1.1.0",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1523,7 +1523,7 @@ dependencies = [
  "qsc",
  "rand",
  "regex-lite",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1540,12 +1540,6 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
-
-[[package]]
-name = "rustc-hash"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
 
 [[package]]
 name = "rustix"

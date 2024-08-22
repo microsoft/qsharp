@@ -143,14 +143,14 @@ async fn close_last_doc_in_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -177,8 +177,8 @@ async fn close_last_doc_in_project() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 0,
-                                                hi: 1,
+                                                lo: 59,
+                                                hi: 60,
                                             },
                                         ),
                                     ),
@@ -192,8 +192,8 @@ async fn close_last_doc_in_project() {
                                         ExpectedItem(
                                             Eof,
                                             Span {
-                                                lo: 0,
-                                                hi: 81,
+                                                lo: 59,
+                                                hi: 140,
                                             },
                                         ),
                                     ),
@@ -1256,15 +1256,15 @@ async fn update_doc_updates_project() {
         &received_errors,
         &expect![[r#"
             {
-                "project/src/other_file.qs": OpenDocument {
-                    version: 1,
-                    compilation: "project/qsharp.json",
-                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                },
                 "project/src/this_file.qs": OpenDocument {
                     version: 1,
                     compilation: "project/qsharp.json",
                     latest_str_content: "namespace Foo { we should see this in the source }",
+                },
+                "project/src/other_file.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                 },
             }
         "#]],
@@ -1272,14 +1272,14 @@ async fn update_doc_updates_project() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "namespace Foo { we should see this in the source }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 51,
+                        name: "project/src/this_file.qs",
+                        contents: "namespace Foo { we should see this in the source }",
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -1306,8 +1306,8 @@ async fn update_doc_updates_project() {
                                             ),
                                             Ident,
                                             Span {
-                                                lo: 16,
-                                                hi: 18,
+                                                lo: 75,
+                                                hi: 77,
                                             },
                                         ),
                                     ),
@@ -1366,14 +1366,14 @@ async fn close_doc_prioritizes_fs() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 59,
                     },
                 ],
                 common_prefix: Some(
@@ -1400,8 +1400,8 @@ async fn close_doc_prioritizes_fs() {
                                                 Slash,
                                             ),
                                             Span {
-                                                lo: 0,
-                                                hi: 1,
+                                                lo: 59,
+                                                hi: 60,
                                             },
                                         ),
                                     ),
@@ -1415,8 +1415,8 @@ async fn close_doc_prioritizes_fs() {
                                         ExpectedItem(
                                             Eof,
                                             Span {
-                                                lo: 0,
-                                                hi: 81,
+                                                lo: 59,
+                                                hi: 140,
                                             },
                                         ),
                                     ),
@@ -1465,14 +1465,14 @@ async fn delete_manifest() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 71,
                     },
                 ],
                 common_prefix: Some(
@@ -1550,14 +1550,14 @@ async fn delete_manifest_then_close() {
             project/qsharp.json: SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        name: "project/src/other_file.qs",
+                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 36,
+                        name: "project/src/this_file.qs",
+                        contents: "// DISK CONTENTS\n namespace Foo { }",
+                        offset: 71,
                     },
                 ],
                 common_prefix: Some(
@@ -2024,8 +2024,8 @@ async fn lints_prefer_workspace_over_defaults() {
                 Lint(
                     Lint {
                         span: Span {
-                            lo: 63,
-                            hi: 68,
+                            lo: 134,
+                            hi: 139,
                         },
                         level: Warn,
                         message: "attempt to divide by zero",
