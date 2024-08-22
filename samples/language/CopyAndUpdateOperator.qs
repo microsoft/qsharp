@@ -21,4 +21,16 @@ function Main() : Unit {
         w/ 1 <- 100
         w/ 3 <- 200;
     Message($"Updated array: {new_array}");
+
+    // In addition to arrays, we can also copy-and-update structs.
+    // First, let's define a struct called `Complex` which represents a
+    // complex number.
+    struct Complex { Real : Double, Imaginary : Double }
+    // Instantiation of the above struct.
+    let complex = new Complex { Real = 42.0, Imaginary = 0.0 };
+
+    // `new_complex` is a new instance of the `Complex` struct with the
+    // `Real` field updated to `100.0`.
+    // `complex` is unchanged.
+    let new_complex = new Complex { ...complex, Real = 100.0 };
 }
