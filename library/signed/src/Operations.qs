@@ -5,7 +5,7 @@ import Std.Arrays.Tail, Std.Arrays.Most, Std.Arrays.Enumerated;
 import Utils.AndLadder;
 import Unstable.Arithmetic.RippleCarryTTKIncByLE;
 import Std.Diagnostics.Fact;
-import Comparison.GreaterThan;
+import Unstable.Arithmetic.ApplyIfGreaterLE;
 
 /// # Summary
 /// Square signed integer `xs` and store
@@ -279,7 +279,7 @@ operation DivideI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + 
 
         for i in (n - 1)..(-1)..0 {
             let xtrunc = xpadded[i..i + n-1];
-            Controlled GreaterThan(controls, (ys, xtrunc, result[i]));
+            Controlled ApplyIfGreaterLE(controls, (X, ys, xtrunc, result[i]));
             // if ys > xtrunc, we don't subtract:
             (Controlled X)(controls, result[i]);
             (Controlled Adjoint RippleCarryTTKIncByLE)([result[i]], (ys, xtrunc));
