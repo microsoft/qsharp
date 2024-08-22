@@ -68,6 +68,13 @@ parser.add_argument(
     help="Build and run the integration tests (default is --no-integration-tests)",
 )
 
+parser.add_argument(
+        "--ci-bench",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
+)
+
 args = parser.parse_args()
 
 if args.check_prereqs:
@@ -83,6 +90,7 @@ build_all = (
     and not args.play
     and not args.vscode
     and not args.jupyterlab
+    and not args.ci_bench
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
@@ -92,6 +100,7 @@ build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
 build_jupyterlab = build_all or args.jupyterlab
+ci_bench = args.ci_bench
 
 # JavaScript projects and eslint, prettier depend on npm_install
 # However the JupyterLab extension uses yarn in a separate workspace
@@ -290,6 +299,28 @@ def run_python_integration_tests(cwd, interpreter):
     command_args = [interpreter, "-m", "pytest"]
     subprocess.run(command_args, check=True, text=True, cwd=cwd)
 
+
+def run_ci_historic_benchmark():
+    branch = "main"
+    output = subprocess.check_output(
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+    ).decode("utf-8")
+    print('\n'.join([line for i, line in enumerate(output.split('\n')) if i % 2 == 1]))
+
+    output = subprocess.check_output(
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+    ).decode("utf-8")
+    date_and_commits = [line for i, line in enumerate(output.split('\n')) if i % 2 == 1]
+
+    for date_and_commit in date_and_commits:
+        print("benching commit", date_and_commit)
+        result = subprocess.run(
+            ["cargo", "criterion", "--message-format=json", "--history-id", date_and_commit],
+            capture_output=True,
+            text=True
+        )
+        with open(f"{date_and_commit}.json", "w") as f:
+            f.write(result.stdout)
 
 if build_pip:
     step_start("Building the pip package")
@@ -528,4 +559,9 @@ if build_pip and build_widgets and args.integration_tests:
 
     for test_project_dir in test_projects_directories:
         run_python_tests(test_project_dir, python_bin)
+    step_end()
+
+if ci_bench:
+    step_start("Running CI benchmarking script")
+    run_ci_historic_benchmark()
     step_end()
