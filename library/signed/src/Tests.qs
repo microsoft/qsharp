@@ -124,13 +124,6 @@ operation UnsignedOpTests() : Unit {
     // need smaller result register for div, mod, etc
     use d = Qubit[8];
     TestIntOp(Operations.DivideI, a, b, d, 5);
-
-    // 0b00001010 + 0b00000011 == 0b00001101 (10 + 3 = 13)
-    X(a[1]);
-    X(a[3]);
-    X(b[0]);
-    X(b[1]);
-    TestIntOp((a, b, _) => Operations.AddI(a, b), a, b, b, 13);
 }
 
 operation TestIntOp(op : (Qubit[], Qubit[], Qubit[]) => Unit, a : Qubit[], b : Qubit[], c : Qubit[], expect : Int) : Unit {

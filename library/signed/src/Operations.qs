@@ -68,7 +68,7 @@ operation SquareI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
                 within {
                     CNOT(ctl, aux);
                 } apply {
-                    Controlled AddI([aux], (xs, (result[idx..idx + n])));
+                    Controlled RippleCarryTTKIncByLE([aux], (xs, (result[idx..idx + n])));
                 }
             }
         } elif numControls == 1 {
@@ -77,7 +77,7 @@ operation SquareI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
                 within {
                     AND(controls[0], ctl, aux);
                 } apply {
-                    Controlled AddI([aux], (xs, (result[idx..idx + n])));
+                    Controlled RippleCarryTTKIncByLE([aux], (xs, (result[idx..idx + n])));
                 }
             }
         } else {
@@ -89,7 +89,7 @@ operation SquareI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl {
                     within {
                         AND(Tail(Most(aux)), ctl, Tail(aux));
                     } apply {
-                        Controlled AddI([Tail(aux)], (xs, (result[idx..idx + n])));
+                        Controlled RippleCarryTTKIncByLE([Tail(aux)], (xs, (result[idx..idx + n])));
                     }
                 }
             }
@@ -120,7 +120,7 @@ operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj 
         let nb = Length(ys);
 
         for (idx, actl) in Enumerated(xs) {
-            Controlled AddI([actl], (ys, (result[idx..idx + nb])));
+            Controlled RippleCarryTTKIncByLE([actl], (ys, (result[idx..idx + nb])));
         }
     }
     controlled (controls, ...) {
@@ -137,7 +137,7 @@ operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj 
                 within {
                     AND(controls[0], actl, aux);
                 } apply {
-                    Controlled AddI([aux], (ys, (result[idx..idx + nb])));
+                    Controlled RippleCarryTTKIncByLE([aux], (ys, (result[idx..idx + nb])));
                 }
             }
         } else {
@@ -149,7 +149,7 @@ operation MultiplyI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj 
                     within {
                         AND(Tail(Most(helper)), actl, Tail(helper));
                     } apply {
-                        Controlled AddI([Tail(helper)], (ys, (result[idx..idx + nb])));
+                        Controlled RippleCarryTTKIncByLE([Tail(helper)], (ys, (result[idx..idx + nb])));
                     }
                 }
             }
@@ -219,29 +219,6 @@ operation Sum(carryIn : Qubit, summand1 : Qubit, summand2 : Qubit) : Unit is Adj
     CNOT(carryIn, summand2);
 }
 
-
-/// # Summary
-/// Automatically chooses between addition with
-/// carry and without, depending on the register size of `ys`.
-///
-/// # Input
-/// ## xs
-/// $n$-bit addend.
-/// ## ys
-/// Addend with at least $n$ qubits. Will hold the result.
-operation AddI(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
-    if Length(xs) == Length(ys) {
-        RippleCarryTTKIncByLE(xs, ys);
-    } elif Length(ys) > Length(xs) {
-        use qs = Qubit[Length(ys) - Length(xs) - 1];
-        RippleCarryTTKIncByLE(xs + qs, ys);
-    } else {
-        fail "xs must not contain more qubits than ys";
-    }
-}
-
-
-
 /// # Summary
 /// Inverts a given integer modulo 2's complement.
 ///
@@ -260,7 +237,7 @@ operation Invert2sSI(xs : Qubit[]) : Unit is Adj + Ctl {
         within {
             Controlled X(controls, aux[0]);
         } apply {
-            AddI(aux, xs);
+            RippleCarryTTKIncByLE(aux, xs);
         }
     }
 }
@@ -305,7 +282,7 @@ operation DivideI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + 
             Controlled CompareGTI(controls, (ys, xtrunc, result[i]));
             // if ys > xtrunc, we don't subtract:
             (Controlled X)(controls, result[i]);
-            (Controlled Adjoint AddI)([result[i]], (ys, xtrunc));
+            (Controlled Adjoint RippleCarryTTKIncByLE)([result[i]], (ys, xtrunc));
         }
     }
 }   
@@ -338,7 +315,7 @@ operation ComputeReciprocalI(xs : Qubit[], result : Qubit[]) : Unit is Adj + Ctl
         (Controlled DivideI)(controls, (lhs, paddedxs, result));
         // uncompute lhs
         for i in 0..2 * n - 1 {
-            (Controlled AddI)([result[i]], (paddedxs[0..2 * n-1-i], lhs[i..2 * n-1]));
+            (Controlled RippleCarryTTKIncByLE)([result[i]], (paddedxs[0..2 * n-1-i], lhs[i..2 * n-1]));
         }
         X(Tail(lhs));
     }
@@ -350,7 +327,6 @@ export
     MultiplySI,
     SquareSI,
     SquareI,
-    AddI,
     Invert2sSI,
     DivideI,
     ComputeReciprocalI;
