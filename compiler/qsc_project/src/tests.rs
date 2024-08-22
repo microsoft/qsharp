@@ -375,19 +375,6 @@ fn transitive_dep() {
                         package_type: None,
                     },
                     packages: {
-                        "{\"path\":\"local_dep\"}": PackageInfo {
-                            sources: [
-                                (
-                                    "local_dep/src/Dependency.qs",
-                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
-                                ),
-                            ],
-                            language_features: LanguageFeatures(
-                                0,
-                            ),
-                            dependencies: {},
-                            package_type: None,
-                        },
                         "{\"path\":\"with_local_dep\"}": PackageInfo {
                             sources: [
                                 (
@@ -401,6 +388,19 @@ fn transitive_dep() {
                             dependencies: {
                                 "MyDep": "{\"path\":\"local_dep\"}",
                             },
+                            package_type: None,
+                        },
+                        "{\"path\":\"local_dep\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "local_dep/src/Dependency.qs",
+                                    "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
                             package_type: None,
                         },
                     },

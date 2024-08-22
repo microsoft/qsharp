@@ -25,37 +25,37 @@ fn test_tree_construction() {
         NamespaceTreeRoot
 
           children: [
-            ns1(id 11) {
-              children: [
-                nsc(id 14) {empty node},
-                nsb(id 13) {empty node},
-                nsa(id 12) {empty node},
-              ]
-            },
-            ns0(id 7) {
-              children: [
-                nsc(id 10) {empty node},
-                nsb(id 9) {empty node},
-                nsa(id 8) {empty node},
-              ]
-            },
             Microsoft(id 1) {
               children: [
                 Quantum(id 2) {
                   children: [
-                    Canon(id 3) {empty node},
-                    Measurement(id 6) {empty node},
-                    Core(id 4) {empty node},
                     Intrinsic(id 5) {empty node},
+                    Core(id 4) {empty node},
+                    Measurement(id 6) {empty node},
+                    Canon(id 3) {empty node},
                   ]
                 },
               ]
             },
+            ns0(id 7) {
+              children: [
+                nsa(id 8) {empty node},
+                nsb(id 9) {empty node},
+                nsc(id 10) {empty node},
+              ]
+            },
+            ns1(id 11) {
+              children: [
+                nsa(id 12) {empty node},
+                nsb(id 13) {empty node},
+                nsc(id 14) {empty node},
+              ]
+            },
             ns2(id 15) {
               children: [
-                nsc(id 18) {empty node},
-                nsb(id 17) {empty node},
                 nsa(id 16) {empty node},
+                nsb(id 17) {empty node},
+                nsc(id 18) {empty node},
               ]
             },
           ]
@@ -117,9 +117,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 10) {empty node},
-                        nsb(id 9) {empty node},
                         nsa(id 8) {empty node},
+                        nsb(id 9) {empty node},
+                        nsc(id 10) {empty node},
                       ]
                     },
                 },
@@ -158,9 +158,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 14) {empty node},
-                        nsb(id 13) {empty node},
                         nsa(id 12) {empty node},
+                        nsb(id 13) {empty node},
+                        nsc(id 14) {empty node},
                       ]
                     },
                 },
@@ -199,9 +199,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 18) {empty node},
-                        nsb(id 17) {empty node},
                         nsa(id 16) {empty node},
+                        nsb(id 17) {empty node},
+                        nsc(id 18) {empty node},
                       ]
                     },
                 },

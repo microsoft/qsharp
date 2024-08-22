@@ -1429,10 +1429,10 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                     Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
                     Jump(3)
                 Block 3: Block:
-                    Variable(8, Boolean) = Phi ( [Variable(0, Boolean), 1], [Variable(4, Boolean), 2], )
-                    Variable(7, Boolean) = Phi ( [Variable(3, Boolean), 1], [Variable(0, Boolean), 2], )
-                    Variable(5, Boolean) = LogicalNot Variable(7, Boolean)
-                    Variable(6, Boolean) = LogicalNot Variable(8, Boolean)
+                    Variable(8, Boolean) = Phi ( [Variable(3, Boolean), 1], [Variable(0, Boolean), 2], )
+                    Variable(7, Boolean) = Phi ( [Variable(0, Boolean), 1], [Variable(4, Boolean), 2], )
+                    Variable(5, Boolean) = LogicalNot Variable(8, Boolean)
+                    Variable(6, Boolean) = LogicalNot Variable(7, Boolean)
                     Return
             config: Config:
                 capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)

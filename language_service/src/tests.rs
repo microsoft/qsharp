@@ -144,14 +144,14 @@ async fn document_in_project() {
             SourceMap {
                 sources: [
                     Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace OtherFile { operation Other() : Unit {} }",
+                        name: "project/src/this_file.qs",
+                        contents: "namespace Foo { }",
                         offset: 0,
                     },
                     Source {
-                        name: "project/src/this_file.qs",
-                        contents: "namespace Foo { }",
-                        offset: 52,
+                        name: "project/src/other_file.qs",
+                        contents: "namespace OtherFile { operation Other() : Unit {} }",
+                        offset: 18,
                     },
                 ],
                 common_prefix: Some(
