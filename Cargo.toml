@@ -54,7 +54,7 @@ indoc = "2.0"
 js-sys = "0.3"
 libfuzzer-sys = "0.4"
 log = "0.4"
-miette = "7.2"
+miette = "5"
 thiserror = "1.0"
 nalgebra = { version = "0.33" }
 num-bigint = "0.4"
