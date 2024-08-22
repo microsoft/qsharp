@@ -3,7 +3,7 @@
 //
 // # Description
 // The `Unit` type is the singleton type whose only value is ().
-// Functions implicitly return `Unit` if no explicit or implicit
+// Callables implicitly return `Unit` if no explicit or implicit
 // return is specified.
 
 function ExplicitReturn() : Unit {
