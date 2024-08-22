@@ -14,6 +14,7 @@ from .... import Result, TargetProfile
 from ..execution import DetaultExecutor
 from ..jobs import QsSimJob, QsJobSet
 from .qsbackend import QsBackend
+from .compilation import Compilation
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,9 @@ class QSharpSimulator(QsBackend):
         """
         Parameters:
             target (Target): The target to use for the backend.
+            qiskit_pass_options (Dict): Options for the Qiskit passes.
+            transpile_options (Dict): Options for the transpiler.
+            qasm_export_options (Dict): Options for the QASM3 exporter.
             **options: Additional options for the execution.
               - name (str): The name of the circuit. This is used as the entry point for the program.
                   The circuit name will be used if not specified.
@@ -124,14 +128,20 @@ class QSharpSimulator(QsBackend):
 
         if not isinstance(run_input, list):
             run_input = [run_input]
+        for circuit in run_input:
+            assert isinstance(
+                circuit, QuantumCircuit
+            ), "The run_input must be a QuantumCircuit."
+
         return self._run(run_input, **options)
 
-    def _execute(
-        self, programs: List[Tuple[QuantumCircuit, str]], **input_params
-    ) -> Dict[str, Any]:
-        exec_results: List[(QuantumCircuit, str, Dict[str, Any])] = [
-            (qc, qasm, _run_qasm3(qasm, vars(self.options).copy(), **input_params))
-            for (qc, qasm) in programs
+    def _execute(self, programs: List[Compilation], **input_params) -> Dict[str, Any]:
+        exec_results: List[Tuple[Compilation, Dict[str, Any]]] = [
+            (
+                program,
+                _run_qasm3(program.qasm, vars(self.options).copy(), **input_params),
+            )
+            for program in programs
         ]
         job_results = []
 
@@ -139,7 +149,7 @@ class QSharpSimulator(QsBackend):
         if shots is None:
             raise ValueError("The number of shots must be specified.")
 
-        for qc, qasm, exec_result in exec_results:
+        for program, exec_result in exec_results:
             results = [_to_qiskit_bitstring(result) for result in exec_result]
 
             counts = Counter(results)
@@ -152,8 +162,9 @@ class QSharpSimulator(QsBackend):
                 "data": {"counts": counts_dict, "probabilities": probabilities},
                 "success": True,
                 "header": {
-                    "metadata": {"qasm": qasm},
-                    "name": qc.name,
+                    "metadata": {"qasm": program.qasm},
+                    "name": program.circuit.name,
+                    "compilation_time_taken": program.time_taken,
                 },
                 "shots": shots,
             }

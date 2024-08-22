@@ -21,6 +21,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveBarriers, RemoveResetInZeroState
 from qiskit.transpiler.target import Target
 
+from .compilation import Compilation
 from .qirtarget import QirTarget
 from ..jobs import QsJob
 from ..passes import RemoveDelays
@@ -68,6 +69,9 @@ class QsBackend(BackendV2, ABC):
         """
         Parameters:
             target (Target): The target to use for the backend.
+            qiskit_pass_options (Dict): Options for the Qiskit passes.
+            transpile_options (Dict): Options for the transpiler.
+            qasm_export_options (Dict): Options for the QASM3 exporter.
             **options: Additional keyword arguments to pass to the
                 execution used by subclasses.
         """
@@ -178,13 +182,11 @@ class QsBackend(BackendV2, ABC):
         return None
 
     @abstractmethod
-    def _execute(
-        self, programs: List[Tuple[QuantumCircuit, str]], **input_params
-    ) -> Dict[str, Any]:
+    def _execute(self, programs: List[Compilation], **input_params) -> Dict[str, Any]:
         """Execute circuits on the backend.
 
         Parameters:
-            circuits (List of str): simulator qasm input.
+            programs (List of QuantumCompilation): simulator input.
             input_params (Dict): configuration for simulation/compilation.
 
         Returns:
@@ -252,9 +254,7 @@ class QsBackend(BackendV2, ABC):
     def _submit_job(self, run_input: List[QuantumCircuit], **input_params) -> QsJob:
         pass
 
-    def _compile(
-        self, run_input: List[QuantumCircuit], **options
-    ) -> List[Tuple[QuantumCircuit, str]]:
+    def _compile(self, run_input: List[QuantumCircuit], **options) -> List[Compilation]:
         # for each run input, convert to qasm3
         compilations = []
         for circuit in run_input:
@@ -262,7 +262,12 @@ class QsBackend(BackendV2, ABC):
             assert isinstance(
                 circuit, QuantumCircuit
             ), "Input must be a QuantumCircuit."
-            compilations.append((circuit, self.qasm3(circuit, **args)))
+            start = time.time()
+            qasm = self.qasm3(circuit, **args)
+            end = time.time()
+            time_taken = str(end - start)
+            compilation = Compilation(circuit, qasm, time_taken)
+            compilations.append(compilation)
         return compilations
 
     @abstractmethod
@@ -357,15 +362,25 @@ class QsBackend(BackendV2, ABC):
     def qasm3(self, circuit: QuantumCircuit, **options) -> str:
         """Converts a Qiskit QuantumCircuit to QASM 3 for the current backend.
 
+        Args:
+            circuit (QuantumCircuit): The QuantumCircuit to be executed.
+            **options: Additional options for the execution.
+              - Any options for the transpiler, exporter, or Qiskit passes
+                  configuration. Defaults to backend config values. Common
+                  values include: 'optimization_level', 'basis_gates',
+                  'includes', 'search_path'.
+
         Returns:
             str: The converted QASM3 code as a string. Any supplied includes
             are emitted as include statements at the top of the program.
+
+        :raises QiskitError: If there is an error generating or parsing QASM.
         """
 
         try:
             export_options = self._build_qasm_export_options(**options)
-            transpiled_circuit = self.transpile(circuit, **options)
             exporter = Exporter(**export_options)
+            transpiled_circuit = self.transpile(circuit, **options)
             qasm3_source = exporter.dumps(transpiled_circuit)
             return qasm3_source
         except Exception as ex:
@@ -380,25 +395,21 @@ class QsBackend(BackendV2, ABC):
         The generated Q# code will not be idiomatic Q# code, but will be
         a direct translation of the Qiskit circuit.
 
-        Qiskit and Q# have different qubit and initialization semantics.
-        - Q# assumes that qubits are in the |0⟩ state when they are allocated.
-        - Qiskit does not make this assumption and qubits are in an undefined
-            state.
-        - Q# requires that qubits are reset to the |0⟩ at the end of excution.
-        - Qiskit does not require this.
-        - Q# does no allow for variables to be uninitialized. All
-            initialization is explicit.
-        - Qiskit allows for implicit initialization.
-        - Q# does not allow for implicit casting or promotion of types. All
-            conversions must be explicit.
-        - Qiskit allows for implicit casting and promotion of types following
-            C99 and custom rules.
-        - Q# does not have unsigned integers or an angle type.
-            All integers are signed.
+        Args:
+            circuit (QuantumCircuit): The QuantumCircuit to be executed.
+            **options: Additional options for the execution.
+              - Any options for the transpiler, exporter, or Qiskit passes
+                  configuration. Defaults to backend config values. Common
+                  values include: 'optimization_level', 'basis_gates',
+                  'includes', 'search_path'.
 
         Returns:
             str: The converted QASM3 code as a string. Any supplied includes
             are emitted as include statements at the top of the program.
+
+        :raises QSharpError: If there is an error evaluating the source code.
+        :raises QasmError: If there is an error compiling the source code.
+        :raises QiskitError: If there is an error generating or parsing QASM.
         """
 
         qasm3_source = self.qasm3(circuit, **kwargs)
@@ -427,6 +438,10 @@ class QsBackend(BackendV2, ABC):
 
         Returns:
             str: The converted QIR code as a string.
+
+        :raises QSharpError: If there is an error evaluating the source code.
+        :raises QasmError: If there is an error compiling the source code.
+        :raises QiskitError: If there is an error generating or parsing QASM.
         """
         name = kwargs.pop("name", circuit.name)
         target_profile = kwargs.pop("target_profile", self.options.target_profile)
