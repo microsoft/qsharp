@@ -339,8 +339,9 @@ impl Output {
 
     fn _repr_html_(&self) -> Option<String> {
         match &self.0 {
+            DisplayableOutput::Message(msg) => Some(format!("<p>{msg}</p>")),
             DisplayableOutput::State(state) => Some(state.to_html()),
-            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(_) => None,
         }
     }
 
