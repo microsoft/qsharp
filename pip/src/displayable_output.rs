@@ -78,10 +78,6 @@ impl DisplayableMatrix {
         )
     }
 
-    pub fn to_html(&self) -> String {
-        format!("<pre>{}</pre>", self.to_plain())
-    }
-
     pub fn to_latex(&self) -> String {
         get_matrix_latex(&self.0)
     }

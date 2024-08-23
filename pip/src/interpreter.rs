@@ -337,19 +337,24 @@ impl Output {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
+    fn _repr_html_(&self) -> Option<String> {
         match &self.0 {
-            DisplayableOutput::State(state) => state.to_html(),
-            DisplayableOutput::Matrix(matrix) => matrix.to_html(),
-            DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
+            DisplayableOutput::State(state) => Some(state.to_html()),
+            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
+        }
+    }
+
+    fn _repr_markdown_(&self) -> Option<String> {
+        match &self.0 {
+            DisplayableOutput::State(_) | DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
         }
     }
 
     fn _repr_latex_(&self) -> Option<String> {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_latex(),
-            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
-            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
 
