@@ -365,8 +365,9 @@ export function Editor(props: {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
       // Get current URL without query parameters to use as the base URL
-      const newUrl = `${window.location.href.split("?")[0]
-        }?code=${escapedCode}&profile=${profile}`;
+      const newUrl = `${
+        window.location.href.split("?")[0]
+      }?code=${escapedCode}&profile=${profile}`;
 
       // Copy link to clipboard and update url without reloading the page
       navigator.clipboard.writeText(newUrl);
@@ -447,17 +448,16 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
-        {props.kataSection ?
-          null
-          :
-          (<>
+        {props.kataSection ? null : (
+          <>
             <span>Profile</span>
             <select value={profile} onChange={profileChanged}>
               <option value="unrestricted">Unrestricted</option>
               <option value="adaptive_ri">Adaptive RI</option>
               <option value="base">Base</option>
             </select>
-          </>)}
+          </>
+        )}
         {props.showExpr ? (
           <>
             <span>Start</span>
