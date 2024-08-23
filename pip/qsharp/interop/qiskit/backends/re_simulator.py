@@ -11,6 +11,7 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Options
 from qiskit.transpiler.target import Target
 
+from .compilation import Compilation
 from .qsbackend import QsBackend
 from ..jobs import ReJob
 from ..execution import DetaultExecutor
@@ -46,6 +47,9 @@ class ReSimulator(QsBackend):
         """
         Parameters:
             target (Target): The target to use for the backend.
+            qiskit_pass_options (Dict): Options for the Qiskit passes.
+            transpile_options (Dict): Options for the transpiler.
+            qasm_export_options (Dict): Options for the QASM3 exporter.
             **options: Additional options for the execution.
                 - params (EstimatorParams): Configuration values for resource estimation.
                 - name (str): The name of the circuit. This is used as the entry point for the program.
@@ -155,11 +159,10 @@ class ReSimulator(QsBackend):
         res = json.loads(res_str)
         return res
 
-    def _execute(
-        self, programs: List[Tuple[QuantumCircuit, str]], **input_params
-    ) -> Dict:
+    def _execute(self, programs: List[Compilation], **input_params) -> Dict:
         exec_results = [
-            (qc, self._estimate_qasm3(qasm, **input_params)) for (qc, qasm) in programs
+            (program, self._estimate_qasm3(program.qasm, **input_params))
+            for program in programs
         ]
         success = (
             all(
