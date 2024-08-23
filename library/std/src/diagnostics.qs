@@ -89,8 +89,9 @@ namespace Microsoft.Quantum.Diagnostics {
     ///     DumpOperation(1, qs => H(qs[0]));
     /// }
     /// ```
-    /// Calling this operation has no observable effect from within Q#. The exact diagnostics that are displayed,
-    /// if any, are dependent on the current execution target and editor environment.
+    /// Calling this operation has no observable effect from within Q#.
+    /// Note that if `DumpOperation` is called when there are other qubits allocated,
+    /// the matrix displayed may reflect any global phase that has accumulated on the other qubits.
     operation DumpOperation(nQubits : Int, op : Qubit[] => Unit) : Unit {
         use (targets, extra) = (Qubit[nQubits], Qubit[nQubits]);
         for i in 0..nQubits - 1 {
