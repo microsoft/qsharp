@@ -20,8 +20,16 @@ def test_state_exact() -> None:
     state = qsharp.dump_machine().as_dense_state()
     # Compare two vectors.
     assert state == pytest.approx(expected_state)
-    # If you use PrepareStateWithGlobalPhase operation in this test instead, the test will fail,
-    # since the prepared state differs from the expected one by a global phase.
+
+
+def test_state_exact_rejects_global_phase() -> None:
+    """Test that shows that the exact check from the previous test fails if the state is different by a global phase."""
+    # Run Q# code that allocates the qubits and prepares the state but doesn't deallocate the qubits.
+    qsharp.eval(f"use qs = Qubit[2]; StatePrep.PrepareStateWithGlobalPhase(qs);")
+    # Get the state of the allocated qubits and convert it to a dense vector.
+    state = qsharp.dump_machine().as_dense_state()
+    # Compare two vectors. Here we expect them to be _not equal_ due to the global phase -1.
+    assert state != pytest.approx(expected_state)
 
 
 def test_state_global_phase() -> None:

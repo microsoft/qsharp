@@ -8,7 +8,7 @@ operation PrepareStateWithComplexPhases(qs : Qubit[]) : Unit {
 }
 
 /// # Summary
-/// Prepares the state 1/2 (-|00⟩ - i|01⟩ + |10⟩ + i|11⟩) = -|-⟩ ⊗ |i⟩.
+/// Prepares the state 1/2 (-|00⟩ - i|01⟩ + |10⟩ + i|11⟩) = -(|-⟩ ⊗ |i⟩) = -|-⟩ ⊗ |i⟩.
 operation PrepareStateWithGlobalPhase(qs : Qubit[]) : Unit {
     H(qs[0]);
     Z(qs[0]);
