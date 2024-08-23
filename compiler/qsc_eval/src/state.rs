@@ -454,27 +454,8 @@ pub fn get_matrix_latex(matrix: &Vec<Vec<Complex64>>) -> String {
                 latex.push_str(" & ");
             }
 
-            if (element.re - 0.0).abs() < 1e-9 && (element.im - 0.0).abs() < 1e-9 {
-                latex.push('0');
-                is_first = false;
-                continue;
-            }
-            // Handle 1/sqrt(2)
-            if ((element.re).abs() - FRAC_1_SQRT_2).abs() < 1e-9 && (element.im - 0.0).abs() < 1e-9
-            {
-                if element.re < 0.0 {
-                    latex.push('-');
-                }
-                latex.push_str("\\frac{1}{\\sqrt{2}}");
-                is_first = false;
-                continue;
-            }
-
-            if (element.re - 0.0).abs() < 1e-9 && (element.im.abs() - FRAC_1_SQRT_2).abs() < 1e-9 {
-                if element.im < 0.0 {
-                    latex.push('-');
-                }
-                latex.push_str("\\frac{i}{\\sqrt{2}}");
+            if let Some(simple_latex) = get_latex_for_simple_term(element) {
+                latex.push_str(&simple_latex);
                 is_first = false;
                 continue;
             }

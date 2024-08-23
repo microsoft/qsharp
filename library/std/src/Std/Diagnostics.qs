@@ -357,6 +357,7 @@ operation StopCountingQubits() : Int {
 export
     DumpMachine,
     DumpRegister,
+    DumpOperation,
     CheckZero,
     CheckAllZero,
     Fact,
