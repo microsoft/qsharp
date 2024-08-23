@@ -227,7 +227,12 @@ def eval(source: str) -> Any:
     ipython_helper()
 
     def callback(output: Output) -> None:
-        print(output, flush=True)
+        if __IPYTHON__:  # type: ignore
+            from IPython.display import display
+
+            display(output)
+        else:
+            print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
 
@@ -274,7 +279,12 @@ def run(
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
-        print(output, flush=True)
+        if __IPYTHON__:  # type: ignore
+            from IPython.display import display
+
+            display(output)
+        else:
+            print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
