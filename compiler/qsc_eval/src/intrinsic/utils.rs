@@ -77,8 +77,6 @@ fn collect_split_state(
     let mut dump_norm = base_val.norm().powi(2);
     let mut other_state = FxHashSet::default();
 
-    // Start with an amplitude of 1 in the first expected split states. This becomes the basis
-    // of the split later, but will get normalized as part of collecting the remaining states.
     dump_state.insert(dump_base_label.clone(), *base_val);
     other_state.insert(other_base_label.clone());
 
