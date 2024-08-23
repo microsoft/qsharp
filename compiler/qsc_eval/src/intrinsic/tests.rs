@@ -441,6 +441,26 @@ fn dump_register_other_qubits_one_state_is_separable() {
 }
 
 #[test]
+fn dump_register_other_qubits_phase_reflected_in_subset() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[3];
+            H(qs[0]);
+            X(qs[2]);
+            Z(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[...1]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: −0.7071+0.0000𝑖
+            |10⟩: −0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
 fn dump_register_qubits_reorder_output() {
     check_intrinsic_output(
         "",
