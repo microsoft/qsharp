@@ -369,5 +369,5 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
+    export DumpMachine, DumpRegister, DumpOperation, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
 }

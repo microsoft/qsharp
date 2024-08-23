@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    displayable_output::{DisplayableOutput, DisplayableState},
+    displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -328,6 +328,7 @@ impl Output {
     fn __repr__(&self) -> String {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_plain(),
+            DisplayableOutput::Matrix(matrix) => matrix.to_plain(),
             DisplayableOutput::Message(msg) => msg.clone(),
         }
     }
@@ -339,6 +340,7 @@ impl Output {
     fn _repr_html_(&self) -> String {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_html(),
+            DisplayableOutput::Matrix(matrix) => matrix.to_html(),
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
         }
     }
@@ -346,6 +348,7 @@ impl Output {
     fn _repr_latex_(&self) -> Option<String> {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_latex(),
+            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
             DisplayableOutput::Message(_) => None,
         }
     }
@@ -353,7 +356,7 @@ impl Output {
     fn state_dump(&self) -> Option<StateDumpData> {
         match &self.0 {
             DisplayableOutput::State(state) => Some(StateDumpData(state.clone())),
-            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
 }
@@ -532,7 +535,19 @@ impl Receiver for OptionalCallbackReceiver<'_> {
     }
 
     fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> std::result::Result<(), Error> {
-        todo!()
+        if let Some(callback) = &self.callback {
+            let out = DisplayableOutput::Matrix(DisplayableMatrix(matrix));
+            callback
+                .call1(
+                    self.py,
+                    PyTuple::new(
+                        self.py,
+                        &[Py::new(self.py, Output(out)).expect("should be able to create output")],
+                    ),
+                )
+                .map_err(|_| Error)?;
+        }
+        Ok(())
     }
 
     fn message(&mut self, msg: &str) -> core::result::Result<(), Error> {
