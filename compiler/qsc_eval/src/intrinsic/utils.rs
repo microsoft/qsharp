@@ -88,11 +88,11 @@ fn collect_split_state(
     let (base_label, base_val) = state_iter.next().expect("state should never be empty");
     let dump_base_label = base_label & dump_mask;
     let other_base_label = base_label & other_mask;
-    let mut dump_norm = 1.0_f64;
+    let mut dump_norm = base_val.norm().powi(2);
 
     // Start with an amplitude of 1 in the first expected split states. This becomes the basis
     // of the split later, but will get normalized as part of collecting the remaining states.
-    dump_state.insert(dump_base_label.clone(), Complex64::one());
+    dump_state.insert(dump_base_label.clone(), *base_val);
     other_state.insert(other_base_label.clone(), Complex64::one());
 
     for (curr_label, curr_val) in state_iter {
@@ -119,7 +119,7 @@ fn collect_split_state(
         if let Entry::Vacant(entry) = dump_state.entry(dump_label) {
             // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
             // state, and vice-versa below.
-            let amplitude = curr_val / other_val;
+            let amplitude = *curr_val;
             let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
