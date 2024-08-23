@@ -5,9 +5,7 @@
 
 use super::get_references;
 use crate::{
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-    },
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
 };
 use expect_test::{expect, Expect};
@@ -16,8 +14,7 @@ use indoc::indoc;
 /// Asserts that the reference locations given at the cursor position matches the expected reference locations.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check_with_std(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual = get_references(
         &compilation,
         "<source>",
@@ -33,7 +30,7 @@ fn check_with_std(source_with_markers: &str, expect: &Expect) {
 /// The expected reference location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str, include_declaration: bool) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual = get_references(
         &compilation,
         "<source>",
@@ -63,7 +60,7 @@ fn check_exclude_decl(source_with_markers: &str) {
 
 fn check_notebook_exclude_decl(cells_with_markers: &[(&str, &str)]) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
 
     let actual = get_references(&compilation, &cell_uri, position, Encoding::Utf8, false)
         .into_iter()

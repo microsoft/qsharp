@@ -2910,6 +2910,36 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
     );
 }
 
+#[test]
+fn disallow_duplicate_intrinsic_and_simulatableintrinsic() {
+    check(
+        indoc! {"
+            namespace A {
+                operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                @SimulatableIntrinsic()
+                operation C() : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace namespace8 {
+                @SimulatableIntrinsic()
+                operation item3() : Unit {}
+            }
+
+            // DuplicateIntrinsic("C", Span { lo: 129, hi: 130 })
+        "#]],
+    );
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn check_locals(input: &str, expect: &Expect) {
     let parts = input.split('↘').collect::<Vec<_>>();

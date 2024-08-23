@@ -80,7 +80,7 @@ class DensityMatrix:
     performance reasons.
     """
 
-    def data(self) -> List[complex]:
+    def data(self) -> List[List[complex]]:
         """
         Returns a copy of the matrix data.
         """
@@ -127,7 +127,7 @@ class DensityMatrixSimulator:
         """
         ...
 
-    def sample_instrument(self, instrument: Instrument, qubits: List[int]):
+    def sample_instrument(self, instrument: Instrument, qubits: List[int]) -> int:
         """
         Performs selective evolution under the given instrument.
         Returns the index of the observed outcome.
@@ -142,7 +142,7 @@ class DensityMatrixSimulator:
         """
         ...
 
-    def set_state(self) -> None:
+    def set_state(self, state: DensityMatrix) -> None:
         """
         Set state of the quantum system to another `DensityMatrix` of the
         same dimensions.
@@ -210,7 +210,7 @@ class StateVectorSimulator:
         """
         ...
 
-    def sample_instrument(self, instrument: Instrument, qubits: List[int]):
+    def sample_instrument(self, instrument: Instrument, qubits: List[int]) -> int:
         """
         Performs selective evolution under the given instrument.
         Returns the index of the observed outcome.
@@ -218,14 +218,14 @@ class StateVectorSimulator:
         Use this method to perform measurements on the quantum system.
         """
 
-    def get_state(self) -> Optional[DensityMatrix]:
+    def get_state(self) -> Optional[StateVector]:
         """
         Returns the `StateVector` if the simulator is in a valid state,
         otherwise returns None.
         """
         ...
 
-    def set_state(self) -> None:
+    def set_state(self, state: StateVector) -> None:
         """
         Set state of the quantum system to another `StateVector` of the
         same dimensions.

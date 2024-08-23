@@ -4,9 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::get_hover;
-use crate::test_utils::{
-    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-};
+use crate::test_utils::{compile_notebook_with_markers, compile_with_markers};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc::line_column::Encoding;
@@ -16,7 +14,7 @@ use qsc::line_column::Encoding;
 /// The expected hover span is indicated by two `◉` markers in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual = get_hover(&compilation, "<source>", cursor_position, Encoding::Utf8)
         .expect("Expected a hover.");
     assert_eq!(&actual.span, &target_spans[0]);
@@ -25,15 +23,14 @@ fn check(source_with_markers: &str, expect: &Expect) {
 
 /// Asserts that there is no hover for the given test case.
 fn check_none(source_with_markers: &str) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual = get_hover(&compilation, "<source>", cursor_position, Encoding::Utf8);
     assert!(actual.is_none());
 }
 
 fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
 
     let actual =
         get_hover(&compilation, &cell_uri, position, Encoding::Utf8).expect("Expected a hover.");
@@ -42,8 +39,7 @@ fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
 }
 
 fn check_notebook_none(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, position, _) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let (compilation, cell_uri, position, _) = compile_notebook_with_markers(cells_with_markers);
 
     let actual = get_hover(&compilation, &cell_uri, position, Encoding::Utf8);
     assert!(actual.is_none());

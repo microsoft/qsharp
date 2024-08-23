@@ -304,14 +304,6 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
     ///
-    /// # Description
-    /// The probability of getting `Zero` is
-    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
-    /// where $P_i$ is the $i$-th element of `bases`, and where
-    /// $N$ is the `Length(bases)`.
-    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
-    /// observed measurement effect is $(-1)^d$.
-    ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
     ///
@@ -325,6 +317,14 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Output
     /// `Zero` if the +1 eigenvalue is observed, and `One` if
     /// the -1 eigenvalue is observed.
+    ///
+    /// # Remarks
+    /// The probability of getting `Zero` is
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
+    /// where $P_i$ is the $i$-th element of `bases`, and where
+    /// $N$ is the `Length(bases)`.
+    /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
+    /// observed measurement effect is $(-1)^d$.
     @Config(QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
@@ -353,6 +353,9 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Performs a joint measurement of one or more qubits in the
     /// specified Pauli bases.
     ///
+    /// If the basis array and qubit array are different lengths, then the
+    /// operation will fail.
+    ///
     /// # Input
     /// ## bases
     /// Array of single-qubit Pauli values indicating the tensor product
@@ -365,26 +368,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// the -1 eigenvalue is observed.
     ///
     /// # Remarks
-    /// The output result is given by the distribution:
-    /// $$
-    /// \begin{align}
-    ///     \Pr(\texttt{Zero} | \ket{\psi}) =
-    ///         \frac12 \braket{
-    ///             \psi \mid|
-    ///             \left(
-    ///                 \boldone + P_0 \otimes P_1 \otimes \cdots \otimes P_{N-1}
-    ///             \right) \mid|
-    ///             \psi
-    ///         },
-    /// \end{align}
-    /// $$
-    /// where $P_i$ is the $i$th element of `bases`, and where
-    /// $N = \texttt{Length}(\texttt{bases})$.
+    /// The probability of getting `Zero` is
+    /// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
+    /// where $P_i$ is the $i$-th element of `bases`, and where
+    /// $N$ is the `Length(bases)`.
     /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
     /// observed measurement effect is $(-1)^d$.
-    ///
-    /// If the basis array and qubit array are different lengths, then the
-    /// operation will fail.
     @Config(not QubitReset)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
@@ -473,8 +462,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// WARNING:
     /// This operation uses the **opposite** sign convention from
-    /// Microsoft.Quantum.Intrinsic.R, and does not include the
-    /// factor of 1/2 included by Microsoft.Quantum.Intrinsic.R1.
+    /// Microsoft.Quantum.Intrinsic.R.
     ///
     /// # Input
     /// ## numerator
@@ -490,7 +478,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// $$
     /// \begin{align}
     ///     R_1(n, k) \mathrel{:=}
-    ///     \operatorname{diag}(1, e^{i \pi k / 2^n}).
+    ///     \operatorname{diag}(1, e^{i \pi n / 2^k}).
     /// \end{align}
     /// $$
     ///
@@ -560,7 +548,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Equivalent to:
     /// ```qsharp
     /// // PI() is a Q# function that returns an approximation of π.
-    /// R(pauli, -PI() * IntAsDouble(numerator) / IntAsDouble(2 ^ (power - 1)), qubit);
+    /// R(pauli, -2.0 * PI() * IntAsDouble(numerator) / IntAsDouble(2 ^ (power - 1)), qubit);
     /// ```
     operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl {
         // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
@@ -1166,5 +1154,5 @@ namespace Microsoft.Quantum.Intrinsic {
         body intrinsic;
     }
 
-    export CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
+    export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
 }

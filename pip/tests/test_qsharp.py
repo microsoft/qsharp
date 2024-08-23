@@ -86,11 +86,13 @@ def test_dump_machine() -> None:
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
     assert state_dump[2] == complex(1.0, 0.0)
+    assert state_dump.as_dense_state() == [0, 0, 1, 0]
     qsharp.eval("X(q2);")
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
     assert state_dump[3] == complex(1.0, 0.0)
+    assert state_dump.as_dense_state() == [0, 0, 0, 1]
     qsharp.eval("H(q1);")
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
@@ -102,6 +104,12 @@ def test_dump_machine() -> None:
     # in of different, potentially unnormalized states. The state should be
     # |01⟩: 0.7071+0.0000𝑖, |11⟩: −0.7071+0.0000𝑖
     assert state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0)})
+    assert state_dump.as_dense_state() == [
+        0,
+        0.7071067811865476,
+        0,
+        -0.7071067811865476,
+    ]
     assert state_dump.check_eq({1: complex(0.0, 0.7071), 3: complex(0.0, -0.7071)})
     assert state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
     assert state_dump.check_eq(

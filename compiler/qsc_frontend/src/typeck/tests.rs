@@ -315,6 +315,65 @@ fn call_generic_length() {
 }
 
 #[test]
+fn nested_generic_with_lambda() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo<'I, 'O>(f : 'I -> 'O, x : 'I) : 'O { f(x) }
+                function Bar() : Unit {
+                    let r0 = Foo(Foo, (() -> (), ()));
+                    let r1 = Foo(Foo, (a -> (), ()));
+                    let r2 = Foo(Foo, (b -> b, ()));
+                }
+        }"
+        },
+        "",
+        &expect![[r##"
+            #8 46-68 "(f : 'I -> 'O, x : 'I)" : ((Param<"'I": 0> -> Param<"'O": 1>), Param<"'I": 0>)
+            #9 47-59 "f : 'I -> 'O" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #16 61-67 "x : 'I" : Param<"'I": 0>
+            #22 74-82 "{ f(x) }" : Param<"'O": 1>
+            #24 76-80 "f(x)" : Param<"'O": 1>
+            #25 76-77 "f" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #28 77-80 "(x)" : Param<"'I": 0>
+            #29 78-79 "x" : Param<"'I": 0>
+            #35 103-105 "()" : Unit
+            #39 113-262 "{\n            let r0 = Foo(Foo, (() -> (), ()));\n            let r1 = Foo(Foo, (a -> (), ()));\n            let r2 = Foo(Foo, (b -> b, ()));\n        }" : Unit
+            #41 131-133 "r0" : Unit
+            #43 136-160 "Foo(Foo, (() -> (), ()))" : Unit
+            #44 136-139 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #47 139-160 "(Foo, (() -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #48 140-143 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #51 145-159 "(() -> (), ())" : ((Unit -> Unit), Unit)
+            #52 146-154 "() -> ()" : (Unit -> Unit)
+            #53 146-148 "()" : Unit
+            #54 152-154 "()" : Unit
+            #55 156-158 "()" : Unit
+            #57 178-180 "r1" : Unit
+            #59 183-206 "Foo(Foo, (a -> (), ()))" : Unit
+            #60 183-186 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #63 186-206 "(Foo, (a -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #64 187-190 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #67 192-205 "(a -> (), ())" : ((Unit -> Unit), Unit)
+            #68 193-200 "a -> ()" : (Unit -> Unit)
+            #69 193-194 "a" : Unit
+            #71 198-200 "()" : Unit
+            #72 202-204 "()" : Unit
+            #74 224-226 "r2" : Unit
+            #76 229-251 "Foo(Foo, (b -> b, ()))" : Unit
+            #77 229-232 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #80 232-251 "(Foo, (b -> b, ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #81 233-236 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #84 238-250 "(b -> b, ())" : ((Unit -> Unit), Unit)
+            #85 239-245 "b -> b" : (Unit -> Unit)
+            #86 239-240 "b" : Unit
+            #88 244-245 "b" : Unit
+            #91 247-249 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
 fn add_wrong_types() {
     check(
         indoc! {"
@@ -829,6 +888,70 @@ fn for_loop_not_iterable() {
 }
 
 #[test]
+fn for_loop_body_should_be_unit_error() {
+    check(
+        "",
+        "for i in [1, 2, 3] { 4 }",
+        &expect![[r##"
+        #1 0-24 "for i in [1, 2, 3] { 4 }" : Unit
+        #2 4-5 "i" : Int
+        #4 9-18 "[1, 2, 3]" : Int[]
+        #5 10-11 "1" : Int
+        #6 13-14 "2" : Int
+        #7 16-17 "3" : Int
+        #8 19-24 "{ 4 }" : Int
+        #10 21-22 "4" : Int
+        Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 19, hi: 24 }))))
+    "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_non_bool_condition_error() {
+    check(
+        "",
+        "repeat { } until 1",
+        &expect![[r##"
+            #1 0-18 "repeat { } until 1" : Unit
+            #2 7-10 "{ }" : Unit
+            #3 17-18 "1" : Int
+            Error(Type(Error(TyMismatch("Bool", "Int", Span { lo: 17, hi: 18 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_body_should_be_unit_error() {
+    check(
+        "",
+        "repeat { 1 } until false",
+        &expect![[r##"
+            #1 0-24 "repeat { 1 } until false" : Unit
+            #2 7-12 "{ 1 }" : Int
+            #4 9-10 "1" : Int
+            #5 19-24 "false" : Bool
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_fixup_should_be_unit_error() {
+    check(
+        "",
+        "repeat { } until false fixup { 1 }",
+        &expect![[r##"
+            #1 0-34 "repeat { } until false fixup { 1 }" : Unit
+            #2 7-10 "{ }" : Unit
+            #3 17-22 "false" : Bool
+            #4 29-34 "{ 1 }" : Int
+            #6 31-32 "1" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 29, hi: 34 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn if_cond_error() {
     check(
         "",
@@ -1327,6 +1450,21 @@ fn while_cond_error() {
             #3 11-13 "{}" : Unit
             Error(Type(Error(TyMismatch("Bool", "Result", Span { lo: 6, hi: 10 }))))
         "#]],
+    );
+}
+
+#[test]
+fn while_body_should_be_unit_error() {
+    check(
+        "",
+        "while true { 1 }",
+        &expect![[r##"
+            #1 0-16 "while true { 1 }" : Unit
+            #2 6-10 "true" : Bool
+            #3 11-16 "{ 1 }" : Int
+            #5 13-14 "1" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 11, hi: 16 }))))
+        "##]],
     );
 }
 
@@ -4149,7 +4287,7 @@ fn inference_infinite_recursion_should_fail() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #8 41-59 "(x : ('T1 -> 'U1))" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #9 42-58 "x : ('T1 -> 'U1)" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #20 68-75 "{\n    }" : Unit
@@ -4163,10 +4301,8 @@ fn inference_infinite_recursion_should_fail() {
             #54 186-187 "B" : (((?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
             Error(Type(Error(TyMismatch("Unit", "'U1[]", Span { lo: 62, hi: 67 }))))
             Error(Type(Error(TyMismatch("Unit", "'T2", Span { lo: 129, hi: 132 }))))
-            Error(Type(Error(TyMismatch("Bool", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
-            Error(Type(Error(TyMismatch("Unit", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
-        "#]],
+        "##]],
     );
 }
 
@@ -4240,5 +4376,42 @@ fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
             #31 94-103 "q : Qubit" : Qubit
             #42 125-128 "{ }" : Unit
         "#]],
+    );
+}
+
+#[test]
+fn within_apply_returns_type_from_apply_block() {
+    check(
+        "",
+        "{ let x = within { } apply { 4 }; let y = x + 1; }",
+        &expect![[r##"
+            #1 0-50 "{ let x = within { } apply { 4 }; let y = x + 1; }" : Unit
+            #2 0-50 "{ let x = within { } apply { 4 }; let y = x + 1; }" : Unit
+            #4 6-7 "x" : Int
+            #6 10-32 "within { } apply { 4 }" : Int
+            #7 17-20 "{ }" : Unit
+            #8 27-32 "{ 4 }" : Int
+            #10 29-30 "4" : Int
+            #12 38-39 "y" : Int
+            #14 42-47 "x + 1" : Int
+            #15 42-43 "x" : Int
+            #18 46-47 "1" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn within_block_should_be_unit_error() {
+    check(
+        "",
+        "within { 4 } apply { 0 }",
+        &expect![[r##"
+            #1 0-24 "within { 4 } apply { 0 }" : Int
+            #2 7-12 "{ 4 }" : Int
+            #4 9-10 "4" : Int
+            #5 19-24 "{ 0 }" : Int
+            #7 21-22 "0" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
+        "##]],
     );
 }

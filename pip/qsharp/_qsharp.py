@@ -426,6 +426,12 @@ class StateDump:
                 return False
         return True
 
+    def as_dense_state(self) -> List[complex]:
+        """
+        Returns the state dump as a dense list of complex amplitudes. This will include zero amplitudes.
+        """
+        return [self.__inner.get(i, complex(0)) for i in range(2**self.qubit_count)]
+
 
 def dump_machine() -> StateDump:
     """

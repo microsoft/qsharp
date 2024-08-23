@@ -18,13 +18,19 @@ use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
 
+// Name, Metadata, Content
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
+type FilesWithMetadata = Vec<(Arc<str>, Arc<Metadata>, Arc<str>)>;
 
 /// Represents an immutable compilation state.
 #[derive(Debug)]
 struct Compilation {
     /// Package store, containing the current package and all its dependencies.
     package_store: PackageStore,
+    /// Current package id when provided.
+    current_package_id: Option<PackageId>,
+    /// Aliases for packages.
+    dependencies: FxHashMap<PackageId, Arc<str>>,
 }
 
 impl Compilation {
@@ -37,6 +43,9 @@ impl Compilation {
     ) -> Self {
         let actual_capabilities = capabilities.unwrap_or_default();
         let actual_language_features = language_features.unwrap_or_default();
+
+        let mut current_package_id: Option<PackageId> = None;
+        let mut package_aliases: FxHashMap<PackageId, Arc<str>> = FxHashMap::default();
 
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
@@ -51,7 +60,13 @@ impl Compilation {
                 // documentation we can produce. In future we may consider
                 // displaying the fact of error presence on documentation page.
 
-                package_store.insert(unit);
+                for (package_id, package_alias) in dependencies {
+                    if let Some(package_alias) = package_alias {
+                        package_aliases.insert(*package_id, package_alias.clone());
+                    }
+                }
+
+                current_package_id = Some(package_store.insert(unit));
                 package_store
             } else {
                 let mut package_store = PackageStore::new(compile::core());
@@ -60,7 +75,11 @@ impl Compilation {
                 package_store
             };
 
-        Self { package_store }
+        Self {
+            package_store,
+            current_package_id,
+            dependencies: package_aliases,
+        }
     }
 }
 
@@ -140,35 +159,87 @@ pub fn generate_docs(
     language_features: Option<LanguageFeatures>,
 ) -> Files {
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
-    let mut files: Files = vec![];
+    let mut files: FilesWithMetadata = vec![];
 
     let display = &CodeDisplay {
         compilation: &compilation,
     };
 
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
-    for (_, unit) in &compilation.package_store {
+
+    for (package_id, unit) in &compilation.package_store {
+        let is_current_package = compilation.current_package_id == Some(package_id);
+        let package_kind;
+        if package_id == PackageId::CORE {
+            // Core package is always included in the compilation.
+            package_kind = PackageKind::Core;
+        } else if package_id == 1.into() {
+            // Standard package is currently always included, but this isn't enforced by the compiler.
+            package_kind = PackageKind::StandardLibrary;
+        } else if is_current_package {
+            // This package could be user code if current package is specified.
+            package_kind = PackageKind::UserCode;
+        } else if let Some(alias) = compilation.dependencies.get(&package_id) {
+            // This is a direct dependency of the user code.
+            package_kind = PackageKind::AliasedPackage(alias.to_string());
+        } else {
+            // This is not a package user can access (an indirect dependency).
+            continue;
+        }
+
         let package = &unit.package;
         for (_, item) in &package.items {
-            if let Some((ns, line)) = generate_doc_for_item(package, item, display, &mut files) {
+            if let Some((ns, line)) = generate_doc_for_item(
+                package,
+                package_kind.clone(),
+                is_current_package,
+                item,
+                display,
+                &mut files,
+            ) {
                 toc.entry(ns).or_default().push(line);
             }
         }
     }
 
-    generate_toc(&mut toc, &mut files);
+    // We want to sort documentation files in a meaningful way.
+    // First, we want to put files for the current project, if it exists.
+    // Then we want to put explicit dependencies of the current project, if they exist.
+    // Then we want to add built-in std package. And finally built-in core package.
+    // Namespaces within packages should be sorted alphabetically and
+    // items with a namespace should be also sorted alphabetically.
+    // Also, items without any metadata (table of content) should come last.
+    files.sort_by_key(|file| {
+        (
+            file.1.package.clone(),
+            file.1.namespace.clone(),
+            file.1.name.clone(),
+        )
+    });
 
-    files
+    let mut result: Files = files
+        .into_iter()
+        .map(|(name, metadata, content)| (name, Arc::from(metadata.to_string().as_str()), content))
+        .collect();
+
+    generate_toc(&mut toc, &mut result);
+
+    result
 }
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
+    package_kind: PackageKind,
+    include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
-    files: &mut Files,
+    files: &mut FilesWithMetadata,
 ) -> Option<(Rc<str>, String)> {
     // Filter items
-    if item.visibility == Visibility::Internal || matches!(item.kind, ItemKind::Namespace(_, _)) {
+    if !include_internals && (item.visibility == Visibility::Internal) {
+        return None;
+    }
+    if matches!(item.kind, ItemKind::Namespace(_, _)) {
         return None;
     }
 
@@ -176,14 +247,15 @@ fn generate_doc_for_item<'a>(
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (metadata, content) = generate_file(&ns, item, display)?;
+    let (metadata, content) = generate_file(package_kind, &ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
-    let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
-    files.push((file_name, file_metadata, file_content));
 
     // Create toc line
     let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
+
+    let met: Arc<Metadata> = Arc::from(metadata);
+    files.push((file_name, met, file_content));
 
     // Return (ns, line)
     Some((ns.clone(), line))
@@ -211,17 +283,23 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(ns.clone(), item, display)?;
+fn generate_file(
+    package_kind: PackageKind,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(Metadata, String)> {
+    let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
+    let fqn = &metadata.fully_qualified_name();
     let sig = &metadata.signature;
 
     let content = format!(
         "# {title}
 
-Namespace: {ns}
+Fully qualified name: {fqn}
 
 ```qsharp
 {sig}
@@ -243,10 +321,33 @@ struct Metadata {
     title: String,
     topic: String,
     kind: MetadataKind,
+    package: PackageKind,
     namespace: Rc<str>,
     name: Rc<str>,
     summary: String,
     signature: String,
+}
+
+impl Metadata {
+    fn fully_qualified_name(&self) -> String {
+        let mut buf = if let PackageKind::AliasedPackage(ref package_alias) = self.package {
+            vec![format!("{package_alias}")]
+        } else {
+            vec![]
+        };
+
+        buf.push(self.namespace.to_string());
+        buf.push(self.name.to_string());
+        buf.join(".")
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
+enum PackageKind {
+    UserCode,
+    AliasedPackage(String),
+    StandardLibrary,
+    Core,
 }
 
 impl Display for Metadata {
@@ -281,7 +382,24 @@ enum MetadataKind {
     Export,
 }
 
-fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
+impl Display for MetadataKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            MetadataKind::Function => "function",
+            MetadataKind::Operation => "operation",
+            MetadataKind::Udt => "user defined type",
+            MetadataKind::Export => "exported item",
+        };
+        write!(f, "{s}")
+    }
+}
+
+fn get_metadata(
+    package_kind: PackageKind,
+    ns: Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<Metadata> {
     let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
             decl.name.name.clone(),
@@ -311,14 +429,10 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
 
     Some(Metadata {
         uid: format!("Qdk.{ns}.{name}"),
-        title: match &kind {
-            MetadataKind::Function => format!("{name} function"),
-            MetadataKind::Operation => format!("{name} operation"),
-            MetadataKind::Udt => format!("{name} user defined type"),
-            MetadataKind::Export => format!("{name} exported item"),
-        },
+        title: format!("{name} {kind}"),
         topic: "managed-reference".to_string(),
         kind,
+        package: package_kind,
         namespace: ns,
         name,
         summary,
