@@ -19,5 +19,5 @@ This sample project is a multi-file Q# project that showcases both testing metho
 
 - src
     - `StatePrep.qs`: Q# file containing the state preparation operations to be tested.
-- `qsharp.json`: Q# project manifest file, instructing compiler to include all files in `src` directory.
+- `qsharp.json`: Q# project manifest file, instructing the compiler to include all files in `src` directory.
 - `test_states.py`: Python wrapper containing tests.
