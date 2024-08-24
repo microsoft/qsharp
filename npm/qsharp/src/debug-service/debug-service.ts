@@ -196,5 +196,5 @@ export const debugServiceProtocol: ServiceProtocol<
     evalStepOut: "requestWithProgress",
     dispose: "request",
   },
-  eventNames: ["DumpMachine", "Message", "Result"],
+  eventNames: ["DumpMachine", "Message", "Matrix", "Result"],
 };
