@@ -411,11 +411,8 @@ class StateDump:
     def __str__(self) -> str:
         return self.__data.__str__()
 
-    def _repr_html_(self) -> str:
-        return self.__data._repr_html_()
-
-    def _repr_latex_(self) -> Optional[str]:
-        return self.__data._repr_latex_()
+    def _repr_markdown_(self) -> str:
+        return self.__data._repr_markdown_()
 
     def check_eq(
         self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
