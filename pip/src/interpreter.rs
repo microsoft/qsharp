@@ -559,25 +559,18 @@ impl Output {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> Option<String> {
+    fn _repr_markdown_(&self) -> String {
         match &self.0 {
-            DisplayableOutput::Message(msg) => Some(format!("<p>{msg}</p>")),
-            DisplayableOutput::State(state) => Some(state.to_html()),
-            DisplayableOutput::Matrix(_) => None,
-        }
-    }
-
-    fn _repr_markdown_(&self) -> Option<String> {
-        match &self.0 {
-            DisplayableOutput::State(_) | DisplayableOutput::Message(_) => None,
-            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
-        }
-    }
-
-    fn _repr_latex_(&self) -> Option<String> {
-        match &self.0 {
-            DisplayableOutput::State(state) => state.to_latex(),
-            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
+            DisplayableOutput::State(state) => {
+                let latex = if let Some(latex) = state.to_latex() {
+                    format!("\n\n{latex}")
+                } else {
+                    String::default()
+                };
+                format!("{}{latex}", state.to_html())
+            }
+            DisplayableOutput::Message(msg) => msg.clone(),
+            DisplayableOutput::Matrix(matrix) => matrix.to_latex(),
         }
     }
 
@@ -631,8 +624,13 @@ impl StateDumpData {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
-        self.0.to_html()
+    fn _repr_markdown_(&self) -> String {
+        let latex = if let Some(latex) = self.0.to_latex() {
+            format!("\n\n{latex}")
+        } else {
+            String::default()
+        };
+        format!("{}{latex}", self.0.to_html())
     }
 
     fn _repr_latex_(&self) -> Option<String> {
