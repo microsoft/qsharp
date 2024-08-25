@@ -6,6 +6,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        ArraysEqualD(Kata.Transpose(), Transpose_Reference())
+        // In case of an error, this value defines the precision with which complex numbers should be displayed
+        let precision = 2;
+        ArraysEqualD(Kata.Transpose(), Transpose_Reference(), precision)
     }
 }

@@ -8,6 +8,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        ArraysEqualC(Kata.Conjugate(), Conjugate_Reference())
+        // In case of an error, this value defines the precision with which complex numbers should be displayed
+        let precision = 2;
+        ArraysEqualC(Kata.Conjugate(), Conjugate_Reference(), precision)
     }
 }

@@ -8,6 +8,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        ArraysEqualC(Kata.MatrixAdjoint(), MatrixAdjoint_Reference())
+        // In case of an error, this value defines the precision with which complex numbers should be displayed
+        let precision = 2;
+        ArraysEqualC(Kata.MatrixAdjoint(), MatrixAdjoint_Reference(), precision)
     }
 }
