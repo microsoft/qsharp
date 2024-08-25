@@ -10,9 +10,11 @@ namespace Kata.Verification {
             let expected = ComplexPolarAsComplex(x);
             let actual = Kata.ComplexPolarToComplex(x);
         
-            if not ComplexEqual(expected, actual) {
+            if not ComplexEqual(expected, actual) {            
+                // In case of an error, this value defines the precision with which complex numbers should be displayed
+                let precision = 6;
                 Message("Incorrect");
-                Message($"For x = {ComplexPolarAsString(x)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
+                Message($"For x = {ComplexPolarAsString(x, precision)} expected return {ComplexAsString(expected, precision)}, actual return {ComplexAsString(actual, precision)}.");
                 return false;
             }
         }

@@ -10,19 +10,19 @@ namespace Kata.Verification {
         return Complex(real, imag);
     }
 
-    function ComplexAsString(x : Complex) : String {
+    function ComplexAsString(x : Complex, precision : Int) : String {
         if x::Imag < 0.0 {
-            $"{x::Real} - {AbsD(x::Imag)}i"
+            $"{DoubleAsStringWithPrecision(x::Real,precision)} - {DoubleAsStringWithPrecision(AbsD(x::Imag),precision)}i"
         } else {
-            $"{x::Real} + {x::Imag}i"
+            $"{DoubleAsStringWithPrecision(x::Real,precision)} + {DoubleAsStringWithPrecision(x::Imag,precision)}i"
         }
     }
 
-    function ComplexPolarAsString(x : ComplexPolar) : String {
-        $"{x::Magnitude} * exp({x::Argument}i)"
+    function ComplexPolarAsString(x : ComplexPolar, precision: Int) : String {
+        $"{DoubleAsStringWithPrecision(x::Magnitude,precision)} * exp({DoubleAsStringWithPrecision(x::Argument,precision)}i)"
     }
 
-    operation CheckTwoComplexOpsAreSame(sol : (Complex, Complex) -> Complex, ref : (Complex, Complex) -> Complex) : Bool {
+    operation CheckTwoComplexOpsAreSame(sol : (Complex, Complex) -> Complex, ref : (Complex, Complex) -> Complex, precision: Int) : Bool {
         for _ in 0 .. 24 {
             let x = DrawRandomComplex();
             let y = DrawRandomComplex();
@@ -32,7 +32,7 @@ namespace Kata.Verification {
         
             if not ComplexEqual(expected, actual) {
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x)}, y = {ComplexAsString(y)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
+                Message($"For x = {ComplexAsString(x,precision)}, y = {ComplexAsString(y,precision)} expected return {ComplexAsString(expected,precision)}, actual return {ComplexAsString(actual,precision)}.");
                 return false;
             }
         }

@@ -13,10 +13,12 @@ namespace Kata.Verification {
             let expected = ComplexAsComplexPolar(TimesC(x, y));
             let actual = Kata.ComplexPolarMult(xp, yp);
         
-            if not ComplexPolarEqual(expected, actual) {
+            if not ComplexPolarEqual(expected, actual) {            
+                // In case of an error, this value defines the precision with which complex numbers should be displayed
+                let precision = 6;
                 Message("Incorrect");
-                Message($"For x = {ComplexPolarAsString(xp)}, y = {ComplexPolarAsString(yp)} " + 
-                    $"expected return {ComplexPolarAsString(expected)}, actual return {ComplexPolarAsString(actual)}.");
+                Message($"For x = {ComplexPolarAsString(xp, precision)}, y = {ComplexPolarAsString(yp, precision)} " + 
+                    $"expected return {ComplexPolarAsString(expected, precision)}, actual return {ComplexPolarAsString(actual, precision)}.");
                 return false;
             }
         }

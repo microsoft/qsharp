@@ -14,9 +14,11 @@ namespace Kata.Verification {
             let expected = ComplexConjugate_Reference(x);
             let actual = Kata.ComplexConjugate(x);
         
-            if not ComplexEqual(expected, actual) {
+            if not ComplexEqual(expected, actual) {            
+                // In case of an error, this value defines the precision with which complex numbers should be displayed
+                let precision = 6;
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
+                Message($"For x = {ComplexAsString(x,precision)} expected return {ComplexAsString(expected,precision)}, actual return {ComplexAsString(actual,precision)}.");
                 return false;
             }
         }
