@@ -559,7 +559,7 @@ impl Output {
         self.__repr__()
     }
 
-    fn _repr_markdown_(&self) -> String {
+    fn _repr_markdown_(&self) -> Option<String> {
         match &self.0 {
             DisplayableOutput::State(state) => {
                 let latex = if let Some(latex) = state.to_latex() {
@@ -567,10 +567,10 @@ impl Output {
                 } else {
                     String::default()
                 };
-                format!("{}{latex}", state.to_html())
+                Some(format!("{}{latex}", state.to_html()))
             }
-            DisplayableOutput::Message(msg) => msg.clone(),
-            DisplayableOutput::Matrix(matrix) => matrix.to_latex(),
+            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
         }
     }
 
