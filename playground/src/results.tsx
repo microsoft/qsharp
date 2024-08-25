@@ -53,37 +53,6 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
   return true;
 }
 
-/*
-function Matrix(props: { matrix: number[][][] }) {
-  const style = `display: grid; grid-template-columns: repeat(${props.matrix[0].length}, 1fr);`;
-  function complexToString(re: number, im: number) {
-    // Return a max of 4 decimal places
-    re = Math.round(re * 10000) / 10000;
-    im = Math.round(im * 10000) / 10000;
-    if (im === 0) return re.toString();
-    if (re === 0) return `${im}i`;
-    return `${re} + ${im}i`;
-  }
-
-  return (
-    <>
-      <h3>Matrix</h3>
-      <div style={style}>
-        {props.matrix.map((row) => {
-          return row.map((cell) => {
-            return (
-              <div style="padding: 4px; border: 0.5px solid gray;">
-                {complexToString(cell[0], cell[1])}
-              </div>
-            );
-          });
-        })}
-      </div>
-    </>
-  );
-}
-*/
-
 function MatrixLatex(props: { latex: string }) {
   return (
     <>
