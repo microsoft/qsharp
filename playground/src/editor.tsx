@@ -448,14 +448,16 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
-        <>
-          <span>Profile</span>
-          <select value={profile} onChange={profileChanged}>
-            <option value="unrestricted">Unrestricted</option>
-            <option value="adaptive_ri">Adaptive RI</option>
-            <option value="base">Base</option>
-          </select>
-        </>
+        {props.kataSection ? null : (
+          <>
+            <span>Profile</span>
+            <select value={profile} onChange={profileChanged}>
+              <option value="unrestricted">Unrestricted</option>
+              <option value="adaptive_ri">Adaptive RI</option>
+              <option value="base">Base</option>
+            </select>
+          </>
+        )}
         {props.showExpr ? (
           <>
             <span>Start</span>

@@ -34,7 +34,6 @@
               "divisionByZero",
               "needlessParens",
               "redundantSemicolons",
-              "deprecatedFunctionConstructor",
               "deprecatedWithOperator",
               "deprecatedDoubleColonOperator",
               "deprecatedNewtype"

@@ -1,8 +1,8 @@
 # Complex Arithmetic
 
 @[section]({
-    "id": "complex_arithmetic__overview", 
-    "title": "Overview" 
+    "id": "complex_arithmetic__overview",
+    "title": "Overview"
 })
 
 This kata introduces you to complex arithmetic. This topic isn't particularly expansive, but it's important to understand it to be able to work with quantum computing.
@@ -20,9 +20,9 @@ If you are curious to learn more, you can find more information at [Wikipedia](h
 
 This kata has several tasks that require you to write Q# code to test your understanding of the concepts. The kata will introduce the necessary Q# language constructs as it goes.
 
-@[section]({ 
-    "id": "complex_arithmetic__algebraic_perspective", 
-    "title": "Imaginary Numbers" 
+@[section]({
+    "id": "complex_arithmetic__algebraic_perspective",
+    "title": "Imaginary Numbers"
 })
 
 For some purposes, real numbers aren't enough. Probably the most famous example is the equation:
@@ -47,15 +47,15 @@ The number $i$ and its real multiples (numbers obtained by multiplying $i$ by a 
 
 > A good video introduction to imaginary numbers can be found [here](https://youtu.be/SP-YJe7Vldo).
 
-@[exercise]({ 
-    "id": "complex_arithmetic__powers_of_i", 
-    "title": "Powers of Imaginary Unit", 
+@[exercise]({
+    "id": "complex_arithmetic__powers_of_i",
+    "title": "Powers of Imaginary Unit",
     "path": "./powers_of_i/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__complex_numbers", 
-    "title": "Complex Numbers" 
+@[section]({
+    "id": "complex_arithmetic__complex_numbers",
+    "title": "Complex Numbers"
 })
 
 Adding imaginary numbers to each other is quite simple, but what happens when you add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a **complex number**. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts $a$ and $bi$, where both $a$ and $b$ are real numbers: 
@@ -67,28 +67,27 @@ For example, $3+4i$ or $-5-7i$ are valid complex numbers. Note that purely real 
 When performing operations on complex numbers, it's often helpful to treat them as polynomials in terms of $i$.
 Let's see how to do the main arithmetic operations on complex numbers.
 
-> In Q#, complex numbers are represented as user-defined type `Complex` from the `Microsoft.Quantum.Math` namespace. 
-> 
-> You can convert a complex number $x = a + bi$ into a tuple of two `Double` numbers using unwrap operator and tuple deconstruction: `let (a, b) = x!;`, 
-> or access its real and imaginary parts using their names: `let (a, b) = (x::Real, x::Imag);`.
-> 
+> In Q#, complex numbers are represented as user-defined struct type `Complex` from the `Microsoft.Quantum.Math` namespace.
+>
+> Given a complex number $x = a + bi$, you can access its real and imaginary parts using their names: `let (a, b) = (x.Real, x.Imag);`.
+>
 > You can construct a complex number from its real and imaginary parts as follows: `let x = Complex(a, b);`.
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_addition", 
-    "title": "Add Complex Numbers", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_addition",
+    "title": "Add Complex Numbers",
     "path": "./complex_addition/"
 })
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_multiplication", 
-    "title": "Multiply Complex Numbers", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_multiplication",
+    "title": "Multiply Complex Numbers",
     "path": "./complex_multiplication/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__complex_conjugate", 
-    "title": "Complex Conjugate" 
+@[section]({
+    "id": "complex_arithmetic__complex_conjugate",
+    "title": "Complex Conjugate"
 })
 
 Before discussing any other operations on complex numbers, let's review the **complex conjugate**. The conjugate is a simple operation: given a complex number  $x = a + bi$, its complex conjugate is $\overline{x} = a - bi$.
@@ -108,15 +107,15 @@ Another property of the conjugate is that it distributes over both complex addit
 $$\overline{x + y} = \overline{x} + \overline{y}$$
 $$\overline{x \cdot y} = \overline{x} \cdot \overline{y}$$
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_conjugate_exercise", 
-    "title": "Find Conjugate", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_conjugate_exercise",
+    "title": "Find Conjugate",
     "path": "./complex_conjugate/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__complex_division", 
-    "title": "Complex Division" 
+@[section]({
+    "id": "complex_arithmetic__complex_division",
+    "title": "Complex Division"
 })
 
 The next use for the conjugate is complex division. Let's take two complex numbers: $x = a + bi$ and $y = c + di \neq 0$ (not even complex numbers let you divide by $0$). What does $\frac{x}{y}$ mean?
@@ -133,15 +132,15 @@ By doing this, you re-wrote your division problem to have a complex multiplicati
 
 $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_division_exercise", 
-    "title": "Divide Complex Numbers", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_division_exercise",
+    "title": "Divide Complex Numbers",
     "path": "./complex_division/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__geometric_perspective", 
-    "title": "Geometric Perspective: the Complex Plane" 
+@[section]({
+    "id": "complex_arithmetic__geometric_perspective",
+    "title": "Geometric Perspective: the Complex Plane"
 })
 
 You may recall that real numbers can be represented geometrically using the number line - a line on which each point represents a real number. You can extend this representation to include imaginary and complex numbers, which gives rise to an entirely different number line: the imaginary number line, which is orthogonal to the real number line and only intersects with it at $0$.
@@ -156,7 +155,7 @@ One such property is the **modulus operator**. This operator generalizes the **a
 
 $$|x| = \sqrt{a^2 + b^2}$$
 
-There is also a slightly different, but algebraically equivalent definition: 
+There is also a slightly different, but algebraically equivalent definition:
 
 $$|x| = \sqrt{x \cdot \overline{x}}$$
 
@@ -168,15 +167,15 @@ Unlike the conjugate, however, the modulus doesn't distribute over addition. Ins
 
 $$|x + y| \leq |x| + |y|$$
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_modulus_exercise", 
-    "title": "Find Modulus", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_modulus_exercise",
+    "title": "Find Modulus",
     "path": "./complex_modulus/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__imaginary_exponents", 
-    "title": "Imaginary Exponents" 
+@[section]({
+    "id": "complex_arithmetic__imaginary_exponents",
+    "title": "Imaginary Exponents"
 })
 
 The next complex operation is **exponentiation**. Raising an imaginary number to an integer power is a fairly simple task, but raising a number to an imaginary power, or raising an imaginary (or complex) number to a real power isn't quite as simple.
@@ -197,7 +196,7 @@ $$e^{i\pi} = -1$$
 $$e^{2i\pi} = 1$$
 
 > One interesting consequence of this is Euler's identity:
-> 
+>
 > $$e^{i\pi} + 1 = 0$$
 > 
 > While this doesn't have any notable uses, it's still an interesting identity to consider, as it combines five fundamental constants of algebra into one expression.
@@ -208,21 +207,21 @@ $$e^{a + bi} = e^a \cdot e^{bi}$$
 
 Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$, you can use this to find complex powers of any positive real number.
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_exponents_exercise", 
-    "title": "Find Complex Exponent", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_exponents_exercise",
+    "title": "Find Complex Exponent",
     "path": "./complex_exponents/"
 })
 
-@[exercise]({ 
-    "id": "complex_arithmetic__complex_powers_real_exercise", 
-    "title": "Find Complex Power of Real Number", 
+@[exercise]({
+    "id": "complex_arithmetic__complex_powers_real_exercise",
+    "title": "Find Complex Power of Real Number",
     "path": "./complex_powers_real/"
 })
 
-@[section]({ 
-    "id": "complex_arithmetic__polar_coordinates", 
-    "title": "Polar Coordinates" 
+@[section]({
+    "id": "complex_arithmetic__polar_coordinates",
+    "title": "Polar Coordinates"
 })
 
 Consider the expression  $e^{i\theta} = \cos\theta + i\sin\theta$. Notice that if you map this number onto the complex plane, it'll land on a **unit circle** around $0 + 0i$. This means that its modulus is always $1$. You can also verify this algebraically: $\cos^2\theta + \sin^2\theta = 1$.
@@ -234,35 +233,33 @@ Another way to think about this is that you're taking a point that is $1$ unit a
 A complex number of the format $r \cdot e^{i\theta}$ will be represented by a point which is $r$ units away from the origin, in the direction specified by the angle $\theta$.
 Sometimes $\theta$ will be referred to as the number's **argument** or **phase**.
 
-> In Q#, complex numbers in polar form are represented as user-defined type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace. 
-> 
-> You can convert a complex number $x = r \cdot e^{i\theta}$ into a tuple of two `Double` numbers using unwrap operator and tuple deconstruction: `let (r, theta) = x!;`, 
-> or access its magnitude and phase using their names: `let (r, theta) = (x::Magnitude, x::Argument);`.
-> 
+> In Q#, complex numbers in polar form are represented as user-defined struct type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace.
+>
+> Given a complex number $x = r \cdot e^{i\theta}$, you can access its magnitude and phase using their names: `let r = x.Magnitude;` and `let theta = x.Argument;`.
+>
 > You can construct a complex number from its magnitude and phase as follows: `let x = ComplexPolar(r, theta);`.
 
-@[exercise]({ 
-    "id": "complex_arithmetic__cartesian_to_polar", 
-    "title": "Convert Cartesian to Polar", 
+@[exercise]({
+    "id": "complex_arithmetic__cartesian_to_polar",
+    "title": "Convert Cartesian to Polar",
     "path": "./cartesian_to_polar/"
 })
 
-@[exercise]({ 
-    "id": "complex_arithmetic__polar_to_cartesian", 
-    "title": "Convert Polar to Cartesian", 
+@[exercise]({
+    "id": "complex_arithmetic__polar_to_cartesian",
+    "title": "Convert Polar to Cartesian",
     "path": "./polar_to_cartesian/"
 })
 
-@[exercise]({ 
-    "id": "complex_arithmetic__polar_multiplication", 
-    "title": "Multiply Polar Numbers", 
+@[exercise]({
+    "id": "complex_arithmetic__polar_multiplication",
+    "title": "Multiply Polar Numbers",
     "path": "./polar_multiplication/"
 })
 
-
 @[section]({
-    "id": "complex_arithmetic__conclusion", 
-    "title": "Conclusion" 
+    "id": "complex_arithmetic__conclusion",
+    "title": "Conclusion"
 })
 
 Congratulations! You should now know enough complex arithmetic to get started with quantum computing!

@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
         // Continue recursion while there are control qubits.
         if (IsRangeEmpty(rngControl)) {
-            let (abs, arg) = newCoefficients[0]!;
+            let (abs, arg) = (newCoefficients[0].Magnitude, newCoefficients[0].Argument);
             if (AbsD(arg) > tolerance) {
                 Exp([PauliI], -1.0 * arg, [register[idxTarget]]);
             }

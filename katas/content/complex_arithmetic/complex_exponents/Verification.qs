@@ -1,20 +1,20 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;    
-    
+    open Microsoft.Quantum.Random;
+
     function ComplexExponent_Reference(x : Complex) : Complex {
-        let expa = E() ^ x::Real;
-        return Complex(expa * Cos(x::Imag), expa * Sin(x::Imag));
+        let expa = E()^x.Real;
+        return Complex(expa * Cos(x.Imag), expa * Sin(x.Imag));
     }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for _ in 0 .. 24 {
+        for _ in 0..24 {
             let x = DrawRandomComplex();
 
             let expected = ComplexExponent_Reference(x);
             let actual = Kata.ComplexExponent(x);
-        
+
             if not ComplexEqual(expected, actual) {
                 Message("Incorrect");
                 Message($"For x = {ComplexAsString(x)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
