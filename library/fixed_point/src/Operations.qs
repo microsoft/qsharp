@@ -4,8 +4,9 @@
 import Types.FixedPoint;
 import Init.PrepareFxP;
 import Facts.IdenticalPointPosFactFxP, Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
-import Signed.Operations.AddI, Signed.Operations.Invert2sSI, Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
+import Signed.Operations.Invert2sSI, Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
 import Std.Arrays.Zipped;
+import Unstable.Arithmetic.RippleCarryTTKIncByLE;
 
 /// # Summary
 /// Adds a classical constant to a quantum fixed-point number.
@@ -48,7 +49,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
 operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
     IdenticalPointPosFactFxP([fp1, fp2]);
 
-    AddI(fp1::Register, fp2::Register);
+    RippleCarryTTKIncByLE(fp1::Register, fp2::Register);
 }
 
 /// # Summary

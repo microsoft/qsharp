@@ -27,3 +27,5 @@ operation CompareGTSI(xs : Qubit[], ys : Qubit[], result : Qubit) : Unit is Adj 
         CCNOT(tmp, Tail(ys), result);
     }
 }
+
+export CompareGTSI;
