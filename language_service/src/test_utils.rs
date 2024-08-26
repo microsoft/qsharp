@@ -16,11 +16,12 @@ use qsc::{
 use qsc_project::{PackageGraphSources, PackageInfo};
 use rustc_hash::FxHashMap;
 
-pub(crate) fn compile_with_fake_stdlib_and_markers(
+pub(crate) fn compile_with_markers(
     source_with_markers: &str,
+    use_fake_stdlib: bool,
 ) -> (Compilation, Position, Vec<Range>) {
     let (compilation, _, cursor_offset, target_spans) =
-        compile_project_with_fake_stdlib_and_markers(&[("<source>", source_with_markers)]);
+        compile_project_with_markers(&[("<source>", source_with_markers)], use_fake_stdlib);
     (
         compilation,
         cursor_offset,
@@ -30,19 +31,21 @@ pub(crate) fn compile_with_fake_stdlib_and_markers(
 
 pub(crate) fn compile_with_fake_stdlib_and_markers_no_cursor(
     source_with_markers: &str,
+    use_fake_stdlib: bool,
 ) -> (Compilation, Vec<Range>) {
-    let (compilation, target_spans) = compile_project_with_fake_stdlib_and_markers_no_cursor(&[(
-        "<source>",
-        source_with_markers,
-    )]);
+    let (compilation, target_spans) = compile_project_with_markers_no_cursor(
+        &[("<source>", source_with_markers)],
+        use_fake_stdlib,
+    );
     (compilation, target_spans.iter().map(|l| l.range).collect())
 }
 
-pub(crate) fn compile_project_with_fake_stdlib_and_markers(
+pub(crate) fn compile_project_with_markers(
     sources_with_markers: &[(&str, &str)],
+    use_fake_stdlib: bool,
 ) -> (Compilation, String, Position, Vec<Location>) {
     let (compilation, cursor_location, target_spans) =
-        compile_project_with_fake_stdlib_and_markers_cursor_optional(sources_with_markers);
+        compile_project_with_markers_cursor_optional(sources_with_markers, use_fake_stdlib);
 
     let (cursor_uri, cursor_offset) =
         cursor_location.expect("input string should have a cursor marker");
@@ -50,11 +53,12 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
     (compilation, cursor_uri, cursor_offset, target_spans)
 }
 
-pub(crate) fn compile_project_with_fake_stdlib_and_markers_no_cursor(
+pub(crate) fn compile_project_with_markers_no_cursor(
     sources_with_markers: &[(&str, &str)],
+    use_fake_stdlib: bool,
 ) -> (Compilation, Vec<Location>) {
     let (compilation, cursor_location, target_spans) =
-        compile_project_with_fake_stdlib_and_markers_cursor_optional(sources_with_markers);
+        compile_project_with_markers_cursor_optional(sources_with_markers, use_fake_stdlib);
 
     assert!(
         cursor_location.is_none(),
@@ -64,13 +68,18 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers_no_cursor(
     (compilation, target_spans)
 }
 
-fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
+fn compile_project_with_markers_cursor_optional(
     sources_with_markers: &[(&str, &str)],
+    use_fake_stdlib: bool,
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
 
     let source_map = SourceMap::new(sources.clone(), None);
-    let (mut package_store, std_package_id) = compile_fake_stdlib();
+    let (std_package_id, mut package_store) = if use_fake_stdlib {
+        compile_fake_stdlib()
+    } else {
+        qsc::compile::package_store_with_stdlib(qsc::TargetCapabilityFlags::all())
+    };
     let (unit, errors) = compile::compile(
         &package_store,
         &[(std_package_id, None)],
@@ -106,7 +115,7 @@ fn compile_project_with_fake_stdlib_and_markers_cursor_optional(
     )
 }
 
-pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
+pub(crate) fn compile_notebook_with_markers(
     cells_with_markers: &[(&str, &str)],
 ) -> (Compilation, String, Position, Vec<Location>) {
     let (cells, cursor_location, target_spans) = get_sources_and_markers(cells_with_markers);
@@ -172,7 +181,7 @@ where
     }
 }
 
-fn compile_fake_stdlib() -> (PackageStore, PackageId) {
+fn compile_fake_stdlib() -> (PackageId, PackageStore) {
     let mut package_store = PackageStore::new(compile::core());
     let std_source_map = SourceMap::new(
         [(
@@ -217,7 +226,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);
-    (package_store, std_package_id)
+    (std_package_id, package_store)
 }
 
 #[allow(clippy::type_complexity)]
