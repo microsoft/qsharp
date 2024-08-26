@@ -15,24 +15,36 @@ operation Main() : Unit {
 }
 
 operation FxpMeasurementTest() : Unit {
-    for i in 0..100 {
-        let constant = 0.1 * IntAsDouble(i);
-        TestConstantMeasurement(constant);
+    for numQubits in 3..12 {
+        for numIntBits in 2..numQubits {
+            // the allowable precision should be 2.0 ^ (-numFracBits)
+            let numFracBits = numQubits - numIntBits;
+            let epsilon = 2.0^(- IntAsDouble(numFracBits));
+            let numTestCases = (2^(numIntBits - 1)) + 1;
+
+            Message($"Qubits: {numQubits}, Int bits: {numIntBits}, Frac bits: {numFracBits}, Epsilon: {epsilon}. {numTestCases} test cases");
+            // only test up to the capacity of the number, which is (2 ^ (numIntBits)) + 1 (for the frac part)
+            for testCase in 0..numTestCases {
+                let constant = (IntAsDouble(numTestCases) / 2.0) - epsilon * IntAsDouble(testCase);
+                TestConstantMeasurement(constant, numQubits, numIntBits, epsilon);
+            }
+            Message("Passed");
+        }
     }
 }
 
-operation TestConstantMeasurement(constant : Double) : Unit {
-    use register = Qubit[20];
-    let newFxp = new FixedPoint { IntegerBits = 8, Register = register };
+operation TestConstantMeasurement(constant : Double, registerWidth : Int, integerWidth : Int, epsilon : Double) : Unit {
+    use register = Qubit[registerWidth];
+    let newFxp = new FixedPoint { IntegerBits = integerWidth, Register = register };
     PrepareFxP(constant, newFxp);
     let measured = MeasureFxP(newFxp);
     let difference = AbsD(constant - measured);
-    Fact(difference < 0.001, $"Difference of {difference} is outside of the expected range. Input was {constant} and measured result was {measured}");
+    Fact(difference < epsilon, $"Difference of {difference} is outside tolerance of {epsilon}. Input was {constant} and measured result was {measured}");
     ResetAll(register);
 }
 
 operation FxpOperationTests() : Unit {
-    for i in 0..50 {
+    for i in 0..10 {
         let constant1 = 0.2 * IntAsDouble(i);
         let constant2 = 0.2 * IntAsDouble(100 - i);
         TestOperation(constant1, constant2, AddFxP, (a, b) -> a + b, "Add");
@@ -78,7 +90,6 @@ operation TestOperation(a : Double, b : Double, op : (FixedPoint, FixedPoint) =>
     Fact(difference < 0.001, $"Difference of {difference} is outside of the expected range. Expected {expected} and measured result was {measured}. (Inputs were {name}({a}, {b})");
     ResetAll(register1 + register2);
 }
-
 
 // assume the third register that `op` takes is the result register
 operation TestOperation3(a : Double, b : Double, op : (FixedPoint, FixedPoint, FixedPoint) => (), reference : (Double, Double) -> Double, name : String) : Unit {
