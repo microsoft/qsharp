@@ -6,6 +6,20 @@
         var(--jp-layout-color1, inherit)
       );
     }}
+    .qs-stateTable th {{
+      text-align: left;
+      border: none;
+    }}
+    .qs-stateTable tbody {{
+      pointer-events: none;
+    }}
+    .qs-stateTable tbody td {{
+      text-align: left;
+      border: none;
+    }}
+    .qs-stateTable tbody td span {{
+      display: inline-block;
+    }}
     .qs-stateTable tbody tr:nth-child(even) {{
       background-color: var(
         --vscode-list-hoverBackground,
@@ -15,13 +29,13 @@
   </style>
   <thead>
     <tr>
-      <th style="text-align: left;border: none">Basis State<br />(|𝜓₁…𝜓ₙ⟩)</th>
-      <th style="text-align: left;border: none">Amplitude</th>
-      <th style="text-align: left;border: none">Measurement Probability</th>
-      <th style="text-align: left;border: none" colspan="2">Phase</th>
+      <th>Basis State<br />(|𝜓₁…𝜓ₙ⟩)</th>
+      <th>Amplitude</th>
+      <th>Measurement Probability</th>
+      <th colspan="2">Phase</th>
     </tr>
   </thead>
-  <tbody style="pointer-events: none;">
+  <tbody>
     {}
   </tbody>
 </table>
