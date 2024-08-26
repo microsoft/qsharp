@@ -6,7 +6,7 @@
       "github": {
         "owner": "microsoft",
         "repo": "qsharp",
-        "ref": "d5f0fbcf1165a17b4563a05d1cbf4a2a3e822384",
+        "ref": "f3b331ff",
         "path": "library/signed"
       }
     },
@@ -14,7 +14,7 @@
       "github": {
         "owner": "Microsoft",
         "repo": "qsharp",
-        "ref": "d5f0fbcf1165a17b4563a05d1cbf4a2a3e822384",
+        "ref": "d5f0fbcf",
         "path": "library/unstable"
       }
     }
