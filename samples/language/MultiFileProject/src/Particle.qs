@@ -1,9 +1,9 @@
-namespace Particle {
-    newtype Particle = (x : Int, y : Int, z : Int);
+struct Particle { X : Int, Y : Int, Z : Int }
 
-    function addParticles(a : Particle, b : Particle) : Particle {
-        let (x1, y1, z1) = a!;
-        let (x2, y2, z2) = b!;
-        return Particle(x1 + x2, y1 + y2, z1 + z2);
-    }
+function addParticles(a : Particle, b : Particle) : Particle {
+    return new Particle {
+        X = a.X + b.X,
+        Y = a.Y + b.Y,
+        Z = a.Z + b.Z
+    };
 }

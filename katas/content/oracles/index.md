@@ -231,7 +231,6 @@ $$\ket{\xi} = \Big[\frac{1}{\sqrt{2}}\big(\ket{110} - \ket{111}\big)\Big] \otime
 
 You can see that these two equations are identical, except for the $-1$ phase that appeared on the $\ket{111}$ basis state - our marked state.  This is a specific example of the phase kickback effect, as the phase from $\ket{-}$ has been *kicked back* into $\ket{x}$.
 
-
 @[exercise]({
     "id": "oracles__marking_oracle_as_phase",
     "title": "Apply the Marking Oracle as a Phase Oracle",
@@ -322,7 +321,7 @@ Here you'll compare the reference implementation of `Meeting_Oracle` to the clas
 
 Congratulations! In this kata you've learned to build quantum oracles. Here are a few key concepts to keep in mind:
 
-- A quantum oracle is an "opaque box" operation that implements a classical computation. 
+- A quantum oracle is an "opaque box" operation that implements a classical computation.
 - Quantum oracles are used to convert classical problems into inputs to quantum algorithms, such as Grover's search algorithm.
 - Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$, it multiplies the phase of the basis state $\ket{x}$ by $-1$.
 - Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, the oracle doesn't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$, it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.

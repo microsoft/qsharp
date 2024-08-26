@@ -24,9 +24,7 @@ namespace Microsoft.Quantum.Core {
     /// ```qsharp
     /// Message($"{ RangeStart(7..-1..3) }"); // Prints 7
     /// ```
-    function RangeStart(r : Range) : Int {
-        r::Start
-    }
+    function RangeStart(r : Range) : Int { r.Start }
 
     /// # Summary
     /// Returns the defined end value of the given range,
@@ -46,9 +44,7 @@ namespace Microsoft.Quantum.Core {
     ///
     /// Note that the defined end value of a range can differ from the last element in the sequence specified by the range;
     /// for example, in a range 0 .. 2 .. 5 the last element is 4 but the end value is 5.
-    function RangeEnd(r : Range) : Int {
-        r::End
-    }
+    function RangeEnd(r : Range) : Int { r.End }
 
 
     /// # Summary
@@ -65,9 +61,7 @@ namespace Microsoft.Quantum.Core {
     /// A range expression's first element is `start`,
     /// its second element is `start+step`, third element is `start+step+step`, etc.,
     /// until `end` is passed.
-    function RangeStep(r : Range) : Int {
-        r::Step
-    }
+    function RangeStep(r : Range) : Int { r.Step }
 
     /// # Summary
     /// Returns a new range which is the reverse of the input range.
@@ -83,8 +77,8 @@ namespace Microsoft.Quantum.Core {
     /// Note that the reverse of a range is not simply `end`..`-step`..`start`, because
     /// the actual last element of a range may not be the same as `end`.
     function RangeReverse(r : Range) : Range {
-        let start = r::Start + ((r::End - r::Start) / r::Step) * r::Step;
-        start..-r::Step..r::Start
+        let start = r.Start + ((r.End - r.Start) / r.Step) * r.Step;
+        start..-r.Step..r.Start
     }
 
     /// # Summary
@@ -107,5 +101,10 @@ namespace Microsoft.Quantum.Core {
         return true;
     }
 
-    export RangeStart, RangeEnd, RangeStep, RangeReverse, IsRangeEmpty;
+    export
+        RangeStart,
+        RangeEnd,
+        RangeStep,
+        RangeReverse,
+        IsRangeEmpty;
 }
