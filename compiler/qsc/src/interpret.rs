@@ -20,6 +20,7 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
@@ -294,6 +295,28 @@ impl Interpreter {
     pub fn set_classical_seed(&mut self, seed: Option<u64>) {
         self.classical_seed = seed;
     }
+
+    pub fn check_source_lints(&self) -> Vec<Lint> {
+        if let Some(compile_unit) = self
+            .compiler
+            .package_store()
+            .get(self.compiler.source_package_id())
+        {
+            qsc_linter::run_lints(
+                self.compiler.package_store(),
+                compile_unit,
+                // see https://github.com/microsoft/qsharp/pull/1627 for context
+                // on why we override this config
+                Some(&[qsc_linter::LintConfig {
+                    kind: LintKind::Hir(HirLint::NeedlessOperation),
+                    level: LintLevel::Warn,
+                }]),
+            )
+        } else {
+            Vec::new()
+        }
+    }
+
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
