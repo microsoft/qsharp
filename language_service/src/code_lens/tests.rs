@@ -14,7 +14,7 @@ use expect_test::{expect, Expect};
 
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, expected_code_lens_ranges) =
-        compile_with_fake_stdlib_and_markers_no_cursor(source_with_markers);
+        compile_with_fake_stdlib_and_markers_no_cursor(source_with_markers, true);
     let mut actual_code_lenses = get_code_lenses(&compilation, "<source>", Encoding::Utf8);
 
     for expected_range in &expected_code_lens_ranges {

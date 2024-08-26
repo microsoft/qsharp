@@ -1,4 +1,4 @@
-This is essentially bookwork, because there is only one gate that performs this state change (and the task title already gave it away!) The Toffoli gate is:
+This is essentially bookwork, because there's only one gate that performs this state change (and the task title already gave it away!) The Toffoli gate is:
 $$
  \begin{bmatrix}
  1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
@@ -11,13 +11,13 @@ $$
  0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
  \end{bmatrix}
 $$
-and our initial state is:
+and the initial state is:
 $$
 \begin{bmatrix} \alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \zeta \\ \eta \\ \theta
 \end{bmatrix}
 $$
 
-So we have:
+So you have:
 
 $$
  \begin{bmatrix}

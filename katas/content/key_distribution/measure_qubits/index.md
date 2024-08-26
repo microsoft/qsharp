@@ -8,4 +8,4 @@
     * `true`: use the basis $\ket{+}$ / $\ket{-}$ (Hadamard).
 
 **Goal:**  Measure each qubit in the corresponding basis and return an array of results as Boolean values, encoding measurement result `Zero` as `false` and `One` as `true`. 
-The state of the qubits at the end of the operation does not matter.
+The state of the qubits at the end of the operation doesn't matter.
