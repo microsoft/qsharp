@@ -1,10 +1,6 @@
 {
     "lints": [
         {
-            "lint": "deprecatedFunctionConstructor",
-            "level": "error"
-        },
-        {
             "lint": "deprecatedWithOperator",
             "level": "error"
         },
