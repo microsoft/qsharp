@@ -59,8 +59,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   });
 
   eventTarget.addEventListener("Result", (evt) => {
-    const resultJson = JSON.stringify(evt.detail.value, null, 2);
-    out(`Result: ${resultJson}`);
+    out(`\n${evt.detail.value}`);
   });
   return eventTarget;
 }
