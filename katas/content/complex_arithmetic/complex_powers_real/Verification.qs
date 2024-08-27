@@ -1,7 +1,6 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Convert;    
+    open Microsoft.Quantum.Random;    
     
     function ComplexExpReal_Reference(r : Double, x : Complex) : Complex {
         if AbsD(r) < 1e-9 {
@@ -16,16 +15,14 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         for ind in 0 .. 24 {
             let x = DrawRandomComplex();
-            let r = ind == 0 ? 0.0 | DrawRandomDouble(0., 10.);
+            let r = ind == 0 ? 0.0 | DrawRandomDouble(0., 10.); 
 
             let expected = ComplexExpReal_Reference(r, x); 
             let actual = Kata.ComplexExpReal(r, x);        
         
-            if not ComplexEqual(expected, actual) {            
-                // In case of an error, this value defines the precision with which complex numbers should be displayed
-                let precision = 6;
+            if not ComplexEqual(expected, actual) {
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x, precision)} and r = {DoubleAsStringWithPrecision(r,6)} expected return {ComplexAsString(expected, precision)}, actual return {ComplexAsString(actual, precision)}.");
+                Message($"For x = {ComplexAsString(x)} and r = {r} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
                 return false;
             }                
         }            
