@@ -13,7 +13,7 @@ namespace Kata.Verification {
             if  AbsD(expected - actual) > 1e-6 {
                 let precision = 3;
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x)} expected return {DoubleAsStringWithPrecision(expected,precision)}, actual return {DoubleAsStringWithPrecision(actual,precision)}.");
+                Message($"For x = {ComplexAsString(x)} expected return {DoubleAsStringWithPrecision(expected, precision)}, actual return {DoubleAsStringWithPrecision(actual, precision)}.");
                 return false;
             }
         }

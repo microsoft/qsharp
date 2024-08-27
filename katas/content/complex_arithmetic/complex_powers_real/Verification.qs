@@ -24,7 +24,7 @@ namespace Kata.Verification {
             if not ComplexEqual(expected, actual) {
                 let precision = 3;                
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x)} and r = {DoubleAsStringWithPrecision(r,precision)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
+                Message($"For x = {ComplexAsString(x)} and r = {DoubleAsStringWithPrecision(r, precision)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
                 return false;
             }                
         }            
