@@ -39,7 +39,7 @@ namespace Kata.Verification {
 
         let iterations = 1000;
         mutable wins = 0;
-        for _ in 0 .. iterations - 1 {
+        for _ in 1 .. iterations {
             for bits in inputs {
                 CreateEntangledTriple_Reference(qs);
                 let abc = PlayQuantumGHZ_Reference(strategies, bits, qs);
