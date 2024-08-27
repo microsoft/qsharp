@@ -33,7 +33,7 @@ export function createWorker<
   if (isMainThread)
     throw "Worker script should be loaded in a Worker thread only";
 
-  const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+  const port = parentPort!;
 
   const postMessage = port.postMessage.bind(port);
 

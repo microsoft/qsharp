@@ -1,34 +1,24 @@
-/// # Sample
-/// Type Declarations
-///
-/// # Description
-/// User-defined types, or UDTs as they are commonly called, are supported
-/// in Q#. They are immutable but support a copy-and-update construct.
-namespace MyQuantumApp {
-    @EntryPoint()
-    function Main() : Unit {
-        // UDTs are defined with the `newtype` keyword.
-        newtype Point3d = (X : Double, Y : Double, Z : Double);
+// # Sample
+// Type Declarations
+//
+// # Description
+// User-defined struct types are supported in Q#.
+// They are immutable but support a copy-constructor syntax.
 
-        // The items within a UDT can be either named or unnamed.
-        newtype DoubleInt = (Double, ItemName : Int);
+function Main() : Unit {
+    // Structs are defined with the `struct` keyword.
+    struct Point3d { X : Double, Y : Double, Z : Double }
 
-        // UDTs can also be nested.
-        newtype Nested = (Double, (ItemName : Int, String));
+    // Structs can be instantiated with the `new` keyword followed
+    // by the name of the struct type being initialized.
+    let point = new Point3d { X = 1.0, Y = 2.0, Z = 3.0 };
 
-        let point = Point3d(1.0, 2.0, 3.0);
+    // Structs can be initialized by copying from another struct,
+    // with modifications to specific fields specified.
+    let point2 = new Point3d { ...point, Z = 4.0 };
 
-        // Items within a UDT can be accessed either by their name,
-        // or by deconstruction.
-        // The below line accesses the field `x` on `point` by
-        // name, using the item access operator `::`:
-        let x : Double = point::X;
-
-        // The below line accesses the field `x` via deconstruction:
-        let (x, _, _) = point!;
-
-        // The below line uses the unwrap operator `!` to access the entire
-        // tuple. The type of `unwrappedTuple` is `(Double, Double, Double)`.
-        let unwrappedTuple = point!;
-    }
+    // Fields within a struct can be accessed by their name.
+    // The below line accesses the field `x` on `point` by
+    // name, using the item access operator `.`:
+    let x : Double = point.X;
 }

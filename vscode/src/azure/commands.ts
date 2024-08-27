@@ -174,7 +174,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     const savedWorkspaces: WorkspaceConnection[] = [];
     const workspaces = workspaceTreeProvider
       .getWorkspaceIds()
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .map((id) => workspaceTreeProvider.getWorkspace(id)!);
 
     for (const elem of workspaces) {

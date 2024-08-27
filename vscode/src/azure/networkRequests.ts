@@ -144,7 +144,7 @@ async function getAzureQuantumError(response: Response): Promise<AzureError> {
     if (json && json.error && json.error.code && json.error.message) {
       error = json.error;
     }
-  } catch (_) {
+  } catch {
     /* empty */
   }
 
