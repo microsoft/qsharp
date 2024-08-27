@@ -10,10 +10,8 @@ namespace Kata.Verification {
         let actual = Kata.InnerProduct();
         let expected = InnerProduct_Reference();
         if AbsComplex(MinusC(actual, expected)) > 1e-9 {
-            // In case of an error, this value defines the precision with which complex numbers should be displayed
-            let precision = 2;
             Message("Incorrect");
-            Message($"Expected {ComplexAsString(expected, precision)}, actual {ComplexAsString(actual, precision)}");
+            Message($"Expected {ComplexAsString(expected)}, actual {ComplexAsString(actual)}");
             return false;
         }
         

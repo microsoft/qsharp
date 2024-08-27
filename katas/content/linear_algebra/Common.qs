@@ -2,7 +2,8 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
 
-    function ComplexAsString(x : Complex, precision: Int) : String {        
+    function ComplexAsString(x : Complex) : String {
+        let precision = 3;        
         if x::Imag < 0.0 {
             $"{DoubleAsStringWithPrecision(x::Real,precision)} - {DoubleAsStringWithPrecision(AbsD(x::Imag),precision)}i"
         } else {
@@ -10,7 +11,8 @@ namespace Kata.Verification {
         }
     }
 
-    function ArraysEqualD(actual : Double[][], expected : Double[][], precision: Int) : Bool {
+    function ArraysEqualD(actual : Double[][], expected : Double[][]) : Bool {
+        let precision = 3;
         if Length(actual) != Length(expected) {
             Message("Incorrect");
             Message($"Expected number of rows {Length(expected)}, actual {Length(actual)}");
@@ -36,7 +38,8 @@ namespace Kata.Verification {
         return true;
     }
 
-    function ArraysEqualC(actual : Complex[][], expected : Complex[][], precision: Int) : Bool {
+    function ArraysEqualC(actual : Complex[][], expected : Complex[][]) : Bool {
+        let precision = 3;
         if Length(actual) != Length(expected) {
             Message("Incorrect");
             Message($"Expected number of rows {Length(expected)}, actual {Length(actual)}");
@@ -52,7 +55,7 @@ namespace Kata.Verification {
             for j in 0 .. Length(actual[i]) - 1 {
                 if AbsComplex(MinusC(actual[i][j], expected[i][j])) > 1e-9 {
                     Message("Incorrect");
-                    Message($"For element in row {i}, column {j}, expected {ComplexAsString(expected[i][j],precision)}, actual {ComplexAsString(actual[i][j],precision)}");
+                    Message($"For element in row {i}, column {j}, expected {ComplexAsString(expected[i][j])}, actual {ComplexAsString(actual[i][j])}");
                     return false;
                 }
             }
