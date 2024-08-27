@@ -364,15 +364,15 @@ export function Editor(props: {
     try {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
-      // Get current URL without query parameters to use as the base URL
-      const newUrl = `${
-        window.location.href.split("?")[0]
-      }?code=${escapedCode}&profile=${profile}`;
+      // Update or add the current URL parameters 'code' and 'profile'
+      const newURL = new URL(window.location.href);
+      newURL.searchParams.set("code", escapedCode);
+      newURL.searchParams.set("profile", profile);
 
       // Copy link to clipboard and update url without reloading the page
-      navigator.clipboard.writeText(newUrl);
+      navigator.clipboard.writeText(newURL.toString());
 
-      window.history.pushState({}, "", newUrl);
+      window.history.pushState({}, "", newURL.toString());
       messageText = "Link was copied to the clipboard";
     } finally {
       const popup = document.getElementById("popup") as HTMLDivElement;
