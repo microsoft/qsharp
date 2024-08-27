@@ -17,7 +17,6 @@ namespace Kata.Verification {
             let reference = register => PrepareRotatedState(alpha, beta, register[0]);
             let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(solution, reference, 1);
             if not isCorrect {
-                // In case of an error, this value defines the precision with which complex numbers should be displayed
                 let precision = 3;
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}, beta = {DoubleAsStringWithPrecision(beta, precision)}.");

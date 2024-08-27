@@ -14,7 +14,6 @@ namespace Kata.Verification {
             let reference = register => PhaseChange(alpha, register[0]);
             let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
             if not isCorrect {
-                // In case of an error, this value defines the precision with which complex numbers should be displayed
                 let precision = 3;
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}.");
