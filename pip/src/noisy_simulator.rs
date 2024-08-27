@@ -192,6 +192,7 @@ pub(crate) struct DensityMatrixSimulator(noisy_simulator::DensityMatrixSimulator
 #[pymethods]
 impl DensityMatrixSimulator {
     #[new]
+    #[pyo3(signature=(number_of_qubits, seed=None))]
     pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
         if let Some(seed) = seed {
             Self(noisy_simulator::DensityMatrixSimulator::new_with_seed(
@@ -325,6 +326,7 @@ pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 #[pymethods]
 impl StateVectorSimulator {
     #[new]
+    #[pyo3(signature=(number_of_qubits, seed=None))]
     pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
         if let Some(seed) = seed {
             Self(noisy_simulator::StateVectorSimulator::new_with_seed(

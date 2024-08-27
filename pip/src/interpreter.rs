@@ -47,8 +47,8 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy)]
-#[pyclass(unsendable)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -83,6 +83,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
+    #[pyo3(signature = (target, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -152,6 +153,7 @@ impl Interpreter {
     /// :returns value: The value returned by the last statement in the input.
     ///
     /// :raises QSharpError: If there is an error interpreting the input.
+    #[pyo3(signature=(input, callback=None))]
     fn interpret(
         &mut self,
         py: Python,
@@ -166,11 +168,13 @@ impl Interpreter {
     }
 
     /// Sets the quantum seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_quantum_seed(seed);
     }
 
     /// Sets the classical seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_classical_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_classical_seed(seed);
     }
@@ -191,6 +195,7 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
+    #[pyo3(signature=(entry_expr=None, callback=None))]
     fn run(
         &mut self,
         py: Python,
@@ -224,6 +229,7 @@ impl Interpreter {
     /// qubits or arrays of qubits as parameters.
     ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
+    #[pyo3(signature=(entry_expr=None, operation=None))]
     fn circuit(
         &mut self,
         py: Python,
@@ -409,49 +415,16 @@ impl StateDumpData {
     }
 }
 
-#[pyclass(unsendable)]
 #[derive(PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
     One,
 }
 
-#[pymethods]
-impl Result {
-    fn __repr__(&self) -> String {
-        match self {
-            Result::Zero => "Zero".to_owned(),
-            Result::One => "One".to_owned(),
-        }
-    }
-
-    fn __str__(&self) -> String {
-        self.__repr__()
-    }
-
-    fn __hash__(&self) -> u32 {
-        match self {
-            Result::Zero => 0,
-            Result::One => 1,
-        }
-    }
-
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
-        let this = i32::from(*self == Result::One);
-        let other = i32::from(*other == Result::One);
-        match op {
-            CompareOp::Lt => this < other,
-            CompareOp::Le => this <= other,
-            CompareOp::Eq => this == other,
-            CompareOp::Ne => this != other,
-            CompareOp::Gt => this > other,
-            CompareOp::Ge => this >= other,
-        }
-    }
-}
-
-#[pyclass(unsendable)]
+#[derive(PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 /// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
