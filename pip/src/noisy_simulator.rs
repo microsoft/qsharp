@@ -8,8 +8,14 @@ use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
-pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add("NoisySimulatorError", py.get_type::<NoisySimulatorError>())?;
+pub(crate) fn register_noisy_simulator_submodule<'a>(
+    py: Python<'a>,
+    m: &Bound<'a, PyModule>,
+) -> PyResult<()> {
+    m.add(
+        "NoisySimulatorError",
+        py.get_type_bound::<NoisySimulatorError>(),
+    )?;
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;

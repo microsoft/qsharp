@@ -32,7 +32,7 @@ use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
 #[pymodule]
-fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -41,7 +41,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
-    m.add("QSharpError", py.get_type::<QSharpError>())?;
+    m.add("QSharpError", py.get_type_bound::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
     Ok(())
 }
@@ -364,28 +364,23 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
 #[pymethods]
 impl StateDumpData {
-    fn get_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        Ok(PyDict::from_sequence(
+    fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
+        PyDict::from_sequence_bound(&PyList::new_bound(
             py,
-            PyList::new(
-                py,
-                self.0
-                     .0
-                    .iter()
-                    .map(|(k, v)| {
-                        PyTuple::new(
-                            py,
-                            &[
-                                k.clone().into_py(py),
-                                PyComplex::from_doubles(py, v.re, v.im).into(),
-                            ],
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .into_py(py),
-        )?
-        .into_py(py))
+            self.0
+                 .0
+                .iter()
+                .map(|(k, v)| {
+                    PyTuple::new_bound(
+                        py,
+                        &[
+                            k.clone().into_py(py),
+                            PyComplex::from_doubles_bound(py, v.re, v.im).into(),
+                        ],
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ))
     }
 
     #[getter]
@@ -493,12 +488,13 @@ impl IntoPy<PyObject> for ValueWrapper {
                     // Special case Value::unit as None
                     py.None()
                 } else {
-                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
                         .into_py(py)
                 }
             }
             Value::Array(val) => {
-                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)
+                PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    .into_py(py)
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
@@ -521,7 +517,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -537,7 +533,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
