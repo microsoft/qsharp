@@ -13,7 +13,6 @@ use pyo3::{
     create_exception,
     exceptions::PyException,
     prelude::*,
-    pyclass::CompareOp,
     types::{PyComplex, PyDict, PyList, PyTuple},
 };
 use qsc::{
