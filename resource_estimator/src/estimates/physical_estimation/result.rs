@@ -3,15 +3,21 @@
 
 use std::rc::Rc;
 
+use serde::Serialize;
+
 use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
     PhysicalResourceEstimation,
 };
 
 /// Resource estimation result
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
+    #[serde(bound = "E::Parameter: Serialize")]
     logical_patch: LogicalPatch<E>,
     num_cycles: u64,
+    #[serde(bound = "F: Serialize")]
     factory_parts: Vec<Option<FactoryPart<F>>>,
     required_logical_error_rate: f64,
     physical_qubits_for_factories: u64,
@@ -19,6 +25,7 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     physical_qubits: u64,
     runtime: u64,
     rqops: u64,
+    #[serde(skip)]
     layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
 }
@@ -150,6 +157,8 @@ impl<
 }
 
 /// Results for a factory part in the overall quantum algorithm
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", bound = "F: Serialize")]
 pub struct FactoryPart<F> {
     /// The factory used in this part
     factory: F,
