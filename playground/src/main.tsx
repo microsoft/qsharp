@@ -194,7 +194,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         </>
       ) : activeKata ? (
         <Katas
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
           compiler={compiler}
           compiler_worker_factory={compiler_worker_factory}
@@ -392,7 +391,6 @@ function registerMonacoLanguageServiceProviders(
       );
       if (!sigHelpLs) return null;
       return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         dispose: () => {},
         value: {
           activeParameter: sigHelpLs.activeParameter,
