@@ -94,7 +94,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         let manifestObj: any = {};
         try {
           manifestObj = JSON.parse(qsharpJsonDoc.getText());
-        } catch (err: any) {
+        } catch {
           await vscode.window.showErrorMessage(
             `Unable to parse the contents of ${qsharpJsonUri.path}`,
           );
@@ -114,7 +114,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
             );
             return;
           }
-        } catch (err) {
+        } catch {
           await vscode.window.showErrorMessage(
             "The ./src directory does not exist. Create the directory and add .qs files to it",
           );
@@ -257,7 +257,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         let manifestObj: any = {};
         try {
           manifestObj = JSON.parse(qsharpJsonDoc.getText());
-        } catch (err: any) {
+        } catch {
           await vscode.window.showErrorMessage(
             `Unable to parse the contents of ${qsharpJsonUri.path}`,
           );
