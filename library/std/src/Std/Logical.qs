@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Logical {
-
     /// # Summary
     /// Returns the boolean exclusive disjunction (eXclusive OR, XOR)
     /// of two input boolean values.
@@ -29,4 +27,3 @@ namespace Microsoft.Quantum.Logical {
         first != second
     }
     export Xor;
-}

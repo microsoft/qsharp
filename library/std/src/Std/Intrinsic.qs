@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Intrinsic {
+
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open QIR.Intrinsic;
+    import Internal.*;
 
     /// # Summary
     /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
@@ -1154,5 +1155,5 @@ namespace Microsoft.Quantum.Intrinsic {
         body intrinsic;
     }
 
-    export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
-}
+    export 
+    AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;

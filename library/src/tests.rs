@@ -16,6 +16,8 @@ mod measurement;
 mod state_preparation;
 mod table_lookup;
 
+use std::panic;
+
 use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter, Result, Value},
@@ -60,15 +62,22 @@ pub fn test_expression_with_lib_and_profile_and_sim(
 
     let (std_id, store) = qsc::compile::package_store_with_stdlib(profile.into());
 
-    let mut interpreter = Interpreter::new(
+    let mut interpreter = match Interpreter::new(
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
         store,
         &[(std_id, None)],
-    )
-    .expect("test should compile");
+    ) {
+        Ok(o) => o,
+        Err(errs) => {
+            for err in errs {
+                println!("{:?}", miette::Report::new(err));
+            }
+            panic!("test should compile")
+        }
+    };
 
     let result = interpreter
         .eval_entry_with_sim(sim, &mut out)

@@ -101,5 +101,6 @@ namespace QIR.Intrinsic {
         body intrinsic;
     }
 
-    export __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body, __quantum__qis__cz__body, __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__h__body, __quantum__qis__s__body, __quantum__qis__s__adj, __quantum__qis__t__body, __quantum__qis__t__adj, __quantum__qis__x__body, __quantum__qis__y__body, __quantum__qis__z__body, __quantum__qis__swap__body, __quantum__qis__m__body, __quantum__qis__reset__body, __quantum__qis__mresetz__body;
+    export
+         __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body, __quantum__qis__cz__body, __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__h__body, __quantum__qis__s__body, __quantum__qis__s__adj, __quantum__qis__t__body, __quantum__qis__t__adj, __quantum__qis__x__body, __quantum__qis__y__body, __quantum__qis__z__body, __quantum__qis__swap__body, __quantum__qis__m__body, __quantum__qis__reset__body, __quantum__qis__mresetz__body;
 }

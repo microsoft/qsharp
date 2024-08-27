@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Intrinsic {
+
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
     open QIR.Intrinsic;
 
-    internal operation CH(control : Qubit, target : Qubit) : Unit is Adj {
+    operation CH(control : Qubit, target : Qubit) : Unit is Adj {
         within {
             S(target);
             H(target);
@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CCH(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    operation CCH(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             S(target);
             H(target);
@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation ApplyGlobalPhase(theta : Double) : Unit is Ctl + Adj {
+    operation ApplyGlobalPhase(theta : Double) : Unit is Ctl + Adj {
         body ... {
             ControllableGlobalPhase(theta);
         }
@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.Intrinsic {
     // introduces in simulation using additional calls to the simulation-only global phase intrinsic.
     // We use a separate operation for this controlled case to avoid recursive calls to the same operation
     // that can interfere with runtime capabilities analysis.
-    internal operation ControllableGlobalPhase(theta : Double) : Unit is Ctl {
+    operation ControllableGlobalPhase(theta : Double) : Unit is Ctl {
         body ... {
             GlobalPhase([], theta);
         }
@@ -63,18 +63,18 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     // Global phase intrinsic, which only has affect in simulation and is a no-op otherwise.
-    internal operation GlobalPhase(ctls : Qubit[], theta : Double) : Unit {
+    operation GlobalPhase(ctls : Qubit[], theta : Double) : Unit {
         body intrinsic;
     }
 
-    internal operation CRz(control : Qubit, theta : Double, target : Qubit) : Unit is Adj {
+    operation CRz(control : Qubit, theta : Double, target : Qubit) : Unit is Adj {
         Rz(theta / 2.0, target);
         CNOT(control, target);
         Rz(-theta / 2.0, target);
         CNOT(control, target);
     }
 
-    internal operation CS(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
+    operation CS(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
         T(control);
         T(target);
         CNOT(control, target);
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.Intrinsic {
         CNOT(control, target);
     }
 
-    internal operation CT(control : Qubit, target : Qubit) : Unit is Adj {
+    operation CT(control : Qubit, target : Qubit) : Unit is Adj {
         let angle = PI() / 8.0;
         Rz(angle, control);
         Rz(angle, target);
@@ -91,7 +91,7 @@ namespace Microsoft.Quantum.Intrinsic {
         CNOT(control, target);
     }
 
-    internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
+    operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
         if from == to {} elif (from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ) {
             H(qubit);
         } elif from == PauliZ and to == PauliY {
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
+    operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
         if basis == PauliX {
             __quantum__qis__cx__body(aux, qubit);
         } elif basis == PauliZ {
@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// For example, if the controls list is 6 qubits, the auxiliary list must be 5 qubits, and the
     /// state from the 6 control qubits will be collected into the last qubit of the auxiliary array.
-    internal operation CollectControls(ctls : Qubit[], aux : Qubit[], adjustment : Int) : Unit is Adj {
+    operation CollectControls(ctls : Qubit[], aux : Qubit[], adjustment : Int) : Unit is Adj {
         // First collect the controls into the first part of the auxiliary list.
         for i in 0..2..(Length(ctls) - 2) {
             AND(ctls[i], ctls[i + 1], aux[i / 2]);
@@ -144,13 +144,13 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// When collecting controls, if there is an uneven number of original control qubits then the
     /// last control and the second to last auxiliary will be collected into the last auxiliary.
-    internal operation AdjustForSingleControl(ctls : Qubit[], aux : Qubit[]) : Unit is Adj {
+    operation AdjustForSingleControl(ctls : Qubit[], aux : Qubit[]) : Unit is Adj {
         if Length(ctls) % 2 != 0 {
             AND(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], aux[Length(ctls) - 2]);
         }
     }
 
-    internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // https://arxiv.org/pdf/1210.0974.pdf#page=2
         H(target);
         CNOT(target, control1);
@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.Intrinsic {
         H(target);
     }
 
-    internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             H(target);
         } apply {
@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             MapPauli(target, PauliX, PauliY);
         } apply {
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRxx(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    operation CRxx(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         } apply {
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRyy(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    operation CRyy(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         } apply {
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRzz(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    operation CRzz(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         } apply {
@@ -205,7 +205,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal function IndicesOfNonIdentity(paulies : Pauli[]) : Int[] {
+    function IndicesOfNonIdentity(paulies : Pauli[]) : Int[] {
         mutable indices = [];
         for i in 0..Length(paulies) - 1 {
             if (paulies[i] != PauliI) {
@@ -215,21 +215,21 @@ namespace Microsoft.Quantum.Intrinsic {
         indices
     }
 
-    internal function RemovePauliI(paulis : Pauli[], qubits : Qubit[]) : (Pauli[], Qubit[]) {
+    function RemovePauliI(paulis : Pauli[], qubits : Qubit[]) : (Pauli[], Qubit[]) {
         let indices = IndicesOfNonIdentity(paulis);
         let newPaulis = Subarray(indices, paulis);
         let newQubits = Subarray(indices, qubits);
         return (newPaulis, newQubits);
     }
 
-    internal operation SpreadZ(from : Qubit, to : Qubit[]) : Unit is Adj {
+    operation SpreadZ(from : Qubit, to : Qubit[]) : Unit is Adj {
         let targets = GetSpread(from, to);
         for (ctl, tgt) in targets {
             CNOT(ctl, tgt);
         }
     }
 
-    internal function GetSpread(from : Qubit, to : Qubit[]) : (Qubit, Qubit)[] {
+    function GetSpread(from : Qubit, to : Qubit[]) : (Qubit, Qubit)[] {
         mutable queue = [(from, to)];
         mutable targets = [];
         while Length(queue) > 0 {
@@ -247,4 +247,3 @@ namespace Microsoft.Quantum.Intrinsic {
 
         targets
     }
-}

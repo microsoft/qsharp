@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Canon {
+
     open QIR.Intrinsic;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
@@ -586,4 +586,3 @@ namespace Microsoft.Quantum.Canon {
 
     export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
 
-}

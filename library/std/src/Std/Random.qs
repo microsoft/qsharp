@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Random {
+
 
     /// # Summary
     /// Draws a random integer from a uniform distribution
@@ -74,4 +74,3 @@ namespace Microsoft.Quantum.Random {
     }
 
     export DrawRandomInt, DrawRandomDouble, DrawRandomBool;
-}

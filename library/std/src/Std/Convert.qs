@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Convert {
+
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
@@ -285,4 +285,3 @@ namespace Microsoft.Quantum.Convert {
     }
 
     export IntAsDouble, IntAsBigInt, ResultAsBool, BoolAsResult, BoolArrayAsInt, IntAsBoolArray, BoolArrayAsBigInt, BigIntAsBoolArray, ResultArrayAsInt, ResultArrayAsBoolArray, BoolArrayAsResultArray, ComplexAsComplexPolar, ComplexPolarAsComplex, DoubleAsStringWithPrecision;
-}

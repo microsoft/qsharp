@@ -13,7 +13,7 @@ indoc = { workspace = true }
 num-bigint = { workspace = true }
 expect-test = { workspace = true }
 qsc = { path = "../compiler/qsc" }
-
+miette = { workspace = true, features = ["fancy-no-syscall"]}
 [lints]
 workspace = true
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Core {
+namespace Std.Core {
     /// # Summary
     /// Returns the defined start value of the given range.
     ///
