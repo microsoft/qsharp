@@ -422,6 +422,27 @@ pub(crate) enum Result {
     One,
 }
 
+#[pymethods]
+impl Result {
+    fn __repr__(&self) -> String {
+        match self {
+            Result::Zero => "Zero".to_owned(),
+            Result::One => "One".to_owned(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn __hash__(&self) -> u32 {
+        match self {
+            Result::Zero => 0,
+            Result::One => 1,
+        }
+    }
+}
+
 #[derive(PartialEq)]
 #[pyclass(unsendable, eq, eq_int)]
 /// A Q# Pauli operator.
