@@ -20,9 +20,9 @@ namespace Kata.Verification {
             let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(solution, reference, 1);
             if not isCorrect {
                 // In case of an error, this value defines the precision with which complex numbers should be displayed
-                let precision = 6;
+                let precision = 3;
                 Message("Incorrect.");
-                Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha,precision)}, beta = {DoubleAsStringWithPrecision(beta,precision)}, theta = {DoubleAsStringWithPrecision(theta,precision)}.");
+                Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}, beta = {DoubleAsStringWithPrecision(beta, precision)}, theta = {DoubleAsStringWithPrecision(theta, precision)}.");
                 Message("Hint: examine the state prepared by your solution and compare it with the state it " +
                     "is expected to prepare.");
                 ShowQuantumStateComparison(1, qs => (), solution, reference);
