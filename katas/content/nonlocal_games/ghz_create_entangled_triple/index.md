@@ -2,7 +2,7 @@ In the quantum version of the game, the players still can not communicate during
 qubits from an entangled triple before the start of the game.
 
 **Input:**
-- An array of three qubits in the $\ket{000}$ state.
+An array of three qubits in the $\ket{000}$ state.
 
 **Goal:**
 - Create the entangled state $\ket{\Phi} = \frac{1}{2} \big(\ket{000} - \ket{011} - \ket{101} - \ket{110} \big)$ on these qubits.
