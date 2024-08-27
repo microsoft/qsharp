@@ -50,7 +50,7 @@ namespace Kata.Verification {
             }
         }
         if wins < iterations*Length(inputs) {
-            Message($"Player's quantum strategies get {wins} wins out of {iterations*Length(inputs)} possible inputs, which is not optimal");
+            Message($"Players' quantum strategies get {wins} wins out of {iterations*Length(inputs)} runs, which is not optimal");
             return false;
         }
         Message("Correct!");
