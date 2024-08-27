@@ -57,7 +57,7 @@ async function findManifestDocument(
         qsharpJsonExists =
           (await vscode.workspace.fs.stat(potentialManifestUri)).type ===
           vscode.FileType.File;
-      } catch (err) {
+      } catch {
         // qsharp.json doesn't exist or is inaccessible, move on
       }
 

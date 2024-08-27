@@ -13,7 +13,6 @@ use pyo3::{
     create_exception,
     exceptions::PyException,
     prelude::*,
-    pyclass::CompareOp,
     types::{PyComplex, PyDict, PyList, PyTuple},
 };
 use qsc::{
@@ -32,7 +31,7 @@ use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
 #[pymodule]
-fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -41,14 +40,14 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
-    m.add("QSharpError", py.get_type::<QSharpError>())?;
+    m.add("QSharpError", py.get_type_bound::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
     Ok(())
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy)]
-#[pyclass(unsendable)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -83,6 +82,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
+    #[pyo3(signature = (target, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -152,6 +152,7 @@ impl Interpreter {
     /// :returns value: The value returned by the last statement in the input.
     ///
     /// :raises QSharpError: If there is an error interpreting the input.
+    #[pyo3(signature=(input, callback=None))]
     fn interpret(
         &mut self,
         py: Python,
@@ -166,11 +167,13 @@ impl Interpreter {
     }
 
     /// Sets the quantum seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_quantum_seed(seed);
     }
 
     /// Sets the classical seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_classical_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_classical_seed(seed);
     }
@@ -191,6 +194,7 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
+    #[pyo3(signature=(entry_expr=None, callback=None))]
     fn run(
         &mut self,
         py: Python,
@@ -224,6 +228,7 @@ impl Interpreter {
     /// qubits or arrays of qubits as parameters.
     ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
+    #[pyo3(signature=(entry_expr=None, operation=None))]
     fn circuit(
         &mut self,
         py: Python,
@@ -364,28 +369,23 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
 #[pymethods]
 impl StateDumpData {
-    fn get_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        Ok(PyDict::from_sequence(
+    fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
+        PyDict::from_sequence_bound(&PyList::new_bound(
             py,
-            PyList::new(
-                py,
-                self.0
-                     .0
-                    .iter()
-                    .map(|(k, v)| {
-                        PyTuple::new(
-                            py,
-                            &[
-                                k.clone().into_py(py),
-                                PyComplex::from_doubles(py, v.re, v.im).into(),
-                            ],
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .into_py(py),
-        )?
-        .into_py(py))
+            self.0
+                 .0
+                .iter()
+                .map(|(k, v)| {
+                    PyTuple::new_bound(
+                        py,
+                        &[
+                            k.clone().into_py(py),
+                            PyComplex::from_doubles_bound(py, v.re, v.im).into(),
+                        ],
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ))
     }
 
     #[getter]
@@ -414,8 +414,8 @@ impl StateDumpData {
     }
 }
 
-#[pyclass(unsendable)]
 #[derive(PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
@@ -441,22 +441,10 @@ impl Result {
             Result::One => 1,
         }
     }
-
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
-        let this = i32::from(*self == Result::One);
-        let other = i32::from(*other == Result::One);
-        match op {
-            CompareOp::Lt => this < other,
-            CompareOp::Le => this <= other,
-            CompareOp::Eq => this == other,
-            CompareOp::Ne => this != other,
-            CompareOp::Gt => this > other,
-            CompareOp::Ge => this >= other,
-        }
-    }
 }
 
-#[pyclass(unsendable)]
+#[derive(PartialEq)]
+#[pyclass(unsendable, eq, eq_int)]
 /// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
@@ -493,12 +481,13 @@ impl IntoPy<PyObject> for ValueWrapper {
                     // Special case Value::unit as None
                     py.None()
                 } else {
-                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
                         .into_py(py)
                 }
             }
             Value::Array(val) => {
-                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)
+                PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    .into_py(py)
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
@@ -521,7 +510,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -537,7 +526,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),

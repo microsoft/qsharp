@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use serde::Serialize;
+
 use crate::estimates::{Error, ErrorCorrection};
 
 use std::rc::Rc;
@@ -11,7 +13,10 @@ use std::rc::Rc;
 /// assignment to the code parameters.  It stores all computed information such
 /// as the number of physical and logical qubits, cycle time, and logical error
 /// rate.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", bound = "E::Parameter: Serialize")]
 pub struct LogicalPatch<E: ErrorCorrection> {
+    #[serde(skip)]
     physical_qubit: Rc<E::Qubit>,
     code_parameter: E::Parameter,
     physical_qubits: u64,

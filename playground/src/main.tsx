@@ -141,11 +141,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   function onNavItemSelected(name: string) {
     // If there was a ?code link on the URL before, clear it out
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("code")) {
-      // Get current URL without query parameters to use as the URL
-      const newUrl = `${window.location.href.split("?")[0]}`;
-      window.history.pushState({}, "", newUrl);
+    const newURL = new URL(window.location.href);
+    if (newURL.searchParams.get("code")) {
+      newURL.searchParams.delete("code");
+      newURL.searchParams.delete("profile");
+      window.history.pushState({}, "", newURL.toString());
+      props.linkedCode = undefined;
     }
     setCurrentNavItem(name);
   }
@@ -193,7 +194,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         </>
       ) : activeKata ? (
         <Katas
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
           compiler={compiler}
           compiler_worker_factory={compiler_worker_factory}
@@ -391,7 +391,6 @@ function registerMonacoLanguageServiceProviders(
       );
       if (!sigHelpLs) return null;
       return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         dispose: () => {},
         value: {
           activeParameter: sigHelpLs.activeParameter,
