@@ -12,16 +12,16 @@ namespace Kata.Verification {
 
     function ComplexAsString(x : Complex) : String {
         let precision = 3;
-        if x::Imag < 0.0 {
-            $"{DoubleAsStringWithPrecision(x::Real, precision)} - {DoubleAsStringWithPrecision(AbsD(x::Imag), precision)}i"
+        if x.Imag < 0.0 {
+            $"{DoubleAsStringWithPrecision(x.Real, precision)} - {DoubleAsStringWithPrecision(AbsD(x.Imag), precision)}i"
         } else {
-            $"{DoubleAsStringWithPrecision(x::Real, precision)} + {DoubleAsStringWithPrecision(x::Imag, precision)}i"
+            $"{DoubleAsStringWithPrecision(x.Real, precision)} + {DoubleAsStringWithPrecision(x.Imag, precision)}i"
         }
     }
 
     function ComplexPolarAsString(x : ComplexPolar) : String {
         let precision = 3;
-        $"{DoubleAsStringWithPrecision(x::Magnitude, precision)} * exp({DoubleAsStringWithPrecision(x::Argument, precision)}i)"
+        $"{DoubleAsStringWithPrecision(x.Magnitude, precision)} * exp({DoubleAsStringWithPrecision(x.Argument, precision)}i)"
     }
 
     operation CheckTwoComplexOpsAreSame(sol : (Complex, Complex) -> Complex, ref : (Complex, Complex) -> Complex) : Bool {
