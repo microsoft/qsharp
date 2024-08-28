@@ -241,7 +241,7 @@ function reportIfQSharpErrors(e: unknown) {
       if (Array.isArray(errors) && errors.length > 0 && errors[0].document) {
         qsharpErrors = errors;
       }
-    } catch (_) {
+    } catch {
       // Couldn't parse the error as JSON.
       log.warn(`could not parse error string ${e}`);
     }
@@ -291,7 +291,7 @@ function getSourceUri(maybeUri: string): vscode.Uri {
 
   try {
     return vscode.Uri.parse(maybeUri, true);
-  } catch (e) {
+  } catch {
     // Not a URI, assume it's a filename from the stdlib
     // This URI should ideally be properly propagated from
     // https://github.com/microsoft/qsharp/blob/f8d344b32a1f1f918f3c91edf58c975db10f4370/wasm/src/diagnostic.rs#L105

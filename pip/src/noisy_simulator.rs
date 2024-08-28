@@ -8,8 +8,14 @@ use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
-pub(crate) fn register_noisy_simulator_submodule(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add("NoisySimulatorError", py.get_type::<NoisySimulatorError>())?;
+pub(crate) fn register_noisy_simulator_submodule<'a>(
+    py: Python<'a>,
+    m: &Bound<'a, PyModule>,
+) -> PyResult<()> {
+    m.add(
+        "NoisySimulatorError",
+        py.get_type_bound::<NoisySimulatorError>(),
+    )?;
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;
@@ -186,6 +192,7 @@ pub(crate) struct DensityMatrixSimulator(noisy_simulator::DensityMatrixSimulator
 #[pymethods]
 impl DensityMatrixSimulator {
     #[new]
+    #[pyo3(signature=(number_of_qubits, seed=None))]
     pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
         if let Some(seed) = seed {
             Self(noisy_simulator::DensityMatrixSimulator::new_with_seed(
@@ -319,6 +326,7 @@ pub(crate) struct StateVectorSimulator(noisy_simulator::StateVectorSimulator);
 #[pymethods]
 impl StateVectorSimulator {
     #[new]
+    #[pyo3(signature=(number_of_qubits, seed=None))]
     pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
         if let Some(seed) = seed {
             Self(noisy_simulator::StateVectorSimulator::new_with_seed(
