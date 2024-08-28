@@ -2,10 +2,8 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Unstable.Arithmetic {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+      import Std.Diagnostics.*, Std.Arrays.*, Std.Math.*, Std.Convert.*;
+
 
     /// # Summary
     /// This applies the in-place majority operation to 3 qubits.

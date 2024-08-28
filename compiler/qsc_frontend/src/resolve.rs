@@ -1871,9 +1871,8 @@ fn resolve<'a>(
             provided_symbol_name,
             prelude_namespaces(globals).into_iter(),
             // prelude is opened by default
-            &(std::iter::once((vec![], dbg!(prelude_namespaces(globals)))).collect()),
+            &(std::iter::once((vec![], prelude_namespaces(globals))).collect()),
         );
-        dbg!(&globals);
 
         if prelude_candidates.len() > 1 {
             // If there are multiple candidates, sort them by namespace and return an error.
