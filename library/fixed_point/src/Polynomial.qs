@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
+import Facts.AssertFormatsAreIdenticalFxP, Facts.AssertAllZeroFxP;
 import Types.FixedPoint;
 import Init.PrepareFxP;
 import Operations.MultiplyFxP, Operations.SquareFxP, Operations.AddConstantFxP;
@@ -24,7 +24,7 @@ operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, resul
         Controlled EvaluatePolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
-        IdenticalFormatFactFxP([fpx, result]);
+        AssertFormatsAreIdenticalFxP([fpx, result]);
         let degree = Length(coefficients) - 1;
         let p = fpx::IntegerBits;
         let n = Length(fpx::Register);
@@ -72,7 +72,7 @@ operation EvaluateEvenPolynomialFxP(coefficients : Double[], fpx : FixedPoint, r
         Controlled EvaluateEvenPolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
-        IdenticalFormatFactFxP([fpx, result]);
+        AssertFormatsAreIdenticalFxP([fpx, result]);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);
 
@@ -109,7 +109,7 @@ operation EvaluateOddPolynomialFxP(coefficients : Double[], fpx : FixedPoint, re
         Controlled EvaluateOddPolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
-        IdenticalFormatFactFxP([fpx, result]);
+        AssertFormatsAreIdenticalFxP([fpx, result]);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);
         if halfDegree >= 0 {

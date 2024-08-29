@@ -24,7 +24,7 @@ operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
 /// ## fixedPoints
 /// Array of quantum fixed-point numbers that will be checked for
 /// compatibility (using assertions).
-function IdenticalFormatFactFxP(fixedPoints : FixedPoint[]) : Unit {
+function AssertFormatsAreIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
     if IsEmpty(fixedPoints) {
         return ();
     }
@@ -47,7 +47,7 @@ function IdenticalFormatFactFxP(fixedPoints : FixedPoint[]) : Unit {
 /// ## fixedPoints
 /// Array of quantum fixed-point numbers that will be checked for
 /// compatibility (using assertions).
-function IdenticalPointPosFactFxP(fixedPoints : FixedPoint[]) : Unit {
+function AssertPointPositionsIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
     if IsEmpty(fixedPoints) {
         return ();
     }
@@ -59,4 +59,4 @@ function IdenticalPointPosFactFxP(fixedPoints : FixedPoint[]) : Unit {
     }
 }
 
-export AssertAllZeroFxP, IdenticalFormatFactFxP, IdenticalPointPosFactFxP;
+export AssertAllZeroFxP, AssertFormatsAreIdenticalFxP, AssertPointPositionsIdenticalFxP;

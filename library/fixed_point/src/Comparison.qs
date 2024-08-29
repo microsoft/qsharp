@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import Types.FixedPoint;
-import Facts.IdenticalFormatFactFxP;
+import Facts.AssertFormatsAreIdenticalFxP;
 import Signed.Comparison.CompareGTSI;
 
 /// # Summary
@@ -21,7 +21,7 @@ import Signed.Comparison.CompareGTSI;
 /// The current implementation requires the two fixed-point numbers
 /// to have the same point position and the same number of qubits.
 operation CompareGreaterThanFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : Qubit) : Unit is Adj + Ctl {
-    IdenticalFormatFactFxP([fp1, fp2]);
+    AssertFormatsAreIdenticalFxP([fp1, fp2]);
 
     CompareGTSI((fp1::Register), (fp2::Register), result);
 }

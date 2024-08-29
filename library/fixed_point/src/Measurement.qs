@@ -4,6 +4,8 @@
 import Types.FixedPoint;
 import Convert.BoolArrayAsFixedPoint;
 import Std.Arrays.ForEach;
+import Std.Convert.ResultArrayAsBoolArray;
+
 
 /// # Summary
 /// Measure a fixed-point number, returns its value as Double, and resets
@@ -13,7 +15,7 @@ import Std.Arrays.ForEach;
 /// ## fp
 /// Fixed-point number to measure.
 operation MeasureFxP(fp : FixedPoint) : Double {
-    let measurements = MResetEachZ(fs::Register);
+    let measurements = MResetEachZ(fp::Register);
     let bits = ResultArrayAsBoolArray(measurements);
     return BoolArrayAsFixedPoint(fp::IntegerBits, bits);
 }

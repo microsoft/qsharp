@@ -3,7 +3,7 @@
 
 import Types.FixedPoint;
 import Init.PrepareFxP;
-import Facts.IdenticalPointPosFactFxP, Facts.IdenticalFormatFactFxP, Facts.AssertAllZeroFxP;
+import Facts.AssertPointPositionsIdenticalFxP, Facts.AssertFormatsAreIdenticalFxP, Facts.AssertAllZeroFxP;
 import Signed.Operations.Invert2sSI, Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
 import Std.Arrays.Zipped;
 import Unstable.Arithmetic.RippleCarryTTKIncByLE;
@@ -47,7 +47,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
 /// to have the same point position counting from the least-significant
 /// bit, i.e., $n_i$ and $p_i$ must be equal.
 operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
-    IdenticalPointPosFactFxP([fp1, fp2]);
+    AssertPointPositionsIdenticalFxP([fp1, fp2]);
 
     RippleCarryTTKIncByLE(fp1::Register, fp2::Register);
 }
@@ -62,9 +62,6 @@ operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
 /// # Remarks
 /// Numerical inaccuracies may occur depending on the
 /// bit-precision of the fixed-point number.
-///
-/// # See also
-/// - Microsoft.Quantum.Arithmetic.SubtractFxP
 operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
     let (_, reg) = fp!;
     Invert2sSI(reg);
@@ -82,10 +79,6 @@ operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
 /// # Remarks
 /// Computes the difference by inverting `subtrahend` before and after adding
 /// it to `minuend`.  Notice that `minuend`, the first argument is updated.
-///
-/// # See also
-/// - Microsoft.Quantum.Arithmetic.AddFxP
-/// - Microsoft.Quantum.Arithmetic.InvertFxP
 operation SubtractFxP(minuend : FixedPoint, subtrahend : FixedPoint) : Unit is Adj + Ctl {
     within {
         InvertFxP(subtrahend);
@@ -115,15 +108,13 @@ operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) :
         Controlled MultiplyFxP([], (fp1, fp2, result));
     }
     controlled (controls, ...) {
-        IdenticalFormatFactFxP([fp1, fp2, result]);
+        AssertFormatsAreIdenticalFxP([fp1, fp2, result]);
         let n = Length(fp1::Register);
 
         use tmpResult = Qubit[2 * n];
         let xsInt = ((fp1::Register));
         let ysInt = ((fp2::Register));
-        let tmpResultInt = (
-            (tmpResult)
-        );
+        let tmpResultInt = tmpResult;
 
         within {
             MultiplySI(xsInt, ysInt, tmpResultInt);
@@ -147,14 +138,12 @@ operation SquareFxP(fp : FixedPoint, result : FixedPoint) : Unit is Adj {
         Controlled SquareFxP([], (fp, result));
     }
     controlled (controls, ...) {
-        IdenticalFormatFactFxP([fp, result]);
+        AssertFormatsAreIdenticalFxP([fp, result]);
         let n = Length(fp::Register);
 
         use tmpResult = Qubit[2 * n];
         let xsInt = fp::Register;
-        let tmpResultInt = (
-            (tmpResult)
-        );
+        let tmpResultInt = tmpResult;
         within {
             SquareSI(xsInt, tmpResultInt);
         } apply {
