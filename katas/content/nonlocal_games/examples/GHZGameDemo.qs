@@ -6,15 +6,15 @@ namespace Quantum.Kata.GHZGame {
         return (rst[0] or rst[1] or rst[2]) == (abc[0] != abc[1] != abc[2]);
     }
 
-    operation AliceClassical (r : Bool) : Bool {
+    function AliceClassical (r : Bool) : Bool {
         return true;
     }
 
-    operation BobClassical (s : Bool) : Bool {
+    function BobClassical (s : Bool) : Bool {
         return true;
     }
 
-    operation CharlieClassical (t : Bool) : Bool {
+    function CharlieClassical (t : Bool) : Bool {
         return true;
     }
 
