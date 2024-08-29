@@ -5,7 +5,11 @@ import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
-import { getActiveProgram } from "./programConfig";
+import {
+  FullProgramConfig,
+  getActiveProgram,
+  getVisibleProgram,
+} from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 
@@ -23,13 +27,31 @@ export class QirGenerationError extends Error {
 export async function getQirForActiveWindow(
   supports_adaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
-  let result = "";
   const program = await getActiveProgram();
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
 
-  const config = program.programConfig;
+  return getQirForProgram(program.programConfig, supports_adaptive);
+}
+
+export async function getQirForVisibleQs(
+  supports_adaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+): Promise<string> {
+  const program = await getVisibleProgram();
+  if (!program.success) {
+    throw new QirGenerationError(program.errorMsg);
+  }
+
+  return getQirForProgram(program.programConfig, supports_adaptive);
+}
+
+async function getQirForProgram(
+  config: FullProgramConfig,
+  supports_adaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+): Promise<string> {
+  let result = "";
+
   const targetProfile = config.profile;
   const is_unrestricted = targetProfile === "unrestricted";
   const is_base = targetProfile === "base";

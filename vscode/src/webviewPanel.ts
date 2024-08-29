@@ -24,7 +24,9 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CopilotWebviewViewProvider, makeChatRequest } from "./copilot";
+import { Copilot } from "./copilot2";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -466,6 +468,7 @@ export class QSharpWebViewPanel {
   public static extensionUri: Uri;
   private _ready = false;
   private _queuedMessages: any[] = [];
+  private _copilot: Copilot;
 
   constructor(
     private type: PanelType,
@@ -474,6 +477,7 @@ export class QSharpWebViewPanel {
     log.info("Creating webview panel of type", type);
     this.panel.onDidDispose(() => this.dispose());
 
+    this._copilot = new Copilot();
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }
@@ -542,7 +546,7 @@ export class QSharpWebViewPanel {
       } else if (message.command == "copilotRequest") {
         // Send the message to the copilot
         // TODO: Move this view specific logic out of here
-        makeChatRequest(message.request, (response, done) => {
+        this._copilot.makeChatRequest(message.request, (response, done) => {
           if (!done) {
             this.panel.webview.postMessage({
               command: "copilotResponse",
@@ -554,6 +558,18 @@ export class QSharpWebViewPanel {
             });
           }
         });
+        // makeChatRequest(message.request, (response, done) => {
+        //   if (!done) {
+        //     this.panel.webview.postMessage({
+        //       command: "copilotResponse",
+        //       response,
+        //     });
+        //   } else {
+        //     this.panel.webview.postMessage({
+        //       command: "copilotResponseDone",
+        //     });
+        //   }
+        // });
       }
     });
   }
