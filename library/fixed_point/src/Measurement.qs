@@ -13,6 +13,7 @@ import Std.Arrays.ForEach;
 /// ## fp
 /// Fixed-point number to measure.
 operation MeasureFxP(fp : FixedPoint) : Double {
-    let bits = ForEach(q => MResetZ(q) == One, fp::Register);
+    let measurements = MResetEachZ(fs::Register);
+    let bits = ResultArrayAsBoolArray(measurements);
     return BoolArrayAsFixedPoint(fp::IntegerBits, bits);
 }
