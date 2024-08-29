@@ -30,29 +30,23 @@ namespace Quantum.Kata.GHZGame {
 
     operation AliceQuantum (bit : Bool, qubit : Qubit) : Bool {
         if bit {
-            let res = MResetX(qubit);
-            return res == One;
+            return MResetX(qubit) == One;
         }
-        let res = MResetZ(qubit);
-        return res == One;
+        return MResetZ(qubit) == One;
     }
 
     operation BobQuantum (bit : Bool, qubit : Qubit) : Bool {
         if bit {
-            let res = MResetX(qubit);
-            return res == One;
+            return MResetX(qubit) == One;
         }
-        let res = MResetZ(qubit);
-        return res == One;
+        return MResetZ(qubit) == One;
     }
 
     operation CharlieQuantum (bit : Bool, qubit : Qubit) : Bool {
         if bit {
-            let res = MResetX(qubit);
-            return res == One;
+            return MResetX(qubit) == One;
         }
-        let res = MResetZ(qubit);
-        return res == One;
+        return MResetZ(qubit) == One;
     }
 
     operation getRandomRefereeBits () : Bool[] {

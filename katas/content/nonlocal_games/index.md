@@ -227,7 +227,7 @@ Then, let's proceed with quantum strategy and game implementation.
 })
 
 @[exercise]({
-    "id": "nonlocal_games__ghz_create_ghz_state",
+    "id": "nonlocal_games__ghz_create_entangled_state",
     "title": "Create Entangled Triple",
     "path": "./ghz_create_entangled_triple/"
 })
