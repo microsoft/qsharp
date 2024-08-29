@@ -197,7 +197,6 @@ export function createProxyInternal<
     if (curr) return;
 
     while ((curr = queue.shift())) {
-      // eslint-disable-line no-cond-assign
       if (curr.cancellationToken?.isCancellationRequested) {
         curr.reject("cancelled");
         continue;
@@ -475,7 +474,7 @@ export function initService<
       // Only structured cloneable objects can be sent in worker messages.
       // Test if this is the case.
       structuredClone(args);
-    } catch (e) {
+    } catch {
       // Uncloneable object.
       // Use String(args) instead of ${args} to handle all possible values
       // without throwing. See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String#string_coercion

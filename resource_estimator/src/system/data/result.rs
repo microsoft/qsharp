@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::estimates::{
@@ -26,7 +27,7 @@ pub struct Success<L: Serialize> {
     #[serde(skip_serializing_if = "Option::is_none")]
     physical_counts_formatted: Option<FormattedPhysicalResourceCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    logical_qubit: Option<LogicalPatch<Protocol>>,
+    logical_qubit: Option<LogicalQubit>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -58,7 +59,7 @@ impl<L: Overhead + LayoutReportData + Serialize> Success<L> {
             job_params,
             physical_counts: Some(counts),
             physical_counts_formatted: Some(formatted_counts),
-            logical_qubit: Some(logical_qubit),
+            logical_qubit: Some(LogicalQubit(logical_qubit)),
             tfactory,
             error_budget: Some(error_budget),
             logical_counts,
@@ -108,7 +109,7 @@ impl<L: Overhead + LayoutReportData + Serialize> Success<L> {
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct FrontierEntry {
-    pub logical_qubit: LogicalPatch<Protocol>,
+    pub logical_qubit: LogicalQubit,
     pub tfactory: Option<TFactory>,
     pub error_budget: ErrorBudget,
     pub physical_counts: PhysicalResourceCounts,
@@ -136,7 +137,7 @@ fn create_frontier_entry(
 
     (
         FrontierEntry {
-            logical_qubit,
+            logical_qubit: LogicalQubit(logical_qubit),
             tfactory,
             error_budget,
             physical_counts,
@@ -235,7 +236,18 @@ impl Serialize for Failure {
     }
 }
 
-impl Serialize for LogicalPatch<Protocol> {
+/// A helper newtype to specialize serialization for `LogicalPatch<Protocol>`
+pub struct LogicalQubit(LogicalPatch<Protocol>);
+
+impl Deref for LogicalQubit {
+    type Target = LogicalPatch<Protocol>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Serialize for LogicalQubit {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

@@ -158,9 +158,8 @@ export function Histogram(props: {
   function toggleInfo() {
     if (!gInfo.current) return;
 
-    gInfo.current.style.display === "inline"
-      ? (gInfo.current.style.display = "none")
-      : (gInfo.current.style.display = "inline");
+    gInfo.current.style.display =
+      gInfo.current.style.display === "inline" ? "none" : "inline";
   }
 
   // Each menu item has a width of 32px and a height of 10px

@@ -9,7 +9,7 @@
 //
 
 // imports mocha for the browser, defining the `mocha` global.
-require("mocha/mocha");
+require("mocha/mocha"); // eslint-disable-line @typescript-eslint/no-require-imports
 
 export function runMochaTests(requireTestModules: () => void): Promise<void> {
   return new Promise((c, e) => {
