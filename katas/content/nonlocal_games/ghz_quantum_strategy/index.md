@@ -1,5 +1,5 @@
-In this task you have to implement three functions, one for each player's quantum strategy.
-Note that they are covered by one test, so you have to implement all of them to pass the test.
+In this task, you should implement three functions, one for each player's quantum strategy.
+Note that they are covered by one test, so you must implement all of them to pass the test.
 
 **Inputs:**
 
