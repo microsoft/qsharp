@@ -257,10 +257,14 @@ function onMessage(event: any) {
           console.error("No buckets in message: ", message);
           return;
         }
-        // const buckets = message.buckets as Array<[string, number]>;
+        const buckets = message.buckets as Array<[string, number]>;
+        const histogram = JSON.stringify({
+          buckets: buckets,
+          shotCount: message.shotCount,
+        });
         state.qas.push({
           request: "",
-          response: "```widget\nHistogram", // +
+          response: "```widget\nHistogram\n" + histogram,
           // (
           //   <Histogram
           //     data={new Map(buckets)}
@@ -503,16 +507,16 @@ function App({ state }: { state: State }) {
   function Response(props: { request: string; response: string }) {
     const parts: Array<string | any> = [];
 
-    const histoMap = new Map<string, number>([
-      ["000", 5],
-      ["001", 1],
-      ["010", 20],
-      ["011", 18],
-      ["100", 1],
-      ["101", 0],
-      ["110", 3],
-      ["111", 1],
-    ]);
+    // const histoMap = new Map<string, number>([
+    //   ["000", 5],
+    //   ["001", 1],
+    //   ["010", 20],
+    //   ["011", 18],
+    //   ["100", 1],
+    //   ["101", 0],
+    //   ["110", 3],
+    //   ["111", 1],
+    // ]);
 
     const widget = props.response.indexOf("```widget\n");
     if (widget >= 0) {
@@ -535,16 +539,29 @@ function App({ state }: { state: State }) {
         </div>
         <div class="responseBox">
           {parts.map((part) => {
-            if (part.startsWith("```widget\nHistogram")) {
-              return (
-                <Histogram
-                  data={histoMap}
-                  filter=""
-                  shotCount={100}
-                  onFilter={() => undefined}
-                  shotsHeader={false}
-                />
-              );
+            if (part.startsWith("```widget\nHistogram\n")) {
+              const histo = JSON.parse(part.slice(20));
+              if (histo.buckets && typeof histo.shotCount === "number") {
+                const histoMap: Map<string, number> = new Map(histo.buckets);
+                return (
+                  <Histogram
+                    data={histoMap}
+                    filter=""
+                    shotCount={histo.shotCount}
+                    onFilter={() => undefined}
+                    shotsHeader={false}
+                  />
+                );
+              }
+              // return (
+              //   <Histogram
+              //     data={histoMap}
+              //     filter=""
+              //     shotCount={100}
+              //     onFilter={() => undefined}
+              //     shotsHeader={false}
+              //   />
+              // );
             }
             return <Markdown markdown={part}></Markdown>;
           })}
@@ -553,3 +570,8 @@ function App({ state }: { state: State }) {
     );
   }
 }
+
+// type HistogramJson = {
+//   buckets: Array<[string, number]>;
+//   shotCount: number;
+// };
