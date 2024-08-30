@@ -244,33 +244,35 @@ function onMessage(event: any) {
         // state.markdown = state.markdown.replace(/(\\\[)|(\\\])/g, "$$");
       }
       break;
-    // case "copilotResponseHistogram":
-    //   {
-    //     if (state.viewType !== "copilot") {
-    //       console.error(
-    //         "Received copilot response histogram in wrong state",
-    //         state,
-    //       );
-    //       return;
-    //     }
-    //     if (!message.buckets || typeof message.shotCount !== "number") {
-    //       console.error("No buckets in message: ", message);
-    //       return;
-    //     }
-    //     const buckets = message.buckets as Array<[string, number]>;
-    //     state.markdown +=
-    //       "```widget\n" +
-    //       (
-    //         <Histogram
-    //           data={new Map(buckets)}
-    //           shotCount={message.shotCount}
-    //           filter=""
-    //           onFilter={() => undefined}
-    //           shotsHeader={true}
-    //         ></Histogram>
-    //       );
-    //   }
-    //   break;
+    case "copilotResponseHistogram":
+      {
+        if (state.viewType !== "copilot") {
+          console.error(
+            "Received copilot response histogram in wrong state",
+            state,
+          );
+          return;
+        }
+        if (!message.buckets || typeof message.shotCount !== "number") {
+          console.error("No buckets in message: ", message);
+          return;
+        }
+        // const buckets = message.buckets as Array<[string, number]>;
+        state.qas.push({
+          request: "",
+          response: "```widget\nHistogram", // +
+          // (
+          //   <Histogram
+          //     data={new Map(buckets)}
+          //     shotCount={message.shotCount}
+          //     filter=""
+          //     onFilter={() => undefined}
+          //     shotsHeader={true}
+          //   ></Histogram>
+          // ),
+        });
+      }
+      break;
     case "copilotResponseDone":
       if (state.viewType !== "copilot") {
         console.error("Received copilot response done in wrong state", state);
