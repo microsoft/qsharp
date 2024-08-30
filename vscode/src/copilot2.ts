@@ -324,20 +324,33 @@ const GetJobStatus = async (jobId: string): Promise<string> => {
 };
 
 const tryRenderResults = (
-  _file: string,
+  file: string,
   streamCallback: CopilotStreamCallback,
 ): boolean => {
   // Test string for rendering histogram
-  const file = '{"Histogram":["[0, 0, 0]",0.52,"[1, 1, 1]",0.48]}';
+  // const file = '{"Histogram":["[0, 0, 0]",0.52,"[1, 1, 1]",0.48]}';
 
-  const buckets: Array<[string, number]> = [
-    ["[0, 0, 0]", 0.52],
-    ["[1, 1, 1]", 0.48],
-  ];
+  // Parse the JSON file
+  const parsedArray = JSON.parse(file).Histogram as Array<any>;
+
+  // Transform the flat array into an array of pairs [string, number]
+  const histo: Array<[string, number]> = [];
+  for (let i = 0; i < parsedArray.length; i += 2) {
+    histo.push([parsedArray[i], parsedArray[i + 1]]);
+  }
+
+  //const histo = JSON.parse(file).Histogram as Array<[string, number]>;
+  log.debug("Histogram: ", histo);
+
+  // const buckets: Array<[string, number]> = [
+  //   ["[0, 0, 0]", 0.52],
+  //   ["[1, 1, 1]", 0.48],
+  // ];
+  // log.debug("Buckets: ", buckets);
 
   streamCallback(
     {
-      buckets: buckets,
+      buckets: histo,
       shotCount: 100,
     },
     "copilotResponseHistogram",
