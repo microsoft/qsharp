@@ -477,7 +477,13 @@ export class QSharpWebViewPanel {
     log.info("Creating webview panel of type", type);
     this.panel.onDidDispose(() => this.dispose());
 
-    this._copilot = new Copilot();
+    this._copilot = new Copilot((payload, command) => {
+      log.info("message posted with command: ", command);
+      this.panel.webview.postMessage({
+        command: command,
+        ...payload,
+      });
+    });
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }
@@ -546,18 +552,7 @@ export class QSharpWebViewPanel {
       } else if (message.command == "copilotRequest") {
         // Send the message to the copilot
         // TODO: Move this view specific logic out of here
-        this._copilot.makeChatRequest(message.request, (response, done) => {
-          if (!done) {
-            this.panel.webview.postMessage({
-              command: "copilotResponse",
-              response,
-            });
-          } else {
-            this.panel.webview.postMessage({
-              command: "copilotResponseDone",
-            });
-          }
-        });
+        this._copilot.makeChatRequest(message.request);
         // makeChatRequest(message.request, (response, done) => {
         //   if (!done) {
         //     this.panel.webview.postMessage({

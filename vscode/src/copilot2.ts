@@ -323,27 +323,44 @@ const GetJobStatus = async (jobId: string): Promise<string> => {
   }
 };
 
-const tryRenderResults = (_file: string): boolean => {
-  // Not implemented yet
-  return false;
+const tryRenderResults = (
+  _file: string,
+  streamCallback: CopilotStreamCallback,
+): boolean => {
   // Test string for rendering histogram
   const file = '{"Histogram":["[0, 0, 0]",0.52,"[1, 1, 1]",0.48]}';
 
-  if (file.startsWith("```widget\n")) {
-    if (file.includes("Histogram")) {
-      // Render histogram
-      vscode.window.showInformationMessage("Rendering histogram");
-      return true;
-    } else if (file.includes("Results")) {
-      // Render results table
-      vscode.window.showInformationMessage("Rendering results table");
-      return true;
-    }
-  }
-  return false;
+  const buckets: Array<[string, number]> = [
+    ["[0, 0, 0]", 0.52],
+    ["[1, 1, 1]", 0.48],
+  ];
+
+  streamCallback(
+    {
+      buckets: buckets,
+      shotCount: 100,
+    },
+    "copilotResponseHistogram",
+  );
+
+  // if (file.startsWith("```widget\n")) {
+  //   if (file.includes("Histogram")) {
+  //     // Render histogram
+  //     vscode.window.showInformationMessage("Rendering histogram");
+  //     return true;
+  //   } else if (file.includes("Results")) {
+  //     // Render results table
+  //     vscode.window.showInformationMessage("Rendering results table");
+  //     return true;
+  //   }
+  // }
+  return true; // ?
 };
 
-const DownloadJobResults = async (jobId: string): Promise<string> => {
+const DownloadJobResults = async (
+  jobId: string,
+  streamCallback: CopilotStreamCallback,
+): Promise<string> => {
   const job = await GetJob(jobId);
 
   if (!job) {
@@ -383,7 +400,7 @@ const DownloadJobResults = async (jobId: string): Promise<string> => {
     if (file) {
       log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file)) {
+      if (!tryRenderResults(file, streamCallback)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -487,18 +504,26 @@ const SubmitToTarget = async (targetId: string): Promise<string> => {
   }
 };
 
-export type CopilotStreamCallback = (mdFragment: string, done: boolean) => void;
+export type CopilotStreamCallback = (
+  msgPayload: object,
+  msgCommand:
+    | "copilotResponse"
+    | "copilotResponseDone"
+    | "copilotResponseHistogram",
+) => void;
 
 export class Copilot {
   messages: ChatCompletionMessageParam[] = [];
+  streamCallback: CopilotStreamCallback;
 
-  constructor() {
+  constructor(streamCallback: CopilotStreamCallback) {
     this.messages.push(systemMessage);
+    this.streamCallback = streamCallback;
   }
 
   // OpenAI handling functions
 
-  converseWithOpenAI = async (displayResponse: string[]) => {
+  converseWithOpenAI = async () => {
     //console.debug("Sent messages: %o", messages);
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -507,13 +532,10 @@ export class Copilot {
     });
 
     //console.debug("Response: %o", response);
-    await this.handleResponse(response, displayResponse);
+    await this.handleResponse(response);
   };
 
-  handleResponse = async (
-    response: ChatCompletion,
-    displayResponse: string[],
-  ) => {
+  handleResponse = async (response: ChatCompletion) => {
     this.messages.push(response.choices[0].message);
 
     // Check if the conversation was too long for the context window
@@ -531,13 +553,13 @@ export class Copilot {
     // Check if the model has made a tool_call.
     else if (response.choices[0].finish_reason === "tool_calls") {
       // Handle tool call
-      await this.handleToolCalls(response, displayResponse);
+      await this.handleToolCalls(response);
     }
 
     // Else finish_reason is "stop", in which case the model was just responding directly to the user
     else if (response.choices[0].finish_reason === "stop") {
       // Handle the normal stop case
-      this.handleNormalResponse(response, displayResponse);
+      this.handleNormalResponse(response);
     }
 
     // Catch any other case, this is unexpected
@@ -547,10 +569,7 @@ export class Copilot {
     }
   };
 
-  handleToolCalls = async (
-    response: ChatCompletion,
-    displayResponse: string[],
-  ) => {
+  handleToolCalls = async (response: ChatCompletion) => {
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         const content = await this.handleSingleToolCall(toolCall);
@@ -563,7 +582,7 @@ export class Copilot {
         this.messages.push(function_call_result_message);
       }
 
-      await this.converseWithOpenAI(displayResponse);
+      await this.converseWithOpenAI();
     }
   };
 
@@ -590,7 +609,10 @@ export class Copilot {
       content.workspace_ids = workspace_ids;
     } else if (toolCall.function.name === "DownloadJobResults") {
       const job_id = args.job_id;
-      const download_result = await DownloadJobResults(job_id);
+      const download_result = await DownloadJobResults(
+        job_id,
+        this.streamCallback,
+      );
       content.download_result = download_result;
     } else if (toolCall.function.name === "GetProviders") {
       const providers = await GetProviders();
@@ -616,30 +638,27 @@ export class Copilot {
     console.log("Error: The content was filtered due to policy violations.");
   };
 
-  handleNormalResponse = (response: ChatCompletion, chatResponse: string[]) => {
-    chatResponse.push(response.choices[0].message.content!);
+  handleNormalResponse = (response: ChatCompletion) => {
+    this.streamCallback(
+      {
+        response: response.choices[0].message.content!,
+      },
+      "copilotResponse",
+    );
   };
 
   handleUnexpectedCase = (response: ChatCompletion) => {
     console.log("Unexpected response: %o", response.choices[0]);
   };
 
-  async makeChatRequest(
-    question: string,
-    streamCallback: CopilotStreamCallback,
-  ) {
+  async makeChatRequest(question: string) {
     this.messages.push({
       role: "user",
       content: question,
     });
 
-    const displayResponse: string[] = [];
-    await this.converseWithOpenAI(displayResponse);
-
-    for (const response of displayResponse) {
-      streamCallback(response, false);
-    }
-    streamCallback("", true);
+    await this.converseWithOpenAI();
+    this.streamCallback({}, "copilotResponseDone");
   }
 }
 

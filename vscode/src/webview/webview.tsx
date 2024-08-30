@@ -23,6 +23,7 @@ import hljsQsharp from "./qsharp-hljs";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+// import { useEffect, useRef } from "preact/hooks";
 const md = markdownIt("commonmark");
 md.use(mk, {
   enableMathBlockInHtml: true,
@@ -59,7 +60,8 @@ type DocumentationState = {
 
 type CopilotState = {
   viewType: "copilot";
-  markdown: string;
+  // markdown: string;
+  qas: QA[];
   inProgress: boolean;
 };
 
@@ -216,26 +218,66 @@ function onMessage(event: any) {
     case "copilot":
       state = {
         viewType: "copilot",
-        markdown: "AMA!\n\n",
+        // markdown: "AMA!\n\n",
+        qas: [{ request: "", response: "AMA!" }],
         inProgress: false,
       };
       break;
     case "copilotResponse":
-      if (state.viewType !== "copilot") {
-        console.error("Received copilot response in wrong state", state);
-        return;
+      {
+        if (state.viewType !== "copilot") {
+          console.error("Received copilot response in wrong state", state);
+          return;
+        }
+        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+        let cleanedResponse = message.response;
+        cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+        cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+
+        state.qas.push({
+          request: message.request ?? "",
+          response: cleanedResponse,
+        });
+        //state.markdown += message.response;
+        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+        // state.markdown = state.markdown.replace(/(\\\()|(\\\))/g, "$");
+        // state.markdown = state.markdown.replace(/(\\\[)|(\\\])/g, "$$");
       }
-      state.markdown += message.response;
-      // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-      state.markdown = state.markdown.replace(/(\\\()|(\\\))/g, "$");
-      state.markdown = state.markdown.replace(/(\\\[)|(\\\])/g, "$$");
       break;
+    // case "copilotResponseHistogram":
+    //   {
+    //     if (state.viewType !== "copilot") {
+    //       console.error(
+    //         "Received copilot response histogram in wrong state",
+    //         state,
+    //       );
+    //       return;
+    //     }
+    //     if (!message.buckets || typeof message.shotCount !== "number") {
+    //       console.error("No buckets in message: ", message);
+    //       return;
+    //     }
+    //     const buckets = message.buckets as Array<[string, number]>;
+    //     state.markdown +=
+    //       "```widget\n" +
+    //       (
+    //         <Histogram
+    //           data={new Map(buckets)}
+    //           shotCount={message.shotCount}
+    //           filter=""
+    //           onFilter={() => undefined}
+    //           shotsHeader={true}
+    //         ></Histogram>
+    //       );
+    //   }
+    //   break;
     case "copilotResponseDone":
       if (state.viewType !== "copilot") {
         console.error("Received copilot response done in wrong state", state);
         return;
       } else {
-        state.markdown += "\n\n---\n\n";
+        //state.markdown += "\n\n---\n\n";
+        state.qas.push({ request: "", response: "\n\n---\n\n" });
         state.inProgress = false;
       }
       // Highlight any code blocks
@@ -271,6 +313,7 @@ function onRowDeleted(rowId: string) {
   render(<App state={state} />, document.body);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function copilotRequest() {
   const questionText = document.querySelector(
     "#copilotQuestion",
@@ -284,7 +327,13 @@ function copilotRequest() {
   render(<App state={state} />, document.body);
 }
 
+type QA = {
+  request: string;
+  response: string;
+};
+
 function App({ state }: { state: State }) {
+  //const [qas, setQas] = useState<QA[]>([]);
   const onFilter = () => undefined;
 
   switch (state.viewType) {
@@ -321,10 +370,33 @@ function App({ state }: { state: State }) {
       document.body.style.fontSize = "0.8em";
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
     case "copilot":
+      // return (
+      //   <div style="font-size: 10pt; line-height: 1.5;">
+      //     <h1>Welcome to Azure Quantum Copilot</h1>
+      //     <Markdown markdown={state.markdown} />
+      //     <br />
+      //     <textarea
+      //       style="width: 90vw; min-height: 32px; max-height: 128px;"
+      //       type="text"
+      //       placeholder="Ask your question here"
+      //       id="copilotQuestion"
+      //     />
+      //     <br />
+      //     <button
+      //       style="margin-top: 8px; margin-bottom: 12px; padding: 4px;"
+      //       onClick={copilotRequest}
+      //     >
+      //       {state.inProgress ? "Cancel" : "Ask Copilot"}
+      //     </button>
+      //   </div>
+      // );
       return (
-        <div style="font-size: 10pt; line-height: 1.5;">
-          <h1>Welcome to Azure Quantum Copilot</h1>
-          <Markdown markdown={state.markdown} />
+        <div style="max-width: 800px; font-size: 0.9em;">
+          <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
+          {(state as CopilotState).qas.map((qa) => (
+            <Response request={qa.request} response={qa.response} />
+          ))}
+          {/* <InputBox onSubmit={onSubmit} /> */}
           <br />
           <textarea
             style="width: 90vw; min-height: 32px; max-height: 128px;"
@@ -344,5 +416,138 @@ function App({ state }: { state: State }) {
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;
+  }
+
+  // function onSubmit(text: string) {
+  //   //const newQA: QA = { request: text, response: "" };
+  //   vscodeApi.postMessage({
+  //     command: "copilotRequest",
+  //     request: text,
+  //   });
+  //   (state as CopilotState).inProgress = true;
+  //   // newQA.response += chunk.value;
+  //   // setQas([...qas, newQA]);
+  //   render(<App state={state} />, document.body);
+  // }
+
+  // function onSubmit(text: string) {
+  //   const newQA: QA = { request: text, response: "" };
+
+  //   let gen: Generator<string>;
+  //   if (text.includes("code")) {
+  //     gen = mock_stream(samples.code);
+  //   } else if (text.includes("noise")) {
+  //     gen = mock_stream(samples.noise);
+  //   } else if (text.includes("python")) {
+  //     gen = mock_stream(samples.azure);
+  //   } else {
+  //     gen = mock_stream(samples.jobs);
+  //   }
+
+  //   function onChunk() {
+  //     const chunk = gen.next();
+  //     if (!chunk.done) {
+  //       newQA.response += chunk.value;
+
+  //       // Clone into new state
+  //       setState([...state, newQA]);
+  //       setTimeout(onChunk, 50);
+  //     } else {
+  //       //(window as any).hljs.highlightAll();
+  //     }
+  //   }
+  //   onChunk();
+  // }
+
+  // function InputBox(props: { onSubmit: (text: string) => void }) {
+  //   const textRef = useRef<HTMLTextAreaElement>(null);
+  //   const hrRef = useRef<HTMLHRElement>(null);
+
+  //   useEffect(() => {
+  //     hrRef.current?.scrollIntoView(false);
+  //   });
+
+  //   function submit() {
+  //     if (textRef.current) {
+  //       props.onSubmit(textRef.current.value);
+  //       textRef.current.value = "";
+  //     }
+  //   }
+
+  //   return (
+  //     <>
+  //       <div class="inputDiv">
+  //         <textarea
+  //           ref={textRef}
+  //           autocorrect="off"
+  //           spellcheck={false}
+  //           placeholder="How can I help you?"
+  //         ></textarea>
+  //         <svg
+  //           onClick={submit}
+  //           focusable="false"
+  //           viewBox="0 0 16 16"
+  //           width="16"
+  //           height="16"
+  //         >
+  //           <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
+  //         </svg>
+  //       </div>
+  //       <div style="height: 8px" ref={hrRef} />
+  //     </>
+  //   );
+  // }
+
+  function Response(props: { request: string; response: string }) {
+    const parts: Array<string | any> = [];
+
+    const histoMap = new Map<string, number>([
+      ["000", 5],
+      ["001", 1],
+      ["010", 20],
+      ["011", 18],
+      ["100", 1],
+      ["101", 0],
+      ["110", 3],
+      ["111", 1],
+    ]);
+
+    const widget = props.response.indexOf("```widget\n");
+    if (widget >= 0) {
+      parts.push(props.response.slice(0, widget));
+      let endWidget = props.response.indexOf("\n```\n", widget + 9);
+      if (endWidget < 0 || endWidget >= props.response.length - 4) {
+        endWidget = props.response.length;
+        parts.push(props.response.slice(widget));
+      } else {
+        parts.push(props.response.slice(widget, endWidget + 4));
+        parts.push(props.response.slice(endWidget + 4));
+      }
+    } else {
+      parts.push(props.response);
+    }
+    return (
+      <div>
+        <div class="requestBox">
+          <Markdown markdown={props.request} />
+        </div>
+        <div class="responseBox">
+          {parts.map((part) => {
+            if (part.startsWith("```widget\nHistogram")) {
+              return (
+                <Histogram
+                  data={histoMap}
+                  filter=""
+                  shotCount={100}
+                  onFilter={() => undefined}
+                  shotsHeader={false}
+                />
+              );
+            }
+            return <Markdown markdown={part}></Markdown>;
+          })}
+        </div>
+      </div>
+    );
   }
 }
