@@ -225,7 +225,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
-    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, pauli_noise=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -335,7 +335,7 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, pauli_noise=None))]
     fn run(
         &mut self,
         py: Python,
