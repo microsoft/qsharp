@@ -15,7 +15,7 @@ namespace Kata.Verification {
             let alpha = 2.0 * PI() * IntAsDouble(i) / IntAsDouble(limit);
             let solution = Kata.UnequalSuperposition(_, alpha);
             let reference = UnequalSuperposition_Reference(_, alpha);
-            Message($"Testing for alpha = {DoubleAsStringWithPrecision(alpha,precision)}...");
+            Message($"Testing for alpha = {DoubleAsStringWithPrecision(alpha, precision)}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 qs => solution(qs[0]), 
                 qs => reference(qs[0]),

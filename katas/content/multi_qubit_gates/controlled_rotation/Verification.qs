@@ -17,7 +17,7 @@ namespace Kata.Verification {
             if not CheckOperationsAreEqual(2, solution, reference) {
                 let precision = 3;
                 Message("Incorrect.");
-                Message($"The test case for theta={DoubleAsStringWithPrecision(angle,precision)} did not pass");
+                Message($"The test case for theta={DoubleAsStringWithPrecision(angle, precision)} did not pass");
                 return false;
             }
         }
