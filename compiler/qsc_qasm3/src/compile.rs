@@ -2451,6 +2451,8 @@ impl QasmCompiler {
     fn compile_gate_decl(&mut self, gate: &oq3_syntax::ast::Gate) -> Option<ast::Stmt> {
         let name = gate.name()?;
 
+        // Once we support angle types, we will use this as the type for
+        // the angle parameters' coersion:
         //let angle_ty = Type::Angle(None, IsConst::True);
         let angle_ty = Type::Float(None, IsConst::True);
         let qs_angle_ty = self.convert_semantic_type_to_qsharp_type(&angle_ty, gate.syntax())?;
