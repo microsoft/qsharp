@@ -1525,7 +1525,6 @@ impl<'a> Analyzer<'a> {
         unanalyzed_stmts
     }
 
-    #[allow(clippy::too_many_lines)]
     fn update_locals_compute_kind(
         &mut self,
         assignee_expr_id: ExprId,
@@ -1555,20 +1554,10 @@ impl<'a> Analyzer<'a> {
                 // a UDT variable field since we do not track individual UDT fields).
                 let value_expr_compute_kind =
                     *application_instance.get_expr_compute_kind(value_expr_id);
-                let assigned_compute_kind = match &value_expr_compute_kind {
-                    ComputeKind::Classical => ComputeKind::Classical,
-                    ComputeKind::Quantum(value_expr_quantum_properties) => {
-                        let mut value_kind =
-                            ValueKind::new_static_from_type(&local_var_compute_kind.local.ty);
-                        value_expr_quantum_properties
-                            .value_kind
-                            .project_onto_variant(&mut value_kind);
-                        ComputeKind::new_with_runtime_features(
-                            value_expr_quantum_properties.runtime_features,
-                            value_kind,
-                        )
-                    }
-                };
+                let assigned_compute_kind = ComputeKind::map_to_type(
+                    value_expr_compute_kind,
+                    &local_var_compute_kind.local.ty,
+                );
                 updated_compute_kind = updated_compute_kind.aggregate(assigned_compute_kind);
 
                 // If a local is updated within a dynamic scope, the updated value of the local variable should be
@@ -1639,7 +1628,6 @@ impl<'a> Analyzer<'a> {
                     let default_value_kind = ValueKind::new_static_from_type(&value_expr.ty);
                     let mut updated_compute_kind = ComputeKind::Classical;
                     for element_assignee_expr_id in assignee_exprs {
-                        // TODO (cesarzc): Fix here.
                         let element_update_compute_kind = self
                             .update_locals_compute_kind(*element_assignee_expr_id, value_expr_id);
                         updated_compute_kind = updated_compute_kind.aggregate_runtime_features(
