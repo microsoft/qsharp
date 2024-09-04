@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 mod alias;
-mod slices;
 
 use crate::tests::{fail_on_compilation_errors, parse, qasm_to_program_fragments};
 use miette::Report;

@@ -40,16 +40,6 @@ pub trait SourceResolver {
         P: AsRef<Path>;
 }
 
-/// A source resolver that resolves include files from the file system.
-#[cfg(feature = "fs")]
-pub mod fs {
-    use super::SourceResolver;
-
-    #[derive(Default)]
-    pub struct FsSourceResolver;
-    impl SourceResolver for FsSourceResolver {}
-}
-
 /// A source resolver that resolves include files from an in-memory map.
 /// This is useful for testing or environments in which file system access
 /// is not available.
