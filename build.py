@@ -501,9 +501,7 @@ if build_pip and build_widgets and args.integration_tests:
         "install",
         widgets_src,
     ]
-    subprocess.run(
-        pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env
-    )
+    subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
 
     # Install other dependencies
     pip_install_args = [
@@ -514,7 +512,6 @@ if build_pip and build_widgets and args.integration_tests:
         "ipykernel",
         "nbconvert",
         "pandas",
-        "qsharp-widgets",
         "qiskit>=1.2.0,<1.3.0",
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
