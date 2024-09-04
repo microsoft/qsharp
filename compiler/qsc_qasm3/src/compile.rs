@@ -3352,7 +3352,7 @@ impl QasmCompiler {
                         expr,
                     })
                 } else {
-                    panic!("Literal must be an FloatNumber")
+                    panic!("Literal must be a FloatNumber")
                 }
             }
             (Type::Complex(..), Type::Float(..)) => {
