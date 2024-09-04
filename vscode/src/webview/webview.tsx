@@ -23,7 +23,6 @@ import hljsQsharp from "./qsharp-hljs";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-// import { useEffect, useRef } from "preact/hooks";
 const md = markdownIt("commonmark");
 md.use(mk, {
   enableMathBlockInHtml: true,
@@ -218,7 +217,6 @@ function onMessage(event: any) {
     case "copilot":
       state = {
         viewType: "copilot",
-        // markdown: "AMA!\n\n",
         qas: [{ request: "", response: "AMA!" }],
         inProgress: false,
       };
@@ -238,10 +236,6 @@ function onMessage(event: any) {
           request: message.request ?? "",
           response: cleanedResponse,
         });
-        //state.markdown += message.response;
-        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-        // state.markdown = state.markdown.replace(/(\\\()|(\\\))/g, "$");
-        // state.markdown = state.markdown.replace(/(\\\[)|(\\\])/g, "$$");
       }
       break;
     case "copilotResponseHistogram":
@@ -265,15 +259,6 @@ function onMessage(event: any) {
         state.qas.push({
           request: "",
           response: "```widget\nHistogram\n" + histogram,
-          // (
-          //   <Histogram
-          //     data={new Map(buckets)}
-          //     shotCount={message.shotCount}
-          //     filter=""
-          //     onFilter={() => undefined}
-          //     shotsHeader={true}
-          //   ></Histogram>
-          // ),
         });
       }
       break;
@@ -282,7 +267,6 @@ function onMessage(event: any) {
         console.error("Received copilot response done in wrong state", state);
         return;
       } else {
-        //state.markdown += "\n\n---\n\n";
         state.qas.push({ request: "", response: "\n\n---\n\n" });
         state.inProgress = false;
       }
@@ -507,17 +491,6 @@ function App({ state }: { state: State }) {
   function Response(props: { request: string; response: string }) {
     const parts: Array<string | any> = [];
 
-    // const histoMap = new Map<string, number>([
-    //   ["000", 5],
-    //   ["001", 1],
-    //   ["010", 20],
-    //   ["011", 18],
-    //   ["100", 1],
-    //   ["101", 0],
-    //   ["110", 3],
-    //   ["111", 1],
-    // ]);
-
     const widget = props.response.indexOf("```widget\n");
     if (widget >= 0) {
       parts.push(props.response.slice(0, widget));
@@ -553,15 +526,6 @@ function App({ state }: { state: State }) {
                   />
                 );
               }
-              // return (
-              //   <Histogram
-              //     data={histoMap}
-              //     filter=""
-              //     shotCount={100}
-              //     onFilter={() => undefined}
-              //     shotsHeader={false}
-              //   />
-              // );
             }
             return <Markdown markdown={part}></Markdown>;
           })}
@@ -570,8 +534,3 @@ function App({ state }: { state: State }) {
     );
   }
 }
-
-// type HistogramJson = {
-//   buckets: Array<[string, number]>;
-//   shotCount: number;
-// };

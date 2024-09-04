@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import OpenAI from "openai";
-//import * as readline from "readline";
 import * as vscode from "vscode";
 import { log } from "qsharp-lang";
 import {
@@ -23,122 +21,16 @@ import {
   submitJobWithNameAndShots,
 } from "./azure/workspaceActions.js";
 import { supportsAdaptive } from "./azure/providerProperties.js";
-import { getQirForActiveWindow, getQirForVisibleQs } from "./qirGeneration.js";
+import { getQirForVisibleQs } from "./qirGeneration.js";
 
 // Don't check in a filled in API key
 const openai = new OpenAI({
   apiKey: "",
 });
 
-// Create a readline interface to read user input
-
-// const rl = readline.createInterface({
-//   input: process.stdin,
-//   output: process.stdout,
-// });
-
-// async function askQuestion(query: string): Promise<string> {
-//   return new Promise((resolve) => rl.question(query, resolve));
-// }
-
-// Define mock data
-
-enum JobStatus {
-  InProgress = "In Progress",
-  Completed = "Completed",
-  Failed = "Failed",
-  NotFound = "Not Found",
-}
-
-const mockJobs: { [id: string]: JobStatus } = {
-  "4": JobStatus.Completed,
-  "6": JobStatus.InProgress,
-  "7": JobStatus.InProgress,
-  "9": JobStatus.Completed,
-  "11": JobStatus.Failed,
-  "13": JobStatus.InProgress,
-  "14": JobStatus.Completed,
-  "16": JobStatus.Completed,
-  "17": JobStatus.Failed,
-  "23": JobStatus.InProgress,
-};
-
-const mockJobs2: Job[] = [
-  {
-    id: "1",
-    name: "First Job",
-    target: "Quantum Hardware",
-    status: "Succeeded",
-    creationTime: "8/19/2024, 9:19:24 AM",
-    beginExecutionTime: "8/19/2024, 9:19:50 AM",
-    endExecutionTime: "8/19/2024, 9:21:04 AM",
-  },
-  {
-    id: "2",
-    name: "Second Job",
-    target: "Quantum Hardware",
-    status: "Failed",
-    creationTime: "8/19/2024, 9:21:54 AM",
-    beginExecutionTime: "8/19/2024, 9:22:11 AM",
-    endExecutionTime: "8/19/2024, 9:22:34 AM",
-  },
-  {
-    id: "3",
-    name: "Third Job",
-    target: "Quantum Hardware",
-    status: "Succeeded",
-    creationTime: "8/20/2024, 9:19:24 AM",
-    beginExecutionTime: "8/20/2024, 9:19:50 AM",
-    endExecutionTime: "8/20/2024, 9:21:04 AM",
-  },
-  {
-    id: "4",
-    name: "Other Job",
-    target: "Quantum Hardware",
-    status: "Succeeded",
-    creationTime: "8/21/2024, 9:19:24 AM",
-    beginExecutionTime: "8/21/2024, 9:19:50 AM",
-    endExecutionTime: "8/21/2024, 9:21:04 AM",
-  },
-];
-
 // Define the tools and system prompt that the model can use
 
-// const GetJobStatus = async (jobId: string): Promise<string> => {
-//   return jobId in mockJobs ? mockJobs[jobId] : JobStatus.NotFound;
-// };
-
-// const GetRecentJobs = async (): Promise<string> => {
-//   let jobs = "";
-//   for (const [job_id, _] of Object.entries(mockJobs)) {
-//     await GetJobStatus(job_id).then((status) => {
-//       jobs += `\nJob ${job_id}: ${status}`;
-//     });
-//   }
-//   return jobs;
-// };
-
 const tools: ChatCompletionTool[] = [
-  // {
-  //   type: "function",
-  //   function: {
-  //     name: "GetJobStatus",
-  //     description:
-  //       "Get the job status for a customer's job. Call this whenever you need to know the job status, for example when a customer asks 'What is the status of my job?'",
-  //     strict: true,
-  //     parameters: {
-  //       type: "object",
-  //       properties: {
-  //         job_id: {
-  //           type: "string",
-  //           description: "The customer's job ID.",
-  //         },
-  //       },
-  //       required: ["job_id"],
-  //       additionalProperties: false,
-  //     },
-  //   },
-  // },
   {
     type: "function",
     function: {
@@ -194,7 +86,10 @@ const tools: ChatCompletionTool[] = [
     function: {
       name: "DownloadJobResults",
       description:
-        "Download and display the results from a customer's job. Call this when you need to display or download the results for a job, for example when a customer asks 'What are the results of my last job?'",
+        "Download and display the results from a customer's job. " +
+        "Call this when you need to download or display as a histogram the results for a job, " +
+        "for example when a customer asks 'What are the results of my last job?' " +
+        "or 'Can you show me the histogram for this job?'",
       strict: true,
       parameters: {
         type: "object",
@@ -262,10 +157,6 @@ const tools: ChatCompletionTool[] = [
             type: "string",
             description: "The ID or name of the target to submit the job to.",
           },
-          // status: {
-          //   type: "string",
-          //   description: "The status the job should be created with.",
-          // },
           number_of_shots: {
             type: "number",
             description: "The number of shots to use for the job.",
@@ -291,7 +182,6 @@ const systemMessage: ChatCompletionMessageParam = {
 const job_limit = 10;
 
 const GetJobs = async (): Promise<Job[]> => {
-  //return mockJobs2;
   const workspace = await getPrimaryWorkspace();
   if (workspace) {
     const jobs = workspace.jobs;
@@ -305,7 +195,7 @@ const GetJobs = async (): Promise<Job[]> => {
   }
 };
 
-// For now, let's just grab the first workspace
+// ToDo: For now, let's just grab the first workspace
 const getPrimaryWorkspace = async (): Promise<
   WorkspaceConnection | undefined
 > => {
@@ -329,60 +219,38 @@ const GetJob = async (jobId: string): Promise<Job | undefined> => {
   return jobs.find((job) => job.id === jobId);
 };
 
-const GetJobStatus = async (jobId: string): Promise<string> => {
-  const job = await GetJob(jobId);
-  if (job) {
-    return job.status;
-  } else {
-    return "Not Found";
-  }
-};
-
 const tryRenderResults = (
   file: string,
   streamCallback: CopilotStreamCallback,
 ): boolean => {
-  // Test string for rendering histogram
-  // const file = '{"Histogram":["[0, 0, 0]",0.52,"[1, 1, 1]",0.48]}';
+  try {
+    // Parse the JSON file
+    const parsedArray = JSON.parse(file).Histogram as Array<any>;
 
-  // Parse the JSON file
-  const parsedArray = JSON.parse(file).Histogram as Array<any>;
+    if (parsedArray.length % 2 !== 0) {
+      // "Data is not in correct format for histogram."
+      return false;
+    }
 
-  // Transform the flat array into an array of pairs [string, number]
-  const histo: Array<[string, number]> = [];
-  for (let i = 0; i < parsedArray.length; i += 2) {
-    histo.push([parsedArray[i], parsedArray[i + 1]]);
+    // Transform the flat array into an array of pairs [string, number]
+    const histo: Array<[string, number]> = [];
+    for (let i = 0; i < parsedArray.length; i += 2) {
+      histo.push([parsedArray[i], parsedArray[i + 1]]);
+    }
+
+    streamCallback(
+      {
+        buckets: histo,
+        shotCount: 100,
+      },
+      "copilotResponseHistogram",
+    );
+
+    return true;
+  } catch (e: any) {
+    log.error("Error rendering results as histogram: ", e);
+    return false;
   }
-
-  //const histo = JSON.parse(file).Histogram as Array<[string, number]>;
-  log.debug("Histogram: ", histo);
-
-  // const buckets: Array<[string, number]> = [
-  //   ["[0, 0, 0]", 0.52],
-  //   ["[1, 1, 1]", 0.48],
-  // ];
-  // log.debug("Buckets: ", buckets);
-
-  streamCallback(
-    {
-      buckets: histo,
-      shotCount: 100,
-    },
-    "copilotResponseHistogram",
-  );
-
-  // if (file.startsWith("```widget\n")) {
-  //   if (file.includes("Histogram")) {
-  //     // Render histogram
-  //     vscode.window.showInformationMessage("Rendering histogram");
-  //     return true;
-  //   } else if (file.includes("Results")) {
-  //     // Render results table
-  //     vscode.window.showInformationMessage("Rendering results table");
-  //     return true;
-  //   }
-  // }
-  return true; // ?
 };
 
 const DownloadJobResults = async (
@@ -426,7 +294,7 @@ const DownloadJobResults = async (
 
     const file = await getJobFiles(container, blob, token, quantumUris);
     if (file) {
-      log.info("Downloaded file: ", file);
+      // log.info("Downloaded file: ", file);
 
       if (!tryRenderResults(file, streamCallback)) {
         const doc = await vscode.workspace.openTextDocument({
@@ -470,13 +338,6 @@ const SubmitToTarget = async (
   targetId: string,
   numberOfShots: number,
 ): Promise<string> => {
-  //return "Job submission is currently disabled";
-  // // Could be run via the treeItem icon or the menu command.
-  // const treeItem = arg || currentTreeItem;
-  // if (treeItem?.type !== "target") return;
-
-  // const target = treeItem.itemData as Target;
-
   const target = await GetTarget(targetId);
   if (!target || target.currentAvailability !== "Available")
     return "Target not available.";
@@ -521,11 +382,6 @@ const SubmitToTarget = async (
       jobName,
       numberOfShots,
     );
-    // if (jobId) {
-    //   // The job submitted fine. Refresh the workspace until it shows up
-    //   // and all jobs are finished. Don't await on this, just let it run
-    //   startRefreshCycle(workspaceTreeProvider, treeItem.workspace, jobId);
-    // }
     return "Job submitted successfully with ID: " + jobId;
   } catch (e: any) {
     log.error("Failed to submit job. ", e);
@@ -559,14 +415,13 @@ export class Copilot {
   // OpenAI handling functions
 
   converseWithOpenAI = async () => {
-    //console.debug("Sent messages: %o", messages);
+    // log.info("Sent messages: %o", this.messages);
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: this.messages,
       tools: tools,
     });
-
-    //console.debug("Response: %o", response);
+    // log.info("Response: %o", response);
     await this.handleResponse(response);
   };
 
@@ -626,17 +481,11 @@ export class Copilot {
 
     const content: any = {};
 
-    if (toolCall.function.name === "GetJobStatus") {
-      const job_id = args.job_id;
-      //console.log("Tool Call: GetJobStatus");
-      const status = await GetJobStatus(job_id);
-      content.status = status;
-    } else if (toolCall.function.name === "GetJob") {
+    if (toolCall.function.name === "GetJob") {
       const job_id = args.job_id;
       const job = await GetJob(job_id);
       content.job = job;
     } else if (toolCall.function.name === "GetJobs") {
-      //console.log("Tool Call: GetRecentJobs");
       const recent_jobs = await GetJobs();
       content.recent_jobs = recent_jobs;
     } else if (toolCall.function.name === "GetWorkspaces") {
@@ -671,12 +520,14 @@ export class Copilot {
     return content;
   };
 
-  handleLengthError = (response: ChatCompletion) => {
-    console.log("Error: The conversation was too long for the context window.");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleLengthError = (_response: ChatCompletion) => {
+    log.error("Error: The conversation was too long for the context window.");
   };
 
-  handleContentFilterError = (response: ChatCompletion) => {
-    console.log("Error: The content was filtered due to policy violations.");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleContentFilterError = (_response: ChatCompletion) => {
+    log.error("Error: The content was filtered due to policy violations.");
   };
 
   handleNormalResponse = (response: ChatCompletion) => {
@@ -689,7 +540,7 @@ export class Copilot {
   };
 
   handleUnexpectedCase = (response: ChatCompletion) => {
-    console.log("Unexpected response: %o", response.choices[0]);
+    log.error("Unexpected response: %o", response.choices[0]);
   };
 
   async makeChatRequest(question: string) {
@@ -702,38 +553,3 @@ export class Copilot {
     this.streamCallback({}, "copilotResponseDone");
   }
 }
-
-// export async function foo(
-//   question: string,
-//   streamCallback: CopilotStreamCallback,
-// ) {
-//   const messages: ChatCompletionMessageParam[] = [
-//     {
-//       role: "user",
-//       content: question,
-//     },
-//   ];
-
-//   const chatResponse: string[] = [];
-//   await converseWithOpenAI(messages, chatResponse);
-
-//   for (const response of chatResponse) {
-//     streamCallback(response, false);
-//   }
-//   streamCallback("", true);
-
-//   //return chatResponse.join("\n");
-// }
-
-// async function main() {
-//   const userQuestion = await askQuestion(
-//     "Please enter a question for the chatbot: "
-//   );
-//   let response = await foo(userQuestion);
-
-//   console.log(response);
-
-//   rl.close(); // Ensure the readline interface is closed
-// }
-
-// main().catch(console.error);
