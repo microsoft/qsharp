@@ -276,6 +276,35 @@ fn check_rca_for_assign_dynamic_call_result_to_tuple_of_vars() {
 }
 
 #[test]
+fn check_rca_for_assign_dynamic_static_mix_call_result_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo(q : Qubit) : (Int[], Result[]) {
+            ([1, 2], [MResetZ(q)])
+        }
+        use q = Qubit();
+        mutable (a, b) = Foo(q);
+        set (a, b) = Foo(q);
+        a
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#""#]],
+    );
+    compilation_context.update(
+        r#"
+        b
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#""#]],
+    );
+}
+
+#[test]
 fn check_rca_for_mutable_classical_integer_assigned_updated_with_classical_integer() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(

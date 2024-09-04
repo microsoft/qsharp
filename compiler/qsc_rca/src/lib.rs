@@ -474,6 +474,24 @@ impl Display for ComputeKind {
 }
 
 impl ComputeKind {
+    pub(crate) fn map_to_type(compute_kind: &Self, ty: &Ty) -> Self {
+        match compute_kind {
+            ComputeKind::Classical => ComputeKind::Classical,
+            ComputeKind::Quantum(quantum_properties) => {
+                let runtime_features = quantum_properties.runtime_features;
+                let value_kind = if quantum_properties.value_kind.is_dynamic() {
+                    ValueKind::new_dynamic_from_type(ty)
+                } else {
+                    ValueKind::new_static_from_type(ty)
+                };
+                ComputeKind::Quantum(QuantumProperties {
+                    runtime_features,
+                    value_kind,
+                })
+            }
+        }
+    }
+
     pub(crate) fn new_with_runtime_features(
         runtime_features: RuntimeFeatureFlags,
         value_kind: ValueKind,
