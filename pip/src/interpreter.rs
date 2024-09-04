@@ -40,6 +40,15 @@ use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 ///
 /// This function is used to verify that the classes are Send.
 /// The code will fail to compile if the classes are not Send.
+///
+/// ### Note
+/// `QSharpError`, and `QasmError` are not `Send`, *BUT*
+/// we return `QasmError::new_err` or `QSharpError::new_err` which
+/// actually returns a `PyErr` that is `Send` and the args passed
+/// into the `new_err` call must also impl `Send`.
+/// Because of this, we don't need to check the `Send`-ness of
+/// them. On the Python side, the `PyErr` is converted into the
+/// corresponding exception.
 fn verify_classes_are_sendable() {
     fn is_send<T: Send>() {}
     is_send::<TargetProfile>();
@@ -48,11 +57,6 @@ fn verify_classes_are_sendable() {
     is_send::<Output>();
     is_send::<StateDumpData>();
     is_send::<Circuit>();
-
-    // QSharpError, and QasmError are not Send, but we don't raise
-    // them. Instead, we raise PyErr from them which is Send. On
-    // the Python side, they PyErr is converted into the
-    // corresponding exception.
 }
 
 #[pymodule]

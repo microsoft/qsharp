@@ -16,7 +16,7 @@ from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
 if QISKIT_AVAILABLE:
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RGQFTMultiplier
-    from qsharp.interop import ResourceEstimatorBackend
+    from qsharp.interop.qiskit import ResourceEstimatorBackend
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

@@ -13,7 +13,7 @@ if QISKIT_AVAILABLE:
     from qiskit.qasm3 import loads as from_qasm3
     from qiskit.providers import JobStatus
     from qiskit import ClassicalRegister
-    from qsharp.interop import QSharpBackend
+    from qsharp.interop.qiskit import QSharpBackend
     from .test_circuits import (
         core_tests_small,
         generate_repro_information,

@@ -8,7 +8,7 @@ from .. import QISKIT_AVAILABLE
 
 if QISKIT_AVAILABLE:
     from qiskit.circuit.random import random_circuit
-    from qsharp.interop import QSharpBackend
+    from qsharp.interop.qiskit import QSharpBackend
 
 
 def _generate_random_fixture(
