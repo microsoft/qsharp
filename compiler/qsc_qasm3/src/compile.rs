@@ -130,67 +130,6 @@ struct QasmCompiler {
 }
 
 impl QasmCompiler {
-    pub fn push_unimplemented_error_message<S: AsRef<str>>(
-        &mut self,
-        message: S,
-        node: &SyntaxNode,
-    ) {
-        let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::Unimplemented(message.as_ref().to_string(), span);
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    pub fn push_missing_symbol_error<S: AsRef<str>>(&mut self, name: S, node: &SyntaxNode) {
-        let span = span_for_syntax_node(node);
-        let kind = SemanticErrorKind::UndefinedSymbol(name.as_ref().to_string(), span);
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    pub fn push_redefined_symbol_error<S: AsRef<str>>(&mut self, name: S, span: Span) {
-        let kind = SemanticErrorKind::RedefinedSymbol(name.as_ref().to_string(), span);
-        self.push_semantic_error(kind);
-    }
-    pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, node: &SyntaxNode) {
-        let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::NotSupported(message.as_ref().to_string(), span);
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    pub fn push_calibration_error(&mut self, node: &SyntaxNode) {
-        let span = span_for_syntax_node(node);
-        let text = node.text().to_string();
-        let kind = crate::ErrorKind::CalibrationsNotSupported(text, span);
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    pub fn push_pulse_control_error(&mut self, node: &SyntaxNode) {
-        let span = span_for_syntax_node(node);
-        let text = node.text().to_string();
-        let kind = crate::ErrorKind::PulseControlNotSupported(text, span);
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-    fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
-        let error = crate::Error(kind);
-        let path = self.file_stack.last().map_or("<compiler>", |p| {
-            p.to_str().expect("expected source mapping to exist.")
-        });
-        let source = self.source_map.find_by_name(path);
-        let offset = source.map_or(0, |x| x.offset);
-        let offset_error = error.with_offset(offset);
-        WithSource::from_map(&self.source_map, offset_error)
-    }
-
-    pub fn drain_nodes(&mut self) -> Drain<ast::Stmt> {
-        self.stmts.drain(..)
-    }
-
     /// The main entry into compilation. This function will compile the
     /// source file and build the appropriate package based on the
     /// configuration.
@@ -258,7 +197,7 @@ impl QasmCompiler {
     /// Turns the compiled statements into package of top level nodes
     fn build_fragments(&mut self) -> Package {
         let nodes = self
-            .drain_nodes()
+            .stmts.drain(..)
             .map(Box::new)
             .map(TopLevelNode::Stmt)
             .collect::<Vec<_>>()
@@ -3113,108 +3052,37 @@ impl QasmCompiler {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
+    /// Define the standard gates in the symbol table.
+    /// The sdg, tdg, crx, cry, crz, and ch are defined
+    /// as their bare gates, and modifiers are applied
+    /// when calling them.
     fn define_stdgates(&mut self, include: &oq3_syntax::ast::Include) {
-        // sdg, tdg, crx, cry, crz, and ch are defined
-        // as their bare gates, and modifiers are applied
-        // when calling them.
-
+        fn gate_symbol(name: &str, cargs: usize, qargs: usize) -> Symbol {
+            Symbol {
+                name: name.to_string(),
+                ty: Type::Gate(cargs, qargs),
+                ..Default::default()
+            }
+        }
         let gates = vec![
-            Symbol {
-                name: "X".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Y".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Z".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "H".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "S".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "T".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Rx".to_string(),
-                ty: Type::Gate(1, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Rxx".to_string(),
-                ty: Type::Gate(1, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Ry".to_string(),
-                ty: Type::Gate(1, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Ryy".to_string(),
-                ty: Type::Gate(1, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Rz".to_string(),
-                ty: Type::Gate(1, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "Rzz".to_string(),
-                ty: Type::Gate(1, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "CNOT".to_string(),
-                ty: Type::Gate(0, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "CY".to_string(),
-                ty: Type::Gate(0, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "CZ".to_string(),
-                ty: Type::Gate(0, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "CH".to_string(),
-                ty: Type::Gate(0, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "I".to_string(),
-                ty: Type::Gate(0, 1),
-                ..Default::default()
-            },
-            Symbol {
-                name: "SWAP".to_string(),
-                ty: Type::Gate(0, 2),
-                ..Default::default()
-            },
-            Symbol {
-                name: "CCNOT".to_string(),
-                ty: Type::Gate(0, 3),
-                ..Default::default()
-            },
+            gate_symbol("X", 0, 1),
+            gate_symbol("Y", 0, 1),
+            gate_symbol("Z", 0, 1),
+            gate_symbol("H", 0, 1),
+            gate_symbol("S", 0, 1),
+            gate_symbol("T", 0, 1),
+            gate_symbol("Rx", 1, 1),
+            gate_symbol("Rxx", 1, 2),
+            gate_symbol("Ry", 1, 1),
+            gate_symbol("Ryy", 1, 2),
+            gate_symbol("Rz", 1, 1),
+            gate_symbol("Rzz", 1, 2),
+            gate_symbol("CNOT", 0, 2),
+            gate_symbol("CY", 0, 2),
+            gate_symbol("CZ", 0, 2),
+            gate_symbol("I", 0, 1),
+            gate_symbol("SWAP", 0, 2),
+            gate_symbol("CCNOT", 0, 3),
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -3559,7 +3427,7 @@ impl QasmCompiler {
         name: S,
         whole_span: Span,
     ) -> (ast::Item, OperationSignature) {
-        let stmts = self.drain_nodes().collect::<Vec<_>>();
+        let stmts = self.stmts.drain(..).collect::<Vec<_>>();
         let input = self.symbols.get_input();
         let output = self.symbols.get_output();
         self.create_entry_item(
@@ -4063,6 +3931,80 @@ impl QasmCompiler {
         } else {
             None
         }
+    }
+
+    /// Pushes an unimplemented error with the supplied message.
+    pub fn push_unimplemented_error_message<S: AsRef<str>>(
+        &mut self,
+        message: S,
+        node: &SyntaxNode,
+    ) {
+        let span = span_for_syntax_node(node);
+        let kind = crate::ErrorKind::Unimplemented(message.as_ref().to_string(), span);
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes a missing symbol error with the given name
+    /// This is a convenience method for pushing a `SemanticErrorKind::UndefinedSymbol` error.
+    pub fn push_missing_symbol_error<S: AsRef<str>>(&mut self, name: S, node: &SyntaxNode) {
+        let span = span_for_syntax_node(node);
+        let kind = SemanticErrorKind::UndefinedSymbol(name.as_ref().to_string(), span);
+        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes a redefined symbol error with the given name and span.
+    /// This is a convenience method for pushing a `SemanticErrorKind::RedefinedSymbol` error.
+    pub fn push_redefined_symbol_error<S: AsRef<str>>(&mut self, name: S, span: Span) {
+        let kind = SemanticErrorKind::RedefinedSymbol(name.as_ref().to_string(), span);
+        self.push_semantic_error(kind);
+    }
+
+    /// Pushes a semantic error with the given kind.
+    pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
+        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes an unsupported error with the supplied message.
+    pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, node: &SyntaxNode) {
+        let span = span_for_syntax_node(node);
+        let kind = crate::ErrorKind::NotSupported(message.as_ref().to_string(), span);
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes an error for a gate not being supported.
+    pub fn push_calibration_error(&mut self, node: &SyntaxNode) {
+        let span = span_for_syntax_node(node);
+        let text = node.text().to_string();
+        let kind = crate::ErrorKind::CalibrationsNotSupported(text, span);
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes an error for a pulse control not being supported.
+    pub fn push_pulse_control_error(&mut self, node: &SyntaxNode) {
+        let span = span_for_syntax_node(node);
+        let text = node.text().to_string();
+        let kind = crate::ErrorKind::PulseControlNotSupported(text, span);
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Creates an error from the given kind with the current source mapping.
+    fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
+        let error = crate::Error(kind);
+        let path = self.file_stack.last().map_or("<compiler>", |p| {
+            p.to_str().expect("expected source mapping to exist.")
+        });
+        let source = self.source_map.find_by_name(path);
+        let offset = source.map_or(0, |x| x.offset);
+        let offset_error = error.with_offset(offset);
+        WithSource::from_map(&self.source_map, offset_error)
     }
 }
 
