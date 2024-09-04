@@ -1304,6 +1304,7 @@ impl<'a> PartialEvaluator<'a> {
             // The following intrinsic operations and functions are no-ops.
             "BeginEstimateCaching" => Ok(Value::Bool(true)),
             "DumpRegister"
+            | "DumpOperation"
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal"

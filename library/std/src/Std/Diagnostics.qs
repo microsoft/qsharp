@@ -86,8 +86,10 @@ function DumpRegister(register : Qubit[]) : Unit {
 /// ```
 /// Calling this operation has no observable effect from within Q#.
 /// Note that if `DumpOperation` is called when there are other qubits allocated,
-/// the matrix displayed may reflect any global phase that has accumulated on the other qubits.
-operation DumpOperation(nQubits : Int, op : Qubit[] => Unit) : Unit {
+/// the matrix displayed may reflect any global phase that has accumulated from operations
+/// on those other qubits.
+@SimulatableIntrinsic()
+operation DumpOperation(nQubits : Int, op : Qubit[] => Unit is Adj) : Unit {
     use (targets, extra) = (Qubit[nQubits], Qubit[nQubits]);
     for i in 0..nQubits - 1 {
         H(targets[i]);

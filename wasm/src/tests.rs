@@ -138,7 +138,7 @@ fn test_matrix() {
             DumpOperation(2, Bell);
         }
 
-        operation Bell(q: Qubit[]) : Unit {
+        operation Bell(q: Qubit[]) : Unit is Adj {
             H(q[0]);
             CX(q[0], q[1]);
         }
