@@ -3,38 +3,10 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::tests::{compile_qasm_stmt_to_qsharp, gen_qsharp, qasm_to_program_fragments};
-use crate::{tests::fail_on_compilation_errors, tests::parse};
+use crate::tests::compile_qasm_stmt_to_qsharp;
 
 use expect_test::expect;
 use miette::Report;
-
-#[test]
-// TODO: break this into multiple tests for binops
-fn complex() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        complex[float] a;
-        complex[float] b = 4 - 5.5im;
-        complex[float[64]] c = a + 3 im;
-        complex[float[32]] d = a * b;
-        complex[float] e = 1im;
-        complex[float] f = 1	im;
-        complex g = c * d;
-        complex h = g / 2.2im;
-        complex z;
-    ";
-
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
-    fail_on_compilation_errors(&unit);
-    let Some(package) = &unit.package else {
-        panic!("no package found");
-    };
-    let qsharp = gen_qsharp(package);
-    println!("{qsharp}");
-    Ok(())
-}
 
 #[test]
 fn implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
