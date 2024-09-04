@@ -27,7 +27,7 @@ if _test_qiskit_import():
         "QsJob",
         "ReJob",
         "ResourceEstimatorBackend",
-        "DetaultExecutor",
+        "DefaultExecutor",
     ]
 else:
     __all__ = []
