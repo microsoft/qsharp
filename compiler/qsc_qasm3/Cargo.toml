@@ -14,12 +14,11 @@ miette = { workspace = true }
 qsc = { path = "../qsc" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
-
-oq3_source_file = "0.6.0"
-oq3_syntax = "0.6.0"
-oq3_parser = "0.6.0"
-oq3_lexer = "0.6.0"
-oq3_semantics = "0.6.0"
+oq3_source_file = { workspace = true }
+oq3_syntax = { workspace = true }
+oq3_parser = { workspace = true }
+oq3_lexer = { workspace = true }
+oq3_semantics = { workspace = true }
 
 [dev-dependencies]
 difference = { workspace = true }
