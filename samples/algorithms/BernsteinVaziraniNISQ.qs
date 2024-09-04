@@ -140,7 +140,7 @@ namespace Sample {
     /// This is a higher-order operation which returns an operation (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
-    operation EncodeBitStringAsParityOperation(bitStringAsBoolArray : Bool[]) : (Qubit[], Qubit) => Unit {
+    function EncodeBitStringAsParityOperation(bitStringAsBoolArray : Bool[]) : (Qubit[], Qubit) => Unit {
         return ApplyParityOperation(bitStringAsBoolArray, _, _);
     }
 

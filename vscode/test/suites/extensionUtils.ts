@@ -108,7 +108,7 @@ export async function delay(timeoutMs: number) {
       timeoutMs,
       "hit the expected timeout",
     );
-  } catch (e) {
+  } catch {
     // expected
   }
 }

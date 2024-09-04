@@ -1,4 +1,5 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
@@ -10,8 +11,9 @@ namespace Kata.Verification {
             let actual = Kata.ComplexModulus(x);
         
             if  AbsD(expected - actual) > 1e-6 {
+                let precision = 3;
                 Message("Incorrect");
-                Message($"For x = {ComplexAsString(x)} expected return {expected}, actual return {actual}.");
+                Message($"For x = {ComplexAsString(x)} expected return {DoubleAsStringWithPrecision(expected, precision)}, actual return {DoubleAsStringWithPrecision(actual, precision)}.");
                 return false;
             }
         }

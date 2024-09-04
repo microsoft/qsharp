@@ -255,7 +255,7 @@ async function getCircuitOrError(
       try {
         errors = JSON.parse(e);
         resultCompError = hasResultComparisonError(errors);
-      } catch (e) {
+      } catch {
         // couldn't parse the error - would indicate a bug.
         // will get reported up the stack as a generic error
       }
@@ -384,7 +384,7 @@ function documentHtml(maybeUri: string, range?: IRange) {
       ? escapeHtml(`:${range.start.line + 1}:${range.start.character + 1}`)
       : "";
     location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
-  } catch (e) {
+  } catch {
     // Likely could not parse document URI - it must be a project level error
     // or an error from stdlib, use the document name directly
     location = escapeHtml(maybeUri);
