@@ -18,7 +18,10 @@ import {
 } from "./azure/treeView.js";
 import { QuantumUris } from "./azure/networkRequests.js";
 import { getTokenForWorkspace } from "./azure/auth.js";
-import { getJobFiles, submitJob } from "./azure/workspaceActions.js";
+import {
+  getJobFiles,
+  submitJobWithNameAndShots,
+} from "./azure/workspaceActions.js";
 import { supportsAdaptive } from "./azure/providerProperties.js";
 import { getQirForActiveWindow, getQirForVisibleQs } from "./qirGeneration.js";
 
@@ -246,17 +249,29 @@ const tools: ChatCompletionTool[] = [
     function: {
       name: "SubmitToTarget",
       description:
-        "Submit the current Q# program to Azure Quantum with the provided hardware target. Call this when you need to submit or run a Q# program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
+        "Submit the current Q# program to Azure Quantum with the provided information. Call this when you need to submit or run a Q# program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
       strict: true,
       parameters: {
         type: "object",
         properties: {
+          job_name: {
+            type: "string",
+            description: "The string to name the created job.",
+          },
           target_id: {
             type: "string",
             description: "The ID or name of the target to submit the job to.",
           },
+          // status: {
+          //   type: "string",
+          //   description: "The status the job should be created with.",
+          // },
+          number_of_shots: {
+            type: "number",
+            description: "The number of shots to use for the job.",
+          },
         },
-        required: ["target_id"],
+        required: ["job_name", "target_id", "number_of_shots"],
         additionalProperties: false,
       },
     },
@@ -450,7 +465,12 @@ const GetTarget = async (targetId: string): Promise<Target | undefined> => {
   }
 };
 
-const SubmitToTarget = async (targetId: string): Promise<string> => {
+const SubmitToTarget = async (
+  jobName: string,
+  targetId: string,
+  numberOfShots: number,
+): Promise<string> => {
+  //return "Job submission is currently disabled";
   // // Could be run via the treeItem icon or the menu command.
   // const treeItem = arg || currentTreeItem;
   // if (treeItem?.type !== "target") return;
@@ -492,12 +512,14 @@ const SubmitToTarget = async (targetId: string): Promise<string> => {
       return "Failed to download the results file.";
     }
 
-    const jobId = await submitJob(
+    const jobId = await submitJobWithNameAndShots(
       token,
       quantumUris,
       qir,
       providerId,
       target.id,
+      jobName,
+      numberOfShots,
     );
     // if (jobId) {
     //   // The job submitted fine. Refresh the workspace until it shows up
@@ -635,8 +657,14 @@ export class Copilot {
       const target = await GetTarget(target_id);
       content.target = target;
     } else if (toolCall.function.name === "SubmitToTarget") {
+      const job_name = args.job_name;
       const target_id = args.target_id;
-      const submit_result = await SubmitToTarget(target_id);
+      const number_of_shots = args.number_of_shots;
+      const submit_result = await SubmitToTarget(
+        job_name,
+        target_id,
+        number_of_shots,
+      );
       content.submit_result = submit_result;
     }
 

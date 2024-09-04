@@ -496,44 +496,90 @@ export async function submitJob(
   providerId: string,
   target: string,
 ) {
+  return _submitJob(
+    token,
+    quantumUris,
+    qirFile,
+    providerId,
+    target,
+    undefined,
+    undefined,
+  );
+}
+
+export async function submitJobWithNameAndShots(
+  token: string,
+  quantumUris: QuantumUris,
+  qirFile: Uint8Array | string,
+  providerId: string,
+  target: string,
+  jobName: string,
+  numberOfShots: number,
+) {
+  return _submitJob(
+    token,
+    quantumUris,
+    qirFile,
+    providerId,
+    target,
+    jobName,
+    numberOfShots,
+  );
+}
+
+async function _submitJob(
+  token: string,
+  quantumUris: QuantumUris,
+  qirFile: Uint8Array | string,
+  providerId: string,
+  target: string,
+  jobName: string | undefined,
+  numberOfShots: number | undefined,
+) {
   const associationId = getRandomGuid();
   const start = performance.now();
   sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
 
   const containerName = getRandomGuid();
-  const jobName = await vscode.window.showInputBox({
-    prompt: "Job name",
-    value: new Date().toISOString(),
-  });
-  if (!jobName) return; // TODO: Log a telemetry event for this?
+  if (!jobName) {
+    jobName = await vscode.window.showInputBox({
+      prompt: "Job name",
+      value: new Date().toISOString(),
+    });
+    if (!jobName) return; // TODO: Log a telemetry event for this?
+  }
 
-  // validator for the user-provided number of shots input
-  const validateShotsInput = (input: string) => {
-    const result = parseFloat(input);
-    if (isNaN(result) || Math.floor(result) !== result) {
-      return "Number of shots must be an integer";
-    }
-  };
+  if (!numberOfShots) {
+    // validator for the user-provided number of shots input
+    const validateShotsInput = (input: string) => {
+      const result = parseFloat(input);
+      if (isNaN(result) || Math.floor(result) !== result) {
+        return "Number of shots must be an integer";
+      }
+    };
 
-  const numberOfShots =
-    (await vscode.window.showInputBox({
+    // prompt the user for the number of shots
+    const numberOfShotsPropmted = await vscode.window.showInputBox({
       value: "100",
       prompt: "Number of shots",
       validateInput: validateShotsInput,
-    })) || "100";
+    });
 
-  // abort if the user hits <Esc> during shots entry
-  if (numberOfShots === undefined) {
-    sendTelemetryEvent(
-      EventType.SubmitToAzureEnd,
-      {
-        associationId,
-        reason: "undefined number of shots",
-        flowStatus: UserFlowStatus.Aborted,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
-    return;
+    // abort if the user hits <Esc> during shots entry
+    if (numberOfShotsPropmted === undefined) {
+      sendTelemetryEvent(
+        EventType.SubmitToAzureEnd,
+        {
+          associationId,
+          reason: "undefined number of shots",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      return;
+    }
+
+    numberOfShots = parseInt(numberOfShotsPropmted);
   }
 
   // Get a sasUri for the container
@@ -600,8 +646,8 @@ export async function submitJob(
     inputParams: {
       entryPoint: "ENTRYPOINT__main",
       arguments: [],
-      count: parseInt(numberOfShots),
-      shots: parseInt(numberOfShots),
+      count: numberOfShots,
+      shots: numberOfShots,
     },
   };
   await azureRequest(
