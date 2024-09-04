@@ -9,6 +9,7 @@ use crate::tests::compile_qasm_to_qsharp;
 
 mod arithmetic_conversions;
 mod comparison;
+mod complex;
 mod ident;
 mod literal;
 
