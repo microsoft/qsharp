@@ -59,7 +59,6 @@ type DocumentationState = {
 
 type CopilotState = {
   viewType: "copilot";
-  // markdown: string;
   qas: QA[];
   inProgress: boolean;
 };
@@ -312,6 +311,10 @@ function copilotRequest() {
     command: "copilotRequest",
     request: questionText.value,
   });
+  (state as CopilotState).qas.push({
+    request: questionText.value,
+    response: "",
+  });
   (state as CopilotState).inProgress = true;
   questionText.value = "";
   render(<App state={state} />, document.body);
@@ -381,7 +384,7 @@ function App({ state }: { state: State }) {
       //   </div>
       // );
       return (
-        <div style="max-width: 800px; font-size: 0.9em;">
+        <div style="max-width: 800px; font-size: 10pt; line-height: 1.5;">
           <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
           {(state as CopilotState).qas.map((qa) => (
             <Response request={qa.request} response={qa.response} />
@@ -505,11 +508,17 @@ function App({ state }: { state: State }) {
     } else {
       parts.push(props.response);
     }
+    let requestBox = {};
+    if (props.request) {
+      requestBox = (
+        <div class="requestBox">
+          <Markdown markdown={"\\> " + props.request} />
+        </div>
+      );
+    }
     return (
       <div>
-        <div class="requestBox">
-          <Markdown markdown={props.request} />
-        </div>
+        {requestBox}
         <div class="responseBox">
           {parts.map((part) => {
             if (part.startsWith("```widget\nHistogram\n")) {

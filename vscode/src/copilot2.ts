@@ -241,7 +241,7 @@ const tryRenderResults = (
     streamCallback(
       {
         buckets: histo,
-        shotCount: 100,
+        shotCount: 100, // ToDo: Where are the actual shot counts stored?
       },
       "copilotResponseHistogram",
     );
