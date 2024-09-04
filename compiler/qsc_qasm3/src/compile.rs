@@ -2189,7 +2189,6 @@ impl QasmCompiler {
         })
     }
 
-    #[allow(clippy::too_many_lines)]
     fn compile_negated_literal_as_ty(
         &mut self,
         literal: &Literal,
@@ -2240,7 +2239,6 @@ impl QasmCompiler {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn compile_prefix_expr(
         &mut self,
         prefix_expr: &oq3_syntax::ast::PrefixExpr,
@@ -3094,8 +3092,9 @@ impl QasmCompiler {
 
     #[allow(clippy::too_many_lines)]
     fn define_stdgates(&mut self, include: &oq3_syntax::ast::Include) {
-        // TODO: sdg - Adjoint S
-        // TODO: tdg - Adjoint T
+        // sdg, tdg, crx, cry, crz, and ch are defined
+        // as their bare gates, and modifiers are applied
+        // when calling them.
 
         let gates = vec![
             Symbol {
