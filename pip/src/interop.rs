@@ -30,6 +30,8 @@ use crate::interpreter::{
 
 use resource_estimator::{self as re};
 
+/// `SourceResolver` implementation that uses the provided `FileSystem`
+/// to resolve qasm3 include statements.
 pub(crate) struct ImportResolver<T>
 where
     T: FileSystem,
@@ -374,6 +376,8 @@ pub(crate) fn compile_qasm3_to_qsharp(
     Ok(qsharp)
 }
 
+/// Enriches the compilation errors to provide more helpful messages
+/// as we know that we are compiling the entry expression.
 pub(crate) fn map_entry_compilation_errors(
     errors: Vec<interpret::Error>,
     sig: &OperationSignature,
@@ -406,6 +410,8 @@ pub(crate) fn map_entry_compilation_errors(
     QSharpError::new_err(message)
 }
 
+/// Adds additional information to interpreter errors to make them more user-friendly.
+/// when QIR generation fails.
 fn map_qirgen_errors(errors: Vec<interpret::Error>) -> PyErr {
     let mut semantic = vec![];
     for error in errors {
@@ -449,6 +455,9 @@ fn map_qirgen_errors(errors: Vec<interpret::Error>) -> PyErr {
     QSharpError::new_err(message)
 }
 
+/// Estimates the resources required to run a QASM3 program
+/// represented by the provided AST. The source map is used for
+/// error reporting during compilation or runtime.
 fn estimate_qasm3(
     ast_package: Package,
     source_map: SourceMap,
@@ -466,6 +475,7 @@ fn estimate_qasm3(
     resource_estimator::estimate_entry(&mut interpreter, params)
 }
 
+/// Converts a list of Q# errors into a list of resource estimator errors.
 fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimator::Error> {
     errors
         .into_iter()
@@ -473,6 +483,7 @@ fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimat
         .collect::<Vec<_>>()
 }
 
+/// Formats a list of QASM3 errors into a single string.
 pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc_qasm3::Error>>) -> String {
     errors
         .into_iter()
@@ -485,6 +496,8 @@ pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc_qasm3::Error>>) -> S
         .collect::<String>()
 }
 
+/// Creates a `FileSystem` from the provided Python callbacks.
+/// If any of the callbacks are missing, this will panic.
 pub(crate) fn create_filesystem_from_py(
     py: Python,
     read_file: Option<PyObject>,
@@ -504,6 +517,7 @@ pub(crate) fn create_filesystem_from_py(
     )
 }
 
+/// Creates an `Interpreter` from the provided AST package and configuration.
 fn create_interpreter_from_ast(
     ast_package: Package,
     source_map: SourceMap,
@@ -542,6 +556,8 @@ fn create_interpreter_from_ast(
     )
 }
 
+/// Sanitizes the name to ensure it is a valid identifier according
+/// to the Q# specification. If the name is empty, returns "circuit".
 pub(crate) fn sanitize_name<S: AsRef<str>>(name: S) -> String {
     let name = name.as_ref();
     if name.is_empty() {
@@ -568,6 +584,9 @@ pub(crate) fn sanitize_name<S: AsRef<str>>(name: S) -> String {
     output
 }
 
+/// Extracts the search path from the kwargs dictionary.
+/// If the search path is not present, returns an error.
+/// Otherwise, returns the search path as a string.
 pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     kwargs.get_item("search_path")?.map_or_else(
         || {
@@ -579,6 +598,11 @@ pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     )
 }
 
+/// Extracts the run type from the kwargs dictionary.
+/// If the run type is not present, returns an error.
+/// Otherwise, returns the run type as a string.
+///
+/// Note: This should become an enum in the future.
 pub(crate) fn get_run_type(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     kwargs.get_item("run_type")?.map_or_else(
         || Err(PyException::new_err("Could not parse run type".to_string())),
@@ -586,6 +610,9 @@ pub(crate) fn get_run_type(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     )
 }
 
+/// Extracts the name from the kwargs dictionary.
+/// If the name is not present, returns "program".
+/// Otherwise, returns the name after sanitizing it.
 pub(crate) fn get_name(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     let name = kwargs
         .get_item("name")?
@@ -597,6 +624,12 @@ pub(crate) fn get_name(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     Ok(sanitize_name(name))
 }
 
+/// Extracts the target profile from the kwargs dictionary.
+/// If the target profile is not present, returns `TargetProfile::Unrestricted`.
+/// Otherwise if not a valid `TargetProfile`, returns an error.
+///
+/// This also maps the `TargetProfile` exposed to Python to a `Profile`
+/// used by the interpreter.
 pub(crate) fn get_target_profile(kwargs: &Bound<'_, PyDict>) -> PyResult<Profile> {
     let target = kwargs.get_item("target_profile")?.map_or_else(
         || Ok(TargetProfile::Unrestricted),
@@ -605,6 +638,8 @@ pub(crate) fn get_target_profile(kwargs: &Bound<'_, PyDict>) -> PyResult<Profile
     Ok(target.into())
 }
 
+/// Extracts the shots from the kwargs dictionary.
+/// If the shots are not present, or are not a valid usize, returns an error.
 pub(crate) fn get_shots(kwargs: &Bound<'_, PyDict>) -> PyResult<usize> {
     kwargs.get_item("shots")?.map_or_else(
         || Err(PyException::new_err("Could not parse shots".to_string())),
@@ -612,6 +647,8 @@ pub(crate) fn get_shots(kwargs: &Bound<'_, PyDict>) -> PyResult<usize> {
     )
 }
 
+/// Extracts the seed from the kwargs dictionary.
+/// If the seed is not present, or is not a valid u64, returns None.
 pub(crate) fn get_seed(kwargs: &Bound<'_, PyDict>) -> Option<u64> {
     kwargs
         .get_item("seed")
