@@ -3,7 +3,6 @@
 
 use core::panic;
 use std::path::PathBuf;
-use std::vec::Drain;
 
 use crate::ast_builder::{
     self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_attr,
