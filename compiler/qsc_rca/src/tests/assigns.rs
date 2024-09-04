@@ -291,7 +291,12 @@ fn check_rca_for_assign_dynamic_static_mix_call_result_to_tuple_of_vars() {
     );
     check_last_statement_compute_properties(
         compilation_context.get_compute_properties(),
-        &expect![[r#""#]],
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
+                    value_kind: Array(Content: Dynamic, Size: Static)
+                dynamic_param_applications: <empty>"#]],
     );
     compilation_context.update(
         r#"
@@ -300,7 +305,12 @@ fn check_rca_for_assign_dynamic_static_mix_call_result_to_tuple_of_vars() {
     );
     check_last_statement_compute_properties(
         compilation_context.get_compute_properties(),
-        &expect![[r#""#]],
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
+                    value_kind: Array(Content: Dynamic, Size: Static)
+                dynamic_param_applications: <empty>"#]],
     );
 }
 

@@ -1341,7 +1341,7 @@ impl<'a> Analyzer<'a> {
                 };
                 let application_instance = self.get_current_application_instance();
                 let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
-                let bound_compute_kind = ComputeKind::map_to_type(&expr_compute_kind, &pat.ty);
+                let bound_compute_kind = ComputeKind::map_to_type(expr_compute_kind, &pat.ty);
                 self.bind_compute_kind_to_ident(pat, ident, local_kind, bound_compute_kind);
             }
             PatKind::Tuple(pats) => match &expr.kind {
@@ -1375,7 +1375,7 @@ impl<'a> Analyzer<'a> {
                 };
                 let application_instance = self.get_current_application_instance();
                 let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
-                let bound_compute_kind = ComputeKind::map_to_type(&expr_compute_kind, &pat.ty);
+                let bound_compute_kind = ComputeKind::map_to_type(expr_compute_kind, &pat.ty);
                 self.bind_compute_kind_to_ident(pat, ident, local_kind, bound_compute_kind);
             }
             PatKind::Tuple(pats) => {
@@ -1569,14 +1569,7 @@ impl<'a> Analyzer<'a> {
                         )
                     }
                 };
-
-                if assignee_expr_id == ExprId::from(16u32) && value_expr_id == ExprId::from(18u32) {
-                    println!("{assignee_expr}");
-                    println!("{value_expr}");
-                    println!("{assigned_compute_kind}");
-                    println!("{updated_compute_kind}");
-                }
-                //updated_compute_kind = updated_compute_kind.aggregate(assigned_compute_kind);
+                updated_compute_kind = updated_compute_kind.aggregate(assigned_compute_kind);
 
                 // If a local is updated within a dynamic scope, the updated value of the local variable should be
                 // dynamic and additional runtime features may apply.

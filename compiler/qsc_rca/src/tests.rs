@@ -75,7 +75,6 @@ impl CompilationContext {
         self.lowerer
             .lower_and_update_package(fir_package, &increment.hir);
         self.compiler.update(increment);
-        println!("{}", fir_package);
 
         // Clear the compute properties of the package to update.
         let package_compute_properties = self.compute_properties.get_mut(package_id);
