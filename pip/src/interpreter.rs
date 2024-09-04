@@ -753,7 +753,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
