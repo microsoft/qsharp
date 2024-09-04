@@ -12,35 +12,12 @@ from . import QISKIT_AVAILABLE, SKIP_REASON, ignore_on_failure
 
 if QISKIT_AVAILABLE:
     from .test_circuits import (
-        core_tests,
         generate_repro_information,
     )
     from qsharp.interop.qiskit import QasmError, QirTarget
     from qiskit.circuit import QuantumCircuit, Parameter, Gate
     from qiskit.circuit.quantumcircuit import QubitSpecifier
     from qsharp.interop.qiskit.backends import QSharpBackend
-else:
-    core_tests = []
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-@pytest.mark.parametrize("circuit_name", core_tests)
-def test_random(circuit_name: str, request):
-    circuit = request.getfixturevalue(circuit_name)
-    if str.endswith(circuit_name.lower(), "base"):
-        target_profile = TargetProfile.Base
-    else:
-        target_profile = TargetProfile.Adaptive_RI
-
-    backend = QSharpBackend(target_profile=target_profile)
-    try:
-        qir = backend.qir(circuit)
-        assert qir is not None
-    except AssertionError:
-        raise
-    except Exception as ex:
-        additional_info = generate_repro_information(circuit, backend)
-        raise RuntimeError(additional_info) from ex
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

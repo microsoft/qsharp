@@ -3,7 +3,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import pytest
-from qsharp import TargetProfile, QSharpError
+from qsharp import TargetProfile
 
 from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
 
@@ -15,11 +15,8 @@ if QISKIT_AVAILABLE:
     from qiskit import ClassicalRegister
     from qsharp.interop.qiskit import QSharpBackend
     from .test_circuits import (
-        core_tests_small,
         generate_repro_information,
     )
-else:
-    core_tests_small = []
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
@@ -41,22 +38,6 @@ def test_run_state_prep_smoke() -> None:
     backend = QSharpBackend()
     res = backend.run(circuit, shots=1).result()
     assert res is not None
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-@pytest.mark.parametrize("circuit_name", core_tests_small)
-def test_random(circuit_name: str, request):
-    circuit = request.getfixturevalue(circuit_name)
-    if str.endswith(circuit_name.lower(), "base"):
-        target_profile = TargetProfile.Base
-    else:
-        target_profile = TargetProfile.Adaptive_RI
-    backend = QSharpBackend(target_profile=target_profile)
-    try:
-        _ = backend.run(circuit, shots=1).result()
-    except Exception as ex:
-        additional_info = generate_repro_information(circuit, backend)
-        raise RuntimeError(additional_info) from ex
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

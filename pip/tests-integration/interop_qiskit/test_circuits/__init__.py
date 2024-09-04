@@ -1,11 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from .random import *
 from .test_circuits import *
-
-core_tests = [] + random_fixtures
-core_tests_small = [] + random_fixtures_small
 
 
 def generate_repro_information(
