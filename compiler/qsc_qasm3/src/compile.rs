@@ -196,7 +196,8 @@ impl QasmCompiler {
     /// Turns the compiled statements into package of top level nodes
     fn build_fragments(&mut self) -> Package {
         let nodes = self
-            .stmts.drain(..)
+            .stmts
+            .drain(..)
             .map(Box::new)
             .map(TopLevelNode::Stmt)
             .collect::<Vec<_>>()

@@ -17,7 +17,6 @@ if QISKIT_AVAILABLE:
     from .test_circuits import (
         core_tests_small,
         generate_repro_information,
-        get_parameterized_circuit,
     )
 else:
     core_tests_small = []

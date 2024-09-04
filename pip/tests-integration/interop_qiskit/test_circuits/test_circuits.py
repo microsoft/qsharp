@@ -12,23 +12,6 @@ if QISKIT_AVAILABLE:
     from qiskit.circuit import QuantumCircuit
 
 
-def get_parameterized_circuit(num_qubits: int) -> "QuantumCircuit":
-    from qiskit.circuit.parameter import Parameter
-
-    theta = Parameter("θ")
-    circuit = QuantumCircuit(num_qubits, 1)
-    circuit.h(0)
-    for i in range(num_qubits - 1):
-        circuit.cx(i, i + 1)
-    circuit.rz(theta, range(num_qubits))
-    for i in reversed(range(num_qubits - 1)):
-        circuit.cx(i, i + 1)
-    circuit.h(0)
-    circuit.measure(0, 0)
-
-    return circuit
-
-
 def random_bit() -> Tuple["QuantumCircuit", List[str]]:
     """Expected result:
     (?)
