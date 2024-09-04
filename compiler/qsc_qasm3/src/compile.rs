@@ -2966,7 +2966,11 @@ impl QasmCompiler {
         match ty {
             Type::Bit(_) => Some(crate::types::Type::Result(is_const)),
             Type::Qubit => Some(crate::types::Type::Qubit),
-            Type::HardwareQubit => unimplemented!("HardwareQubit to Q# type"),
+            Type::HardwareQubit => {
+                let message = "HardwareQubit to Q# type";
+                self.push_unsupported_error_message(message, node);
+                None
+            }
             Type::Int(width, _) | Type::UInt(width, _) => {
                 if let Some(width) = width {
                     if *width > 64 {
@@ -3018,8 +3022,16 @@ impl QasmCompiler {
         let span = span_for_syntax_node(node);
         match ty {
             Type::Bit(_) => Some(build_lit_result_expr(ast::Result::Zero, span)),
-            Type::Qubit => unimplemented!("Qubit default values"),
-            Type::HardwareQubit => unimplemented!("HardwareQubit default values"),
+            Type::Qubit => {
+                let message = "Qubit default values";
+                self.push_unsupported_error_message(message, node);
+                None
+            }
+            Type::HardwareQubit => {
+                let message = "HardwareQubit default values";
+                self.push_unsupported_error_message(message, node);
+                None
+            }
             Type::Int(width, _) | Type::UInt(width, _) => {
                 if let Some(width) = width {
                     if *width > 64 {
@@ -3066,7 +3078,11 @@ impl QasmCompiler {
                     None
                 }
             },
-            Type::QubitArray(_) => unimplemented!("QubitArray default values"),
+            Type::QubitArray(_) => {
+                let message = "QubitArray default values";
+                self.push_unsupported_error_message(message, node);
+                None
+            }
             Type::IntArray(_)
             | Type::UIntArray(_)
             | Type::FloatArray(_)
@@ -3083,12 +3099,17 @@ impl QasmCompiler {
                 );
                 None
             }
-            Type::Gate(_, _) => unimplemented!("Gate default values"),
-            Type::Range => unimplemented!("Range default values"),
-            Type::Set => unimplemented!("Set default values"),
-            Type::Void => unimplemented!("Void default values"),
-            Type::ToDo => unimplemented!("ToDo default values"),
-            Type::Undefined => unimplemented!("Undefined default values"),
+            Type::Gate(_, _)
+            | Type::Range
+            | Type::Set
+            | Type::Void
+            | Type::ToDo
+            | Type::Undefined => {
+                let mut message = format!("Default values for {ty:?} are unsupported.");
+                message.push_str(" This is likely a bug in the compiler.");
+                self.push_unsupported_error_message(message, node);
+                None
+            }
         }
     }
 
