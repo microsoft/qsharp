@@ -32,7 +32,7 @@ QIR specific semantic constraints:
 - OpenQASM ouput registers are declared with a fixed size and not all of the indexes may be populated with measurements. In QIR, `Result`s can only ever be acquired through measurement. So if all entries in an output register aren't measured into, a code generation error will occur.
 
 Semantic details
-- Gates are implemented as lamba expressions capturing const variables from the global scope.
+- Gates are implemented as lambda expressions capturing const variables from the global scope.
   - There is an exception when using `@SimulatableIntrinsic`. Those are defined as full local `operation`s as they are not allowed to capture.
   - We and change this in the future by copying `const` value decls into the `gate`/`function` scope, but this would require implementing a lot of inlining and partial evaluation which we already do in the compiler.
 - OpenQASM `const` is modeled as Q# immutable bindings. This isn't fully correct as Q# can build `let` bindings with both mutable and immutable values, but as the translation is one way, we can do this mapping and know that any `const` value is assigned to an immutable `let` binding. Anything else isn't guaranteed to be immutable. There are additional semantic checks as well to ensure that const declarations are not initialized to non-const values.
