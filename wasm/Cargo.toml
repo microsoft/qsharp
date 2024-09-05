@@ -19,7 +19,7 @@ futures-util = { workspace = true }
 js-sys = { workspace = true }
 katas = { path = "../katas"}
 log = { workspace = true }
-miette = { workspace = true }
+miette = { workspace = true, features = ["fancy-no-syscall"] }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsls = { path = "../language_service" }
