@@ -1335,13 +1335,14 @@ impl<'a> Analyzer<'a> {
         let pat = self.get_pat(pat_id);
         match &pat.kind {
             PatKind::Bind(ident) => {
-                let application_instance = self.get_current_application_instance();
-                let compute_kind = *application_instance.get_expr_compute_kind(expr_id);
                 let local_kind = match mutability {
                     Mutability::Immutable => LocalKind::Immutable(expr_id),
                     Mutability::Mutable => LocalKind::Mutable,
                 };
-                self.bind_compute_kind_to_ident(pat, ident, local_kind, compute_kind);
+                let application_instance = self.get_current_application_instance();
+                let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+                let bound_compute_kind = ComputeKind::map_to_type(expr_compute_kind, &pat.ty);
+                self.bind_compute_kind_to_ident(pat, ident, local_kind, bound_compute_kind);
             }
             PatKind::Tuple(pats) => match &expr.kind {
                 ExprKind::Tuple(exprs) => {
@@ -1368,13 +1369,14 @@ impl<'a> Analyzer<'a> {
         let pat = self.get_pat(pat_id);
         match &pat.kind {
             PatKind::Bind(ident) => {
-                let application_instance = self.get_current_application_instance();
-                let compute_kind = *application_instance.get_expr_compute_kind(expr_id);
                 let local_kind = match mutability {
                     Mutability::Immutable => LocalKind::Immutable(expr_id),
                     Mutability::Mutable => LocalKind::Mutable,
                 };
-                self.bind_compute_kind_to_ident(pat, ident, local_kind, compute_kind);
+                let application_instance = self.get_current_application_instance();
+                let expr_compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+                let bound_compute_kind = ComputeKind::map_to_type(expr_compute_kind, &pat.ty);
+                self.bind_compute_kind_to_ident(pat, ident, local_kind, bound_compute_kind);
             }
             PatKind::Tuple(pats) => {
                 for pat_id in pats {
@@ -1552,16 +1554,11 @@ impl<'a> Analyzer<'a> {
                 // a UDT variable field since we do not track individual UDT fields).
                 let value_expr_compute_kind =
                     *application_instance.get_expr_compute_kind(value_expr_id);
-                let mut value_kind =
-                    ValueKind::new_static_from_type(&local_var_compute_kind.local.ty);
-                if let ComputeKind::Quantum(value_expr_quantum_properties) = value_expr_compute_kind
-                {
-                    value_expr_quantum_properties
-                        .value_kind
-                        .project_onto_variant(&mut value_kind);
-                }
-                updated_compute_kind = updated_compute_kind
-                    .aggregate_runtime_features(value_expr_compute_kind, value_kind);
+                let assigned_compute_kind = ComputeKind::map_to_type(
+                    value_expr_compute_kind,
+                    &local_var_compute_kind.local.ty,
+                );
+                updated_compute_kind = updated_compute_kind.aggregate(assigned_compute_kind);
 
                 // If a local is updated within a dynamic scope, the updated value of the local variable should be
                 // dynamic and additional runtime features may apply.
