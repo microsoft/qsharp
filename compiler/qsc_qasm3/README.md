@@ -8,7 +8,7 @@ Once the compiler gets to the AST phase, it no longer cares that it is processin
 
 The OpenQASM code is parsed with their own lexer/parser and any errors are returned immediately before we get into further compilation. The OpenQASM parsing library hard-codes the file system into the types and parsing. Additionally, the library panics instead of surfacing `Result`. Because of this, there is a custom layer built to do the parsing so that the file system is abstracted with the `SourceResolver` trait and results with detailed errors are propagated instead of crashing.
 
-While it would be nice to use their semantic library to analyze and type check the code, they are missing many language features that are only available in the AST and the semantic library panics instead of pushing errors.
+While it would be nice to use their semantic library to analyze and type check the code, the interface panics instead of returning errors, and is not yet feature complete, so we unfortunately cannot rely on it at this time.
 
 With the source lexed and parsed, we can begin compilation. The program is compiled to the Q# AST. The OpenQASM ASG would be great to use for program as a validation pass once it is more developed, but for now we try to surface OpenQASM semantic/type errors as we encounter them. It is difficult to determine if a type error is from the AST compilation or from the source program as the implicit/explicit casting and type promotion rules are very complicated.
 
