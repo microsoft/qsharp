@@ -32,7 +32,7 @@ There are certain properties common to all quantum gates. This section introduce
 Quantum gates are represented as $2^N \times 2^N$ unitary matrices, where $N$ is the number of qubits the gate operates on.
 As a quick reminder, a unitary matrix is a square matrix whose inverse is its adjoint, thus $U^* U = UU^* = UU^{-1} = \mathbb{I}$.
 Single-qubit gates are represented by $2 \times 2$ matrices.
-Our example for this section, the $X$ gate, is represented by the following matrix:
+The example for this section, the $X$ gate, is represented by the following matrix:
 
 $$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
@@ -206,7 +206,7 @@ Real numbers $x_\phi$ and $x_\psi$ are called eigenvalues and $\ket{\phi}$ and $
 
 $$A = x_\phi\ket{\phi}\bra{\phi} + x_\psi\ket{\psi}\bra{\psi}$$
 
-Let's use our $X$ gate as a simple example. The $X$ gate has two eigenvectors: $\ket{+} = \frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$ and $\ket{-} = \frac{1}{\sqrt{2}}\big(\ket{0} - \ket{1}\big)$. Their eigenvalues are $1$ and $-1$ respectively:
+Let's use the $X$ gate as a simple example. The $X$ gate has two eigenvectors: $\ket{+} = \frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$ and $\ket{-} = \frac{1}{\sqrt{2}}\big(\ket{0} - \ket{1}\big)$. Their eigenvalues are $1$ and $-1$ respectively:
 
 $$X\ket{+} = \ket{+}$$
 $$X\ket{-} = -\ket{-}$$
