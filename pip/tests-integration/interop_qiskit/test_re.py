@@ -18,6 +18,8 @@ if QISKIT_AVAILABLE:
     from qiskit.circuit.library import RGQFTMultiplier
     from qsharp.interop.qiskit import ResourceEstimatorBackend
 
+from qsharp import estimate
+
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_qsharp_estimation_with_single_params() -> None:
@@ -95,3 +97,13 @@ def test_estimate_qiskit_rgqft_multiplier_in_threadpool() -> None:
             "measurementCount": 0,
         }
     )
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_estimate_with_unsupported_type_raises_value_error() -> None:
+
+    estimate_input = 1
+    with pytest.raises(ValueError) as ex:
+        estimate(estimate_input)
+
+    assert str(ex.value) == "Unsupported input type: int."

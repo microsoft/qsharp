@@ -395,12 +395,15 @@ def estimate(
         res = json.loads(res_str)
         return EstimatorResult(res)
     else:
-        try:
-            # We delay import Qiskit to avoid the user needing to install it
-            # if they are not using the `estimate` function with a `QuantumCircuit`.
-            from qiskit import QuantumCircuit
+        ty_name = type(estimate_input).__name__
+        if ty_name == "QuantumCircuit":
+            # we know the ty name is QuantumCircuit, but if we can't import Qiskit
+            # then we know it is a name collision and invalid input type
+            try:
+                # We delay import Qisit to avoid the user needing to install it
+                # if they are not using the `estimate` function with a `QuantumCircuit`.
 
-            if isinstance(estimate_input, QuantumCircuit):
+                # if Qiskit isn't installed, this import will fail
                 from qsharp.interop.qiskit.backends import ResourceEstimatorBackend
 
                 backend = ResourceEstimatorBackend(
@@ -408,15 +411,11 @@ def estimate(
                 )
                 job = backend.run(estimate_input, params=params, **options)
                 return job.result()
-            else:
-                raise ValueError("Unsupported input type")
-        except ImportError as ex:
-            # We can't really diffentiate between invalid input and missing Qiskit
-            # as we can't check the input type without importing Qiskit.
-            message = (
-                "Could not load Qiskit. Please install Qiskit to use this function."
-            )
-            raise ValueError(message) from ex
+            except ImportError as ex:
+                message = "Unsupported input type."
+                raise ValueError(message) from ex
+        else:
+            raise ValueError(f"Unsupported input type: {ty_name}.")
 
 
 def set_quantum_seed(seed: Optional[int]) -> None:
