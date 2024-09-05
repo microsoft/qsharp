@@ -28,7 +28,7 @@ use crate::interpreter::{
     ValueWrapper,
 };
 
-use resource_estimator::{self as re};
+use resource_estimator as re;
 
 /// `SourceResolver` implementation that uses the provided `FileSystem`
 /// to resolve qasm3 include statements.
