@@ -8,13 +8,14 @@ Once the compiler gets to the AST phase, it no longer cares that it is processin
 
 The OpenQASM code is parsed with their own lexer/parser and any errors are returned immediately before we get into further compilation. The OpenQASM parsing library hard-codes the file system into the types and parsing. Additionally, the library panics instead of surfacing `Result`. Because of this, there is a custom layer built to do the parsing so that the file system is abstracted with the `SourceResolver` trait and results with detailed errors are propagated instead of crashing.
 
-While it would be nice to use their semantic library to analyze and type check the code, the interface panics instead of returning errors, and is not yet feature complete, so we unfortunately cannot rely on it at this time.
+While it would be nice to use their semantic library to analyze and type check the code, they are missing many language features that are only available in the AST and the semantic library panics instead of pushing errors.
 
 With the source lexed and parsed, we can begin compilation. The program is compiled to the Q# AST. The OpenQASM ASG would be great to use for program as a validation pass once it is more developed, but for now we try to surface OpenQASM semantic/type errors as we encounter them. It is difficult to determine if a type error is from the AST compilation or from the source program as the implicit/explicit casting and type promotion rules are very complicated.
 
 As we process the AST we map the spans of the OpenQASM statements/expressions/literals to their corresponding Q# AST nodes. Additionally, we map the input source code (and it’s loaded externals) into a SourceMap with entry expressions. At this point we have enough information to hand off the rest of compilation to the Q# compiler.
 
 ## Semantics
+
 The two languages have many differences, and insofar as possible, the compilation preserves the source language semantics.
 
 - OpenQASM and Q# have different qubit and initialization semantics.
@@ -29,9 +30,11 @@ The two languages have many differences, and insofar as possible, the compilatio
 - Q# does not have unsigned integers or an angle type. All integers are signed.
 
 QIR specific semantic constraints:
+
 - OpenQASM ouput registers are declared with a fixed size and not all of the indexes may be populated with measurements. In QIR, `Result`s can only ever be acquired through measurement. So if all entries in an output register aren't measured into, a code generation error will occur.
 
 Semantic details
+
 - Gates are implemented as lambda expressions capturing const variables from the global scope.
   - There is an exception when using `@SimulatableIntrinsic`. Those are defined as full local `operation`s as they are not allowed to capture.
   - We and change this in the future by copying `const` value decls into the `gate`/`function` scope, but this would require implementing a lot of inlining and partial evaluation which we already do in the compiler.
