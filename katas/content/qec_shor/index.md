@@ -342,7 +342,7 @@ The key idea that enables quantum error correction is discretization of quantum 
 > 
 > Doing the set of parity measurements to detect $X$ and $Z$ errors will collapse the state $E\ket{\psi_L}$ into other of these four states, yielding measurement results that match that state. For example, if parity measurements yield a set of results indicating that an $X$ error happened, the state $E\ket{\psi_L}$ will collapse to $X\ket{\psi_L}$. 
 >
-> Then, you can use the results of parity measurements to correct the error that they indicate, bringing your state back to the error-free state $\ket{\psi_L}$.
+> Then, you can use the results of parity measurements to correct the error that they indicate, bringing the state back to the error-free state $\ket{\psi_L}$.
 
 
 Does Shor code indeed correct all errors, and not just the set of Pauli errors $X$, $Y$, and $Z$? 

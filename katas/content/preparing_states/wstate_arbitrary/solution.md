@@ -48,13 +48,13 @@ But you'd express the rest of the controlled rotations as the operation that pre
 
 ### Post-selection Solution
 
-Let's assume that you know how to prepare the $W$ state for $N = 2^k$ (you've discussed this in the previous task), and figure out how to use this knowledge as a building block for solving this task.
+Let's assume that you know how to prepare the $W$ state for $N = 2^k$ (see the previous task), and figure out how to use this knowledge as a building block for solving this task.
 
 Let's look at the smallest possible case for which $N \neq 2^k$: $N = 3$ (you'll be able to generalize the solution for this case to an arbitrary number of qubits). The target $W$ state looks like this:  
 
 $$\ket{W_3} = \frac{1}{3}\big(\ket{100} + \ket{010} + \ket{001}\big)$$
 
-You'll start by finding the smallest power of 2 $P$ which is greater than or equal to $N$; for this case $N = 3$ this power will be $P = 4$. You'll allocate an extra $P - N$ qubits and use the solution of the previous task to prepare the $W_P$ state that looks as follows (with the state of the extra qubit highlighted in bold):  
+You'll start by finding the smallest power of 2 $P$ which is greater than or equal to $N$; for this case $N = 3$, so this power will be $P = 4$. You'll allocate an extra $P - N$ qubits and use the solution of the previous task to prepare the $W_P$ state that looks as follows (with the state of the extra qubit highlighted in bold):  
 
 $$\ket{W_4} = \frac{1}{2}\big( \ket{100\textbf{0}} + \ket{010\textbf{0}} + \ket{001\textbf{0}} + \ket{000\textbf{1}} \big) = $$
 $$= \frac{\sqrt3}{2} \cdot \frac{1}{\sqrt3}\big(\ket{100} + \ket{010} + \ket{001} \big) \otimes \ket{\textbf{0}} + \frac{1}{2}\ket{000} \otimes \ket{\textbf{1}} = $$
