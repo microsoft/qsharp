@@ -35,7 +35,7 @@ impl QasmParseResult {
             .source
             .includes()
             .iter()
-            .flat_map(QasmSourceTrait::all_errors)
+            .flat_map(QasmSource::all_errors)
             .map(|e| self.map_error(e));
 
         self_errors.extend(include_errors);
@@ -113,39 +113,12 @@ pub struct QasmSource {
     /// This path is just a name, it does not have to exist on disk.
     path: PathBuf,
     /// The source code of the file.
-    source: String,
+    source: Arc<str>,
     /// The parsed AST of the source file or any parse errors.
     ast: ParseOrErrors<oq3_syntax::SourceFile>,
     /// Any included files that were resolved.
     /// Note that this is a recursive structure.
     included: Vec<QasmSource>,
-}
-
-pub trait QasmSourceTrait {
-    fn has_errors(&self) -> bool {
-        if !self.parse_result().errors().is_empty() {
-            return true;
-        }
-        self.includes().iter().any(QasmSourceTrait::has_errors)
-    }
-    fn all_errors(&self) -> Vec<crate::Error> {
-        let mut self_errors = self.errors();
-        let include_errors = self.includes().iter().flat_map(QasmSourceTrait::all_errors);
-        self_errors.extend(include_errors);
-        self_errors
-    }
-    fn includes(&self) -> &Vec<QasmSource>;
-    fn source(&self) -> &str;
-    fn parse_result(&self) -> &ParseOrErrors<oq3_syntax::SourceFile>;
-    fn errors(&self) -> Vec<crate::Error>;
-    fn path(&self) -> PathBuf;
-
-    fn tree(&self) -> oq3_syntax::SourceFile {
-        self.parse_result().tree()
-    }
-    fn syntax_node(&self) -> SyntaxNode {
-        self.parse_result().syntax_node()
-    }
 }
 
 impl QasmSource {
@@ -156,28 +129,48 @@ impl QasmSource {
         included: Vec<QasmSource>,
     ) -> QasmSource {
         QasmSource {
-            source: source.as_ref().to_owned(),
+            source: source.as_ref().into(),
             path: file_path.as_ref().to_owned(),
             ast,
             included,
         }
     }
-}
 
-impl QasmSourceTrait for QasmSource {
-    fn includes(&self) -> &Vec<QasmSource> {
+    pub fn has_errors(&self) -> bool {
+        if !self.parse_result().errors().is_empty() {
+            return true;
+        }
+        self.includes().iter().any(QasmSource::has_errors)
+    }
+
+    pub fn all_errors(&self) -> Vec<crate::Error> {
+        let mut self_errors = self.errors();
+        let include_errors = self.includes().iter().flat_map(QasmSource::all_errors);
+        self_errors.extend(include_errors);
+        self_errors
+    }
+
+    pub fn tree(&self) -> oq3_syntax::SourceFile {
+        self.parse_result().tree()
+    }
+
+    pub fn syntax_node(&self) -> SyntaxNode {
+        self.parse_result().syntax_node()
+    }
+
+    pub fn includes(&self) -> &Vec<QasmSource> {
         self.included.as_ref()
     }
 
-    fn parse_result(&self) -> &ParseOrErrors<oq3_syntax::SourceFile> {
+    pub fn parse_result(&self) -> &ParseOrErrors<oq3_syntax::SourceFile> {
         &self.ast
     }
 
-    fn path(&self) -> PathBuf {
+    pub fn path(&self) -> PathBuf {
         self.path.clone()
     }
 
-    fn errors(&self) -> Vec<crate::Error> {
+    pub fn errors(&self) -> Vec<crate::Error> {
         self.parse_result()
             .errors()
             .iter()
@@ -190,7 +183,7 @@ impl QasmSourceTrait for QasmSource {
             .collect()
     }
 
-    fn source(&self) -> &str {
+    pub fn source(&self) -> &str {
         self.source.as_ref()
     }
 }

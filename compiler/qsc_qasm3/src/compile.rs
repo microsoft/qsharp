@@ -56,10 +56,7 @@ use qsc::ast;
 use qsc::Span;
 use qsc::{error::WithSource, SourceMap};
 
-use crate::{
-    parse::{QasmSource, QasmSourceTrait},
-    QasmCompileUnit,
-};
+use crate::{parse::QasmSource, QasmCompileUnit};
 
 #[cfg(test)]
 pub(crate) mod tests;

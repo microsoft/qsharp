@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    parse::QasmSourceTrait,
-    tests::{parse, parse_all},
-};
+use crate::tests::{parse, parse_all};
 use miette::Report;
 
 #[test]

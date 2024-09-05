@@ -16,7 +16,7 @@ use std::{path::Path, sync::Arc};
 
 use crate::{
     io::{InMemorySourceResolver, SourceResolver},
-    parse::{parse_source, QasmSourceTrait},
+    parse::parse_source,
 };
 
 pub(crate) mod assignment;

@@ -29,16 +29,7 @@ where
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("QIR"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Runtime"),
-                    ..Default::default()
-                },
-            ]))),
+            segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
             ..Default::default()
         }))),
@@ -92,16 +83,7 @@ where
 
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("QIR"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Runtime"),
-                    ..Default::default()
-                },
-            ]))),
+            segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
             ..Default::default()
         }))),
@@ -366,20 +348,7 @@ pub(crate) fn build_math_call_from_exprs(name: &str, exprs: Vec<Expr>, span: Spa
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("Microsoft"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Quantum"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Math"),
-                    ..Default::default()
-                },
-            ]))),
+            segments: build_idents(&["Microsoft", "Quantum", "Math"]),
             name: Box::new(alloc_ident),
             ..Default::default()
         }))),
@@ -515,20 +484,7 @@ pub(crate) fn build_convert_call_expr(expr: Expr, name: &str) -> Expr {
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("Microsoft"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Quantum"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Convert"),
-                    ..Default::default()
-                },
-            ]))),
+            segments: build_idents(&["Microsoft", "Quantum", "Convert"]),
             name: Box::new(cast_ident),
             ..Default::default()
         }))),
@@ -557,20 +513,7 @@ pub(crate) fn build_array_reverse_expr(expr: Expr) -> Expr {
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(Box::new(Path {
-            segments: Some(Idents(Box::new([
-                Ident {
-                    name: Rc::from("Microsoft"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Quantum"),
-                    ..Default::default()
-                },
-                Ident {
-                    name: Rc::from("Arrays"),
-                    ..Default::default()
-                },
-            ]))),
+            segments: build_idents(&["Microsoft", "Quantum", "Arrays"]),
             name: Box::new(cast_ident),
             ..Default::default()
         }))),
@@ -856,19 +799,7 @@ pub(crate) fn build_math_call_no_params(name: &str, span: Span) -> Expr {
 }
 
 pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> Expr {
-    let idents = idents
-        .iter()
-        .map(|name| Ident {
-            name: Rc::from(*name),
-            ..Default::default()
-        })
-        .collect::<Vec<_>>()
-        .into_boxed_slice();
-    let segments = if idents.is_empty() {
-        None
-    } else {
-        Some(Idents(idents))
-    };
+    let segments = build_idents(idents);
     let fn_name = Ident {
         name: Rc::from(name),
         ..Default::default()
@@ -1062,20 +993,7 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
     };
     let path = ast::Path {
         name: Box::new(ident),
-        segments: Some(ast::Idents(Box::new([
-            ast::Ident {
-                name: Rc::from("Microsoft"),
-                ..Default::default()
-            },
-            ast::Ident {
-                name: Rc::from("Quantum"),
-                ..Default::default()
-            },
-            ast::Ident {
-                name: Rc::from("Math"),
-                ..Default::default()
-            },
-        ]))),
+        segments: build_idents(&["Microsoft", "Quantum", "Math"]),
         ..Default::default()
     };
     let kind = TyKind::Path(Box::new(path));
@@ -1558,5 +1476,21 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
             Box::new(lambda_expr),
         )),
         ..Default::default()
+    }
+}
+
+fn build_idents(idents: &[&str]) -> Option<Idents> {
+    let idents = idents
+        .iter()
+        .map(|name| Ident {
+            name: Rc::from(*name),
+            ..Default::default()
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+    if idents.is_empty() {
+        None
+    } else {
+        Some(Idents(idents))
     }
 }
