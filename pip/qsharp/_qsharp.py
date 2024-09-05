@@ -395,8 +395,16 @@ def estimate(
         res = json.loads(res_str)
         return EstimatorResult(res)
     else:
-        ty_name = type(estimate_input).__name__
-        if ty_name == "QuantumCircuit":
+
+        def issubclassofbyname(ty: type, ty_name: str):
+            if ty.__name__ == ty_name:
+                return True
+            for base_ty in ty.__bases__:
+                if issubclassofbyname(base_ty, ty_name):
+                    return True
+            return False
+
+        if issubclassofbyname(type(estimate_input), "QuantumCircuit"):
             # we know the ty name is QuantumCircuit, but if we can't import Qiskit
             # then we know it is a name collision and invalid input type
             try:
@@ -415,6 +423,7 @@ def estimate(
                 message = "Unsupported input type."
                 raise ValueError(message) from ex
         else:
+            ty_name = type(estimate_input).__name__
             raise ValueError(f"Unsupported input type: {ty_name}.")
 
 
