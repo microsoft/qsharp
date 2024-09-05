@@ -136,6 +136,7 @@ impl QasmSource {
         }
     }
 
+    #[must_use]
     pub fn has_errors(&self) -> bool {
         if !self.parse_result().errors().is_empty() {
             return true;
@@ -143,6 +144,7 @@ impl QasmSource {
         self.includes().iter().any(QasmSource::has_errors)
     }
 
+    #[must_use]
     pub fn all_errors(&self) -> Vec<crate::Error> {
         let mut self_errors = self.errors();
         let include_errors = self.includes().iter().flat_map(QasmSource::all_errors);
@@ -150,26 +152,32 @@ impl QasmSource {
         self_errors
     }
 
+    #[must_use]
     pub fn tree(&self) -> oq3_syntax::SourceFile {
         self.parse_result().tree()
     }
 
+    #[must_use]
     pub fn syntax_node(&self) -> SyntaxNode {
         self.parse_result().syntax_node()
     }
 
+    #[must_use]
     pub fn includes(&self) -> &Vec<QasmSource> {
         self.included.as_ref()
     }
 
+    #[must_use]
     pub fn parse_result(&self) -> &ParseOrErrors<oq3_syntax::SourceFile> {
         &self.ast
     }
 
+    #[must_use]
     pub fn path(&self) -> PathBuf {
         self.path.clone()
     }
 
+    #[must_use]
     pub fn errors(&self) -> Vec<crate::Error> {
         self.parse_result()
             .errors()
@@ -183,6 +191,7 @@ impl QasmSource {
             .collect()
     }
 
+    #[must_use]
     pub fn source(&self) -> &str {
         self.source.as_ref()
     }
