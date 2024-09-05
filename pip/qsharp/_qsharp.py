@@ -396,7 +396,7 @@ def estimate(
         return EstimatorResult(res)
     else:
         try:
-            # We delay import Qisit to avoid the user needing to install it
+            # We delay import Qiskit to avoid the user needing to install it
             # if they are not using the `estimate` function with a `QuantumCircuit`.
             from qiskit import QuantumCircuit
 
