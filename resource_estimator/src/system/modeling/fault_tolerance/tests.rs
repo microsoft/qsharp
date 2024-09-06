@@ -3,13 +3,13 @@
 
 use crate::{
     estimates::ErrorCorrection,
-    system::modeling::{PhysicalQubit, Protocol},
+    system::modeling::{surface_code_gate_based, PhysicalQubit},
 };
 
 #[test]
 fn compute_code_distance() -> Result<(), String> {
     let qubit = PhysicalQubit::default();
-    let ftp = Protocol::surface_code_gate_based();
+    let ftp = surface_code_gate_based();
     assert!(
         (ftp.logical_error_rate(&qubit, &5)? - 3.000_000_000_000_000_8e-5).abs() <= f64::EPSILON
     );

@@ -5,6 +5,8 @@ mod error;
 pub use error::Error;
 mod error_budget;
 pub use error_budget::ErrorBudget;
+mod error_correction;
+pub use error_correction::{CodeWithThresholdAndDistance, CodeWithThresholdAndDistanceEvaluator};
 mod factory;
 pub use factory::{
     BuilderDispatch2, DistillationRound, DistillationUnit, FactoryBuildError, FactoryDispatch2,
