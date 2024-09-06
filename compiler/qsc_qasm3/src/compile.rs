@@ -1673,6 +1673,7 @@ impl QasmCompiler {
         }
     }
 
+    #[allow(dead_code)]
     fn compile_gphase_call_expr(
         &mut self,
         gphase_call_expr: &oq3_syntax::ast::GPhaseCallExpr,
@@ -1897,28 +1898,6 @@ impl QasmCompiler {
             let kind = SemanticErrorKind::InvalidCastValueRange(
                 "Integer".to_string(),
                 "Double".to_string(),
-                span,
-            );
-            self.push_semantic_error(kind);
-            None
-        }
-    }
-
-    fn compile_int_literal_to_complex(
-        &mut self,
-        value: &oq3_syntax::ast::IntNumber,
-        span: Span,
-    ) -> Option<ast::Expr> {
-        let value = value.value().expect("FloatNumber must have a value");
-        if let Some(value) = safe_u128_to_f64(value) {
-            Some(build_lit_complex_expr(
-                crate::types::Complex::new(value, 0.0),
-                span,
-            ))
-        } else {
-            let kind = SemanticErrorKind::InvalidCastValueRange(
-                "Integer".to_string(),
-                "Complex real".to_string(),
                 span,
             );
             self.push_semantic_error(kind);
@@ -3983,15 +3962,6 @@ impl QasmCompiler {
         self.errors.push(error);
     }
 
-    /// Pushes an error for a pulse control not being supported.
-    pub fn push_pulse_control_error(&mut self, node: &SyntaxNode) {
-        let span = span_for_syntax_node(node);
-        let text = node.text().to_string();
-        let kind = crate::ErrorKind::PulseControlNotSupported(text, span);
-        let error = self.create_err(kind);
-        self.errors.push(error);
-    }
-
     /// Creates an error from the given kind with the current source mapping.
     fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
         let error = crate::Error(kind);
@@ -4076,18 +4046,6 @@ fn get_implicit_modifiers<S: AsRef<str>>(
 
 /// Bit arrays can be compared, but need to be converted to int first
 fn binop_requires_int_conversion_for_type(op: BinaryOp, ty_1: &Type, ty_2: &Type) -> bool {
-    match op {
-        BinaryOp::CmpOp(_) => match (ty_1, ty_2) {
-            (Type::BitArray(ArrayDims::D1(d1), _), Type::BitArray(ArrayDims::D1(d2), _)) => {
-                d1 == d2
-            }
-            _ => false,
-        },
-        _ => false,
-    }
-}
-
-fn binop_requires_int_magic(op: BinaryOp, ty_1: &Type, ty_2: &Type) -> bool {
     match op {
         BinaryOp::CmpOp(_) => match (ty_1, ty_2) {
             (Type::BitArray(ArrayDims::D1(d1), _), Type::BitArray(ArrayDims::D1(d2), _)) => {

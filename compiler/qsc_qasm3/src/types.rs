@@ -85,12 +85,6 @@ pub enum GateModifier {
     NegCtrl(Option<usize>, Span),
 }
 
-impl QasmTypedExpr {
-    pub fn new(ty: oq3_semantics::types::Type, expr: qsc::ast::Expr) -> Self {
-        Self { ty, expr }
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Complex {
     pub real: f64,
@@ -103,6 +97,7 @@ impl Complex {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Type {
     Bool(bool),
@@ -128,6 +123,7 @@ pub(crate) enum Type {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CallableKind {
     /// A function.
+    #[allow(dead_code)]
     Function,
     /// An operation.
     Operation,
@@ -211,51 +207,6 @@ impl Display for ArrayDimensions {
             ArrayDimensions::Two(..) => write!(f, "[][]"),
             ArrayDimensions::Three(..) => write!(f, "[][][]"),
         }
-    }
-}
-
-fn can_cast_type_in_assignment(lhs: &Type, rhs: &Type) -> bool {
-    if types_equal_ignore_const(lhs, rhs) {
-        return true;
-    }
-    matches!(
-        (lhs, rhs),
-        (Type::Double(_) | Type::Complex(_), Type::Int(_)) | (Type::Complex(_), Type::Double(_))
-    )
-}
-
-fn types_equal_ignore_const(lhs: &Type, rhs: &Type) -> bool {
-    match (lhs, rhs) {
-        (Type::Bool(_), Type::Bool(_))
-        | (Type::Int(_), Type::Int(_))
-        | (Type::Double(_), Type::Double(_))
-        | (Type::Complex(_), Type::Complex(_))
-        | (Type::Result(_), Type::Result(_))
-        | (Type::BigInt(_), Type::BigInt(_))
-        | (Type::Qubit, Type::Qubit) => true,
-        (Type::Tuple(lhs), Type::Tuple(rhs)) => {
-            if lhs.len() != rhs.len() {
-                return false;
-            }
-            lhs.iter()
-                .zip(rhs.iter())
-                .all(|(lhs, rhs)| types_equal_ignore_const(lhs, rhs))
-        }
-        (Type::ResultArray(lhs_dims, _), Type::ResultArray(rhs_dims, _))
-        | (Type::BigIntArray(lhs_dims, _), Type::BigIntArray(rhs_dims, _))
-        | (Type::BoolArray(lhs_dims, _), Type::BoolArray(rhs_dims, _))
-        | (Type::IntArray(lhs_dims, _), Type::IntArray(rhs_dims, _))
-        | (Type::DoubleArray(lhs_dims), Type::DoubleArray(rhs_dims))
-        | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::TupleArray(lhs_dims, lhs), Type::TupleArray(rhs_dims, rhs)) => {
-            lhs_dims == rhs_dims
-                && lhs.len() == rhs.len()
-                && lhs
-                    .iter()
-                    .zip(rhs.iter())
-                    .all(|(lhs, rhs)| types_equal_ignore_const(lhs, rhs))
-        }
-        _ => false,
     }
 }
 

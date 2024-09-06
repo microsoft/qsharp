@@ -112,8 +112,6 @@ impl Default for Symbol {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SymbolError {
-    /// The symbol was not found in the symbol table.
-    NotFound,
     /// The symbol already exists in the symbol table, at the current scope.
     AlreadyExists,
 }
@@ -180,10 +178,6 @@ impl Scope {
         self.name_to_id
             .get(name)
             .and_then(|id| self.id_to_symbol.get(id))
-    }
-
-    pub fn get_symbol_by_id(&self, id: SymbolId) -> Option<&Symbol> {
-        self.id_to_symbol.get(&id)
     }
 
     fn get_ordered_symbols(&self) -> Vec<Symbol> {
@@ -307,15 +301,6 @@ impl SymbolTable {
         None
     }
 
-    pub fn get_symbol_by_id(&self, id: SymbolId) -> Option<&Symbol> {
-        for scope in self.scopes.iter().rev() {
-            if let Some(symbol) = scope.get_symbol_by_id(id) {
-                return Some(symbol);
-            }
-        }
-        None
-    }
-
     pub fn is_current_scope_global(&self) -> bool {
         matches!(self.scopes.last(), Some(scope) if scope.kind == ScopeKind::Global)
     }
@@ -325,13 +310,6 @@ impl SymbolTable {
             .iter()
             .rev()
             .any(|scope| scope.kind == ScopeKind::Function)
-    }
-
-    pub fn is_scope_rooted_in_gate(&self) -> bool {
-        self.scopes
-            .iter()
-            .rev()
-            .any(|scope| scope.kind == ScopeKind::Gate)
     }
 
     pub fn is_scope_rooted_in_global(&self) -> bool {

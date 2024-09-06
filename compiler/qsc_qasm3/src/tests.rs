@@ -99,6 +99,7 @@ pub(crate) fn gen_qsharp_stmt(stmt: &Stmt) -> String {
     qsc::codegen::qsharp::write_stmt_string(stmt)
 }
 
+#[allow(dead_code)]
 pub(crate) fn compare_compilation_to_qsharp(unit: &QasmCompileUnit, expected: &str) {
     let package = unit.package.as_ref().expect("package must exist");
     let despanned_ast = AstDespanner.despan(package);
@@ -280,6 +281,7 @@ fn get_first_statement_as_qsharp(package: &Package) -> String {
 
 pub struct AstDespanner;
 impl AstDespanner {
+    #[allow(dead_code)] // false positive lint
     pub fn despan(&mut self, package: &Package) -> Package {
         let mut p = package.clone();
         self.visit_package(&mut p);
@@ -294,8 +296,10 @@ impl MutVisitor for AstDespanner {
     }
 }
 
+#[allow(dead_code)]
 struct HirDespanner;
 impl HirDespanner {
+    #[allow(dead_code)]
     fn despan(&mut self, package: &qsc::hir::Package) -> qsc::hir::Package {
         let mut p = package.clone();
         qsc::hir::mut_visit::MutVisitor::visit_package(self, &mut p);

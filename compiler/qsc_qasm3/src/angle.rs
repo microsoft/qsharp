@@ -16,6 +16,7 @@ struct Angle {
     size: u32,
 }
 
+#[allow(dead_code)]
 impl Angle {
     fn new(value: u64, size: u32) -> Self {
         Angle { value, size }

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(dead_code)]
-
 mod angle;
 mod ast_builder;
 mod compile;
@@ -57,8 +55,6 @@ impl Error {
 pub enum ErrorKind {
     #[error("this statement is not yet handled during OpenQASM 3 import: {0}")]
     Unimplemented(String, #[label] Span),
-    #[error("pulse control statements are not supported: {0}")]
-    PulseControlNotSupported(String, #[label] Span),
     #[error("calibration statements are not supported: {0}")]
     CalibrationsNotSupported(String, #[label] Span),
     #[error("{0} are not supported.")]
@@ -78,9 +74,6 @@ impl ErrorKind {
     fn with_offset(self, offset: u32) -> Self {
         match self {
             ErrorKind::Unimplemented(error, span) => Self::Unimplemented(error, span + offset),
-            ErrorKind::PulseControlNotSupported(error, span) => {
-                Self::PulseControlNotSupported(error, span + offset)
-            }
             ErrorKind::CalibrationsNotSupported(error, span) => {
                 Self::CalibrationsNotSupported(error, span + offset)
             }

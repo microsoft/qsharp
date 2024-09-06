@@ -746,38 +746,6 @@ pub(crate) fn build_gate_call_with_params_and_callee(
     }
 }
 
-pub(crate) fn build_gate_call_expr(
-    args: Vec<ast::Expr>,
-    name_span: Span,
-    gate_name: &str,
-    call_span: Span,
-    expr_span: Span,
-) -> ast::Expr {
-    let param_expr = build_gate_call_param_expr(args, 0);
-
-    let ident = ast::Ident {
-        id: NodeId::default(),
-        span: name_span,
-        name: Rc::from(gate_name),
-    };
-    let callee_expr = ast::Expr {
-        id: NodeId::default(),
-        span: call_span,
-        kind: Box::new(ast::ExprKind::Path(Box::new(ast::Path {
-            id: NodeId::default(),
-            span: Span::default(),
-            segments: None,
-            name: Box::new(ident),
-        }))),
-    };
-    let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
-    ast::Expr {
-        kind: Box::new(call_kind),
-        span: expr_span,
-        ..Default::default()
-    }
-}
-
 pub fn build_gate_call_param_expr(args: Vec<Expr>, remaining: usize) -> Expr {
     if args.len() == 1 && remaining > 0 {
         return args[0].clone();
@@ -832,24 +800,7 @@ pub(crate) fn build_lit_double_expr(value: f64, span: Span) -> Expr {
     }
 }
 
-pub(crate) fn build_lit_string_expr(value: f64, span: Span) -> Expr {
-    Expr {
-        id: NodeId::default(),
-        span,
-        kind: Box::new(ExprKind::Lit(Box::new(Lit::Double(value)))),
-    }
-}
-
 pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
-    Stmt {
-        id: NodeId::default(),
-        span: expr.span,
-        kind: Box::new(StmtKind::Semi(Box::new(expr))),
-    }
-}
-
-pub(crate) fn build_stmt_semi_from_block(block: Block) -> Stmt {
-    let expr = build_wrapped_block_expr(block);
     Stmt {
         id: NodeId::default(),
         span: expr.span,
@@ -864,6 +815,7 @@ pub(crate) fn build_wrapped_block_expr(block: Block) -> Expr {
         kind: Box::new(ast::ExprKind::Block(Box::new(block))),
     }
 }
+
 pub(crate) fn build_stmt_wrapped_block_expr(stmt: Stmt) -> Block {
     Block {
         id: NodeId::default(),
@@ -953,19 +905,6 @@ pub(crate) fn build_tuple_expr(output_exprs: Vec<Expr>) -> Expr {
 pub(crate) fn build_implicit_return_stmt(output_expr: Expr) -> Stmt {
     Stmt {
         kind: Box::new(StmtKind::Expr(Box::new(output_expr))),
-        ..Default::default()
-    }
-}
-
-pub(crate) fn build_explicit_return_stmt(output_expr: Expr) -> Stmt {
-    let span = output_expr.span;
-    Stmt {
-        kind: Box::new(StmtKind::Semi(Box::new(Expr {
-            kind: Box::new(ExprKind::Return(Box::new(output_expr))),
-            span,
-            ..Default::default()
-        }))),
-        span,
         ..Default::default()
     }
 }
