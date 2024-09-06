@@ -6,12 +6,12 @@ use crate::{
     qasm_to_program, CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics,
 };
 use miette::Report;
+use qsc::interpret::Error;
 use qsc::{
-    ast::{mut_visit::MutVisitor, Package},
+    ast::{mut_visit::MutVisitor, Package, Stmt, TopLevelNode},
     target::Profile,
     PackageStore, SourceMap, Span,
 };
-
 use std::{path::Path, sync::Arc};
 
 use crate::{
@@ -37,12 +37,12 @@ pub(crate) fn fail_on_compilation_errors(unit: &QasmCompileUnit) {
 pub(crate) fn print_compilation_errors(unit: &QasmCompileUnit) {
     if unit.has_errors() {
         for e in unit.errors() {
-            println!("{:?}", miette::Report::new(e.clone()));
+            println!("{:?}", Report::new(e.clone()));
         }
     }
 }
 
-pub(crate) fn gen_qsharp(package: &qsc::ast::Package) -> String {
+pub(crate) fn gen_qsharp(package: &Package) -> String {
     qsc::codegen::qsharp::write_package_string(package)
 }
 
@@ -56,7 +56,7 @@ pub(crate) fn generate_qir_from_ast(
     ast_package: Package,
     source_map: SourceMap,
     profile: Profile,
-) -> Result<String, Vec<qsc::interpret::Error>> {
+) -> Result<String, Vec<Error>> {
     let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
     let capabilities = profile.into();
@@ -95,7 +95,7 @@ fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Rep
     Ok(qir)
 }
 
-pub(crate) fn gen_qsharp_stmt(stmt: &qsc::ast::Stmt) -> String {
+pub(crate) fn gen_qsharp_stmt(stmt: &Stmt) -> String {
     qsc::codegen::qsharp::write_stmt_string(stmt)
 }
 
@@ -116,7 +116,7 @@ where
         let errors = res
             .errors()
             .into_iter()
-            .map(|e| miette::Report::new(e.clone()))
+            .map(|e| Report::new(e.clone()))
             .collect();
         return Err(errors);
     }
@@ -137,7 +137,7 @@ where
         let errors = res
             .errors()
             .into_iter()
-            .map(|e| miette::Report::new(e.clone()))
+            .map(|e| Report::new(e.clone()))
             .collect();
         Err(errors)
     } else {
@@ -267,11 +267,11 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
     Ok(qsharp)
 }
 
-fn get_first_statement_as_qsharp(package: &qsc::ast::Package) -> String {
+fn get_first_statement_as_qsharp(package: &Package) -> String {
     let qsharp = match package.nodes.first() {
         Some(i) => match i {
-            qsc::ast::TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
-            qsc::ast::TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),
+            TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
+            TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),
         },
         None => panic!("Expected Stmt, got None"),
     };
@@ -280,7 +280,7 @@ fn get_first_statement_as_qsharp(package: &qsc::ast::Package) -> String {
 
 pub struct AstDespanner;
 impl AstDespanner {
-    pub fn despan(&mut self, package: &qsc::ast::Package) -> qsc::ast::Package {
+    pub fn despan(&mut self, package: &Package) -> Package {
         let mut p = package.clone();
         self.visit_package(&mut p);
         p
