@@ -477,6 +477,8 @@ export class Copilot {
   };
 
   handleSingleToolCall = async (toolCall: ChatCompletionMessageToolCall) => {
+    // log.info("Tool call: %o", toolCall);
+
     const args = JSON.parse(toolCall.function.arguments);
 
     const content: any = {};
@@ -531,6 +533,7 @@ export class Copilot {
   };
 
   handleNormalResponse = (response: ChatCompletion) => {
+    // log.info("printing response: %o", response.choices[0].message.content!);
     this.streamCallback(
       {
         response: response.choices[0].message.content!,

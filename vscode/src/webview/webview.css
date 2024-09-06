@@ -1,0 +1,46 @@
+body {
+  padding: 12px;
+}
+
+.requestBox {
+  padding: 16px;
+  margin-left: 32px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 0.5em;
+}
+
+.requestBox p {
+  margin-bottom: 0px;
+}
+
+.responseBox {
+  margin-left: 0.5em;
+  margin-bottom: 16px;
+}
+
+.responseBox ul {
+  padding-left: 2em;
+}
+
+.responseBox pre code {
+  background: inherit;
+  /* border: 0.5px solid gray; */
+  display: block;
+  padding: 8px;
+  margin: 8px 0;
+}
+
+textarea:focus {
+  outline: none;
+}
+
+textarea {
+  background: inherit;
+  color: inherit;
+  padding: 16px;
+  margin-left: 32px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 0.5em;
+}

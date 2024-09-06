@@ -19,10 +19,13 @@ import { HelpPage } from "./help";
 import { DocumentationView } from "./docview";
 import hljsQsharp from "./qsharp-hljs";
 
+import "./webview.css";
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+import { useEffect, useRef } from "preact/hooks";
 const md = markdownIt("commonmark");
 md.use(mk, {
   enableMathBlockInHtml: true,
@@ -362,7 +365,48 @@ function App({ state }: { state: State }) {
       document.body.classList.add("markdown-body");
       document.body.style.fontSize = "0.8em";
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
-    case "copilot":
+    case "copilot": {
+      //   const markdown =
+      //     "Here are the available targets for the job submission:\n\n" +
+      //     "1. **Quantinuum**\n" +
+      //     "   - Target IDs available:\n" +
+      //     "     - quantinuum.sim.h1-1sc (Available)\n" +
+      //     "     - quantinuum.sim.h1-1e (Available)\n" +
+      //     "     - quantinuum.sim.h2-1sc (Available)\n" +
+      //     "     - quantinuum.sim.h2-1e (Available)\n" +
+      //     "     - quantinuum.sim.h1-1sc-preview (Available)\n" +
+      //     "     - quantinuum.sim.h1-1e-preview (Available)\n" +
+      //     "     - quantinuum.sim.h1-2e-preview (Available)\n\n" +
+      //     "2. **IONQ**\n" +
+      //     "   - Target ID available:\n" +
+      //     "     - ionq.simulator (Available)\n\n" +
+      //     "3. **Microsoft Test**\n" +
+      //     "   - Multiple targets available (e.g., echo-rigetti, echo-quantinuum, etc.)\n\n" +
+      //     "4. **Rigetti**\n" +
+      //     "   - Target IDs available:\n" +
+      //     "     - rigetti.echo (Available)\n" +
+      //     "     - rigetti.sim.qvm (Available)\n\n" +
+      //     "5. **QCI**\n" +
+      //     "   - Target IDs available:\n" +
+      //     "     - qci.simulator (Available)\n" +
+      //     "     - qci.simulator.noisy (Available)\n\n" +
+      //     "Please choose one of the available target IDs to proceed, and let me know how many shots you would like to use for the job.";
+      //   const css = `
+      //   .responseBox ul {
+      //       padding-left: 2em;
+      //   }
+      //   `;
+      //   return (
+      //     <div style="max-width: 800px; font-size: 10pt; line-height: 1.5;">
+      //       <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
+      //       <div>
+      //         <style>{css}</style>
+      //         <div class="responseBox">
+      //           <Markdown markdown={markdown}></Markdown>
+      //         </div>
+      //       </div>
+      //     </div>
+      //   );
       // return (
       //   <div style="font-size: 10pt; line-height: 1.5;">
       //     <h1>Welcome to Azure Quantum Copilot</h1>
@@ -383,13 +427,17 @@ function App({ state }: { state: State }) {
       //     </button>
       //   </div>
       // );
+      const hrRef = useRef<HTMLHRElement>(null);
+      useEffect(() => {
+        hrRef.current?.scrollIntoView(false);
+      });
       return (
         <div style="max-width: 800px; font-size: 10pt; line-height: 1.5;">
           <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
           {(state as CopilotState).qas.map((qa) => (
             <Response request={qa.request} response={qa.response} />
           ))}
-          {/* <InputBox onSubmit={onSubmit} /> */}
+          {/* <InputBox onSubmit={copilotRequest} /> */}
           <br />
           <textarea
             style="width: 90vw; min-height: 32px; max-height: 128px;"
@@ -404,12 +452,53 @@ function App({ state }: { state: State }) {
           >
             {state.inProgress ? "Cancel" : "Ask Copilot"}
           </button>
+          <div style="height: 8px" ref={hrRef} />
         </div>
       );
+    }
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;
   }
+
+  // function InputBox(props: { onSubmit: (text: string) => void }) {
+  //   const textRef = useRef<HTMLTextAreaElement>(null);
+  //   const hrRef = useRef<HTMLHRElement>(null);
+
+  //   useEffect(() => {
+  //     hrRef.current?.scrollIntoView(false);
+  //   });
+
+  //   function submit() {
+  //     if (textRef.current) {
+  //       props.onSubmit(textRef.current.value);
+  //       textRef.current.value = "";
+  //     }
+  //   }
+
+  //   return (
+  //     <>
+  //       <div class="inputDiv">
+  //         <textarea
+  //           ref={textRef}
+  //           autocorrect="off"
+  //           spellcheck={false}
+  //           placeholder="How can I help you?"
+  //         ></textarea>
+  //         <svg
+  //           onClick={submit}
+  //           focusable="false"
+  //           viewBox="0 0 16 16"
+  //           width="16"
+  //           height="16"
+  //         >
+  //           <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
+  //         </svg>
+  //       </div>
+  //       <div style="height: 8px" ref={hrRef} />
+  //     </>
+  //   );
+  // }
 
   // function onSubmit(text: string) {
   //   //const newQA: QA = { request: text, response: "" };
@@ -452,45 +541,6 @@ function App({ state }: { state: State }) {
   //   onChunk();
   // }
 
-  // function InputBox(props: { onSubmit: (text: string) => void }) {
-  //   const textRef = useRef<HTMLTextAreaElement>(null);
-  //   const hrRef = useRef<HTMLHRElement>(null);
-
-  //   useEffect(() => {
-  //     hrRef.current?.scrollIntoView(false);
-  //   });
-
-  //   function submit() {
-  //     if (textRef.current) {
-  //       props.onSubmit(textRef.current.value);
-  //       textRef.current.value = "";
-  //     }
-  //   }
-
-  //   return (
-  //     <>
-  //       <div class="inputDiv">
-  //         <textarea
-  //           ref={textRef}
-  //           autocorrect="off"
-  //           spellcheck={false}
-  //           placeholder="How can I help you?"
-  //         ></textarea>
-  //         <svg
-  //           onClick={submit}
-  //           focusable="false"
-  //           viewBox="0 0 16 16"
-  //           width="16"
-  //           height="16"
-  //         >
-  //           <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
-  //         </svg>
-  //       </div>
-  //       <div style="height: 8px" ref={hrRef} />
-  //     </>
-  //   );
-  // }
-
   function Response(props: { request: string; response: string }) {
     const parts: Array<string | any> = [];
 
@@ -512,7 +562,7 @@ function App({ state }: { state: State }) {
     if (props.request) {
       requestBox = (
         <div class="requestBox">
-          <Markdown markdown={"\\> " + props.request} />
+          <Markdown markdown={props.request} />
         </div>
       );
     }
