@@ -49,7 +49,7 @@ impl From<usize> for SymbolId {
     fn from(value: usize) -> Self {
         SymbolId(
             value.try_into().unwrap_or_else(|_| {
-                panic!("Value, {value}, does not fit into {}", stringify!($id))
+                panic!("Value, {value}, does not fit into SymbolId")
             }),
         )
     }
