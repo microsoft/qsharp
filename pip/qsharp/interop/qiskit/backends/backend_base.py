@@ -299,7 +299,7 @@ class BackendBase(BackendV2, ABC):
                 circuit, QuantumCircuit
             ), "Input must be a QuantumCircuit."
             start = time.time()
-            qasm = self.qasm3(circuit, **args)
+            qasm = self._qasm3(circuit, **args)
             end = time.time()
             time_taken = str(end - start)
             compilation = Compilation(circuit, qasm, time_taken)
@@ -396,7 +396,7 @@ class BackendBase(BackendV2, ABC):
         transpiled_circuit = self._transpile(circuit, **options)
         return transpiled_circuit
 
-    def qasm3(self, circuit: QuantumCircuit, **options) -> str:
+    def _qasm3(self, circuit: QuantumCircuit, **options) -> str:
         """Converts a Qiskit QuantumCircuit to QASM 3 for the current backend.
 
         Args:
@@ -425,7 +425,7 @@ class BackendBase(BackendV2, ABC):
 
             raise QasmError(str(Errors.FAILED_TO_EXPORT_QASM)) from ex
 
-    def qsharp(self, circuit: QuantumCircuit, **kwargs) -> str:
+    def _qsharp(self, circuit: QuantumCircuit, **kwargs) -> str:
         """
         Converts a Qiskit QuantumCircuit to Q# for the current backend.
 
@@ -448,7 +448,7 @@ class BackendBase(BackendV2, ABC):
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         """
 
-        qasm3_source = self.qasm3(circuit, **kwargs)
+        qasm3_source = self._qasm3(circuit, **kwargs)
 
         args = {
             "name": kwargs.get("name", circuit.name),
@@ -484,7 +484,7 @@ class BackendBase(BackendV2, ABC):
         if target_profile == TargetProfile.Unrestricted:
             raise ValueError(str(Errors.UNRESTRICTED_INVALID_QIR_TARGET))
 
-        qasm3_source = self.qasm3(circuit, **kwargs)
+        qasm3_source = self._qasm3(circuit, **kwargs)
 
         qir_args = {
             "name": name,

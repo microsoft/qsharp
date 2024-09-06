@@ -16,7 +16,7 @@ def run_transpile_test(
 ) -> None:
     circuit = QuantumCircuit(3, 3)
     operation(circuit)
-    info = QSharpBackend().qasm3(circuit, **options)
+    info = QSharpBackend()._qasm3(circuit, **options)
     lines = info.splitlines()
     # remove the first four lines, which are the header
     # OPENQASM 3.0;

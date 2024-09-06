@@ -15,7 +15,7 @@ def generate_repro_information(
     message += "\n"
 
     try:
-        qasm3_source = backend.qasm3(circuit, **options)
+        qasm3_source = backend._qasm3(circuit, **options)
         message += "QASM3 source:"
         message += "\n"
         message += str(qasm3_source)

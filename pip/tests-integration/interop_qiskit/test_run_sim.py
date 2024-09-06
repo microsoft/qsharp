@@ -47,7 +47,7 @@ def test_get_counts_matches_qiskit_simulator():
     backend = QSharpBackend(target_profile=target_profile)
 
     try:
-        qasm3 = backend.qasm3(circuit)
+        qasm3 = backend._qasm3(circuit)
         circuit = from_qasm3(qasm3)
 
         aersim = AerSimulator()
@@ -122,7 +122,7 @@ def test_get_counts_matches_qiskit_simulator_multiple_circuits():
     backend = QSharpBackend(target_profile=target_profile)
 
     try:
-        qasm3 = backend.qasm3(circuit)
+        qasm3 = backend._qasm3(circuit)
         circuit = from_qasm3(qasm3)
 
         aersim = AerSimulator()
