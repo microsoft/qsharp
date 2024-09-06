@@ -5,7 +5,7 @@ use crate::tests::{parse_all, print_compilation_errors, qasm_to_program_fragment
 use miette::Report;
 
 #[test]
-fn programs_with_includes_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
+fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), Vec<Report>> {
     let source0 = r#"include "stdgates.inc";
     include "source1.qasm";
     "#;
