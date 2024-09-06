@@ -18,11 +18,11 @@ As we process the AST we map the spans of the OpenQASM statements/expressions/li
 
 The two languages have many differences, and insofar as possible, the compilation preserves the source language semantics.
 
-- OpenQASM and Q# have different qubit and initialization semantics.
+- OpenQASM and Q# have different qubit management semantics.
   - Q# assumes that qubits are in the |0⟩ state when they are allocated.
-  - OpenQASM does not make this assumption and qubits are in an undefined state.
-- Q# requires that qubits are reset to the |0⟩ at the end of excution.
-- OpenQASM does not require this.
+  - OpenQASM does not make this assumption and qubits start in an undefined state.
+  - Q# requires that qubits are reset to the |0⟩ state when released.
+  - OpenQASM does not require qubits to be in a specific state at the end of execution.
 - Q# does no allow for variables to be uninitialized. All initialization is explicit.
 - OpenQASM allows for implicit initialization.
 - Q# does not allow for implicit casting or promotion of types. All conversions must be explicit.
