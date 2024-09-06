@@ -387,12 +387,8 @@ impl QasmCompiler {
             Stmt::Cal(..) | Stmt::DefCal(..) | Stmt::DefCalGrammar(..) => {
                 self.compile_calibration_stmt(stmt)
             }
-            Stmt::AnnotationStatement(annotation) => {
-                let message = "Annotation statements should have been handled in compile_stmts";
-                let span = span_for_syntax_node(annotation.syntax());
-                let kind = SemanticErrorKind::UnexpectedParserError(message.to_string(), span);
-                self.push_semantic_error(kind);
-                None
+            Stmt::AnnotationStatement(..) => {
+                panic!("Annotation statements should have been handled in compile_stmts")
             }
             Stmt::DelayStmt(delay) => self.compile_delay_stmt(delay),
             Stmt::PragmaStatement(pragma) => self.compile_pragma_stmt(pragma),
