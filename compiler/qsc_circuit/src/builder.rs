@@ -7,7 +7,6 @@ use crate::{
 };
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc_codegen::remapper::{HardwareId, Remapper};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{backend::Backend, val::Value};
 use std::{fmt::Write, mem::take, rc::Rc};
@@ -179,6 +178,10 @@ impl Backend for Builder {
 
     fn qubit_release(&mut self, q: usize) {
         self.remapper.qubit_release(q);
+    }
+
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.remapper.swap(q0, q1);
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -369,6 +372,97 @@ impl Builder {
         }
     }
 }
+
+/// Provides support for qubit id allocation, measurement and
+/// reset operations for Base Profile targets.
+///
+/// Since qubit reuse is disallowed, a mapping is maintained
+/// from allocated qubit ids to hardware qubit ids. Each time
+/// a qubit is reset, it is remapped to a fresh hardware qubit.
+///
+/// Note that even though qubit reset & reuse is disallowed,
+/// qubit ids are still reused for new allocations.
+/// Measurements are tracked and deferred.
+#[derive(Default)]
+pub struct Remapper {
+    next_meas_id: usize,
+    next_qubit_id: usize,
+    next_qubit_hardware_id: HardwareId,
+    qubit_map: IndexMap<usize, HardwareId>,
+    measurements: Vec<(HardwareId, usize)>,
+}
+
+impl Remapper {
+    pub fn map(&mut self, qubit: usize) -> HardwareId {
+        if let Some(mapped) = self.qubit_map.get(qubit) {
+            *mapped
+        } else {
+            let mapped = self.next_qubit_hardware_id;
+            self.next_qubit_hardware_id.0 += 1;
+            self.qubit_map.insert(qubit, mapped);
+            mapped
+        }
+    }
+
+    pub fn m(&mut self, q: usize) -> usize {
+        let mapped_q = self.map(q);
+        let id = self.get_meas_id();
+        self.measurements.push((mapped_q, id));
+        id
+    }
+
+    pub fn mreset(&mut self, q: usize) -> usize {
+        let id = self.m(q);
+        self.reset(q);
+        id
+    }
+
+    pub fn reset(&mut self, q: usize) {
+        self.qubit_map.remove(q);
+    }
+
+    pub fn qubit_allocate(&mut self) -> usize {
+        let id = self.next_qubit_id;
+        self.next_qubit_id += 1;
+        let _ = self.map(id);
+        id
+    }
+
+    pub fn qubit_release(&mut self, _q: usize) {
+        self.next_qubit_id -= 1;
+    }
+
+    pub fn swap(&mut self, q0: usize, q1: usize) {
+        let q0_mapped = self.map(q0);
+        let q1_mapped = self.map(q1);
+        self.qubit_map.insert(q0, q1_mapped);
+        self.qubit_map.insert(q1, q0_mapped);
+    }
+
+    pub fn measurements(&self) -> impl Iterator<Item = &(HardwareId, usize)> {
+        self.measurements.iter()
+    }
+
+    #[must_use]
+    pub fn num_qubits(&self) -> usize {
+        self.next_qubit_hardware_id.0
+    }
+
+    #[must_use]
+    pub fn num_measurements(&self) -> usize {
+        self.next_meas_id
+    }
+
+    #[must_use]
+    fn get_meas_id(&mut self) -> usize {
+        let id = self.next_meas_id;
+        self.next_meas_id += 1;
+        id
+    }
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct HardwareId(pub usize);
 
 #[allow(clippy::unicode_not_nfc)]
 static KET_ZERO: &str = "|0〉";

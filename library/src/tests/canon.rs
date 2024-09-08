@@ -108,6 +108,19 @@ fn check_fst_snd() {
 }
 
 #[test]
+fn check_swap_labels() {
+    test_expression(
+        "{
+                use qs = Qubit[2];
+                X(qs[0]);
+                SwapLabels(qs[0], qs[1]);
+                MResetEachZ(qs)
+            }",
+        &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_2() {
     test_expression(
         {

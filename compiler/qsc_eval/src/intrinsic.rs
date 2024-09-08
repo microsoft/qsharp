@@ -133,6 +133,11 @@ pub(crate) fn call(
                 Err(Error::ReleasedQubitNotZero(qubit, arg_span))
             }
         }
+        "__quantum__rt__qubit_swap_ids" => {
+            let [q0, q1] = unwrap_tuple(arg);
+            sim.qubit_swap_id(q0.unwrap_qubit().0, q1.unwrap_qubit().0);
+            Ok(Value::unit())
+        }
         "__quantum__qis__ccx__body" => {
             three_qubit_gate(|ctl0, ctl1, q| sim.ccx(ctl0, ctl1, q), arg, arg_span)
         }

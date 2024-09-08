@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Canon {
     open QIR.Intrinsic;
+    open QIR.Runtime;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
@@ -244,6 +245,24 @@ namespace Microsoft.Quantum.Canon {
     function Snd<'T, 'U>(pair : ('T, 'U)) : 'U {
         let (_, snd) = pair;
         return snd;
+    }
+
+    /// # Summary
+    /// Exchanges the labels of two qubits. This can function like a SWAP gate, but without needing to
+    /// perform any operations on the qubits themselves. The relabeling is done purely in qubit ID management.
+    ///
+    /// # Input
+    /// ## q0
+    /// The first qubit to swap.
+    /// ## q1
+    /// The second qubit to swap.
+    ///
+    /// # Remarks
+    /// This operation is useful when you need to swap qubits in a way that does not incur any quantum operations.
+    /// Note that when compiling for execution on hardware with limited qubit connectivity, this operation
+    /// may not result in any changes to qubit adjacency and a SWAP gate may still be required.
+    operation SwapLabels(q0 : Qubit, q1 : Qubit) : Unit {
+        __quantum__rt__qubit_swap_ids(q0, q1);
     }
 
     /// # Summary
@@ -584,6 +603,6 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
+    export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, SwapLabels, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
 
 }

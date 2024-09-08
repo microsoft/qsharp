@@ -418,23 +418,23 @@ fn block_qubit_use_array_invalid_count_expr() {
                             0,
                         ),
                         span: Span {
-                            lo: 2064,
-                            hi: 2121,
+                            lo: 2172,
+                            hi: 2229,
                         },
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 2064,
-                            hi: 2121,
+                            lo: 2172,
+                            hi: 2229,
                         },
                         id: StoreItemId {
                             package: PackageId(
                                 0,
                             ),
                             item: LocalItemId(
-                                6,
+                                7,
                             ),
                         },
                         caller: PackageId(
@@ -3724,7 +3724,7 @@ fn controlled_operation_with_duplicate_controls_fails() {
                                 1,
                             ),
                             item: LocalItemId(
-                                130,
+                                131,
                             ),
                         },
                         caller: PackageId(
@@ -3774,7 +3774,7 @@ fn controlled_operation_with_target_in_controls_fails() {
                                 1,
                             ),
                             item: LocalItemId(
-                                130,
+                                131,
                             ),
                         },
                         caller: PackageId(

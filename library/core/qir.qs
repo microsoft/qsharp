@@ -10,6 +10,10 @@ namespace QIR.Runtime {
         body intrinsic;
     }
 
+    operation __quantum__rt__qubit_swap_ids(q0 : Qubit, q1 : Qubit) : Unit {
+        body intrinsic;
+    }
+
     operation AllocateQubitArray(size : Int) : Qubit[] {
         if size < 0 {
             fail "Cannot allocate qubit array with a negative length";
@@ -27,5 +31,5 @@ namespace QIR.Runtime {
         }
     }
 
-    export __quantum__rt__qubit_allocate, __quantum__rt__qubit_release, AllocateQubitArray, ReleaseQubitArray;
+    export __quantum__rt__qubit_allocate, __quantum__rt__qubit_release, __quantum__rt__qubit_swap_ids, AllocateQubitArray, ReleaseQubitArray;
 }

@@ -506,6 +506,11 @@ impl Backend for LogicalCounter {
         self.free_list.push(q);
     }
 
+    fn qubit_swap_id(&mut self, _q0: usize, _q1: usize) {
+        // This can safely be treated as a no-op, because counts don't care which qubit is operated on,
+        // just how many operations are performed, and relabeling is non-physical.
+    }
+
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
         (Vec::new(), 0)
     }

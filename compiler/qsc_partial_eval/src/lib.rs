@@ -54,7 +54,7 @@ use qsc_rir::{
     },
 };
 use rustc_hash::FxHashMap;
-use std::{collections::hash_map::Entry, rc::Rc, result::Result};
+use std::{array, collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
 /// Partially evaluates a program with the specified entry expression.
@@ -568,7 +568,7 @@ impl<'a> PartialEvaluator<'a> {
 
                 // Create the operands.
                 let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
-                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+                let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
 
                 // If both operands are literals, evaluate the binary operation and return its value.
                 if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
@@ -657,7 +657,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(rhs_expr_id),
             ));
         };
-        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
 
         // Get the comparison result depending on the operator and the RHS value.
         let result_var = match (bin_op, rhs_operand) {
@@ -733,7 +733,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(rhs_expr_id),
             ));
         };
-        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
 
         // Store the RHS value into the the variable that represents the result of the Boolean operation.
         let store_ins = Instruction::Store(rhs_operand, result_rir_var);
@@ -783,7 +783,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.get_expr_package_span(rhs_expr_id),
             ));
         };
-        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
         assert!(
             matches!(rhs_operand.get_type(), rir::Ty::Integer),
             "LHS value is expected to be of integer type"
@@ -1290,6 +1290,7 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
+            "__quantum__rt__qubit_swap_ids" => Ok(self.swap_qubit_ids(args_value)),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
                 Ok(self.measure_qubit(builder::mresetz_decl(), args_value))
@@ -1359,7 +1360,7 @@ impl<'a> PartialEvaluator<'a> {
         );
         let args_operands = args
             .into_iter()
-            .map(|arg| map_eval_value_to_rir_operand(&arg.into_value()))
+            .map(|arg| self.map_eval_value_to_rir_operand(&arg.into_value()))
             .collect();
 
         let instruction = Instruction::Call(callable_id, args_operands, None);
@@ -1516,7 +1517,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // If there is a variable to save the value of the if expression to, add a store instruction.
         if let Some(if_expr_var) = if_expr_var {
-            let body_operand = map_eval_value_to_rir_operand(&body_control.into_value());
+            let body_operand = self.map_eval_value_to_rir_operand(&body_control.into_value());
             let store_ins = Instruction::Store(body_operand, if_expr_var);
             self.get_current_rir_block_mut().0.push(store_ins);
         }
@@ -1673,7 +1674,7 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Generate the instruction depending on the unary operator.
-        let value_operand = map_eval_value_to_rir_operand(&value);
+        let value_operand = self.map_eval_value_to_rir_operand(&value);
         let instruction = match un_op {
             UnOp::Neg => {
                 let constant = match rir_variable_type {
@@ -2184,7 +2185,7 @@ impl<'a> PartialEvaluator<'a> {
             .insert_hybrid_local_value(local_var_id, Value::Var(eval_var));
 
         // Insert a store instruction.
-        let value_operand = map_eval_value_to_rir_operand(value);
+        let value_operand = self.map_eval_value_to_rir_operand(value);
         let rir_var = map_eval_var_to_rir_var(eval_var);
         let store_ins = Instruction::Store(value_operand, rir_var);
         self.get_current_rir_block_mut().0.push(store_ins);
@@ -2234,9 +2235,9 @@ impl<'a> PartialEvaluator<'a> {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let qubit = args_value.unwrap_qubit();
         let qubit_value = Value::Qubit(qubit);
-        let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
+        let qubit_operand = self.map_eval_value_to_rir_operand(&qubit_value);
         let result_value = Value::Result(self.resource_manager.next_result_register());
-        let result_operand = map_eval_value_to_rir_operand(&result_value);
+        let result_operand = self.map_eval_value_to_rir_operand(&result_value);
 
         // Check if the callable has already been added to the program and if not do so now.
         let measure_callable_id = self.get_or_insert_callable(measure_callable);
@@ -2254,6 +2255,15 @@ impl<'a> PartialEvaluator<'a> {
         self.resource_manager.release_qubit(qubit);
 
         // The value of a qubit release is unit.
+        Value::unit()
+    }
+
+    fn swap_qubit_ids(&mut self, args_value: Value) -> Value {
+        let tuple = args_value.unwrap_tuple();
+        let [q0, q1] = array::from_fn(|i| tuple[i].clone());
+        let (q0, q1) = (q0.unwrap_qubit(), q1.unwrap_qubit());
+        self.resource_manager.swap_qubit_ids(q0, q1);
+
         Value::unit()
     }
 
@@ -2486,7 +2496,7 @@ impl<'a> PartialEvaluator<'a> {
             .get_hybrid_local_value(local_var_id);
         if let Value::Var(var) = bound_value {
             // Insert a store instruction when the value of a variable is updated.
-            let rhs_operand = map_eval_value_to_rir_operand(&value);
+            let rhs_operand = self.map_eval_value_to_rir_operand(&value);
             let rir_var = map_eval_var_to_rir_var(*var);
             let store_ins = Instruction::Store(rhs_operand, rir_var);
             self.get_current_rir_block_mut().0.push(store_ins);
@@ -2762,6 +2772,30 @@ impl<'a> PartialEvaluator<'a> {
         self.program.callables.insert(callable_id, callable);
         callable_id
     }
+
+    fn map_eval_value_to_rir_operand(&self, value: &Value) -> Operand {
+        match value {
+            Value::Bool(b) => Operand::Literal(Literal::Bool(*b)),
+            Value::Double(d) => Operand::Literal(Literal::Double(*d)),
+            Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
+            Value::Qubit(q) => Operand::Literal(Literal::Qubit(
+                self.resource_manager
+                    .map_qubit(*q)
+                    .try_into()
+                    .expect("could not convert qubit ID to u32"),
+            )),
+            Value::Result(r) => match r {
+                val::Result::Id(id) => Operand::Literal(Literal::Result(
+                    (*id)
+                        .try_into()
+                        .expect("could not convert result ID to u32"),
+                )),
+                val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
+            },
+            Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
+            _ => panic!("{value} cannot be mapped to a RIR operand"),
+        }
+    }
 }
 
 fn eval_un_op_with_literals(un_op: UnOp, value: Value) -> Value {
@@ -2903,27 +2937,6 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
             .ctl_adj
             .as_ref()
             .expect("controlled adjoint specialization does not exits")
-    }
-}
-
-fn map_eval_value_to_rir_operand(value: &Value) -> Operand {
-    match value {
-        Value::Bool(b) => Operand::Literal(Literal::Bool(*b)),
-        Value::Double(d) => Operand::Literal(Literal::Double(*d)),
-        Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
-        Value::Qubit(q) => Operand::Literal(Literal::Qubit(
-            q.0.try_into().expect("could not convert qubit ID to u32"),
-        )),
-        Value::Result(r) => match r {
-            val::Result::Id(id) => Operand::Literal(Literal::Result(
-                (*id)
-                    .try_into()
-                    .expect("could not convert result ID to u32"),
-            )),
-            val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
-        },
-        Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
-        _ => panic!("{value} cannot be mapped to a RIR operand"),
     }
 }
 
