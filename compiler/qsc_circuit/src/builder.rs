@@ -384,7 +384,7 @@ impl Builder {
 /// qubit ids are still reused for new allocations.
 /// Measurements are tracked and deferred.
 #[derive(Default)]
-pub struct Remapper {
+struct Remapper {
     next_meas_id: usize,
     next_qubit_id: usize,
     next_qubit_hardware_id: HardwareId,
@@ -393,7 +393,7 @@ pub struct Remapper {
 }
 
 impl Remapper {
-    pub fn map(&mut self, qubit: usize) -> HardwareId {
+    fn map(&mut self, qubit: usize) -> HardwareId {
         if let Some(mapped) = self.qubit_map.get(qubit) {
             *mapped
         } else {
@@ -404,53 +404,48 @@ impl Remapper {
         }
     }
 
-    pub fn m(&mut self, q: usize) -> usize {
+    fn m(&mut self, q: usize) -> usize {
         let mapped_q = self.map(q);
         let id = self.get_meas_id();
         self.measurements.push((mapped_q, id));
         id
     }
 
-    pub fn mreset(&mut self, q: usize) -> usize {
+    fn mreset(&mut self, q: usize) -> usize {
         let id = self.m(q);
         self.reset(q);
         id
     }
 
-    pub fn reset(&mut self, q: usize) {
+    fn reset(&mut self, q: usize) {
         self.qubit_map.remove(q);
     }
 
-    pub fn qubit_allocate(&mut self) -> usize {
+    fn qubit_allocate(&mut self) -> usize {
         let id = self.next_qubit_id;
         self.next_qubit_id += 1;
         let _ = self.map(id);
         id
     }
 
-    pub fn qubit_release(&mut self, _q: usize) {
+    fn qubit_release(&mut self, _q: usize) {
         self.next_qubit_id -= 1;
     }
 
-    pub fn swap(&mut self, q0: usize, q1: usize) {
+    fn swap(&mut self, q0: usize, q1: usize) {
         let q0_mapped = self.map(q0);
         let q1_mapped = self.map(q1);
         self.qubit_map.insert(q0, q1_mapped);
         self.qubit_map.insert(q1, q0_mapped);
     }
 
-    pub fn measurements(&self) -> impl Iterator<Item = &(HardwareId, usize)> {
+    fn measurements(&self) -> impl Iterator<Item = &(HardwareId, usize)> {
         self.measurements.iter()
     }
 
     #[must_use]
-    pub fn num_qubits(&self) -> usize {
+    fn num_qubits(&self) -> usize {
         self.next_qubit_hardware_id.0
-    }
-
-    #[must_use]
-    pub fn num_measurements(&self) -> usize {
-        self.next_meas_id
     }
 
     #[must_use]
