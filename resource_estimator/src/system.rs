@@ -29,6 +29,7 @@ pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
+use modeling::load_protocol_from_specification;
 use serde::Serialize;
 
 pub(crate) type Result<T> = std::result::Result<T, error::Error>;
@@ -77,7 +78,7 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
 ) -> Result<data::Success<L>> {
     let qubit = job_params.qubit_params().clone();
 
-    let ftp = Protocol::load_from_specification(job_params.qec_scheme_mut(), &qubit)?;
+    let ftp = load_protocol_from_specification(job_params.qec_scheme_mut(), &qubit)?;
     let distillation_unit_templates = job_params
         .distillation_unit_specifications()
         .as_templates()?;

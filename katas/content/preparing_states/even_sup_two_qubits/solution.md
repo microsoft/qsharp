@@ -1,8 +1,8 @@
-We know that the Hadamard gate maps the basis state $\ket{0}$ to $\frac{1}{\sqrt2}(\ket{0} + \ket{1})$, so it is a logical starting point for solving this problem. 
+You know that the Hadamard gate maps the basis state $\ket{0}$ to $\frac{1}{\sqrt2}(\ket{0} + \ket{1})$, so it's a logical starting point for solving this problem. 
 
-Next, we see that the final state has a $\frac{1}{2}$ term hinting that we might be applying two operations involving a $\frac{1}{\sqrt{2}}$ term. 
+Next, you see that the final state has a $\frac{1}{2}$ term hinting that you might be applying two operations involving a $\frac{1}{\sqrt{2}}$ term. 
 
-Now, how do we get the $\ket{00} + \ket{01} + \ket{10} + \ket{11}$ expression? Let's see what does multiplying the expression $\ket{0} + \ket{1}$ by itself look like:
+Now, how do you get the $\ket{00} + \ket{01} + \ket{10} + \ket{11}$ expression? Let's see what does multiplying the expression $\ket{0} + \ket{1}$ by itself look like:
 
 $$\big(\ket{0} + \ket{1}\big) \otimes \big(\ket{0} + \ket{1}\big) = \ket{0}\ket{0} + \ket{0}\ket{1} + \ket{1}\ket{0} + \ket{1}\ket{1}$$
 
