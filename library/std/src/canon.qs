@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Canon {
-    open QIR.Intrinsic;
+    import QIR.Intrinsic.*;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;

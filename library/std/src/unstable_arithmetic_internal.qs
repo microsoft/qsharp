@@ -6,6 +6,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     import Std.Arrays.*;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
+    import QIR.Intrinsic.*;
+
 
     /// # Summary
     /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate

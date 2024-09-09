@@ -8,6 +8,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Unstable.Arithmetic;
+    import QIR.Intrinsic.*;
+
 
     /// # Summary
     /// Performs table lookup using a SELECT network

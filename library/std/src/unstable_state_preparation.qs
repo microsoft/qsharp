@@ -6,6 +6,8 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     open Microsoft.Quantum.Diagnostics;
     import Std.Arrays.*;
     open Microsoft.Quantum.Math;
+    import QIR.Intrinsic.*;
+
 
     /// # Summary
     /// Given a set of coefficients and a big-endian quantum register,

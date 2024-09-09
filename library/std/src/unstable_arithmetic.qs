@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Unstable.Arithmetic {
     import Std.Arrays.*;
+    import QIR.Intrinsic.*;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;

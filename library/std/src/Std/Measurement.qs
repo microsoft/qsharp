@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Measurement {
+
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
@@ -183,4 +183,3 @@ namespace Microsoft.Quantum.Measurement {
     }
     export MeasureAllZ, MeasureEachZ, MResetEachZ, MResetX, MResetY, MResetZ, MeasureInteger;
 
-}
