@@ -2726,9 +2726,8 @@ impl QasmCompiler {
         {
             // See tests, but it is a parse error to have a switch statement with
             // no cases, even if the default block is present. Getting here means
-            // the parser is broken or they changed the grammar. Either way, an
-            // empty switch is a noop
-            return None;
+            // the parser is broken or they changed the grammar.
+            panic!("Switch statement must have a control expression and at least one case");
         }
 
         // update bindings based on what we checked above
