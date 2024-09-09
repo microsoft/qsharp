@@ -46,8 +46,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/internal.qs"),
     ),
     (
-        "qsharp-library-source:QIR/Intrinsic.qs",
-        include_str!("../std/src/QIR/Intrinsic.qs"),
+        "qsharp-library-source:Std/Intrinsic.qs",
+        include_str!("../std/src/Std/Intrinsic.qs"),
     ),
     (
         "qsharp-library-source:Std/Logical.qs",
