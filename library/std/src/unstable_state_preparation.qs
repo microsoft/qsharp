@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.Unstable.StatePreparation {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
     open Microsoft.Quantum.Math;
 
     /// # Summary

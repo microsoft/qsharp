@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Intrinsic {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
     open QIR.Intrinsic;

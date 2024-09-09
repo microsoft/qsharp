@@ -2,23 +2,23 @@
   "author": "Microsoft",
   "license": "MIT",
   "files": [
-    "src/arrays.qs",
     "src/canon.qs",
     "src/convert.qs",
     "src/core.qs",
     "src/diagnostics.qs",
     "src/internal.qs",
     "src/intrinsic.qs",
+    "src/legacy_api.qs",
     "src/logical.qs",
     "src/math.qs",
     "src/measurement.qs",
-    "src/modern_api.qs",
     "src/qir.qs",
     "src/random.qs",
     "src/re.qs",
     "src/unstable_arithmetic.qs",
     "src/unstable_arithmetic_internal.qs",
     "src/unstable_state_preparation.qs",
-    "src/unstable_table_lookup.qs"
+    "src/unstable_table_lookup.qs",
+    "src/Std/Arrays.qs"
   ]
 }

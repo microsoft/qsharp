@@ -1,5 +1,5 @@
 namespace Test {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Random;

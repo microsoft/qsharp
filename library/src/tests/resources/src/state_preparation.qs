@@ -2,7 +2,7 @@ namespace Test {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
     open Microsoft.Quantum.Unstable.StatePreparation;
 
 

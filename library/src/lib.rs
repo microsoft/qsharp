@@ -22,8 +22,8 @@ pub const CORE_LIB: &[(&str, &str)] = &[
 
 pub const STD_LIB: &[(&str, &str)] = &[
     (
-        "qsharp-library-source:arrays.qs",
-        include_str!("../std/src/arrays.qs"),
+        "qsharp-library-source:Std/Arrays.qs",
+        include_str!("../std/src/Std/Arrays.qs"),
     ),
     (
         "qsharp-library-source:canon.qs",
@@ -90,7 +90,7 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/unstable_table_lookup.qs"),
     ),
     (
-        "qsharp-library-source:modern_api.qs",
-        include_str!("../std/src/modern_api.qs"),
+        "qsharp-library-source:legacy_api.qs",
+        include_str!("../std/src/legacy_api.qs"),
     ),
 ];
