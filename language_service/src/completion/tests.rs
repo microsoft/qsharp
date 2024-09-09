@@ -1405,6 +1405,62 @@ fn dont_import_if_already_glob_imported() {
     );
 }
 
+// expect an auto-import for `Foo.Bar`, separate from the preexisting glob import `Foo.Bar.*`
+#[test]
+fn glob_import_item_with_same_name() {
+    check(
+        r#"
+        namespace Foo {
+            operation Bar() : Unit {
+            }
+        }
+
+        namespace Foo.Bar {
+        }
+
+        namespace Baz {
+            import Foo.Bar.*;
+            operation Main(): Unit {
+                ↘
+            }
+        }"#,
+        &["Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import Foo.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 10,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 10,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
 // no additional text edits for Foo because Foo is directly imported,
 // but additional text edits for Bar because Bar is not directly imported
 #[test]
