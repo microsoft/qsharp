@@ -4,6 +4,8 @@ namespace Test {
     open Microsoft.Quantum.Diagnostics;
     import Std.Arrays.*;
     open Microsoft.Quantum.Unstable.StatePreparation;
+    import QIR.Intrinsic.*;
+
 
 
     operation TestPlusState() : Unit {

@@ -30,36 +30,36 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/canon.qs"),
     ),
     (
-        "qsharp-library-source:convert.qs",
-        include_str!("../std/src/convert.qs"),
+        "qsharp-library-source:Std/Convert.qs",
+        include_str!("../std/src/Std/Convert.qs"),
     ),
     (
         "qsharp-library-source:core.qs",
         include_str!("../std/src/core.qs"),
     ),
     (
-        "qsharp-library-source:diagnostics.qs",
-        include_str!("../std/src/diagnostics.qs"),
+        "qsharp-library-source:Std/Diagnostics.qs",
+        include_str!("../std/src/Std/Diagnostics.qs"),
     ),
     (
         "qsharp-library-source:internal.qs",
         include_str!("../std/src/internal.qs"),
     ),
     (
-        "qsharp-library-source:intrinsic.qs",
-        include_str!("../std/src/intrinsic.qs"),
+        "qsharp-library-source:QIR/Intrinsic.qs",
+        include_str!("../std/src/QIR/Intrinsic.qs"),
     ),
     (
-        "qsharp-library-source:logical.qs",
-        include_str!("../std/src/logical.qs"),
+        "qsharp-library-source:Std/Logical.qs",
+        include_str!("../std/src/Std/Logical.qs"),
     ),
     (
-        "qsharp-library-source:math.qs",
-        include_str!("../std/src/math.qs"),
+        "qsharp-library-source:Std/Math.qs",
+        include_str!("../std/src/Std/Math.qs"),
     ),
     (
-        "qsharp-library-source:measurement.qs",
-        include_str!("../std/src/measurement.qs"),
+        "qsharp-library-source:Std/Measurement.qs",
+        include_str!("../std/src/Std/Measurement.qs"),
     ),
     (
         "qsharp-library-source:qir.qs",
