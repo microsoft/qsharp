@@ -9,8 +9,16 @@ from ._native import (
     Output,
     Circuit,
 )
-from warnings import warn
-from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    TypedDict,
+    Union,
+    List,
+    overload,
+)
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
@@ -305,7 +313,8 @@ def circuit(
 
 
 def estimate(
-    entry_expr, params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+    entry_expr: str,
+    params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
 ) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
@@ -313,22 +322,31 @@ def estimate(
     :param entry_expr: The entry expression.
     :param params: The parameters to configure physical estimation.
 
-    :returns resources: The estimated resources.
+    :returns `EstimatorResult`: The estimated resources.
     """
+
     ipython_helper()
 
-    if params is None:
-        params = [{}]
-    elif isinstance(params, EstimatorParams):
-        if params.has_items:
-            params = params.as_dict()["items"]
-        else:
-            params = [params.as_dict()]
-    elif isinstance(params, dict):
-        params = [params]
-    return EstimatorResult(
-        json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
-    )
+    def _coerce_estimator_params(
+        params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+    ) -> List[Dict[str, Any]]:
+        if params is None:
+            params = [{}]
+        elif isinstance(params, EstimatorParams):
+            if params.has_items:
+                params = params.as_dict()["items"]
+            else:
+                params = [params.as_dict()]
+        elif isinstance(params, dict):
+            params = [params]
+        return params
+
+    params = _coerce_estimator_params(params)
+    param_str = json.dumps(params)
+
+    res_str = get_interpreter().estimate(entry_expr, param_str)
+    res = json.loads(res_str)
+    return EstimatorResult(res)
 
 
 def set_quantum_seed(seed: Optional[int]) -> None:
