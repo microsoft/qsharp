@@ -3,9 +3,7 @@
   "license": "MIT",
   "files": [
     "src/canon.qs",
-    "src/convert.qs",
     "src/core.qs",
-    "src/diagnostics.qs",
     "src/internal.qs",
     "src/intrinsic.qs",
     "src/legacy_api.qs",
@@ -20,6 +18,7 @@
     "src/unstable_state_preparation.qs",
     "src/unstable_table_lookup.qs",
     "src/Std/Arrays.qs",
-    "src/Std/Convert.qs"
+    "src/Std/Convert.qs",
+    "src/Std/Diagnostics.qs"
   ]
 }

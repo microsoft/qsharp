@@ -1,8 +1,4 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
-namespace Microsoft.Quantum.Diagnostics {
-    open QIR.Intrinsic;
+open QIR.Intrinsic;
 
     /// # Summary
     /// Dumps the current target machine's status.
@@ -333,4 +329,3 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
-}

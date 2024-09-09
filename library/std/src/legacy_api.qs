@@ -5,7 +5,7 @@
 // This file re-exports the standard library under the name `Std`, which will be the preferred standard library API going forward.
 
 namespace Microsoft.Quantum {
-    export Std.Arrays, Std.Convert;
+    export Std.Arrays, Std.Convert, Std.Diagnostics;
 }
 
 namespace Std {
