@@ -19,6 +19,7 @@
     "src/unstable_arithmetic_internal.qs",
     "src/unstable_state_preparation.qs",
     "src/unstable_table_lookup.qs",
-    "src/Std/Arrays.qs"
+    "src/Std/Arrays.qs",
+    "src/Std/Convert.qs"
   ]
 }
