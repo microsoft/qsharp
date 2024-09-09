@@ -255,11 +255,7 @@ export function Editor(props: {
     // will be invalid as it captures the *original* props.languageService
     // and not the updated one. Not a problem currently since the language
     // service is never updated, but not correct either.
-    srcModel.onDidChangeContent(async (e) => {
-      e.changes.forEach((change) => {
-        log.debug("changes for version %d are: %o", e.versionId, change);
-      });
-
+    srcModel.onDidChangeContent(async () => {
       // Reset the shot errors whenever the document changes.
       // The markers will be refreshed by the onDiagnostics callback
       // when the language service finishes checking the document.
