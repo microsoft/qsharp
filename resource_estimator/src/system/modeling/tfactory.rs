@@ -37,7 +37,7 @@ impl<'a> TFactoryQubit<'a> {
     pub fn cycle_time(&self) -> u64 {
         match self {
             Self::Logical(qubit) => qubit.logical_cycle_time(),
-            Self::Physical(qubit) => qubit.one_qubit_measurement_time(),
+            Self::Physical(qubit) => qubit.t_gate_time(),
         }
     }
 
