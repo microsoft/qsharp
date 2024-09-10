@@ -26,8 +26,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Arrays.qs"),
     ),
     (
-        "qsharp-library-source:canon.qs",
-        include_str!("../std/src/canon.qs"),
+        "qsharp-library-source:Std/Canon.qs",
+        include_str!("../std/src/Std/Canon.qs"),
     ),
     (
         "qsharp-library-source:Std/Convert.qs",
@@ -74,20 +74,20 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/ResourceEstimation.qs"),
     ),
     (
-        "qsharp-library-source:Std/Unstable/Arithmetic.qs",
-        include_str!("../std/src/Std/Unstable/Arithmetic.qs"),
+        "qsharp-library-source:unstable_arithmetic_internal.qs",
+        include_str!("../std/src/unstable_arithmetic_internal.qs"),
     ),
     (
-        "qsharp-library-source:Std/Unstable/ArithmeticHelpers.qs",
-        include_str!("../std/src/Std/Unstable/ArithmeticHelpers.qs"),
+        "qsharp-library-source:unstable_arithmetic.qs",
+        include_str!("../std/src/unstable_arithmetic.qs"),
     ),
     (
-        "qsharp-library-source:Std/Unstable/StatePreparation.qs",
-        include_str!("../std/src/Std/Unstable/StatePreparation.qs"),
+        "qsharp-library-source:unstable_state_preparation.qs",
+        include_str!("../std/src/unstable_state_preparation.qs"),
     ),
     (
-        "qsharp-library-source:Std/Unstable/TableLookup.qs",
-        include_str!("../std/src/Std/Unstable/TableLookup.qs"),
+        "qsharp-library-source:unstable_table_lookup.qs",
+        include_str!("../std/src/unstable_table_lookup.qs"),
     ),
     (
         "qsharp-library-source:legacy_api.qs",

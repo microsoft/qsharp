@@ -36,7 +36,6 @@ operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj 
     }
 }
 
-    /// # Summary
 /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
 /// Note that target qubit must be in |0⟩ state.
 ///
@@ -55,7 +54,6 @@ operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj 
     PhaseCCX(control1, control2, target);
 }
 
-    /// # Summary
 /// Applies the doubly controlled–NOT (CCNOT) gate to three qubits.
 ///
 /// # Input
@@ -81,7 +79,6 @@ operation CCNOT(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Ad
     adjoint self;
 }
 
-    /// # Summary
 /// Applies the controlled-NOT (CNOT) gate to a pair of qubits.
 ///
 /// # Input
@@ -119,7 +116,6 @@ operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Applies the exponential of a multi-qubit Pauli operator.
 ///
 /// # Input
@@ -183,7 +179,6 @@ operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj 
     }
 }
 
-    /// # Summary
 /// Applies the Hadamard transformation to a single qubit.
 ///
 /// # Input
@@ -228,7 +223,6 @@ operation H(qubit : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Performs the identity operation (no-op) on a single qubit.
 ///
 /// # Remarks
@@ -239,7 +233,6 @@ operation I(target : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Performs a measurement of a single qubit in the
 /// Pauli _Z_ basis.
 ///
@@ -270,7 +263,6 @@ operation M(qubit : Qubit) : Result {
     __quantum__qis__m__body(qubit)
 }
 
-    /// # Summary
 /// Performs a measurement of a single qubit in the
 /// Pauli _Z_ basis.
 ///
@@ -301,7 +293,6 @@ operation M(qubit : Qubit) : Result {
     Measure([PauliZ], [qubit])
 }
 
-    /// # Summary
 /// Performs a joint measurement of one or more qubits in the
 /// specified Pauli bases.
 ///
@@ -350,7 +341,6 @@ operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
     }
 }
 
-    /// # Summary
 /// Performs a joint measurement of one or more qubits in the
 /// specified Pauli bases.
 ///
@@ -394,7 +384,6 @@ operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
     __quantum__qis__mresetz__body(aux)
 }
 
-    /// # Summary
 /// Applies a rotation about the given Pauli axis.
 ///
 /// # Input
@@ -430,7 +419,6 @@ operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies a rotation about the |1⟩ state by a given angle.
 ///
 /// # Input
@@ -457,7 +445,6 @@ operation R1(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
     R(PauliI, -theta, qubit);
 }
 
-    /// # Summary
 /// Applies a rotation about the |1⟩ state by an angle specified
 /// as a dyadic fraction.
 ///
@@ -493,7 +480,6 @@ operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ct
     RFrac(PauliI, numerator, power + 1, qubit);
 }
 
-    /// # Summary
 /// Given a single qubit, measures it and ensures it is in the |0⟩ state
 /// such that it can be safely released.
 ///
@@ -504,7 +490,6 @@ operation Reset(qubit : Qubit) : Unit {
     __quantum__qis__reset__body(qubit);
 }
 
-    /// # Summary
 /// Given an array of qubits, measure them and ensure they are in the |0⟩ state
 /// such that they can be safely released.
 ///
@@ -517,7 +502,6 @@ operation ResetAll(qubits : Qubit[]) : Unit {
     }
 }
 
-    /// # Summary
 /// Applies a rotation about the given Pauli axis by an angle specified
 /// as a dyadic fraction.
 ///
@@ -558,7 +542,6 @@ operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Un
     R(pauli, angle, qubit);
 }
 
-    /// # Summary
 /// Applies a rotation about the _x_-axis by a given angle.
 ///
 /// # Input
@@ -603,7 +586,6 @@ operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the two qubit Ising _XX_ rotation gate.
 ///
 /// # Input
@@ -650,7 +632,6 @@ operation Rxx(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ct
     }
 }
 
-    /// # Summary
 /// Applies a rotation about the _y_-axis by a given angle.
 ///
 /// # Input
@@ -695,7 +676,6 @@ operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the two qubit Ising _YY_ rotation gate.
 ///
 /// # Input
@@ -742,7 +722,6 @@ operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ct
     }
 }
 
-    /// # Summary
 /// Applies a rotation about the _z_-axis by a given angle.
 ///
 /// # Input
@@ -791,7 +770,6 @@ operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the two qubit Ising _ZZ_ rotation gate.
 ///
 /// # Input
@@ -838,7 +816,6 @@ operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ct
     }
 }
 
-    /// # Summary
 /// Applies the π/4 phase gate to a single qubit.
 ///
 /// # Input
@@ -904,7 +881,6 @@ operation S(qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the SWAP gate to a pair of qubits.
 ///
 /// # Input
@@ -952,7 +928,6 @@ operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the π/8 gate to a single qubit.
 ///
 /// # Input
@@ -1008,7 +983,6 @@ operation T(qubit : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-    /// # Summary
 /// Applies the Pauli _X_ gate.
 ///
 /// # Input
@@ -1052,7 +1026,6 @@ operation X(qubit : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Applies the Pauli _Y_ gate.
 ///
 /// # Input
@@ -1096,7 +1069,6 @@ operation Y(qubit : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Applies the Pauli _Z_ gate.
 ///
 /// # Input
@@ -1140,7 +1112,6 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// # Summary
 /// Logs a message.
 ///
 /// # Input

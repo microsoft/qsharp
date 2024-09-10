@@ -37,7 +37,6 @@ function All<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool {
     true
 }
 
-    /// # Summary
 /// Given an array and a predicate that is defined
 /// for the elements of the array, checks if at least one element of
 /// the array satisfies the predicate.
@@ -69,7 +68,6 @@ function Any<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool {
     false
 }
 
-    /// # Summary
 /// Splits an array into multiple parts of equal length.
 ///
 /// # Input
@@ -97,7 +95,6 @@ function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][] {
     output
 }
 
-    /// # Summary
 /// Shift an array circularly left or right by a specific step size.
 ///
 /// # Type Parameters
@@ -145,7 +142,6 @@ function CircularlyShifted<'T>(stepCount : Int, array : 'T[]) : 'T[] {
     rightPart + leftPart
 }
 
-    /// # Summary
 /// Extracts a column from a matrix.
 ///
 /// # Description
@@ -182,7 +178,6 @@ function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[] {
     columnValues
 }
 
-    /// # Summary
 /// Given an array and a predicate that is defined
 /// for the elements of the array, returns the number of elements
 /// an array that consists of those elements that satisfy the predicate.
@@ -215,7 +210,6 @@ function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
     count
 }
 
-    /// # Summary
 /// Returns an array of diagonal elements of a 2-dimensional array
 ///
 /// # Description
@@ -252,7 +246,6 @@ function Diagonal<'T>(matrix : 'T[][]) : 'T[] {
     diagonal
 }
 
-    /// # Summary
 /// Repeats an operation for a given number of samples, collecting its outputs
 /// in an array.
 ///
@@ -284,7 +277,6 @@ operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int
     outputs
 }
 
-    /// # Summary
 /// Given an array, returns a new array containing elements of the original
 /// array along with the indices of each element.
 ///
@@ -313,7 +305,6 @@ function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[] {
     MappedByIndex((index, element) -> (index, element), array)
 }
 
-    /// # Summary
 /// Returns an array containing the elements of another array,
 /// excluding elements at a given list of indices.
 ///
@@ -355,7 +346,6 @@ function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[] {
     output
 }
 
-    /// # Summary
 /// Given an array and a predicate that is defined
 /// for the elements of the array, returns an array that consists of
 /// those elements that satisfy the predicate.
@@ -388,7 +378,6 @@ function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[] {
     filtered
 }
 
-    /// # Summary
 /// Given an array and a function that maps an array element to some output
 /// array, returns the concatenated output arrays for each array element.
 ///
@@ -422,7 +411,6 @@ function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array :
     output
 }
 
-    /// # Summary
 /// Given an array of arrays, returns the concatenation of all arrays.
 ///
 /// # Type Parameters
@@ -449,7 +437,6 @@ function Flattened<'T>(arrays : 'T[][]) : 'T[] {
     output
 }
 
-    /// # Summary
 /// Iterates a function `f` through an array `array`, returning
 /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
 ///
@@ -484,7 +471,6 @@ function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, arr
     current
 }
 
-    /// # Summary
 /// Given an array and an operation that is defined
 /// for the elements of the array, returns a new array that consists
 /// of the images of the original array under the operation.
@@ -514,7 +500,6 @@ operation ForEach<'T, 'U>(action : ('T => 'U), array : 'T[]) : 'U[] {
     output
 }
 
-    /// # Summary
 /// Returns the first element of the array.
 ///
 /// # Type Parameters
@@ -532,7 +517,6 @@ function Head<'A>(array : 'A[]) : 'A {
     array[0]
 }
 
-    /// # Summary
 /// Returns a tuple of first and all remaining elements of the array.
 ///
 /// # Type Parameters
@@ -549,7 +533,6 @@ function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[]) {
     (Head(array), Rest(array))
 }
 
-    /// # Summary
 /// Returns the first index of the first element in an array that satisfies
 /// a given predicate. If no such element exists, returns -1.
 ///
@@ -578,7 +561,6 @@ function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
         -1
 }
 
-    /// # Summary
 /// Given an array, returns a range over the indices of that array, suitable
 /// for use in a for loop.
 ///
@@ -603,7 +585,6 @@ function IndexRange<'TElement>(array : 'TElement[]) : Range {
     0..Length(array) - 1
 }
 
-    /// # Summary
 /// Interleaves two arrays of (almost) same size.
 ///
 /// # Description
@@ -651,7 +632,6 @@ function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[] {
     interleaved
 }
 
-    /// # Summary
 /// Returns true if and only if an array is empty.
 ///
 /// # Input
@@ -664,7 +644,6 @@ function IsEmpty<'T>(array : 'T[]) : Bool {
     Length(array) == 0
 }
 
-    /// # Summary
 /// Returns whether a 2-dimensional array has a rectangular shape
 ///
 /// # Type Parameters
@@ -700,7 +679,6 @@ function IsRectangularArray<'T>(array : 'T[][]) : Bool {
     true
 }
 
-    /// # Summary
 /// Given an array, returns whether that array is sorted as defined by
 /// a given comparison function.
 ///
@@ -732,7 +710,6 @@ function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool {
     true
 }
 
-    /// # Summary
 /// Returns whether a 2-dimensional array has a square shape
 ///
 /// # Type Parameters
@@ -768,7 +745,6 @@ function IsSquareArray<'T>(array : 'T[][]) : Bool {
     true
 }
 
-    /// # Summary
 /// Given an array and a function that is defined
 /// for the elements of the array, returns a new array that consists
 /// of the images of the original array under the function.
@@ -798,7 +774,6 @@ function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[] {
     mapped
 }
 
-    /// # Summary
 /// Given an array and a function that is defined
 /// for the indexed elements of the array, returns a new array that consists
 /// of the images of the original array under the function.
@@ -839,7 +814,6 @@ function MappedByIndex<'T, 'U>(mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] 
     mapped
 }
 
-    /// # Summary
 /// Given a range and a function that takes an integer as input,
 /// returns a new array that consists
 /// of the images of the range values under the function.
@@ -874,7 +848,6 @@ function MappedOverRange<'T>(mapper : (Int -> 'T), range : Range) : 'T[] {
     output
 }
 
-    /// # Summary
 /// Creates an array that is equal to an input array except that the last array
 /// element is dropped.
 ///
@@ -892,7 +865,6 @@ function Most<'T>(array : 'T[]) : 'T[] {
     array[...Length(array) - 2]
 }
 
-    /// # Summary
 /// Returns a tuple of all but one and the last element of the array.
 ///
 /// # Type Parameters
@@ -909,7 +881,6 @@ function MostAndTail<'A>(array : 'A[]) : ('A[], 'A) {
     (Most(array), Tail(array))
 }
 
-    /// # Summary
 /// Returns an array padded at with specified values up to a
 /// specified length.
 ///
@@ -954,7 +925,6 @@ function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) 
     }
 }
 
-    /// # Summary
 /// Splits an array into multiple parts.
 ///
 /// # Input
@@ -994,7 +964,6 @@ function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][] {
     output
 }
 
-    /// # Summary
 /// Creates an array that is equal to an input array except that the first array
 /// element is dropped.
 ///
@@ -1012,7 +981,6 @@ function Rest<'T>(array : 'T[]) : 'T[] {
     array[1...]
 }
 
-    /// # Summary
 /// Create an array that contains the same elements as an input array but in reversed
 /// order.
 ///
@@ -1030,7 +998,6 @@ function Reversed<'T>(array : 'T[]) : 'T[] {
     array[...-1...]
 }
 
-    /// # Summary
 /// Get an array of integers in a given interval.
 ///
 /// # Input
@@ -1061,7 +1028,6 @@ function SequenceI(from : Int, to : Int) : Int[] {
     array
 }
 
-    /// # Summary
 /// Get an array of integers in a given interval.
 ///
 /// # Input
@@ -1095,7 +1061,6 @@ function SequenceL(from : BigInt, to : BigInt) : BigInt[] {
     array
 }
 
-    /// # Summary
 /// Given an array, returns the elements of that array sorted by a given
 /// comparison function.
 ///
@@ -1145,7 +1110,6 @@ function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[] {
     )
 }
 
-    /// # Summary
 /// Given two sorted arrays, returns a single array containing the
 /// elements of both in sorted order. Used internally by `Sorted`.
 internal function SortedMerged<'T>(comparison : (('T, 'T) -> Bool), left : 'T[], right : 'T[]) : 'T[] {
@@ -1167,7 +1131,6 @@ internal function SortedMerged<'T>(comparison : (('T, 'T) -> Bool), left : 'T[],
     output + remainingLeft + remainingRight
 }
 
-    /// # Summary
 /// Takes an array and a list of locations and
 /// produces a new array formed from the elements of the original
 /// array that match the given locations.
@@ -1205,7 +1168,6 @@ function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[] {
     subarray
 }
 
-    /// # Summary
 /// Applies a swap of two elements in an array.
 ///
 /// # Input
@@ -1232,7 +1194,6 @@ function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[] {
         w/ secondIndex <- array[firstIndex]
 }
 
-    /// # Summary
 /// Returns the transpose of a matrix represented as an array
 /// of arrays.
 ///
@@ -1276,7 +1237,6 @@ function Transposed<'T>(matrix : 'T[][]) : 'T[][] {
     transposed
 }
 
-    /// # Summary
 /// Returns the last element of the array.
 ///
 /// # Type Parameters
@@ -1295,7 +1255,6 @@ function Tail<'A>(array : 'A[]) : 'A {
     array[size - 1]
 }
 
-    /// # Summary
 /// Given an array of 2-tuples, returns a tuple of two arrays, each containing
 /// the elements of the tuples of the input array.
 ///
@@ -1332,7 +1291,6 @@ function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[]) {
     return (first, second);
 }
 
-    /// # Summary
 /// Given a predicate and an array, returns the indices of that
 /// array where the predicate is true.
 ///
@@ -1358,7 +1316,6 @@ function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[] {
     indexes
 }
 
-    /// # Summary
 /// Returns all consecutive subarrays of length `size`.
 ///
 /// # Description
@@ -1400,7 +1357,6 @@ function Windows<'T>(size : Int, array : 'T[]) : 'T[][] {
     windows
 }
 
-    /// # Summary
 /// Given two arrays, returns a new array of pairs such that each pair
 /// contains an element from each original array.
 ///

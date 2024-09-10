@@ -27,7 +27,6 @@ function PI() : Double {
     3.14159265358979323846
 }
 
-    /// # Summary
 /// Returns a double-precision approximation of the
 /// mathematical constant 𝒆 ≈ 2.7182818284590452354
 ///
@@ -44,7 +43,6 @@ function E() : Double {
     2.7182818284590452354
 }
 
-    /// # Summary
 /// Returns a double-precision approximation of the constant
 /// ㏑2 ≈ 0.6931471805599453
 ///
@@ -75,7 +73,6 @@ function IsNaN(d : Double) : Bool {
     return d != d;
 }
 
-    /// # Summary
 /// Returns whether a given floating-point value is either positive or
 /// negative infinity.
 ///
@@ -124,7 +121,6 @@ function SignI(a : Int) : Int {
     }
 }
 
-    /// # Summary
 /// Returns -1, 0 or +1 that indicates the sign of a number.
 function SignD(a : Double) : Int {
     if (a < 0.0) {
@@ -136,7 +132,6 @@ function SignD(a : Double) : Int {
     }
 }
 
-    /// # Summary
 /// Returns -1, 0 or +1 that indicates the sign of a number.
 function SignL(a : BigInt) : Int {
     if (a < 0L) {
@@ -148,60 +143,50 @@ function SignL(a : BigInt) : Int {
     }
 }
 
-    /// # Summary
 /// Returns the absolute value of an integer.
 function AbsI(a : Int) : Int {
     a < 0 ? -a | a
 }
 
-    /// # Summary
 /// Returns the absolute value of a double-precision floating-point number.
 function AbsD(a : Double) : Double {
     a < 0.0 ? -a | a
 }
 
-    /// # Summary
 function AbsL(a : BigInt) : BigInt {
     a < 0L ? -a | a
 }
 
-    /// # Summary
 /// Returns the larger of two specified numbers.
 function MaxI(a : Int, b : Int) : Int {
     a > b ? a | b
 }
 
-    /// # Summary
 /// Returns the larger of two specified numbers.
 function MaxD(a : Double, b : Double) : Double {
     a > b ? a | b
 }
 
-    /// # Summary
 /// Returns the larger of two specified numbers.
 function MaxL(a : BigInt, b : BigInt) : BigInt {
     a > b ? a | b
 }
 
-    /// # Summary
 /// Returns the smaller of two specified numbers.
 function MinI(a : Int, b : Int) : Int {
     a < b ? a | b
 }
 
-    /// # Summary
 /// Returns the smaller of two specified numbers.
 function MinD(a : Double, b : Double) : Double {
     a < b ? a | b
 }
 
-    /// # Summary
 /// Returns the smaller of two specified numbers.
 function MinL(a : BigInt, b : BigInt) : BigInt {
     a < b ? a | b
 }
 
-    /// # Summary
 /// Given an array of integers, returns the largest element.
 ///
 /// # Input
@@ -222,7 +207,6 @@ function Max(values : Int[]) : Int {
     max
 }
 
-    /// # Summary
 /// Given an array of integers, returns the smallest element.
 ///
 /// # Input
@@ -253,74 +237,62 @@ function ArcCos(x : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the angle whose sine is the specified number.
 function ArcSin(y : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the angle whose tangent is the specified number.
 function ArcTan(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the angle whose tangent is the quotient of two specified numbers.
 function ArcTan2(y : Double, x : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the cosine of the specified angle.
 function Cos(theta : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the hyperbolic cosine of the specified angle.
 function Cosh(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the sine of the specified angle.
 function Sin(theta : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the hyperbolic sine of the specified angle.
 function Sinh(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the tangent of the specified angle.
 function Tan(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the hyperbolic tangent of the specified angle.
 function Tanh(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Computes the inverse hyperbolic cosine of a number.
 function ArcCosh(x : Double) : Double {
     Log(x + Sqrt(x * x - 1.0))
 }
 
-    /// # Summary
 /// Computes the inverse hyperbolic sine of a number.
 function ArcSinh(x : Double) : Double {
     Log(x + Sqrt(x * x + 1.0))
 }
 
 
-    /// # Summary
 /// Computes the inverse hyperbolic tangent of a number.
 function ArcTanh(x : Double) : Double {
     Log((1.0 + x) / (1.0 - x)) * 0.5
@@ -336,19 +308,16 @@ function Sqrt(d : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the natural (base _e_) logarithm of a specified number.
 function Log(input : Double) : Double {
     body intrinsic;
 }
 
-    /// # Summary
 /// Returns the base-10 logarithm of a specified number.
 function Log10(input : Double) : Double {
     Log(input) / Log(10.0)
 }
 
-    /// # Summary
 /// Computes the base-2 logarithm of a number.
 function Lg(input : Double) : Double {
     Log(input) / Log(2.0)
@@ -370,7 +339,6 @@ internal function ExtendedTruncation(value : Double) : (Int, Double, Bool) {
     (truncated, IntAsDouble(truncated) - value, value >= 0.0)
 }
 
-    /// # Summary
 /// Returns the smallest integer greater than or equal to the specified number.
 /// For example: Ceiling(3.1) = 4; Ceiling(-3.7) = -3
 function Ceiling(value : Double) : Int {
@@ -382,7 +350,6 @@ function Ceiling(value : Double) : Int {
     }
 }
 
-    /// # Summary
 /// Returns the largest integer less than or equal to the specified number.
 /// For example: Floor(3.7) = 3; Floor(-3.1) = -4
 function Floor(value : Double) : Int {
@@ -394,7 +361,6 @@ function Floor(value : Double) : Int {
     }
 }
 
-    /// # Summary
 /// Returns the nearest integer to the specified number.
 /// For example: Round(3.7) = 4; Round(-3.7) = -4
 function Round(value : Double) : Int {
@@ -417,13 +383,11 @@ function DivRemI(dividend : Int, divisor : Int) : (Int, Int) {
     (dividend / divisor, dividend % divisor)
 }
 
-    /// # Summary
 /// Divides one BigInteger value by another, returns the result and the remainder as a tuple.
 function DivRemL(dividend : BigInt, divisor : BigInt) : (BigInt, BigInt) {
     (dividend / divisor, dividend % divisor)
 }
 
-    /// # Summary
 /// Computes the canonical residue of `value` modulo `modulus`.
 /// The result is always in the range 0..modulus-1 even for negative numbers.
 function ModulusI(value : Int, modulus : Int) : Int {
@@ -432,7 +396,6 @@ function ModulusI(value : Int, modulus : Int) : Int {
     (r < 0) ? (r + modulus) | r
 }
 
-    /// # Summary
 /// Computes the canonical residue of `value` modulo `modulus`.
 /// The result is always in the range 0..modulus-1 even for negative numbers.
 function ModulusL(value : BigInt, modulus : BigInt) : BigInt {
@@ -441,7 +404,6 @@ function ModulusL(value : BigInt, modulus : BigInt) : BigInt {
     (r < 0L) ? (r + modulus) | r
 }
 
-    /// # Summary
 /// Returns an integer raised to a given power, with respect to a given
 /// modulus. I.e. (expBase^power) % modulus.
 function ExpModI(expBase : Int, power : Int, modulus : Int) : Int {
@@ -472,7 +434,6 @@ function ExpModI(expBase : Int, power : Int, modulus : Int) : Int {
     res
 }
 
-    /// # Summary
 /// Returns an integer raised to a given power, with respect to a given
 /// modulus. I.e. (expBase^power) % modulus.
 function ExpModL(expBase : BigInt, power : BigInt, modulus : BigInt) : BigInt {
@@ -503,7 +464,6 @@ function ExpModL(expBase : BigInt, power : BigInt, modulus : BigInt) : BigInt {
     res
 }
 
-    /// # Summary
 /// Returns the multiplicative inverse of a modular integer.
 ///
 /// # Description
@@ -516,7 +476,6 @@ function InverseModI(a : Int, modulus : Int) : Int {
     ModulusI(u, modulus)
 }
 
-    /// # Summary
 /// Returns the multiplicative inverse of a modular integer.
 ///
 /// # Description
@@ -547,7 +506,6 @@ function GreatestCommonDivisorI(a : Int, b : Int) : Int {
     aa
 }
 
-    /// # Summary
 /// Computes the greatest common divisor of two integers.
 /// Note: GCD is always positive except that GCD(0,0)=0.
 function GreatestCommonDivisorL(a : BigInt, b : BigInt) : BigInt {
@@ -561,7 +519,6 @@ function GreatestCommonDivisorL(a : BigInt, b : BigInt) : BigInt {
     aa
 }
 
-    /// # Summary
 /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
 /// Note: GCD is always positive except that GCD(0,0)=0.
 function ExtendedGreatestCommonDivisorI(a : Int, b : Int) : (Int, Int) {
@@ -581,7 +538,6 @@ function ExtendedGreatestCommonDivisorI(a : Int, b : Int) : (Int, Int) {
     (s1 * signA, t1 * signB)
 }
 
-    /// # Summary
 /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
 /// Note: GCD is always positive except that GCD(0,0)=0.
 function ExtendedGreatestCommonDivisorL(a : BigInt, b : BigInt) : (BigInt, BigInt) {
@@ -601,7 +557,6 @@ function ExtendedGreatestCommonDivisorL(a : BigInt, b : BigInt) : (BigInt, BigIn
     (s1 * signA, t1 * signB)
 }
 
-    /// # Summary
 /// Returns if two integers are co-prime.
 ///
 /// # Description
@@ -620,7 +575,6 @@ function IsCoprimeI(a : Int, b : Int) : Bool {
     GreatestCommonDivisorI(a, b) == 1
 }
 
-    /// # Summary
 /// Returns if two integers are co-prime.
 ///
 /// # Description
@@ -639,7 +593,6 @@ function IsCoprimeL(a : BigInt, b : BigInt) : Bool {
     GreatestCommonDivisorL(a, b) == 1L
 }
 
-    /// # Summary
 /// Finds the continued fraction convergent closest to `fraction`
 /// with the denominator less or equal to `denominatorBound`
 /// Using process similar to this: https://nrich.maths.org/1397
@@ -670,7 +623,6 @@ function ContinuedFractionConvergentI(
     }
 }
 
-    /// # Summary
 /// Finds the continued fraction convergent closest to `fraction`
 /// with the denominator less or equal to `denominatorBound`
 /// Using process similar to this: https://nrich.maths.org/1397
@@ -701,7 +653,6 @@ function ContinuedFractionConvergentL(
     }
 }
 
-    /// # Summary
 /// Computes the modulus between two real numbers.
 ///
 /// # Input
@@ -745,7 +696,6 @@ function BitSizeI(a : Int) : Int {
     size
 }
 
-    /// # Summary
 /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
 /// NOTE: This function returns the smallest n such that a < 2^n.
 function BitSizeL(a : BigInt) : Int {
@@ -760,7 +710,6 @@ function BitSizeL(a : BigInt) : Int {
     size
 }
 
-    /// # Summary
 /// For a non-zero integer `a`, returns the number of trailing zero bits
 /// in the binary representation of `a`.
 function TrailingZeroCountI(a : Int) : Int {
@@ -776,7 +725,6 @@ function TrailingZeroCountI(a : Int) : Int {
     count
 }
 
-    /// # Summary
 /// For a non-zero integer `a`, returns the number of trailing zero bits
 /// in the binary representation of `a`.
 function TrailingZeroCountL(a : BigInt) : Int {
@@ -792,7 +740,6 @@ function TrailingZeroCountL(a : BigInt) : Int {
     count
 }
 
-    /// # Summary
 /// Returns the number of 1 bits in the binary representation of integer `n`.
 function HammingWeightI(n : Int) : Int {
     let i1 = n - ((n >>> 1) &&& 0x5555555555555555);
@@ -853,7 +800,6 @@ function FactorialI(n : Int) : Int {
     ][n]
 }
 
-    /// # Summary
 /// Returns the factorial of a given number.
 ///
 /// # Input
@@ -876,7 +822,6 @@ function FactorialL(n : Int) : BigInt {
     result
 }
 
-    /// # Summary
 /// Returns an approximate factorial of a given number.
 ///
 /// # Description
@@ -914,7 +859,6 @@ function ApproximateFactorial(n : Int) : Double {
     a * b * c
 }
 
-    /// # Summary
 /// Returns the natural logarithm of the gamma function (aka the log-gamma
 /// function).
 ///
@@ -966,7 +910,6 @@ function LogGammaD(x : Double) : Double {
     Log(2.506628274631000 * acc / x) + ((x + 0.5) * Log(tmp) - tmp)
 }
 
-    /// # Summary
 /// Returns the approximate natural logarithm of the factorial of a given
 /// integer.
 ///
@@ -985,7 +928,6 @@ function LogFactorialD(n : Int) : Double {
     LogGammaD(IntAsDouble(n) + 1.0)
 }
 
-    /// # Summary
 /// Returns the approximate binomial coefficient of two integers.
 ///
 /// # Description
@@ -1035,7 +977,6 @@ function SquaredNorm(array : Double[]) : Double {
     sum
 }
 
-    /// # Summary
 /// Returns the `L(p)` norm of a vector of `Double`s.
 ///
 /// That is, given an array x of type `Double[]`, this returns the p-norm
@@ -1060,7 +1001,6 @@ function PNorm(p : Double, array : Double[]) : Double {
     sum^(1.0 / p)
 }
 
-    /// # Summary
 /// Normalizes a vector of `Double`s in the `L(p)` norm.
 ///
 /// That is, given an array x of type `Double[]`, this returns an array where
@@ -1106,7 +1046,6 @@ function PNormalized(p : Double, array : Double[]) : Double[] {
 /// ```
 struct Complex { Real : Double, Imag : Double }
 
-    /// # Summary
 /// Represents a complex number in polar form.
 /// The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
 ///
@@ -1117,7 +1056,6 @@ struct Complex { Real : Double, Imag : Double }
 /// The phase t ∈ ℝ of c.
 struct ComplexPolar { Magnitude : Double, Argument : Double }
 
-    /// # Summary
 /// Returns the squared absolute value of a complex number of type
 /// `Complex`.
 ///
@@ -1131,7 +1069,6 @@ function AbsSquaredComplex(input : Complex) : Double {
     input.Real * input.Real + input.Imag * input.Imag
 }
 
-    /// # Summary
 /// Returns the absolute value of a complex number of type
 /// `Complex`.
 ///
@@ -1145,7 +1082,6 @@ function AbsComplex(input : Complex) : Double {
     Sqrt(AbsSquaredComplex(input))
 }
 
-    /// # Summary
 /// Returns the phase of a complex number of type
 /// `Complex`.
 ///
@@ -1159,7 +1095,6 @@ function ArgComplex(input : Complex) : Double {
     ArcTan2(input.Imag, input.Real)
 }
 
-    /// # Summary
 /// Returns the squared absolute value of a complex number of type
 /// `ComplexPolar`.
 ///
@@ -1173,7 +1108,6 @@ function AbsSquaredComplexPolar(input : ComplexPolar) : Double {
     input.Magnitude * input.Magnitude
 }
 
-    /// # Summary
 /// Returns the absolute value of a complex number of type
 /// `ComplexPolar`.
 ///
@@ -1185,7 +1119,6 @@ function AbsSquaredComplexPolar(input : ComplexPolar) : Double {
 /// Absolute value |c| = r.
 function AbsComplexPolar(input : ComplexPolar) : Double { input.Magnitude }
 
-    /// # Summary
 /// Returns the phase of a complex number of type `ComplexPolar`.
 ///
 /// # Input
@@ -1196,7 +1129,6 @@ function AbsComplexPolar(input : ComplexPolar) : Double { input.Magnitude }
 /// Phase Arg(c) = t.
 function ArgComplexPolar(input : ComplexPolar) : Double { input.Argument }
 
-    /// # Summary
 /// Returns the unary negation of an input of type `Complex`.
 ///
 /// # Input
@@ -1209,7 +1141,6 @@ function NegationC(input : Complex) : Complex {
     Complex(-input.Real, -input.Imag)
 }
 
-    /// # Summary
 /// Returns the unary negation of an input of type `ComplexPolar`
 ///
 /// # Input
@@ -1222,7 +1153,6 @@ function NegationCP(input : ComplexPolar) : ComplexPolar {
     ComplexPolar(input.Magnitude, input.Argument + PI())
 }
 
-    /// # Summary
 /// Returns the sum of two inputs of type `Complex`.
 ///
 /// # Input
@@ -1237,7 +1167,6 @@ function PlusC(a : Complex, b : Complex) : Complex {
     Complex(a.Real + b.Real, a.Imag + b.Imag)
 }
 
-    /// # Summary
 /// Returns the sum of two inputs of type `ComplexPolar`.
 ///
 /// # Input
@@ -1257,7 +1186,6 @@ function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
     )
 }
 
-    /// # Summary
 /// Returns the difference between two inputs of type `Complex`.
 ///
 /// # Input
@@ -1272,7 +1200,6 @@ function MinusC(a : Complex, b : Complex) : Complex {
     Complex(a.Real - b.Real, a.Imag - b.Imag)
 }
 
-    /// # Summary
 /// Returns the difference between two inputs of type `ComplexPolar`.
 ///
 /// # Input
@@ -1287,7 +1214,6 @@ function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
     PlusCP(a, NegationCP(b))
 }
 
-    /// # Summary
 /// Returns the product of two inputs of type `Complex`.
 ///
 /// # Input
@@ -1305,7 +1231,6 @@ function TimesC(a : Complex, b : Complex) : Complex {
     )
 }
 
-    /// # Summary
 /// Returns the product of two inputs of type `ComplexPolar`.
 ///
 /// # Input
@@ -1323,7 +1248,6 @@ function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
     )
 }
 
-    /// # Summary
 /// Internal. Since it is easiest to define the power of two complex numbers
 /// in Cartesian form as returning in polar form, we define that here, then
 /// convert as needed.
@@ -1350,7 +1274,6 @@ internal function PowCAsCP(base : Complex, power : Complex) : ComplexPolar {
     ComplexPolar(magnitude, angle)
 }
 
-    /// # Summary
 /// Returns a number raised to a given power of type `Complex`.
 /// Note that this is a multi-valued function, but only one value is returned.
 ///
@@ -1366,7 +1289,6 @@ function PowC(a : Complex, power : Complex) : Complex {
     ComplexPolarAsComplex(PowCAsCP(a, power))
 }
 
-    /// # Summary
 /// Returns a number raised to a given power of type `ComplexPolar`.
 /// Note that this is a multi-valued function, but only one value is returned.
 ///
@@ -1382,7 +1304,6 @@ function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar {
     PowCAsCP(ComplexPolarAsComplex(a), ComplexPolarAsComplex(power))
 }
 
-    /// # Summary
 /// Returns the quotient of two inputs of type `Complex`.
 ///
 /// # Input
@@ -1401,7 +1322,6 @@ function DividedByC(a : Complex, b : Complex) : Complex {
     )
 }
 
-    /// # Summary
 /// Returns the quotient of two inputs of type `ComplexPolar`.
 ///
 /// # Input
@@ -1435,7 +1355,6 @@ function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
         -(2.0^IntAsDouble(integerBits - 1))
 }
 
-    /// # Summary
 /// Returns the largest representable number for specific fixed point dimensions.
 ///
 /// # Input

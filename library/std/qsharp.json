@@ -2,11 +2,15 @@
   "author": "Microsoft",
   "license": "MIT",
   "files": [
-    "src/canon.qs",
     "src/core.qs",
     "src/legacy_api.qs",
+    "src/unstable_arithmetic.qs",
+    "src/unstable_arithmetic_internal.qs",
+    "src/unstable_state_preparation.qs",
+    "src/unstable_table_lookup.qs",
     "src/QIR/Intrinsic.qs",
     "src/Std/Arrays.qs",
+    "src/Std/Canon.qs",
     "src/Std/Convert.qs",
     "src/Std/Diagnostics.qs",
     "src/Std/InternalHelpers.qs",
@@ -15,10 +19,6 @@
     "src/Std/Math.qs",
     "src/Std/Measurement.qs",
     "src/Std/Random.qs",
-    "src/Std/ResourceEstimation.qs",
-    "src/Std/Unstable/Arithmetic.qs",
-    "src/Std/Unstable/ArithmeticHelpers.qs",
-    "src/Std/Unstable/StatePreparation.qs",
-    "src/Std/Unstable/TableLookup.qs"
+    "src/Std/ResourceEstimation.qs"
   ]
 }
