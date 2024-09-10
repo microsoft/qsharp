@@ -23,13 +23,13 @@ use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
 pub use self::modeling::{
-    GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol, TFactory,
+    load_protocol_from_specification, GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit,
+    Protocol, ProtocolEvaluator, TFactory,
 };
 pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
-use modeling::load_protocol_from_specification;
 use serde::Serialize;
 
 pub(crate) type Result<T> = std::result::Result<T, error::Error>;
