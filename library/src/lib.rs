@@ -42,8 +42,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Diagnostics.qs"),
     ),
     (
-        "qsharp-library-source:internal.qs",
-        include_str!("../std/src/internal.qs"),
+        "qsharp-library-source:Std/InternalHelpers.qs",
+        include_str!("../std/src/Std/InternalHelpers.qs"),
     ),
     (
         "qsharp-library-source:Std/Intrinsic.qs",
@@ -62,8 +62,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Measurement.qs"),
     ),
     (
-        "qsharp-library-source:qir.qs",
-        include_str!("../std/src/qir.qs"),
+        "qsharp-library-source:QIR/Intrinsic.qs",
+        include_str!("../std/src/QIR/Intrinsic.qs"),
     ),
     (
         "qsharp-library-source:random.qs",

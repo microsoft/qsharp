@@ -4,9 +4,7 @@
   "files": [
     "src/canon.qs",
     "src/core.qs",
-    "src/internal.qs",
     "src/legacy_api.qs",
-    "src/qir.qs",
     "src/random.qs",
     "src/re.qs",
     "src/unstable_arithmetic.qs",
@@ -17,6 +15,8 @@
     "src/Std/Arrays.qs",
     "src/Std/Convert.qs",
     "src/Std/Diagnostics.qs",
+    "src/Std/InternalHelpers.qs",
+    "src/Std/Intrinsic.qs",
     "src/Std/Logical.qs",
     "src/Std/Math.qs",
     "src/Std/Measurement.qs"

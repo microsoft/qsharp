@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Intrinsic {
+
     import Std.Arrays.*;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
-    open QIR.Intrinsic;
+    import Std.Intrinsic.*;
+    import QIR.Intrinsic.*;
 
     internal operation CH(control : Qubit, target : Qubit) : Unit is Adj {
         within {
@@ -247,4 +248,3 @@ namespace Microsoft.Quantum.Intrinsic {
 
         targets
     }
-}
