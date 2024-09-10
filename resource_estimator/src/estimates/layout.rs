@@ -26,6 +26,7 @@ pub trait Overhead {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RealizedOverhead {
     logical_qubits: u64,
     logical_depth: u64,
