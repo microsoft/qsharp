@@ -5,8 +5,6 @@
     "src/canon.qs",
     "src/core.qs",
     "src/legacy_api.qs",
-    "src/unstable_state_preparation.qs",
-    "src/unstable_table_lookup.qs",
     "src/QIR/Intrinsic.qs",
     "src/Std/Arrays.qs",
     "src/Std/Convert.qs",
@@ -19,6 +17,8 @@
     "src/Std/Random.qs",
     "src/Std/ResourceEstimation.qs",
     "src/Std/Unstable/Arithmetic.qs",
-    "src/Std/Unstable/ArithmeticHelpers.qs"
+    "src/Std/Unstable/ArithmeticHelpers.qs",
+    "src/Std/Unstable/StatePreparation.qs",
+    "src/Std/Unstable/TableLookup.qs"
   ]
 }

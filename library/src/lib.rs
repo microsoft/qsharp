@@ -82,12 +82,12 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Unstable/ArithmeticHelpers.qs"),
     ),
     (
-        "qsharp-library-source:unstable_state_preparation.qs",
-        include_str!("../std/src/unstable_state_preparation.qs"),
+        "qsharp-library-source:Std/Unstable/StatePreparation.qs",
+        include_str!("../std/src/Std/Unstable/StatePreparation.qs"),
     ),
     (
-        "qsharp-library-source:unstable_table_lookup.qs",
-        include_str!("../std/src/unstable_table_lookup.qs"),
+        "qsharp-library-source:Std/Unstable/TableLookup.qs",
+        include_str!("../std/src/Std/Unstable/TableLookup.qs"),
     ),
     (
         "qsharp-library-source:legacy_api.qs",

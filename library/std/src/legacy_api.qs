@@ -9,7 +9,7 @@ namespace Microsoft.Quantum {
 }
 
 namespace Microsoft.Quantum.Unstable {
-    export Std.Unstable.Arithmetic;
+    export Std.Unstable.Arithmetic, Std.Unstable.TableLookup, Std.Unstable.StatePreparation;
 }
 
 namespace Std {

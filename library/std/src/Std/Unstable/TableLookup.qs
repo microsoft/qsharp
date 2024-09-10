@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Unstable.TableLookup {
+
     import Std.Arrays.*;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
@@ -279,4 +279,3 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     }
 
     export Select;
-}
