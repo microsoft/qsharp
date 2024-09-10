@@ -274,13 +274,15 @@ impl<
         self.max_physical_qubits = Some(max_physical_qubits);
     }
 
+    pub fn factory_builder(&self) -> &Builder {
+        &self.factory_builder
+    }
+
     pub fn factory_builder_mut(&mut self) -> &mut Builder {
         &mut self.factory_builder
     }
 
-    pub fn estimate(
-        &self,
-    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         match (self.max_duration, self.max_physical_qubits) {
             (None, None) => self.estimate_without_restrictions(),
             (None, Some(max_physical_qubits)) => {
@@ -294,7 +296,7 @@ impl<
     #[allow(clippy::too_many_lines, clippy::type_complexity)]
     pub fn build_frontier(
         &self,
-    ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory, L>>, Error> {
+    ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory>>, Error> {
         if self.factory_builder.num_magic_state_types() != 1 {
             return Err(Error::MultipleMagicStatesNotSupported);
         }
@@ -329,7 +331,7 @@ impl<
         }
 
         let mut best_estimation_results =
-            Population::<Point2D<PhysicalResourceEstimationResult<E, Builder::Factory, L>>>::new();
+            Population::<Point2D<PhysicalResourceEstimationResult<E, Builder::Factory>>>::new();
 
         let mut last_factories = Vec::new();
         let mut last_code_parameter = None;
@@ -455,7 +457,7 @@ impl<
 
     pub fn estimate_without_restrictions(
         &self,
-    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         let mut num_cycles = self.compute_num_cycles()?;
 
         loop {
@@ -616,7 +618,7 @@ impl<
     pub fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         if self.factory_builder.num_magic_state_types() != 1 {
             return Err(Error::MultipleMagicStatesNotSupported);
         }
@@ -647,7 +649,7 @@ impl<
         }
 
         let mut best_estimation_result: Option<
-            PhysicalResourceEstimationResult<E, Builder::Factory, L>,
+            PhysicalResourceEstimationResult<E, Builder::Factory>,
         > = None;
 
         let mut last_factories = Vec::new();
@@ -767,7 +769,7 @@ impl<
     pub fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         if self.factory_builder.num_magic_state_types() != 1 {
             return Err(Error::MultipleMagicStatesNotSupported);
         }
@@ -795,7 +797,7 @@ impl<
         }
 
         let mut best_estimation_result: Option<
-            PhysicalResourceEstimationResult<E, Builder::Factory, L>,
+            PhysicalResourceEstimationResult<E, Builder::Factory>,
         > = None;
 
         let mut last_factories = Vec::new();
