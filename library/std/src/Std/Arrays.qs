@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-open Microsoft.Quantum.Diagnostics;
-open Microsoft.Quantum.Math;
+import Std.Diagnostics.*;
+import Std.Math.*;
 
 /// # Summary
 /// Given an array and a predicate that is defined

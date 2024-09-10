@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 
-open Microsoft.Quantum.Convert;
-open Microsoft.Quantum.Core;
-open Microsoft.Quantum.Diagnostics;
-open Microsoft.Quantum.Math;
+import Std.Convert.*;
+import Std.Core.*;
+import Std.Diagnostics.*;
+import Std.Math.*;
 open QIR.Intrinsic;
 import Std.InternalHelpers.*;
 

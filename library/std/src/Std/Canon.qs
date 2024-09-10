@@ -3,9 +3,9 @@
 
 
 import QIR.Intrinsic.*;
-open Microsoft.Quantum.Intrinsic;
-open Microsoft.Quantum.Diagnostics;
-open Microsoft.Quantum.Math;
+import Std.Intrinsic.*;
+import Std.Diagnostics.*;
+import Std.Math.*;
 
 /// # Summary
 /// Applies an operation to each element in a register.

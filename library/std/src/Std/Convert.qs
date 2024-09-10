@@ -1,5 +1,5 @@
-open Microsoft.Quantum.Diagnostics;
-open Microsoft.Quantum.Math;
+import Std.Diagnostics.*;
+import Std.Math.*;
 
 /// # Summary
 /// Converts a given integer `number` to an equivalent

@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Unstable.StatePreparation {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
+    import Std.Math.*;
 
     /// # Summary
     /// Given a set of coefficients and a big-endian quantum register,

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 
-open Microsoft.Quantum.Convert;
-open Microsoft.Quantum.Diagnostics;
+import Std.Convert.*;
+import Std.Diagnostics.*;
 
 //
 // Constants PI, E, LogOf2.
