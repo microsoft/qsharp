@@ -4,6 +4,10 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
+    interop::{
+        compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
+        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+    },
     noisy_simulator::register_noisy_simulator_submodule,
 };
 use miette::{Diagnostic, Report};
@@ -27,11 +31,37 @@ use qsc::{
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
+use qsc_qasm3::{OutputSemantics, ProgramType};
 use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
+/// If the classes are not Send, the Python interpreter
+/// will not be able to use them in a separate thread.
+///
+/// This function is used to verify that the classes are Send.
+/// The code will fail to compile if the classes are not Send.
+///
+/// ### Note
+/// `QSharpError`, and `QasmError` are not `Send`, *BUT*
+/// we return `QasmError::new_err` or `QSharpError::new_err` which
+/// actually returns a `PyErr` that is `Send` and the args passed
+/// into the `new_err` call must also impl `Send`.
+/// Because of this, we don't need to check the `Send`-ness of
+/// them. On the Python side, the `PyErr` is converted into the
+/// corresponding exception.
+fn verify_classes_are_sendable() {
+    fn is_send<T: Send>() {}
+    is_send::<TargetProfile>();
+    is_send::<Result>();
+    is_send::<Pauli>();
+    is_send::<Output>();
+    is_send::<StateDumpData>();
+    is_send::<Circuit>();
+}
+
 #[pymodule]
 fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
+    verify_classes_are_sendable();
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -42,12 +72,18 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type_bound::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
+    // QASM3 interop
+    m.add("QasmError", py.get_type_bound::<QasmError>())?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
     Ok(())
 }
 
 // This ordering must match the _native.pyi file.
 #[derive(Clone, Copy, PartialEq)]
-#[pyclass(unsendable, eq, eq_int)]
+#[pyclass(eq, eq_int)]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -70,6 +106,16 @@ pub(crate) enum TargetProfile {
     Unrestricted,
 }
 
+impl From<TargetProfile> for Profile {
+    fn from(profile: TargetProfile) -> Self {
+        match profile {
+            TargetProfile::Base => Profile::Base,
+            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
+        }
+    }
+}
+
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
@@ -82,12 +128,12 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
-    #[pyo3(signature = (target, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
         py: Python,
-        target: TargetProfile,
+        target_profile: TargetProfile,
         language_features: Option<Vec<String>>,
         project_root: Option<String>,
         read_file: Option<PyObject>,
@@ -95,11 +141,7 @@ impl Interpreter {
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
-        let target = match target {
-            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
-            TargetProfile::Base => Profile::Base,
-            TargetProfile::Unrestricted => Profile::Unrestricted,
-        };
+        let target = Into::<Profile>::into(target_profile).into();
 
         let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
 
@@ -118,7 +160,7 @@ impl Interpreter {
                     return Err(project.errors.into_py_err());
                 }
 
-                BuildableProgram::new(target.into(), project.package_graph_sources)
+                BuildableProgram::new(target, project.package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -128,13 +170,13 @@ impl Interpreter {
                 LanguageFeatures::from_iter(language_features),
                 None,
             );
-            BuildableProgram::new(target.into(), graph)
+            BuildableProgram::new(target, graph)
         };
 
         match interpret::Interpreter::new(
             SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
-            target.into(),
+            target,
             buildable_program.user_code.language_features,
             buildable_program.store,
             &buildable_program.user_code_dependencies,
@@ -203,10 +245,7 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.run(&mut receiver, entry_expr) {
-            Ok(result) => match result {
-                Ok(v) => Ok(ValueWrapper(v).into_py(py)),
-                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-            },
+            Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -277,6 +316,78 @@ impl Interpreter {
             )),
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(
+        signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
+    )]
+    pub fn _run_qasm3(
+        &mut self,
+        py: Python,
+        source: &str,
+        callback: Option<PyObject>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+
+        let name = crate::interop::get_name(&kwargs)?;
+        let seed = crate::interop::get_seed(&kwargs);
+        let shots = crate::interop::get_shots(&kwargs)?;
+        let search_path = crate::interop::get_search_path(&kwargs)?;
+        let run_type = crate::interop::get_run_type(&kwargs)?;
+
+        let fs = crate::interop::create_filesystem_from_py(
+            py,
+            read_file,
+            list_directory,
+            resolve_path,
+            fetch_github,
+        );
+        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+        let program_type = match run_type.as_str() {
+            "statements" => ProgramType::Fragments,
+            "operation" => ProgramType::Operation(name.to_string()),
+            _ => ProgramType::File(name.to_string()),
+        };
+        let (package, _source_map, signature) = compile_qasm_enriching_errors(
+            source,
+            &name,
+            &resolver,
+            program_type.clone(),
+            OutputSemantics::Qiskit,
+            false,
+        )?;
+
+        let value = self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, source, package)
+            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
+
+        match program_type {
+            ProgramType::File(..) => {
+                let entry_expr = signature.create_entry_expr_from_params(String::new());
+                self.interpreter
+                    .set_entry_expr(&entry_expr)
+                    .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
+
+                match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
+                    Ok(result) => Ok(PyList::new_bound(
+                        py,
+                        result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
+                    )
+                    .into_py(py)),
+                    Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+                }
+            }
+            _ => Ok(ValueWrapper(value).into_py(py)),
+        }
+    }
 }
 
 #[pyfunction]
@@ -294,24 +405,33 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<interpret::Error>) -> String {
+create_exception!(
+    module,
+    QasmError,
+    pyo3::exceptions::PyException,
+    "An error returned from the OpenQASM parser."
+);
+
+pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
-        .map(|e| {
-            let mut message = String::new();
-            if let Some(stack_trace) = e.stack_trace() {
-                write!(message, "{stack_trace}").unwrap();
-            }
-            let additional_help = python_help(&e);
-            let report = Report::new(e.clone());
-            write!(message, "{report:?}")
-                .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
-            if let Some(additional_help) = additional_help {
-                writeln!(message, "{additional_help}").unwrap();
-            }
-            message
-        })
+        .map(|e| format_error(&e))
         .collect::<String>()
+}
+
+pub(crate) fn format_error(e: &interpret::Error) -> String {
+    let mut message = String::new();
+    if let Some(stack_trace) = e.stack_trace() {
+        write!(message, "{stack_trace}").unwrap();
+    }
+    let additional_help = python_help(e);
+    let report = Report::new(e.clone());
+    write!(message, "{report:?}")
+        .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
+    if let Some(additional_help) = additional_help {
+        writeln!(message, "{additional_help}").unwrap();
+    }
+    message
 }
 
 /// Additional help text for an error specific to the Python module
@@ -323,7 +443,7 @@ fn python_help(error: &interpret::Error) -> Option<String> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 pub(crate) struct Output(DisplayableOutput);
 
 #[pymethods]
@@ -363,7 +483,7 @@ impl Output {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 /// Captured simlation state dump.
 pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
@@ -414,8 +534,8 @@ impl StateDumpData {
     }
 }
 
-#[derive(PartialEq)]
-#[pyclass(unsendable, eq, eq_int)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
@@ -424,6 +544,7 @@ pub(crate) enum Result {
 
 #[pymethods]
 impl Result {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __repr__(&self) -> String {
         match self {
             Result::Zero => "Zero".to_owned(),
@@ -431,10 +552,12 @@ impl Result {
         }
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __str__(&self) -> String {
         self.__repr__()
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __hash__(&self) -> u32 {
         match self {
             Result::Zero => 0,
@@ -443,8 +566,8 @@ impl Result {
     }
 }
 
-#[derive(PartialEq)]
-#[pyclass(unsendable, eq, eq_int)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
 /// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
@@ -454,7 +577,7 @@ pub(crate) enum Pauli {
 }
 
 // Mapping of Q# value types to Python value types.
-struct ValueWrapper(Value);
+pub(crate) struct ValueWrapper(pub(crate) Value);
 
 impl IntoPy<PyObject> for ValueWrapper {
     fn into_py(self, py: Python) -> PyObject {
@@ -494,9 +617,9 @@ impl IntoPy<PyObject> for ValueWrapper {
     }
 }
 
-struct OptionalCallbackReceiver<'a> {
-    callback: Option<PyObject>,
-    py: Python<'a>,
+pub(crate) struct OptionalCallbackReceiver<'a> {
+    pub(crate) callback: Option<PyObject>,
+    pub(crate) py: Python<'a>,
 }
 
 impl Receiver for OptionalCallbackReceiver<'_> {
@@ -537,7 +660,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 struct Circuit(pub qsc::circuit::Circuit);
 
 #[pymethods]
