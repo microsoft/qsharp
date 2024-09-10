@@ -602,5 +602,5 @@ fn evaluation_error_within_stdlib_yield_correct_package_span() {
         }
         "#,
     });
-    assert_error(&error, &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(1), span: Span { lo: 15851, hi: 15866 } })"]);
+    assert_error(&error, &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(1), span: Span { lo: 13926, hi: 13941 } })"]);
 }

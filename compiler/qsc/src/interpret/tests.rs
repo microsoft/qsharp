@@ -484,7 +484,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: qubits in invocation are not unique
-                       [qsharp-library-source:intrinsic.qs] [(control, target)]
+                       [qsharp-library-source:Std/Intrinsic.qs] [(control, target)]
                 "#]],
             );
         }
