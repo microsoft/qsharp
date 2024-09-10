@@ -3,7 +3,7 @@
 
 
     open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Core;
+    import Std.Core.*;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open QIR.Intrinsic;

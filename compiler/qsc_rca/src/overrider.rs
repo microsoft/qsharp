@@ -37,7 +37,7 @@ impl<'a> Overrider<'a> {
         package_store_compute_properties: InternalPackageStoreComputeProperties,
     ) -> Self {
         let callable_overrides_tuples: [(String, Vec<SpecOverride>); 1] = [(
-            "Microsoft.Quantum.Core.Length".into(),
+            "Std.Core.Length".into(),
             vec![SpecOverride {
                 functor_set_value: FunctorSetValue::Empty,
                 application_generator_set: ApplicationGeneratorSet {

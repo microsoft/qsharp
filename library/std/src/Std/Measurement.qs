@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 
-    open Microsoft.Quantum.Core;
+    import Std.Core.*;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
     open QIR.Intrinsic;

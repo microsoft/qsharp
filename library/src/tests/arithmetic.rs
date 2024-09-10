@@ -641,7 +641,7 @@ const ADD_LE_TEST_LIB: &str = include_str!("resources/src/add_le.qs");
 fn check_add_le_exhaustive_bitwidth_1() {
     test_expression_with_lib(
         "Test.TestAddLE(\"Check AddLE\",
-            Microsoft.Quantum.Unstable.Arithmetic.AddLE, 1)",
+            Std.Unstable.Arithmetic.AddLE, 1)",
         ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );
@@ -651,7 +651,7 @@ fn check_add_le_exhaustive_bitwidth_1() {
 fn check_add_le_exhaustive_bitwidth_2() {
     test_expression_with_lib(
         "Test.TestAddLE(\"Check AddLE\",
-            Microsoft.Quantum.Unstable.Arithmetic.AddLE, 2)",
+            Std.Unstable.Arithmetic.AddLE, 2)",
         ADD_LE_TEST_LIB,
         &Value::Tuple(vec![].into()),
     );

@@ -398,7 +398,7 @@ fn open_alias() {
 fn prelude_callable() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function A() : Unit {}
             }
 
@@ -426,7 +426,7 @@ fn prelude_callable() {
 fn parent_namespace_shadows_prelude() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function A() : Unit {}
             }
 
@@ -458,7 +458,7 @@ fn parent_namespace_shadows_prelude() {
 fn open_shadows_prelude() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function A() : Unit {}
             }
 
@@ -502,7 +502,7 @@ fn ambiguous_prelude() {
             function A() : Unit {}
         }
 
-        namespace Microsoft.Quantum.Core {
+        namespace Std.Core {
             function A() : Unit {}
         }
 
@@ -527,7 +527,7 @@ fn ambiguous_prelude() {
                 }
             }
 
-            // AmbiguousPrelude { name: "A", candidate_a: "Microsoft.Quantum.Canon", candidate_b: "Microsoft.Quantum.Core", span: Span { lo: 181, hi: 182 } }
+            // AmbiguousPrelude { name: "A", candidate_a: "Microsoft.Quantum.Canon", candidate_b: "Std.Core", span: Span { lo: 181, hi: 182 } }
         "#]],
     );
 }
@@ -996,7 +996,7 @@ fn struct_decl_duplicate_error() {
 fn ty_decl_duplicate_error_on_built_in_ty() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 newtype Pauli = Unit;
             }
         "},
@@ -1005,7 +1005,7 @@ fn ty_decl_duplicate_error_on_built_in_ty() {
                 newtype item1 = Unit;
             }
 
-            // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 47, hi: 52 })
+            // Duplicate("Pauli", "Std.Core", Span { lo: 47, hi: 52 })
         "#]],
     );
 }
@@ -1014,7 +1014,7 @@ fn ty_decl_duplicate_error_on_built_in_ty() {
 fn struct_decl_duplicate_error_on_built_in_ty() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 struct Pauli {}
             }
         "},
@@ -1023,7 +1023,7 @@ fn struct_decl_duplicate_error_on_built_in_ty() {
                 struct item1 {}
             }
 
-            // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 46, hi: 51 })
+            // Duplicate("Pauli", "Std.Core", Span { lo: 46, hi: 51 })
         "#]],
     );
 }

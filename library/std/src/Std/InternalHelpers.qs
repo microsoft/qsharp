@@ -3,7 +3,7 @@
 
 
     import Std.Arrays.*;
-    open Microsoft.Quantum.Core;
+import Std.Core.*;
     open Microsoft.Quantum.Math;
     import Std.Intrinsic.*;
     import QIR.Intrinsic.*;

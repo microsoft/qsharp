@@ -470,7 +470,7 @@ fn test_doc_gen() {
         // Text is the full markdown including initial metadata inside '---' blocks
         let text = format!("{metadata}\n\n{contents}");
         if filename.eq("toc.yml") {
-            assert!(text.contains("uid: Qdk.Microsoft.Quantum.Core"));
+            assert!(text.contains("uid: Qdk.Std.Core"));
         } else {
             assert!(std::path::Path::new(&filename)
                 .extension()

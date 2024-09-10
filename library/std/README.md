@@ -12,7 +12,7 @@ Files in the library match the contained namespace. This makes it easier to find
 
 Unless otherwise noted, callables that are defined as `body intrinsic` are generated into external declarations in QIR with exact callable name and signature matches. The containing namespace is not included in the generated name. This simplifies QIR code generation and makes correlating Q# declaration to the resulting QIR program easier. Body intrinsic callables should avoid using generics and aggregate types if possible to keep the corresponding LLVM signatures simple and increase the likelihood of hardware compatibility.
 
-One notable exception to this is the `Microsoft.Quantum.Core.Length` function, which is both `body intrinsic` and generic across the array type. As a result, it needs special handling during monomorphization and code generation to correlate it to the right pattern for extracting length from the array structure. Open question: should this be transitioned to an operator or some other form that avoid such a prominent counterexample?
+One notable exception to this is the `Std.Core.Length` function, which is both `body intrinsic` and generic across the array type. As a result, it needs special handling during monomorphization and code generation to correlate it to the right pattern for extracting length from the array structure. Open question: should this be transitioned to an operator or some other form that avoid such a prominent counterexample?
 
 ### QIR Quantum Gate Instructions
 

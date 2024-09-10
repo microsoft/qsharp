@@ -295,7 +295,7 @@ fn call_generic_identity() {
 fn call_generic_length() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
@@ -419,7 +419,7 @@ fn int_as_double_error() {
 fn length_type_error() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},

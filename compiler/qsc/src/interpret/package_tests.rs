@@ -40,7 +40,7 @@ fn import_and_call_reexport() {
                         function MagicFunction() : Unit {
                             Message("hello from dependency A!");
                         }
-                        export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
+                        export MagicFunction, Std.Length as Foo;
                     }
                     "#
                     .into(),
@@ -119,7 +119,7 @@ fn directly_call_reexport() {
                             function MagicFunction() : Unit {
                                 Message("hello from dependency A!");
                             }
-                            export MagicFunction, Microsoft.Quantum.Core.Length as Foo;
+                            export MagicFunction, Std.Length as Foo;
                         }
                     "#
                     .into(),

@@ -1424,8 +1424,7 @@ impl GlobalTable {
 
         let mut scope = GlobalScope::default();
         let ns = scope.insert_or_find_namespace(vec![
-            Rc::from("Microsoft"),
-            Rc::from("Quantum"),
+            Rc::from("Std"),
             Rc::from("Core"),
         ]);
 

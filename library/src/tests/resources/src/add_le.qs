@@ -1,7 +1,8 @@
 namespace Test {
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Core.*;
+    import Std.Unstable.Arithmetic.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
 
     internal operation TestAddLE3(
         name : String,

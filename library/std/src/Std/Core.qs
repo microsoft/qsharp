@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Core {
+
     /// # Summary
     /// Returns the defined start value of the given range.
     ///
@@ -107,4 +107,3 @@ namespace Microsoft.Quantum.Core {
         RangeStep,
         RangeReverse,
         IsRangeEmpty;
-}
