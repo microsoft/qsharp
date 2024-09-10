@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Unstable.Arithmetic {
+
     import Std.Arrays.*;
     import QIR.Intrinsic.*;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
+    import Std.Unstable.ArithmeticHelpers.*;
 
     /// # Summary
     /// This applies the in-place majority operation to 3 qubits.
@@ -699,4 +700,3 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     }
 
     export AddLE, ApplyIfEqualLE, ApplyIfEqualL, ApplyIfGreaterLE, ApplyIfGreaterL, ApplyIfGreaterOrEqualLE, ApplyIfGreaterOrEqualL, ApplyIfLessLE, ApplyIfLessL, ApplyIfLessOrEqualLE, ApplyIfLessOrEqualL, IncByI, IncByIUsingIncByLE, IncByL, IncByLUsingIncByLE, IncByLE, IncByLEUsingAddLE, LookAheadDKRSAddLE, MAJ, ReflectAboutInteger, RippleCarryCGAddLE, RippleCarryCGIncByLE, RippleCarryTTKIncByLE, FourierTDIncByLE;
-}

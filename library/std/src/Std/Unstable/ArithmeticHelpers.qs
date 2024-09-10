@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Unstable.Arithmetic {
+
     open Microsoft.Quantum.Diagnostics;
     import Std.Arrays.*;
     open Microsoft.Quantum.Math;
@@ -584,4 +584,3 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             ApplyAndAssuming0Target(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
         }
     }
-}

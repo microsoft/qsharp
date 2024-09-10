@@ -66,20 +66,20 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/QIR/Intrinsic.qs"),
     ),
     (
-        "qsharp-library-source:random.qs",
-        include_str!("../std/src/random.qs"),
+        "qsharp-library-source:Std/Random.qs",
+        include_str!("../std/src/Std/Random.qs"),
     ),
     (
-        "qsharp-library-source:re.qs",
-        include_str!("../std/src/re.qs"),
+        "qsharp-library-source:Std/ResourceEstimation.qs",
+        include_str!("../std/src/Std/ResourceEstimation.qs"),
     ),
     (
-        "qsharp-library-source:unstable_arithmetic.qs",
-        include_str!("../std/src/unstable_arithmetic.qs"),
+        "qsharp-library-source:Std/Unstable/Arithmetic.qs",
+        include_str!("../std/src/Std/Unstable/Arithmetic.qs"),
     ),
     (
-        "qsharp-library-source:unstable_arithmetic_internal.qs",
-        include_str!("../std/src/unstable_arithmetic_internal.qs"),
+        "qsharp-library-source:Std/Unstable/ArithmeticHelpers.qs",
+        include_str!("../std/src/Std/Unstable/ArithmeticHelpers.qs"),
     ),
     (
         "qsharp-library-source:unstable_state_preparation.qs",

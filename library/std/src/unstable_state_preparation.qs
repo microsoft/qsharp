@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Unstable.StatePreparation {
+
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     import Std.Arrays.*;
     open Microsoft.Quantum.Math;
     import QIR.Intrinsic.*;
+    import Std.Unstable.ArithmeticHelpers.*;
 
 
     /// # Summary
@@ -387,4 +388,3 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     }
 
     export PreparePureStateD, ApproximatelyPreparePureStateCP;
-}

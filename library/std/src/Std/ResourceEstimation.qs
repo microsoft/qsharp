@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.ResourceEstimation {
+
 
     // Functionality needed to instruct the resource estimator to cache estimates of a code fragment
     // and reuse these estimates without executing the code fragment repeatedly. This functionality
@@ -179,4 +179,3 @@ namespace Microsoft.Quantum.ResourceEstimation {
         }
     }
     export SingleVariant, BeginEstimateCaching, EndEstimateCaching, AuxQubitCount, TCount, RotationCount, RotationDepth, CczCount, MeasurementCount, PSSPCLayout, AccountForEstimates, BeginRepeatEstimates, EndRepeatEstimates, RepeatEstimates;
-}
