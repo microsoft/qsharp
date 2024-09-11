@@ -241,7 +241,7 @@ impl Builder {
         self.finish_circuit(circuit)
     }
 
-    fn map(&mut self, qubit: usize) -> HardwareId {
+    fn map(&mut self, qubit: usize) -> WireId {
         self.remapper.map(qubit)
     }
 
@@ -264,7 +264,7 @@ impl Builder {
         )
     }
 
-    fn num_measurements_for_qubit(&self, qubit: HardwareId) -> usize {
+    fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
         self.remapper
             .qubit_measurement_counts
             .get(qubit)
@@ -298,7 +298,7 @@ impl Builder {
     /// Splits the qubit arguments from classical arguments so that the qubits
     /// can be treated as the targets for custom gates.
     /// The classical arguments get formatted into a comma-separated list.
-    fn split_qubit_args(&mut self, arg: Value) -> (Vec<HardwareId>, String) {
+    fn split_qubit_args(&mut self, arg: Value) -> (Vec<WireId>, String) {
         let arg = if let Value::Tuple(vals) = arg {
             vals
         } else {
@@ -312,7 +312,7 @@ impl Builder {
     }
 
     /// Pushes all qubit values into `qubits`, and formats all classical values into `classical_args`.
-    fn push_val(&mut self, arg: &Value, qubits: &mut Vec<HardwareId>, classical_args: &mut String) {
+    fn push_val(&mut self, arg: &Value, qubits: &mut Vec<WireId>, classical_args: &mut String) {
         match arg {
             Value::Array(vals) => {
                 self.push_list::<'[', ']'>(vals, qubits, classical_args);
@@ -336,7 +336,7 @@ impl Builder {
     fn push_list<const OPEN: char, const CLOSE: char>(
         &mut self,
         vals: &[Value],
-        qubits: &mut Vec<HardwareId>,
+        qubits: &mut Vec<WireId>,
         classical_args: &mut String,
     ) {
         classical_args.push(OPEN);
@@ -351,12 +351,7 @@ impl Builder {
 
     /// Pushes all qubit values into `qubits`, and formats all
     /// classical values into `classical_args` as comma-separated values.
-    fn push_vals(
-        &mut self,
-        vals: &[Value],
-        qubits: &mut Vec<HardwareId>,
-        classical_args: &mut String,
-    ) {
+    fn push_vals(&mut self, vals: &[Value], qubits: &mut Vec<WireId>, classical_args: &mut String) {
         let mut any = false;
         for v in vals.iter() {
             let start = classical_args.len();
@@ -388,13 +383,13 @@ impl Builder {
 struct Remapper {
     next_meas_id: usize,
     next_qubit_id: usize,
-    next_qubit_hardware_id: HardwareId,
-    qubit_map: IndexMap<usize, HardwareId>,
-    qubit_measurement_counts: IndexMap<HardwareId, usize>,
+    next_qubit_hardware_id: WireId,
+    qubit_map: IndexMap<usize, WireId>,
+    qubit_measurement_counts: IndexMap<WireId, usize>,
 }
 
 impl Remapper {
-    fn map(&mut self, qubit: usize) -> HardwareId {
+    fn map(&mut self, qubit: usize) -> WireId {
         if let Some(mapped) = self.qubit_map.get(qubit) {
             *mapped
         } else {
@@ -459,16 +454,16 @@ impl Remapper {
 }
 
 #[derive(Copy, Clone, Default)]
-struct HardwareId(pub usize);
+struct WireId(pub usize);
 
-impl From<usize> for HardwareId {
+impl From<usize> for WireId {
     fn from(id: usize) -> Self {
-        HardwareId(id)
+        WireId(id)
     }
 }
 
-impl From<HardwareId> for usize {
-    fn from(id: HardwareId) -> Self {
+impl From<WireId> for usize {
+    fn from(id: WireId) -> Self {
         id.0
     }
 }
@@ -476,7 +471,7 @@ impl From<HardwareId> for usize {
 #[allow(clippy::unicode_not_nfc)]
 static KET_ZERO: &str = "|0〉";
 
-fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
+fn gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: None,
@@ -489,7 +484,7 @@ fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
     }
 }
 
-fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
+fn adjoint_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: None,
@@ -504,8 +499,8 @@ fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operati
 
 fn controlled_gate<const M: usize, const N: usize>(
     name: &str,
-    controls: [HardwareId; M],
-    targets: [HardwareId; N],
+    controls: [WireId; M],
+    targets: [WireId; N],
 ) -> Operation {
     Operation {
         gate: name.into(),
@@ -532,7 +527,7 @@ fn measurement_gate(qubit: usize, result: usize) -> Operation {
     }
 }
 
-fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N]) -> Operation {
+fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: Some(format!("{theta:.4}")),
@@ -545,7 +540,7 @@ fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N
     }
 }
 
-fn custom_gate(name: &str, targets: &[HardwareId], display_args: Option<String>) -> Operation {
+fn custom_gate(name: &str, targets: &[WireId], display_args: Option<String>) -> Operation {
     Operation {
         gate: name.into(),
         display_args,
