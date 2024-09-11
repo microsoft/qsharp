@@ -183,7 +183,11 @@ pub(super) enum Error {
         span: Span,
     },
     #[error("this namespace clobbers (replaces) an existing external namespace of the same name")]
-    ClobberedNamespace { namespace_name: String, #[label] span: Span },
+    ClobberedNamespace {
+        namespace_name: String,
+        #[label]
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -914,12 +918,10 @@ impl Resolver {
                 ) {
                     Ok(_) => (),
                     Err(e) => {
-                        self.errors.push(
-                            Error::ClobberedNamespace {
-                                namespace_name: decl_item.name().name.to_string(),
-                                span: decl_item.span(),
-                            }
-                        );
+                        self.errors.push(Error::ClobberedNamespace {
+                            namespace_name: decl_item.name().name.to_string(),
+                            span: decl_item.span(),
+                        });
                     }
                 };
                 continue;
@@ -2203,17 +2205,18 @@ fn find_symbol_in_namespace<O>(
 
 /// Fetch the name and namespace ID of all prelude namespaces.
 pub fn prelude_namespaces(globals: &GlobalScope) -> Vec<(NamespaceId, String)> {
-    let mut prelude  = Vec::with_capacity(PRELUDE.len());
+    let mut prelude = Vec::with_capacity(PRELUDE.len());
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
         // when evaluating the prelude namespaces themselves, they won't have been created yet. So we only
         // include the ids that have been created.
-        if let Some(id) = globals.namespaces.get_namespace_id(prelude_namespace.to_vec()) {
-        prelude.push((id,
-            prelude_namespace.join("."),
-        ));
-    }
+        if let Some(id) = globals
+            .namespaces
+            .get_namespace_id(prelude_namespace.to_vec())
+        {
+            prelude.push((id, prelude_namespace.join(".")));
+        }
     }
     prelude
 }

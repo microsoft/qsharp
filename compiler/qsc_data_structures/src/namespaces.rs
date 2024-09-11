@@ -182,7 +182,7 @@ impl NamespaceTreeRoot {
         let (_, existing_ns) = self.find_namespace_by_id(&new_child);
         if let Some(val) = parent_node.borrow().children.get(&Rc::from(alias)) {
             if val.borrow().id != existing_ns.borrow().id {
-                return Err(ClobberedNamespace)
+                return Err(ClobberedNamespace);
             }
         }
 
