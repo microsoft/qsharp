@@ -15,7 +15,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::array;
 use std::convert::TryFrom;
 
@@ -77,6 +77,7 @@ pub(crate) fn call(
                 Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
+        "Relabel" => qubit_relabel(arg, arg_span, |q0, q1| sim.qubit_swap_id(q0, q1)),
         "Message" => match out.message(&arg.unwrap_string()) {
             Ok(()) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
@@ -132,11 +133,6 @@ pub(crate) fn call(
             } else {
                 Err(Error::ReleasedQubitNotZero(qubit, arg_span))
             }
-        }
-        "__quantum__rt__qubit_swap_ids" => {
-            let [q0, q1] = unwrap_tuple(arg);
-            sim.qubit_swap_id(q0.unwrap_qubit().0, q1.unwrap_qubit().0);
-            Ok(Value::unit())
         }
         "__quantum__qis__ccx__body" => {
             three_qubit_gate(|ctl0, ctl1, q| sim.ccx(ctl0, ctl1, q), arg, arg_span)
@@ -254,7 +250,198 @@ fn two_qubit_rotation(
     }
 }
 
+/// Performs relabeling of qubits from the a given left array to the corresponding right array.
+/// The function will swap qubits with the given function to match the new relabeling, returning an error
+/// if the qubits are not unique or if the relabeling is not a valid permutation.
+pub fn qubit_relabel(
+    arg: Value,
+    arg_span: PackageSpan,
+    mut swap: impl FnMut(usize, usize),
+) -> Result<Value, Error> {
+    let [left, right] = unwrap_tuple(arg);
+    let left = left
+        .unwrap_array()
+        .iter()
+        .map(|q| q.clone().unwrap_qubit().0)
+        .collect::<Vec<_>>();
+    let right = right
+        .unwrap_array()
+        .iter()
+        .map(|q| q.clone().unwrap_qubit().0)
+        .collect::<Vec<_>>();
+    let left_set = left.iter().collect::<FxHashSet<_>>();
+    let right_set = right.iter().collect::<FxHashSet<_>>();
+    if left.len() != left_set.len() || right.len() != right_set.len() {
+        return Err(Error::QubitUniqueness(arg_span));
+    }
+    if left_set != right_set {
+        return Err(Error::RelabelingMismatch(arg_span));
+    }
+
+    let mut map = FxHashMap::default();
+    for (l, r) in left.into_iter().zip(right.into_iter()) {
+        if l == r {
+            continue;
+        }
+        match (map.contains_key(&l), map.contains_key(&r)) {
+            (false, false) => {
+                // Neither qubit has been relabeled yet.
+                swap(l, r);
+                map.insert(l, r);
+                map.insert(r, l);
+            }
+            (false, true) => {
+                // The right qubit has been relabeled, so we need to swap the left qubit with the
+                // qubit that the right qubit was relabeled to.
+                let mapped = *map
+                    .keys()
+                    .find(|k| map[*k] == r)
+                    .expect("mapped qubit should be present as both key and value");
+                swap(l, mapped);
+                map.insert(l, r);
+                map.insert(mapped, l);
+            }
+            (true, false) => {
+                // The left qubit has been relabeled, so we swap the qubits as normal but
+                // remember the new mapping of the right qubit.
+                let mapped = *map.get(&l).expect("mapped qubit should be present");
+                swap(l, r);
+                map.insert(l, r);
+                map.insert(r, mapped);
+            }
+            (true, true) => {
+                // Both qubits have been relabeled, so we need to swap the mapped right qubit with
+                // the left qubit and remember the new mapping of both qubits.
+                let mapped_l = *map.get(&l).expect("mapped qubit should be present");
+                let mapped_r = *map.get(&r).expect("mapped qubit should be present");
+                if mapped_l != r && mapped_r != l {
+                    swap(mapped_r, l);
+                    map.insert(mapped_r, mapped_l);
+                    map.insert(l, r);
+                }
+            }
+        }
+    }
+
+    Ok(Value::unit())
+}
+
 fn unwrap_tuple<const N: usize>(value: Value) -> [Value; N] {
     let values = value.unwrap_tuple();
     array::from_fn(|i| values[i].clone())
+}
+
+#[cfg(test)]
+mod relabel_testing {
+    use qsc_data_structures::span::Span;
+    use qsc_hir::hir::PackageId;
+    use rustc_hash::FxHashMap;
+
+    use crate::{backend::Backend, val::Qubit};
+
+    #[derive(Default)]
+    struct TestBackend {
+        qubit_map: FxHashMap<usize, usize>,
+    }
+
+    impl Backend for TestBackend {
+        type ResultType = bool;
+
+        fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+            let q0_old = *self.qubit_map.entry(q0).or_insert(q0);
+            let q1_old = *self.qubit_map.entry(q1).or_insert(q1);
+            self.qubit_map.insert(q0, q1_old);
+            self.qubit_map.insert(q1, q0_old);
+        }
+    }
+
+    fn check_qubit_relabel(left: &[usize], right: &[usize]) {
+        let mut qubit_map = FxHashMap::default();
+        let arg = crate::val::Value::Tuple(
+            vec![
+                crate::val::Value::Array(
+                    left.iter()
+                        .map(|&q| crate::val::Value::Qubit(Qubit(q)))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+                crate::val::Value::Array(
+                    right
+                        .iter()
+                        .map(|&q| crate::val::Value::Qubit(Qubit(q)))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ]
+            .into(),
+        );
+        let result = super::qubit_relabel(
+            arg,
+            crate::error::PackageSpan {
+                package: PackageId::CORE,
+                span: Span::default(),
+            },
+            |q0, q1| {
+                let q0_old = *qubit_map.entry(q0).or_insert(q0);
+                let q1_old = *qubit_map.entry(q1).or_insert(q1);
+                qubit_map.insert(q0, q1_old);
+                qubit_map.insert(q1, q0_old);
+            },
+        );
+        assert!(result.is_ok());
+        for (l, r) in left.iter().zip(right.iter()) {
+            if l == r {
+                continue;
+            }
+            assert_eq!(qubit_map[l], *r);
+        }
+    }
+
+    #[test]
+    fn check_qubit_relabel1() {
+        check_qubit_relabel(&[0, 1, 2, 3], &[3, 2, 1, 0]);
+        check_qubit_relabel(&[3, 2, 1, 0], &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn check_qubit_relabel2() {
+        check_qubit_relabel(&[0, 1, 2, 3], &[1, 0, 3, 2]);
+        check_qubit_relabel(&[1, 0, 3, 2], &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn check_qubit_relabel3() {
+        check_qubit_relabel(&[0, 1, 2, 3], &[0, 1, 2, 3]);
+        check_qubit_relabel(&[1, 0, 2, 3], &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn check_qubit_relabel4() {
+        check_qubit_relabel(&[0, 1, 2, 3], &[0, 1, 3, 2]);
+        check_qubit_relabel(&[0, 1, 3, 2], &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn check_qubit_relabel5() {
+        check_qubit_relabel(&[0, 1, 2, 3], &[1, 0, 2, 3]);
+        check_qubit_relabel(&[1, 0, 2, 3], &[0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn check_qubit_relabel6() {
+        check_qubit_relabel(&[0, 1, 2], &[1, 2, 0]);
+        check_qubit_relabel(&[1, 2, 0], &[0, 1, 2]);
+    }
+
+    #[test]
+    fn check_qubit_relabel7() {
+        check_qubit_relabel(&[2, 0, 1], &[0, 1, 2]);
+        check_qubit_relabel(&[0, 1, 2], &[2, 0, 1]);
+    }
+
+    #[test]
+    fn check_qubit_relabel8() {
+        check_qubit_relabel(&[2, 1, 0], &[0, 2, 1]);
+        check_qubit_relabel(&[0, 2, 1], &[2, 1, 0]);
+    }
 }

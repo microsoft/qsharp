@@ -20,11 +20,12 @@ use miette::Diagnostic;
 use qsc_data_structures::{functors::FunctorApp, span::Span, target::TargetCapabilityFlags};
 use qsc_eval::{
     self, are_ctls_unique, exec_graph_section,
+    intrinsic::qubit_relabel,
     output::GenericReceiver,
     resolve_closure,
     val::{
         self, index_array, slice_array, update_functor_app, update_index_range,
-        update_index_single, Value, Var, VarTy,
+        update_index_single, Qubit, Value, Var, VarTy,
     },
     Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
 };
@@ -54,7 +55,7 @@ use qsc_rir::{
     },
 };
 use rustc_hash::FxHashMap;
-use std::{array, collections::hash_map::Entry, rc::Rc, result::Result};
+use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
 /// Partially evaluates a program with the specified entry expression.
@@ -1246,6 +1247,7 @@ impl<'a> PartialEvaluator<'a> {
                     store_item_id,
                     callable_decl,
                     args_value,
+                    args_span,
                     callee_expr_span,
                 )?
             }
@@ -1283,6 +1285,7 @@ impl<'a> PartialEvaluator<'a> {
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
         args_value: Value,
+        args_span: PackageSpan,        // For diagnostic purposes only.
         callee_expr_span: PackageSpan, // For diagnostic puprposes only.
     ) -> Result<Value, Error> {
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
@@ -1290,7 +1293,10 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
-            "__quantum__rt__qubit_swap_ids" => Ok(self.swap_qubit_ids(args_value)),
+            "Relabel" => qubit_relabel(args_value, args_span, |q0, q1| {
+                self.resource_manager.swap_qubit_ids(Qubit(q0), Qubit(q1));
+            })
+            .map_err(std::convert::Into::into),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
                 Ok(self.measure_qubit(builder::mresetz_decl(), args_value))
@@ -2255,15 +2261,6 @@ impl<'a> PartialEvaluator<'a> {
         self.resource_manager.release_qubit(qubit);
 
         // The value of a qubit release is unit.
-        Value::unit()
-    }
-
-    fn swap_qubit_ids(&mut self, args_value: Value) -> Value {
-        let tuple = args_value.unwrap_tuple();
-        let [q0, q1] = array::from_fn(|i| tuple[i].clone());
-        let (q0, q1) = (q0.unwrap_qubit(), q1.unwrap_qubit());
-        self.resource_manager.swap_qubit_ids(q0, q1);
-
         Value::unit()
     }
 
