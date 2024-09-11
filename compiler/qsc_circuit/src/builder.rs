@@ -383,7 +383,7 @@ impl Builder {
 struct Remapper {
     next_meas_id: usize,
     next_qubit_id: usize,
-    next_qubit_hardware_id: WireId,
+    next_qubit_wire_id: WireId,
     qubit_map: IndexMap<usize, WireId>,
     qubit_measurement_counts: IndexMap<WireId, usize>,
 }
@@ -393,8 +393,8 @@ impl Remapper {
         if let Some(mapped) = self.qubit_map.get(qubit) {
             *mapped
         } else {
-            let mapped = self.next_qubit_hardware_id;
-            self.next_qubit_hardware_id.0 += 1;
+            let mapped = self.next_qubit_wire_id;
+            self.next_qubit_wire_id.0 += 1;
             self.qubit_map.insert(qubit, mapped);
             mapped
         }
@@ -442,7 +442,7 @@ impl Remapper {
 
     #[must_use]
     fn num_qubits(&self) -> usize {
-        self.next_qubit_hardware_id.0
+        self.next_qubit_wire_id.0
     }
 
     #[must_use]
