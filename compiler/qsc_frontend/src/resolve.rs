@@ -1028,8 +1028,8 @@ impl Resolver {
             let res = match (term_result, ty_result) {
                 // If either a term or a ty exists for this item already,
                 // as either an item or an export, then we should use that res.
-                (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
-                | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
+                (Ok(res @ (Res::Item(..) | Res::ExportedItem(..) | Res::PrimTy(..) | Res::UnitTy)), _)
+                | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..) | Res::PrimTy(..) | Res::UnitTy))) => res,
                 // Then, if the item was found as either a term or ty but is _not_ an item or export, this export
                 // refers to an invalid res.
                 (Ok(_), _) | (_, Ok(_)) => {
@@ -1439,8 +1439,7 @@ impl GlobalTable {
 
         let mut scope = GlobalScope::default();
         let ns = scope.insert_or_find_namespace(vec![
-            Rc::from("Microsoft"),
-            Rc::from("Quantum"),
+            Rc::from("Std"),
             Rc::from("Core"),
         ]);
 

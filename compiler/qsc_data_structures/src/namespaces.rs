@@ -7,11 +7,12 @@ mod tests;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, collections::BTreeMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-pub const PRELUDE: &[&[&str]; 4] = &[
-    &["Std", "Canon"],
-    &["Microsoft", "Quantum", "Core"],
-    &["Std", "Intrinsic"],
-    &["Std", "Measurement"],
+pub const PRELUDE: [[&str; 2]; 5] = [
+    ["Std", "Canon"],
+    ["Std", "Core"],
+    ["Std", "Intrinsic"],
+    ["Std", "Measurement"],
+    ["Std", "Range"]
 ];
 
 /// An ID that corresponds to a namespace in the global scope.
