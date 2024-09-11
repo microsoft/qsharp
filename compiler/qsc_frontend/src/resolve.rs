@@ -15,7 +15,7 @@ use qsc_ast::{
 use qsc_ast::ast::{ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
-    namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
+    namespaces::{ClobberedNamespace, NamespaceId, NamespaceTreeRoot, PRELUDE},
     span::Span,
 };
 use qsc_hir::{
@@ -182,6 +182,8 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
+    #[error("this namespace clobbers (replaces) an existing external namespace of the same name")]
+    ClobberedNamespace { namespace_name: String, #[label] span: Span },
 }
 
 #[derive(Debug, Clone)]
@@ -394,9 +396,9 @@ impl GlobalScope {
         name: Vec<Rc<str>>,
         root: NamespaceId,
         base_id: NamespaceId,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         self.namespaces
-            .insert_or_find_namespace_from_root_with_id(name, root, base_id);
+            .insert_or_find_namespace_from_root_with_id(name, root, base_id)
     }
 }
 
@@ -904,12 +906,22 @@ impl Resolver {
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
-                self.handle_namespace_import_or_export(
+                match self.handle_namespace_import_or_export(
                     is_export,
                     decl_item,
                     current_namespace,
                     err,
-                );
+                ) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        self.errors.push(
+                            Error::ClobberedNamespace {
+                                namespace_name: decl_item.name().name.to_string(),
+                                span: decl_item.span(),
+                            }
+                        );
+                    }
+                };
                 continue;
             };
 
@@ -1126,7 +1138,7 @@ impl Resolver {
         item: &ast::ImportOrExportItem,
         current_namespace: Option<NamespaceId>,
         err: &Error,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         let items = Into::<Idents>::into(item.path.clone());
         let ns = self.globals.find_namespace(items.str_iter());
         let alias = item
@@ -1141,7 +1153,7 @@ impl Resolver {
                 let alias = alias.unwrap_or(item.path.name.clone());
                 self.globals
                     .namespaces
-                    .insert_with_id(current_namespace, ns, &alias.name);
+                    .insert_with_id(current_namespace, ns, &alias.name)?;
             } else {
                 // for imports, we just bind the namespace as an open
                 self.bind_open(&items, &alias, ns);
@@ -1149,6 +1161,7 @@ impl Resolver {
         } else {
             self.errors.push(err.clone());
         }
+        Ok(())
     }
 }
 
@@ -1488,6 +1501,8 @@ impl GlobalTable {
         // iterate over the tree from the package and recreate it here
         for names_for_same_namespace in &package.namespaces {
             let mut names_iter = names_for_same_namespace.into_iter();
+            // grab the ID for this namespace from the "current" package, or
+            // create it if it doesn't exist
             let base_id = self.scope.insert_or_find_namespace_from_root(
                 names_iter
                     .next()
@@ -2188,17 +2203,17 @@ fn find_symbol_in_namespace<O>(
 
 /// Fetch the name and namespace ID of all prelude namespaces.
 pub fn prelude_namespaces(globals: &GlobalScope) -> Vec<(NamespaceId, String)> {
-    let mut prelude = Vec::with_capacity(PRELUDE.len());
+    let mut prelude  = Vec::with_capacity(PRELUDE.len());
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
-        prelude.push((
-            globals
-                .namespaces
-                .get_namespace_id(prelude_namespace.to_vec())
-                .expect("prelude should always exist in the namespace map"),
+        // when evaluating the prelude namespaces themselves, they won't have been created yet. So we only
+        // include the ids that have been created.
+        if let Some(id) = globals.namespaces.get_namespace_id(prelude_namespace.to_vec()) {
+        prelude.push((id,
             prelude_namespace.join("."),
         ));
+    }
     }
     prelude
 }

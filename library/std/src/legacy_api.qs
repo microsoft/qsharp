@@ -10,6 +10,5 @@ namespace Microsoft.Quantum {
 
 namespace Std {
     export
-        Microsoft.Quantum.Canon,
         Microsoft.Quantum.Core;
 }
