@@ -1,4 +1,4 @@
-**Input:** $N$ qubits in the $\ket{0 \dots 0}$ state ($N$ is not necessarily a power of two).
+**Input:** $N$ qubits in the $\ket{0 \dots 0}$ state ($N$ isn't necessarily a power of two).
 
 **Goal:**  Change the state of the qubits to the [W state](https://en.wikipedia.org/wiki/W_state) - an equal superposition of $N$ basis states on $N$ qubits which have Hamming weight of 1.
 

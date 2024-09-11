@@ -20,7 +20,8 @@ async-trait = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
 log = { workspace = true }
-miette = { workspace = true }
+miette = { workspace = true, features = ["fancy"] }
+
 qsc = { path = "../compiler/qsc" }
 qsc_linter = { path = "../compiler/qsc_linter" }
 qsc_project = { path = "../compiler/qsc_project" }

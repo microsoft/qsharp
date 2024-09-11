@@ -23,7 +23,8 @@ use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
 pub use self::modeling::{
-    GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol, TFactory,
+    load_protocol_from_specification, GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit,
+    Protocol, ProtocolEvaluator, TFactory,
 };
 pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
@@ -77,7 +78,7 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
 ) -> Result<data::Success<L>> {
     let qubit = job_params.qubit_params().clone();
 
-    let ftp = Protocol::load_from_specification(job_params.qec_scheme_mut(), &qubit)?;
+    let ftp = load_protocol_from_specification(job_params.qec_scheme_mut(), &qubit)?;
     let distillation_unit_templates = job_params
         .distillation_unit_specifications()
         .as_templates()?;

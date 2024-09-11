@@ -1,10 +1,10 @@
 A global phase is a phase factor that multiplies the entire quantum state. It isn't observable when measuring the qubit's state, as the probabilities remain unchanged. However, it's significant when considering quantum state transformations.
 
-Our task is to implement an operation that transforms the given qubit state from $\ket{\psi} = \beta \ket{0} + \gamma \ket{1}$ to $- \beta \ket{0} - \gamma \ket{1}$.
+Your task is to implement an operation that transforms the given qubit state from $\ket{\psi} = \beta \ket{0} + \gamma \ket{1}$ to $- \beta \ket{0} - \gamma \ket{1}$.
 
 To do that, you use a sequence of gates. The Pauli Z gate followed by the Pauli X gate can be used to achieve this effect when applied in succession twice.
 
-1. **Apply the Pauli Z gate**: The Z gate multiplies the $\ket{1}$ state by $-1$ but doen't change the $\ket{0}$ state, converting our state $\beta \ket{0} + \gamma \ket{1}$ to $\beta \ket{0} - \gamma \ket{1}$.
+1. **Apply the Pauli Z gate**: The Z gate multiplies the $\ket{1}$ state by $-1$ but doen't change the $\ket{0}$ state, converting the state $\beta \ket{0} + \gamma \ket{1}$ to $\beta \ket{0} - \gamma \ket{1}$.
 
    The matrix representation of the Z gate is:
 

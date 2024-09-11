@@ -18,6 +18,7 @@ members = [
     "compiler/qsc_partial_eval",
     "compiler/qsc_passes",
     "compiler/qsc_project",
+    "compiler/qsc_qasm3",
     "compiler/qsc_rir",
     "fuzz",
     "katas",
@@ -60,6 +61,11 @@ nalgebra = { version = "0.33" }
 num-bigint = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
+oq3_source_file = "0.6.0"
+oq3_syntax = "0.6.0"
+oq3_parser = "0.6.0"
+oq3_lexer = "0.6.0"
+oq3_semantics = "0.6.0"
 probability = "0.20"
 indenter = "0.3"
 regex-lite = "0.1"

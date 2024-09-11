@@ -13,7 +13,8 @@ version.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-miette = { workspace = true }
+miette = { workspace = true, features = ["fancy"] }
+
 regex-lite = { workspace = true }
 async-trait = { workspace = true }
 qsc_linter = { path = "../qsc_linter" }
