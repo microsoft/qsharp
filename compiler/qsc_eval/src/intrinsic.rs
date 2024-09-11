@@ -279,6 +279,7 @@ pub fn qubit_relabel(
     }
 
     let mut map = FxHashMap::default();
+    map.reserve(left.len());
     for (l, r) in left.into_iter().zip(right.into_iter()) {
         if l == r {
             continue;

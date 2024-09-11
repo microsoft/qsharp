@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.Canon {
     /// # Remarks
     /// This operation is useful when you need to swap qubits in a way that does not incur any quantum operations.
     /// Note that when compiling for execution on hardware with limited qubit connectivity, this operation
-    /// may not result in any changes to qubit adjacency and a SWAP gate may still be required.
+    /// may not result in any changes to qubit adjacency and a `SWAP` gate may still be required.
     operation SwapLabels(q0 : Qubit, q1 : Qubit) : Unit {
         Relabel([q0, q1], [q1, q0]);
     }
@@ -278,7 +278,7 @@ namespace Microsoft.Quantum.Canon {
     /// # Remarks
     /// This operation is useful when you need to relabel qubits in a way that does not incur any quantum operations.
     /// Note that when compiling for execution on hardware with limited qubit connectivity, this operation
-    /// may not result in any changes to qubit adjacency and one or more SWAP gates may still be required.
+    /// may not result in any changes to qubit adjacency and one or more `SWAP` gates may still be required.
     ///
     /// # Example
     /// The following example demonstrates how to relabel qubits in a register:

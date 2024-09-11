@@ -49,6 +49,8 @@ impl ResourceManager {
             self.qubits_in_use.len() - 1
         };
         let mut next_id = 0;
+        // Iterate through the sequence of integers until we find one that is not present in the map.
+        // This means that integer id is available for use as the qubit id that will map to the newly allocated qubit.
         loop {
             if !self.qubit_id_map.contains_key(next_id) {
                 self.qubit_id_map.insert(next_id, qubit);

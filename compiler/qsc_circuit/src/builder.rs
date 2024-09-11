@@ -250,7 +250,7 @@ impl Builder {
     }
 
     fn num_measurements_by_qubit(&self) -> IndexMap<usize, usize> {
-        self.remapper.measurements().fold(
+        self.remapper.qubit_measurement_counts.iter().fold(
             IndexMap::default(),
             |mut map: IndexMap<usize, usize>, (q, _)| {
                 match map.get_mut(q.0) {
@@ -266,9 +266,10 @@ impl Builder {
 
     fn num_measurements_for_qubit(&self, qubit: HardwareId) -> usize {
         self.remapper
-            .measurements()
-            .filter(|(q, _)| q.0 == qubit.0)
-            .count()
+            .qubit_measurement_counts
+            .get(qubit)
+            .copied()
+            .unwrap_or_default()
     }
 
     fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
@@ -389,7 +390,7 @@ struct Remapper {
     next_qubit_id: usize,
     next_qubit_hardware_id: HardwareId,
     qubit_map: IndexMap<usize, HardwareId>,
-    measurements: Vec<(HardwareId, usize)>,
+    qubit_measurement_counts: IndexMap<HardwareId, usize>,
 }
 
 impl Remapper {
@@ -407,7 +408,12 @@ impl Remapper {
     fn m(&mut self, q: usize) -> usize {
         let mapped_q = self.map(q);
         let id = self.get_meas_id();
-        self.measurements.push((mapped_q, id));
+        match self.qubit_measurement_counts.get_mut(mapped_q) {
+            Some(count) => *count += 1,
+            None => {
+                self.qubit_measurement_counts.insert(mapped_q, 1);
+            }
+        }
         id
     }
 
@@ -439,10 +445,6 @@ impl Remapper {
         self.qubit_map.insert(q1, q0_mapped);
     }
 
-    fn measurements(&self) -> impl Iterator<Item = &(HardwareId, usize)> {
-        self.measurements.iter()
-    }
-
     #[must_use]
     fn num_qubits(&self) -> usize {
         self.next_qubit_hardware_id.0
@@ -457,7 +459,19 @@ impl Remapper {
 }
 
 #[derive(Copy, Clone, Default)]
-pub struct HardwareId(pub usize);
+struct HardwareId(pub usize);
+
+impl From<usize> for HardwareId {
+    fn from(id: usize) -> Self {
+        HardwareId(id)
+    }
+}
+
+impl From<HardwareId> for usize {
+    fn from(id: HardwareId) -> Self {
+        id.0
+    }
+}
 
 #[allow(clippy::unicode_not_nfc)]
 static KET_ZERO: &str = "|0〉";
