@@ -3,7 +3,7 @@
 
 
 import Std.Arrays.*;
-import Std.Core.*;
+import Std.Range.*;
 import Std.Math.*;
 import Std.Intrinsic.*;
 import QIR.Intrinsic.*;

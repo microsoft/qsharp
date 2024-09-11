@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 
-import Std.Core.*;
+import Std.Range.*;
 import Std.Intrinsic.*;
 import Std.Diagnostics.*;
 open QIR.Intrinsic;

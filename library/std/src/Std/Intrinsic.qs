@@ -3,7 +3,7 @@
 
 
 import Std.Convert.*;
-import Std.Core.*;
+import Std.Range.*;
 import Std.Diagnostics.*;
 import Std.Math.*;
 open QIR.Intrinsic;
