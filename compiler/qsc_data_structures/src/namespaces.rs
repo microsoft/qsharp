@@ -12,7 +12,7 @@ pub const PRELUDE: [[&str; 2]; 5] = [
     ["Std", "Core"],
     ["Std", "Intrinsic"],
     ["Std", "Measurement"],
-    ["Std", "Range"]
+    ["Std", "Range"],
 ];
 
 /// An ID that corresponds to a namespace in the global scope.

@@ -2517,7 +2517,7 @@ fn test_base_mcz_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
