@@ -25,6 +25,12 @@ pub trait Overhead {
     fn num_magic_states(&self, budget: &ErrorBudget, index: usize) -> u64;
 }
 
+/// This is the realized logical overhead after applying an error budget.  This
+/// structure has two purposes: 1) it is used to store the realized logical
+/// overhead, once the error budget partition is decided into the resource
+/// estimation result; 2) it can be used to pass a logical overhead to the
+/// resource estimation API, if it does not depend on the error budget, since it
+/// also implements the [`Overhead`] trait.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RealizedOverhead {
