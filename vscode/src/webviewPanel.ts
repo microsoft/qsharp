@@ -24,8 +24,7 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { CopilotWebviewViewProvider, makeChatRequest } from "./copilot";
+import { CopilotWebviewViewProvider } from "./copilot";
 import { Copilot } from "./copilot2";
 
 const QSharpWebViewType = "qsharp-webview";
@@ -553,18 +552,6 @@ export class QSharpWebViewPanel {
         // Send the message to the copilot
         // TODO: Move this view specific logic out of here
         this._copilot.makeChatRequest(message.request);
-        // makeChatRequest(message.request, (response, done) => {
-        //   if (!done) {
-        //     this.panel.webview.postMessage({
-        //       command: "copilotResponse",
-        //       response,
-        //     });
-        //   } else {
-        //     this.panel.webview.postMessage({
-        //       command: "copilotResponseDone",
-        //     });
-        //   }
-        // });
       }
     });
   }
