@@ -371,7 +371,7 @@ suite("Q# Debugger Tests", function suite() {
         id: 1,
         source: {
           name: "intrinsic.qs",
-          path: "qsharp-library-source:intrinsic.qs",
+          path: "qsharp-library-source:Std/Intrinsic.qs",
           sourceReference: 0,
           adapterData: "qsharp-adapter-data",
         },
@@ -400,7 +400,7 @@ suite("Q# Debugger Tests", function suite() {
 
     // text editor should now be open on intrinsic.qs
     await waitForTextEditorOn(
-      vscode.Uri.parse("qsharp-library-source:intrinsic.qs"),
+      vscode.Uri.parse("qsharp-library-source:Std/Intrinsic.qs"),
     );
   });
 
