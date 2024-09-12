@@ -454,7 +454,7 @@ class BackendBase(BackendV2, ABC):
             "name": kwargs.get("name", circuit.name),
             "search_path": kwargs.get("search_path", "."),
         }
-        qsharp_source = self._qsharp(qasm3_source, **args)
+        qsharp_source = self._qasm3_to_qsharp(qasm3_source, **args)
         return qsharp_source
 
     def qir(
@@ -515,7 +515,7 @@ class BackendBase(BackendV2, ABC):
             **kwargs,
         )
 
-    def _qsharp(
+    def _qasm3_to_qsharp(
         self,
         source: str,
         **kwargs,
