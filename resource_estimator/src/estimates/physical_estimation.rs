@@ -253,6 +253,10 @@ impl<
         }
     }
 
+    pub fn error_correction(&self) -> &E {
+        &self.ftp
+    }
+
     pub fn layout_overhead(&self) -> &L {
         &self.layout_overhead
     }
