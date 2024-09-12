@@ -68,6 +68,7 @@ type MemoEntry = (Vec<Rc<str>>, NamespaceTreeCell);
 /// This renders the contents of the foreign namespace unaccessible.
 /// E.g. a user explicitly creating a namespace called `namespace Std.Diagnostics`, where `Std` is the
 /// standard library.
+#[derive(Debug)]
 pub struct ClobberedNamespace;
 
 /// The root of the data structure that represents the namespaces in a program.

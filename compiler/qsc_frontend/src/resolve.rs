@@ -1525,8 +1525,10 @@ impl GlobalTable {
             );
 
             for name in names_iter {
+                // TODO remove unwrap
                 self.scope
-                    .insert_or_find_namespace_from_root_with_id(name, root, base_id);
+                    .insert_or_find_namespace_from_root_with_id(name, root, base_id)
+                    .unwrap();
             }
         }
 
@@ -1742,9 +1744,11 @@ fn bind_global_item(
                     }
 
                     // and update the namespace tree
+                    // TODO remove unwrap
                     scope
                         .namespaces
-                        .insert_with_id(Some(namespace), ns, &decl_item.name().name);
+                        .insert_with_id(Some(namespace), ns, &decl_item.name().name)
+                        .unwrap();
                 }
                 Ok(())
             }
