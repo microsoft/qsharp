@@ -177,13 +177,16 @@ pub(crate) fn resource_estimate_qasm3(
 
     let program_type = ProgramType::File(name.to_string());
     let output_semantics = OutputSemantics::ResourceEstimation;
-    let unit = compile_qasm(source, &name, &resolver, program_type, output_semantics)?;
-    let (source_map, _, package, _) = unit.into_tuple();
-    match crate::interop::estimate_qasm3(
-        package.expect("Package must exist when there are no errors"),
-        source_map,
-        job_params,
-    ) {
+    let (package, source_map, _) = compile_qasm_enriching_errors(
+        source,
+        &name,
+        &resolver,
+        program_type,
+        output_semantics,
+        false,
+    )?;
+
+    match crate::interop::estimate_qasm3(package, source_map, job_params) {
         Ok(estimate) => Ok(estimate),
         Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
             Err(QSharpError::new_err(format_errors(
