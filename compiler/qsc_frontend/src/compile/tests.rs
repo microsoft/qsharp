@@ -1226,8 +1226,8 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                                 Brace,
                             ),
                             Span {
-                                lo: 119,
-                                hi: 120,
+                                lo: 109,
+                                hi: 110,
                             },
                         ),
                     ),
