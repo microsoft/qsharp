@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     operation CheckErrorDetection(
         n : Int,

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
     operation ConditionalPhaseFlip(qs : Qubit[]) : Unit is Adj + Ctl {
         within {
             ApplyToEachA(X, qs);

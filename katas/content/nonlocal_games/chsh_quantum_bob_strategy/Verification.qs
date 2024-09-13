@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation RotateBobQubit (clockwise : Bool, qubit : Qubit) : Unit {
         if (clockwise) {

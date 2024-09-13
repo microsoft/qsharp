@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Diagnostics.*;
+    import Std.Katas.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     operation ShorEncode (qs : Qubit[]) : Unit is Adj + Ctl {
         BitflipEncode(qs[0 .. 3 .. 8]);

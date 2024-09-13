@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     function ComputeRepetitions(angle : Double, offset : Int, accuracy : Double) : Int {
         mutable pifactor = 0;

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Random;
+    import Std.Random.*;
 
     // Helper functions to pretty-print SAT formulas
     function SATVariableAsString (var : (Int, Bool)) : String {

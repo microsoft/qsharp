@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Katas.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     operation AmplitudeChange (alpha : Double, q : Qubit) : Unit is Adj+Ctl {
         Ry(2.0 * alpha, q);

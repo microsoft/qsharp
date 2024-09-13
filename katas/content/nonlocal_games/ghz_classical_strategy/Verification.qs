@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Convert.*;
     open Microsoft.Quantum.Logical;    
-    open Microsoft.Quantum.Random;
+    import Std.Random.*;
 
     function WinCondition_Reference (rst : Bool[], abc : Bool[]) : Bool {
         return (rst[0] or rst[1] or rst[2]) == (abc[0] != abc[1] != abc[2]);

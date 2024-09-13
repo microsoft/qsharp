@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     // Distinguish |+❭ and |-❭ using Measure operation
     operation StatePrep_IsQubitMinus (q : Qubit, state : Int) : Unit is Adj {

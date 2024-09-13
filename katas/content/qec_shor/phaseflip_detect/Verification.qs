@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation PhaseflipEncode (qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);

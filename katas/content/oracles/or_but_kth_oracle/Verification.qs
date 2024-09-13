@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);

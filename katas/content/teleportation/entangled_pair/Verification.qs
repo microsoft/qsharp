@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import Std.Katas.*;
 
     operation Entangle_Wrapper (qs : Qubit[]) : Unit is Adj {
         Kata.Entangle(qs[0], qs[1]);

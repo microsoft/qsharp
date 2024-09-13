@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Convert.*;
 
     operation ReadColoring(nBits : Int, qs : Qubit[]) : Int[] {
         let colorPartitions = Chunks(nBits, qs);

@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexPolarMult(x : ComplexPolar, y : ComplexPolar) : ComplexPolar {
         mutable theta = x.Argument + y.Argument;

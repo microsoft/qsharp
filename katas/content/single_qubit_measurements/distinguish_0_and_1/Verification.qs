@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import Std.Katas.*;
 
     operation StatePrep_IsQubitZero (q : Qubit, state : Int) : Unit is Adj {
         if state == 0 {

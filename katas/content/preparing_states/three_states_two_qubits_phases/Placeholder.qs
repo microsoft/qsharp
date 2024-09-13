@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation ThreeStates_TwoQubits_Phases (qs : Qubit[]) : Unit {
         // Implement your solution here...

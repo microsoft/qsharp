@@ -1,9 +1,9 @@
 namespace Kata.Verification{
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
 
     operation StatePrep_BasisStateMeasurement(
         qs : Qubit[],

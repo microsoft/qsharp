@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Math.*;
+    import Std.Katas.*;
 
     operation ReflectionAboutState(
         qs : Qubit[],

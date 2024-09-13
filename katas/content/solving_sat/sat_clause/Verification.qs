@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import Std.Katas.*;
+    import Std.Random.*;
 
     function F_SATClause(args : Bool[], clause : (Int, Bool)[]) : Bool {
         for (index, positive) in clause {

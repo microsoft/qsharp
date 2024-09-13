@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     // State selection using partial measurements
     operation StateInitialize_StateSelection(alpha : Double, qs : Qubit[]) : Unit {

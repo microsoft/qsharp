@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
+    import Std.Katas.*;
+    import Std.Convert.*;
+    import Std.Random.*;
 
 
     operation SetQubitZeroOrPlus (q : Qubit, state : Int) : Unit {

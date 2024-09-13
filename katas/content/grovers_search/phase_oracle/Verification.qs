@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import Std.Katas.*;
+    import Std.Random.*;
 
     operation ApplyMarkingOracleAsPhaseOracle_Reference(
         markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),

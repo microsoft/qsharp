@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation StatePrep_XXMeasurement(qs : Qubit[], state : Int, alpha : Double) : Unit is Adj {
         // prep cos(alpha) * |0..0⟩ + sin(alpha) * |1..1⟩

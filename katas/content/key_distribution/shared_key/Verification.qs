@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function GenerateSharedKey_Reference(basesAlice : Bool[], basesBob : Bool[], bits : Bool[]) : Bool[] {
         mutable key = [];

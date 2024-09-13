@@ -1,5 +1,5 @@
 namespace Kata{
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     operation SuperpositionMeasurement (qs : Qubit[], bits1 : Bool[][], bits2 : Bool[][]) : Int {
         let measuredState = MeasureInteger(qs);

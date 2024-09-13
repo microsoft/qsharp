@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation ThreeStates_TwoQubits_Phases (qs : Qubit[]) : Unit {
         // First create (|00⟩ + |01⟩ + |10⟩) / sqrt(3) state

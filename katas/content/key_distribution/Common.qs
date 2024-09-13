@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Random;
+    import Std.Arrays.*;
+    import Std.Random.*;
 
     operation RandomArray(N : Int) : Bool[] {
         ForEach(x => DrawRandomInt(0, 1) == 0, [0, size = N])

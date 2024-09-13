@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation ArbitraryBitPattern_Oracle_Challenge(
         x : Qubit[],

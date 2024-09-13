@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation ThreeStates_TwoQubits_Phases_Reference (qs : Qubit[]) : Unit is Adj {
         // First create (|00⟩ + |01⟩ + |10⟩) / sqrt(3) state

@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation UnequalSuperposition_Reference(q : Qubit, alpha : Double) : Unit is Adj + Ctl {
         Ry(2.0 * alpha, q);

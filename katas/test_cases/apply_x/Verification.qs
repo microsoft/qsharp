@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
 
     operation CheckSolution() : Bool {
         VerifySingleQubitOperation(Kata.ApplyX, ApplyX)

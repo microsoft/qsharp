@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     operation EntanglementSwapping() : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit) {
         return (SendMessageCharlie, ReconstructMessageBob);

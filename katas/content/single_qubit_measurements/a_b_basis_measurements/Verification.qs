@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Katas.*;
 
     // Measure state in {|A❭, |B❭} basis
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,

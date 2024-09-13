@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

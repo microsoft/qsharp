@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
     operation IsQubitNotInABC (q : Qubit) : Int {
         let alpha = ArcCos(Sqrt(2.0 / 3.0));
 

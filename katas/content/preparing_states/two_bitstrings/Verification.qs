@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
     function FindFirstDiff (bits1 : Bool[], bits2 : Bool[]) : Int {
         for i in 0 .. Length(bits1) - 1 {

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     operation EntangleWrapper_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         let (qAlice, qBob) = (qs[0], qs[1]);

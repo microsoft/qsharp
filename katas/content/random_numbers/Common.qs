@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     /// # Summary
     /// Helper operation that checks that the given RNG operation generates a uniform distribution.

@@ -1,8 +1,8 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Random;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Random.*;
 
     @EntryPoint()
     operation RunBB84Protocol() : Unit {

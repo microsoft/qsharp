@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation EvenOddNumbersSuperposition_Reference(qs : Qubit[], isEven : Bool) : Unit is Adj + Ctl {
         let N = Length(qs);

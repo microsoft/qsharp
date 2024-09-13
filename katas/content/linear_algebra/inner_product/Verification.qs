@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function InnerProduct_Reference() : Complex {
         return Complex(-18., 72.);

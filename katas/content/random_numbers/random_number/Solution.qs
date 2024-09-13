@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation RandomNumberInRange(min : Int, max : Int) : Int {
         let nBits = BitSizeI(max - min);

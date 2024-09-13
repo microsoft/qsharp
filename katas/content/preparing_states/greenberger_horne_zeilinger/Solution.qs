@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
     
     operation GHZ_State (qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

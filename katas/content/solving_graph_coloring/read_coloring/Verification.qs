@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

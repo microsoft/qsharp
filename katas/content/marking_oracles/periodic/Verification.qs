@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     function F_Periodic(args : Bool[]) : Bool {
         let N = Length(args);

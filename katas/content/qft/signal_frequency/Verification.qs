@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
     operation PreparePeriodicState(qs : Qubit[], F : Int) : Unit is Adj + Ctl {
         let bitsBE = Reversed(IntAsBoolArray(F, Length(qs)));

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation Hardy_State_Reference (qs : Qubit[]) : Unit is Adj {
         let theta = ArcCos(Sqrt(10.0/12.0));

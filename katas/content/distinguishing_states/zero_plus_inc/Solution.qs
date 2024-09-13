@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Random;
+    import Std.Random.*;
     operation IsQubitZeroPlusOrInconclusive(q : Qubit) : Int {
         // Pick a random basis
         let basis = DrawRandomInt(0, 1);

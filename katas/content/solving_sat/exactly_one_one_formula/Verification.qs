@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import Std.Katas.*;
+    import Std.Random.*;
 
     function F_Exactly1SATClause (args : Bool[], clause : (Int, Bool)[]) : Bool {
         mutable nOnes = 0;

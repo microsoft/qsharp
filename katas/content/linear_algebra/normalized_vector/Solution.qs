@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function NormalizedVector() : Complex[][] {
         return [[Complex(-0.6, 0.)],

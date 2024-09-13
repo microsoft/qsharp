@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     operation FourBitstringSuperposition (qs : Qubit[], bits : Bool[][]) : Unit {
         FourBitstringSuperposition_Recursive([], qs, bits);

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
     operation ArbitraryBitPattern_Oracle_Reference(x : Qubit[], y : Qubit, pattern : Bool[]) : Unit  is Adj + Ctl {
         ApplyControlledOnBitString(pattern, X, x, y);

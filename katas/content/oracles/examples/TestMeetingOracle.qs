@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
 
     // The classical function to perform the same computation
     function Meeting_Classical(x : Bool[], jasmine : Bool[]) : Bool {

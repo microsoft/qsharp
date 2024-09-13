@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Convert.*;
+    import Std.Random.*;
+    import Std.Math.*;
 
     operation StatePrep_IsQubitNotInABC (q : Qubit, state : Int) : Unit {
         let alpha = (2.0 * PI()) / 3.0;

@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation WState_Arbitrary_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
         let N = Length(qs);

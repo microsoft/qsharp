@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function TensorProduct_Reference() : Double[][] {
         return [[5., 6., 10., 12.],

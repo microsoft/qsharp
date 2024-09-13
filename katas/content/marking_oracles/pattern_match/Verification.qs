@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     function F_PatternMatching(args : Bool[], a : Int[], r : Bool[]) : Bool {
         for i in 0 .. Length(a) - 1 {

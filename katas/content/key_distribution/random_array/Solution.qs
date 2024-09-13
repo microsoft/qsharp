@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Random;
+    import Std.Random.*;
 
     operation RandomArray(N : Int) : Bool[] {
         mutable array = [false, size = N];

@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function FindFirstSuperpositionDiff (bits1 : Bool[][], bits2 : Bool[][], nQubits : Int) : Int {
         for i in 0 .. nQubits - 1 {

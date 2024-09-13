@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Katas {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.

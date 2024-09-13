@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import Std.Katas.*;
+    import Std.Arrays.*;
 
     operation GHZ_State_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

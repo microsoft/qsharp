@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import Std.Katas.*;
+    import Std.Arrays.*;
 
     function F_Balanced(args : Bool[]) : Bool {
         return Count(x -> x, args) == Length(args) / 2;

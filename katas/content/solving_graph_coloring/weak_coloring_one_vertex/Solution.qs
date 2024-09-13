@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation Oracle_WeakColoring_OneVertex(
         V : Int, edges: (Int, Int)[], x : Qubit[], y : Qubit, vertex : Int

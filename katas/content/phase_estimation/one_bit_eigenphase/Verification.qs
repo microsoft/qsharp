@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Unstable.StatePreparation;
+    import Microsoft.Quantum.Unstable.StatePreparation.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function OuterProduct_Reference() : Complex[][] {
         return [[Complex(-27., 0.), Complex(0., -6.)],

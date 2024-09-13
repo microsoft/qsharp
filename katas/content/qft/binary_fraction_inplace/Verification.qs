@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation BinaryFractionQuantumInPlace_Reference(j : Qubit[]) : Unit is Adj + Ctl {
         H(j[0]);

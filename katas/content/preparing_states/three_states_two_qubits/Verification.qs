@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     // Reference solution that does not use measurements (to be adjointable)
     operation ThreeStates_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj + Ctl {

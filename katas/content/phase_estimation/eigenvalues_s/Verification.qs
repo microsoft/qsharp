@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexEqual(x : Complex, y : Complex) : Bool { 
         // Tests two complex numbers for equality.

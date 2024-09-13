@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Convert;
+    import Std.Katas.*;
+    import Std.Convert.*;
 
     function F_DivisibleBy3(args : Bool[]) : Bool {
         return BoolArrayAsInt(args) % 3 == 0;

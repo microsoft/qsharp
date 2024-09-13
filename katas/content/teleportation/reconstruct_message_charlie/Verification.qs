@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Katas.*;
     
     operation ReconstructMessageWhenThreeEntangledQubitsTestLoop(
         reconstructMessage : (Qubit, (Bool, Bool), Bool) => Unit

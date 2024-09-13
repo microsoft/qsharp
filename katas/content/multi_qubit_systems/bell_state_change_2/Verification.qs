@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import Std.Katas.*;
 
     operation PrepareBellState(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

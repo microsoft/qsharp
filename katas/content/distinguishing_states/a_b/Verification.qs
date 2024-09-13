@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Katas.*;
 
     // |A⟩ =   cos(alpha) * |0⟩ + sin(alpha) * |1⟩,
     // |B⟩ = - sin(alpha) * |0⟩ + cos(alpha) * |1⟩.

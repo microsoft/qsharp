@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
     
     operation MeasurementFreeTeleportTestLoop(
         measurementFreeTeleport : (Qubit, Qubit, Qubit) => Unit

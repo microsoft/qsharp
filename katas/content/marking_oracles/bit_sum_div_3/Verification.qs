@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import Std.Katas.*;
+    import Std.Arrays.*;
 
     function F_BitSumDivisibleBy3(args : Bool[]) : Bool {
         return Count(x -> x, args) % 3 == 0;

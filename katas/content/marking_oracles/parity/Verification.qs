@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     function F_Parity(x : Bool[]) : Bool {
         mutable parity = false;

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import Std.Katas.*;
+    import Std.Arrays.*;
 
     function F_ColorEquality(args : Bool[]) : Bool {
         // Check that the first half equals the second half

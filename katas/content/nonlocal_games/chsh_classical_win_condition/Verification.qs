@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function WinCondition_Reference(x : Bool, y : Bool, a : Bool, b : Bool) : Bool {
         return (x and y) == (a != b);

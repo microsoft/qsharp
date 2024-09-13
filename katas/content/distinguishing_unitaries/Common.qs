@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Math.*;
+    import Std.Random.*;
 
     // "Framework" operation for testing tasks for distinguishing unitaries
     // "unitaries" is the list of unitaries that can be passed to the task

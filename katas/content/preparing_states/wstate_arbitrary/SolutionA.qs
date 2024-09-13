@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     operation WState_Arbitrary (qs : Qubit[]) : Unit is Adj + Ctl {
         let N = Length(qs);

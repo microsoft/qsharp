@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     function F_Kth_Bit(x : Bool[], k : Int) : Bool {
         x[k]

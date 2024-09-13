@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Katas.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     operation PhaseChange (alpha : Double, q : Qubit) : Unit is Adj+Ctl {
         R1(alpha, q);

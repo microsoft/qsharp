@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Unstable.StatePreparation;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Katas.*;
+    import Std.Math.*;
+    import Microsoft.Quantum.Unstable.StatePreparation.*;
 
     operation PeriodicState_Reference (qs : Qubit[], F : Int) : Unit is Adj + Ctl {
         let n = Length(qs);

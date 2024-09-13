@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Katas.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     operation  EntangleQubits (qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);

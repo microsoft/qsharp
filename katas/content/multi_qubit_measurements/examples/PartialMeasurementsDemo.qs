@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation DemoPartialMeasurement() : Unit {

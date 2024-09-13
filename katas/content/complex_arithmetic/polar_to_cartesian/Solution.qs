@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexPolarToComplex(x : ComplexPolar) : Complex {
         let (r, theta) = (x.Magnitude, x.Argument);

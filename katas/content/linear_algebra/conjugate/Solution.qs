@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function Conjugate() : Complex[][] {
         return [[Complex(1., -5.), Complex(2., 0.)],

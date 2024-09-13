@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Kata {
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Intrinsic.*;
 
     operation ApplyX(q : Qubit) : Unit is Adj + Ctl {
         X(q);

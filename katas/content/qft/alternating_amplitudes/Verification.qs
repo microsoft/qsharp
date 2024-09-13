@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation AlternatingAmplitudes_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
         for q in qs {

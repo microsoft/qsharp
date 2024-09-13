@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Katas.*;
 
     operation ControlledRotation (qs : Qubit[], theta : Double) : Unit is Adj + Ctl {
         let controll = qs[0];

@@ -1,7 +1,7 @@
 namespace Demo {
     // To use elements from a namespace, you need to use the `open` keyword to
     // access them.
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation PauliGatesUsage () : Unit {

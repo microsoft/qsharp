@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
 
     operation CheckSolution() : Bool {
         for (n, oracle, expected, name) in [(2, qs => (), [0, 0], "f(x) = 0"), 

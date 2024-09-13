@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function EigenvaluesS() : Complex[] {
         return [Complex(1.0, 0.0),

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation PrepareWithReal_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

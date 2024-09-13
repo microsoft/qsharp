@@ -1,7 +1,7 @@
 namespace Quantum.Kata.CHSHGame {
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Random.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     function WinCondition (x : Bool, y : Bool, a : Bool, b : Bool) : Bool {
         return (x and y) == (a != b);
