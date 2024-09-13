@@ -1256,7 +1256,7 @@ fn call_to_unresolved_callee_with_dynamic_arg_fails() {
 
     assert_error(
         &error,
-        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 298, hi: 305 }))"],
+        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 288, hi: 295 }))"],
     );
 }
 
@@ -1283,7 +1283,7 @@ fn call_to_unresolved_callee_producing_dynamic_value_fails() {
 
     assert_error(
         &error,
-        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 298, hi: 305 } })"],
+        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 288, hi: 295 } })"],
     );
 }
 
@@ -1309,7 +1309,7 @@ fn call_to_unresolved_callee_via_closure_with_dynamic_arg_fails() {
 
     assert_error(
         &error,
-        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 302, hi: 309 }))"],
+        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 292, hi: 299 }))"],
     );
 }
 
