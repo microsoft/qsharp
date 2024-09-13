@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 use std::rc::Rc;
 
+use crate::system::constants::MAX_DISTILLATION_ROUNDS;
 use crate::system::modeling::{
     PhysicalQubit, Protocol, TFactory, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
 };
@@ -353,6 +354,19 @@ impl TFactoryBuilder {
         distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
         max_distillation_rounds: u64,
     ) -> Self {
+        Self {
+            distillation_unit_templates,
+            max_distillation_rounds,
+        }
+    }
+}
+
+impl Default for TFactoryBuilder {
+    fn default() -> Self {
+        let distillation_unit_templates =
+            TFactoryDistillationUnitTemplate::default_distillation_unit_templates();
+        let max_distillation_rounds = MAX_DISTILLATION_ROUNDS;
+
         Self {
             distillation_unit_templates,
             max_distillation_rounds,

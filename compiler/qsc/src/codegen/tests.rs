@@ -5,7 +5,7 @@ use expect_test::expect;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::compile::SourceMap;
 
-use crate::codegen::get_qir;
+use crate::codegen::qir::get_qir;
 
 #[test]
 fn code_with_errors_returns_errors() {
@@ -64,7 +64,7 @@ mod base_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
@@ -257,7 +257,7 @@ mod adaptive_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
@@ -472,7 +472,7 @@ mod adaptive_ri_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
