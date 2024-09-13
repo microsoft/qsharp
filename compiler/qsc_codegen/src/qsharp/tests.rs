@@ -40,10 +40,10 @@ fn open() {
     check(
         indoc! {r#"
             namespace Sample {
-                import Std.Intrinsic as sics.*;
+                import Std.Intrinsic as sics;
 
                 import Std.Diagnostics.*;
-                import Std.Intrinsic as intrin.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {
                 }
@@ -51,9 +51,9 @@ fn open() {
         None,
         &expect![[r#"
             namespace Sample {
-                import Std.Intrinsic as sics.*;
+                import Std.Intrinsic as sics;
                 import Std.Diagnostics.*;
-                import Std.Intrinsic as intrin.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {}
             }"#]],
