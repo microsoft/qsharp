@@ -886,7 +886,7 @@ fn explicit_return_embedded_in_assign_expr_yields_error() {
 fn explicit_return_embedded_in_assign_field_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -970,7 +970,7 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
 fn explicit_return_embedded_in_call_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -991,7 +991,7 @@ fn explicit_return_embedded_in_call_expr_yields_error() {
 fn explicit_return_embedded_in_if_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -1075,7 +1075,7 @@ fn explicit_return_embedded_in_unary_expr_yields_error() {
 fn explicit_return_embedded_in_update_field_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.

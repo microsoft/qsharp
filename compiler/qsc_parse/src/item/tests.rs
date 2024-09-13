@@ -1751,7 +1751,7 @@ fn helpful_error_on_dotted_alias() {
     check_vec(
         parse_namespaces,
         "namespace A {
-            open Microsoft.Quantum.Math as Foo.Bar.Baz;
+            import Std.Math as Foo.Bar.Baz.*;
             operation Main() : Unit {}
         }",
         &expect![[r#"

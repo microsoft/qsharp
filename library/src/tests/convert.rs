@@ -255,7 +255,7 @@ fn test_complex_as_complex_polar() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             let a = Complex(2.0*Cos(1.0), 2.0*Sin(1.0));
             Microsoft.Quantum.Convert.ComplexAsComplexPolar(a)
         }"
@@ -269,7 +269,7 @@ fn test_complex_polar_as_complex() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             let a = ComplexPolar(Sqrt(5.0), ArcTan2(1.0, 2.0));
             Microsoft.Quantum.Convert.ComplexPolarAsComplex(a)
         }"

@@ -263,7 +263,7 @@ mod given_interpreter {
         #[test]
         fn open_namespace() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
@@ -328,7 +328,7 @@ mod given_interpreter {
         #[test]
         fn global_qubits() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
@@ -453,7 +453,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "open Other;");
             is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine();");
             is_only_error(
@@ -463,7 +463,7 @@ mod given_interpreter {
                     name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
                       ambiguous name [line_3] [DumpMachine]
                       found in this namespace [line_1] [Other]
-                      and also in this namespace [line_2] [Microsoft.Quantum.Diagnostics]
+                      and also in this namespace [line_2] [Std.Diagnostics]
                     type error: insufficient type information to infer type
                        [line_3] [DumpMachine()]
                 "#]],
@@ -749,7 +749,7 @@ mod given_interpreter {
                 &mut interpreter,
                 indoc! {r#"
                 namespace Test {
-                    open Microsoft.Quantum.Math;
+                    import Std.Math.*;
                     open QIR.Intrinsic;
                     @EntryPoint()
                     operation Main() : Result {
@@ -1552,7 +1552,7 @@ mod given_interpreter {
         fn debugger_execution_with_call_to_library_succeeds() {
             let source = indoc! { r#"
             namespace Test {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 @EntryPoint()
                 operation Main() : Int {
                     Binom(31, 7)
@@ -1579,7 +1579,7 @@ mod given_interpreter {
         fn debugger_execution_with_early_return_succeeds() {
             let source = indoc! { r#"
             namespace Test {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
 
                 operation Max20(i : Int) : Int {
                     if (i > 20) {

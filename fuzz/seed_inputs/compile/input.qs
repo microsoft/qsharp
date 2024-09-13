@@ -1,21 +1,21 @@
 //
 namespace Fuzz.Testing {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Characterization;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Logical;
-    open Microsoft.Quantum.MachineLearning;
-    open Microsoft.Quantum.MachineLearning.Datasets as Datasets;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Preparation;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Simulation;
-    open Microsoft.Quantum.Synthesis;
-    open Microsoft.Quantum.Targeting;
+    import Std.Arrays.*;
+    import Std.Canon.*;
+    import Std.Characterization.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Logical.*;
+    import Std.MachineLearning.*;
+    import Std.MachineLearning.Datasets as Datasets.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
+    import Std.Preparation.*;
+    import Std.Random.*;
+    import Std.Simulation.*;
+    import Std.Synthesis.*;
+    import Std.Targeting.*;
 
     function IfRetExpr(cond : Bool, a : Int, b : Int) : Int {
         let x = if cond { a } else { b };

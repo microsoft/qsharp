@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 namespace IterativePhaseEstimation {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     @EntryPoint()
     operation Main() : (Int, Int) {

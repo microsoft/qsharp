@@ -16,7 +16,7 @@
 /// This Q# program prepares the GHZ state in a register of 3 qubits, then
 /// returns the result of measuring those qubits.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation Main() : Result[] {

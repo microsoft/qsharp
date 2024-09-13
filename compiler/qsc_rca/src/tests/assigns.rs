@@ -56,7 +56,7 @@ fn check_rca_for_dynamic_bool_assign_to_local() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
+        import Std.Convert.*;
         use q = Qubit();
         mutable b = false;
         set b = ResultAsBool(M(q));
@@ -81,8 +81,8 @@ fn check_rca_for_dynamic_int_assign_to_local() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         mutable i = 0;
@@ -108,8 +108,8 @@ fn check_rca_for_dynamic_double_assign_to_local() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         let i = ResultArrayAsInt(results);
@@ -319,8 +319,8 @@ fn check_rca_for_mutable_classical_integer_assigned_updated_with_classical_integ
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         mutable i = 0;
@@ -342,8 +342,8 @@ fn check_rca_for_mutable_classical_integer_assigned_updated_with_dynamic_integer
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         mutable i = 0;
@@ -367,8 +367,8 @@ fn check_rca_for_mutable_dynamic_integer_assigned_updated_with_classical_integer
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         mutable i = ResultArrayAsInt(results);
@@ -392,8 +392,8 @@ fn check_rca_for_mutable_dynamic_integer_assigned_updated_with_dynamic_integer()
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         mutable i = ResultArrayAsInt(results);

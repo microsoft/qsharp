@@ -11,7 +11,7 @@
 ///
 /// This Q# program exemplifies different types of measurements.
 namespace Sample {
-    open Microsoft.Quantum.Measurement;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : (Result, Result[]) {

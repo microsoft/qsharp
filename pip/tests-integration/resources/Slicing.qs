@@ -1,8 +1,8 @@
 namespace Test {
 
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Canon.*;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     // Verifies loop over subset of index range, constant folding division of array length, array slicing, qubit reindexing, reverse iteration.
     // Expected output: [1, 1, 1, 1, 1].

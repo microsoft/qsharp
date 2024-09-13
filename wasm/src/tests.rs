@@ -112,7 +112,7 @@ fn fail_ry() {
 #[test]
 fn test_message() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi");
@@ -132,7 +132,7 @@ fn test_message() {
 #[test]
 fn message_with_escape_sequences() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("\ta\n\t");
@@ -153,7 +153,7 @@ fn message_with_escape_sequences() {
 #[test]
 fn message_with_backslashes() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi \\World");
@@ -397,7 +397,7 @@ fn test_compile_error_related_spans() {
             namespace Other { operation DumpMachine() : Unit { } }
             namespace Test {
                 open Other;
-                open Microsoft.Quantum.Diagnostics;
+                import Std.Diagnostics.*;
                 @EntryPoint()
                 operation Main() : Unit {
                     DumpMachine()

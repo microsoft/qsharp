@@ -175,7 +175,7 @@ pub fn large_nested_iteration(c: &mut Criterion) {
             [("none".into(), "".into())],
             Some(
                 indoc! {"{
-                    open Microsoft.Quantum.Arrays;
+                    import Std.Arrays.*;
                     mutable arr = [[0, size = 100], size = 1000];
                     for i in IndexRange(arr) {
                         mutable inner = arr[i];

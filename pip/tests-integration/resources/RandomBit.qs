@@ -1,6 +1,6 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Intrinsic.*;
 
     @EntryPoint()
     operation Main() : Result {

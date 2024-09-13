@@ -65,7 +65,7 @@ fn check_rca_for_dynamic_bool() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
+        import Std.Convert.*;
         use q = Qubit();
         ResultAsBool(M(q))"#,
     );
@@ -104,8 +104,8 @@ fn check_rca_for_dynamic_int() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         ResultArrayAsInt(results)"#,
@@ -222,8 +222,8 @@ fn check_rca_for_dynamic_double() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         use register = Qubit[8];
         let results = MeasureEachZ(register);
         let i = ResultArrayAsInt(results);

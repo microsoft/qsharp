@@ -2080,12 +2080,12 @@ fn unknown_namespace() {
     check(
         indoc! {"
             namespace A {
-                open Microsoft.Quantum.Fake;
+                import Std.Fake.*;
             }
         "},
         &expect![[r#"
             namespace namespace8 {
-                open Microsoft.Quantum.Fake;
+                import Std.Fake.*;
             }
 
             // NotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
