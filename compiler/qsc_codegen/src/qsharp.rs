@@ -162,19 +162,26 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                     ImportOrExportItem {
                         ref path,
                         ref is_glob,
-                        ..
+                        ref alias,
                     },
                 ) in decl.items.iter().enumerate()
                 {
                     let is_last = ix == decl.items.len() - 1;
                     self.visit_path(path);
+
                     if *is_glob {
                         self.write(".*");
                     }
+
+                    if let Some(ref alias) = alias {
+                        self.write(&format!(" as {}", alias.name));
+                    }
+
                     if !is_last {
                         self.write(", ");
                     };
                 }
+
                 self.write(";");
             }
         }
