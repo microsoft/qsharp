@@ -2088,7 +2088,7 @@ fn unknown_namespace() {
                 import Std.Fake.*;
             }
 
-            // NotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
+            // GlobImportNamespaceNotFound("Fake", Span { lo: 25, hi: 33 })
         "#]],
     );
 }
