@@ -1,6 +1,6 @@
 #![allow(clippy::cast_precision_loss)]
 
-// This example illustrates how to use the Resource Estimator API to perform a
+// This example illustrates how to use the Resource Estimator crate to perform a
 // standard resource estimation on top of the qubit and QEC models provided by
 // the systems architecture that we ship. We are using logical resource counts
 // to compute the post-layout logical overhead based on the PSSPC layout method
