@@ -498,11 +498,11 @@ fn open_shadows_prelude() {
 fn ambiguous_prelude() {
     check(
         indoc! {"
-        namespace Microsoft.Quantum.Canon {
+        namespace Std.Canon {
             function A() : Unit {}
         }
 
-        namespace Microsoft.Quantum.Core {
+        namespace Std.Measurement {
             function A() : Unit {}
         }
 
@@ -513,19 +513,21 @@ fn ambiguous_prelude() {
         }
         "},
         &expect![[r#"
-            namespace namespace8 {
+            namespace namespace2 {
                 function item1() : Unit {}
             }
 
-            namespace namespace5 {
+            namespace namespace7 {
                 function item3() : Unit {}
             }
 
-            namespace namespace9 {
+            namespace namespace8 {
                 function item5() : Unit {
-                    item3();
+                    A();
                 }
             }
+
+            // AmbiguousPrelude { name: "A", candidate_a: "Std.Canon", candidate_b: "Std.Measurement", span: Span { lo: 160, hi: 161 } }
         "#]],
     );
 }
