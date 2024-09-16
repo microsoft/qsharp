@@ -177,6 +177,27 @@ fn check_relabel_four_qubit_shuffle_permutation() {
 }
 
 #[test]
+fn check_relabel_adjoint_undoes_permutation() {
+    test_expression(
+        "{
+                use qs = Qubit[3];
+                // Prepare |01+⟩
+                X(qs[1]);
+                H(qs[2]);
+                Relabel([qs[0], qs[1], qs[2]], [qs[1], qs[2], qs[0]]);
+                // Expected state is |1+0⟩, perform part of the adjoint to correct one of the qubits.
+                X(qs[0]);
+                Adjoint Relabel([qs[0], qs[1], qs[2]], [qs[1], qs[2], qs[0]]);
+                // Expected state is now |00+⟩, perform the rest of the adjoint to get back to ground state,
+                // using the original qubit ids.
+                H(qs[2]);
+                // Qubit release will fail if the state is not |000⟩
+            }",
+        &Value::unit(),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_2() {
     test_expression(
         {

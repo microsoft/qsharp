@@ -77,7 +77,7 @@ pub(crate) fn call(
                 Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
-        "Relabel" => qubit_relabel(arg, arg_span, |q0, q1| sim.qubit_swap_id(q0, q1)),
+        "PermuteLabels" => qubit_relabel(arg, arg_span, |q0, q1| sim.qubit_swap_id(q0, q1)),
         "Message" => match out.message(&arg.unwrap_string()) {
             Ok(()) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
