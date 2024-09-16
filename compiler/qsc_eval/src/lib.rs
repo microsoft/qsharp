@@ -20,7 +20,7 @@ mod tests;
 pub mod backend;
 pub mod debug;
 mod error;
-mod intrinsic;
+pub mod intrinsic;
 pub mod output;
 pub mod state;
 pub mod val;
@@ -136,6 +136,11 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
     RangeStepZero(#[label("invalid range")] PackageSpan),
 
+    #[error("qubit arrays used in relabeling must be a permutation of the same set of qubits")]
+    #[diagnostic(help("ensure that each qubit is present exactly once in both arrays"))]
+    #[diagnostic(code("Qsc.Eval.RelabelingMismatch"))]
+    RelabelingMismatch(#[label] PackageSpan),
+
     #[error("Qubit{0} released while not in |0⟩ state")]
     #[diagnostic(help("qubits should be returned to the |0⟩ state before being released to satisfy the assumption that allocated qubits start in the |0⟩ state"))]
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
@@ -188,6 +193,7 @@ impl Error {
             | Error::QubitsNotCounted(span)
             | Error::QubitsNotSeparable(span)
             | Error::RangeStepZero(span)
+            | Error::RelabelingMismatch(span)
             | Error::ReleasedQubitNotZero(_, span)
             | Error::ResultComparisonUnsupported(span)
             | Error::UnboundName(span)
