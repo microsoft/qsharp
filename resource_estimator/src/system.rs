@@ -87,6 +87,8 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
         .error_budget()
         .partitioning(logical_resources.as_ref())?;
 
+    // The clone on the logical resources is on an Rc and therefore inexpensive,
+    // the value is later used in creating the result object
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
