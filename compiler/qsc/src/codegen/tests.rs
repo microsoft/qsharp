@@ -258,7 +258,7 @@ mod base_profile {
             operation Main() : (Result, Result) {
                 use (q0, q1) = (Qubit(), Qubit());
                 X(q0);
-                SwapLabels(q0, q1);
+                Relabel([q0, q1], [q1, q0]);
                 X(q1);
                 (MResetZ(q0), MResetZ(q1))
             }
@@ -322,7 +322,7 @@ mod base_profile {
                 {
                     use (q0, q1) = (Qubit(), Qubit());
                     X(q0);
-                    SwapLabels(q0, q1);
+                    Relabel([q0, q1], [q1, q0]);
                     X(q1);
                     Reset(q0);
                     Reset(q1);
@@ -824,7 +824,7 @@ mod adaptive_ri_profile {
             operation Main() : (Result, Result) {
                 use (q0, q1) = (Qubit(), Qubit());
                 X(q0);
-                SwapLabels(q0, q1);
+                Relabel([q0, q1], [q1, q0]);
                 X(q1);
                 (MResetZ(q0), MResetZ(q1))
             }
@@ -897,7 +897,7 @@ mod adaptive_ri_profile {
                 {
                     use (q0, q1) = (Qubit(), Qubit());
                     X(q0);
-                    SwapLabels(q0, q1);
+                    Relabel([q0, q1], [q1, q0]);
                     X(q1);
                     Reset(q0);
                     Reset(q1);
@@ -981,7 +981,7 @@ mod adaptive_ri_profile {
                 X(q0);
                 X(q1);
                 X(q2);
-                SwapLabels(q0, q1);
+                Relabel([q0, q1], [q1, q0]);
                 QIR.Runtime.__quantum__rt__qubit_release(q0);
                 let q3 = QIR.Runtime.__quantum__rt__qubit_allocate();
                 X(q3);

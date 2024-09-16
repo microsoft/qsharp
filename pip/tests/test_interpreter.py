@@ -277,7 +277,7 @@ def test_entry_expr_circuit() -> None:
 def test_swap_label_circuit() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     e.interpret(
-        "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); SwapLabels(q1, q2); X(q2); }"
+        "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); Relabel([q1, q2], [q2, q1]); X(q2); }"
     )
     circuit = e.circuit("Foo()")
     assert str(circuit) == dedent(
