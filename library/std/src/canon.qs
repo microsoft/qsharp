@@ -275,7 +275,18 @@ namespace Microsoft.Quantum.Canon {
     /// use (q0, q1) = (Qubit(), Qubit());
     /// Relabel([q0, q1], [q1, q0]);
     /// ```
-    operation Relabel(current : Qubit[], updated : Qubit[]) : Unit {
+    /// Note that the adjoint of this operation effectively changes the order of arguments, such that
+    /// `Adjoint Relabel(qubits, newOrder)` is equivalent to `Relabel(newOrder, qubits)`.
+    operation Relabel(current : Qubit[], updated : Qubit[]) : Unit is Adj {
+        body ... {
+            PermuteLabels(current, updated);
+        }
+        adjoint ... {
+            PermuteLabels(updated, current);
+        }
+    }
+
+    operation PermuteLabels(current : Qubit[], updated : Qubit[]) : Unit {
         body intrinsic;
     }
 
