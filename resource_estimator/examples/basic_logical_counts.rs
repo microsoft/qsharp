@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #![allow(clippy::cast_precision_loss)]
 
 // This example illustrates how to use the Resource Estimator crate to perform a
