@@ -113,7 +113,7 @@ fn check_swap_labels() {
         "{
                 use qs = Qubit[2];
                 X(qs[0]);
-                SwapLabels(qs[0], qs[1]);
+                Relabel(qs, [qs[1], qs[0]]);
                 MResetEachZ(qs)
             }",
         &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),

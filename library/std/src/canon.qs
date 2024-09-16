@@ -248,24 +248,6 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// # Summary
-    /// Exchanges the labels of two qubits. This can function like a SWAP gate, but without needing to
-    /// perform any operations on the qubits themselves. The relabeling is done purely in qubit ID management.
-    ///
-    /// # Input
-    /// ## q0
-    /// The first qubit to swap.
-    /// ## q1
-    /// The second qubit to swap.
-    ///
-    /// # Remarks
-    /// This operation is useful when you need to swap qubits in a way that does not incur any quantum operations.
-    /// Note that when compiling for execution on hardware with limited qubit connectivity, this operation
-    /// may not result in any changes to qubit adjacency and a `SWAP` gate may still be required.
-    operation SwapLabels(q0 : Qubit, q1 : Qubit) : Unit {
-        Relabel([q0, q1], [q1, q0]);
-    }
-
-    /// # Summary
     /// Relabels the qubits in the `current` array with the qubits in the `updated` array. The `updated` array
     /// must be a valid permutation of the `current` array.
     ///
@@ -288,6 +270,11 @@ namespace Microsoft.Quantum.Canon {
     /// Relabel(qubits, newOrder);
     /// ```
     /// After this operation, any use of `qubits[0]` will refer to the qubit that was originally `qubits[2]`, and so on.
+    /// To exchange the labels on two qubits, the virtual equivalent of a `SWAP` gate, you can use the following code:
+    /// ```qsharp
+    /// use (q0, q1) = (Qubit(), Qubit());
+    /// Relabel([q0, q1], [q1, q0]);
+    /// ```
     operation Relabel(current : Qubit[], updated : Qubit[]) : Unit {
         body intrinsic;
     }
@@ -630,6 +617,6 @@ namespace Microsoft.Quantum.Canon {
         adjoint self;
     }
 
-    export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, SwapLabels, Relabel, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
+    export ApplyToEach, ApplyToEachA, ApplyToEachC, ApplyToEachCA, CX, CY, CZ, Fst, Snd, Relabel, ApplyCNOTChain, ApplyP, ApplyPauli, ApplyPauliFromBitString, ApplyPauliFromInt, ApplyControlledOnInt, ApplyControlledOnBitString, ApplyQFT, SwapReverseRegister, ApplyXorInPlace, ApplyXorInPlaceL;
 
 }
