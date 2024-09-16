@@ -18,14 +18,13 @@ use qsc::{
 use qsc::{Backend, PackageType, SparseSim};
 use qsc_qasm3::io::SourceResolver;
 use qsc_qasm3::{
-    qasm_to_program, CompilerConfig, OperationSignature, OutputSemantics, ProgramType,
-    QasmCompileUnit, QubitSemantics,
+    qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
 };
 
 use crate::fs::file_system;
 use crate::interpreter::{
-    format_error, format_errors, OptionalCallbackReceiver, QSharpError, QasmError, TargetProfile,
-    ValueWrapper,
+    format_error, format_errors, OptionalCallbackReceiver, OutputSemantics, ProgramType,
+    QSharpError, QasmError, TargetProfile, ValueWrapper,
 };
 
 use resource_estimator as re;
@@ -92,7 +91,7 @@ pub fn run_qasm3(
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
     let target = get_target_profile(&kwargs)?;
-    let name = get_name(&kwargs)?;
+    let operation_name = get_operation_name(&kwargs)?;
     let seed = get_seed(&kwargs);
     let shots = get_shots(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
@@ -102,9 +101,9 @@ pub fn run_qasm3(
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
-        &name,
+        &operation_name,
         &resolver,
-        ProgramType::File(name.to_string()),
+        ProgramType::File,
         OutputSemantics::Qiskit,
         false,
     )?;
@@ -169,17 +168,17 @@ pub(crate) fn resource_estimate_qasm3(
 ) -> PyResult<String> {
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
-    let name = get_name(&kwargs)?;
+    let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_type = ProgramType::File(name.to_string());
+    let program_type = ProgramType::File;
     let output_semantics = OutputSemantics::ResourceEstimation;
     let (package, source_map, _) = compile_qasm_enriching_errors(
         source,
-        &name,
+        &operation_name,
         &resolver,
         program_type,
         output_semantics,
@@ -232,19 +231,20 @@ pub(crate) fn compile_qasm3_to_qir(
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
     let target = get_target_profile(&kwargs)?;
-    let name = get_name(&kwargs)?;
+    let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_type = ProgramType::File(name.to_string());
+    let program_ty = get_program_type(&kwargs)?;
+    let output_semantics = get_output_semantics(&kwargs)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
-        &name,
+        &operation_name,
         &resolver,
-        program_type,
-        OutputSemantics::Qiskit,
+        program_ty,
+        output_semantics,
         false,
     )?;
 
@@ -260,20 +260,22 @@ pub(crate) fn compile_qasm3_to_qir(
 
 pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
     source: S,
-    name: S,
+    operation_name: S,
     resolver: &R,
-    program_type: ProgramType,
+    program_ty: ProgramType,
     output_semantics: OutputSemantics,
 ) -> PyResult<QasmCompileUnit> {
-    let parse_result =
-        qsc_qasm3::parse::parse_source(source, format!("{}.qasm", name.as_ref()), resolver)
-            .map_err(|report| {
-                // this will only fail if a file cannot be read
-                // most likely due to a missing file or search path
-                QasmError::new_err(format!("{report:?}"))
-            })?;
+    let parse_result = qsc_qasm3::parse::parse_source(
+        source,
+        format!("{}.qasm", operation_name.as_ref()),
+        resolver,
+    )
+    .map_err(|report| {
+        // this will only fail if a file cannot be read
+        // most likely due to a missing file or search path
+        QasmError::new_err(format!("{report:?}"))
+    })?;
 
-    //
     if parse_result.has_errors() {
         return Err(QasmError::new_err(format_qasm_errors(
             parse_result.errors(),
@@ -282,11 +284,13 @@ pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
     let unit = qasm_to_program(
         parse_result.source,
         parse_result.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics,
-            program_ty: program_type,
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            output_semantics.into(),
+            program_ty.into(),
+            Some(operation_name.as_ref().into()),
+            None,
+        ),
     );
 
     if unit.has_errors() {
@@ -297,13 +301,19 @@ pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
 
 pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
     source: S,
-    name: S,
+    operation_name: S,
     resolver: &R,
-    program_type: ProgramType,
+    program_ty: ProgramType,
     output_semantics: OutputSemantics,
     allow_input_params: bool,
 ) -> PyResult<(Package, SourceMap, OperationSignature)> {
-    let unit = compile_qasm(source, name, resolver, program_type, output_semantics)?;
+    let unit = compile_qasm(
+        source,
+        operation_name,
+        resolver,
+        program_ty,
+        output_semantics,
+    )?;
 
     if unit.has_errors() {
         return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
@@ -359,19 +369,20 @@ pub(crate) fn compile_qasm3_to_qsharp(
 ) -> PyResult<String> {
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
-    let name = get_name(&kwargs)?;
+    let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_type = ProgramType::File(name.to_string());
+    let program_ty = get_program_type(&kwargs)?;
+    let output_semantics = get_output_semantics(&kwargs)?;
     let (package, _, _) = compile_qasm_enriching_errors(
         source,
-        &name,
+        &operation_name,
         &resolver,
-        program_type,
-        OutputSemantics::Qiskit,
+        program_ty,
+        output_semantics,
         true,
     )?;
 
@@ -601,22 +612,27 @@ pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     )
 }
 
-/// Extracts the run type from the kwargs dictionary.
-/// If the run type is not present, returns an error.
-/// Otherwise, returns the run type as a string.
-///
-/// Note: This should become an enum in the future.
-pub(crate) fn get_run_type(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
-    kwargs.get_item("run_type")?.map_or_else(
-        || Err(PyException::new_err("Could not parse run type".to_string())),
-        |x| x.extract::<String>(),
-    )
+/// Extracts the program type from the kwargs dictionary.
+pub(crate) fn get_program_type(kwargs: &Bound<'_, PyDict>) -> PyResult<ProgramType> {
+    let target = kwargs
+        .get_item("program_type")?
+        .map_or_else(|| Ok(ProgramType::File), |x| x.extract::<ProgramType>())?;
+    Ok(target)
+}
+
+/// Extracts the output semantics from the kwargs dictionary.
+pub(crate) fn get_output_semantics(kwargs: &Bound<'_, PyDict>) -> PyResult<OutputSemantics> {
+    let target = kwargs.get_item("output_semantics")?.map_or_else(
+        || Ok(OutputSemantics::Qiskit),
+        |x| x.extract::<OutputSemantics>(),
+    )?;
+    Ok(target)
 }
 
 /// Extracts the name from the kwargs dictionary.
 /// If the name is not present, returns "program".
 /// Otherwise, returns the name after sanitizing it.
-pub(crate) fn get_name(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
+pub(crate) fn get_operation_name(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
     let name = kwargs
         .get_item("name")?
         .map_or_else(|| Ok("program".to_string()), |x| x.extract::<String>())?;

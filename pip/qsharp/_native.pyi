@@ -8,6 +8,62 @@ from typing import Any, Callable, Optional, Dict, List, Tuple
 # E302 is fighting with the formatter for number of blank lines
 # flake8: noqa: E302
 
+class OutputSemantics(Enum):
+    """
+    Represents the output semantics for OpenQASM 3 compilation.
+    Each has implications on the output of the compilation
+    and the semantic checks that are performed.
+    """
+
+    Qiskit: OutputSemantics
+    """
+    The output is in Qiskit format meaning that the output
+    is all of the classical registers, in reverse order
+    in which they were added to the circuit with each
+    bit within each register in reverse order.
+    """
+
+    OpenQasm: OutputSemantics
+    """
+    [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
+    - If the programmer provides one or more `output` declarations, then
+        variables described as outputs will be returned as output.
+        The spec make no mention of endianness or order of the output.
+    - Otherwise, assume all of the declared variables are returned as output.
+    """
+
+    ResourceEstimation: OutputSemantics
+    """
+    No output semantics are applied. The entry point returns `Unit`.
+    """
+
+class ProgramType(Enum):
+    """
+    Represents the type of compilation out to create
+    """
+
+    File: ProgramType
+    """
+    Creates an operation in a namespace as if the program is a standalone
+    file. Inputs are lifted to the operation params. Output are lifted to
+    the operation return type. The operation is marked as `@EntryPoint`
+    as long as there are no input parameters.
+    """
+
+    Operation: ProgramType
+    """
+    Programs are compiled to a standalone function. Inputs are lifted to
+    the operation params. Output are lifted to the operation return type.
+    """
+
+    Fragments: ProgramType
+    """
+    Creates a list of statements from the program. This is useful for
+    interactive environments where the program is a list of statements
+    imported into the current scope.
+    This is also useful for testing indifidual statements compilation.
+    """
+
 class TargetProfile(Enum):
     """
     A Q# target profile.

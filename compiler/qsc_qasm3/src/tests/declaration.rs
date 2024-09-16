@@ -67,11 +67,13 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
     let unit = crate::qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::Fragments,
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::Fragments,
+            None,
+            None,
+        ),
     );
     println!("{:?}", unit.errors);
     assert!(unit.errors.len() == 5);
@@ -100,11 +102,13 @@ fn stretch() {
     let unit = crate::compile::qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::Fragments,
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::Fragments,
+            None,
+            None,
+        ),
     );
     assert!(unit.has_errors());
     println!("{:?}", unit.errors);

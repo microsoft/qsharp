@@ -37,11 +37,13 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let r = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::Qiskit,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![

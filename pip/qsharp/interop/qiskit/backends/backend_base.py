@@ -439,7 +439,8 @@ class BackendBase(BackendV2, ABC):
                   configuration. Defaults to backend config values. Common
                   values include: 'optimization_level', 'basis_gates',
                   'includes', 'search_path'.
-
+              - output_semantics (OutputSemantics, optional): The output semantics for the QIR conversion. Defaults to None (Qiskit).
+              - program_ty (ProgramType, optional): The program type to generate. Defaults to None (File(name)).
         Returns:
             str: The converted QASM3 code as a string. Any supplied includes
             are emitted as include statements at the top of the program.
@@ -454,6 +455,14 @@ class BackendBase(BackendV2, ABC):
             "name": kwargs.get("name", circuit.name),
             "search_path": kwargs.get("search_path", "."),
         }
+        output_semantics = kwargs.pop("output_semantics", None)
+        if output_semantics is not None:
+            args["output_semantics"] = output_semantics
+
+        program_ty = kwargs.pop("program_ty", None)
+        if program_ty is not None:
+            args["program_ty"] = program_ty
+
         qsharp_source = self._qasm3_to_qsharp(qasm3_source, **args)
         return qsharp_source
 
@@ -471,7 +480,8 @@ class BackendBase(BackendV2, ABC):
               - params (str, optional): The entry expression for the QIR conversion. Defaults to None.
               - target_profile (TargetProfile, optional): The target profile for the backend. Defaults to backend config value.
               - search_path (str, optional): The search path for the backend. Defaults to '.'.
-
+              - output_semantics (OutputSemantics, optional): The output semantics for the QIR conversion. Defaults to None (Qiskit).
+              - program_ty (ProgramType, optional): The program type to generate. Defaults to None (File(name)).
         Returns:
             str: The converted QIR code as a string.
 
@@ -495,9 +505,17 @@ class BackendBase(BackendV2, ABC):
         if params is not None:
             qir_args["params"] = params
 
-        return self._qir(qasm3_source, **qir_args)
+        output_semantics = kwargs.pop("output_semantics", None)
+        if output_semantics is not None:
+            qir_args["output_semantics"] = output_semantics
 
-    def _qir(
+        program_ty = kwargs.pop("program_ty", None)
+        if program_ty is not None:
+            qir_args["program_ty"] = program_ty
+
+        return self._qasm3_to_qir(qasm3_source, **qir_args)
+
+    def _qasm3_to_qir(
         self,
         source: str,
         **kwargs,

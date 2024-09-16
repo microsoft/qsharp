@@ -31,7 +31,7 @@ use qsc::{
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
-use qsc_qasm3::{OutputSemantics, ProgramType};
+
 use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
@@ -51,6 +51,8 @@ use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 /// corresponding exception.
 fn verify_classes_are_sendable() {
     fn is_send<T: Send>() {}
+    is_send::<OutputSemantics>();
+    is_send::<ProgramType>();
     is_send::<TargetProfile>();
     is_send::<Result>();
     is_send::<Pauli>();
@@ -62,6 +64,8 @@ fn verify_classes_are_sendable() {
 #[pymodule]
 fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     verify_classes_are_sendable();
+    m.add_class::<OutputSemantics>()?;
+    m.add_class::<ProgramType>()?;
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -112,6 +116,70 @@ impl From<TargetProfile> for Profile {
             TargetProfile::Base => Profile::Base,
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
             TargetProfile::Unrestricted => Profile::Unrestricted,
+        }
+    }
+}
+
+// This ordering must match the _native.pyi file.
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
+#[allow(non_camel_case_types)]
+/// Represents the output semantics for OpenQASM 3 compilation.
+/// Each has implications on the output of the compilation
+/// and the semantic checks that are performed.
+pub(crate) enum OutputSemantics {
+    /// The output is in Qiskit format meaning that the output
+    /// is all of the classical registers, in reverse order
+    /// in which they were added to the circuit with each
+    /// bit within each register in reverse order.
+    Qiskit,
+    /// [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
+    /// - If the programmer provides one or more `output` declarations, then
+    ///     variables described as outputs will be returned as output.
+    ///     The spec make no mention of endianness or order of the output.
+    /// - Otherwise, assume all of the declared variables are returned as output.
+    OpenQasm,
+    /// No output semantics are applied. The entry point returns `Unit`.
+    ResourceEstimation,
+}
+
+impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
+    fn from(output_semantics: OutputSemantics) -> Self {
+        match output_semantics {
+            OutputSemantics::Qiskit => qsc_qasm3::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc_qasm3::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc_qasm3::OutputSemantics::ResourceEstimation,
+        }
+    }
+}
+
+// This ordering must match the _native.pyi file.
+#[derive(Clone, PartialEq)]
+#[pyclass(eq)]
+#[allow(non_camel_case_types)]
+/// Represents the type of compilation out to create
+pub enum ProgramType {
+    /// Creates an operation in a namespace as if the program is a standalone
+    /// file. Inputs are lifted to the operation params. Output are lifted to
+    /// the operation return type. The operation is marked as `@EntryPoint`
+    /// as long as there are no input parameters.
+    File,
+    /// Programs are compiled to a standalone function. Inputs are lifted to
+    /// the operation params. Output are lifted to the operation return type.
+    Operation,
+    /// Creates a list of statements from the program. This is useful for
+    /// interactive environments where the program is a list of statements
+    /// imported into the current scope.
+    /// This is also useful for testing indifidual statements compilation.
+    Fragments,
+}
+
+impl From<ProgramType> for qsc_qasm3::ProgramType {
+    fn from(output_semantics: ProgramType) -> Self {
+        match output_semantics {
+            ProgramType::File => qsc_qasm3::ProgramType::File,
+            ProgramType::Operation => qsc_qasm3::ProgramType::Operation,
+            ProgramType::Fragments => qsc_qasm3::ProgramType::Fragments,
         }
     }
 }
@@ -336,11 +404,12 @@ impl Interpreter {
 
         let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
-        let name = crate::interop::get_name(&kwargs)?;
+        let operation_name = crate::interop::get_operation_name(&kwargs)?;
         let seed = crate::interop::get_seed(&kwargs);
         let shots = crate::interop::get_shots(&kwargs)?;
         let search_path = crate::interop::get_search_path(&kwargs)?;
-        let run_type = crate::interop::get_run_type(&kwargs)?;
+        let program_type = crate::interop::get_program_type(&kwargs)?;
+        let output_semantics = crate::interop::get_output_semantics(&kwargs)?;
 
         let fs = crate::interop::create_filesystem_from_py(
             py,
@@ -350,17 +419,13 @@ impl Interpreter {
             fetch_github,
         );
         let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
-        let program_type = match run_type.as_str() {
-            "statements" => ProgramType::Fragments,
-            "operation" => ProgramType::Operation(name.to_string()),
-            _ => ProgramType::File(name.to_string()),
-        };
+
         let (package, _source_map, signature) = compile_qasm_enriching_errors(
             source,
-            &name,
+            &operation_name,
             &resolver,
             program_type.clone(),
-            OutputSemantics::Qiskit,
+            output_semantics,
             false,
         )?;
 
@@ -370,7 +435,7 @@ impl Interpreter {
             .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
 
         match program_type {
-            ProgramType::File(..) => {
+            ProgramType::File => {
                 let entry_expr = signature.create_entry_expr_from_params(String::new());
                 self.interpreter
                     .set_entry_expr(&entry_expr)

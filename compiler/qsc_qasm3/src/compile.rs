@@ -134,8 +134,8 @@ impl QasmCompiler {
         self.prepend_runtime_decls();
         let program_ty = self.config.program_ty.clone();
         let (package, signature) = match program_ty {
-            ProgramType::File(name) => self.build_file(name),
-            ProgramType::Operation(name) => self.build_operation(name),
+            ProgramType::File => self.build_file(),
+            ProgramType::Operation => self.build_operation(),
             ProgramType::Fragments => (self.build_fragments(), None),
         };
 
@@ -156,11 +156,12 @@ impl QasmCompiler {
 
     /// Build a package with namespace and an operation
     /// containing the compiled statements.
-    fn build_file<S: AsRef<str>>(&mut self, name: S) -> (Package, Option<OperationSignature>) {
+    fn build_file(&mut self) -> (Package, Option<OperationSignature>) {
         let tree = self.source.tree();
         let whole_span = span_for_syntax_node(tree.syntax());
-        let (operation, mut signature) = self.create_entry_operation(name, whole_span);
-        let ns = "qasm3_import";
+        let operation_name = self.config.operation_name();
+        let (operation, mut signature) = self.create_entry_operation(operation_name, whole_span);
+        let ns = self.config.namespace();
         signature.ns = Some(ns.to_string());
         let top = build_top_level_ns_with_item(whole_span, ns, operation);
         (
@@ -173,10 +174,11 @@ impl QasmCompiler {
     }
 
     /// Creates an operation with the given name.
-    fn build_operation<S: AsRef<str>>(&mut self, name: S) -> (Package, Option<OperationSignature>) {
+    fn build_operation(&mut self) -> (Package, Option<OperationSignature>) {
         let tree = self.source.tree();
         let whole_span = span_for_syntax_node(tree.syntax());
-        let (operation, signature) = self.create_entry_operation(name, whole_span);
+        let operation_name = self.config.operation_name();
+        let (operation, signature) = self.create_entry_operation(operation_name, whole_span);
         (
             Package {
                 nodes: Box::new([TopLevelNode::Stmt(Box::new(ast::Stmt {
