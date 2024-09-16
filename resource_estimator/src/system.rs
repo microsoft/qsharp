@@ -88,6 +88,8 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
         .error_budget()
         .partitioning(logical_resources.as_ref())?;
 
+    // The clone on the logical resources is on an Rc and therefore inexpensive,
+    // the value is later used in creating the result object
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
@@ -95,7 +97,7 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             distillation_unit_templates,
             job_params.constraints().max_distillation_rounds,
         ),
-        logical_resources,
+        logical_resources.clone(),
         partitioning,
     );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
@@ -126,11 +128,14 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             let estimation_result = estimation
                 .build_frontier()
                 .map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new_from_multiple(job_params, result))
+            estimation_result.map(|result| {
+                data::Success::new_from_multiple(job_params, logical_resources, result)
+            })
         }
         EstimateType::SinglePoint => {
             let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new(job_params, result))
+            estimation_result
+                .map(|result| data::Success::new(job_params, logical_resources, result))
         }
     }
 }

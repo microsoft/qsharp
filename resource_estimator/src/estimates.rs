@@ -19,6 +19,6 @@ pub use physical_estimation::{
 };
 mod layout;
 mod logical_qubit;
-pub use layout::Overhead;
+pub use layout::{Overhead, RealizedOverhead};
 pub use logical_qubit::LogicalPatch;
 pub mod optimization;

@@ -209,9 +209,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
-) {
+fn validate_result_invariants(result: &PhysicalResourceEstimationResult<Protocol, TFactory>) {
     let part = get_factory(result);
 
     assert_eq!(
@@ -1056,7 +1054,7 @@ fn strip_numbers(value: &Value) -> Value {
 // In this system, there is only one magic state type, T states, and therefore
 // one factory part in the result with information on the factory.
 fn get_factory(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory>,
 ) -> &FactoryPart<TFactory> {
     result.factory_parts()[0]
         .as_ref()
