@@ -1293,7 +1293,7 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
-            "Relabel" => qubit_relabel(args_value, args_span, |q0, q1| {
+            "PermuteLabels" => qubit_relabel(args_value, args_span, |q0, q1| {
                 self.resource_manager.swap_qubit_ids(Qubit(q0), Qubit(q1));
             })
             .map_err(std::convert::Into::into),
