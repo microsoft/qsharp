@@ -548,7 +548,7 @@ fn dump_register_all_qubits_normalized_is_same_as_dump_machine() {
         "",
         indoc! {
         "{
-            open Microsoft.Quantum.Diagnostics;
+            import Std.Diagnostics.*;
             use qs = Qubit[2];
 
             let alpha = -4.20025;

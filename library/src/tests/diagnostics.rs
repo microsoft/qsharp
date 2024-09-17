@@ -8,8 +8,8 @@ use qsc::interpret::Value;
 fn check_operations_are_equal() {
     test_expression(
         "{
-            open Microsoft.Quantum.Diagnostics;
-            open Microsoft.Quantum.Arrays;
+            import Std.Diagnostics.*;
+            import Std.Arrays.*;
             operation op1(xs: Qubit[]): Unit is Adj {
                 CCNOT(xs[0], xs[1], xs[2]);
             }

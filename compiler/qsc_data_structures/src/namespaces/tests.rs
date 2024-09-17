@@ -25,37 +25,41 @@ fn test_tree_construction() {
         NamespaceTreeRoot
 
           children: [
-            ns1(id 11) {
+            Std(id 1) {
               children: [
-                nsc(id 14) {empty node},
-                nsb(id 13) {empty node},
-                nsa(id 12) {empty node},
+                Measurement(id 7) {empty node},
+                Canon(id 2) {empty node},
+                Intrinsic(id 6) {empty node},
               ]
             },
-            ns0(id 7) {
+            ns1(id 12) {
               children: [
-                nsc(id 10) {empty node},
-                nsb(id 9) {empty node},
-                nsa(id 8) {empty node},
+                nsc(id 15) {empty node},
+                nsb(id 14) {empty node},
+                nsa(id 13) {empty node},
               ]
             },
-            Microsoft(id 1) {
+            ns0(id 8) {
               children: [
-                Quantum(id 2) {
+                nsc(id 11) {empty node},
+                nsb(id 10) {empty node},
+                nsa(id 9) {empty node},
+              ]
+            },
+            Microsoft(id 3) {
+              children: [
+                Quantum(id 4) {
                   children: [
-                    Canon(id 3) {empty node},
-                    Measurement(id 6) {empty node},
-                    Core(id 4) {empty node},
-                    Intrinsic(id 5) {empty node},
+                    Core(id 5) {empty node},
                   ]
                 },
               ]
             },
-            ns2(id 15) {
+            ns2(id 16) {
               children: [
-                nsc(id 18) {empty node},
-                nsb(id 17) {empty node},
-                nsa(id 16) {empty node},
+                nsc(id 19) {empty node},
+                nsb(id 18) {empty node},
+                nsa(id 17) {empty node},
               ]
             },
           ]
@@ -117,9 +121,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 10) {empty node},
-                        nsb(id 9) {empty node},
-                        nsa(id 8) {empty node},
+                        nsc(id 11) {empty node},
+                        nsb(id 10) {empty node},
+                        nsa(id 9) {empty node},
                       ]
                     },
                 },
@@ -158,9 +162,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 14) {empty node},
-                        nsb(id 13) {empty node},
-                        nsa(id 12) {empty node},
+                        nsc(id 15) {empty node},
+                        nsb(id 14) {empty node},
+                        nsa(id 13) {empty node},
                       ]
                     },
                 },
@@ -199,9 +203,9 @@ fn test_find_id() {
                 RefCell {
                     value: 
                       children: [
-                        nsc(id 18) {empty node},
-                        nsb(id 17) {empty node},
-                        nsa(id 16) {empty node},
+                        nsc(id 19) {empty node},
+                        nsb(id 18) {empty node},
+                        nsa(id 17) {empty node},
                       ]
                     },
                 },
@@ -228,19 +232,19 @@ fn test_insert_or_find_namespace() {
     ids_sorted.dedup();
     // there should be no duplicate or out-of-order ids
     assert_eq!(ids_sorted, ids);
-    expect![[r"
+    expect![[r#"
         [
-            8,
             9,
             10,
-            12,
+            11,
             13,
             14,
-            16,
+            15,
             17,
             18,
+            19,
         ]
-    "]]
+    "#]]
     .assert_debug_eq(&ids);
 }
 
@@ -267,11 +271,6 @@ fn test_get_namespace_id() {
         [
             Some(
                 NamespaceId(
-                    8,
-                ),
-            ),
-            Some(
-                NamespaceId(
                     9,
                 ),
             ),
@@ -282,12 +281,12 @@ fn test_get_namespace_id() {
             ),
             Some(
                 NamespaceId(
-                    7,
+                    11,
                 ),
             ),
             Some(
                 NamespaceId(
-                    12,
+                    8,
                 ),
             ),
             Some(
@@ -302,12 +301,12 @@ fn test_get_namespace_id() {
             ),
             Some(
                 NamespaceId(
-                    11,
+                    15,
                 ),
             ),
             Some(
                 NamespaceId(
-                    16,
+                    12,
                 ),
             ),
             Some(
@@ -322,7 +321,12 @@ fn test_get_namespace_id() {
             ),
             Some(
                 NamespaceId(
-                    15,
+                    19,
+                ),
+            ),
+            Some(
+                NamespaceId(
+                    16,
                 ),
             ),
         ]
@@ -350,6 +354,21 @@ fn test_tree_iter() {
             ],
             [
                 [
+                    "Std",
+                ],
+            ],
+            [
+                [
+                    "Std",
+                    "Canon",
+                ],
+                [
+                    "Std",
+                    "Canon",
+                ],
+            ],
+            [
+                [
                     "Microsoft",
                 ],
             ],
@@ -357,18 +376,6 @@ fn test_tree_iter() {
                 [
                     "Microsoft",
                     "Quantum",
-                ],
-            ],
-            [
-                [
-                    "Microsoft",
-                    "Quantum",
-                    "Canon",
-                ],
-                [
-                    "Microsoft",
-                    "Quantum",
-                    "Canon",
                 ],
             ],
             [
@@ -385,25 +392,21 @@ fn test_tree_iter() {
             ],
             [
                 [
-                    "Microsoft",
-                    "Quantum",
+                    "Std",
                     "Intrinsic",
                 ],
                 [
-                    "Microsoft",
-                    "Quantum",
+                    "Std",
                     "Intrinsic",
                 ],
             ],
             [
                 [
-                    "Microsoft",
-                    "Quantum",
+                    "Std",
                     "Measurement",
                 ],
                 [
-                    "Microsoft",
-                    "Quantum",
+                    "Std",
                     "Measurement",
                 ],
             ],

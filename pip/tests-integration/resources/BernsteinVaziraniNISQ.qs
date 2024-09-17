@@ -7,12 +7,12 @@
 ///
 /// This Q# program implements the Bernstein-Vazirani algorithm.
 namespace Test {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result[] {

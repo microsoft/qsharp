@@ -5,7 +5,7 @@
 /// Joint measurements, also known as Pauli measurements, are a generalization
 /// of 2-outcome measurements to multiple qubits and other bases.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation Main() : (Result, Result[]) {

@@ -72,7 +72,7 @@ mod tests {
 
         expect![[r#"
             Location {
-                source: "qsharp-library-source:arrays.qs",
+                source: "qsharp-library-source:Std/Arrays.qs",
                 range: Range {
                     start: Position {
                         line: 0,

@@ -133,8 +133,8 @@ pub const USE_DYNAMIC_BOOLEAN: &str = r#"
 
 pub const USE_DYNAMIC_INT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -160,8 +160,8 @@ pub const USE_DYNAMIC_RANGE: &str = r#"
 
 pub const USE_DYNAMIC_DOUBLE: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -181,8 +181,8 @@ pub const USE_DYNAMIC_QUBIT: &str = r#"
 
 pub const USE_DYNAMIC_BIG_INT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -209,9 +209,9 @@ pub const USE_DYNAMICALLY_SIZED_ARRAY: &str = r#"
 
 pub const USE_DYNAMIC_UDT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Math.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -221,7 +221,7 @@ pub const USE_DYNAMIC_UDT: &str = r#"
 
 pub const USE_DYNAMIC_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = M(q) == Zero ? Cos | Sin;
@@ -230,7 +230,7 @@ pub const USE_DYNAMIC_FUNCTION: &str = r#"
 
 pub const USE_DYNAMIC_OPERATION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let op = M(q) == Zero ? X | Y;
@@ -289,7 +289,7 @@ pub const CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
 
 pub const CALL_DYNAMIC_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = M(q) == Zero ? Cos | Sin;
@@ -299,7 +299,7 @@ pub const CALL_DYNAMIC_FUNCTION: &str = r#"
 
 pub const CALL_DYNAMIC_OPERATION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let op = M(q) == Zero ? X | Y;
@@ -309,7 +309,7 @@ pub const CALL_DYNAMIC_OPERATION: &str = r#"
 
 pub const CALL_UNRESOLVED_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = true ? Cos | Sin;
@@ -329,8 +329,8 @@ pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
 
 pub const USE_DYNAMIC_INDEX: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[2];
             let results = MeasureEachZ(register);
@@ -380,7 +380,7 @@ pub const LOOP_WITH_DYNAMIC_CONDITION: &str = r#"
 
 pub const USE_CLOSURE_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             let theta = PI();
             let lambdaFn = theta -> Sin(theta);

@@ -1,7 +1,7 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     // Demonstrates copy and update expressions.
     // Expected output: ([1], [0], [1, 1, 1])

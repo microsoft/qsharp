@@ -348,7 +348,7 @@ def test_adaptive_errors_are_raised_from_entry_expr() -> None:
 def test_adaptive_ri_qir_can_be_generated() -> None:
     adaptive_input = """
         namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -412,7 +412,7 @@ def test_adaptive_ri_qir_can_be_generated() -> None:
 def test_base_qir_can_be_generated() -> None:
     base_input = """
         namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {

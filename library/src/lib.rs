@@ -22,64 +22,64 @@ pub const CORE_LIB: &[(&str, &str)] = &[
 
 pub const STD_LIB: &[(&str, &str)] = &[
     (
-        "qsharp-library-source:arrays.qs",
-        include_str!("../std/src/arrays.qs"),
+        "qsharp-library-source:Std/Arrays.qs",
+        include_str!("../std/src/Std/Arrays.qs"),
     ),
     (
-        "qsharp-library-source:canon.qs",
-        include_str!("../std/src/canon.qs"),
+        "qsharp-library-source:Std/Canon.qs",
+        include_str!("../std/src/Std/Canon.qs"),
     ),
     (
-        "qsharp-library-source:convert.qs",
-        include_str!("../std/src/convert.qs"),
+        "qsharp-library-source:Std/Convert.qs",
+        include_str!("../std/src/Std/Convert.qs"),
     ),
     (
         "qsharp-library-source:core.qs",
         include_str!("../std/src/core.qs"),
     ),
     (
-        "qsharp-library-source:diagnostics.qs",
-        include_str!("../std/src/diagnostics.qs"),
+        "qsharp-library-source:Std/Diagnostics.qs",
+        include_str!("../std/src/Std/Diagnostics.qs"),
     ),
     (
-        "qsharp-library-source:internal.qs",
-        include_str!("../std/src/internal.qs"),
+        "qsharp-library-source:Std/InternalHelpers.qs",
+        include_str!("../std/src/Std/InternalHelpers.qs"),
     ),
     (
-        "qsharp-library-source:intrinsic.qs",
-        include_str!("../std/src/intrinsic.qs"),
+        "qsharp-library-source:Std/Intrinsic.qs",
+        include_str!("../std/src/Std/Intrinsic.qs"),
     ),
     (
-        "qsharp-library-source:logical.qs",
-        include_str!("../std/src/logical.qs"),
+        "qsharp-library-source:Std/Logical.qs",
+        include_str!("../std/src/Std/Logical.qs"),
     ),
     (
-        "qsharp-library-source:math.qs",
-        include_str!("../std/src/math.qs"),
+        "qsharp-library-source:Std/Math.qs",
+        include_str!("../std/src/Std/Math.qs"),
     ),
     (
-        "qsharp-library-source:measurement.qs",
-        include_str!("../std/src/measurement.qs"),
+        "qsharp-library-source:Std/Measurement.qs",
+        include_str!("../std/src/Std/Measurement.qs"),
     ),
     (
-        "qsharp-library-source:qir.qs",
-        include_str!("../std/src/qir.qs"),
+        "qsharp-library-source:QIR/Intrinsic.qs",
+        include_str!("../std/src/QIR/Intrinsic.qs"),
     ),
     (
-        "qsharp-library-source:random.qs",
-        include_str!("../std/src/random.qs"),
+        "qsharp-library-source:Std/Random.qs",
+        include_str!("../std/src/Std/Random.qs"),
     ),
     (
-        "qsharp-library-source:re.qs",
-        include_str!("../std/src/re.qs"),
-    ),
-    (
-        "qsharp-library-source:unstable_arithmetic.qs",
-        include_str!("../std/src/unstable_arithmetic.qs"),
+        "qsharp-library-source:Std/ResourceEstimation.qs",
+        include_str!("../std/src/Std/ResourceEstimation.qs"),
     ),
     (
         "qsharp-library-source:unstable_arithmetic_internal.qs",
         include_str!("../std/src/unstable_arithmetic_internal.qs"),
+    ),
+    (
+        "qsharp-library-source:unstable_arithmetic.qs",
+        include_str!("../std/src/unstable_arithmetic.qs"),
     ),
     (
         "qsharp-library-source:unstable_state_preparation.qs",
@@ -90,7 +90,7 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/unstable_table_lookup.qs"),
     ),
     (
-        "qsharp-library-source:modern_api.qs",
-        include_str!("../std/src/modern_api.qs"),
+        "qsharp-library-source:legacy_api.qs",
+        include_str!("../std/src/legacy_api.qs"),
     ),
 ];

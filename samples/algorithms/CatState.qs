@@ -7,7 +7,7 @@
 ///
 /// This Q# program implements a cat state of 5 qubits.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation Main() : Result[] {

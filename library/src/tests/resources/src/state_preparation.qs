@@ -1,9 +1,11 @@
 namespace Test {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Unstable.StatePreparation;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
+    import Microsoft.Quantum.Unstable.StatePreparation.*;
+    import QIR.Intrinsic.*;
+
 
 
     operation TestPlusState() : Unit {

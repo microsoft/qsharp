@@ -1,6 +1,6 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Intrinsic.*;
 
     // Demonstrates shortcutting of measurement ops in conditionals.
     // Expected output: (0, 0)

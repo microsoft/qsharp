@@ -40,10 +40,10 @@ fn open() {
     check(
         indoc! {r#"
             namespace Sample {
-                open Microsoft.Quantum.Intrinsic as sics;
+                import Std.Intrinsic as sics;
 
-                open Microsoft.Quantum.Diagnostics;
-                open Microsoft.Quantum.Intrinsic as intrin;
+                import Std.Diagnostics.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {
                 }
@@ -51,9 +51,9 @@ fn open() {
         None,
         &expect![[r#"
             namespace Sample {
-                open Microsoft.Quantum.Intrinsic as sics;
-                open Microsoft.Quantum.Diagnostics;
-                open Microsoft.Quantum.Intrinsic as intrin;
+                import Std.Intrinsic as sics;
+                import Std.Diagnostics.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {}
             }"#]],
@@ -472,7 +472,7 @@ fn lambda_fns() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let add = (x, y) -> x + y;
                     let intArray = [1, 2, 3, 4, 5];
@@ -501,7 +501,7 @@ fn lambda_fns() {
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let add = (x, y) -> x + y;
                     let intArray = [1, 2, 3, 4, 5];
@@ -534,7 +534,7 @@ fn ranges() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let range = 1..3;
                     let range = 2..2..5;
@@ -558,7 +558,7 @@ fn ranges() {
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let range = 1..3;
                     let range = 2..2..5;
@@ -620,7 +620,7 @@ fn field_access_and_string_interning() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 function ComplexAsString(x : Complex) : String {
                     if x.Imag < 0.0 {
                         $"{x.Real} - {AbsD(x.Imag)}i"
@@ -632,7 +632,7 @@ fn field_access_and_string_interning() {
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 function ComplexAsString(x : Complex) : String {
                     if x.Imag < 0. {
                         $"{x.Real} - {AbsD(x.Imag)}i"

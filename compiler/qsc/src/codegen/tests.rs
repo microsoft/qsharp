@@ -69,7 +69,7 @@ mod base_profile {
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -393,7 +393,7 @@ mod adaptive_profile {
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -608,7 +608,7 @@ mod adaptive_ri_profile {
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {

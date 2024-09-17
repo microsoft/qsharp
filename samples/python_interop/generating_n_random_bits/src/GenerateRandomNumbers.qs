@@ -1,6 +1,6 @@
 namespace GenerateRandom {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Convert.*;
 
     operation GenerateRandomNumbers(nQubits : Int) : (Result[], Int) {
         use qubits = Qubit[nQubits];

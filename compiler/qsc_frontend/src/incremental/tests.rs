@@ -68,14 +68,14 @@ fn one_callable() {
                         },
                         kind: Namespace(
                             NamespaceId(
-                                9,
+                                10,
                             ),
                         ),
                         opens: {
                             []: [
                                 Open {
                                     namespace: NamespaceId(
-                                        9,
+                                        10,
                                     ),
                                     span: Span {
                                         lo: 10,

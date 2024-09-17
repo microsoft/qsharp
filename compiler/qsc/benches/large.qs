@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 namespace Large {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     operation ThousandQubitsParityX(qs : Qubit[]) : Result {
         mutable res = Zero;

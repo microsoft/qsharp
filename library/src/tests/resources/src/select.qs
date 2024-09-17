@@ -1,9 +1,9 @@
 namespace Test {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Random.*;
+    import Microsoft.Quantum.Unstable.TableLookup.*;
 
     internal operation TestSelect(addressBits : Int, dataBits : Int) : Unit {
         use addressRegister = Qubit[addressBits];

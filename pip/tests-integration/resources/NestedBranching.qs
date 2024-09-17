@@ -1,8 +1,8 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
 
     // Demonstrates nested branching.
     // Expected output: (([1, 1, 0], 6), ([1, 1, 1, 0], true))

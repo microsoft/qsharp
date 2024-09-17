@@ -83,7 +83,7 @@ fn estimate_caching_works() {
     verify_logical_counts(
         indoc! {r#"
             namespace Test {
-                open Microsoft.Quantum.ResourceEstimation;
+                import Std.ResourceEstimation.*;
 
                 operation Rotate(qs: Qubit[]) : Unit {
                     for q in qs {
@@ -130,7 +130,7 @@ fn estimate_repeat_works() {
     verify_logical_counts(
         indoc! {r#"
             namespace Test {
-                open Microsoft.Quantum.ResourceEstimation;
+                import Std.ResourceEstimation.*;
 
                 operation Rotate(qs: Qubit[]) : Unit {
                     for q in qs {
@@ -177,7 +177,7 @@ fn account_for_estimates_works() {
     verify_logical_counts(
         indoc! {"
             namespace Test {
-                open Microsoft.Quantum.ResourceEstimation;
+                import Std.ResourceEstimation.*;
 
                 @EntryPoint()
                 operation Main() : Unit {
