@@ -511,11 +511,11 @@ test("diagnostics with related spans", async () => {
             message: "found in this namespace",
             range: {
               start: {
-                character: 11,
+                character: 13,
                 line: 2,
               },
               end: {
-                character: 40,
+                character: 28,
                 line: 2,
               },
             },
