@@ -454,7 +454,7 @@ pub enum ProgramType {
     /// Creates a list of statements from the program. This is useful for
     /// interactive environments where the program is a list of statements
     /// imported into the current scope.
-    /// This is also useful for testing indifidual statements compilation.
+    /// This is also useful for testing individual statements compilation.
     Fragments,
 }
 
