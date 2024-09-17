@@ -615,7 +615,7 @@ pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
 /// Extracts the program type from the kwargs dictionary.
 pub(crate) fn get_program_type(kwargs: &Bound<'_, PyDict>) -> PyResult<ProgramType> {
     let target = kwargs
-        .get_item("program_type")?
+        .get_item("program_ty")?
         .map_or_else(|| Ok(ProgramType::File), |x| x.extract::<ProgramType>())?;
     Ok(target)
 }
