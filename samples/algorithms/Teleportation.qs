@@ -10,9 +10,9 @@
 ///
 /// This Q# program implements quantum teleportation.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result[] {

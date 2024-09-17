@@ -146,7 +146,7 @@ fn ignore_unstable_callable() {
     check(
         r#"
         namespace Test {
-            open Microsoft.Quantum.Unstable;
+            import Microsoft.Quantum.Unstable.*;
             operation Foo() : Unit {
                 ↘
             }

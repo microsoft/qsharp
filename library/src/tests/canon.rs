@@ -108,6 +108,96 @@ fn check_fst_snd() {
 }
 
 #[test]
+fn check_swap_labels() {
+    test_expression(
+        "{
+                use qs = Qubit[2];
+                X(qs[0]);
+                Relabel(qs, [qs[1], qs[0]]);
+                MResetEachZ(qs)
+            }",
+        &Value::Array(vec![Value::RESULT_ZERO, Value::RESULT_ONE].into()),
+    );
+}
+
+#[test]
+fn check_relabel_rotational_permutation() {
+    test_expression(
+        "{
+                use qs = Qubit[3];
+                // Prepare |01+⟩
+                X(qs[1]);
+                H(qs[2]);
+                Relabel([qs[0], qs[1], qs[2]], [qs[1], qs[2], qs[0]]);
+                // Expected state is |1+0⟩, perform adjoint to get back to ground state.
+                X(qs[0]);
+                H(qs[1]);
+                // Qubit release will fail if the state is not |000⟩
+            }",
+        &Value::unit(),
+    );
+}
+
+#[test]
+fn check_relabel_rotational_permutation_alternate_expression() {
+    test_expression(
+        "{
+                use qs = Qubit[3];
+                // Prepare |01+⟩
+                X(qs[1]);
+                H(qs[2]);
+                Relabel([qs[2], qs[0], qs[1]], [qs[0], qs[1], qs[2]]);
+                // Expected state is |1+0⟩, perform adjoint to get back to ground state.
+                X(qs[0]);
+                H(qs[1]);
+                // Qubit release will fail if the state is not |000⟩
+            }",
+        &Value::unit(),
+    );
+}
+
+#[test]
+fn check_relabel_four_qubit_shuffle_permutation() {
+    test_expression(
+        "{
+                use qs = Qubit[4];
+                // Prepare |01+i⟩
+                X(qs[1]);
+                H(qs[2]);
+                Y(qs[3]);
+                Relabel([qs[0], qs[1], qs[2], qs[3]], [qs[1], qs[0], qs[3], qs[2]]);
+                // Expected state is |10i+⟩, perform adjoint to get back to ground state.
+                X(qs[0]);
+                Y(qs[2]);
+                H(qs[3]);
+                // Qubit release will fail if the state is not |0000⟩
+            }",
+        &Value::unit(),
+    );
+}
+
+#[test]
+fn check_relabel_adjoint_undoes_permutation() {
+    test_expression(
+        "{
+                use qs = Qubit[3];
+                // Prepare |01+⟩
+                X(qs[1]);
+                H(qs[2]);
+                Relabel([qs[0], qs[1], qs[2]], [qs[1], qs[2], qs[0]]);
+                // Expected state is |1+0⟩, perform part of the adjoint to correct one of the qubits.
+                X(qs[0]);
+                Adjoint Relabel([qs[0], qs[1], qs[2]], [qs[1], qs[2], qs[0]]);
+                // Expected state is now |00+⟩, perform the rest of the adjoint to get back to ground state,
+                // using the original qubit ids.
+                H(qs[2]);
+                // Qubit release will fail if the state is not |000⟩
+            }",
+        &Value::unit(),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_2() {
     test_expression(
         {

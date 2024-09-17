@@ -1,7 +1,7 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     // Reusing a qubit after `M` should work on supported platforms, be replaced by entanglement with auxiliary on others.
     // Reusing a qubit after `Reset` should work on supported platforms, be replaced by newly allocated qubit on others.

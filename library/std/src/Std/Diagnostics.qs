@@ -317,4 +317,16 @@ operation StopCountingQubits() : Int {
     body intrinsic;
 }
 
-export DumpMachine, DumpRegister, CheckZero, CheckAllZero, Fact, CheckOperationsAreEqual, StartCountingOperation, StopCountingOperation, StartCountingFunction, StopCountingFunction, StartCountingQubits, StopCountingQubits;
+export
+    DumpMachine,
+    DumpRegister,
+    CheckZero,
+    CheckAllZero,
+    Fact,
+    CheckOperationsAreEqual,
+    StartCountingOperation,
+    StopCountingOperation,
+    StartCountingFunction,
+    StopCountingFunction,
+    StartCountingQubits,
+    StopCountingQubits;

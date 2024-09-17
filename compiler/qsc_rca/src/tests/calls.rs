@@ -115,7 +115,7 @@ fn check_rca_for_call_to_static_closure_function() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         let f = i -> IsCoprimeI(11, i);
         f(13)"#,
     );
@@ -135,7 +135,7 @@ fn check_rca_for_call_to_dynamic_closure_function() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         use q = Qubit();
         let dynamicInt = M(q) == Zero ? 11 | 13;
         let f = i -> IsCoprimeI(dynamicInt, i);
@@ -159,7 +159,7 @@ fn check_rca_for_call_to_static_closure_operation() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         use qubit = Qubit();
         let theta = PI();
         let f = q => Rx(theta, q);
@@ -183,7 +183,7 @@ fn check_rca_for_call_to_dynamic_closure_operation() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         use qubit = Qubit();
         let theta = M(qubit) == Zero ? PI() | PI() / 2.0;
         let f = q => Rx(theta, q);

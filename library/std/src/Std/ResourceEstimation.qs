@@ -166,4 +166,18 @@ operation RepeatEstimates(count : Int) : Unit is Adj {
         EndRepeatEstimates();
     }
 }
-export SingleVariant, BeginEstimateCaching, EndEstimateCaching, AuxQubitCount, TCount, RotationCount, RotationDepth, CczCount, MeasurementCount, PSSPCLayout, AccountForEstimates, BeginRepeatEstimates, EndRepeatEstimates, RepeatEstimates;
+export
+    SingleVariant,
+    BeginEstimateCaching,
+    EndEstimateCaching,
+    AuxQubitCount,
+    TCount,
+    RotationCount,
+    RotationDepth,
+    CczCount,
+    MeasurementCount,
+    PSSPCLayout,
+    AccountForEstimates,
+    BeginRepeatEstimates,
+    EndRepeatEstimates,
+    RepeatEstimates;

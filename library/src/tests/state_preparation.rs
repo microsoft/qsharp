@@ -238,7 +238,7 @@ fn check_preparation_endianness() {
 fn check_preparation_doc_sample() {
     let out = test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
         use qubits = Qubit[2];
         Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD(amplitudes, qubits);

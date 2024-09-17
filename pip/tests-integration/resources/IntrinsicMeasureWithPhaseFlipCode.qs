@@ -1,7 +1,7 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     // Verifies the use of the Measure operation from Q#'s Microsoft.Quantum.Intrinsic namespace.
     // Expected simulation output: ([0, 0], [1, 1], [0, 1, 0]).

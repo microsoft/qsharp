@@ -8,11 +8,11 @@
 ///
 /// This Q# program implements the Grover's search algorithm.
 namespace Sample {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Arrays.*;
+    import Std.Measurement.*;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation Main() : Result[] {

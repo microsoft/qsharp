@@ -385,7 +385,7 @@ fn test_unrestricted_mcrz_2_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..1], (Std.Quantum.Math.PI() / 7.0, qs[2]));
+            Controlled Rz(qs[0..1], (Std.Math.PI() / 7.0, qs[2]));
             Std.Diagnostics.DumpMachine();
         }"},
         "",

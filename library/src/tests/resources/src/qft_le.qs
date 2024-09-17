@@ -1,5 +1,5 @@
 namespace Test {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
     import Std.Arrays.*;
 
     operation PrepareEntangledState(

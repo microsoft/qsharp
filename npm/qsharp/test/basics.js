@@ -398,7 +398,7 @@ test("state change", async () => {
 test("cancel worker", () => {
   return new Promise((resolve) => {
     const code = `namespace MyQuantumApp {
-      open Microsoft.Quantum.Diagnostics;
+      import Std.Diagnostics.*;
 
       @EntryPoint()
       operation Main() : Result[] {
@@ -511,11 +511,11 @@ test("diagnostics with related spans", async () => {
             message: "found in this namespace",
             range: {
               start: {
-                character: 11,
+                character: 13,
                 line: 2,
               },
               end: {
-                character: 40,
+                character: 28,
                 line: 2,
               },
             },
@@ -551,7 +551,7 @@ test("diagnostics with related spans", async () => {
     1,
     `namespace Other { operation DumpMachine() : Unit { } }
     namespace Test {
-      open Microsoft.Quantum.Diagnostics;
+      import Std.Diagnostics.*;
       open Other;
       @EntryPoint()
       operation Main() : Unit {

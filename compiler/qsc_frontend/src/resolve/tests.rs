@@ -498,11 +498,11 @@ fn open_shadows_prelude() {
 fn ambiguous_prelude() {
     check(
         indoc! {"
-        namespace Microsoft.Quantum.Canon {
+        namespace Std.Canon {
             function A() : Unit {}
         }
 
-        namespace Microsoft.Quantum.Core {
+        namespace Std.Measurement {
             function A() : Unit {}
         }
 
@@ -2078,7 +2078,7 @@ fn unknown_namespace() {
     check(
         indoc! {"
             namespace A {
-                open Microsoft.Quantum.Fake;
+                import Std.Fake.*;
             }
         "},
         &expect![[r#"
@@ -2086,7 +2086,7 @@ fn unknown_namespace() {
                 open Microsoft.Quantum.Fake;
             }
 
-            // NotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
+            // GlobImportNamespaceNotFound("Fake", Span { lo: 25, hi: 33 })
         "#]],
     );
 }

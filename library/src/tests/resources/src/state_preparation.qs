@@ -1,9 +1,9 @@
 namespace Test {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Diagnostics.*;
     import Std.Arrays.*;
-    open Microsoft.Quantum.Unstable.StatePreparation;
+    import Microsoft.Quantum.Unstable.StatePreparation.*;
     import QIR.Intrinsic.*;
 
 

@@ -27,7 +27,7 @@ fn check_rca_for_udt_var() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             Complex"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();

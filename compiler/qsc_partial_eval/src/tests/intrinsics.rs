@@ -646,7 +646,7 @@ fn calls_to_intrinsic_begin_estimate_caching_with_classical_values_always_yield_
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             operation Op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
@@ -691,7 +691,7 @@ fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             open QIR.Intrinsic;
             operation Op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
@@ -786,7 +786,7 @@ fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             @EntryPoint()
             operation Main() : Unit {
                 EndEstimateCaching();
@@ -809,7 +809,7 @@ fn call_to_account_for_estimates_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             @EntryPoint()
             operation Main() : Unit {
                 // Calls to internal operation `AccountForEstimatesInternal`, which is intrinsic.
@@ -833,7 +833,7 @@ fn call_to_begin_repeat_estimates_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             @EntryPoint()
             operation Main() : Unit {
                 // Calls to internal operation `BeginRepeatEstimatesInternal`, which is intrinsic.
@@ -857,7 +857,7 @@ fn call_to_end_repeat_estimates_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.ResourceEstimation;
+            import Std.ResourceEstimation.*;
             @EntryPoint()
             operation Main() : Unit {
                 // Calls to internal operation `EndRepeatEstimatesInternal`, which is intrinsic.
@@ -881,7 +881,7 @@ fn call_to_dump_machine_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Diagnostics;
+            import Std.Diagnostics.*;
             @EntryPoint()
             operation Main() : Unit {
                 DumpMachine();
@@ -904,7 +904,7 @@ fn call_to_dump_register_does_not_generate_instructions() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Diagnostics;
+            import Std.Diagnostics.*;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
@@ -929,7 +929,7 @@ fn call_to_check_zero_panics() {
     _ = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Diagnostics;
+            import Std.Diagnostics.*;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
@@ -946,7 +946,7 @@ fn call_to_draw_random_int_panics() {
     _ = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Random;
+            import Std.Random.*;
             @EntryPoint()
             operation Main() : Unit {
                 let _ = DrawRandomInt(0, 1);
@@ -962,7 +962,7 @@ fn call_to_draw_random_double_panics() {
     _ = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Random;
+            import Std.Random.*;
             @EntryPoint()
             operation Main() : Unit {
                 let _ = DrawRandomDouble(0.0, 1.0);
@@ -978,7 +978,7 @@ fn call_to_draw_random_bool_panics() {
     _ = get_rir_program(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Random;
+            import Std.Random.*;
             @EntryPoint()
             operation Main() : Unit {
                 let _ = DrawRandomBool(0.0);

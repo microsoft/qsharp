@@ -7,7 +7,7 @@
 ///
 /// This Q# program entangles two qubits.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation EntangleQubits() : (Result, Result) {

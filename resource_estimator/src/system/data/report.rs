@@ -8,7 +8,7 @@ mod tests;
 
 use serde::Serialize;
 
-use crate::estimates::{Factory, FactoryPart, Overhead, PhysicalResourceEstimationResult};
+use crate::estimates::{Factory, FactoryPart, PhysicalResourceEstimationResult};
 use crate::system::modeling::Protocol;
 
 use super::LayoutReportData;
@@ -28,14 +28,11 @@ impl Report {
     #[allow(clippy::vec_init_then_push, clippy::too_many_lines)]
     pub fn new(
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<
-            Protocol,
-            TFactory,
-            impl Overhead + LayoutReportData,
-        >,
+        layout_report_data: &impl LayoutReportData,
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
-        let logical_counts = result.layout_overhead();
+        let logical_counts = layout_report_data;
         // In this system, we consider T as the only magic state type, therefore
         // there is only one factory part in the result.
         let part = result.factory_parts()[0].as_ref();
@@ -363,12 +360,9 @@ pub struct FormattedPhysicalResourceCounts {
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines)]
     pub fn new(
-        result: &PhysicalResourceEstimationResult<
-            Protocol,
-            TFactory,
-            impl Overhead + LayoutReportData,
-        >,
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory>,
         job_params: &JobParams,
+        layout_report_data: &impl LayoutReportData,
     ) -> Self {
         // Physical resource estimates
         let runtime = format_duration(result.runtime().into());
@@ -474,16 +468,16 @@ impl FormattedPhysicalResourceCounts {
         });
 
         // Pre-layout logical resources
-        let logical_counts_num_qubits = format_metric_prefix(result.layout_overhead().num_qubits());
-        let logical_counts_t_count = format_metric_prefix(result.layout_overhead().t_count());
+        let logical_counts_num_qubits = format_metric_prefix(layout_report_data.num_qubits());
+        let logical_counts_t_count = format_metric_prefix(layout_report_data.t_count());
         let logical_counts_rotation_count =
-            format_metric_prefix(result.layout_overhead().rotation_count());
+            format_metric_prefix(layout_report_data.rotation_count());
         let logical_counts_rotation_depth =
-            format_metric_prefix(result.layout_overhead().rotation_depth());
-        let logical_counts_ccz_count = format_metric_prefix(result.layout_overhead().ccz_count());
-        let logical_counts_ccix_count = format_metric_prefix(result.layout_overhead().ccix_count());
+            format_metric_prefix(layout_report_data.rotation_depth());
+        let logical_counts_ccz_count = format_metric_prefix(layout_report_data.ccz_count());
+        let logical_counts_ccix_count = format_metric_prefix(layout_report_data.ccix_count());
         let logical_counts_measurement_count =
-            format_metric_prefix(result.layout_overhead().measurement_count());
+            format_metric_prefix(layout_report_data.measurement_count());
 
         // Assumed error budget
         let error_budget = format!("{:.2e}", job_params.error_budget().total());
@@ -491,8 +485,7 @@ impl FormattedPhysicalResourceCounts {
         let error_budget_tstates = format!("{:.2e}", result.error_budget().magic_states());
         let error_budget_rotations = format!("{:.2e}", result.error_budget().rotations());
 
-        let num_ts_per_rotation = result
-            .layout_overhead()
+        let num_ts_per_rotation = layout_report_data
             .num_ts_per_rotation(result.error_budget().rotations())
             .map_or_else(|| String::from(no_rotations_msg), format_metric_prefix);
 

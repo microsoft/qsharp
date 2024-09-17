@@ -13,7 +13,7 @@ fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             if true {
                 let s = Sqrt(4.0);
@@ -42,7 +42,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             if M(q) == Zero {

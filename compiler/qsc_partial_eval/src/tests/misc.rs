@@ -592,7 +592,7 @@ fn evaluation_error_within_stdlib_yield_correct_package_span() {
     let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Arrays;
+            import Std.Arrays.*;
             @EntryPoint()
             operation Main() : Result[] {
                 use qs = Qubit[1];

@@ -40,7 +40,7 @@ fn check_rca_for_closure_function_with_classical_captured_value() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         let f = i -> IsCoprimeI(11, i);
         f"#,
     );
@@ -60,7 +60,7 @@ fn check_rca_for_closure_function_with_dynamic_captured_value() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         use q = Qubit();
         let dynamicInt = M(q) == Zero ? 11 | 13;
         let f = i -> IsCoprimeI(dynamicInt, i);
@@ -82,7 +82,7 @@ fn check_rca_for_closure_operation_with_classical_captured_value() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         let theta = PI();
         let f = q => Rx(theta, q);
         f"#,
@@ -103,7 +103,7 @@ fn check_rca_for_closure_operation_with_dynamic_captured_value() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         use qubit = Qubit();
         let theta = M(qubit) == Zero ? PI() | PI() / 2.0;
         let f = q => Rx(theta, q);

@@ -7,7 +7,6 @@ use crate::{
 };
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc_codegen::remapper::{HardwareId, Remapper};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{backend::Backend, val::Value};
 use std::{fmt::Write, mem::take, rc::Rc};
@@ -181,6 +180,10 @@ impl Backend for Builder {
         self.remapper.qubit_release(q);
     }
 
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.remapper.swap(q0, q1);
+    }
+
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
         (Vec::new(), 0)
     }
@@ -238,7 +241,7 @@ impl Builder {
         self.finish_circuit(circuit)
     }
 
-    fn map(&mut self, qubit: usize) -> HardwareId {
+    fn map(&mut self, qubit: usize) -> WireId {
         self.remapper.map(qubit)
     }
 
@@ -247,7 +250,7 @@ impl Builder {
     }
 
     fn num_measurements_by_qubit(&self) -> IndexMap<usize, usize> {
-        self.remapper.measurements().fold(
+        self.remapper.qubit_measurement_counts.iter().fold(
             IndexMap::default(),
             |mut map: IndexMap<usize, usize>, (q, _)| {
                 match map.get_mut(q.0) {
@@ -261,11 +264,12 @@ impl Builder {
         )
     }
 
-    fn num_measurements_for_qubit(&self, qubit: HardwareId) -> usize {
+    fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
         self.remapper
-            .measurements()
-            .filter(|(q, _)| q.0 == qubit.0)
-            .count()
+            .qubit_measurement_counts
+            .get(qubit)
+            .copied()
+            .unwrap_or_default()
     }
 
     fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
@@ -294,7 +298,7 @@ impl Builder {
     /// Splits the qubit arguments from classical arguments so that the qubits
     /// can be treated as the targets for custom gates.
     /// The classical arguments get formatted into a comma-separated list.
-    fn split_qubit_args(&mut self, arg: Value) -> (Vec<HardwareId>, String) {
+    fn split_qubit_args(&mut self, arg: Value) -> (Vec<WireId>, String) {
         let arg = if let Value::Tuple(vals) = arg {
             vals
         } else {
@@ -308,7 +312,7 @@ impl Builder {
     }
 
     /// Pushes all qubit values into `qubits`, and formats all classical values into `classical_args`.
-    fn push_val(&mut self, arg: &Value, qubits: &mut Vec<HardwareId>, classical_args: &mut String) {
+    fn push_val(&mut self, arg: &Value, qubits: &mut Vec<WireId>, classical_args: &mut String) {
         match arg {
             Value::Array(vals) => {
                 self.push_list::<'[', ']'>(vals, qubits, classical_args);
@@ -332,7 +336,7 @@ impl Builder {
     fn push_list<const OPEN: char, const CLOSE: char>(
         &mut self,
         vals: &[Value],
-        qubits: &mut Vec<HardwareId>,
+        qubits: &mut Vec<WireId>,
         classical_args: &mut String,
     ) {
         classical_args.push(OPEN);
@@ -347,12 +351,7 @@ impl Builder {
 
     /// Pushes all qubit values into `qubits`, and formats all
     /// classical values into `classical_args` as comma-separated values.
-    fn push_vals(
-        &mut self,
-        vals: &[Value],
-        qubits: &mut Vec<HardwareId>,
-        classical_args: &mut String,
-    ) {
+    fn push_vals(&mut self, vals: &[Value], qubits: &mut Vec<WireId>, classical_args: &mut String) {
         let mut any = false;
         for v in vals.iter() {
             let start = classical_args.len();
@@ -370,10 +369,109 @@ impl Builder {
     }
 }
 
+/// Provides support for qubit id allocation, measurement and
+/// reset operations for Base Profile targets.
+///
+/// Since qubit reuse is disallowed, a mapping is maintained
+/// from allocated qubit ids to hardware qubit ids. Each time
+/// a qubit is reset, it is remapped to a fresh hardware qubit.
+///
+/// Note that even though qubit reset & reuse is disallowed,
+/// qubit ids are still reused for new allocations.
+/// Measurements are tracked and deferred.
+#[derive(Default)]
+struct Remapper {
+    next_meas_id: usize,
+    next_qubit_id: usize,
+    next_qubit_wire_id: WireId,
+    qubit_map: IndexMap<usize, WireId>,
+    qubit_measurement_counts: IndexMap<WireId, usize>,
+}
+
+impl Remapper {
+    fn map(&mut self, qubit: usize) -> WireId {
+        if let Some(mapped) = self.qubit_map.get(qubit) {
+            *mapped
+        } else {
+            let mapped = self.next_qubit_wire_id;
+            self.next_qubit_wire_id.0 += 1;
+            self.qubit_map.insert(qubit, mapped);
+            mapped
+        }
+    }
+
+    fn m(&mut self, q: usize) -> usize {
+        let mapped_q = self.map(q);
+        let id = self.get_meas_id();
+        match self.qubit_measurement_counts.get_mut(mapped_q) {
+            Some(count) => *count += 1,
+            None => {
+                self.qubit_measurement_counts.insert(mapped_q, 1);
+            }
+        }
+        id
+    }
+
+    fn mreset(&mut self, q: usize) -> usize {
+        let id = self.m(q);
+        self.reset(q);
+        id
+    }
+
+    fn reset(&mut self, q: usize) {
+        self.qubit_map.remove(q);
+    }
+
+    fn qubit_allocate(&mut self) -> usize {
+        let id = self.next_qubit_id;
+        self.next_qubit_id += 1;
+        let _ = self.map(id);
+        id
+    }
+
+    fn qubit_release(&mut self, _q: usize) {
+        self.next_qubit_id -= 1;
+    }
+
+    fn swap(&mut self, q0: usize, q1: usize) {
+        let q0_mapped = self.map(q0);
+        let q1_mapped = self.map(q1);
+        self.qubit_map.insert(q0, q1_mapped);
+        self.qubit_map.insert(q1, q0_mapped);
+    }
+
+    #[must_use]
+    fn num_qubits(&self) -> usize {
+        self.next_qubit_wire_id.0
+    }
+
+    #[must_use]
+    fn get_meas_id(&mut self) -> usize {
+        let id = self.next_meas_id;
+        self.next_meas_id += 1;
+        id
+    }
+}
+
+#[derive(Copy, Clone, Default)]
+struct WireId(pub usize);
+
+impl From<usize> for WireId {
+    fn from(id: usize) -> Self {
+        WireId(id)
+    }
+}
+
+impl From<WireId> for usize {
+    fn from(id: WireId) -> Self {
+        id.0
+    }
+}
+
 #[allow(clippy::unicode_not_nfc)]
 static KET_ZERO: &str = "|0〉";
 
-fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
+fn gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: None,
@@ -386,7 +484,7 @@ fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
     }
 }
 
-fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
+fn adjoint_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: None,
@@ -401,8 +499,8 @@ fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operati
 
 fn controlled_gate<const M: usize, const N: usize>(
     name: &str,
-    controls: [HardwareId; M],
-    targets: [HardwareId; N],
+    controls: [WireId; M],
+    targets: [WireId; N],
 ) -> Operation {
     Operation {
         gate: name.into(),
@@ -429,7 +527,7 @@ fn measurement_gate(qubit: usize, result: usize) -> Operation {
     }
 }
 
-fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N]) -> Operation {
+fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [WireId; N]) -> Operation {
     Operation {
         gate: name.into(),
         display_args: Some(format!("{theta:.4}")),
@@ -442,7 +540,7 @@ fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N
     }
 }
 
-fn custom_gate(name: &str, targets: &[HardwareId], display_args: Option<String>) -> Operation {
+fn custom_gate(name: &str, targets: &[WireId], display_args: Option<String>) -> Operation {
     Operation {
         gate: name.into(),
         display_args,

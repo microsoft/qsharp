@@ -287,15 +287,14 @@ impl IntoIterator for &NamespaceTreeRoot {
 
 impl Default for NamespaceTreeRoot {
     fn default() -> Self {
-        let tree = Self {
+        Self {
             assigner: 0,
             tree: Rc::new(RefCell::new(NamespaceTreeNode {
                 children: FxHashMap::default(),
                 id: NamespaceId::new(0),
             })),
             memo: RefCell::new(FxHashMap::default()),
-        };
-        tree
+        }
     }
 }
 

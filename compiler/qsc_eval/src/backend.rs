@@ -85,17 +85,18 @@ pub trait Backend {
     fn qubit_release(&mut self, _q: usize) {
         unimplemented!("qubit_release operation");
     }
+    fn qubit_swap_id(&mut self, _q0: usize, _q1: usize) {
+        unimplemented!("qubit_swap_id operation");
+    }
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
         unimplemented!("capture_quantum_state operation");
     }
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
         unimplemented!("qubit_is_zero operation");
     }
-
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
     }
-
     fn set_seed(&mut self, _seed: Option<u64>) {}
 }
 
@@ -238,6 +239,10 @@ impl Backend for SparseSim {
 
     fn qubit_release(&mut self, q: usize) {
         self.sim.release(q);
+    }
+
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.sim.swap_qubit_ids(q0, q1);
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -456,6 +461,11 @@ where
     fn qubit_release(&mut self, q: usize) {
         self.chained.qubit_release(q);
         self.main.qubit_release(q);
+    }
+
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.chained.qubit_swap_id(q0, q1);
+        self.main.qubit_swap_id(q0, q1);
     }
 
     fn capture_quantum_state(
