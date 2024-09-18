@@ -157,7 +157,7 @@ impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
 #[derive(Clone, PartialEq)]
 #[pyclass(eq)]
 #[allow(non_camel_case_types)]
-/// Represents the type of compilation out to create
+/// Represents the type of compilation output to create
 pub enum ProgramType {
     /// Creates an operation in a namespace as if the program is a standalone
     /// file. Inputs are lifted to the operation params. Output are lifted to

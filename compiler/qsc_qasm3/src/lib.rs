@@ -440,7 +440,7 @@ impl Default for CompilerConfig {
     }
 }
 
-/// Represents the type of compilation out to create
+/// Represents the type of compilation output to create
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProgramType {
     /// Creates an operation in a namespace as if the program is a standalone
