@@ -39,7 +39,7 @@ class OutputSemantics(Enum):
 
 class ProgramType(Enum):
     """
-    Represents the type of compilation out to create
+    Represents the type of compilation output to create
     """
 
     File: ProgramType
