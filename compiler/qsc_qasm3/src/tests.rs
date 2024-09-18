@@ -78,11 +78,13 @@ fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Rep
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::Qiskit,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
@@ -150,11 +152,13 @@ pub fn qasm_to_program_fragments(source: QasmSource, source_map: SourceMap) -> Q
     qasm_to_program(
         source,
         source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            program_ty: ProgramType::Fragments,
-            output_semantics: OutputSemantics::OpenQasm,
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::Fragments,
+            None,
+            None,
+        ),
     )
 }
 
@@ -164,11 +168,13 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
@@ -187,11 +193,13 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::Operation("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::Operation,
+            Some("Test".into()),
+            None,
+        ),
     );
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
@@ -217,11 +225,13 @@ pub fn compile_qasm_to_qsharp_with_semantics(
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
+        CompilerConfig::new(
             qubit_semantics,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::Fragments,
-        },
+            OutputSemantics::Qiskit,
+            ProgramType::Fragments,
+            None,
+            None,
+        ),
     );
     qsharp_from_qasm_compilation(unit)
 }
@@ -251,11 +261,13 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
+        CompilerConfig::new(
             qubit_semantics,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::Fragments,
-        },
+            OutputSemantics::Qiskit,
+            ProgramType::Fragments,
+            None,
+            None,
+        ),
     );
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();

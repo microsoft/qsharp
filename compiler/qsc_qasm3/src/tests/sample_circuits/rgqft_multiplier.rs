@@ -16,11 +16,13 @@ fn it_compiles() {
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());

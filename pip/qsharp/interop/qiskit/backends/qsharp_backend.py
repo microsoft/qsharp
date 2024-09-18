@@ -11,6 +11,7 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Options
 from qiskit.transpiler.target import Target
 from .... import Result, TargetProfile
+from .. import OutputSemantics
 from ..execution import DetaultExecutor
 from ..jobs import QsSimJob, QsJobSet
 from .backend_base import BackendBase
@@ -65,11 +66,12 @@ class QSharpBackend(BackendBase):
               - name (str): The name of the circuit. This is used as the entry point for the program.
                   The circuit name will be used if not specified.
               - target_profile (TargetProfile): The target profile to use for the compilation.
-              - shots (int): The number of shots to run the program for. Defaults to 1024.
-              - seed (int): The seed to use for the random number generator. Defaults to None.
+              - output_semantics (OutputSemantics, optional): The output semantics for the compilation. Defaults to `Qiskit`.
+              - shots (int): The number of shots to run the program for. Defaults to `1024`.
+              - seed (int): The seed to use for the random number generator. Defaults to `None`.
               - search_path (str): The path to search for imports. Defaults to '.'.
               - output_fn (Callable[[Output], None]): A callback function to
-                  receive the output of the circuit. Defaults to None.
+                  receive the output of the circuit. Defaults to `None`.
               - executor(ThreadPoolExecutor or other Executor):
                   The executor to be used to submit the job. Defaults to SynchronousExecutor.
         """
@@ -93,6 +95,7 @@ class QSharpBackend(BackendBase):
             seed=None,
             output_fn=None,
             target_profile=TargetProfile.Unrestricted,
+            output_semantics=OutputSemantics.Qiskit,
             executor=DetaultExecutor(),
         )
 
@@ -106,11 +109,12 @@ class QSharpBackend(BackendBase):
 
         Args:
             run_input (QuantumCircuit): The QuantumCircuit to be executed.
-            **options: Additional options for the execution.
+            **options: Additional options for the execution. Defaults to backend config values.
               - name (str): The name of the circuit. This is used as the entry point for the program.
                   The circuit name will be used if not specified.
               - params (Optional[str]): The entry expression to use for the program. Defaults to None.
               - target_profile (TargetProfile): The target profile to use for the compilation.
+              - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
               - shots (int): The number of shots to run the program for. Defaults to 1024.
               - seed (int): The seed to use for the random number generator. Defaults to None.
               - search_path (str): The path to search for imports. Defaults to '.'.
@@ -213,8 +217,9 @@ def _run_qasm3(
 
     Parameters:
     source (str): The input OpenQASM 3 string to be processed.
-        **options: Additional keyword arguments to pass to the execution.
-        - target_profile (TargetProfile): The target profile to use for execution.
+        **options: Additional keyword arguments to pass to the execution. Defaults to backend config values.
+        - target_profile (TargetProfile): The target profile to use for the compilation.
+        - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
         - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
         - search_path (str): The optional search path for resolving qasm3 imports.
         - shots (int): The number of shots to run the program for. Defaults to 1.
@@ -237,24 +242,25 @@ def _run_qasm3(
 
     output_fn = options.pop("output_fn", callback)
 
-    name = options.pop("name", default_options["name"])
-    target_profile = options.pop("target_profile", default_options["target_profile"])
-    search_path = options.pop("search_path", default_options["search_path"])
-    shots = options.pop("shots", default_options["shots"])
-    seed = options.pop("seed", default_options["seed"])
+    def value_or_default(key: str) -> Any:
+        return options.pop(key, default_options[key])
 
     # when passing the args into the rust layer, any kwargs with None values
     # will cause an error, so we need to filter them out.
     args = {}
-    if name is not None:
+    if name := value_or_default("name"):
         args["name"] = name
-    if target_profile is not None:
+
+    if target_profile := value_or_default("target_profile"):
         args["target_profile"] = target_profile
-    if search_path is not None:
+    if output_semantics := value_or_default("output_semantics"):
+        args["output_semantics"] = output_semantics
+
+    if search_path := value_or_default("search_path"):
         args["search_path"] = search_path
-    if shots is not None:
+    if shots := value_or_default("shots"):
         args["shots"] = shots
-    if seed is not None:
+    if seed := value_or_default("seed"):
         args["seed"] = seed
 
     return run_qasm3(

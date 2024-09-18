@@ -14,10 +14,27 @@ if QISKIT_AVAILABLE:
     from .test_circuits import (
         generate_repro_information,
     )
-    from qsharp.interop.qiskit import QasmError, QirTarget
+    from qsharp.interop.qiskit import (
+        OutputSemantics,
+        QSharpBackend,
+        QasmError,
+        QirTarget,
+    )
     from qiskit.circuit import QuantumCircuit, Parameter, Gate
     from qiskit.circuit.quantumcircuit import QubitSpecifier
-    from qsharp.interop.qiskit.backends import QSharpBackend
+
+
+def get_resource_path(file_name: Optional[str] = None) -> str:
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    if file_name is None:
+        return os.path.join(current_directory, "resources")
+    return os.path.join(current_directory, "resources", file_name)
+
+
+def read_resource_file(file_name: str) -> str:
+    resource_path = get_resource_path(file_name)
+    with open(resource_path, encoding="utf-8") as f:
+        return f.read()
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
@@ -126,19 +143,6 @@ def test_generating_qir_without_registers_raises():
         raise RuntimeError(additional_info) from ex
 
 
-def get_resource_path(file_name: Optional[str] = None) -> str:
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-    if file_name is None:
-        return os.path.join(current_directory, "resources")
-    return os.path.join(current_directory, "resources", file_name)
-
-
-def read_resource_file(file_name: str) -> str:
-    resource_path = get_resource_path(file_name)
-    with open(resource_path, encoding="utf-8") as f:
-        return f.read()
-
-
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 @ignore_on_failure
 def test_custom_qir_intrinsics_generates_qir():
@@ -203,3 +207,30 @@ def test_custom_qir_intrinsics_is_simulatable():
     backend = QSharpBackend(target_profile=target_profile, target=target)
     result = backend.run(circuit, **options).result()
     assert result.get_counts() == {"1": 1024}
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_qir_smoke() -> None:
+    circuit = QuantumCircuit(2, 2)
+    circuit.x(0)
+    circuit.cx(0, 1)
+    circuit.measure_all(add_bits=False)
+    backend = QSharpBackend(target_profile=TargetProfile.Base)
+    res = backend.qir(circuit)
+    assert res is not None
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_qir_re_output_single_unit_tuple() -> None:
+    circuit = QuantumCircuit(2, 2)
+    circuit.x(0)
+    circuit.cx(0, 1)
+    circuit.measure_all(add_bits=False)
+
+    backend = QSharpBackend(target_profile=TargetProfile.Adaptive_RI)
+    output_semantics = OutputSemantics.ResourceEstimation
+
+    res = backend.qir(circuit, output_semantics=output_semantics)
+    assert res is not None
+    call = "call void @__quantum__rt__tuple_record_output(i64 0, i8* null)"
+    assert call in res

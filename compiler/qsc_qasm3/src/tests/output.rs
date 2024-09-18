@@ -37,11 +37,13 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::ResourceEstimation,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::ResourceEstimation,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
@@ -90,11 +92,13 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::OpenQasm,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::OpenQasm,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
@@ -144,11 +148,13 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::Qiskit,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
@@ -205,11 +211,13 @@ c2[2] = measure q[4];
     let unit = qasm_to_program(
         res.source,
         res.source_map,
-        CompilerConfig {
-            qubit_semantics: QubitSemantics::Qiskit,
-            output_semantics: OutputSemantics::Qiskit,
-            program_ty: ProgramType::File("Test".to_string()),
-        },
+        CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            OutputSemantics::Qiskit,
+            ProgramType::File,
+            Some("Test".into()),
+            None,
+        ),
     );
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");

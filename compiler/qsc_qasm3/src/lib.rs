@@ -16,7 +16,7 @@ mod types;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 
 use miette::Diagnostic;
 use qsc::Span;
@@ -393,6 +393,8 @@ pub struct CompilerConfig {
     pub qubit_semantics: QubitSemantics,
     pub output_semantics: OutputSemantics,
     pub program_ty: ProgramType,
+    operation_name: Option<Arc<str>>,
+    namespace: Option<Arc<str>>,
 }
 
 impl CompilerConfig {
@@ -401,12 +403,28 @@ impl CompilerConfig {
         qubit_semantics: QubitSemantics,
         output_semantics: OutputSemantics,
         program_ty: ProgramType,
+        operation_name: Option<Arc<str>>,
+        namespace: Option<Arc<str>>,
     ) -> Self {
         Self {
             qubit_semantics,
             output_semantics,
             program_ty,
+            operation_name,
+            namespace,
         }
+    }
+
+    fn operation_name(&self) -> Arc<str> {
+        self.operation_name
+            .clone()
+            .unwrap_or_else(|| Arc::from("program"))
+    }
+
+    fn namespace(&self) -> Arc<str> {
+        self.namespace
+            .clone()
+            .unwrap_or_else(|| Arc::from("qasm3_import"))
     }
 }
 
@@ -416,27 +434,27 @@ impl Default for CompilerConfig {
             qubit_semantics: QubitSemantics::Qiskit,
             output_semantics: OutputSemantics::Qiskit,
             program_ty: ProgramType::Fragments,
+            operation_name: None,
+            namespace: None,
         }
     }
 }
 
-/// Represents the type of compilation out to create
+/// Represents the type of compilation output to create
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProgramType {
     /// Creates an operation in a namespace as if the program is a standalone
-    /// file. The param is the name of the operation to create. Input are
-    /// lifted to the operation params. Output are lifted to the operation
-    /// return type. The operation is marked as `@EntryPoint` as long as there
-    /// are no input parameters.
-    File(String),
-    /// Creates an operation program is a standalone function. The param is the
-    /// name of the operation to create. Input are lifted to the operation
-    /// params. Output are lifted to the operation return type.
-    Operation(String),
+    /// file. Inputs are lifted to the operation params. Output are lifted to
+    /// the operation return type. The operation is marked as `@EntryPoint`
+    /// as long as there are no input parameters.
+    File,
+    /// Programs are compiled to a standalone function. Inputs are lifted to
+    /// the operation params. Output are lifted to the operation return type.
+    Operation,
     /// Creates a list of statements from the program. This is useful for
     /// interactive environments where the program is a list of statements
     /// imported into the current scope.
-    /// This is also useful for testing indifidual statements compilation.
+    /// This is also useful for testing individual statements compilation.
     Fragments,
 }
 
