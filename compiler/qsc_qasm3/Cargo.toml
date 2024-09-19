@@ -10,7 +10,7 @@ version.workspace = true
 [dependencies]
 bitflags = { workspace = true }
 num-bigint = { workspace = true }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true }
 
 qsc = { path = "../qsc" }
 rustc-hash = { workspace = true }
@@ -25,7 +25,7 @@ oq3_semantics = { workspace = true }
 difference = { workspace = true }
 expect-test = { workspace = true }
 indoc = { workspace = true }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true }
 # Self import adding fs feature so that we can test
 # loading qasm from file.
 qsc_qasm3 = { path = ".", features = ["fs"] }

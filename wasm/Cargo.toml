@@ -19,7 +19,7 @@ futures-util = { workspace = true }
 js-sys = { workspace = true }
 katas = { path = "../katas"}
 log = { workspace = true }
-miette = { workspace = true, features = ["fancy-no-syscall"] }
+miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsls = { path = "../language_service" }
@@ -45,3 +45,6 @@ indoc = { workspace = true }
 
 [lints]
 workspace = true
+
+[patch.crates-io]
+miette = { version = "7.2", features = ["fancy-no-syscall"] }

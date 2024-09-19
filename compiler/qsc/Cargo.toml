@@ -13,7 +13,7 @@ license.workspace = true
 clap = { workspace = true, features = ["derive", "cargo"] }
 env_logger = { workspace = true }
 log = { workspace = true }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc_codegen = { path = "../qsc_codegen" }

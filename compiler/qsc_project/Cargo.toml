@@ -13,7 +13,7 @@ version.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true }
 
 regex-lite = { workspace = true }
 async-trait = { workspace = true }

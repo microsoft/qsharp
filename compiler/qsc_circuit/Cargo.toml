@@ -10,7 +10,7 @@ license.workspace = true
 
 [dependencies]
 log = { workspace = true }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true }
 
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
