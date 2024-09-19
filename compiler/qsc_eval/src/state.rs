@@ -209,7 +209,7 @@ impl RealNumber {
     }
 }
 
-/// Represents a non-zero complex numbers in the polar form: ``coefficient·𝒆^(𝝅·𝒊·phase_multiplier)``
+/// Represents a non-zero complex numbers in the polar form: ``magnitude·𝒆^(𝝅·𝒊·phase_multiplier)``
 /// Sign of the number is separated for easier composition and rendering
 #[derive(Debug)]
 struct PolarForm {
@@ -248,6 +248,10 @@ impl PolarForm {
 
     /// Try to recognize a complex number and represent it in the polar form.
     fn recognize(re: f64, im: f64) -> Option<Self> {
+        if !is_significant(re.abs()) && !is_significant(im.abs()) {
+            // 0 is better represented in Cartesian form, not polar.
+            return None;
+        }
         for (pi_num, pi_den) in Self::PI_FRACTIONS {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of fractions
             let angle: f64 = std::f64::consts::PI * (pi_num as f64) / (pi_den as f64);
@@ -387,23 +391,8 @@ fn is_close_enough(val: &Complex64, target: &Complex64) -> bool {
 
 // Quick and dirty matching for the most common matrix terms we care about rendering
 // LaTeX for, e.g.  1/sqrt(2), -i/sqrt(2), etc.
-// Anything not in this list gets a floating point form.
+// Anything not in this list gets a standard rendering.
 fn get_latex_for_simple_term(val: &Complex64) -> Option<String> {
-    if is_close_enough(val, &Complex64::new(0.0, 0.0)) {
-        return Some("0".to_string());
-    }
-    if is_close_enough(val, &Complex64::new(1.0, 0.0)) {
-        return Some("1".to_string());
-    }
-    if is_close_enough(val, &Complex64::new(0.0, 1.0)) {
-        return Some("i".to_string());
-    }
-    if is_close_enough(val, &Complex64::new(-1.0, 0.0)) {
-        return Some("-1".to_string());
-    }
-    if is_close_enough(val, &Complex64::new(0.0, -1.0)) {
-        return Some("-i".to_string());
-    }
     if is_close_enough(val, &Complex64::new(FRAC_1_SQRT_2, 0.0)) {
         return Some("\\frac{1}{\\sqrt{2}}".to_string());
     }
@@ -416,14 +405,8 @@ fn get_latex_for_simple_term(val: &Complex64) -> Option<String> {
     if is_close_enough(val, &Complex64::new(0.0, -FRAC_1_SQRT_2)) {
         return Some("-\\frac{i}{\\sqrt{2}}".to_string());
     }
-    if is_close_enough(val, &Complex64::new(0.5, 0.0)) {
-        return Some("\\frac{1}{2}".to_string());
-    }
     if is_close_enough(val, &Complex64::new(0.0, 0.5)) {
         return Some("\\frac{i}{2}".to_string());
-    }
-    if is_close_enough(val, &Complex64::new(-0.5, 0.0)) {
-        return Some("-\\frac{1}{2}".to_string());
     }
     if is_close_enough(val, &Complex64::new(0.0, -0.5)) {
         return Some("-\\frac{i}{2}".to_string());
@@ -453,26 +436,15 @@ pub fn get_matrix_latex(matrix: &Vec<Vec<Complex64>>) -> String {
             if !is_first {
                 latex.push_str(" & ");
             }
+            is_first = false;
 
             if let Some(simple_latex) = get_latex_for_simple_term(element) {
                 latex.push_str(&simple_latex);
-                is_first = false;
                 continue;
             }
 
             let cpl = ComplexNumber::recognize(element.re, element.im);
-
-            match &cpl {
-                ComplexNumber::Cartesian(cartesian_form) => {
-                    write_latex_for_cartesian_form(&mut latex, cartesian_form, false);
-                }
-                ComplexNumber::Polar(polar_form) => {
-                    write_latex_for_polar_form(&mut latex, polar_form, false);
-                }
-            }
-
-            // write!(latex, "{}", fmt_complex(element)).expect("Expected to write complex number.");
-            is_first = false;
+            write_latex_for_complex_number(&mut latex, &cpl);
         }
         latex.push_str(" \\\\ ");
     }
@@ -481,13 +453,26 @@ pub fn get_matrix_latex(matrix: &Vec<Vec<Complex64>>) -> String {
     latex
 }
 
+/// Write latex for a standalone complex number
+/// '-', 0 and 1 are always rendered, but '+' is not.
+fn write_latex_for_complex_number(latex: &mut String, number: &ComplexNumber) {
+    match number {
+        ComplexNumber::Cartesian(cartesian_form) => {
+            write_latex_for_cartesian_form(latex, cartesian_form, false, true);
+        }
+        ComplexNumber::Polar(polar_form) => {
+            write_latex_for_polar_form(latex, polar_form, false);
+        }
+    }
+}
+
 /// Write latex for one term of quantum state.
 /// Latex is rendered for coefficient only (not for basis vector).
 /// + is rendered only if ``render_plus`` is true.
 fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
     match &term.coordinate {
         ComplexNumber::Cartesian(cartesian_form) => {
-            write_latex_for_cartesian_form(latex, cartesian_form, render_plus);
+            write_latex_for_cartesian_form(latex, cartesian_form, render_plus, false);
         }
         ComplexNumber::Polar(polar_form) => {
             write_latex_for_polar_form(latex, polar_form, render_plus);
@@ -525,11 +510,13 @@ fn write_latex_for_polar_form(latex: &mut String, polar_form: &PolarForm, render
 /// Brackets are used if both real and imaginary parts are present.
 /// If only one part is present, its sign is used as common.
 /// If both components are present, real part sign is used as common.
-/// 1 is not rendered, but + is rendered if ``render_plus`` is true.
+/// 1 is rendered if ``render_one`` is true
+/// + is rendered if ``render_plus`` is true.
 fn write_latex_for_cartesian_form(
     latex: &mut String,
     cartesian_form: &CartesianForm,
     render_plus: bool,
+    render_one: bool,
 ) {
     if cartesian_form.sign < 0 {
         latex.push('-');
@@ -538,7 +525,6 @@ fn write_latex_for_cartesian_form(
     }
     if let RealNumber::Zero = cartesian_form.real_part {
         if let RealNumber::Zero = cartesian_form.imaginary_part {
-            // NOTE: This branch is never used.
             latex.push('0');
         } else {
             // Only imaginary part present
@@ -547,7 +533,7 @@ fn write_latex_for_cartesian_form(
         }
     } else if let RealNumber::Zero = cartesian_form.imaginary_part {
         // Only real part present
-        write_latex_for_real_number(latex, &cartesian_form.real_part, false);
+        write_latex_for_real_number(latex, &cartesian_form.real_part, render_one);
     } else {
         // Both real and imaginary parts present
         latex.push_str("\\left( ");
@@ -563,7 +549,7 @@ fn write_latex_for_cartesian_form(
 }
 
 /// Write latex for real number. Note that the sign is not rendered.
-/// 1 is only rendered if ``render_one`` is true. 0 is rendered, but not used in current code.
+/// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_one: bool) {
     match number {
         RealNumber::Algebraic(algebraic_number) => {
@@ -573,7 +559,6 @@ fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_o
             write_latex_for_decimal_number(latex, decimal_number, render_one);
         }
         RealNumber::Zero => {
-            // Note: this arm is not used.
             latex.push('0');
         }
     }
