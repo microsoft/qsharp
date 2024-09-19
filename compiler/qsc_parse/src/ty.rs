@@ -59,7 +59,9 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
 
 pub(super) fn param(s: &mut ParserContext) -> Result<Box<Ident>> {
     throw_away_doc(s);
-    apos_ident(s)
+    let generic = apos_ident(s)?;
+    let bounds = todo!("bounds");
+    todo!()
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {

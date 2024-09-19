@@ -2076,3 +2076,12 @@ fn disallow_top_level_recursive_glob() {
         "#]],
     );
 }
+
+#[test]
+fn allow_class_bound_on_type_param() {
+    check(
+        parse,
+        "operation Foo<'T: Eq, 'E: Eq>() : Unit {}",
+        &expect![[r#""#]],
+    );
+}
