@@ -53,17 +53,6 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
   return true;
 }
 
-function MatrixLatex(props: { latex: string }) {
-  return (
-    <>
-      <div style="margin: 12px 4px; font-size: 1em; font-style: italic;">
-        DumpOperation
-      </div>
-      <Markdown markdown={props.latex} />
-    </>
-  );
-}
-
 export function ResultsTab(props: {
   evtTarget: QscEventTarget;
   onShotError?: (err?: VSDiagnostic) => void;
@@ -259,7 +248,7 @@ export function ResultsTab(props: {
                   ></StateTable>
                 </div>
               ) : (
-                <MatrixLatex latex={evt.matrixLatex} />
+                <Markdown markdown={evt.matrixLatex} />
               );
             })}
           </div>

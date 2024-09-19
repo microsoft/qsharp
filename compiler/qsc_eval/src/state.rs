@@ -389,7 +389,7 @@ fn is_close_enough(val: &Complex64, target: &Complex64) -> bool {
     (val.re - target.re).abs() < 1e-9 && (val.im - target.im).abs() < 1e-9
 }
 
-// Quick and dirty matching for the most common matrix terms we care about rendering
+// Quick and dirty matching for the most common matrix elements we care about rendering
 // LaTeX for, e.g.  1/sqrt(2), -i/sqrt(2), etc.
 // Anything not in this list gets a standard rendering.
 fn get_latex_for_simple_term(val: &Complex64) -> Option<String> {
