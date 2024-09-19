@@ -1,6 +1,6 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Intrinsic.*;
 
     // Demonstrates use of integer comparisons.
     // Expected output: (true, false, true)

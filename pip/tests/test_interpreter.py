@@ -274,6 +274,20 @@ def test_entry_expr_circuit() -> None:
     )
 
 
+def test_swap_label_circuit() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.interpret(
+        "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); Relabel([q1, q2], [q2, q1]); X(q2); }"
+    )
+    circuit = e.circuit("Foo()")
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──── X ──
+        q_1    ──────────────
+        """
+    )
+
+
 def test_callables_failing_profile_validation_are_not_registered() -> None:
     e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
@@ -334,7 +348,7 @@ def test_adaptive_errors_are_raised_from_entry_expr() -> None:
 def test_adaptive_ri_qir_can_be_generated() -> None:
     adaptive_input = """
         namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -398,7 +412,7 @@ def test_adaptive_ri_qir_can_be_generated() -> None:
 def test_base_qir_can_be_generated() -> None:
     base_input = """
         namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {

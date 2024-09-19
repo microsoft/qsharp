@@ -20,6 +20,7 @@ classifiers = [
 [project.optional-dependencies]
 jupyterlab = ["qsharp-jupyterlab"]
 widgets = ["qsharp-widgets"]
+qiskit = ["qiskit>=1.2.0,<2.0.0"]
 
 [build-system]
 requires = ["maturin ~= 1.2.0"]

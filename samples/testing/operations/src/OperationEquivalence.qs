@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 namespace OperationEquivalence {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
     open CustomOperation;
     /// # Summary
     /// Verifies the equivalence of quantum operations up to a global phase using `Fact` function

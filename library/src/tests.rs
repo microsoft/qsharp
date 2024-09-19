@@ -137,8 +137,8 @@ fn check_exp_with_cnot() {
     // sign convention between Rx, Rz, and Exp is consistent.
     test_expression(
         indoc! {r#"{
-            open Microsoft.Quantum.Diagnostics;
-            open Microsoft.Quantum.Math;
+            import Std.Diagnostics.*;
+            import Std.Math.*;
 
             use (aux, control, target) = (Qubit(), Qubit(), Qubit());
             within {
@@ -166,8 +166,8 @@ fn check_exp_with_swap() {
     // This decomposition only holds if the magnitude of the angle used in Exp is correct.
     test_expression(
         indoc! {r#"{
-            open Microsoft.Quantum.Diagnostics;
-            open Microsoft.Quantum.Math;
+            import Std.Diagnostics.*;
+            import Std.Math.*;
 
             use (aux, qs) = (Qubit(), Qubit[2]);
             within {

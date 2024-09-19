@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::{
     estimates::LogicalPatch,
-    system::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
+    system::{constants::FLOAT_COMPARISON_EPSILON, modeling::surface_code_gate_based, Result},
 };
 
 use super::super::super::constants::{
@@ -283,7 +283,7 @@ fn load_physical_qubit_from_file() {
 fn logical_qubit_from_fast_gate_based_and_surface_code() -> Result<()> {
     let physical_qubit = Rc::new(PhysicalQubit::default());
 
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
 
     let logical_qubit = LogicalPatch::new(&ftp, 7, physical_qubit)?;
 

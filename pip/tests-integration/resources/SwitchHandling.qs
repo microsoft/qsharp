@@ -1,8 +1,8 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Math;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
+    import Std.Math.*;
 
     // Demonstrates using a computed integer to do a branch that gets turned into a switch instruction
     // (should get transformed back into nested branches).

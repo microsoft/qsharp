@@ -25,7 +25,7 @@ Then, use the `%%qsharp` cell magic to run Q# directly in Jupyter notebook cells
 ```qsharp
 %%qsharp
 
-open Microsoft.Quantum.Diagnostics;
+import Std.Diagnostics.*;
 
 @EntryPoint()
 operation BellState() : Unit {

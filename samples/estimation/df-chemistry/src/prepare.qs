@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 namespace Microsoft.Quantum.Applications.Chemistry {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Microsoft.Quantum.Unstable.TableLookup.*;
 
     // ------------------------------------- //
     // State preparation (public operations) //

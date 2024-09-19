@@ -7,11 +7,11 @@ mod tests;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, collections::BTreeMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-pub const PRELUDE: [[&str; 3]; 4] = [
-    ["Microsoft", "Quantum", "Canon"],
-    ["Microsoft", "Quantum", "Core"],
-    ["Microsoft", "Quantum", "Intrinsic"],
-    ["Microsoft", "Quantum", "Measurement"],
+pub const PRELUDE: &[&[&str]; 4] = &[
+    &["Std", "Canon"],
+    &["Microsoft", "Quantum", "Core"],
+    &["Std", "Intrinsic"],
+    &["Std", "Measurement"],
 ];
 
 /// An ID that corresponds to a namespace in the global scope.
@@ -279,7 +279,7 @@ impl Default for NamespaceTreeRoot {
             memo: RefCell::new(FxHashMap::default()),
         };
         // insert the prelude namespaces using the `NamespaceTreeRoot` API
-        for ns in &PRELUDE {
+        for ns in PRELUDE {
             let iter = ns.iter().map(|s| Rc::from(*s)).peekable();
             let _ = tree.insert_or_find_namespace(iter);
         }

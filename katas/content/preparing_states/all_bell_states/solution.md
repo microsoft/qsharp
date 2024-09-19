@@ -3,35 +3,35 @@ You can check that the norm of each of these states is 1, and their inner produc
 
 The goal is to transform the $\ket{00}$ basis state into one of the Bell basis states, depending on the value of `index` given as an input.
 
-We will describe two solutions, one of which will be based on the previous task, and the second one will help us understand the unitary transformation that converts the computational basis into the Bell basis.
+This exercise provides two solutions, one of which is based on the previous task, and the second one helps you understand the unitary transformation that converts the computational basis into the Bell basis.
 
 #### Solution 1
 
-Let's use the first Bell state we prepared in the previous task and transform it according to the value of `index`.
+Let's use the first Bell state you prepared in the previous task and transform it according to the value of `index`.
 
 $$\frac{1}{\sqrt2} \big(\ket{00} + \ket{11}\big)$$
 
-What transformation do we need to apply to get to the final state?
+What transformation do you need to apply to get to the final state?
 
-* If `index = 0`, we do nothing - the prepared state is already $\ket{\Phi^{+}}$.
+* If `index = 0`, you do nothing - the prepared state is already $\ket{\Phi^{+}}$.
 
-* If `index = 1`, we need to add a relative phase of $-1$ to the $\ket{11}$ term. Remember that $Z$ gate does exactly that with a qubit:
+* If `index = 1`, you need to add a relative phase of $-1$ to the $\ket{11}$ term. Remember that $Z$ gate does exactly that with a qubit:
   
   $$Z(H\ket{0}) \otimes \ket{0} = \frac{1}{\sqrt2} \big(\ket{0} - \ket{1}\big) \otimes \ket{0} = \frac{1}{\sqrt2} \big(\ket{00} - \ket{10}\big)$$
   
-  If we now apply the $CNOT$ as before, we will have:
+  If you now apply the $CNOT$ as before, you'll have:
 
   $$\frac{1}{\sqrt2} \big(\ket{00} - \ket{\overset{\curvearrowright}{10}}\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(\ket{00} - \ket{11}\big) = \ket{\Phi^{-}}$$
 
-* If `index = 2`, we need to change the second qubit in both $\ket{00}$ and $\ket{11}$ terms, which can be done applying an $X$ gate:
+* If `index = 2`, you need to change the second qubit in both $\ket{00}$ and $\ket{11}$ terms, which can be done applying an $X$ gate:
   
   $$H\ket{0} \otimes X\ket{0} = H\ket{0} \otimes \ket{1} = \frac{1}{\sqrt2} \big(\ket{0} + \ket{1}\big) \otimes \ket{1} = \frac{1}{\sqrt2} \big(\ket{01} + \ket{11}\big)$$
   
-  If we now apply the $CNOT$ as before, we will have:
+  If you now apply the $CNOT$ as before, you'll have:
   
   $$\frac{1}{\sqrt2} \big(\ket{01} + \ket{\overset{\curvearrowright}{11}}\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(\ket{01} + \ket{10}\big) = \ket{\Psi^{+}}$$
 
-* If `index = 3`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
+* If `index = 3`, you use the same logic to realize that you need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
 
 The final sequence of steps is as follows:
 1. Apply the $H$ gate to the first qubit. 
@@ -52,12 +52,12 @@ $$\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 &
 
 
 Notice that each of the columns in the unitary matrix corresponds to one of the Bell states.
-This unitary transformation transforms the computational basis into the Bell basis, which is exactly what the task asks us to do.
+This unitary transformation transforms the computational basis into the Bell basis, which is exactly what the task asks you to do.
 
-We see that this transformation converts $\ket{00}$ into the first Bell state, $\ket{01}$ into the second Bell state, etc. 
-We just need to make sure we set the qubits to the correct state before applying this transformation, using $X$ gates to change the initial $\ket{0}$ states to $\ket{1}$ if needed. 
+You see that this transformation converts $\ket{00}$ into the first Bell state, $\ket{01}$ into the second Bell state, etc. 
+You just need to make sure you set the qubits to the correct state before applying this transformation, using $X$ gates to change the initial $\ket{0}$ states to $\ket{1}$ if needed. 
 
-In Q#, we can use the <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.convert/intasboolarray">IntAsBoolArray</a> function to convert the input `index` to the right bit pattern.
+In Q#, you can use the <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.convert/intasboolarray">IntAsBoolArray</a> function to convert the input `index` to the right bit pattern.
 
 @[solution]({
     "id": "preparing_states__all_bell_states_solution_b",

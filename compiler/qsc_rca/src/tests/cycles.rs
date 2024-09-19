@@ -376,7 +376,7 @@ fn check_rca_for_function_cycle_within_call_input() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Arrays;
+        import Std.Arrays.*;
         function MySorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[] {
             if Length(array) <= 1 {
                 return array;

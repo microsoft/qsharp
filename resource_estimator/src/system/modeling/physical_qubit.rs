@@ -102,6 +102,16 @@ impl PhysicalQubit {
     }
 
     #[must_use]
+    pub fn t_gate_time(&self) -> u64 {
+        match self {
+            Self::GateBased(gate_based) => {
+                gate_based.t_gate_time.expect("T gate time should be set")
+            }
+            Self::Majorana(majorana) => majorana.t_gate_time.expect("T gate time should be set"),
+        }
+    }
+
+    #[must_use]
     pub fn t_gate_error_rate(&self) -> f64 {
         match self {
             Self::GateBased(gate_based) => gate_based.t_gate_error_rate,

@@ -9,7 +9,10 @@ use crate::{
 use super::{
     super::super::{
         data,
-        modeling::{PhysicalQubit, Protocol, TFactoryDistillationUnitTemplate},
+        modeling::{
+            floquet_code, surface_code_gate_based, PhysicalQubit, Protocol,
+            TFactoryDistillationUnitTemplate,
+        },
     },
     find_nondominated_population, find_nondominated_tfactories,
 };
@@ -19,7 +22,7 @@ use std::{borrow::Cow, rc::Rc, time::Instant};
 fn test_one_t_error_rate() {
     let start = Instant::now();
     let factories = find_nondominated_tfactories(
-        &Protocol::default(),
+        &surface_code_gate_based(),
         &Rc::new(PhysicalQubit::default()),
         &TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         1e-18,
@@ -41,7 +44,7 @@ fn test_one_t_error_rate() {
 
 #[test]
 pub fn chemistry_qubit_gate_us_e3_test() {
-    let tfactories = find_tfactories(&Protocol::default(), "qubit_gate_us_e3");
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e3");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 50460);
@@ -55,7 +58,7 @@ pub fn chemistry_qubit_gate_us_e3_test() {
 
 #[test]
 pub fn chemistry_qubit_gate_us_e4_test() {
-    let tfactories = find_tfactories(&Protocol::default(), "qubit_gate_us_e4");
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e4");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 13500);
@@ -69,7 +72,7 @@ pub fn chemistry_qubit_gate_us_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_gate_ns_e3_test() {
-    let tfactories = find_tfactories(&Protocol::default(), "qubit_gate_ns_e3");
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e3");
 
     assert_eq!(tfactories.len(), 4);
     assert_eq!(tfactories[0].physical_qubits(), 82620);
@@ -85,7 +88,7 @@ pub fn chemistry_qubit_gate_ns_e3_test() {
 
 #[test]
 pub fn chemistry_qubit_gate_ns_e4_test() {
-    let tfactories = find_tfactories(&Protocol::default(), "qubit_gate_ns_e4");
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e4");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 24000);
@@ -99,7 +102,7 @@ pub fn chemistry_qubit_gate_ns_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_maj_ns_e4_test() {
-    let tfactories = find_tfactories(&Protocol::floquet_code(), "qubit_maj_ns_e4");
+    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e4");
 
     assert_eq!(tfactories.len(), 5);
     assert_eq!(tfactories[0].physical_qubits(), 619_814);
@@ -117,7 +120,7 @@ pub fn chemistry_qubit_maj_ns_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_maj_ns_e6_test() {
-    let tfactories = find_tfactories(&Protocol::floquet_code(), "qubit_maj_ns_e6");
+    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e6");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 24960);
@@ -131,7 +134,7 @@ pub fn chemistry_qubit_maj_ns_e6_test() {
 
 #[test]
 fn required_logical_tstate_error_too_high() {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit: Rc<PhysicalQubit> = Rc::new(PhysicalQubit::default());
     let distillation_unit_templates =
         TFactoryDistillationUnitTemplate::default_distillation_unit_templates();
@@ -166,7 +169,7 @@ fn find_tfactories<'a>(ftp: &Protocol, qubit_name: &str) -> Vec<Cow<'a, TFactory
         &qubit,
         &create_test_templates(),
         output_t_error_rate,
-        ftp.max_code_distance(),
+        *ftp.max_code_distance().expect("code has max code distance"),
         MAX_DISTILLATION_ROUNDS,
     )
 }

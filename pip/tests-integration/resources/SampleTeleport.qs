@@ -1,7 +1,7 @@
 namespace Test {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Arrays.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result {

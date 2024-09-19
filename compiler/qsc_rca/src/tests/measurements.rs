@@ -57,7 +57,7 @@ fn check_rca_for_static_single_measurement_and_reset() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-            open Microsoft.Quantum.Measurement;
+            import Std.Measurement.*;
             use q = Qubit();
             MResetZ(q)"#,
     );
@@ -80,7 +80,7 @@ fn check_rca_for_dynamic_single_measurement_and_reset() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-            open Microsoft.Quantum.Measurement;
+            import Std.Measurement.*;
             use (condition, target) = (Qubit(), Qubit());
             mutable r = Zero;
             if MResetZ(condition) == Zero {
@@ -105,7 +105,7 @@ fn check_rca_for_static_multi_qubit_measurement() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-            open Microsoft.Quantum.Measurement;
+            import Std.Measurement.*;
             use register = Qubit[2];
             MeasureEachZ(register)"#,
     );

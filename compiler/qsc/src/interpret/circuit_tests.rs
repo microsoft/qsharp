@@ -158,7 +158,7 @@ fn m_base_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -187,7 +187,7 @@ fn m_unrestricted_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -215,7 +215,7 @@ fn mresetz_unrestricted_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -243,7 +243,7 @@ fn mresetz_base_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -271,7 +271,7 @@ fn unrestricted_profile_result_comparison() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q1 = Qubit();
@@ -439,7 +439,7 @@ fn custom_intrinsic_mixed_args() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
-        open Microsoft.Quantum.ResourceEstimation;
+        import Std.ResourceEstimation.*;
 
         @EntryPoint()
         operation Main() : Unit {
@@ -555,7 +555,7 @@ fn operation_with_qubit_arrays() {
             @EntryPoint()
             operation Main() : Result[] { [] }
 
-            open Microsoft.Quantum.Measurement;
+            import Std.Measurement.*;
             operation Test(q1: Qubit[], q2: Qubit[][], q3: Qubit[][][], q: Qubit) : Result[] {
                 for q in q1 {
                     H(q);
@@ -925,7 +925,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();
@@ -974,7 +974,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();
@@ -1012,7 +1012,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();

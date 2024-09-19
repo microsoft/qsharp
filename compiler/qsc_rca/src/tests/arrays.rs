@@ -50,7 +50,7 @@ fn check_rca_for_array_with_dynamic_bools() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
+        import Std.Convert.*;
         use (a, b, c) = (Qubit(), Qubit(), Qubit());
         [ResultAsBool(M(a)), ResultAsBool(M(b)), ResultAsBool(M(c))]"#,
     );
@@ -111,7 +111,7 @@ fn check_rca_for_array_repeat_with_dynamic_bool_value_and_classical_size() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
+        import Std.Convert.*;
         use q = Qubit();
         [ResultAsBool(M(q)), size = 11]"#,
     );
@@ -157,7 +157,7 @@ fn check_rca_for_array_repeat_with_dynamic_double_value_and_dynamic_size() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Convert;
+        import Std.Convert.*;
         use q = Qubit();
         let r = M(q);
         let s = r == Zero ? 5 | 10;
