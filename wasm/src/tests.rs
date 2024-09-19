@@ -144,15 +144,22 @@ fn test_matrix() {
         }
     }";
     let expr = "Test.Main()";
+    let count = std::cell::Cell::new(0);
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            // TODO: Validate the matrix output
-            assert!(msg.contains("Matrix") || msg.contains("result"));
+            if msg.contains("Matrix") {
+                count.set(count.get() + 1);
+                // Check the start and end of the matrix LaTeX is formatted as expected
+                let startLaTeX = r#"$ \\begin{bmatrix} \\frac{1}{\\sqrt{2}} & 0 & \\frac{1}{\\sqrt{2}} & 0 \\\\"#;
+                assert!(msg.contains(startLaTeX));
+                assert!(msg.contains(r#"\\frac{1}{\\sqrt{2}} & 0 & -\\frac{1}{\\sqrt{2}} & 0 \\\\ \\end{bmatrix} $"#));
+            }
         },
         1,
     );
     assert!(result.is_ok());
+    assert!(count.get() == 1);
 }
 
 #[test]
