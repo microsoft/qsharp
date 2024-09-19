@@ -592,7 +592,7 @@ fn evaluation_error_within_stdlib_yield_correct_package_span() {
     let error = get_partial_evaluation_error(indoc! {
         r#"
         namespace Test {
-            open Microsoft.Quantum.Arrays;
+            import Std.Arrays.*;
             @EntryPoint()
             operation Main() : Result[] {
                 use qs = Qubit[1];
@@ -602,5 +602,5 @@ fn evaluation_error_within_stdlib_yield_correct_package_span() {
         }
         "#,
     });
-    assert_error(&error, &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(1), span: Span { lo: 15851, hi: 15866 } })"]);
+    assert_error(&error, &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(1), span: Span { lo: 13654, hi: 13669 } })"]);
 }

@@ -5,7 +5,7 @@ use expect_test::expect;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::compile::SourceMap;
 
-use crate::codegen::get_qir;
+use crate::codegen::qir::get_qir;
 
 #[test]
 fn code_with_errors_returns_errors() {
@@ -64,12 +64,12 @@ mod base_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -250,6 +250,137 @@ mod base_profile {
             !3 = !{i32 1, !"dynamic_result_management", i1 false}
         "#]].assert_eq(&qir);
     }
+
+    #[test]
+    fn qubit_id_swap_results_in_different_id_usage() {
+        let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                use (q0, q1) = (Qubit(), Qubit());
+                X(q0);
+                Relabel([q0, q1], [q1, q0]);
+                X(q1);
+                (MResetZ(q0), MResetZ(q1))
+            }
+        }";
+        let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+        let language_features = LanguageFeatures::default();
+        let capabilities = TargetCapabilityFlags::empty();
+
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let qir = get_qir(
+            sources,
+            language_features,
+            capabilities,
+            store,
+            &[(std_id, None)],
+        )
+        .expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__x__body(%Qubit*)
+
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        "#]].assert_eq(&qir);
+    }
+
+    #[test]
+    fn qubit_id_swap_across_reset_uses_updated_ids() {
+        let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                {
+                    use (q0, q1) = (Qubit(), Qubit());
+                    X(q0);
+                    Relabel([q0, q1], [q1, q0]);
+                    X(q1);
+                    Reset(q0);
+                    Reset(q1);
+                }
+                use (q0, q1) = (Qubit(), Qubit());
+                (MResetZ(q0), MResetZ(q1))
+            }
+        }";
+        let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+        let language_features = LanguageFeatures::default();
+        let capabilities = TargetCapabilityFlags::empty();
+
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let qir = get_qir(
+            sources,
+            language_features,
+            capabilities,
+            store,
+            &[(std_id, None)],
+        )
+        .expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 3 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__x__body(%Qubit*)
+
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="4" "required_num_results"="2" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        "#]].assert_eq(&qir);
+    }
 }
 
 mod adaptive_profile {
@@ -257,12 +388,12 @@ mod adaptive_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -472,12 +603,12 @@ mod adaptive_ri_profile {
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
-    use crate::codegen::get_qir;
+    use crate::codegen::qir::get_qir;
 
     #[test]
     fn simple() {
         let source = "namespace Test {
-            open Microsoft.Quantum.Math;
+            import Std.Math.*;
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Result {
@@ -666,6 +797,239 @@ mod adaptive_ri_profile {
             declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
             attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="2" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            !4 = !{i32 1, !"classical_ints", i1 true}
+            !5 = !{i32 1, !"qubit_resetting", i1 true}
+            !6 = !{i32 1, !"classical_floats", i1 false}
+            !7 = !{i32 1, !"backwards_branching", i1 false}
+            !8 = !{i32 1, !"classical_fixed_points", i1 false}
+            !9 = !{i32 1, !"user_functions", i1 false}
+            !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        "#]].assert_eq(&qir);
+    }
+
+    #[test]
+    fn qubit_id_swap_results_in_different_id_usage() {
+        let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                use (q0, q1) = (Qubit(), Qubit());
+                X(q0);
+                Relabel([q0, q1], [q1, q0]);
+                X(q1);
+                (MResetZ(q0), MResetZ(q1))
+            }
+        }";
+        let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+        let language_features = LanguageFeatures::default();
+        let capabilities = TargetCapabilityFlags::Adaptive
+            | TargetCapabilityFlags::QubitReset
+            | TargetCapabilityFlags::IntegerComputations;
+
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let qir = get_qir(
+            sources,
+            language_features,
+            capabilities,
+            store,
+            &[(std_id, None)],
+        )
+        .expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__x__body(%Qubit*)
+
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="2" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            !4 = !{i32 1, !"classical_ints", i1 true}
+            !5 = !{i32 1, !"qubit_resetting", i1 true}
+            !6 = !{i32 1, !"classical_floats", i1 false}
+            !7 = !{i32 1, !"backwards_branching", i1 false}
+            !8 = !{i32 1, !"classical_fixed_points", i1 false}
+            !9 = !{i32 1, !"user_functions", i1 false}
+            !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        "#]].assert_eq(&qir);
+    }
+
+    #[test]
+    fn qubit_id_swap_across_reset_uses_updated_ids() {
+        let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                {
+                    use (q0, q1) = (Qubit(), Qubit());
+                    X(q0);
+                    Relabel([q0, q1], [q1, q0]);
+                    X(q1);
+                    Reset(q0);
+                    Reset(q1);
+                }
+                use (q0, q1) = (Qubit(), Qubit());
+                (MResetZ(q0), MResetZ(q1))
+            }
+        }";
+        let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+        let language_features = LanguageFeatures::default();
+        let capabilities = TargetCapabilityFlags::Adaptive
+            | TargetCapabilityFlags::QubitReset
+            | TargetCapabilityFlags::IntegerComputations;
+
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let qir = get_qir(
+            sources,
+            language_features,
+            capabilities,
+            store,
+            &[(std_id, None)],
+        )
+        .expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__x__body(%Qubit*)
+
+            declare void @__quantum__qis__reset__body(%Qubit*)
+
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="2" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            !4 = !{i32 1, !"classical_ints", i1 true}
+            !5 = !{i32 1, !"qubit_resetting", i1 true}
+            !6 = !{i32 1, !"classical_floats", i1 false}
+            !7 = !{i32 1, !"backwards_branching", i1 false}
+            !8 = !{i32 1, !"classical_fixed_points", i1 false}
+            !9 = !{i32 1, !"user_functions", i1 false}
+            !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        "#]].assert_eq(&qir);
+    }
+
+    #[test]
+    fn qubit_id_swap_with_out_of_order_release_uses_correct_ids() {
+        let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                let q0 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                let q1 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                let q2 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                X(q0);
+                X(q1);
+                X(q2);
+                Relabel([q0, q1], [q1, q0]);
+                QIR.Runtime.__quantum__rt__qubit_release(q0);
+                let q3 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                X(q3);
+                (MResetZ(q3), MResetZ(q1))
+            }
+        }";
+        let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+        let language_features = LanguageFeatures::default();
+        let capabilities = TargetCapabilityFlags::Adaptive
+            | TargetCapabilityFlags::QubitReset
+            | TargetCapabilityFlags::IntegerComputations;
+
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let qir = get_qir(
+            sources,
+            language_features,
+            capabilities,
+            store,
+            &[(std_id, None)],
+        )
+        .expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 2 to %Qubit*))
+              call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+              call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__x__body(%Qubit*)
+
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+            declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="3" "required_num_results"="2" }
             attributes #1 = { "irreversible" }
 
             ; module flags

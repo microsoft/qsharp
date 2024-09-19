@@ -12,8 +12,8 @@
 /// what size of quantum system would be needed to solve the problem.
 namespace QuantumDynamics {
 
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Arrays;
+    import Std.Math.*;
+    import Std.Arrays.*;
 
 
     @EntryPoint()

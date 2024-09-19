@@ -1,7 +1,7 @@
 namespace Test {
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
 
     internal operation TestIncByLE2(
         name : String,

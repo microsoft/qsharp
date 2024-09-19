@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 namespace Test {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Canon;
+    import Std.Intrinsic.*;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Arrays.*;
+    import Std.Measurement.*;
+    import Std.Canon.*;
 
     @EntryPoint()
     operation Main() : (Result[], Result) {

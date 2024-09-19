@@ -127,6 +127,10 @@ impl Backend for CustomSim {
         self.sim.qubit_release(q);
     }
 
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.sim.qubit_swap_id(q0, q1);
+    }
+
     fn capture_quantum_state(
         &mut self,
     ) -> (Vec<(num_bigint::BigUint, num_complex::Complex<f64>)>, usize) {
@@ -544,7 +548,7 @@ fn dump_register_all_qubits_normalized_is_same_as_dump_machine() {
         "",
         indoc! {
         "{
-            open Microsoft.Quantum.Diagnostics;
+            import Std.Diagnostics.*;
             use qs = Qubit[2];
 
             let alpha = -4.20025;

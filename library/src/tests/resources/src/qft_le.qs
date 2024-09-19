@@ -1,6 +1,6 @@
 namespace Test {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
 
     operation PrepareEntangledState(
         left : Qubit[],

@@ -9,11 +9,11 @@
 ///
 /// This Q# program implements an algorithm to solve the hidden shift problem.
 namespace Test {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result[] {

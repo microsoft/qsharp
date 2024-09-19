@@ -10,7 +10,7 @@
 /// Our implementation incorporates all techniques described in the paper, except for
 /// carry runways.
 namespace PrecalculatedEstimates {
-    open Microsoft.Quantum.ResourceEstimation;
+    import Std.ResourceEstimation.*;
 
     @EntryPoint()
     operation FactoringFromLogicalCounts() : Unit {

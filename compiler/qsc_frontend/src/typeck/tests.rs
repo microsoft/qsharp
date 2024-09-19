@@ -444,7 +444,7 @@ fn length_type_error() {
 fn single_arg_for_tuple() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Intrinsic {
+            namespace Std.Intrinsic {
                 operation Ry(theta : Double, qubit : Qubit) : () is Adj + Ctl {}
             }
         "},
@@ -452,21 +452,21 @@ fn single_arg_for_tuple() {
             use q = Qubit();
             Ry(q);
         }"},
-        &expect![[r#"
-            #8 56-87 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
-            #9 57-71 "theta : Double" : Double
-            #14 73-86 "qubit : Qubit" : Qubit
-            #23 106-108 "{}" : Unit
-            #24 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #25 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #27 121-122 "q" : Qubit
-            #29 125-132 "Qubit()" : Qubit
-            #31 138-143 "Ry(q)" : Unit
-            #32 138-140 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
-            #35 140-143 "(q)" : Qubit
-            #36 141-142 "q" : Qubit
-            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 138, hi: 143 }))))
-        "#]],
+        &expect![[r##"
+            #7 42-73 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
+            #8 43-57 "theta : Double" : Double
+            #13 59-72 "qubit : Qubit" : Qubit
+            #22 92-94 "{}" : Unit
+            #23 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #24 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #26 107-108 "q" : Qubit
+            #28 111-118 "Qubit()" : Qubit
+            #30 124-129 "Ry(q)" : Unit
+            #31 124-126 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
+            #34 126-129 "(q)" : Qubit
+            #35 127-128 "q" : Qubit
+            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 124, hi: 129 }))))
+        "##]],
     );
 }
 

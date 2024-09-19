@@ -440,18 +440,23 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
-        - task: EsrpRelease@4
+        - task: EsrpRelease@7
           condition: succeeded()
           inputs:
-            ConnectedServiceName: 'ESRP_Release'
+            ConnectedServiceName: 'ESRP Signing Connection'
+            KeyVaultName: 'kv-aqua-esrp-001'
+            AuthCertName: 'EsrpAuthCert'
+            SignCertName: 'EsrpSignCert'
+            ClientId: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
             Intent: 'PackageDistribution'
             ContentType: 'PyPi'
             FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+            WaitForReleaseCompletion: true
             Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
             Approvers: 'billti@microsoft.com'
             # Auto-inserted Debugging defaults:
             ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-            MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+            MainPublisher: 'ESRPRELPACMAN'                 # Default ESRP v7 publisher. Do not change.
             DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
           displayName: Publish Py Packages
 
@@ -473,17 +478,22 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/npm/qsharp/*
           displayName: Display NPM Artifacts in Publishing Dir
 
-        - task: EsrpRelease@4
+        - task: EsrpRelease@7
           condition: succeeded()
           inputs:
-            ConnectedServiceName: 'ESRP_Release'
+            ConnectedServiceName: 'ESRP Signing Connection'
+            KeyVaultName: 'kv-aqua-esrp-001'
+            AuthCertName: 'EsrpAuthCert'
+            SignCertName: 'EsrpSignCert'
+            ClientId: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
             Intent: 'PackageDistribution'
             ContentType: 'NPM'
             FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
+            WaitForReleaseCompletion: true
             Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
             Approvers: 'billti@microsoft.com'
             # Auto-inserted Debugging defaults:
             ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-            MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+            MainPublisher: 'ESRPRELPACMAN'                 # Default ESRP v7 publisher. Do not change.
             DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
           displayName: Publish NPM Package

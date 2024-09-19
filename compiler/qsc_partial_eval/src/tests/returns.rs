@@ -886,7 +886,7 @@ fn explicit_return_embedded_in_assign_expr_yields_error() {
 fn explicit_return_embedded_in_assign_field_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -899,7 +899,7 @@ fn explicit_return_embedded_in_assign_field_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("updating a field of a dynamic user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 217, hi: 243 } })"#
+            r#"Unexpected("updating a field of a dynamic user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 207, hi: 233 } })"#
         ]],
     );
 }
@@ -970,7 +970,7 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
 fn explicit_return_embedded_in_call_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -982,7 +982,7 @@ fn explicit_return_embedded_in_call_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in call arguments", PackageSpan { package: PackageId(2), span: Span { lo: 174, hi: 186 } })"#
+            r#"Unexpected("embedded return in call arguments", PackageSpan { package: PackageId(2), span: Span { lo: 164, hi: 176 } })"#
         ]],
     );
 }
@@ -991,7 +991,7 @@ fn explicit_return_embedded_in_call_expr_yields_error() {
 fn explicit_return_embedded_in_if_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -1005,7 +1005,7 @@ fn explicit_return_embedded_in_if_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("embedded return in if condition", PackageSpan { package: PackageId(2), span: Span { lo: 175, hi: 187 } })"#
+            r#"Unexpected("embedded return in if condition", PackageSpan { package: PackageId(2), span: Span { lo: 165, hi: 177 } })"#
         ]],
     );
 }
@@ -1075,7 +1075,7 @@ fn explicit_return_embedded_in_unary_expr_yields_error() {
 fn explicit_return_embedded_in_update_field_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         @EntryPoint()
         operation Main() : Bool {
             use q = Qubit(); // Needed to make `Main` non-classical.
@@ -1088,7 +1088,7 @@ fn explicit_return_embedded_in_update_field_expr_yields_error() {
     assert_error(
         &error,
         &expect![[
-            r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 211, hi: 241 } })"#
+            r#"Unexpected("assigning a dynamic value to a field of a user-defined type is invalid", PackageSpan { package: PackageId(2), span: Span { lo: 201, hi: 231 } })"#
         ]],
     );
 }

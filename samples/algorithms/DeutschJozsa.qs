@@ -8,9 +8,9 @@
 ///
 /// This Q# program implements the Deutsch–Jozsa algorithm.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : (String, Bool)[] {

@@ -57,8 +57,8 @@ fn use_of_dynamic_int_yields_error() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 246,
-                        hi: 271,
+                        lo: 226,
+                        hi: 251,
                     },
                 ),
             ]
@@ -114,14 +114,14 @@ fn use_of_dynamic_double_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 246,
-                        hi: 284,
+                        lo: 226,
+                        hi: 264,
                     },
                 ),
                 UseOfDynamicDouble(
                     Span {
-                        lo: 246,
-                        hi: 284,
+                        lo: 226,
+                        hi: 264,
                     },
                 ),
             ]
@@ -154,14 +154,14 @@ fn use_of_dynamic_big_int_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 247,
-                        hi: 285,
+                        lo: 227,
+                        hi: 265,
                     },
                 ),
                 UseOfDynamicBigInt(
                     Span {
-                        lo: 247,
-                        hi: 285,
+                        lo: 227,
+                        hi: 265,
                     },
                 ),
             ]
@@ -217,20 +217,20 @@ fn use_of_dynamic_udt_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 283,
-                        hi: 335,
+                        lo: 253,
+                        hi: 305,
                     },
                 ),
                 UseOfDynamicDouble(
                     Span {
-                        lo: 283,
-                        hi: 335,
+                        lo: 253,
+                        hi: 305,
                     },
                 ),
                 UseOfDynamicUdt(
                     Span {
-                        lo: 283,
-                        hi: 335,
+                        lo: 253,
+                        hi: 305,
                     },
                 ),
             ]
@@ -246,8 +246,8 @@ fn use_of_dynamic_function_yields_errors() {
             [
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 142,
-                        hi: 166,
+                        lo: 132,
+                        hi: 156,
                     },
                 ),
             ]
@@ -263,8 +263,8 @@ fn use_of_dynamic_operation_yields_errors() {
             [
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 142,
-                        hi: 162,
+                        lo: 132,
+                        hi: 152,
                     },
                 ),
             ]
@@ -371,26 +371,26 @@ fn call_to_dynamic_function_yields_errors() {
             [
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 142,
-                        hi: 166,
+                        lo: 132,
+                        hi: 156,
                     },
                 ),
                 UseOfDynamicDouble(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
                 CallToDynamicCallee(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
             ]
@@ -406,20 +406,20 @@ fn call_to_dynamic_operation_yields_errors() {
             [
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 142,
-                        hi: 162,
+                        lo: 132,
+                        hi: 152,
                     },
                 ),
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 176,
-                        hi: 181,
+                        lo: 166,
+                        hi: 171,
                     },
                 ),
                 CallToDynamicCallee(
                     Span {
-                        lo: 176,
-                        hi: 181,
+                        lo: 166,
+                        hi: 171,
                     },
                 ),
             ]
@@ -455,20 +455,20 @@ fn use_of_dynamic_index_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 246,
-                        hi: 271,
+                        lo: 226,
+                        hi: 251,
                     },
                 ),
                 UseOfDynamicInt(
                     Span {
-                        lo: 319,
-                        hi: 323,
+                        lo: 299,
+                        hi: 303,
                     },
                 ),
                 UseOfDynamicIndex(
                     Span {
-                        lo: 319,
-                        hi: 323,
+                        lo: 299,
+                        hi: 303,
                     },
                 ),
             ]

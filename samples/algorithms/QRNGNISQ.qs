@@ -5,8 +5,8 @@
 /// This program implements a quantum random number generator by setting qubits
 /// in superposition and then using the measurement results as random bits.
 namespace Sample {
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Measurement.*;
+    import Std.Intrinsic.*;
 
     @EntryPoint()
     operation Main() : Result[] {

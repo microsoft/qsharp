@@ -1,19 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::rc::Rc;
-
 use serde::Serialize;
 
 use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
-    PhysicalResourceEstimation,
+    PhysicalResourceEstimation, RealizedOverhead,
 };
 
 /// Resource estimation result
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
+pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F> {
     #[serde(bound = "E::Parameter: Serialize")]
     logical_patch: LogicalPatch<E>,
     num_cycles: u64,
@@ -25,19 +23,19 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     physical_qubits: u64,
     runtime: u64,
     rqops: u64,
-    #[serde(skip)]
-    layout_overhead: Rc<L>,
+    layout_overhead: RealizedOverhead,
     error_budget: ErrorBudget,
 }
 
-impl<
-        E: ErrorCorrection<Parameter = impl Clone>,
-        F: Factory<Parameter = E::Parameter> + Clone,
-        L: Overhead,
-    > PhysicalResourceEstimationResult<E, F, L>
+impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Parameter> + Clone>
+    PhysicalResourceEstimationResult<E, F>
 {
     pub fn new(
-        estimation: &PhysicalResourceEstimation<E, impl FactoryBuilder<E, Factory = F>, L>,
+        estimation: &PhysicalResourceEstimation<
+            E,
+            impl FactoryBuilder<E, Factory = F>,
+            impl Overhead,
+        >,
         logical_patch: LogicalPatch<E>,
         num_cycles: u64,
         factory_parts: Vec<Option<FactoryPart<F>>>,
@@ -71,13 +69,21 @@ impl<
             physical_qubits,
             runtime,
             rqops,
-            layout_overhead: estimation.layout_overhead.clone(),
+            layout_overhead: RealizedOverhead::from_overhead(
+                estimation.layout_overhead(),
+                estimation.error_budget(),
+                estimation.factory_builder().num_magic_state_types(),
+            ),
             error_budget: estimation.error_budget().clone(),
         }
     }
 
     pub fn without_factories(
-        estimation: &PhysicalResourceEstimation<E, impl FactoryBuilder<E, Factory = F>, L>,
+        estimation: &PhysicalResourceEstimation<
+            E,
+            impl FactoryBuilder<E, Factory = F>,
+            impl Overhead,
+        >,
         logical_patch: LogicalPatch<E>,
         num_cycles: u64,
         required_logical_patch_error_rate: f64,
@@ -136,7 +142,7 @@ impl<
         self.rqops
     }
 
-    pub fn layout_overhead(&self) -> &Rc<L> {
+    pub fn layout_overhead(&self) -> &RealizedOverhead {
         &self.layout_overhead
     }
 
@@ -145,14 +151,13 @@ impl<
     }
 
     pub fn algorithmic_logical_depth(&self) -> u64 {
-        self.layout_overhead.logical_depth(&self.error_budget)
+        self.layout_overhead.logical_depth()
     }
 
     /// The argument index indicates for which type of magic state (starting
     /// from 0) the number is requested for.
     pub fn num_magic_states(&self, index: usize) -> u64 {
-        self.layout_overhead
-            .num_magic_states(&self.error_budget, index)
+        self.layout_overhead.num_magic_states()[index]
     }
 }
 

@@ -23,13 +23,14 @@ use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
 pub use self::modeling::{
-    GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol, TFactory,
+    floquet_code, load_protocol_from_specification, surface_code_gate_based,
+    surface_code_measurement_based, GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol,
+    ProtocolEvaluator, TFactory,
 };
 pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
-use modeling::load_protocol_from_specification;
 use serde::Serialize;
 
 pub(crate) type Result<T> = std::result::Result<T, error::Error>;
@@ -87,6 +88,8 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
         .error_budget()
         .partitioning(logical_resources.as_ref())?;
 
+    // The clone on the logical resources is on an Rc and therefore inexpensive,
+    // the value is later used in creating the result object
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
@@ -94,7 +97,7 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             distillation_unit_templates,
             job_params.constraints().max_distillation_rounds,
         ),
-        logical_resources,
+        logical_resources.clone(),
         partitioning,
     );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
@@ -125,11 +128,14 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             let estimation_result = estimation
                 .build_frontier()
                 .map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new_from_multiple(job_params, result))
+            estimation_result.map(|result| {
+                data::Success::new_from_multiple(job_params, logical_resources, result)
+            })
         }
         EstimateType::SinglePoint => {
             let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new(job_params, result))
+            estimation_result
+                .map(|result| data::Success::new(job_params, logical_resources, result))
         }
     }
 }

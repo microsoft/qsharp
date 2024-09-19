@@ -44,7 +44,7 @@ import qsharp
       value: `%%qsharp
 
 // This makes the DumpMachine() function available.
-open Microsoft.Quantum.Diagnostics;
+import Std.Diagnostics.*;
 
 operation RandomBit() : Result {
     // Qubits are only accesible for the duration of the scope where they

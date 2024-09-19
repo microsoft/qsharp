@@ -1,7 +1,7 @@
 namespace Test {
 
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Arrays.*;
+    import Std.Intrinsic.*;
 
     // Demonstrates use of measurement comparisons, including ternary.
     // Expected output: (true, false, true, true)

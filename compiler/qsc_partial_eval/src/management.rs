@@ -3,6 +3,7 @@
 
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     val::{Qubit, Result, Value},
@@ -13,6 +14,7 @@ use qsc_rir::rir::{BlockId, CallableId, VariableId};
 #[derive(Default)]
 pub struct ResourceManager {
     qubits_in_use: Vec<bool>,
+    qubit_id_map: IndexMap<usize, usize>,
     next_callable: CallableId,
     next_block: BlockId,
     next_result_register: usize,
@@ -20,6 +22,13 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
+    pub fn map_qubit(&self, q: Qubit) -> usize {
+        *self
+            .qubit_id_map
+            .get(q.0)
+            .expect("qubit id should be in map")
+    }
+
     /// Count of qubits used.
     pub fn qubit_count(&self) -> usize {
         self.qubits_in_use.len()
@@ -32,19 +41,31 @@ impl ResourceManager {
 
     /// Allocates a qubit by favoring available qubit IDs before using new ones.
     pub fn allocate_qubit(&mut self) -> Qubit {
-        if let Some(qubit_id) = self.qubits_in_use.iter().position(|in_use| !in_use) {
-            self.qubits_in_use[qubit_id] = true;
-            Qubit(qubit_id)
+        let qubit = if let Some(qubit) = self.qubits_in_use.iter().position(|in_use| !in_use) {
+            self.qubits_in_use[qubit] = true;
+            qubit
         } else {
             self.qubits_in_use.push(true);
-            let qubit_id = self.qubits_in_use.len() - 1;
-            Qubit(qubit_id)
+            self.qubits_in_use.len() - 1
+        };
+        let mut next_id = 0;
+        // Iterate through the sequence of integers until we find one that is not present in the map.
+        // This means that integer id is available for use as the qubit id that will map to the newly allocated qubit.
+        loop {
+            if !self.qubit_id_map.contains_key(next_id) {
+                self.qubit_id_map.insert(next_id, qubit);
+                break;
+            }
+            next_id += 1;
         }
+        Qubit(next_id)
     }
 
     /// Releases a qubit ID for future use.
     pub fn release_qubit(&mut self, q: Qubit) {
-        self.qubits_in_use[q.0] = false;
+        let qubit = self.map_qubit(q);
+        self.qubit_id_map.remove(q.0);
+        self.qubits_in_use[qubit] = false;
     }
 
     /// Gets the next block ID.
@@ -73,6 +94,13 @@ impl ResourceManager {
         let var_id = self.next_var;
         self.next_var += 1;
         var_id.into()
+    }
+
+    pub fn swap_qubit_ids(&mut self, q0: Qubit, q1: Qubit) {
+        let id0 = self.map_qubit(q0);
+        let id1 = self.map_qubit(q1);
+        self.qubit_id_map.insert(q0.0, id1);
+        self.qubit_id_map.insert(q1.0, id0);
     }
 }
 

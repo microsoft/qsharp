@@ -121,9 +121,9 @@ pub(crate) fn get_completions(
     };
 
     let mut prelude_ns_ids: Vec<ImportItem> = PRELUDE
-        .into_iter()
+        .iter()
         .map(|ns| ImportItem {
-            path: ns.into_iter().map(Rc::from).collect(),
+            path: ns.iter().map(|x| Rc::from(*x)).collect(),
             alias: None,
             is_glob: true,
         })

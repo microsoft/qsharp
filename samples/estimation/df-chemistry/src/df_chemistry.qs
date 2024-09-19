@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 namespace Microsoft.Quantum.Applications.Chemistry {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.ResourceEstimation;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    import Std.Arrays.*;
+    import Std.Canon.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.ResourceEstimation.*;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Microsoft.Quantum.Unstable.TableLookup.*;
 
     // ------------------------------------------ //
     // DF chemistry (public operations and types) //

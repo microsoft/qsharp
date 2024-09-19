@@ -1,8 +1,8 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
 
     // Verifies the use of the rotation quantum operations from Q#'s Microsoft.Quantum.Intrinsic namespace.
     // Expected simulation output: ([1, 1], [1, 1], [1, 1]).

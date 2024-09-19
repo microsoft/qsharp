@@ -1209,7 +1209,7 @@ fn call_to_unresolved_callee_with_classical_arg_allowed() {
     let program = get_rir_program_with_capabilities(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Convert;
+            import Std.Convert.*;
             operation Op(i : Int, q : Qubit) : Unit {
                 Rx(IntAsDouble(i), q);
             }
@@ -1239,7 +1239,7 @@ fn call_to_unresolved_callee_with_dynamic_arg_fails() {
     let error = get_partial_evaluation_error_with_capabilities(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Convert;
+            import Std.Convert.*;
             operation Op(i : Int, q : Qubit) : Unit {
                 Rx(IntAsDouble(i), q);
             }
@@ -1256,7 +1256,7 @@ fn call_to_unresolved_callee_with_dynamic_arg_fails() {
 
     assert_error(
         &error,
-        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 298, hi: 305 }))"],
+        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 288, hi: 295 }))"],
     );
 }
 
@@ -1265,7 +1265,7 @@ fn call_to_unresolved_callee_producing_dynamic_value_fails() {
     let error = get_partial_evaluation_error_with_capabilities(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Convert;
+            import Std.Convert.*;
             operation Op(i : Int, q : Qubit) : Int {
                 X(q);
                 i
@@ -1283,7 +1283,7 @@ fn call_to_unresolved_callee_producing_dynamic_value_fails() {
 
     assert_error(
         &error,
-        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 298, hi: 305 } })"],
+        &expect!["UnexpectedDynamicValue(PackageSpan { package: PackageId(2), span: Span { lo: 288, hi: 295 } })"],
     );
 }
 
@@ -1292,7 +1292,7 @@ fn call_to_unresolved_callee_via_closure_with_dynamic_arg_fails() {
     let error = get_partial_evaluation_error_with_capabilities(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Convert;
+            import Std.Convert.*;
             operation Op() : (Int, Qubit) => Unit {
                 (i, q) => Rx(IntAsDouble(i), q)
             }
@@ -1309,7 +1309,7 @@ fn call_to_unresolved_callee_via_closure_with_dynamic_arg_fails() {
 
     assert_error(
         &error,
-        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 302, hi: 309 }))"],
+        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 292, hi: 299 }))"],
     );
 }
 
@@ -1318,7 +1318,7 @@ fn call_to_unresolved_callee_with_static_arg_and_entry_return_value_succeeds() {
     let program = get_rir_program_with_capabilities(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Convert;
+            import Std.Convert.*;
             operation Op(i : Int, q : Qubit) : Unit {
                 Rx(IntAsDouble(i), q);
             }

@@ -2195,7 +2195,7 @@ pub fn prelude_namespaces(globals: &GlobalScope) -> Vec<(NamespaceId, String)> {
         prelude.push((
             globals
                 .namespaces
-                .get_namespace_id(prelude_namespace)
+                .get_namespace_id(prelude_namespace.to_vec())
                 .expect("prelude should always exist in the namespace map"),
             prelude_namespace.join("."),
         ));
