@@ -650,10 +650,11 @@ fn assert_latex_for_complex_number(expected: &Expect, re: f64, im: f64) {
 
 #[test]
 fn check_get_latex_for_complex_number() {
+    // Future work:
     // While rendering is correct, a better way may be the following:
-    // TODO: -(1-i) -> -1+i for standalone number remove brackets
-    // TODO: 1/2 i -> i/2
-    // TODO: 2/r2 -> r2/2
+    // -(1-i) -> -1+i remove brackets for standalone number
+    // 1/2 i -> i/2
+    // √2/2 -> 1/√2
     assert_latex_for_complex_number(&expect!([r"0"]), 0.0, 0.0);
 
     assert_latex_for_complex_number(&expect!([r"1"]), 1.0, 0.0);
