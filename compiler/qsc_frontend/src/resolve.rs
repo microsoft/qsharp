@@ -8,6 +8,7 @@ use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
+        TyParam,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -1094,8 +1095,8 @@ impl Resolver {
         decl.generics.iter().enumerate().for_each(|(ix, ident)| {
             self.current_scope_mut()
                 .ty_vars
-                .insert(Rc::clone(&ident.name), ix.into());
-            self.names.insert(ident.id, Res::Param(ix.into()));
+                .insert(Rc::clone(&ident.ty.name), ix.into());
+            self.names.insert(ident.ty.id, Res::Param(ix.into()));
         });
     }
 
@@ -1305,8 +1306,8 @@ impl AstVisitor<'_> for With<'_> {
                     self.resolver.errors.push(e);
                 }
             }
-            ast::TyKind::Param(ident) => {
-                self.resolver.resolve_ident(NameKind::Ty, ident);
+            ast::TyKind::Param(TyParam { ty, .. }) => {
+                self.resolver.resolve_ident(NameKind::Ty, ty);
             }
             _ => ast_visit::walk_ty(self, ty),
         }

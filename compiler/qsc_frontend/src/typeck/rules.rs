@@ -9,7 +9,7 @@ use super::{
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
-    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
+    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, TyParam, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -125,8 +125,17 @@ impl<'a> Context<'a> {
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
+            TyKind::Param(TyParam { ty, bounds, .. }) => match self.names.get(ty.id) {
+                Some(Res::Param(id)) => {
+                    let (bounds, errs) = convert::ty_bound_from_ast(&bounds);
+                    if errs.is_empty() {
+                        Ty::Param(ty.name.clone(), *id, bounds)
+                    } else {
+                        // TODO(sezna)
+                        todo!("report errors");
+                        Ty::Err
+                    }
+                }
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \

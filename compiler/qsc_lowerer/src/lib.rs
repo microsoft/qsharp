@@ -857,7 +857,7 @@ impl Lowerer {
             qsc_hir::ty::Ty::Infer(id) => {
                 qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
             }
-            qsc_hir::ty::Ty::Param(_, id) => {
+            qsc_hir::ty::Ty::Param(_, id, _) => {
                 qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
             }
             qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),

@@ -244,10 +244,8 @@ impl Visitor<'_> for ItemCollector<'_> {
                 };
 
                 let (scheme, errors) = convert::ast_callable_scheme(self.names, decl);
-                for MissingTyError(span) in errors {
-                    self.checker
-                        .errors
-                        .push(Error(ErrorKind::MissingItemTy(span)));
+                for err in errors {
+                    self.checker.errors.push(err.into());
                 }
 
                 self.checker.globals.insert(item, scheme);
@@ -261,12 +259,9 @@ impl Visitor<'_> for ItemCollector<'_> {
                 let (cons, cons_errors) =
                     convert::ast_ty_def_cons(self.names, &name.name, item, def);
                 let (udt_def, def_errors) = convert::ast_ty_def(self.names, def);
-                self.checker.errors.extend(
-                    cons_errors
-                        .into_iter()
-                        .chain(def_errors)
-                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
-                );
+                self.checker
+                    .errors
+                    .extend(cons_errors.into_iter().chain(def_errors).map(Into::into));
 
                 self.checker.table.udts.insert(
                     item,
@@ -289,12 +284,9 @@ impl Visitor<'_> for ItemCollector<'_> {
                 let (cons, cons_errors) =
                     convert::ast_ty_def_cons(self.names, &decl.name.name, item, &def);
                 let (udt_def, def_errors) = convert::ast_ty_def(self.names, &def);
-                self.checker.errors.extend(
-                    cons_errors
-                        .into_iter()
-                        .chain(def_errors)
-                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
-                );
+                self.checker
+                    .errors
+                    .extend(cons_errors.into_iter().chain(def_errors).map(Into::into));
 
                 self.checker.table.udts.insert(
                     item,

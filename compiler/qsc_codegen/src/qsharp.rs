@@ -230,10 +230,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             self.write("<");
             if let Some((last, most)) = decl.generics.split_last() {
                 for i in most {
-                    self.visit_ident(i);
+                    self.visit_ident(&i.ty);
                     self.write(", ");
                 }
-                self.visit_ident(last);
+                self.visit_ident(&last.ty);
             }
 
             self.write(">");
@@ -348,7 +348,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write(")");
             }
             TyKind::Path(path) => self.visit_path(path),
-            TyKind::Param(name) => self.visit_ident(name),
+            TyKind::Param(name) => self.visit_ident(&name.ty),
             TyKind::Tuple(tys) => {
                 if tys.is_empty() {
                     self.write("()");

@@ -8,6 +8,7 @@ mod rules;
 #[cfg(test)]
 mod tests;
 
+use convert::{MissingTyError, TyConversionError, UnrecognizedBoundError};
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -119,4 +120,20 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
+    #[error("unrecognized class bound {0}")]
+    #[diagnostic(code("Qsc.TypeCk.UnknownClassBound"))]
+    UnknownClassBound(String, #[label] Span),
+}
+
+impl From<TyConversionError> for Error {
+    fn from(err: TyConversionError) -> Self {
+        Error(match err {
+            TyConversionError::MissingTyError(MissingTyError(span)) => {
+                ErrorKind::MissingItemTy(span)
+            }
+            TyConversionError::UnrecognizedBoundError(UnrecognizedBoundError { span, name }) => {
+                ErrorKind::UnknownClassBound(name, span)
+            }
+        })
+    }
 }

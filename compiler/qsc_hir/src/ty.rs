@@ -33,7 +33,7 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(Rc<str>, ParamId),
+    Param(Rc<str>, ParamId, TyBounds),
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
@@ -45,6 +45,16 @@ pub enum Ty {
     Err,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct TyBounds(pub Box<[TyBound]>);
+
+// TODO(sezna) support other bounds
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Copy)]
+pub enum TyBound {
+    #[default]
+    Eq,
+}
+
 impl Ty {
     /// The unit type.
     pub const UNIT: Self = Self::Tuple(Vec::new());
@@ -52,7 +62,7 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
@@ -93,7 +103,7 @@ impl Ty {
                 )
             }
             Ty::Infer(_) | Ty::Err => "?".to_string(),
-            Ty::Param(name, _) | Ty::Udt(name, _) => name.to_string(),
+            Ty::Param(name, _, _) | Ty::Udt(name, _) => name.to_string(),
             Ty::Prim(prim) => format!("{prim:?}"),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -116,7 +126,7 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "{item}[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name, param_id) => {
+            Ty::Param(name, param_id, bounds) => {
                 write!(f, "Param<\"{name}\": {param_id}>")
             }
             Ty::Prim(prim) => Debug::fmt(prim, f),
@@ -208,6 +218,8 @@ pub enum InstantiationError {
     Arity,
     /// A generic argument does not match the kind of its corresponding generic parameter.
     Kind(ParamId),
+    /// An in invalid type bound was provided.
+    Bound(ParamId),
 }
 
 fn instantiate_ty<'a>(
@@ -218,7 +230,7 @@ fn instantiate_ty<'a>(
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(_, param) => match arg(param) {
+        Ty::Param(_, param, bounds) => match arg(param) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*param)),
             None => Ok(ty.clone()),

@@ -13,11 +13,14 @@ use super::{
 use crate::{
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
+    prim::ident,
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind,
+    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyBounds,
+    TyKind, TyParam,
 };
+use qsc_data_structures::span::{Span, WithSpan};
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
     let lo = s.peek().span.lo;
@@ -57,11 +60,32 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
     }
 }
 
-pub(super) fn param(s: &mut ParserContext) -> Result<Box<Ident>> {
+pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
     throw_away_doc(s);
+    let lo = s.peek().span.lo;
     let generic = apos_ident(s)?;
-    let bounds = todo!("bounds");
-    todo!()
+    let bounds = if token(s, TokenKind::Colon).is_ok() {
+        Some(ty_bounds(s)?)
+    } else {
+        None
+    };
+
+    Ok(TyParam {
+        bounds: bounds.unwrap_or_else(|| TyBounds(Box::new([]))),
+        ty: *generic,
+        span: s.span(lo),
+    })
+}
+
+fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
+    let mut bounds = Vec::new();
+    loop {
+        bounds.push(*ident(s)?);
+        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_err() {
+            break;
+        }
+    }
+    Ok(TyBounds(bounds.into_boxed_slice()))
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {
@@ -84,6 +108,9 @@ fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
     }
 }
 
+/// the base type of a type, which can be a hole, a type parameter, a path, or a parenthesized type
+/// (or a tuple)
+/// This parses the part before the arrow or array in a type, if an arrow or array is present.
 fn base(s: &mut ParserContext) -> Result<Ty> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;

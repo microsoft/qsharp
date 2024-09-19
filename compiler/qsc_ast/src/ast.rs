@@ -475,7 +475,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The generic parameters to the callable.
-    pub generics: Box<[Box<Ident>]>,
+    pub generics: Box<[TyParam]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -499,9 +499,13 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
+            let mut buf = Vec::with_capacity(self.generics.len());
             for param in &self.generics {
-                write!(indent, "\n{param}")?;
+                buf.push(format!("{param:?}"));
             }
+
+            let buf = buf.join(",\n");
+            write!(indent, "\n{}", buf)?;
             indent = set_indentation(indent, 1);
         }
         write!(indent, "\ninput: {}", self.input)?;
@@ -663,7 +667,7 @@ pub enum TyKind {
     /// A named type.
     Path(Box<Path>),
     /// A type parameter.
-    Param(Box<Ident>),
+    Param(TyParam),
     /// A tuple type.
     Tuple(Box<[Ty]>),
     /// An invalid type.
@@ -688,7 +692,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "Type Param: {name}")?,
+            TyKind::Param(name) => write!(indent, "Type Param: {name:?}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -1978,5 +1982,43 @@ impl ImportOrExportItem {
             Some(ref alias) => alias,
             None => &self.path.name,
         }
+    }
+}
+
+#[derive(Default, PartialEq, Eq, Clone, Hash)]
+pub struct TyParam {
+    pub bounds: TyBounds,
+    pub span: Span,
+    pub ty: Ident,
+}
+
+impl WithSpan for TyParam {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl std::fmt::Debug for TyParam {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // 'A: Eq + Ord + Clone
+        write!(f, "{}: {:?}", self.ty.name, self.bounds)
+    }
+}
+
+#[derive(Default, PartialEq, Eq, Clone, Hash)]
+pub struct TyBounds(pub Box<[Ident]>);
+
+impl std::fmt::Debug for TyBounds {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // A + B + C + D
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|x| x.name.to_string())
+                .collect::<Vec<_>>()
+                .join(" + ")
+        )
     }
 }

@@ -4415,3 +4415,35 @@ fn within_block_should_be_unit_error() {
         "##]],
     );
 }
+
+#[test]
+fn bounded_polymorphism_eq() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq>(a: 'T, b: 'T) : Bool {
+                a == b
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+        "##]],
+    );
+}
+#[test]
+fn bounded_polymorphism_example_should_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq, 'O: Eq>(a: 'T, b: 'O) : Bool {
+            // should fail because we can't compare two different types
+                a == b
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+        "##]],
+    );
+}

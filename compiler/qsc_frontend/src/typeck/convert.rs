@@ -1,25 +1,47 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Ascribe types to the AST and output HIR items. Put another way, converts the AST to the HIR.
 use std::rc::Rc;
 
 use crate::resolve::{self, Names};
+use itertools::{Either, Itertools};
+use miette::{Diagnostic, LabeledSpan};
 use qsc_ast::ast::{
-    self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
-    PatKind, Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
+    self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
+    Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TyParam,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir,
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, TypeParamName,
-        UdtDef, UdtDefKind, UdtField,
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, TyBound, TyBounds,
+        TypeParamName, UdtDef, UdtDefKind, UdtField,
     },
 };
+use thiserror::Error;
 
-pub(crate) struct MissingTyError(pub(super) Span);
+#[derive(Debug, Error, Diagnostic, Clone)]
+#[error("missing type")]
+pub(crate) struct MissingTyError(#[label] pub(super) Span);
 
-pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
+#[derive(Debug, Error, Diagnostic, Clone)]
+#[error("unrecognized type bound {name}")]
+pub(crate) struct UnrecognizedBoundError {
+    #[label]
+    pub span: Span,
+    pub name: String,
+}
+
+#[derive(Debug, Error, Diagnostic, Clone)]
+pub(crate) enum TyConversionError {
+    #[error(transparent)]
+    MissingTyError(#[from] MissingTyError),
+    #[error(transparent)]
+    UnrecognizedBoundError(#[from] UnrecognizedBoundError),
+}
+
+pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionError>) {
     match &*ty.kind {
         TyKind::Array(item) => {
             let (item, errors) = ty_from_ast(names, item);
@@ -40,11 +62,17 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             }));
             (ty, errors)
         }
-        TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
+        TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
         TyKind::Path(path) => (ty_from_path(names, path), Vec::new()),
-        TyKind::Param(name) => match names.get(name.id) {
-            Some(resolve::Res::Param(id)) => (Ty::Param(name.name.clone(), *id), Vec::new()),
+        TyKind::Param(TyParam { ty, bounds, .. }) => match names.get(ty.id) {
+            Some(resolve::Res::Param(id)) => {
+                let (bounds, errs) = ty_bound_from_ast(bounds);
+                (
+                    Ty::Param(ty.name.clone(), *id, bounds),
+                    errs.into_iter().map(Into::into).collect(),
+                )
+            }
             Some(_) => unreachable!(
                 "A parameter should never resolve to a non-parameter type, as there \
                     is syntactic differentiation"
@@ -113,7 +141,7 @@ pub(super) fn ast_ty_def_cons(
     ty_name: &Rc<str>,
     id: hir::ItemId,
     def: &TyDef,
-) -> (Scheme, Vec<MissingTyError>) {
+) -> (Scheme, Vec<TyConversionError>) {
     let (input, errors) = ast_ty_def_base(names, def);
     let ty = Arrow {
         kind: hir::CallableKind::Function,
@@ -125,7 +153,7 @@ pub(super) fn ast_ty_def_cons(
     (scheme, errors)
 }
 
-fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
+fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<TyConversionError>) {
     match &*def.kind {
         TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
@@ -144,7 +172,7 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     }
 }
 
-pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyError>) {
+pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversionError>) {
     if let TyDefKind::Paren(inner) = &*def.kind {
         return ast_ty_def(names, inner);
     }
@@ -192,7 +220,7 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<MissingTyEr
 pub(super) fn ast_callable_scheme(
     names: &Names,
     callable: &CallableDecl,
-) -> (Scheme, Vec<MissingTyError>) {
+) -> (Scheme, Vec<TyConversionError>) {
     let kind = callable_kind_from_ast(callable.kind);
     let (mut input, mut errors) = ast_pat_ty(names, &callable.input);
     let (output, output_errors) = ty_from_ast(names, &callable.output);
@@ -212,8 +240,9 @@ pub(super) fn ast_callable_scheme(
     (Scheme::new(params, Box::new(ty)), errors)
 }
 
+/// Generates generic parameters for the functors, if there were generics on the original callable.
 pub(crate) fn synthesize_callable_generics(
-    generics: &[Box<Ident>],
+    generics: &[TyParam],
     input: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     let mut params = ast_callable_generics(generics);
@@ -238,7 +267,7 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
             .iter_mut()
             .flat_map(|item| synthesize_functor_params(next_param, item))
             .collect(),
-        Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) | Ty::Err => Vec::new(),
+        Ty::Infer(_) | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) | Ty::Err => Vec::new(),
     }
 }
 
@@ -263,22 +292,22 @@ fn synthesize_functor_params_in_pat(
     }
 }
 
-fn ast_callable_generics(generics: &[Box<Ident>]) -> Vec<GenericParam> {
+fn ast_callable_generics(generics: &[TyParam]) -> Vec<GenericParam> {
     generics
         .iter()
         .map(|param| {
             GenericParam::Ty(TypeParamName {
                 span: param.span,
-                name: param.name.clone(),
+                name: param.ty.name.clone(),
             })
         })
         .collect()
 }
 
-pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
+pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError>) {
     match &*pat.kind {
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
-            (Ty::Err, vec![MissingTyError(pat.span)])
+            (Ty::Err, vec![MissingTyError(pat.span).into()])
         }
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => ty_from_ast(names, ty),
         PatKind::Paren(inner) => ast_pat_ty(names, inner),
@@ -338,4 +367,23 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
         FunctorExprKind::Lit(ast::Functor::Ctl) => FunctorSetValue::Ctl,
         FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
+}
+
+/// Convert an AST type bound to an HIR type bound.
+pub(crate) fn ty_bound_from_ast(
+    bounds: &qsc_ast::ast::TyBounds,
+) -> (qsc_hir::ty::TyBounds, Vec<UnrecognizedBoundError>) {
+    let (bounds, errs): (Vec<_>, _) =
+        bounds
+            .0
+            .into_iter()
+            .partition_map(|bound| match &*bound.name {
+                "Eq" => Either::Left(qsc_hir::ty::TyBound::Eq),
+                otherwise => Either::Right(UnrecognizedBoundError {
+                    span: bound.span,
+                    name: otherwise.to_string(),
+                }),
+            });
+
+    (qsc_hir::ty::TyBounds(bounds.into_boxed_slice()), errs)
 }

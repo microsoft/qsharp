@@ -70,7 +70,7 @@ probability = "0.20"
 indenter = "0.3"
 regex-lite = "0.1"
 rustc-hash = "1"
-serde = { version = "1.0", features = [ "derive" ] }
+serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
@@ -80,6 +80,7 @@ pyo3 = "0.22"
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.7.4" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
+itertools = { version = "0.10" }
 
 [workspace.lints.clippy]
 mod_module_files = "warn"
