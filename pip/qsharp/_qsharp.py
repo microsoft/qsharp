@@ -17,6 +17,7 @@ from typing import (
     TypedDict,
     Union,
     List,
+    Tuple,
     overload,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
