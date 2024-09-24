@@ -10,5 +10,5 @@ namespace Microsoft.Quantum {
 
 namespace Microsoft.Quantum.Core {
     import Std.Range.*;
-    export RangeStart, RangeEnd,  IsRangeEmpty, Length, Repeated, Int, Qubit, Bool, Unit;
+    export RangeStart, RangeEnd, IsRangeEmpty, Length, Repeated, Int, Qubit, Bool, Unit;
 }

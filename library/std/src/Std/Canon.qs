@@ -583,7 +583,7 @@ operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl
     }
     adjoint self;
 }
-  /// # Summary
+/// # Summary
 /// Relabels the qubits in the `current` array with the qubits in the `updated` array. The `updated` array
 /// must be a valid permutation of the `current` array.
 ///
