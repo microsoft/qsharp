@@ -114,12 +114,7 @@ pub(crate) enum TargetProfile {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 impl TargetProfile {
     fn __str__(&self) -> String {
-        match self {
-            TargetProfile::Base => "Base",
-            TargetProfile::Adaptive_RI => "Adaptive_RI",
-            TargetProfile::Unrestricted => "Unrestricted",
-        }
-        .to_owned()
+        Into::<Profile>::into(*self).to_str().to_owned()
     }
 }
 
