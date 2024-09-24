@@ -1538,7 +1538,6 @@ impl GlobalTable {
             );
 
             for name in names_iter {
-                // TODO remove unwrap
                 if let Err(ClobberedNamespace) = self
                     .scope
                     .insert_or_find_namespace_from_root_with_id(name.clone(), root, base_id)
