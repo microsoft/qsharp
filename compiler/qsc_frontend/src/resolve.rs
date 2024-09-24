@@ -363,8 +363,7 @@ pub enum LocalKind {
 pub struct GlobalScope {
     tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
     terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
-    // TODO(alex) remove pub
-    pub namespaces: NamespaceTreeRoot,
+    namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
