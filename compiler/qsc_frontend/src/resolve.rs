@@ -916,8 +916,8 @@ impl Resolver {
                     current_namespace,
                     err,
                 ) {
-                    Ok(_) => (),
-                    Err(e) => {
+                    Ok(()) => (),
+                    Err(_) => {
                         self.errors.push(Error::ClobberedNamespace {
                             namespace_name: decl_item.name().name.to_string(),
                             span: decl_item.span(),
@@ -1180,6 +1180,18 @@ impl Resolver {
             self.errors.push(err.clone());
         }
         Ok(())
+    }
+
+    pub(crate) fn with_errors(self, errors: Vec<Error>) -> Resolver {
+        Resolver {
+            names: self.names,
+            dropped_names: self.dropped_names,
+            curr_params: self.curr_params,
+            globals: self.globals,
+            locals: self.locals,
+            curr_scope_chain: self.curr_scope_chain,
+            errors,
+        }
     }
 }
 
@@ -1501,7 +1513,7 @@ impl GlobalTable {
         package: &hir::Package,
         store: &crate::compile::PackageStore,
         alias: &Option<Arc<str>>,
-    ) {
+    ) -> Result<(), Vec<Error>> {
         // if there is a package-level alias defined, use that for the root namespace.
         let root = match alias {
             Some(alias) => self
@@ -1512,6 +1524,7 @@ impl GlobalTable {
             None => self.scope.namespaces.root_id(),
         };
 
+        let mut errs = Vec::new();
         // iterate over the tree from the package and recreate it here
         for names_for_same_namespace in &package.namespaces {
             let mut names_iter = names_for_same_namespace.into_iter();
@@ -1526,10 +1539,20 @@ impl GlobalTable {
 
             for name in names_iter {
                 // TODO remove unwrap
-                self.scope
-                    .insert_or_find_namespace_from_root_with_id(name, root, base_id)
-                    .unwrap();
+                if let Err(ClobberedNamespace) = self
+                    .scope
+                    .insert_or_find_namespace_from_root_with_id(name.clone(), root, base_id)
+                {
+                    errs.push(Error::ClobberedNamespace {
+                        namespace_name: name.clone().join("."),
+                        span: Span::default(),
+                    });
+                }
             }
+        }
+
+        if !errs.is_empty() {
+            return Err(errs);
         }
 
         for global in global::iter_package(Some(id), package).filter(|global| {
@@ -1572,7 +1595,7 @@ impl GlobalTable {
                 }
                 (global::Kind::Export(item_id), _) => {
                     let Some(item) = find_item(store, item_id, id) else {
-                        return;
+                        return Ok(());
                     };
                     match item.kind {
                         hir::ItemKind::Callable(..) => {
@@ -1598,6 +1621,7 @@ impl GlobalTable {
                 (_, hir::Visibility::Internal) => {}
             }
         }
+        Ok(())
     }
 }
 
@@ -1744,11 +1768,16 @@ fn bind_global_item(
                     }
 
                     // and update the namespace tree
-                    // TODO remove unwrap
-                    scope
-                        .namespaces
-                        .insert_with_id(Some(namespace), ns, &decl_item.name().name)
-                        .unwrap();
+                    if let Err(ClobberedNamespace) =
+                        scope
+                            .namespaces
+                            .insert_with_id(Some(namespace), ns, &decl_item.name().name)
+                    {
+                        return Err(vec![Error::ClobberedNamespace {
+                            namespace_name: decl_item.name().name.to_string(),
+                            span: decl_item.name().span,
+                        }]);
+                    }
                 }
                 Ok(())
             }
