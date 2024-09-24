@@ -1,5 +1,5 @@
 pytest==8.2.2
-qiskit>=1.2.0,<2.0.0
+qiskit>=1.2.2,<2.0.0
 qirrunner==0.7.1
 pyqir==0.10.2
 qiskit-aer==0.14.2

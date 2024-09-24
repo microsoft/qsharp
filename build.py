@@ -514,7 +514,7 @@ if build_pip and build_widgets and args.integration_tests:
         "ipykernel",
         "nbconvert",
         "pandas",
-        "qiskit>=1.2.0,<2.0.0",
+        "qiskit>=1.2.2,<2.0.0",
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
 
