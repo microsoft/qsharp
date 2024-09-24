@@ -14,6 +14,7 @@ from qiskit.transpiler.target import Target
 from .compilation import Compilation
 from .errors import Errors
 from .backend_base import BackendBase
+from .. import OutputSemantics
 from ..jobs import ReJob
 from ..execution import DetaultExecutor
 from ...._fs import read_file, list_directory, resolve
@@ -56,7 +57,6 @@ class ResourceEstimatorBackend(BackendBase):
                 - name (str): The name of the circuit. This is used as the entry point for the program.
                         The circuit name will be used if not specified.
                 - search_path (str): Path to search in for qasm3 imports. Defaults to '.'.
-                - target_profile (TargetProfile): The target profile to use for the backend.
                 - executor(ThreadPoolExecutor or other Executor):
                         The executor to be used to submit the job. Defaults to SynchronousExecutor.
         """
@@ -84,6 +84,7 @@ class ResourceEstimatorBackend(BackendBase):
             name="program",
             search_path=".",
             target_profile=TargetProfile.Unrestricted,
+            output_semantics=OutputSemantics.ResourceEstimation,
             executor=DetaultExecutor(),
         )
 

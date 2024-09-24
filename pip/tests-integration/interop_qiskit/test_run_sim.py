@@ -3,12 +3,15 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import pytest
-from qsharp import TargetProfile
+from qsharp import QSharpError, TargetProfile
 
 from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
 
 if QISKIT_AVAILABLE:
-    from qiskit import QuantumCircuit
+    from .test_circuits import (
+        generate_repro_information,
+    )
+    from qiskit.circuit import QuantumCircuit, Parameter
     from qiskit_aer import AerSimulator
     from qiskit.qasm3 import loads as from_qasm3
     from qiskit.providers import JobStatus
@@ -130,6 +133,29 @@ def test_get_counts_matches_qiskit_simulator_multiple_circuits():
         qsjob = backend.run([circuit, circuit2], shots=5)
         qscounts = qsjob.result().get_counts()
         assert qscounts == job.result().get_counts()
+    except AssertionError:
+        raise
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, backend)
+        raise RuntimeError(additional_info) from ex
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_simulting_with_unbound_param_raises():
+    theta = Parameter("theta")
+
+    circuit = QuantumCircuit(1)
+    circuit.name = "test"
+    circuit.rx(theta, 0)
+    circuit.measure_all()
+
+    backend = QSharpBackend()
+    try:
+        with pytest.raises(QSharpError) as ex:
+            _ = backend.run(circuit).result()
+        message = str(ex.value)
+        assert "Circuit has unbound input parameters" in message
+        assert "help: Parameters: theta: Double" in message
     except AssertionError:
         raise
     except Exception as ex:

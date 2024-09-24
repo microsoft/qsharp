@@ -4,6 +4,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import pytest
 
+from qsharp import QSharpError
 from qsharp.estimator import (
     EstimatorParams,
     QubitParams,
@@ -14,7 +15,10 @@ from qsharp.estimator import (
 from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
 
 if QISKIT_AVAILABLE:
-    from qiskit import QuantumCircuit
+    from .test_circuits import (
+        generate_repro_information,
+    )
+    from qiskit.circuit import QuantumCircuit, Parameter
     from qiskit.circuit.library import RGQFTMultiplier
     from qsharp.interop.qiskit import ResourceEstimatorBackend
 
@@ -97,3 +101,26 @@ def test_estimate_qiskit_rgqft_multiplier_in_threadpool() -> None:
             "measurementCount": 0,
         }
     )
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_estimating_with_unbound_param_raises():
+    theta = Parameter("theta")
+
+    circuit = QuantumCircuit(1)
+    circuit.name = "test"
+    circuit.rx(theta, 0)
+    circuit.measure_all()
+
+    backend = ResourceEstimatorBackend()
+    try:
+        with pytest.raises(QSharpError) as ex:
+            _ = backend.run(circuit).result()
+        message = str(ex.value)
+        assert "Circuit has unbound input parameters" in message
+        assert "help: Parameters: theta: Double" in message
+    except AssertionError:
+        raise
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, backend)
+        raise RuntimeError(additional_info) from ex
