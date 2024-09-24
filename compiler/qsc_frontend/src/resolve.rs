@@ -363,7 +363,8 @@ pub enum LocalKind {
 pub struct GlobalScope {
     tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
     terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
-    namespaces: NamespaceTreeRoot,
+    // TODO(alex) remove pub
+    pub namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
@@ -1476,7 +1477,7 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: IndexMap::default(),
-                namespaces: NamespaceTreeRoot::default(),
+                namespaces: scope.namespaces,
                 intrinsics: FxHashSet::default(),
             },
         }
