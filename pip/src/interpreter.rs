@@ -110,6 +110,14 @@ pub(crate) enum TargetProfile {
     Unrestricted,
 }
 
+#[pymethods]
+#[allow(clippy::trivially_copy_pass_by_ref)]
+impl TargetProfile {
+    fn __str__(&self) -> String {
+        Into::<Profile>::into(*self).to_str().to_owned()
+    }
+}
+
 impl From<TargetProfile> for Profile {
     fn from(profile: TargetProfile) -> Self {
         match profile {

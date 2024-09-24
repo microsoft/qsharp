@@ -331,3 +331,15 @@ def test_run_with_invalid_shots_produces_error() -> None:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
+
+
+def test_target_profile_str_values_match_enum_values() -> None:
+    target_profile = qsharp.TargetProfile.Base
+    str_value = str(target_profile)
+    assert str_value == "Base"
+    target_profile = qsharp.TargetProfile.Adaptive_RI
+    str_value = str(target_profile)
+    assert str_value == "Adaptive_RI"
+    target_profile = qsharp.TargetProfile.Unrestricted
+    str_value = str(target_profile)
+    assert str_value == "Unrestricted"
