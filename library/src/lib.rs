@@ -93,4 +93,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         "qsharp-library-source:legacy_api.qs",
         include_str!("../std/src/legacy_api.qs"),
     ),
+    (
+        "qsharp-library-source:DurrHoyerLibrary.qs",
+        include_str!("../std/src/Std/DurrHoyerLibrary.qs"),
+    ),
 ];
