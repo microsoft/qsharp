@@ -209,12 +209,8 @@ fn compile(
     let mut globals = super::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
-    // no errors here
     resolver.bind_and_resolve_imports_and_exports(&package);
-    // what about here?
-    println!("i have {} errors", resolver.errors.len());
     resolver.with(&mut assigner).visit_package(&package);
-    println!("now i have {} errors", resolver.errors.len());
     let (names, locals, mut resolve_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
     (package, names, locals, errors, namespaces)
