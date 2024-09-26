@@ -70,23 +70,31 @@ impl Compiler {
         let mut typeck_globals = typeck::GlobalTable::new();
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
-            resolve_globals.add_external_package(PackageId::CORE, &unit.package, store, &None);
+            resolve_globals
+                .add_external_package(PackageId::CORE, &unit.package, store, &None)
+                .expect("CORE is added before all other packages and can not clobber anything");
             typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
+        let mut errors: Vec<resolve::Error> = Vec::new();
         for (id, alias) in dependencies {
             let unit = store
                 .get(*id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.add_external_package(*id, &unit.package, store, alias);
+            if let Err(mut errs) =
+                resolve_globals.add_external_package(*id, &unit.package, store, alias)
+            {
+                errors.append(&mut errs);
+            };
             typeck_globals.add_external_package(*id, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
         }
 
         Self {
             ast_assigner: AstAssigner::new(),
-            resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names),
+            resolver: Resolver::with_persistent_local_scope(resolve_globals, dropped_names)
+                .with_errors(errors),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
             capabilities,

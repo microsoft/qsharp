@@ -15,7 +15,7 @@ use qsc_ast::{
 use qsc_ast::ast::{ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Package};
 use qsc_data_structures::{
     index_map::IndexMap,
-    namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
+    namespaces::{ClobberedNamespace, NamespaceId, NamespaceTreeRoot, PRELUDE},
     span::Span,
 };
 use qsc_hir::{
@@ -179,6 +179,14 @@ pub(super) enum Error {
     GlobImportAliasNotSupported {
         namespace_name: String,
         alias: String,
+        #[label]
+        span: Span,
+    },
+    #[error(
+        "this namespace overwrites (clobbers) an existing external namespace of the same name"
+    )]
+    ClobberedNamespace {
+        namespace_name: String,
         #[label]
         span: Span,
     },
@@ -394,9 +402,9 @@ impl GlobalScope {
         name: Vec<Rc<str>>,
         root: NamespaceId,
         base_id: NamespaceId,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         self.namespaces
-            .insert_or_find_namespace_from_root_with_id(name, root, base_id);
+            .insert_or_find_namespace_from_root_with_id(name, root, base_id)
     }
 }
 
@@ -904,12 +912,20 @@ impl Resolver {
 
             if let (Err(err), Err(_)) = (&term_result, &ty_result) {
                 // try to see if it is a namespace
-                self.handle_namespace_import_or_export(
+                match self.handle_namespace_import_or_export(
                     is_export,
                     decl_item,
                     current_namespace,
                     err,
-                );
+                ) {
+                    Ok(()) => (),
+                    Err(_) => {
+                        self.errors.push(Error::ClobberedNamespace {
+                            namespace_name: decl_item.name().name.to_string(),
+                            span: decl_item.span(),
+                        });
+                    }
+                };
                 continue;
             };
 
@@ -1014,8 +1030,24 @@ impl Resolver {
             let res = match (term_result, ty_result) {
                 // If either a term or a ty exists for this item already,
                 // as either an item or an export, then we should use that res.
-                (Ok(res @ (Res::Item(..) | Res::ExportedItem(..))), _)
-                | (_, Ok(res @ (Res::Item(..) | Res::ExportedItem(..)))) => res,
+                (
+                    Ok(
+                        res @ (Res::Item(..)
+                        | Res::ExportedItem(..)
+                        | Res::PrimTy(..)
+                        | Res::UnitTy),
+                    ),
+                    _,
+                )
+                | (
+                    _,
+                    Ok(
+                        res @ (Res::Item(..)
+                        | Res::ExportedItem(..)
+                        | Res::PrimTy(..)
+                        | Res::UnitTy),
+                    ),
+                ) => res,
                 // Then, if the item was found as either a term or ty but is _not_ an item or export, this export
                 // refers to an invalid res.
                 (Ok(_), _) | (_, Ok(_)) => {
@@ -1126,7 +1158,7 @@ impl Resolver {
         item: &ast::ImportOrExportItem,
         current_namespace: Option<NamespaceId>,
         err: &Error,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         let items = Into::<Idents>::into(item.path.clone());
         let ns = self.globals.find_namespace(items.str_iter());
         let alias = item
@@ -1141,13 +1173,26 @@ impl Resolver {
                 let alias = alias.unwrap_or(item.path.name.clone());
                 self.globals
                     .namespaces
-                    .insert_with_id(current_namespace, ns, &alias.name);
+                    .insert_with_id(current_namespace, ns, &alias.name)?;
             } else {
                 // for imports, we just bind the namespace as an open
                 self.bind_open(&items, &alias, ns);
             }
         } else {
             self.errors.push(err.clone());
+        }
+        Ok(())
+    }
+
+    pub(crate) fn with_errors(self, errors: Vec<Error>) -> Resolver {
+        Resolver {
+            names: self.names,
+            dropped_names: self.dropped_names,
+            curr_params: self.curr_params,
+            globals: self.globals,
+            locals: self.locals,
+            curr_scope_chain: self.curr_scope_chain,
+            errors,
         }
     }
 }
@@ -1423,11 +1468,7 @@ impl GlobalTable {
         }
 
         let mut scope = GlobalScope::default();
-        let ns = scope.insert_or_find_namespace(vec![
-            Rc::from("Microsoft"),
-            Rc::from("Quantum"),
-            Rc::from("Core"),
-        ]);
+        let ns = scope.insert_or_find_namespace(vec![Rc::from("Std"), Rc::from("Core")]);
 
         let mut tys = IndexMap::default();
         tys.insert(ns, core);
@@ -1437,7 +1478,7 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: IndexMap::default(),
-                namespaces: NamespaceTreeRoot::default(),
+                namespaces: scope.namespaces,
                 intrinsics: FxHashSet::default(),
             },
         }
@@ -1474,7 +1515,7 @@ impl GlobalTable {
         package: &hir::Package,
         store: &crate::compile::PackageStore,
         alias: &Option<Arc<str>>,
-    ) {
+    ) -> Result<(), Vec<Error>> {
         // if there is a package-level alias defined, use that for the root namespace.
         let root = match alias {
             Some(alias) => self
@@ -1485,9 +1526,12 @@ impl GlobalTable {
             None => self.scope.namespaces.root_id(),
         };
 
+        let mut errs = Vec::new();
         // iterate over the tree from the package and recreate it here
         for names_for_same_namespace in &package.namespaces {
             let mut names_iter = names_for_same_namespace.into_iter();
+            // grab the ID for this namespace from the "current" package, or
+            // create it if it doesn't exist
             let base_id = self.scope.insert_or_find_namespace_from_root(
                 names_iter
                     .next()
@@ -1496,9 +1540,20 @@ impl GlobalTable {
             );
 
             for name in names_iter {
-                self.scope
-                    .insert_or_find_namespace_from_root_with_id(name, root, base_id);
+                if let Err(ClobberedNamespace) = self
+                    .scope
+                    .insert_or_find_namespace_from_root_with_id(name.clone(), root, base_id)
+                {
+                    errs.push(Error::ClobberedNamespace {
+                        namespace_name: name.clone().join("."),
+                        span: Span::default(),
+                    });
+                }
             }
+        }
+
+        if !errs.is_empty() {
+            return Err(errs);
         }
 
         for global in global::iter_package(Some(id), package).filter(|global| {
@@ -1541,7 +1596,7 @@ impl GlobalTable {
                 }
                 (global::Kind::Export(item_id), _) => {
                     let Some(item) = find_item(store, item_id, id) else {
-                        return;
+                        return Ok(());
                     };
                     match item.kind {
                         hir::ItemKind::Callable(..) => {
@@ -1567,6 +1622,7 @@ impl GlobalTable {
                 (_, hir::Visibility::Internal) => {}
             }
         }
+        Ok(())
     }
 }
 
@@ -1713,9 +1769,16 @@ fn bind_global_item(
                     }
 
                     // and update the namespace tree
-                    scope
-                        .namespaces
-                        .insert_with_id(Some(namespace), ns, &decl_item.name().name);
+                    if let Err(ClobberedNamespace) =
+                        scope
+                            .namespaces
+                            .insert_with_id(Some(namespace), ns, &decl_item.name().name)
+                    {
+                        return Err(vec![Error::ClobberedNamespace {
+                            namespace_name: decl_item.name().name.to_string(),
+                            span: decl_item.name().span,
+                        }]);
+                    }
                 }
                 Ok(())
             }
@@ -2192,13 +2255,14 @@ pub fn prelude_namespaces(globals: &GlobalScope) -> Vec<(NamespaceId, String)> {
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
-        prelude.push((
-            globals
-                .namespaces
-                .get_namespace_id(prelude_namespace.to_vec())
-                .expect("prelude should always exist in the namespace map"),
-            prelude_namespace.join("."),
-        ));
+        // when evaluating the prelude namespaces themselves, they won't have been created yet. So we only
+        // include the ids that have been created.
+        if let Some(id) = globals
+            .namespaces
+            .get_namespace_id(prelude_namespace.to_vec())
+        {
+            prelude.push((id, prelude_namespace.join(".")));
+        }
     }
     prelude
 }
