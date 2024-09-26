@@ -2,6 +2,9 @@ import Std.Math.*;
 import Std.Arrays.*;
 import Std.Convert.*;
 
+/// # Summary
+/// Counts the number of marked states to be used to optimize Grover iterations to do.
+///
 function CountElements(list : Int[], threshold : Int, comparisonType : String) : Int {
     mutable count = 0;
 
@@ -16,8 +19,10 @@ function CountElements(list : Int[], threshold : Int, comparisonType : String) :
     return count;
 }
 
+/// # Summary
 /// Converts an integer to its binary representation as an array of Results.
 /// The least significant bit is at index 0.
+///
 function ConvertToBinary(value : Int, length : Int) : Result[] {
     // Validate input
     if (length <= 0) {
@@ -53,7 +58,9 @@ function ResultAsInt(r : Result) : Int {
     }
 }
 
-// Oracle that marks elements less than the threshold through Most Signficant Bit comparision
+/// # Summary
+/// Oracle that marks elements less than the threshold through Most Signficant Bit comparision
+///
 operation OracleLessThan(threshold : Int, inputQubits : Qubit[], auxQubit : Qubit) : Unit is Adj + Ctl {
     // Convert the threshold to binary and compare
     let thresholdBits = ConvertToBinary(threshold, Length(inputQubits));
@@ -75,7 +82,9 @@ operation OracleLessThan(threshold : Int, inputQubits : Qubit[], auxQubit : Qubi
     }
 }
 
-// Oracle that marks elements more than the threshold through Most Signficant Bit comparision
+/// # Summary
+/// Oracle that marks elements more than the threshold through Most Signficant Bit comparision
+///
 operation OracleMoreThan(threshold : Int, inputQubits : Qubit[], auxQubit : Qubit) : Unit is Adj + Ctl {
     // Convert the threshold to binary and compare
     let thresholdBits = ConvertToBinary(threshold, Length(inputQubits));
@@ -97,7 +106,9 @@ operation OracleMoreThan(threshold : Int, inputQubits : Qubit[], auxQubit : Qubi
     }
 }
 
-// Diffusion operator (Grover's diffusion)
+/// # Summary
+/// Diffusion operator (Grover's diffusion)
+///
 operation DiffusionOperator(qubits : Qubit[]) : Unit {
     ApplyToEach(H, qubits);
     ApplyToEach(X, qubits);
@@ -106,19 +117,25 @@ operation DiffusionOperator(qubits : Qubit[]) : Unit {
     ApplyToEach(H, qubits);
 }
 
-// Grover iteration with the oracle and diffusion operator for min
+/// # Summary
+/// Grover iteration with the oracle and diffusion operator for min
+///
 operation GroverIterationMin(threshold : Int, inputQubits : Qubit[], auxQubit : Qubit) : Unit {
     OracleLessThan(threshold, inputQubits, auxQubit);
     DiffusionOperator(inputQubits);
 }
 
-// Grover iteration with the oracle and diffusion operator for max
+/// # Summary
+/// Grover iteration with the oracle and diffusion operator for max
+///
 operation GroverIterationMax(threshold : Int, inputQubits : Qubit[], auxQubit : Qubit) : Unit {
     OracleMoreThan(threshold, inputQubits, auxQubit);
     DiffusionOperator(inputQubits);
 }
 
-// Dürr-Høyer for finding min or max algorithm
+/// # Summary
+/// Dürr-Høyer for finding min or max algorithm
+///
 operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candidate : Int, lengthList : Int) : Int {
     use inputQubits = Qubit[nQubits] {
         use auxQubit = Qubit() {
