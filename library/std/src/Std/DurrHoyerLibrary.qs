@@ -15,7 +15,7 @@ function CountElements(list : Int[], comparison : Int -> Bool) : Int {
     }
 
     return count;
-    }
+}
 
 /// # Summary
 /// Converts an integer to its binary representation as an array of Results.
@@ -122,7 +122,7 @@ operation GroverIterationMax(threshold : Int, inputQubits : Qubit[], auxQubit : 
 /// # Summary
 /// Dürr-Høyer for finding min or max algorithm
 ///
-operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candidate: Int, listSize : Int) : Int {
+operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candidate : Int, listSize : Int) : Int {
     mutable candidate = candidate;  // Random initial candidate
 
     use inputQubits = Qubit[nQubits] {
@@ -159,7 +159,7 @@ operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candida
 
                 // Perform Grover iterations for min or max
                 for i in 1..optimalIterations {
-                    let groverIteration = (type=="min") ? GroverIterationMin | GroverIterationMax;
+                    let groverIteration = (type == "min") ? GroverIterationMin | GroverIterationMax;
                     groverIteration(list[candidate], inputQubits, auxQubit);
 
                     // Measure qubits and convert to an integer index
