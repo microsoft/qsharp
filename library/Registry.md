@@ -1,6 +1,6 @@
 # Q# Package Registry
 
-This document is a list of notable Q# library projects. If you have a package that you would like to add to this list, please open a pull request.
+This document is a list of notable Q# library projects. If you have a project that you would like to add to this list, please open a pull request.
 
 ## Unstable
 
