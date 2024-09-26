@@ -59,8 +59,6 @@ impl Backend for Builder {
             let mapped_q = self.map(q);
             // In the Circuit schema, result id is per-qubit
             let res_id = self.num_measurements_for_qubit(mapped_q);
-            // We don't actually need the Remapper since we're not
-            // remapping any qubits, but it's handy for keeping track of measurements
             let id = self.remapper.m(q);
 
             self.push_gate(measurement_gate(mapped_q.0, res_id));
@@ -249,21 +247,6 @@ impl Builder {
         self.circuit.operations.push(gate);
     }
 
-    fn num_measurements_by_qubit(&self) -> IndexMap<usize, usize> {
-        self.remapper.qubit_measurement_counts.iter().fold(
-            IndexMap::default(),
-            |mut map: IndexMap<usize, usize>, (q, _)| {
-                match map.get_mut(q.0) {
-                    Some(rs) => *rs += 1,
-                    None => {
-                        map.insert(q.0, 1);
-                    }
-                }
-                map
-            },
-        )
-    }
-
     fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
         self.remapper
             .qubit_measurement_counts
@@ -273,19 +256,17 @@ impl Builder {
     }
 
     fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
-        let by_qubit = self.num_measurements_by_qubit();
-
         // add deferred measurements
         if self.config.base_profile {
-            for (qubit, _) in &by_qubit {
+            for (qubit, _) in &self.remapper.qubit_measurement_counts {
                 // guaranteed one measurement per qubit, so result is always 0
-                circuit.operations.push(measurement_gate(qubit, 0));
+                circuit.operations.push(measurement_gate(qubit.0, 0));
             }
         }
 
         // add qubit declarations
         for i in 0..self.remapper.num_qubits() {
-            let num_measurements = by_qubit.get(i).map_or(0, |c| *c);
+            let num_measurements = self.num_measurements_for_qubit(WireId(i));
             circuit.qubits.push(crate::circuit::Qubit {
                 id: i,
                 num_children: num_measurements,
