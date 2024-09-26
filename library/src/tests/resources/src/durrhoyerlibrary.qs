@@ -83,4 +83,30 @@ namespace Test {
         // Use the shared logic to run the test with "max" type
         RunDurrHoyerTestWithShots(testLists, expectedMaxIndices, shots, "max");
     }
+    operation RunDurrHoyerMaximumUnitTestWithShots(shots : Int) : Unit {
+        let testLists : Int[][] = [
+            [2, 3, 1, 5, 4],
+            [1, 5, 4, 3, 6],
+            [7, 5, 6, 1, 2]
+        ];
+
+        // Expected results (maximum element index for each list)
+        let expectedMaxIndices : Int[] = [3, 4, 0];
+
+        // Use the shared logic to run the test with "max" type
+        RunDurrHoyerTestWithShots(testLists, expectedMaxIndices, shots, "max");
+    }
+    operation RunDurrHoyerZeroValuesUnitTestWithShots(shots : Int) : Unit {
+    let testLists = [
+        [0, 3, 1, 2, 4],
+        [6, 0, 4, 3, 1],
+        [7, 5, 6, 0, 2]
+    ];
+
+    // Expected results (minimum element index for each list)
+    let expectedMinIndices = [0, 1, 3];
+
+    // Use the shared logic to run the test with "min" type
+    RunDurrHoyerTestWithShots(testLists, expectedMinIndices, shots, "min");
+    }
 }
