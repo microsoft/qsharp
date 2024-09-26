@@ -5,7 +5,8 @@ namespace Test {
     import Std.Arrays.*;
     import Std.Convert.*;
     import Std.Random.*
-    import Std.DurrHoyerLibrary.*; function MaxIntArray(arr : Int[]) : Int {
+    import Std.DurrHoyerLibrary.*;
+    function MaxIntArray(arr : Int[]) : Int {
         mutable max = arr[0];
         for i in 1..(Length(arr) - 1) {
             if (arr[i] > max) {
@@ -65,21 +66,6 @@ namespace Test {
 
         // Use the shared logic to run the test with "min" type
         RunDurrHoyerTestWithShots(testLists, expectedMinIndices, shots, "min");
-    }
-
-    // Maximum test case using the shared logic
-    operation RunDurrHoyerMaximumUnitTestWithShots(shots : Int) : Unit {
-        let testLists : Int[][] = [
-            [2, 3, 1, 5, 4],
-            [1, 5, 4, 3, 6],
-            [7, 5, 6, 1, 2]
-        ];
-
-        // Expected results (maximum element index for each list)
-        let expectedMaxIndices : Int[] = [3, 4, 0];
-
-        // Use the shared logic to run the test with "max" type
-        RunDurrHoyerTestWithShots(testLists, expectedMaxIndices, shots, "max");
     }
     operation RunDurrHoyerMaximumUnitTestWithShots(shots : Int) : Unit {
         let testLists : Int[][] = [
