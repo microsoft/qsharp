@@ -1,17 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 namespace Test {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Core;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.DurrHoyerLibrary;
-
+    import Std.Math.*;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Random.*
+    import Std.DurrHoyerLibrary.*;
     // Function to find the maximum element in an array
     function MaxIntArray(arr : Int[]) : Int {
         mutable max = arr[0];
@@ -77,10 +71,10 @@ namespace Test {
         ];
 
         // Expected results (maximum element index for each list)
-        let expectedMinIndices : Int[] = [2, 4, 3];
+        let expectedMaxIndices : Int[] = [2, 4, 3];
 
         // Iterate over test cases
-        for (list, expectedMinIndex) in Zipped(testLists, expectedMinIndices) {
+        for (list, expectedMaxIndex) in Zipped(testLists, expectedMaxIndices) {
             let lenghtList : Int = Lenght(list)
             let candidateMax : Int = DrawRandomInt(0, lengthList - 1)
             let maxValue = MaxIntArray(list);
@@ -93,10 +87,10 @@ namespace Test {
 
             // Run the Durr-Hoyer algorithm multiple times (shots)
             for _ in 1..shots {
-                let minIndex : Int = DurrHoyerFinding(list, nQubits, "max", candidateMax, lengthList);
+                let maxIndex : Int = DurrHoyerFinding(list, nQubits, "max", candidateMax, lengthList);
 
                 // Check if the found index matches the expected maximum index
-                if (minIndex == expectedMinIndex) {
+                if (maxIndex == expectedMaxIndex) {
                     set correctCount += 1;
                 }
             }
@@ -111,5 +105,4 @@ namespace Test {
             Message($"List: {list}");
             Message($"Probability of finding the maximum is {probability * 100.0}%");
         }
-    }
-}
+    } }
