@@ -9,6 +9,7 @@ mod canon;
 mod convert;
 mod core;
 mod diagnostics;
+mod durrhoyerlibrary;
 mod intrinsic;
 mod logical;
 mod math;

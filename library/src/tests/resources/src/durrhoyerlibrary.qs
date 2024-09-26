@@ -4,8 +4,10 @@ namespace Test {
     import Std.Math.*;
     import Std.Arrays.*;
     import Std.Convert.*;
-    import Std.Random.*
+    import Std.Random.*;
+    import Std.Diagnostics.*;
     import Std.DurrHoyerLibrary.*;
+
     function MaxIntArray(arr : Int[]) : Int {
         mutable max = arr[0];
         for i in 1..(Length(arr) - 1) {
@@ -92,4 +94,5 @@ namespace Test {
 
         // Use the shared logic to run the test with "min" type
         RunDurrHoyerTestWithShots(testLists, expectedMinIndices, shots, "min");
-    } }
+    }
+}
