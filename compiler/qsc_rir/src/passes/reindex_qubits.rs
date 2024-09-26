@@ -11,8 +11,8 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     builder,
-    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty},
-    utils::{build_predecessors_map, get_block_successors},
+    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program},
+    utils::build_predecessors_map,
 };
 
 #[derive(Clone)]
@@ -154,26 +154,30 @@ impl ReindexQubitPass {
         qubit_map: &mut BlockQubitMap,
     ) {
         let instrs = std::mem::take(&mut block.0);
-        for instr in instrs {
+        for i in 0..instrs.len() {
             // Assume qubits only appear in void call instructions.
+            let instr = &instrs[i];
             match instr {
                 Instruction::Call(call_id, args, _)
-                    if program.get_callable(call_id).call_type == CallableType::Reset =>
+                    if program.get_callable(*call_id).call_type == CallableType::Reset =>
                 {
                     // Generate any new qubit ids and skip adding the instruction.
                     for arg in args {
                         if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
-                            qubit_map.map.insert(qubit_id, qubit_map.next_qubit_id);
+                            qubit_map.map.insert(*qubit_id, qubit_map.next_qubit_id);
                             qubit_map.next_qubit_id += 1;
                         }
                     }
                 }
                 Instruction::Call(call_id, args, None) => {
+                    let mut ids_used = Vec::new();
+
                     // Map the qubit args, if any, and copy over the instruction.
                     let new_args = args
                         .iter()
                         .map(|arg| match arg {
                             Operand::Literal(Literal::Qubit(qubit_id)) => {
+                                ids_used.push(*qubit_id);
                                 match qubit_map.map.get(qubit_id) {
                                     Some(mapped_id) => {
                                         // If the qubit has already been mapped, use the mapped id.
@@ -187,27 +191,42 @@ impl ReindexQubitPass {
                         })
                         .collect::<Vec<_>>();
 
-                    if call_id == self.m_id {
-                        // Since the call was to mz, the new qubit replacing this one must be conditionally flipped.
-                        // Achieve this by adding a CNOT gate before the mz call.
-                        self.used_cx = true;
-                        block.0.push(Instruction::Call(
-                            self.cx_id,
-                            vec![
-                                new_args[0],
-                                Operand::Literal(Literal::Qubit(qubit_map.next_qubit_id)),
-                            ],
-                            None,
-                        ));
-                        self.highest_used_id = self.highest_used_id.max(qubit_map.next_qubit_id);
+                    if *call_id == self.m_id {
+                        if qubit_used_in_instrs(
+                            *ids_used
+                                .first()
+                                .expect("measurement call should have at least one argument"),
+                            instrs.iter().skip(i + 1),
+                        ) {
+                            // Since the call was to mz and the qubit is reused later in the block,
+                            // the new qubit replacing this one must be conditionally flipped.
+                            // Achieve this by adding a CNOT gate before the mz call.
+                            self.used_cx = true;
+                            block.0.push(Instruction::Call(
+                                self.cx_id,
+                                vec![
+                                    new_args[0],
+                                    Operand::Literal(Literal::Qubit(qubit_map.next_qubit_id)),
+                                ],
+                                None,
+                            ));
+                            self.highest_used_id =
+                                self.highest_used_id.max(qubit_map.next_qubit_id);
+                        } else {
+                            // The call was to mz and the qubit is not reused later in the block, so
+                            // there is no need to remap it at all as this is the last operation. Skip
+                            // the rest of the logic.
+                            block.0.push(Instruction::Call(*call_id, new_args, None));
+                            continue;
+                        }
                     }
 
                     // If the call was to mresetz, replace with mz.
-                    let call_id = if Some(call_id) == self.mresetz_id {
+                    let call_id = if Some(*call_id) == self.mresetz_id {
                         self.used_m = true;
                         self.m_id
                     } else {
-                        call_id
+                        *call_id
                     };
 
                     block.0.push(Instruction::Call(call_id, new_args, None));
@@ -216,7 +235,7 @@ impl ReindexQubitPass {
                         // Generate any new qubit ids after a measurement.
                         for arg in args {
                             if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
-                                qubit_map.map.insert(qubit_id, qubit_map.next_qubit_id);
+                                qubit_map.map.insert(*qubit_id, qubit_map.next_qubit_id);
                                 qubit_map.next_qubit_id += 1;
                             }
                         }
@@ -231,6 +250,21 @@ impl ReindexQubitPass {
     }
 }
 
+fn qubit_used_in_instrs<'a>(id: u32, instrs: impl Iterator<Item = &'a Instruction>) -> bool {
+    for instr in instrs {
+        if let Instruction::Call(_, args, _) = instr {
+            for arg in args {
+                if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
+                    if *qubit_id == id {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
 fn validate_assumptions(program: &Program) {
     // Ensure only one callable with a body exists.
     for (callable_id, callable) in program.callables.iter() {
@@ -240,23 +274,12 @@ fn validate_assumptions(program: &Program) {
         );
     }
 
-    // Ensure entry point callable blocks are a topologically ordered DAG.
-    // We can check this quickly by verifying that each block only has successors with higher ids.
-    for (block_id, block) in program.blocks.iter() {
-        assert!(
-            get_block_successors(block)
-                .iter()
-                .all(|&succ_id| succ_id > block_id),
-            "blocks must form a topologically ordered DAG"
-        );
-        // Ensure that no dynamic qubits are used.
-        for instr in &block.0 {
-            assert!(
-                !matches!(instr, Instruction::Store(_, var) if var.ty == Ty::Qubit),
-                "Dynamic qubits are not supported"
-            );
-        }
-    }
+    // Ensure the program is a single block, as optimized reindexing across multiple blocks is not supported.
+    assert_eq!(
+        program.blocks.iter().count(),
+        1,
+        "Reindexing qubits across multiple blocks is not supported"
+    );
 }
 
 fn find_callable(program: &Program, name: &str) -> Option<CallableId> {

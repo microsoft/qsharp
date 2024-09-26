@@ -47,8 +47,7 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
-    expect![
-        r#"
+    expect![[r#"
         namespace qasm3_import {
             operation Test(theta : Double, beta : Int) : Unit {
                 mutable c = [Zero, Zero];
@@ -58,11 +57,10 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
                 Rz(theta, q[0]);
                 H(q[0]);
                 CNOT(q[0], q[1]);
-                set c w/= 0 <- M(q[0]);
-                set c w/= 1 <- M(q[1]);
+                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
             }
-        }"#
-    ]
+        }"#]]
     .assert_eq(&qsharp);
 
     Ok(())
@@ -102,8 +100,7 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
-    expect![
-        r#"
+    expect![[r#"
         namespace qasm3_import {
             operation Test(theta : Double, beta : Int) : (Result[], Double, Double) {
                 mutable c = [Zero, Zero];
@@ -113,12 +110,11 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
                 Rz(theta, q[0]);
                 H(q[0]);
                 CNOT(q[0], q[1]);
-                set c w/= 0 <- M(q[0]);
-                set c w/= 1 <- M(q[1]);
+                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
                 (c, gamma, delta)
             }
-        }"#
-    ]
+        }"#]]
     .assert_eq(&qsharp);
 
     Ok(())
@@ -158,23 +154,21 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     );
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
-    expect![
-        r#"
-namespace qasm3_import {
-    operation Test(theta : Double, beta : Int) : Result[] {
-        mutable c = [Zero, Zero];
-        let q = QIR.Runtime.AllocateQubitArray(2);
-        mutable gamma = 0.;
-        mutable delta = 0.;
-        Rz(theta, q[0]);
-        H(q[0]);
-        CNOT(q[0], q[1]);
-        set c w/= 0 <- M(q[0]);
-        set c w/= 1 <- M(q[1]);
-        Microsoft.Quantum.Arrays.Reversed(c)
-    }
-}"#
-    ]
+    expect![[r#"
+        namespace qasm3_import {
+            operation Test(theta : Double, beta : Int) : Result[] {
+                mutable c = [Zero, Zero];
+                let q = QIR.Runtime.AllocateQubitArray(2);
+                mutable gamma = 0.;
+                mutable delta = 0.;
+                Rz(theta, q[0]);
+                H(q[0]);
+                CNOT(q[0], q[1]);
+                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                Microsoft.Quantum.Arrays.Reversed(c)
+            }
+        }"#]]
     .assert_eq(&qsharp);
 
     Ok(())
@@ -222,30 +216,28 @@ c2[2] = measure q[4];
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
     let qsharp = gen_qsharp(&package.clone());
-    expect![
-        r#"
-namespace qasm3_import {
-    operation Test(theta : Double, beta : Int) : (Result[], Result[]) {
-        mutable c = [Zero, Zero];
-        mutable c2 = [Zero, Zero, Zero];
-        let q = QIR.Runtime.AllocateQubitArray(5);
-        mutable gamma = 0.;
-        mutable delta = 0.;
-        Rz(theta, q[0]);
-        H(q[0]);
-        CNOT(q[0], q[1]);
-        X(q[2]);
-        I(q[3]);
-        X(q[4]);
-        set c w/= 0 <- M(q[0]);
-        set c w/= 1 <- M(q[1]);
-        set c2 w/= 0 <- M(q[2]);
-        set c2 w/= 1 <- M(q[3]);
-        set c2 w/= 2 <- M(q[4]);
-        (Microsoft.Quantum.Arrays.Reversed(c2), Microsoft.Quantum.Arrays.Reversed(c))
-    }
-}"#
-    ]
+    expect![[r#"
+        namespace qasm3_import {
+            operation Test(theta : Double, beta : Int) : (Result[], Result[]) {
+                mutable c = [Zero, Zero];
+                mutable c2 = [Zero, Zero, Zero];
+                let q = QIR.Runtime.AllocateQubitArray(5);
+                mutable gamma = 0.;
+                mutable delta = 0.;
+                Rz(theta, q[0]);
+                H(q[0]);
+                CNOT(q[0], q[1]);
+                X(q[2]);
+                I(q[3]);
+                X(q[4]);
+                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                set c2 w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[2]);
+                set c2 w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[3]);
+                set c2 w/= 2 <- QIR.Intrinsic.__quantum__qis__m__body(q[4]);
+                (Microsoft.Quantum.Arrays.Reversed(c2), Microsoft.Quantum.Arrays.Reversed(c))
+            }
+        }"#]]
     .assert_eq(&qsharp);
 
     Ok(())
@@ -279,8 +271,7 @@ c2[2] = measure q[4];
     "#;
 
     let qir = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
-    expect![
-        r#"
+    expect![[r#"
 %Result = type opaque
 %Qubit = type opaque
 
@@ -344,8 +335,7 @@ attributes #1 = { "irreversible" }
 !8 = !{i32 1, !"classical_fixed_points", i1 false}
 !9 = !{i32 1, !"user_functions", i1 false}
 !10 = !{i32 1, !"multiple_target_branching", i1 false}
-"#
-    ]
+"#]]
     .assert_eq(&qir);
 
     Ok(())
