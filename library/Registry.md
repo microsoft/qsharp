@@ -6,7 +6,7 @@ This document is a list of notable Q# library projects. If you have a project th
 
 [link](https://github.com/microsoft/qsharp/tree/main/library/unstable)
 
-A general staging ground for some useful APIs that have not yet been stabailized into the standard library.
+A general staging ground for some useful APIs that have not yet been stabilized into the standard library.
 
 ## Signed
 
