@@ -192,7 +192,12 @@ impl ReindexQubitPass {
                         .collect::<Vec<_>>();
 
                     if *call_id == self.m_id {
-                        if qubit_used_in_instrs(ids_used[0], &instrs[i + 1..]) {
+                        if qubit_used_in_instrs(
+                            *ids_used
+                                .first()
+                                .expect("measurement call should have at least one argument"),
+                            instrs.iter().skip(i + 1),
+                        ) {
                             // Since the call was to mz and the qubit is reused later in the block,
                             // the new qubit replacing this one must be conditionally flipped.
                             // Achieve this by adding a CNOT gate before the mz call.
@@ -245,12 +250,12 @@ impl ReindexQubitPass {
     }
 }
 
-fn qubit_used_in_instrs(ids_used: u32, instrs: &[Instruction]) -> bool {
+fn qubit_used_in_instrs<'a>(id: u32, instrs: impl Iterator<Item = &'a Instruction>) -> bool {
     for instr in instrs {
         if let Instruction::Call(_, args, _) = instr {
             for arg in args {
                 if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
-                    if *qubit_id == ids_used {
+                    if *qubit_id == id {
                         return true;
                     }
                 }
