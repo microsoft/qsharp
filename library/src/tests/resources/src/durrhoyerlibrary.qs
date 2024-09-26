@@ -34,9 +34,10 @@ namespace Test {
 
         // Expected results (minimum element index for each list)
         let expectedMinIndices = [2, 4, 3];
-
         // Iterate over test cases
         for (list, expectedMinIndex) in Zipped(testLists, expectedMinIndices) {
+            let lengthList : Int = Length(list)
+            let candidateMin : Int = DrawRandomInt(0, lengthList - 1)
             let maxValue = MaxIntArray(list);
             let double : Double = IntAsDouble(maxValue + 1);
             let log : Double = Log(double) / Log(2.0);
@@ -47,7 +48,7 @@ namespace Test {
 
             // Run the Durr-Hoyer algorithm multiple times (shots)
             for _ in 1..shots {
-                let minIndex : Int = DurrHoyerAlgorithm(list, nQubits, "min");
+                let minIndex : Int = DurrHoyerAlgorithm(list, nQubits, "min", candidateMin, lengthList);
 
                 // Check if the found index matches the expected minimum index
                 if (minIndex == expectedMinIndex) {
@@ -69,7 +70,7 @@ namespace Test {
     // Function to compute the probability of finding the maximum index
     operation RunDurrHoyerMaximumUnitTestWithShots(shots : Int) : Unit {
         // Define test lists for the unit test
-        let testLists : Int[][]= [
+        let testLists : Int[][] = [
             [5, 3, 1, 2, 4],
             [6, 5, 4, 3, 1],
             [7, 5, 6, 1, 2]
@@ -80,6 +81,8 @@ namespace Test {
 
         // Iterate over test cases
         for (list, expectedMinIndex) in Zipped(testLists, expectedMinIndices) {
+            let lenghtList : Int = Lenght(list)
+            let candidateMax : Int = DrawRandomInt(0, lengthList - 1)
             let maxValue = MaxIntArray(list);
             let double : Double = IntAsDouble(maxValue + 1);
             let log : Double = Log(double) / Log(2.0);
@@ -90,7 +93,7 @@ namespace Test {
 
             // Run the Durr-Hoyer algorithm multiple times (shots)
             for _ in 1..shots {
-                let minIndex : Int = DurrHoyerFinding(list, nQubits, "min");
+                let minIndex : Int = DurrHoyerFinding(list, nQubits, "max", candidateMax, lengthList);
 
                 // Check if the found index matches the expected maximum index
                 if (minIndex == expectedMinIndex) {

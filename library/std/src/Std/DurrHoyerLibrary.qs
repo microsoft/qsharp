@@ -1,8 +1,6 @@
-import Std.Math;
-import Std.Arrays;
-import Std.Convert;
-import Std.Random;
-import Std.Diagnostics;
+import Std.Math.*;
+import Std.Arrays.*;
+import Std.Convert.*;
 
 function CountElements(list : Int[], threshold : Int, comparisonType : String) : Int {
     mutable count = 0;
@@ -53,16 +51,6 @@ function ResultAsInt(r : Result) : Int {
     } else {
         return 0;
     }
-}
-
-function BitsToInt(bits : Result[]) : Int {
-    mutable result = 0;
-    for i in 0..Length(bits) - 1 {
-        if (bits[i] == One) {
-            set result += (1 <<< i);
-        }
-    }
-    return result;
 }
 
 // Oracle that marks elements less than the threshold through Most Signficant Bit comparision
@@ -131,10 +119,7 @@ operation GroverIterationMax(threshold : Int, inputQubits : Qubit[], auxQubit : 
 }
 
 // Dürr-Høyer for finding min or max algorithm
-operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String) : Int {
-    mutable candidateMin = DrawRandomInt(0, Length(list) - 1);  // Random initial candidate
-    let listSize = Length(list);
-
+operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candidate : Int, lengthList : Int) : Int {
     use inputQubits = Qubit[nQubits] {
         use auxQubit = Qubit() {
             // Create a superposition of all states
@@ -150,29 +135,29 @@ operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String) : Int {
                 set betterCandidateFound = false;
 
                 // Calculate M: the number of elements smaller than the current candidate (for min)
-                let M = CountElements(list, list[candidateMin], type);
+                let M : Int = CountElements(list, list[candidate], type);
 
                 // If there are no more elements smaller/larger, return the candidate
                 if (M == 0) {
                     Message("No more elements to compare, search complete.");
                     ResetAll(inputQubits + [auxQubit]);  // Ensure qubits are reset before returning
-                    return candidateMin;
+                    return candidate;
                 }
 
                 // Calculate the optimal number of Grover iterations
-                let N = Length(list);
-                let optimalIterations = Round((PI() / 4.0) * Sqrt(IntAsDouble(N) / IntAsDouble(M)));
+                let N : Int = Length(list);
+                let optimalIterations : Int = Round((PI() / 4.0) * Sqrt(IntAsDouble(N) / IntAsDouble(M)));
 
                 // Perform Grover iterations for min or max
                 for i in 1..optimalIterations {
                     if (type == "min") {
-                        GroverIterationMin(list[candidateMin], inputQubits, auxQubit);
+                        GroverIterationMin(list[candidate], inputQubits, auxQubit);
                     } else {
-                        GroverIterationMax(list[candidateMin], inputQubits, auxQubit);
+                        GroverIterationMax(list[candidate], inputQubits, auxQubit);
                     }
 
                     // Measure qubits and convert to an integer index
-                    mutable results = [];
+                    mutable results : Result[] = [];
                     for qubit in inputQubits {
                         let result = Measure([PauliZ], [qubit]);
                         set results += [result];
@@ -183,20 +168,20 @@ operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String) : Int {
                         }
                     }
 
-                    let candidateIndex = BitsToInt(results);
+                    let candidateIndex = ResultArrayAsInt(results);
 
                     // Check if the new candidate is valid and within bounds
-                    if (candidateIndex >= 0 and candidateIndex < listSize) {
+                    if (candidateIndex >= 0 and candidateIndex < lengthList) {
                         let candidateValue = list[candidateIndex];
 
                         // Update the candidate if a better one is found
-                        if (type == "min" and candidateValue < list[candidateMin]) {
-                            OracleLessThan(list[candidateMin], inputQubits, auxQubit); // Mark the last candidate
-                            set candidateMin = candidateIndex;
+                        if (type == "min" and candidateValue < list[candidate]) {
+                            OracleLessThan(list[candidate], inputQubits, auxQubit); // Mark the last candidate
+                            let candidate = candidateIndex;
                             set betterCandidateFound = true;
-                        } elif (type == "max" and candidateValue > list[candidateMin]) {
-                            OracleMoreThan(list[candidateMin], inputQubits, auxQubit); // Mark the last candidate
-                            set candidateMin = candidateIndex;
+                        } elif (type == "max" and candidateValue > list[candidate]) {
+                            OracleMoreThan(list[candidate], inputQubits, auxQubit); // Mark the last candidate
+                            let candidate = candidateIndex;
                             set betterCandidateFound = true;
                         }
                         set validIterations += 1;
@@ -215,7 +200,7 @@ operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String) : Int {
             ResetAll(inputQubits + [auxQubit]);
 
             // Return the found minimum or maximum index
-            return candidateMin;
+            return candidate;
         }
     }
 }
