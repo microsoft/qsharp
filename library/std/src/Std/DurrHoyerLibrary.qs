@@ -1,12 +1,8 @@
-open Microsoft.Quantum.Intrinsic;
-open Microsoft.Quantum.Canon;
-open Microsoft.Quantum.Math;
-open Microsoft.Quantum.Measurement;
-open Microsoft.Quantum.Arrays;
-open Microsoft.Quantum.Convert;
-open Microsoft.Quantum.Random;
-open Microsoft.Quantum.Core;
-open Microsoft.Quantum.Diagnostics;
+import Std.Math;
+import Std.Arrays;
+import Std.Convert;
+import Std.Random;
+import Std.Diagnostics;
 
 function CountElements(list : Int[], threshold : Int, comparisonType : String) : Int {
     mutable count = 0;
