@@ -184,7 +184,7 @@ operation DurrHoyerAlgorithm(list : Int[], nQubits : Int, type : String, candida
                         if (type == "min" and candidateValue < list[candidate]) {
                             OracleLessThan(list[candidate], inputQubits, auxQubit); // Mark the last candidate
                             set candidate = candidateIndex;
-                            set betterCandaidateFound = true;
+                            set betterCandidateFound = true;
                         } elif (type == "max" and candidateValue > list[candidate]) {
                             OracleMoreThan(list[candidate], inputQubits, auxQubit); // Mark the last candidate
                             set candidate = candidateIndex;
