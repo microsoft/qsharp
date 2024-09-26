@@ -182,7 +182,9 @@ pub(super) enum Error {
         #[label]
         span: Span,
     },
-    #[error("this namespace clobbers (replaces) an existing external namespace of the same name")]
+    #[error(
+        "this namespace overwrites (clobbers) an existing external namespace of the same name"
+    )]
     ClobberedNamespace {
         namespace_name: String,
         #[label]
