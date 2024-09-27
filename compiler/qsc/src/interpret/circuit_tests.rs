@@ -98,7 +98,7 @@ fn measure_same_qubit_twice() {
         q_0    ── H ──── M ──── M ──
                          ╘══════╪═══
                                 ╘═══
-    "#]]
+    "]]
     .assert_eq(&circ.to_string());
 }
 
