@@ -129,6 +129,7 @@ fn create_pipeline_with_distance(
         &unit_refs,
         unit_refs[0].qubit_t_error_rate(),
         failure_probability_requirement,
+        false,
     ) {
         Some((
             pipeline.physical_qubits(),
@@ -270,7 +271,7 @@ fn test_default_t_factory() {
     let ftp = surface_code_gate_based();
     let logical_qubit = LogicalPatch::new(&ftp, 15, Rc::new(physical_qubit))
         .expect("logical qubit contruction should succeed");
-    let tfactory = default_t_factory(&logical_qubit);
+    let tfactory = default_t_factory(&logical_qubit, false);
 
     assert_eq!(tfactory.num_rounds(), 1);
     assert_eq!(tfactory.num_units_per_round(), vec![1]);

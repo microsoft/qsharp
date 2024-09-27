@@ -142,6 +142,7 @@ pub struct RoundBasedFactory<P> {
     rounds: Vec<DistillationRound<P>>,
     input_error_rate_before_each_round: Vec<f64>,
     failure_probability_after_each_round: Vec<f64>,
+    separate_round_qubits: bool,
 }
 
 impl<P: Clone> RoundBasedFactory<P> {
@@ -152,6 +153,7 @@ impl<P: Clone> RoundBasedFactory<P> {
         rounds: Vec<DistillationRound<P>>,
         input_error_rate_before_each_round: Vec<f64>,
         failure_probability_after_each_round: Vec<f64>,
+        separate_round_qubits: bool,
     ) -> Self {
         Self {
             length,
@@ -159,6 +161,7 @@ impl<P: Clone> RoundBasedFactory<P> {
             rounds,
             input_error_rate_before_each_round,
             failure_probability_after_each_round,
+            separate_round_qubits,
         }
     }
 
@@ -166,6 +169,7 @@ impl<P: Clone> RoundBasedFactory<P> {
         units: &[&impl DistillationUnit<P>],
         initial_input_error_rate: f64,
         failure_probability_requirement: f64,
+        separate_round_qubits: bool,
     ) -> Result<RoundBasedFactory<P>, FactoryBuildError> {
         let rounds: Vec<DistillationRound<P>> = Vec::with_capacity(units.len());
         let mut input_error_rate_before_each_round = Vec::with_capacity(units.len() + 1);
@@ -178,6 +182,7 @@ impl<P: Clone> RoundBasedFactory<P> {
             rounds,
             input_error_rate_before_each_round,
             failure_probability_after_each_round,
+            separate_round_qubits,
         };
 
         pipeline.compute_units_per_round(units, 1)?;
@@ -321,11 +326,18 @@ impl<P: Clone> Factory for RoundBasedFactory<P> {
     type Parameter = P;
 
     fn physical_qubits(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(DistillationRound::physical_qubits)
-            .max()
-            .unwrap_or(0)
+        if self.separate_round_qubits {
+            self.rounds
+                .iter()
+                .map(DistillationRound::physical_qubits)
+                .sum::<u64>()
+        } else {
+            self.rounds
+                .iter()
+                .map(DistillationRound::physical_qubits)
+                .max()
+                .unwrap_or(0)
+        }
     }
 
     fn duration(&self) -> u64 {
