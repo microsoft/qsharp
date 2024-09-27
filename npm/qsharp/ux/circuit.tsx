@@ -39,6 +39,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
   const circuitDiv = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rendering, setRendering] = useState(true);
+  const [zoomOnResize, setZoomOnResize] = useState(true);
 
   useEffect(() => {
     // Enable "rendering" text while the circuit is being drawn
@@ -67,7 +68,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
         window.removeEventListener("resize", onResize);
       };
     }
-  }, [rendering]);
+  }, [rendering, zoomOnResize]);
 
   useEffect(() => {
     updateWidth();
@@ -77,7 +78,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
     <div>
       <div>
         {rendering ? null : (
-          <ZoomControl zoom={zoomLevel} onChange={setZoomLevel} />
+          <ZoomControl zoom={zoomLevel} onInput={userSetZoomLevel} />
         )}
       </div>
       <div>
@@ -94,6 +95,10 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
    * based on the new window width.
    */
   function onResize() {
+    if (!zoomOnResize) {
+      return;
+    }
+
     const [container, svg] = [circuitDiv.current, currentSvg()];
     if (container && svg) {
       // Recalculate the zoom level based on the container width
@@ -151,6 +156,11 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
   function currentSvg(): SVGElement | undefined {
     return circuitDiv.current?.querySelector(".qviz") ?? undefined;
   }
+
+  function userSetZoomLevel(zoom: number) {
+    setZoomOnResize(false);
+    setZoomLevel(zoom);
+  }
 }
 
 function Unrenderable(props: { qubits: number; operations: number }) {
@@ -178,10 +188,7 @@ function Unrenderable(props: { qubits: number; operations: number }) {
   return <div class="qs-circuit-error">{errorDiv}</div>;
 }
 
-function ZoomControl(props: {
-  zoom: number;
-  onChange: (zoom: number) => void;
-}) {
+function ZoomControl(props: { zoom: number; onInput: (zoom: number) => void }) {
   return (
     <p>
       <label htmlFor="qs-circuit-zoom">Zoom </label>
@@ -193,7 +200,7 @@ function ZoomControl(props: {
         step="10"
         value={props.zoom}
         onInput={(e) =>
-          props.onChange(parseInt((e.target as HTMLInputElement).value) || 0)
+          props.onInput(parseInt((e.target as HTMLInputElement).value) || 0)
         }
       />
       %
