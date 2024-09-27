@@ -94,7 +94,7 @@ fn measure_same_qubit_twice() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r#"
+    expect![["
         q_0    ── H ──── M ──── M ──
                          ╘══════╪═══
                                 ╘═══
