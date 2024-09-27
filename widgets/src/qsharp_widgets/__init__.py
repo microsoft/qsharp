@@ -179,3 +179,4 @@ class Circuit(anywidget.AnyWidget):
     def __init__(self, circuit):
         super().__init__()
         self.circuit_json = circuit.json()
+        self.layout.overflow = "visible scroll"
