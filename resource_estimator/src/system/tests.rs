@@ -37,6 +37,7 @@ fn estimate_single() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = "[{}]";
@@ -63,6 +64,7 @@ fn estimate_frontier() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = r#"[{
@@ -93,6 +95,7 @@ fn physical_estimates_crash() {
             ccz_count: 8,
             ccix_count: 0,
             measurement_count: 5,
+            precise_volume_data: None,
         },
         r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
             "qecScheme": {"name": "floquet_code"},
@@ -132,6 +135,10 @@ impl Overhead for TestLayoutOverhead {
 
     fn num_magic_states(&self, _: &ErrorBudget, _: usize) -> u64 {
         self.num_tstates
+    }
+
+    fn logical_volume(&self, _: &ErrorBudget, adjusted_logical_depth: u64) -> u64 {
+        self.num_qubits * adjusted_logical_depth
     }
 }
 
@@ -996,6 +1003,7 @@ fn test_report() {
         ccz_count: 0,
         ccix_count: 0,
         measurement_count: 0,
+        precise_volume_data: None,
     };
 
     let params: &str = "[{}]";
