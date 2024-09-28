@@ -7,11 +7,12 @@ mod tests;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, collections::BTreeMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-pub const PRELUDE: &[&[&str]; 4] = &[
-    &["Std", "Canon"],
-    &["Microsoft", "Quantum", "Core"],
-    &["Std", "Intrinsic"],
-    &["Std", "Measurement"],
+pub const PRELUDE: [[&str; 2]; 5] = [
+    ["Std", "Canon"],
+    ["Std", "Core"],
+    ["Std", "Intrinsic"],
+    ["Std", "Measurement"],
+    ["Std", "Range"],
 ];
 
 /// An ID that corresponds to a namespace in the global scope.
@@ -62,6 +63,13 @@ type NamespaceTreeCell = Rc<RefCell<NamespaceTreeNode>>;
 
 /// An entry in the memoization table for namespace ID lookups.
 type MemoEntry = (Vec<Rc<str>>, NamespaceTreeCell);
+
+/// Denotes that a namespace from an external package has been overridden by a local package namespace.
+/// This renders the contents of the foreign namespace unaccessible.
+/// E.g. a user explicitly creating a namespace called `namespace Std.Diagnostics`, where `Std` is the
+/// standard library.
+#[derive(Debug)]
+pub struct ClobberedNamespace;
 
 /// The root of the data structure that represents the namespaces in a program.
 /// The tree is a trie (prefix tree) where each node is a namespace and the children are the sub-namespaces.
@@ -170,14 +178,22 @@ impl NamespaceTreeRoot {
         parent: Option<NamespaceId>,
         new_child: NamespaceId,
         alias: &str,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         let parent = parent.unwrap_or_else(|| self.root_id());
         let (_, parent_node) = self.find_namespace_by_id(&parent);
         let (_, existing_ns) = self.find_namespace_by_id(&new_child);
+        if let Some(val) = parent_node.borrow().children.get(&Rc::from(alias)) {
+            if val.borrow().id != existing_ns.borrow().id {
+                return Err(ClobberedNamespace);
+            }
+        }
+
         parent_node
             .borrow_mut()
             .children
             .insert(Rc::from(alias), existing_ns);
+
+        Ok(())
     }
 
     /// Inserts (or finds) a new namespace as a child of an existing namespace.
@@ -204,9 +220,9 @@ impl NamespaceTreeRoot {
         mut ns: Vec<Rc<str>>,
         root: NamespaceId,
         base_id: NamespaceId,
-    ) {
+    ) -> Result<(), ClobberedNamespace> {
         if ns.is_empty() {
-            return;
+            return Ok(());
         }
         let (_root_name, root_contents) = self.find_namespace_by_id(&root);
         // split `ns` into [0..len - 1] and [len - 1]
@@ -215,15 +231,16 @@ impl NamespaceTreeRoot {
 
         // if the prefix is empty, we are inserting into the root
         if prefix.is_empty() {
-            self.insert_with_id(Some(root), base_id, &suffix);
+            self.insert_with_id(Some(root), base_id, &suffix)?;
         } else {
             let prefix_id = root_contents
                 .borrow_mut()
                 .insert_or_find_namespace(prefix.into_iter().peekable(), &mut self.assigner)
                 .expect("empty name checked for above");
 
-            self.insert_with_id(Some(prefix_id), base_id, &suffix);
+            self.insert_with_id(Some(prefix_id), base_id, &suffix)?;
         }
+        Ok(())
     }
 
     /// Each item in this iterator is the same, single namespace. The reason there are multiple paths for it,
@@ -270,20 +287,14 @@ impl IntoIterator for &NamespaceTreeRoot {
 
 impl Default for NamespaceTreeRoot {
     fn default() -> Self {
-        let mut tree = Self {
+        Self {
             assigner: 0,
             tree: Rc::new(RefCell::new(NamespaceTreeNode {
                 children: FxHashMap::default(),
                 id: NamespaceId::new(0),
             })),
             memo: RefCell::new(FxHashMap::default()),
-        };
-        // insert the prelude namespaces using the `NamespaceTreeRoot` API
-        for ns in PRELUDE {
-            let iter = ns.iter().map(|s| Rc::from(*s)).peekable();
-            let _ = tree.insert_or_find_namespace(iter);
         }
-        tree
     }
 }
 

@@ -295,22 +295,22 @@ fn call_generic_identity() {
 fn call_generic_length() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length([true, false, true])",
-        &expect![[r#"
-            #9 58-69 "(xs : 'T[])" : ?
-            #10 59-68 "xs : 'T[]" : ?
-            #19 98-125 "Length([true, false, true])" : Int
-            #20 98-104 "Length" : (Bool[] -> Int)
-            #23 104-125 "([true, false, true])" : Bool[]
-            #24 105-124 "[true, false, true]" : Bool[]
-            #25 106-110 "true" : Bool
-            #26 112-117 "false" : Bool
-            #27 119-123 "true" : Bool
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-111 "Length([true, false, true])" : Int
+            #19 84-90 "Length" : (Bool[] -> Int)
+            #22 90-111 "([true, false, true])" : Bool[]
+            #23 91-110 "[true, false, true]" : Bool[]
+            #24 92-96 "true" : Bool
+            #25 98-103 "false" : Bool
+            #26 105-109 "true" : Bool
+        "##]],
     );
 }
 
@@ -419,24 +419,24 @@ fn int_as_double_error() {
 fn length_type_error() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length((1, 2, 3))",
-        &expect![[r#"
-            #9 58-69 "(xs : 'T[])" : ?
-            #10 59-68 "xs : 'T[]" : ?
-            #19 98-115 "Length((1, 2, 3))" : Int
-            #20 98-104 "Length" : (?0[] -> Int)
-            #23 104-115 "((1, 2, 3))" : (Int, Int, Int)
-            #24 105-114 "(1, 2, 3)" : (Int, Int, Int)
-            #25 106-107 "1" : Int
-            #26 109-110 "2" : Int
-            #27 112-113 "3" : Int
-            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
-            Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-101 "Length((1, 2, 3))" : Int
+            #19 84-90 "Length" : (?0[] -> Int)
+            #22 90-101 "((1, 2, 3))" : (Int, Int, Int)
+            #23 91-100 "(1, 2, 3)" : (Int, Int, Int)
+            #24 92-93 "1" : Int
+            #25 95-96 "2" : Int
+            #26 98-99 "3" : Int
+            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 84, hi: 101 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 84, hi: 90 }))))
+        "##]],
     );
 }
 

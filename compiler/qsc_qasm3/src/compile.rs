@@ -2002,6 +2002,7 @@ impl QasmCompiler {
             return None;
         };
         let name_span = span_for_syntax_token(&measure_token);
+        let stmt_span = span_for_syntax_node(measure_expr.syntax());
 
         let Some(operand) = measure_expr.gate_operand() else {
             let span = span_for_syntax_node(expr.syntax());
@@ -2012,7 +2013,7 @@ impl QasmCompiler {
 
         let args = self.compile_gate_operand(&operand)?;
         let operand_span = span_for_syntax_node(operand.syntax());
-        let expr = build_measure_call(args.expr, name_span, operand_span);
+        let expr = build_measure_call(args.expr, name_span, operand_span, stmt_span);
 
         Some(QasmTypedExpr {
             ty: Type::Bit(IsConst::False),

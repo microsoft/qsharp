@@ -249,7 +249,7 @@ fn reexport() {
         (
             "PackageA",
             indoc! {"
-                    export Microsoft.Quantum.Core.Length as Foo;
+                    export Std.Core.Length as Foo;
                 "},
         ),
         (

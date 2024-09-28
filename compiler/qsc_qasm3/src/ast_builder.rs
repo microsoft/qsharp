@@ -652,8 +652,16 @@ pub(crate) fn build_measure_call(
     expr: ast::Expr,
     name_span: Span,
     operand_span: Span,
+    stmt_span: Span,
 ) -> ast::Expr {
-    build_global_call_with_one_param("M", expr, name_span, operand_span)
+    build_call_with_param(
+        "__quantum__qis__m__body",
+        &["QIR", "Intrinsic"],
+        expr,
+        name_span,
+        operand_span,
+        stmt_span,
+    )
 }
 
 pub(crate) fn build_reset_call(expr: ast::Expr, name_span: Span, operand_span: Span) -> ast::Expr {
@@ -788,6 +796,44 @@ pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> E
     Expr {
         id: NodeId::default(),
         span,
+        kind: Box::new(call),
+    }
+}
+
+pub(crate) fn build_call_with_param(
+    name: &str,
+    idents: &[&str],
+    operand: Expr,
+    name_span: Span,
+    operand_span: Span,
+    stmt_span: Span,
+) -> Expr {
+    let segments = build_idents(idents);
+    let fn_name = Ident {
+        name: Rc::from(name),
+        span: name_span,
+        ..Default::default()
+    };
+    let path_expr = Expr {
+        kind: Box::new(ExprKind::Path(Box::new(Path {
+            segments,
+            name: Box::new(fn_name),
+            ..Default::default()
+        }))),
+        ..Default::default()
+    };
+    let call = ExprKind::Call(
+        Box::new(path_expr),
+        Box::new(Expr {
+            kind: Box::new(ExprKind::Paren(Box::new(operand))),
+            span: operand_span,
+            ..Default::default()
+        }),
+    );
+
+    Expr {
+        id: NodeId::default(),
+        span: stmt_span,
         kind: Box::new(call),
     }
 }

@@ -34,8 +34,8 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/Convert.qs"),
     ),
     (
-        "qsharp-library-source:core.qs",
-        include_str!("../std/src/core.qs"),
+        "qsharp-library-source:Std/Range.qs",
+        include_str!("../std/src/Std/Range.qs"),
     ),
     (
         "qsharp-library-source:Std/Diagnostics.qs",
