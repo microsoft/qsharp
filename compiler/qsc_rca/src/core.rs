@@ -1915,32 +1915,16 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
     fn visit_item(&mut self, item: &'a Item) {
         let current_item_context = self.get_current_item_context();
         match &item.kind {
-            ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => {
+            ItemKind::Callable(decl) => {
+                self.visit_callable_decl(decl);
+            }
+            ItemKind::Export(_, _) | ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => {
+                // Items that are not callables do not have compute properties by themselves so we just record them as
+                // such in the package store compute properties data structure.
                 self.package_store_compute_properties.insert_item(
                     current_item_context.id,
                     InternalItemComputeProperties::NonCallable,
                 );
-            }
-            ItemKind::Callable(decl) => {
-                self.visit_callable_decl(decl);
-            }
-            ItemKind::Export(
-                _,
-                qsc_fir::fir::ItemId {
-                    package: Some(package),
-                    item,
-                },
-            ) => {
-                let package = self.package_store.get(*package);
-                let item = package
-                    .items
-                    .get(*item)
-                    .expect("item should exist in package");
-                self.visit_item(item);
-            }
-            ItemKind::Export(_, qsc_fir::fir::ItemId { package: None, .. }) => {
-                // if the package is none, then we know this item was defined in this package
-                // and therefore doesn't need to be analyzed -- the item itself will be analyzed.
             }
         };
     }

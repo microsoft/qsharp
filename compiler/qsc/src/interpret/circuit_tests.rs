@@ -73,6 +73,36 @@ fn one_gate() {
 }
 
 #[test]
+fn measure_same_qubit_twice() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q = Qubit();
+                    H(q);
+                    let r1 = M(q);
+                    let r2 = M(q);
+                    [r1, r2]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![["
+        q_0    ── H ──── M ──── M ──
+                         ╘══════╪═══
+                                ╘═══
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn toffoli() {
     let mut interpreter = interpreter(
         r"

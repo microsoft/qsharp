@@ -72,6 +72,14 @@ class TargetProfile(Enum):
     which will be used to run the Q# program.
     """
 
+    @classmethod
+    def from_str(cls, value: str) -> TargetProfile: ...
+    """
+    Creates a target profile from a string.
+    :param value: The string to parse.
+    :raises ValueError: If the string does not match any target profile.
+    """
+
     Base: TargetProfile
     """
     Target supports the minimal set of capabilities required to run a quantum

@@ -144,7 +144,6 @@ def test_generating_qir_without_registers_raises():
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-@ignore_on_failure
 def test_custom_qir_intrinsics_generates_qir():
     expected_qir = read_resource_file("custom_intrinsics.ll")
 
@@ -178,7 +177,6 @@ def test_custom_qir_intrinsics_generates_qir():
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-@ignore_on_failure
 def test_custom_qir_intrinsics_is_simulatable():
     def my_gate(self: QuantumCircuit, qubit: QubitSpecifier):
         return self.append(Gate(name="my_gate", num_qubits=1, params=[]), [qubit])

@@ -492,7 +492,7 @@ test("diagnostics with related spans", async () => {
       {
         code: "Qsc.Resolve.Ambiguous",
         message:
-          "name error: `DumpMachine` could refer to the item in `Microsoft.Quantum.Diagnostics` or `Other`",
+          "name error: `DumpMachine` could refer to the item in `Std.Diagnostics` or `Other`",
         related: [
           {
             message: "ambiguous name",

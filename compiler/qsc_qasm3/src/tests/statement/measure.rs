@@ -16,13 +16,11 @@ fn single_qubit_can_be_measured_into_single_bit() -> miette::Result<(), Vec<Repo
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-            mutable c = Zero;
-            let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-            set c = M(q);
-        "#
-    ]
+    expect![[r#"
+        mutable c = Zero;
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        set c = QIR.Intrinsic.__quantum__qis__m__body(q);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -37,13 +35,11 @@ fn single_qubit_can_be_arrow_measured_into_single_bit() -> miette::Result<(), Ve
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
             mutable c = Zero;
             let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-            set c = M(q);
-        "#
-    ]
+            set c = QIR.Intrinsic.__quantum__qis__m__body(q);
+        "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -58,13 +54,11 @@ fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-            mutable c = [Zero];
-            let q = QIR.Runtime.AllocateQubitArray(1);
-            set c w/= 0 <- M(q[0]);
-        "#
-    ]
+    expect![[r#"
+        mutable c = [Zero];
+        let q = QIR.Runtime.AllocateQubitArray(1);
+        set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -79,13 +73,11 @@ fn indexed_single_qubit_can_be_measured_into_single_bit_register() -> miette::Re
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-            mutable c = Zero;
-            let q = QIR.Runtime.AllocateQubitArray(1);
-            set c = M(q[0]);
-        "#
-    ]
+    expect![[r#"
+        mutable c = Zero;
+        let q = QIR.Runtime.AllocateQubitArray(1);
+        set c = QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -118,12 +110,10 @@ fn value_from_measurement_can_be_dropped() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-            let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-            M(q);
-        "#
-    ]
+    expect![[r#"
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        QIR.Intrinsic.__quantum__qis__m__body(q);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

@@ -10,6 +10,32 @@ use expect_test::expect;
 use qsc::TargetCapabilityFlags;
 
 #[test]
+fn check_rca_for_function_in_core_package() {
+    let compilation_context = CompilationContext::default();
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Repeated",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(0x0)
+                            value_kind: Array(Content: Dynamic, Size: Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange | UseOfDynamicallySizedArray | LoopWithDynamicCondition)
+                            value_kind: Array(Content: Dynamic, Size: Dynamic)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_closure_function_with_classical_captured_value() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(

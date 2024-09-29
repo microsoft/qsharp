@@ -110,14 +110,9 @@ export function Editor(props: {
   >([]);
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
-  function markErrors(version?: number) {
+  function markErrors() {
     const model = editor.current?.getModel();
     if (!model) return;
-
-    if (version != null && version !== model.getVersionId()) {
-      // Diagnostics event received for an outdated model
-      return;
-    }
 
     const errs = [
       ...errMarks.current.checkDiags,
@@ -304,7 +299,7 @@ export function Editor(props: {
     function onDiagnostics(evt: LanguageServiceEvent) {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
-      markErrors(evt.detail.version);
+      markErrors();
       setHasCheckErrors(
         diagnostics.filter((d) => d.severity === "error").length > 0,
       );

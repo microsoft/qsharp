@@ -8,8 +8,7 @@ namespace Microsoft.Quantum {
     export Std.Arrays, Std.Convert, Std.Diagnostics, Std.Logical, Std.Math, Std.Measurement, Std.Intrinsic, Std.Random, Std.ResourceEstimation, Std.Canon;
 }
 
-namespace Std {
-    export
-        Microsoft.Quantum.Canon,
-        Microsoft.Quantum.Core;
+namespace Microsoft.Quantum.Core {
+    import Std.Range.*;
+    export RangeStart, RangeEnd, IsRangeEmpty, Length, Repeated, Int, Qubit, Bool, Unit;
 }
