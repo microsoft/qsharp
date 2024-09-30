@@ -20,7 +20,7 @@ from ....estimator import EstimatorResult
 
 logger = logging.getLogger(__name__)
 
-RunInputCallable = Callable[[QuantumCircuit, str, *Dict[str, Any]], Result]
+RunInputCallable = Callable[[QuantumCircuit, str, Dict[str, Any]], Result]
 
 
 class QsJob(JobV1, ABC):
