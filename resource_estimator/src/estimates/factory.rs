@@ -142,6 +142,7 @@ pub struct RoundBasedFactory<P> {
     rounds: Vec<DistillationRound<P>>,
     input_error_rate_before_each_round: Vec<f64>,
     failure_probability_after_each_round: Vec<f64>,
+    physical_qubit_calculation: PhysicalQubitCalculation,
 }
 
 impl<P: Clone> RoundBasedFactory<P> {
@@ -159,6 +160,7 @@ impl<P: Clone> RoundBasedFactory<P> {
             rounds,
             input_error_rate_before_each_round,
             failure_probability_after_each_round,
+            physical_qubit_calculation: PhysicalQubitCalculation::default(),
         }
     }
 
@@ -178,6 +180,7 @@ impl<P: Clone> RoundBasedFactory<P> {
             rounds,
             input_error_rate_before_each_round,
             failure_probability_after_each_round,
+            physical_qubit_calculation: PhysicalQubitCalculation::default(),
         };
 
         pipeline.compute_units_per_round(units, 1)?;
@@ -205,6 +208,18 @@ impl<P: Clone> RoundBasedFactory<P> {
         }
 
         Ok(())
+    }
+
+    #[must_use]
+    pub fn physical_qubit_calculation(&self) -> PhysicalQubitCalculation {
+        self.physical_qubit_calculation
+    }
+
+    pub fn set_physical_qubit_calculation(
+        &mut self,
+        physical_qubit_calculation: PhysicalQubitCalculation,
+    ) {
+        self.physical_qubit_calculation = physical_qubit_calculation;
     }
 
     #[must_use]
@@ -321,11 +336,19 @@ impl<P: Clone> Factory for RoundBasedFactory<P> {
     type Parameter = P;
 
     fn physical_qubits(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(DistillationRound::physical_qubits)
-            .max()
-            .unwrap_or(0)
+        match self.physical_qubit_calculation {
+            PhysicalQubitCalculation::Max => self
+                .rounds
+                .iter()
+                .map(DistillationRound::physical_qubits)
+                .max()
+                .unwrap_or(0),
+            PhysicalQubitCalculation::Sum => self
+                .rounds
+                .iter()
+                .map(DistillationRound::physical_qubits)
+                .sum::<u64>(),
+        }
     }
 
     fn duration(&self) -> u64 {
@@ -349,4 +372,13 @@ impl<P: Clone> Factory for RoundBasedFactory<P> {
             .expect("at least one round should be present")
             .map(|f| Cow::Borrowed(f))
     }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub enum PhysicalQubitCalculation {
+    /// physical qubits can be shared among rounds
+    #[default]
+    Max,
+    /// each round has its own physical qubits
+    Sum,
 }
