@@ -25,6 +25,16 @@ import os
 
 _interpreter = None
 
+# Check if we are running in a Jupyter notebook to use the IPython display function
+_in_jupyter = False
+try:
+    from IPython.display import display
+
+    if get_ipython().__class__.__name__ == "ZMQInteractiveShell":  # type: ignore
+        _in_jupyter = True  # Jupyter notebook or qtconsole
+except:
+    pass
+
 
 # Reporting execution time during IPython cells requires that IPython
 # gets pinged to ensure it understands the cell is active. This is done by
@@ -177,6 +187,13 @@ def eval(source: str) -> Any:
     ipython_helper()
 
     def callback(output: Output) -> None:
+        if _in_jupyter:
+            try:
+                display(output)
+                return
+            except:
+                # If IPython is not available, fall back to printing the output
+                pass
         print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
@@ -220,6 +237,13 @@ def run(
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
+        if _in_jupyter:
+            try:
+                display(output)
+                return
+            except:
+                # If IPython is not available, fall back to printing the output
+                pass
         print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
@@ -405,11 +429,8 @@ class StateDump:
     def __str__(self) -> str:
         return self.__data.__str__()
 
-    def _repr_html_(self) -> str:
-        return self.__data._repr_html_()
-
-    def _repr_latex_(self) -> Optional[str]:
-        return self.__data._repr_latex_()
+    def _repr_markdown_(self) -> str:
+        return self.__data._repr_markdown_()
 
     def check_eq(
         self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
