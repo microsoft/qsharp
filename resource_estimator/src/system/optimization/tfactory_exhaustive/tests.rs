@@ -28,7 +28,6 @@ fn test_one_t_error_rate() {
         1e-18,
         35,
         MAX_DISTILLATION_ROUNDS,
-        false,
     );
     let elapsed = start.elapsed();
 
@@ -45,7 +44,7 @@ fn test_one_t_error_rate() {
 
 #[test]
 pub fn chemistry_qubit_gate_us_e3_test() {
-    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e3", false);
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e3");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 50460);
@@ -59,7 +58,7 @@ pub fn chemistry_qubit_gate_us_e3_test() {
 
 #[test]
 pub fn chemistry_qubit_gate_us_e4_test() {
-    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e4", false);
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_us_e4");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 13500);
@@ -73,7 +72,7 @@ pub fn chemistry_qubit_gate_us_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_gate_ns_e3_test() {
-    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e3", false);
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e3");
 
     assert_eq!(tfactories.len(), 4);
     assert_eq!(tfactories[0].physical_qubits(), 82620);
@@ -85,28 +84,11 @@ pub fn chemistry_qubit_gate_ns_e3_test() {
     assert_eq!(tfactories[1].duration(), 112_800);
     assert_eq!(tfactories[2].duration(), 152_400);
     assert_eq!(tfactories[3].duration(), 222_000);
-
-    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e3", true);
-
-    assert_eq!(tfactories.len(), 6);
-    assert_eq!(tfactories[0].physical_qubits(), 133_080);
-    assert_eq!(tfactories[1].physical_qubits(), 105_540);
-    assert_eq!(tfactories[2].physical_qubits(), 100_032);
-    assert_eq!(tfactories[3].physical_qubits(), 88_720);
-    assert_eq!(tfactories[4].physical_qubits(), 83_212);
-    assert_eq!(tfactories[5].physical_qubits(), 79_848);
-
-    assert_eq!(tfactories[0].duration(), 91_200);
-    assert_eq!(tfactories[1].duration(), 112_800);
-    assert_eq!(tfactories[2].duration(), 152_400);
-    assert_eq!(tfactories[3].duration(), 182_400);
-    assert_eq!(tfactories[4].duration(), 222_000);
-    assert_eq!(tfactories[5].duration(), 349_600);
 }
 
 #[test]
 pub fn chemistry_qubit_gate_ns_e4_test() {
-    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e4", false);
+    let tfactories = find_tfactories(&surface_code_gate_based(), "qubit_gate_ns_e4");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 24000);
@@ -120,7 +102,7 @@ pub fn chemistry_qubit_gate_ns_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_maj_ns_e4_test() {
-    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e4", false);
+    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e4");
 
     assert_eq!(tfactories.len(), 5);
     assert_eq!(tfactories[0].physical_qubits(), 619_814);
@@ -138,7 +120,7 @@ pub fn chemistry_qubit_maj_ns_e4_test() {
 
 #[test]
 pub fn chemistry_qubit_maj_ns_e6_test() {
-    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e6", false);
+    let tfactories = find_tfactories(&floquet_code(), "qubit_maj_ns_e6");
 
     assert_eq!(tfactories.len(), 3);
     assert_eq!(tfactories[0].physical_qubits(), 24960);
@@ -166,7 +148,6 @@ fn required_logical_tstate_error_too_high() {
         output_t_error_rate,
         max_code_distance,
         MAX_DISTILLATION_ROUNDS,
-        false,
     );
 
     assert_eq!(population.items().len(), 1);
@@ -178,11 +159,7 @@ fn required_logical_tstate_error_too_high() {
     assert_eq!(tfactory.unit_names(), vec!["trivial 1-to-1"]);
 }
 
-fn find_tfactories<'a>(
-    ftp: &Protocol,
-    qubit_name: &str,
-    separate_round_qubits: bool,
-) -> Vec<Cow<'a, TFactory>> {
+fn find_tfactories<'a>(ftp: &Protocol, qubit_name: &str) -> Vec<Cow<'a, TFactory>> {
     let qubit: Rc<PhysicalQubit> = serde_json::from_str(&format!(r#"{{"name": "{qubit_name}"}}"#))
         .expect("json should be valid");
 
@@ -194,7 +171,6 @@ fn find_tfactories<'a>(
         output_t_error_rate,
         *ftp.max_code_distance().expect("code has max code distance"),
         MAX_DISTILLATION_ROUNDS,
-        separate_round_qubits,
     )
 }
 

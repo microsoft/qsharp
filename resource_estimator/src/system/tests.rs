@@ -1017,7 +1017,6 @@ fn create_factory_builder() -> TFactoryBuilder {
     TFactoryBuilder::new(
         TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         MAX_DISTILLATION_ROUNDS,
-        false,
     )
 }
 

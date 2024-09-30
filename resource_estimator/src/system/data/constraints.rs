@@ -22,8 +22,6 @@ pub struct Constraints {
     pub max_physical_qubits: Option<u64>,
     #[serde(default = "Constraints::max_distillation_rounds_default")]
     pub max_distillation_rounds: u64,
-    #[serde(default)]
-    pub(crate) separate_round_qubits: bool,
 }
 
 impl Default for Constraints {
@@ -34,7 +32,6 @@ impl Default for Constraints {
             max_duration: None,
             max_physical_qubits: None,
             max_distillation_rounds: Self::max_distillation_rounds_default(),
-            separate_round_qubits: false,
         }
     }
 }

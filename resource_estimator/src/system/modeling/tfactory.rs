@@ -462,10 +462,7 @@ impl DistillationUnit<u64> for TFactoryDistillationUnit<'_> {
 
 pub type TFactory = RoundBasedFactory<u64>;
 
-pub fn default_t_factory(
-    logical_qubit: &LogicalPatch<Protocol>,
-    separate_round_qubits: bool,
-) -> TFactory {
+pub fn default_t_factory(logical_qubit: &LogicalPatch<Protocol>) -> TFactory {
     let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
     let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
     let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);
@@ -487,7 +484,6 @@ pub fn default_t_factory(
         rounds,
         input_t_error_rate_before_each_round,
         failure_probability_after_each_round,
-        separate_round_qubits,
     )
 }
 

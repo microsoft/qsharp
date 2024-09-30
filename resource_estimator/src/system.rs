@@ -96,7 +96,6 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
         TFactoryBuilder::new(
             distillation_unit_templates,
             job_params.constraints().max_distillation_rounds,
-            job_params.constraints().separate_round_qubits,
         ),
         logical_resources.clone(),
         partitioning,

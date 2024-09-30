@@ -40,10 +40,6 @@ where
     /// Pareto frontier of currently best `TFactories`.
     /// We optimize them by two duration and normalized qubits.
     frontier_factories: Population<P>,
-    /// Controls how the number of physical qubits for a factory are computed:
-    /// if true, each round has its own physical qubits, if false, physical
-    /// qubits can be shared among rounds.
-    separate_round_qubits: bool,
 }
 
 trait TFactoryExhaustiveSearchOptions {
@@ -73,14 +69,13 @@ where
     P: From<TFactory>,
     P: TFactoryExhaustiveSearchOptions,
 {
-    fn new(output_t_error_rate: f64, separate_round_qubits: bool) -> Self {
+    fn new(output_t_error_rate: f64) -> Self {
         Self {
             output_t_error_rate,
             frontier_factories: Population::<P>::new(),
             num_combinations: 0,
             num_valid: 0,
             num_candidates: 0,
-            separate_round_qubits,
         }
     }
 
@@ -100,12 +95,7 @@ where
         // This is the success probability of producing the expected number of T
         // states in sufficient quality (see Appendix C in paper)
         #[allow(clippy::match_same_arms)]
-        match TFactory::build(
-            units,
-            units[0].qubit_t_error_rate(),
-            0.01,
-            self.separate_round_qubits,
-        ) {
+        match TFactory::build(units, units[0].qubit_t_error_rate(), 0.01) {
             Ok(factory) => {
                 self.num_valid += 1;
                 // This is the success probability of producing the expected number of T
@@ -227,7 +217,6 @@ pub(crate) fn find_nondominated_tfactories<'a>(
     output_t_error_rate: f64,
     max_code_distance: u64,
     max_distillation_rounds: u64,
-    separate_round_qubits: bool,
 ) -> Vec<Cow<'a, TFactory>> {
     let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
@@ -236,7 +225,6 @@ pub(crate) fn find_nondominated_tfactories<'a>(
         output_t_error_rate,
         max_code_distance,
         max_distillation_rounds,
-        separate_round_qubits,
     );
 
     points
@@ -253,7 +241,6 @@ fn find_nondominated_population<P>(
     output_t_error_rate: f64,
     max_code_distance: u64,
     max_distillation_rounds: u64,
-    separate_round_qubits: bool,
 ) -> Population<P>
 where
     P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
@@ -265,7 +252,7 @@ where
         let mut population = Population::<P>::new();
 
         if let Ok(logical_qubit) = LogicalPatch::new(ftp, max_code_distance, qubit.clone()) {
-            let factory = default_t_factory(&logical_qubit, separate_round_qubits);
+            let factory = default_t_factory(&logical_qubit);
             let point = P::from(factory);
             population.push(point);
         }
@@ -289,8 +276,7 @@ where
         distillation_unit_templates,
     );
 
-    let mut searcher =
-        TFactoryExhaustiveSearch::<P>::new(output_t_error_rate, separate_round_qubits);
+    let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
 
     for num_rounds in 1..=max_distillation_rounds {
         process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds as usize);
@@ -360,7 +346,6 @@ fn process_for_specifications_combination<P>(
 pub struct TFactoryBuilder {
     distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
     max_distillation_rounds: u64,
-    separate_round_qubits: bool,
 }
 
 impl TFactoryBuilder {
@@ -368,12 +353,10 @@ impl TFactoryBuilder {
     pub fn new(
         distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
         max_distillation_rounds: u64,
-        separate_round_qubits: bool,
     ) -> Self {
         Self {
             distillation_unit_templates,
             max_distillation_rounds,
-            separate_round_qubits,
         }
     }
 }
@@ -383,12 +366,10 @@ impl Default for TFactoryBuilder {
         let distillation_unit_templates =
             TFactoryDistillationUnitTemplate::default_distillation_unit_templates();
         let max_distillation_rounds = MAX_DISTILLATION_ROUNDS;
-        let separate_round_qubits = false;
 
         Self {
             distillation_unit_templates,
             max_distillation_rounds,
-            separate_round_qubits,
         }
     }
 }
@@ -411,7 +392,6 @@ impl FactoryBuilder<Protocol> for TFactoryBuilder {
             output_t_error_rate,
             *max_code_distance,
             self.max_distillation_rounds,
-            self.separate_round_qubits,
         ))
     }
 }

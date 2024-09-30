@@ -10,7 +10,7 @@ pub use error_correction::{CodeWithThresholdAndDistance, CodeWithThresholdAndDis
 mod factory;
 pub use factory::{
     BuilderDispatch2, DistillationRound, DistillationUnit, FactoryBuildError, FactoryDispatch2,
-    NoFactories, RoundBasedFactory,
+    NoFactories, PhysicalQubitCalculation, RoundBasedFactory,
 };
 mod physical_estimation;
 pub use physical_estimation::{
