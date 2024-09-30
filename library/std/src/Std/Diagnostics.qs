@@ -65,7 +65,7 @@ function DumpRegister(register : Qubit[]) : Unit {
 }
 
 /// # Summary
-/// Given an operation, dumps the matrix representation of the operation actiong on the given
+/// Given an operation, dumps the matrix representation of the operation action on the given
 /// number of qubits.
 ///
 /// # Input
