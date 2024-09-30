@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 
 # To be updated every time we start a new major.minor version.
-major_minor = "1.8"
+major_minor = "1.9"
 
 # Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
