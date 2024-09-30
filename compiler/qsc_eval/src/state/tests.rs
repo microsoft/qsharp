@@ -4,10 +4,10 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::{
-    get_state_latex, get_matrix_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
-    write_latex_for_complex_number, write_latex_for_decimal_number, write_latex_for_polar_form,
-    write_latex_for_real_number, write_latex_for_term, AlgebraicNumber, CartesianForm,
-    ComplexNumber, DecimalNumber, PolarForm, RationalNumber, RealNumber, Term,
+    get_matrix_latex, get_state_latex, write_latex_for_algebraic_number,
+    write_latex_for_cartesian_form, write_latex_for_complex_number, write_latex_for_decimal_number,
+    write_latex_for_polar_form, write_latex_for_real_number, write_latex_for_term, AlgebraicNumber,
+    CartesianForm, ComplexNumber, DecimalNumber, PolarForm, RationalNumber, RealNumber, Term,
 };
 use crate::state::{is_fractional_part_significant, is_significant};
 use expect_test::{expect, Expect};

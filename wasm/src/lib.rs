@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use project_system::{into_qsc_args, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
-    format_state_id, get_state_latex, get_matrix_latex,
+    format_state_id, get_matrix_latex, get_state_latex,
     hir::PackageId,
     interpret::{
         self,
