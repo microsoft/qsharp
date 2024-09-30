@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::{
-    get_latex, get_matrix_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
+    get_state_latex, get_matrix_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
     write_latex_for_complex_number, write_latex_for_decimal_number, write_latex_for_polar_form,
     write_latex_for_real_number, write_latex_for_term, AlgebraicNumber, CartesianForm,
     ComplexNumber, DecimalNumber, PolarForm, RationalNumber, RealNumber, Term,
@@ -708,19 +708,19 @@ fn check_get_latex_for_complex_number() {
 #[test]
 fn check_get_latex() {
     expect!([r"$|\psi\rangle = \left( \frac{1}{2}+\frac{1}{2}i \right)|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = -|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(-1.0, 0.0))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(-1.0, 0.0))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = -i|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(0.0, -1.0))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(0.0, -1.0))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle =  e^{-2 i \pi / 3}|00\rangle$"]).assert_eq(
-        &get_latex(
+        &get_state_latex(
             &vec![(
                 0_u8.into(),
                 Complex64::new((-2.0 * PI / 3.0).cos(), (-2.0 * PI / 3.0).sin()),
@@ -730,7 +730,7 @@ fn check_get_latex() {
         .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = \left( 1+\frac{\sqrt{2}}{2}i \right)|00\rangle+\left( 1+\frac{\sqrt{2}}{2}i \right)|10\rangle$"])
-    .assert_eq(&get_latex(
+    .assert_eq(&get_state_latex(
         &vec![
             (0_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
             (2_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
@@ -802,7 +802,7 @@ fn check_get_latex_perf() {
     ];
 
     expect!([r"$|\psi\rangle = \frac{1}{2}|00\rangle+\frac{1}{2} e^{ i \pi / 4}|01\rangle+\frac{1}{2}i|10\rangle+\frac{1}{2} e^{3 i \pi / 4}|11\rangle$"])
-    .assert_eq(&get_latex(
+    .assert_eq(&get_state_latex(
         &state,
         2,
     ).expect("expected valid latex"));
@@ -811,7 +811,7 @@ fn check_get_latex_perf() {
     let start = Instant::now();
     let mut l: usize = 0;
     for _ in 0..1_000 {
-        let s = get_latex(&state, 2);
+        let s = get_state_latex(&state, 2);
         l += s.map_or(0, |s| s.len());
     }
     println!(

@@ -7,7 +7,7 @@ mod tests;
 use num_bigint::BigUint;
 use num_complex::{Complex64, ComplexFloat};
 use qsc::{
-    fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_matrix_latex, get_phase,
+    fmt_basis_state_label, fmt_complex, format_state_id, get_state_latex, get_matrix_latex, get_phase,
 };
 use std::fmt::Write;
 
@@ -56,7 +56,7 @@ impl DisplayableState {
     }
 
     pub fn to_latex(&self) -> Option<String> {
-        get_latex(&self.0, self.1)
+        get_state_latex(&self.0, self.1)
     }
 }
 

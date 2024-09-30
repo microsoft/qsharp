@@ -349,7 +349,7 @@ fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
 /// `None` is returned if the resulting formula is not nice, i.e.
 /// if the formula consists of more than 16 terms or if more than two coefficients are not recognized.
 #[must_use]
-pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Option<String> {
+pub fn get_state_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Option<String> {
     if state.len() > 16 {
         return None;
     }

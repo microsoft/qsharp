@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use project_system::{into_qsc_args, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
-    format_state_id, get_latex, get_matrix_latex,
+    format_state_id, get_state_latex, get_matrix_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -261,7 +261,7 @@ where
         )
         .expect("writing to string should succeed");
 
-        let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
+        let json_latex = serde_json::to_string(&get_state_latex(&state, qubit_count))
             .expect("serialization should succeed");
         write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
             .expect("writing to string should succeed");
