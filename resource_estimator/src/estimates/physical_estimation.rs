@@ -114,10 +114,7 @@ impl<
         let required_logical_error_rate =
             self.required_logical_error_rate(num_cycles_required_by_layout_overhead);
 
-        let min_code_parameter = self
-            .ftp
-            .compute_code_parameter(&self.qubit, required_logical_error_rate)
-            .map_err(Error::CodeParameterComputationFailed)?;
+        let min_code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
 
         let num_magic_states = self.layout_overhead.num_magic_states(&self.error_budget, 0);
         if num_magic_states == 0 {
@@ -148,13 +145,8 @@ impl<
             let logical_patch =
                 LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
 
-            let allowed_logical_error_rate = self
-                .ftp
-                .logical_error_rate(&self.qubit, &code_parameter)
-                .map_err(Error::LogicalErrorRateComputationFailed)?;
-
             let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_error_rate(allowed_logical_error_rate);
+                self.logical_cycles_for_code_parameter(&code_parameter)?;
 
             if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
@@ -264,21 +256,12 @@ impl<
 
         loop {
             let required_logical_error_rate = self.required_logical_error_rate(num_cycles);
-
-            let code_parameter = self
-                .ftp
-                .compute_code_parameter(&self.qubit, required_logical_error_rate)
-                .map_err(Error::CodeParameterComputationFailed)?;
+            let code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
+            let max_allowed_num_cycles_for_code_parameter =
+                self.logical_cycles_for_code_parameter(&code_parameter)?;
 
             let logical_patch =
                 LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
-
-            let max_allowed_error_rate = self
-                .ftp
-                .logical_error_rate(&self.qubit, &code_parameter)
-                .map_err(Error::LogicalErrorRateComputationFailed)?;
-            let max_allowed_num_cycles_for_code_parameter =
-                self.logical_cycles_for_error_rate(max_allowed_error_rate);
 
             let mut factory_parts = vec![];
 
@@ -403,10 +386,7 @@ impl<
         let required_logical_error_rate =
             self.required_logical_error_rate(num_cycles_required_by_layout_overhead);
 
-        let min_code_parameter = self
-            .ftp
-            .compute_code_parameter(&self.qubit, required_logical_error_rate)
-            .map_err(Error::CodeParameterComputationFailed)?;
+        let min_code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
 
         Ok(InitialOptimizationValues {
             min_code_parameter,
@@ -474,13 +454,8 @@ impl<
                 continue;
             }
 
-            let allowed_logical_error_rate = self
-                .ftp
-                .logical_error_rate(&self.qubit, &code_parameter)
-                .map_err(Error::LogicalErrorRateComputationFailed)?;
-
             let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_error_rate(allowed_logical_error_rate);
+                self.logical_cycles_for_code_parameter(&code_parameter)?;
 
             if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
@@ -623,12 +598,8 @@ impl<
             let physical_qubits_allowed_for_magic_states =
                 max_num_qubits - physical_qubits_for_algorithm;
 
-            let min_allowed_logical_error_rate = self
-                .ftp
-                .logical_error_rate(&self.qubit, &code_parameter)
-                .map_err(Error::LogicalErrorRateComputationFailed)?;
             let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_error_rate(min_allowed_logical_error_rate);
+                self.logical_cycles_for_code_parameter(&code_parameter)?;
 
             if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
@@ -927,11 +898,27 @@ impl<
         self.error_budget.logical() / volume as f64
     }
 
-    /// Computes the number of possible cycles given a logical error rate per
-    /// operation
-    fn logical_cycles_for_error_rate(&self, error_rate: f64) -> u64 {
-        (self.error_budget.logical() / (self.layout_overhead.logical_qubits() as f64 * error_rate))
-            .floor() as u64
+    /// Computes the code parameter for the required logical error rate
+    fn compute_code_parameter(&self, error_rate: f64) -> Result<E::Parameter, Error> {
+        self.ftp
+            .compute_code_parameter(&self.qubit, error_rate)
+            .map_err(Error::CodeParameterComputationFailed)
+    }
+
+    /// Computes the number of possible cycles given a chosen code parameter
+    fn logical_cycles_for_code_parameter(
+        &self,
+        code_parameter: &E::Parameter,
+    ) -> Result<u64, Error> {
+        // Compute the achievable error rate for the code parameter
+        let error_rate = self
+            .ftp
+            .logical_error_rate(&self.qubit, code_parameter)
+            .map_err(Error::LogicalErrorRateComputationFailed)?;
+
+        Ok((self.error_budget.logical()
+            / (self.layout_overhead.logical_qubits() as f64 * error_rate))
+            .floor() as u64)
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
