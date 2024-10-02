@@ -612,17 +612,17 @@ impl<
     fn pick_factories_with_num_cycles<'a>(
         factories: &[Cow<'a, Builder::Factory>],
         logical_patch: &LogicalPatch<E>,
-        max_allowed_num_cycles_for_code_parameter: u64,
+        max_cycles: u64,
     ) -> Vec<(Cow<'a, Builder::Factory>, u64)> {
         factories
             .iter()
-            .map(|factory| {
-                let num = (factory.as_ref().duration() as f64
-                    / logical_patch.logical_cycle_time() as f64)
-                    .ceil() as u64;
-                (factory.clone(), num)
+            .filter_map(|factory| {
+                let num = factory
+                    .as_ref()
+                    .duration()
+                    .div_ceil(logical_patch.logical_cycle_time());
+                (num <= max_cycles).then_some((factory.clone(), num))
             })
-            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
             .collect()
     }
 
