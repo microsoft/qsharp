@@ -111,13 +111,8 @@ impl<
         if let Some(FactoryForCycles {
             factory,
             num_cycles: num_cycles_required,
-        }) = self.try_pick_factory_for_code_parameter_and_max_factories(
-            index,
-            &factories,
-            logical_patch,
-            min_cycles,
-            max_cycles,
-        ) {
+        }) = self.find_factory(index, &factories, logical_patch, min_cycles, max_cycles)
+        {
             let num_factories =
                 self.num_factories(logical_patch, index, &factory, num_cycles_required);
             Ok(FactoryPartsResult::Success {
@@ -134,7 +129,7 @@ impl<
         }
     }
 
-    fn try_pick_factory_for_code_parameter_and_max_factories<'b>(
+    fn find_factory<'b>(
         &self,
         magic_state_index: usize,
         factories: &[Cow<'b, B::Factory>],
@@ -162,7 +157,7 @@ impl<
         }
 
         // If no factory was found, try to find a factory up to max_cycles
-        if let Some(factory) = self.try_find_factory_for_code_parameter_duration_and_max_factories(
+        if let Some(factory) = self.find_factory_within_max_cycles(
             magic_state_index,
             factories,
             logical_patch,
@@ -174,37 +169,43 @@ impl<
         None
     }
 
-    fn try_find_factory_for_code_parameter_duration_and_max_factories<'b>(
+    fn find_factory_within_max_cycles<'b>(
         &self,
         magic_state_index: usize,
         factories: &[Cow<'b, B::Factory>],
         logical_patch: &LogicalPatch<E>,
         max_cycles: u64,
     ) -> Option<FactoryForCycles<'b, B::Factory>> {
-        if let Some(max_factories) = self.max_factories {
-            // consider max_factories constraint when searching factory
-            factories
-                .iter()
-                .filter_map(|factory| {
-                    let magic_states_per_run = max_factories * factory.num_output_states();
-                    let required_runs = self
-                        .layout_overhead
-                        .num_magic_states(&self.error_budget, magic_state_index)
-                        .div_ceil(magic_states_per_run);
-                    let required_duration = required_runs * factory.duration();
-                    let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
-
-                    (num <= max_cycles).then_some(FactoryForCycles::new(factory.clone(), num))
-                })
+        self.max_factories.map_or_else(
+            // if there is no max_factories constraint, pick whatever is best
+            // for given max cycles
+            || {
+                PhysicalResourceEstimation::<E, B, L>::pick_factories_with_num_cycles(
+                    factories,
+                    logical_patch,
+                    max_cycles,
+                )
                 .min()
-        } else {
-            PhysicalResourceEstimation::<E, B, L>::pick_factories_with_num_cycles(
-                factories,
-                logical_patch,
-                max_cycles,
-            )
-            .min()
-        }
+            },
+            // if there is a max_factories constraint, compute the maximum
+            // duration based on the factory constraint
+            |max_factories| {
+                factories
+                    .iter()
+                    .filter_map(|factory| {
+                        let magic_states_per_run = max_factories * factory.num_output_states();
+                        let required_runs = self
+                            .layout_overhead
+                            .num_magic_states(&self.error_budget, magic_state_index)
+                            .div_ceil(magic_states_per_run);
+                        let required_duration = required_runs * factory.duration();
+                        let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
+
+                        (num <= max_cycles).then_some(FactoryForCycles::new(factory.clone(), num))
+                    })
+                    .min()
+            },
+        )
     }
 
     // checks whether the provided parameters suffice to satisfy the
