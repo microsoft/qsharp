@@ -243,20 +243,18 @@ impl<
         .cloned()
     }
 
+    // checks whether the provided parameters suffice to satisfy the
+    // max_factories constraint.  If the max_factories constraint is not set,
+    // this function returns true.
     fn is_max_factories_constraint_satisfied(
         &self,
         logical_patch: &LogicalPatch<E>,
         factory: &B::Factory,
         num_cycles: u64,
     ) -> bool {
-        let num_factories = self.num_factories(logical_patch, 0, factory, num_cycles);
-
-        if let Some(max_factories) = self.max_factories {
-            if max_factories < num_factories {
-                return false;
-            }
-        }
-        true
+        self.max_factories.map_or(true, |max_factories| {
+            max_factories >= self.num_factories(logical_patch, 0, factory, num_cycles)
+        })
     }
 }
 
