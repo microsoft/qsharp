@@ -2,7 +2,9 @@ use std::{borrow::Cow, ops::Deref};
 
 use crate::estimates::{Error, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead};
 
-use super::{FactoryPart, PhysicalResourceEstimation, PhysicalResourceEstimationResult};
+use super::{
+    FactoryForCycles, FactoryPart, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
+};
 
 pub struct EstimateWithoutRestrictions<'a, E: ErrorCorrection, B, L> {
     estimator: &'a PhysicalResourceEstimation<E, B, L>,
@@ -106,15 +108,16 @@ impl<
             return Ok(FactoryPartsResult::NoFactories);
         }
 
-        if let Some((factory, num_cycles_required)) = self
-            .try_pick_factory_for_code_parameter_and_max_factories(
-                index,
-                &factories,
-                logical_patch,
-                min_cycles,
-                max_cycles,
-            )
-        {
+        if let Some(FactoryForCycles {
+            factory,
+            num_cycles: num_cycles_required,
+        }) = self.try_pick_factory_for_code_parameter_and_max_factories(
+            index,
+            &factories,
+            logical_patch,
+            min_cycles,
+            max_cycles,
+        ) {
             let num_factories =
                 self.num_factories(logical_patch, index, &factory, num_cycles_required);
             Ok(FactoryPartsResult::Success {
@@ -138,7 +141,7 @@ impl<
         logical_patch: &LogicalPatch<E>,
         min_cycles: u64,
         max_cycles: u64,
-    ) -> Option<(Cow<'b, B::Factory>, u64)> {
+    ) -> Option<FactoryForCycles<'b, B::Factory>> {
         // First, try to find a factory that can be applied within min_cycles;
         // return it, if successful
         let algorithm_duration = min_cycles * logical_patch.logical_cycle_time();
@@ -155,20 +158,17 @@ impl<
             .min_by(|&p, &q| p.normalized_volume().total_cmp(&q.normalized_volume()))
             .cloned()
         {
-            return Some((factory, min_cycles));
+            return Some(FactoryForCycles::new(factory, min_cycles));
         }
 
         // If no factory was found, try to find a factory up to max_cycles
-        if let Some((factory, num_cycles_required)) = self
-            .try_find_factory_for_code_parameter_duration_and_max_factories(
-                magic_state_index,
-                factories,
-                logical_patch,
-                max_cycles,
-            )
-        {
-            assert!(num_cycles_required <= max_cycles);
-            return Some((factory, num_cycles_required));
+        if let Some(factory) = self.try_find_factory_for_code_parameter_duration_and_max_factories(
+            magic_state_index,
+            factories,
+            logical_patch,
+            max_cycles,
+        ) {
+            return Some(factory);
         }
 
         None
@@ -180,61 +180,31 @@ impl<
         factories: &[Cow<'b, B::Factory>],
         logical_patch: &LogicalPatch<E>,
         max_cycles: u64,
-    ) -> Option<(Cow<'b, B::Factory>, u64)> {
+    ) -> Option<FactoryForCycles<'b, B::Factory>> {
         if let Some(max_factories) = self.max_factories {
-            return self.try_pick_factory_with_num_cycles_and_max_factories(
-                magic_state_index,
+            // consider max_factories constraint when searching factory
+            factories
+                .iter()
+                .filter_map(|factory| {
+                    let magic_states_per_run = max_factories * factory.num_output_states();
+                    let required_runs = self
+                        .layout_overhead
+                        .num_magic_states(&self.error_budget, magic_state_index)
+                        .div_ceil(magic_states_per_run);
+                    let required_duration = required_runs * factory.duration();
+                    let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
+
+                    (num <= max_cycles).then_some(FactoryForCycles::new(factory.clone(), num))
+                })
+                .min()
+        } else {
+            PhysicalResourceEstimation::<E, B, L>::pick_factories_with_num_cycles(
                 factories,
                 logical_patch,
                 max_cycles,
-                max_factories,
-            );
+            )
+            .min()
         }
-
-        Self::try_pick_factory_with_num_cycles(factories, logical_patch, max_cycles)
-    }
-
-    fn try_pick_factory_with_num_cycles_and_max_factories<'b>(
-        &self,
-        magic_state_index: usize,
-        factories: &[Cow<'b, B::Factory>],
-        logical_patch: &LogicalPatch<E>,
-        max_cycles: u64,
-        max_factories: u64,
-    ) -> Option<(Cow<'b, B::Factory>, u64)> {
-        factories
-            .iter()
-            .filter_map(|factory| {
-                let magic_states_per_run = max_factories * factory.num_output_states();
-                let required_runs = self
-                    .layout_overhead
-                    .num_magic_states(&self.error_budget, magic_state_index)
-                    .div_ceil(magic_states_per_run);
-                let required_duration = required_runs * factory.duration();
-                let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
-
-                (num <= max_cycles).then_some((factory.clone(), num))
-            })
-            .min_by(|(p, num_p), (q, num_q)| {
-                p.normalized_volume()
-                    .total_cmp(&q.normalized_volume())
-                    .then_with(|| num_p.cmp(num_q))
-            })
-    }
-
-    fn try_pick_factory_with_num_cycles<'b>(
-        factories: &[Cow<'b, B::Factory>],
-        logical_patch: &LogicalPatch<E>,
-        max_allowed_num_cycles_for_code_parameter: u64,
-    ) -> Option<(Cow<'b, B::Factory>, u64)> {
-        PhysicalResourceEstimation::<E, B, L>::pick_factories_with_num_cycles(
-            factories,
-            logical_patch,
-            max_allowed_num_cycles_for_code_parameter,
-        )
-        .iter()
-        .min_by(|(p, _), (q, _)| p.normalized_volume().total_cmp(&q.normalized_volume()))
-        .cloned()
     }
 
     // checks whether the provided parameters suffice to satisfy the

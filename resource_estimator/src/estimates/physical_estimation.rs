@@ -181,7 +181,7 @@ impl<
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
-            for (factory, _) in Self::pick_factories_with_num_cycles(
+            for FactoryForCycles { factory, .. } in Self::pick_factories_with_num_cycles(
                 &last_factories,
                 &logical_patch,
                 max_num_cycles_allowed,
@@ -374,7 +374,7 @@ impl<
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
-            for (factory, _) in Self::pick_factories_with_num_cycles(
+            for FactoryForCycles { factory, .. } in Self::pick_factories_with_num_cycles(
                 &last_factories,
                 &logical_patch,
                 max_num_cycles_allowed,
@@ -609,21 +609,18 @@ impl<
             .cloned()
     }
 
-    fn pick_factories_with_num_cycles<'a>(
-        factories: &[Cow<'a, Builder::Factory>],
-        logical_patch: &LogicalPatch<E>,
+    fn pick_factories_with_num_cycles<'a, 'b>(
+        factories: &'b [Cow<'a, Builder::Factory>],
+        logical_patch: &'b LogicalPatch<E>,
         max_cycles: u64,
-    ) -> Vec<(Cow<'a, Builder::Factory>, u64)> {
-        factories
-            .iter()
-            .filter_map(|factory| {
-                let num = factory
-                    .as_ref()
-                    .duration()
-                    .div_ceil(logical_patch.logical_cycle_time());
-                (num <= max_cycles).then_some((factory.clone(), num))
-            })
-            .collect()
+    ) -> impl Iterator<Item = FactoryForCycles<'a, Builder::Factory>> + 'b {
+        factories.iter().filter_map(move |factory| {
+            let num = factory
+                .as_ref()
+                .duration()
+                .div_ceil(logical_patch.logical_cycle_time());
+            (num <= max_cycles).then_some(FactoryForCycles::new(factory.clone(), num))
+        })
     }
 
     fn find_highest_code_parameter(
@@ -749,3 +746,43 @@ struct InitialOptimizationValues<Parameter> {
     required_logical_error_rate: f64,
     required_logical_magic_state_error_rate: f64,
 }
+
+/// Models a factory that can be used, if one assumes a specific number of
+/// cycles to run the algorithm
+struct FactoryForCycles<'a, F: Clone> {
+    factory: Cow<'a, F>,
+    num_cycles: u64,
+}
+
+impl<'a, F: Clone> FactoryForCycles<'a, F> {
+    pub fn new(factory: Cow<'a, F>, num_cycles: u64) -> Self {
+        Self {
+            factory,
+            num_cycles,
+        }
+    }
+}
+
+impl<'a, F: Factory + Clone> Ord for FactoryForCycles<'a, F> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.factory
+            .normalized_volume()
+            .total_cmp(&other.factory.normalized_volume())
+            .then_with(|| self.num_cycles.cmp(&other.num_cycles))
+    }
+}
+
+impl<'a, F: Factory + Clone> PartialOrd for FactoryForCycles<'a, F> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'a, F: Factory + Clone> PartialEq for FactoryForCycles<'a, F> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.factory.normalized_volume(), self.num_cycles)
+            == (other.factory.normalized_volume(), other.num_cycles)
+    }
+}
+
+impl<'a, F: Factory + Clone> Eq for FactoryForCycles<'a, F> {}
