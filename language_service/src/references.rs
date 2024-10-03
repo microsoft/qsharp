@@ -10,6 +10,7 @@ use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
+use qsc::ast::PathResult;
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -346,7 +347,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
     }
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
-        if let ast::TyKind::Path(ty_path) = &*ty.kind {
+        if let ast::TyKind::Path(PathResult::Ok(ty_path)) = &*ty.kind {
             let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id, _)) = res {
                 if self.eq(item_id) {
@@ -409,7 +410,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
                     }
                 }
             }
-            ast::ExprKind::Struct(struct_name, copy, fields) => {
+            ast::ExprKind::Struct(PathResult::Ok(struct_name), copy, fields) => {
                 self.visit_path(struct_name);
                 if let Some(copy) = copy {
                     self.visit_expr(copy);

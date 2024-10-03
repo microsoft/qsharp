@@ -6,20 +6,50 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{apos_ident, opt, path, seq, token},
+    prim::{apos_ident, opt, seq, token},
     scan::ParserContext,
     Error, Parser, Result,
 };
 use crate::{
+    completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
+    prim::recovering_path,
     ErrorKind,
 };
 use qsc_ast::ast::{
     CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind,
 };
+use qsc_data_structures::span::Span;
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
+    s.expect(WordKinds::PathTy);
+    if let Some(ty) = opt(s, strict_ty)? {
+        Ok(ty)
+    } else {
+        s.push_error(Error::new(ErrorKind::Rule(
+            "type",
+            s.peek().kind,
+            s.peek().span,
+        )));
+
+        // Grab the whitespace from the end of the last token until
+        // the beginning of the next token
+        let last_hi = s.span(0).hi;
+        let span = Span {
+            lo: last_hi,
+            hi: s.peek().span.lo,
+        };
+
+        Ok(Ty {
+            id: NodeId::default(),
+            span,
+            kind: Box::new(TyKind::Err),
+        })
+    }
+}
+
+pub(super) fn strict_ty(s: &mut ParserContext) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let lhs = base(s)?;
     array_or_arrow(s, lhs, lo)
@@ -89,10 +119,10 @@ fn base(s: &mut ParserContext) -> Result<Ty> {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
         Ok(TyKind::Param(name))
-    } else if let Some(path) = opt(s, path)? {
+    } else if let Some(path) = opt(s, |s| recovering_path(s, WordKinds::PathTy))? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (tys, final_sep) = seq(s, ty)?;
+        let (tys, final_sep) = seq(s, strict_ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {

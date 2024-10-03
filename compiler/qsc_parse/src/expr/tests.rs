@@ -348,19 +348,19 @@ fn lit_int_hexadecimal_dot() {
         expr,
         "0x123.45",
         &expect![[r#"
-        Error(
-            Rule(
-                "identifier",
-                Int(
-                    Decimal,
+            Error(
+                Rule(
+                    "identifier",
+                    Int(
+                        Decimal,
+                    ),
+                    Span {
+                        lo: 6,
+                        hi: 8,
+                    },
                 ),
-                Span {
-                    lo: 6,
-                    hi: 8,
-                },
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 
@@ -1760,6 +1760,42 @@ fn struct_copy_cons_empty() {
         &expect![[r#"
             Expr _id_ [0-18]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
                 Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")"#]],
+    );
+}
+
+#[test]
+fn struct_recovery() {
+    check(
+        expr,
+        "new Foo. ;",
+        &expect![[r#"
+            Expr _id_ [0-9]: Struct (Err IncompletePath [4-9]:
+                Ident _id_ [4-7] "Foo"): <empty>
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Semi,
+                        Span {
+                            lo: 9,
+                            hi: 10,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Open(
+                            Brace,
+                        ),
+                        Semi,
+                        Span {
+                            lo: 9,
+                            hi: 10,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 

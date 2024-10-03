@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::resolve::{self, Names};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
-    PatKind, Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
+    PatKind, Path, PathResult, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -42,7 +42,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
-        TyKind::Path(path) => (ty_from_path(names, path), Vec::new()),
+        TyKind::Path(PathResult::Ok(path)) => (ty_from_path(names, path), Vec::new()),
         TyKind::Param(name) => match names.get(name.id) {
             Some(resolve::Res::Param(id)) => (Ty::Param(name.name.clone(), *id), Vec::new()),
             Some(_) => unreachable!(
@@ -61,7 +61,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             }
             (Ty::Tuple(tys), errors)
         }
-        TyKind::Err => (Ty::Err, Vec::new()),
+        TyKind::Err | TyKind::Path(PathResult::Err { .. }) => (Ty::Err, Vec::new()),
     }
 }
 
