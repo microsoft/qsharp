@@ -68,14 +68,14 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
         TyKind::Param(TyParam { ty, .. }) => match names.get(ty.id) {
             // TODO(sezna) should only res or typaram track bounds?
             Some(resolve::Res::Param { id, bounds }) => {
-                let (bounds, errs) = ty_bound_from_ast(bounds);
+                let bounds = ty_bound_from_ast(bounds);
                 (
                     Ty::Param {
                         name: ty.name.clone(),
                         id: *id,
                         bounds,
                     },
-                    errs.into_iter().map(Into::into).collect(),
+                    Vec::new(),
                 )
             }
             Some(_) => unreachable!(
@@ -223,18 +223,13 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
 }
 
 pub(crate) fn ast_callable_generics(generics: &[ast::TyParam]) -> Vec<qsc_hir::ty::GenericParam> {
-    dbg!(&generics);
     generics
         .iter()
         .map(|param| GenericParam::Ty {
             name: param.ty.name.clone(),
             bounds: {
-                let (bounds, errs) = ty_bound_from_ast(&param.bounds);
+                let bounds = ty_bound_from_ast(&param.bounds);
 
-                if !errs.is_empty() {
-                    // TODO(sezna) - handle errors
-                    todo!("handle errors")
-                }
                 bounds
             },
         })
@@ -356,20 +351,17 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 }
 
 /// Convert an AST type bound to an HIR type bound.
-pub(crate) fn ty_bound_from_ast(
-    bounds: &qsc_ast::ast::TyBounds,
-) -> (qsc_hir::ty::TyBounds, Vec<UnrecognizedBoundError>) {
-    let (bounds, errs): (Vec<_>, _) =
+pub(crate) fn ty_bound_from_ast(bounds: &qsc_ast::ast::TyBounds) -> qsc_hir::ty::TyBounds {
+    qsc_hir::ty::TyBounds(
         bounds
             .0
             .into_iter()
-            .partition_map(|bound| match &*bound.name {
-                "Eq" => Either::Left(qsc_hir::ty::TyBound::Eq),
-                otherwise => Either::Right(UnrecognizedBoundError {
-                    span: bound.span,
-                    name: otherwise.to_string(),
-                }),
-            });
-
-    (qsc_hir::ty::TyBounds(bounds.into_boxed_slice()), errs)
+            // TODO(sezna) parse nested generics on ty params
+            .map(|bound| match &*bound.name {
+                "Eq" => qsc_hir::ty::TyBound::Eq,
+                "Add" => qsc_hir::ty::TyBound::Add,
+                otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
+            })
+            .collect(),
+    )
 }

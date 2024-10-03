@@ -257,7 +257,7 @@ impl Lowerer {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-        let generics = Self::lower_generics(&decl.generics);
+        let generics = self.lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
         let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
@@ -877,19 +877,52 @@ impl Lowerer {
         }
     }
 
-    fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::GenericParam> {
-        generics.iter().map(Self::lower_generic_param).collect()
+    fn lower_generics(
+        &mut self,
+        generics: &[qsc_hir::ty::GenericParam],
+    ) -> Vec<qsc_fir::ty::GenericParam> {
+        generics
+            .iter()
+            .map(|x| self.lower_generic_param(x))
+            .collect()
     }
 
-    fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
+    fn lower_generic_param(&mut self, g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
         match g {
             qsc_hir::ty::GenericParam::Ty { name, bounds } => qsc_fir::ty::GenericParam::Ty {
                 name: name.clone(),
-                bounds: lower_ty_bounds(bounds),
+                bounds: self.lower_ty_bounds(bounds),
             },
             qsc_hir::ty::GenericParam::Functor(value) => {
                 qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
             }
+        }
+    }
+
+    fn lower_ty_bounds(&mut self, bounds: &qsc_hir::ty::TyBounds) -> qsc_fir::ty::TyBounds {
+        qsc_fir::ty::TyBounds(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
+    }
+
+    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::TyBound {
+        match b {
+            qsc_hir::ty::TyBound::Eq => qsc_fir::ty::TyBound::Eq,
+            qsc_hir::ty::TyBound::Exp { base, power } => qsc_fir::ty::TyBound::Exp {
+                base: self.lower_ty(base),
+                power: self.lower_ty(power),
+            },
+            qsc_hir::ty::TyBound::Add => qsc_fir::ty::TyBound::Add,
+
+            qsc_hir::ty::TyBound::NonNativeClass(name) => {
+                qsc_fir::ty::TyBound::NonNativeClass(name.clone())
+            }
+            qsc_hir::ty::TyBound::HasField { ty, field } => qsc_fir::ty::TyBound::HasField {
+                ty: self.lower_ty(ty),
+                // TODO(sezna) should we use the `Field` type here?
+                field: field.clone(),
+            },
+            qsc_hir::ty::TyBound::Iterable { item } => qsc_fir::ty::TyBound::Iterable {
+                item: self.lower_ty(item),
+            },
         }
     }
 }
@@ -906,16 +939,6 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
 
 fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::FunctorSetValue {
     lower_functor_set_value(functors)
-}
-
-fn lower_ty_bounds(bounds: &qsc_hir::ty::TyBounds) -> qsc_fir::ty::TyBounds {
-    qsc_fir::ty::TyBounds(bounds.0.iter().map(lower_ty_bound).collect())
-}
-
-fn lower_ty_bound(b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::TyBound {
-    match b {
-        qsc_hir::ty::TyBound::Eq => qsc_fir::ty::TyBound::Eq,
-    }
 }
 
 fn lower_field(field: &hir::Field) -> fir::Field {

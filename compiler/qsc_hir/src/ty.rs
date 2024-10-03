@@ -24,7 +24,7 @@ fn set_indentation<'a, 'b>(
 }
 
 /// A type.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
@@ -49,7 +49,7 @@ pub enum Ty {
     Err,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct TyBounds(pub Box<[TyBound]>);
 
 impl std::fmt::Display for TyBounds {
@@ -69,16 +69,37 @@ impl std::fmt::Display for TyBounds {
 }
 
 // TODO(sezna) support other bounds
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Copy)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TyBound {
     #[default]
     Eq,
+    Add,
+    Exp {
+        base: Ty,
+        power: Ty,
+    },
+    HasField {
+        /// the expected type of the field
+        ty: Ty,
+        field: Rc<str>,
+    },
+    Iterable {
+        item: Ty,
+    },
+
+    /// A class that is not built-in to the compiler.
+    NonNativeClass(Rc<str>),
 }
 
 impl std::fmt::Display for TyBound {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             TyBound::Eq => write!(f, "Eq"),
+            TyBound::NonNativeClass(name) => write!(f, "{name}"),
+            TyBound::Add => write!(f, "Add"),
+            TyBound::Exp { base, power } => write!(f, "Exp({base}^{power})"),
+            TyBound::HasField { ty, field } => write!(f, "HasField<{field}: {ty}>"),
+            TyBound::Iterable { item } => write!(f, "Iterable<{item}>"),
         }
     }
 }
@@ -338,7 +359,7 @@ impl Display for TypeParamName {
 }
 
 /// A generic parameter ID.
-#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct ParamId(u32);
 
 impl ParamId {
@@ -390,7 +411,7 @@ impl Display for GenericArg {
 }
 
 /// An arrow type: `->` for a function or `=>` for an operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Arrow {
     /// Whether the callable is a function or an operation.
     pub kind: CallableKind,
@@ -430,7 +451,7 @@ impl Display for Arrow {
 }
 
 /// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Prim {
     /// The big integer type.
     BigInt,
@@ -459,7 +480,7 @@ pub enum Prim {
 }
 
 /// A set of functors.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
@@ -495,7 +516,7 @@ impl Display for FunctorSet {
 }
 
 /// The value of a functor set.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum FunctorSetValue {
     /// The empty set.
     #[default]
@@ -794,7 +815,7 @@ impl Display for UdtField {
 }
 
 /// A placeholder type variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct InferTyId(usize);
 
 impl InferTyId {

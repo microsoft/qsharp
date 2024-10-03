@@ -14,6 +14,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
     collections::{hash_map::Entry, BTreeSet, HashSet, VecDeque},
     fmt::Debug,
+    rc::Rc,
 };
 
 const MAX_TY_RECURSION_DEPTH: i8 = 100;
@@ -69,6 +70,10 @@ pub(super) enum Class {
         wrapper: Ty,
         base: Ty,
     },
+    // A user-defined class
+    // When we actually support this, and don't just use it to generate an error,
+    // it should have an ID here instead of a name
+    NonNativeClass(Rc<str>),
 }
 
 impl Class {
@@ -92,6 +97,8 @@ impl Class {
             } => vec![container, index],
             Self::Iterable { container, .. } => vec![container],
             Self::Unwrap { wrapper, .. } => vec![wrapper],
+            // TODO(sezna) support for non native classes
+            Self::NonNativeClass(_) => Vec::new(),
         }
     }
 
@@ -152,6 +159,8 @@ impl Class {
                 wrapper: f(wrapper),
                 base: f(base),
             },
+            // TODO(sezna) support for non native classes
+            Self::NonNativeClass(name) => Self::NonNativeClass(name),
         }
     }
 
@@ -198,6 +207,8 @@ impl Class {
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
+            // TODO(sezna)
+            Class::NonNativeClass(_) => (vec![], vec![]),
         }
     }
 }
@@ -828,10 +839,11 @@ fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
 }
 
 fn check_add(ty: &Ty) -> bool {
-    matches!(
-        ty,
-        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
-    )
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_) => true,
+        Ty::Param { ref bounds, .. } => bounds.0.iter().any(|bound| matches!(bound, TyBound::Add)),
+        _ => false,
+    }
 }
 
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
@@ -1238,5 +1250,35 @@ fn check_unwrap(
 fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
     match bound {
         TyBound::Eq => Constraint::Class(Class::Eq(ty), span),
+        TyBound::Exp { base, power } => Constraint::Class(
+            Class::Exp {
+                base: base.clone(),
+                power: power.clone(),
+            },
+            span,
+        ),
+        TyBound::Add => Constraint::Class(Class::Add(ty), span),
+        TyBound::HasField {
+            ty: expected_ty,
+            field,
+        } => Constraint::Class(
+            Class::HasField {
+                record: ty.clone(),
+                name: field.to_string(),
+                item: expected_ty.clone(),
+            },
+            span,
+        ),
+        TyBound::Iterable { item } => Constraint::Class(
+            Class::Iterable {
+                item: item.clone(),
+                container: ty.clone(),
+            },
+            span,
+        ),
+
+        TyBound::NonNativeClass(name) => {
+            Constraint::Class(Class::NonNativeClass(name.clone()), span)
+        }
     }
 }

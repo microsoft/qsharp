@@ -45,6 +45,9 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
+    #[error("unrecognized class name")]
+    #[diagnostic(code("Qsc.LowerAst.UnrecognizedClass"))]
+    UnrecognizedClass(#[from] typeck::convert::UnrecognizedBoundError),
 }
 
 pub(super) struct Lowerer {

@@ -511,8 +511,8 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
         if self.include_declaration {
             decl.generics.iter().for_each(|p| {
                 let res = self.compilation.get_res(p.ty.id);
-                if let Some(resolve::Res::Param(param_id)) = res {
-                    if *param_id == self.param_id {
+                if let Some(resolve::Res::Param { id, .. }) = res {
+                    if *id == self.param_id {
                         self.locations.push(p.span);
                     }
                 }
@@ -524,8 +524,8 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
     fn visit_ty(&mut self, ty: &ast::Ty) {
         if let ast::TyKind::Param(param) = &*ty.kind {
             let res = self.compilation.get_res(param.ty.id);
-            if let Some(resolve::Res::Param(param_id)) = res {
-                if *param_id == self.param_id {
+            if let Some(resolve::Res::Param { id, .. }) = res {
+                if *id == self.param_id {
                     self.locations.push(param.span);
                 }
             }
