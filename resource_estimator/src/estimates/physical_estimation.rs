@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod estimate_frontier;
 mod estimate_without_restrictions;
 mod result;
 
-use super::{
-    optimization::{Point2D, Population},
-    Error, ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead,
-};
+use super::{Error, ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead};
 use std::{borrow::Cow, rc::Rc};
 
+use estimate_frontier::EstimateFrontier;
 use estimate_without_restrictions::EstimateWithoutRestrictions;
 pub use result::{FactoryPart, PhysicalResourceEstimationResult};
 
@@ -97,158 +96,10 @@ impl<
         }
     }
 
-    #[allow(clippy::too_many_lines, clippy::type_complexity)]
     pub fn build_frontier(
         &self,
     ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory>>, Error> {
-        if self.factory_builder.num_magic_state_types() != 1 {
-            return Err(Error::MultipleMagicStatesNotSupported);
-        }
-
-        let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
-
-        // The required magic state error rate is computed by dividing the total
-        // error budget for magic states by the number of magic states required
-        // for the algorithm.
-        let required_logical_magic_state_error_rate = self.error_budget.magic_states()
-            / self.layout_overhead.num_magic_states(&self.error_budget, 0) as f64;
-
-        let required_logical_error_rate =
-            self.required_logical_error_rate(num_cycles_required_by_layout_overhead);
-
-        let min_code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
-
-        let num_magic_states = self.layout_overhead.num_magic_states(&self.error_budget, 0);
-        if num_magic_states == 0 {
-            let logical_patch =
-                LogicalPatch::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
-
-            return Ok(vec![PhysicalResourceEstimationResult::without_factories(
-                self,
-                logical_patch,
-                num_cycles_required_by_layout_overhead,
-                required_logical_error_rate,
-            )]);
-        }
-
-        let mut best_estimation_results =
-            Population::<Point2D<PhysicalResourceEstimationResult<E, Builder::Factory>>>::new();
-
-        let mut last_factories = Vec::new();
-        let mut last_code_parameter = None;
-
-        for code_parameter in self
-            .ftp
-            .code_parameter_range(Some(&min_code_parameter))
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-        {
-            let logical_patch =
-                LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
-
-            let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_code_parameter(&code_parameter)?;
-
-            if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
-                continue;
-            }
-
-            let max_num_cycles_allowed = max_num_cycles_allowed_by_error_rate;
-
-            // The initial value for the last code parameter is `None`. This
-            // ensures that the first code parameter is always tried. After
-            // that, the last code parameter governs the reuse of the magic
-            // state factory.
-            if last_code_parameter.as_ref().map_or(true, |d| {
-                self.ftp
-                    .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
-                    .is_gt()
-            }) {
-                last_factories = self
-                    .factory_builder
-                    .find_factories(
-                        &self.ftp,
-                        &self.qubit,
-                        0,
-                        required_logical_magic_state_error_rate,
-                        &code_parameter,
-                    )
-                    .ok_or(Error::CannotComputeMagicStates(
-                        required_logical_magic_state_error_rate,
-                    ))?;
-
-                last_code_parameter = self.find_highest_code_parameter(&last_factories);
-            }
-
-            for FactoryForCycles { factory, .. } in Self::pick_factories_with_num_cycles(
-                &last_factories,
-                &logical_patch,
-                max_num_cycles_allowed,
-            ) {
-                // Here we compute the number of factories required limited by the
-                // maximum number of cycles allowed by the duration constraint (and the error rate).
-                let min_num_factories =
-                    self.num_factories(&logical_patch, 0, &factory, max_num_cycles_allowed);
-
-                let mut num_factories = min_num_factories;
-
-                loop {
-                    let num_cycles_required_for_magic_states = self
-                        .compute_num_cycles_required_for_magic_states(
-                            0,
-                            num_factories,
-                            factory.as_ref(),
-                            &logical_patch,
-                        );
-
-                    // This num_cycles could be larger than num_cycles_required_by_layout_overhead
-                    // but must still not exceed the maximum number of cycles allowed by the
-                    // duration constraint (and the error rate).
-                    let num_cycles = num_cycles_required_for_magic_states
-                        .max(num_cycles_required_by_layout_overhead);
-
-                    let factory_part = FactoryPart::new(
-                        factory.clone().into_owned(),
-                        num_factories,
-                        num_magic_states,
-                        required_logical_magic_state_error_rate,
-                    );
-                    let num_factory_runs = factory_part.runs();
-
-                    let result = PhysicalResourceEstimationResult::new(
-                        self,
-                        LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
-                        num_cycles,
-                        vec![Some(factory_part)],
-                        required_logical_error_rate,
-                    );
-
-                    let value1 = result.physical_qubits() as f64;
-                    let value2 = result.runtime();
-                    let point = Point2D::new(result, value1, value2);
-                    best_estimation_results.push(point);
-
-                    if num_cycles_required_for_magic_states
-                        <= num_cycles_required_by_layout_overhead
-                        || num_factory_runs <= 1
-                    {
-                        break;
-                    }
-
-                    num_factories += 1;
-                }
-            }
-        }
-
-        best_estimation_results.filter_out_dominated();
-        best_estimation_results.sort_items();
-
-        Ok(best_estimation_results
-            .extract()
-            .into_iter()
-            .map(|p| p.item)
-            .collect())
+        EstimateFrontier::new(self)?.estimate()
     }
 
     pub fn estimate_without_restrictions(
@@ -616,7 +467,6 @@ impl<
     ) -> impl Iterator<Item = FactoryForCycles<'a, Builder::Factory>> + 'b {
         factories.iter().filter_map(move |factory| {
             let num = factory
-                .as_ref()
                 .duration()
                 .div_ceil(logical_patch.logical_cycle_time());
             (num <= max_cycles).then_some(FactoryForCycles::new(factory.clone(), num))
