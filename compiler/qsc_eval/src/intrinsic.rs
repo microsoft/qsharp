@@ -77,6 +77,24 @@ pub(crate) fn call(
                 Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
+        "DumpMatrix" => {
+            let qubits = arg.unwrap_array();
+            let qubits = qubits
+                .iter()
+                .map(|q| q.clone().unwrap_qubit().0)
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits.iter().collect::<FxHashSet<_>>().len() {
+                return Err(Error::QubitUniqueness(arg_span));
+            }
+            let (state, qubit_count) = sim.capture_quantum_state();
+            let state = utils::split_state(&qubits, &state, qubit_count)
+                .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
+            let matrix = utils::state_to_matrix(state, qubits.len() / 2);
+            match out.matrix(matrix) {
+                Ok(()) => Ok(Value::unit()),
+                Err(_) => Err(Error::OutputFail(name_span)),
+            }
+        }
         "PermuteLabels" => qubit_relabel(arg, arg_span, |q0, q1| sim.qubit_swap_id(q0, q1)),
         "Message" => match out.message(&arg.unwrap_string()) {
             Ok(()) => Ok(Value::unit()),

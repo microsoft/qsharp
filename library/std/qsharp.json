@@ -2,7 +2,6 @@
   "author": "Microsoft",
   "license": "MIT",
   "files": [
-    "src/core.qs",
     "src/legacy_api.qs",
     "src/unstable_arithmetic.qs",
     "src/unstable_arithmetic_internal.qs",
@@ -19,6 +18,7 @@
     "src/Std/Math.qs",
     "src/Std/Measurement.qs",
     "src/Std/Random.qs",
+    "src/Std/Range.qs",
     "src/Std/ResourceEstimation.qs"
   ]
 }

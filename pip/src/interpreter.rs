@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    displayable_output::{DisplayableOutput, DisplayableState},
+    displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     interop::{
         compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
@@ -15,9 +15,9 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     create_exception,
-    exceptions::PyException,
+    exceptions::{PyException, PyValueError},
     prelude::*,
-    types::{PyComplex, PyDict, PyList, PyTuple},
+    types::{PyComplex, PyDict, PyList, PyTuple, PyType},
 };
 use qsc::{
     fir,
@@ -33,7 +33,7 @@ use qsc::{
 };
 
 use resource_estimator::{self as re, estimate_expr};
-use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
 
 /// If the classes are not Send, the Python interpreter
 /// will not be able to use them in a separate thread.
@@ -108,6 +108,35 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
     Unrestricted,
+}
+
+#[pymethods]
+impl TargetProfile {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __str__(&self) -> String {
+        Into::<Profile>::into(*self).to_str().to_owned()
+    }
+
+    /// Creates a target profile from a string.
+    /// :param value: The string to parse.
+    /// :raises ValueError: If the string does not match any target profile.
+    #[classmethod]
+    #[allow(clippy::needless_pass_by_value)]
+    fn from_str(_cls: &Bound<'_, PyType>, key: String) -> pyo3::PyResult<Self> {
+        let profile = Profile::from_str(key.as_str())
+            .map_err(|()| PyValueError::new_err(format!("{key} is not a valid target profile")))?;
+        Ok(TargetProfile::from(profile))
+    }
+}
+
+impl From<Profile> for TargetProfile {
+    fn from(profile: Profile) -> Self {
+        match profile {
+            Profile::Base => TargetProfile::Base,
+            Profile::AdaptiveRI => TargetProfile::Adaptive_RI,
+            Profile::Unrestricted => TargetProfile::Unrestricted,
+        }
+    }
 }
 
 impl From<TargetProfile> for Profile {
@@ -518,6 +547,7 @@ impl Output {
     fn __repr__(&self) -> String {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_plain(),
+            DisplayableOutput::Matrix(matrix) => matrix.to_plain(),
             DisplayableOutput::Message(msg) => msg.clone(),
         }
     }
@@ -526,24 +556,25 @@ impl Output {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
+    fn _repr_markdown_(&self) -> Option<String> {
         match &self.0 {
-            DisplayableOutput::State(state) => state.to_html(),
-            DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
-        }
-    }
-
-    fn _repr_latex_(&self) -> Option<String> {
-        match &self.0 {
-            DisplayableOutput::State(state) => state.to_latex(),
+            DisplayableOutput::State(state) => {
+                let latex = if let Some(latex) = state.to_latex() {
+                    format!("\n\n{latex}")
+                } else {
+                    String::default()
+                };
+                Some(format!("{}{latex}", state.to_html()))
+            }
             DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
         }
     }
 
     fn state_dump(&self) -> Option<StateDumpData> {
         match &self.0 {
             DisplayableOutput::State(state) => Some(StateDumpData(state.clone())),
-            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
 }
@@ -590,8 +621,13 @@ impl StateDumpData {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
-        self.0.to_html()
+    fn _repr_markdown_(&self) -> String {
+        let latex = if let Some(latex) = self.0.to_latex() {
+            format!("\n\n{latex}")
+        } else {
+            String::default()
+        };
+        format!("{}{latex}", self.0.to_html())
     }
 
     fn _repr_latex_(&self) -> Option<String> {
@@ -695,6 +731,22 @@ impl Receiver for OptionalCallbackReceiver<'_> {
     ) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
             let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
+            callback
+                .call1(
+                    self.py,
+                    PyTuple::new_bound(
+                        self.py,
+                        &[Py::new(self.py, Output(out)).expect("should be able to create output")],
+                    ),
+                )
+                .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> std::result::Result<(), Error> {
+        if let Some(callback) = &self.callback {
+            let out = DisplayableOutput::Matrix(DisplayableMatrix(matrix));
             callback
                 .call1(
                     self.py,

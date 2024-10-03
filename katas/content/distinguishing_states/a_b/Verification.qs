@@ -28,7 +28,8 @@ namespace Kata.Verification {
             );
 
             if not isCorrect {
-                Message($"Test fails for alpha={alpha}");
+                let precision = 3;
+                Message($"Test fails for alpha={DoubleAsStringWithPrecision(alpha, precision)}");
                 return false;
             }
         }

@@ -21,19 +21,17 @@ fn can_use_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<Report>> 
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         function __ResultAsBool__(input : Result) : Bool {
             Microsoft.Quantum.Convert.ResultAsBool(input)
         }
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         H(q);
-        mutable result = M(q);
+        mutable result = QIR.Intrinsic.__quantum__qis__m__body(q);
         if __ResultAsBool__(result) {
             Reset(q);
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -52,19 +50,17 @@ fn can_use_negated_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<R
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         function __ResultAsBool__(input : Result) : Bool {
             Microsoft.Quantum.Convert.ResultAsBool(input)
         }
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         H(q);
-        mutable result = M(q);
+        mutable result = QIR.Intrinsic.__quantum__qis__m__body(q);
         if not __ResultAsBool__(result) {
             Reset(q);
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -84,14 +80,12 @@ fn then_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             Z(q);
         };
-        "#
-    ]
+        "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -107,16 +101,14 @@ fn else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             Z(q);
         } else {
             Y(q);
         };
-        "#
-    ]
+        "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -132,16 +124,14 @@ fn then_and_else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             Z(q);
         } else {
             Y(q);
         };
-        "#
-    ]
+        "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

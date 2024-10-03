@@ -163,6 +163,12 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);
       break;
+    case "Matrix":
+      qscEvent = makeEvent("Matrix", {
+        matrix: qscMsg.matrix,
+        matrixLatex: qscMsg.matrixLatex,
+      });
+      break;
     default:
       log.never(msgType);
       throw "Unexpected message type";
@@ -190,5 +196,5 @@ export const debugServiceProtocol: ServiceProtocol<
     evalStepOut: "requestWithProgress",
     dispose: "request",
   },
-  eventNames: ["DumpMachine", "Message", "Result"],
+  eventNames: ["DumpMachine", "Message", "Matrix", "Result"],
 };
