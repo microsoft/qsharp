@@ -31,7 +31,7 @@
     "@vscode/debugprotocol": "^1.63.0",
     "@vscode/extension-telemetry": "^0.8.5",
     "@vscode/markdown-it-katex": "^1.0.0",
-    "@vscode/test-web": "^0.0.56",
+    "@vscode/test-web": "^0.0.61",
     "chai": "^4.3.10",
     "esbuild": "^0.23.1",
     "eslint": "^9.1.0",
