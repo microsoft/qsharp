@@ -190,9 +190,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         decl.generics.iter().for_each(|p| {
                             if p.span.touches(self.offset) {
                                 if let Some(resolve::Res::Param(param_id)) =
-                                    self.compilation.get_res(p.id)
+                                    self.compilation.get_res(p.ty.id)
                                 {
-                                    self.inner.at_type_param_def(&self.context, p, *param_id);
+                                    self.inner
+                                        .at_type_param_def(&self.context, &p.ty, *param_id);
                                 }
                             }
                         });
@@ -307,11 +308,15 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_ty(&mut self, ty: &'package ast::Ty) {
         if ty.span.touches(self.offset) {
             if let ast::TyKind::Param(param) = &*ty.kind {
-                if let Some(resolve::Res::Param(param_id)) = self.compilation.get_res(param.id) {
+                if let Some(resolve::Res::Param(param_id)) = self.compilation.get_res(param.ty.id) {
                     if let Some(curr) = self.context.current_callable {
                         if let Some(def_name) = curr.generics.get(usize::from(*param_id)) {
-                            self.inner
-                                .at_type_param_ref(&self.context, param, *param_id, def_name);
+                            self.inner.at_type_param_ref(
+                                &self.context,
+                                &param.ty,
+                                *param_id,
+                                &def_name.ty,
+                            );
                         }
                     }
                 }

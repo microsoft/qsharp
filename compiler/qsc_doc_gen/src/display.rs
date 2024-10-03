@@ -618,7 +618,7 @@ fn display_type_params(generics: &[GenericParam]) -> String {
     let type_params = generics
         .iter()
         .filter_map(|generic| match generic {
-            GenericParam::Ty(name) => Some(name.name.clone()),
+            GenericParam::Ty { name, .. } => Some(name.clone()),
             GenericParam::Functor(_) => None,
         })
         .collect::<Vec<_>>()

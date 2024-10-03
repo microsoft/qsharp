@@ -70,11 +70,11 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
         None
     };
 
-    Ok(TyParam {
-        bounds: bounds.unwrap_or_else(|| TyBounds(Box::new([]))),
-        ty: *generic,
-        span: s.span(lo),
-    })
+    Ok(TyParam::new(
+        *generic,
+        bounds.unwrap_or_else(|| TyBounds(Box::new([]))),
+        s.span(lo),
+    ))
 }
 
 fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {

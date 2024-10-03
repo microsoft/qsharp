@@ -257,7 +257,7 @@ impl Lowerer {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-        let generics = lower_generics(&decl.generics);
+        let generics = Self::lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
         let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
@@ -857,7 +857,7 @@ impl Lowerer {
             qsc_hir::ty::Ty::Infer(id) => {
                 qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
             }
-            qsc_hir::ty::Ty::Param(_, id, _) => {
+            qsc_hir::ty::Ty::Param { id, .. } => {
                 qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
             }
             qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
@@ -876,10 +876,22 @@ impl Lowerer {
             name_span: field.name_span,
         }
     }
-}
 
-fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::GenericParam> {
-    generics.iter().map(lower_generic_param).collect()
+    fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::GenericParam> {
+        generics.iter().map(Self::lower_generic_param).collect()
+    }
+
+    fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
+        match g {
+            qsc_hir::ty::GenericParam::Ty { name, bounds } => qsc_fir::ty::GenericParam::Ty {
+                name: name.clone(),
+                bounds: lower_ty_bounds(bounds),
+            },
+            qsc_hir::ty::GenericParam::Functor(value) => {
+                qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
+            }
+        }
+    }
 }
 
 fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
@@ -896,12 +908,13 @@ fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::Functo
     lower_functor_set_value(functors)
 }
 
-fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
-    match g {
-        qsc_hir::ty::GenericParam::Ty(_) => qsc_fir::ty::GenericParam::Ty,
-        qsc_hir::ty::GenericParam::Functor(value) => {
-            qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
-        }
+fn lower_ty_bounds(bounds: &qsc_hir::ty::TyBounds) -> qsc_fir::ty::TyBounds {
+    qsc_fir::ty::TyBounds(bounds.0.iter().map(lower_ty_bound).collect())
+}
+
+fn lower_ty_bound(b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::TyBound {
+    match b {
+        qsc_hir::ty::TyBound::Eq => qsc_fir::ty::TyBound::Eq,
     }
 }
 

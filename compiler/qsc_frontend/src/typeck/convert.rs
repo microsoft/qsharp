@@ -13,7 +13,7 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir,
+    hir::{self, Ident},
     ty::{
         Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, TyBound, TyBounds,
         TypeParamName, UdtDef, UdtDefKind, UdtField,
@@ -65,11 +65,16 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
         TyKind::Path(path) => (ty_from_path(names, path), Vec::new()),
-        TyKind::Param(TyParam { ty, bounds, .. }) => match names.get(ty.id) {
-            Some(resolve::Res::Param(id)) => {
+        TyKind::Param(TyParam { ty, .. }) => match names.get(ty.id) {
+            // TODO(sezna) should only res or typaram track bounds?
+            Some(resolve::Res::Param { id, bounds }) => {
                 let (bounds, errs) = ty_bound_from_ast(bounds);
                 (
-                    Ty::Param(ty.name.clone(), *id, bounds),
+                    Ty::Param {
+                        name: ty.name.clone(),
+                        id: *id,
+                        bounds,
+                    },
                     errs.into_iter().map(Into::into).collect(),
                 )
             }
@@ -105,7 +110,7 @@ pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
         // A path can also never resolve to an export, because in typeck/check,
         // we resolve exports to their original definition.
         Some(
-            resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_, _),
+            resolve::Res::Local(_) | resolve::Res::Param { .. } | resolve::Res::ExportedItem(_, _),
         ) => {
             unreachable!(
                 "A path should never resolve \
@@ -217,18 +222,39 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
     (def, errors)
 }
 
+pub(crate) fn ast_callable_generics(generics: &[ast::TyParam]) -> Vec<qsc_hir::ty::GenericParam> {
+    dbg!(&generics);
+    generics
+        .iter()
+        .map(|param| GenericParam::Ty {
+            name: param.ty.name.clone(),
+            bounds: {
+                let (bounds, errs) = ty_bound_from_ast(&param.bounds);
+
+                if !errs.is_empty() {
+                    // TODO(sezna) - handle errors
+                    todo!("handle errors")
+                }
+                bounds
+            },
+        })
+        .collect()
+}
+
 pub(super) fn ast_callable_scheme(
     names: &Names,
     callable: &CallableDecl,
 ) -> (Scheme, Vec<TyConversionError>) {
+    let mut type_parameters = ast_callable_generics(&callable.generics);
+
     let kind = callable_kind_from_ast(callable.kind);
     let (mut input, mut errors) = ast_pat_ty(names, &callable.input);
     let (output, output_errors) = ty_from_ast(names, &callable.output);
     errors.extend(output_errors);
 
-    let mut params = ast_callable_generics(&callable.generics);
-    let mut functor_params = synthesize_functor_params(&mut params.len().into(), &mut input);
-    params.append(&mut functor_params);
+    let mut functor_params =
+        synthesize_functor_params(&mut type_parameters.len().into(), &mut input);
+    type_parameters.append(&mut functor_params);
 
     let ty = Arrow {
         kind,
@@ -236,22 +262,15 @@ pub(super) fn ast_callable_scheme(
         output: Box::new(output),
         functors: FunctorSet::Value(ast_callable_functors(callable)),
     };
+    dbg!(&type_parameters);
 
-    (Scheme::new(params, Box::new(ty)), errors)
+    (Scheme::new(type_parameters, Box::new(ty)), errors)
 }
 
-/// Generates generic parameters for the functors, if there were generics on the original callable.
-pub(crate) fn synthesize_callable_generics(
-    generics: &[TyParam],
-    input: &mut hir::Pat,
+pub(crate) fn synthesize_functor_params(
+    next_param: &mut ParamId,
+    ty: &mut Ty,
 ) -> Vec<GenericParam> {
-    let mut params = ast_callable_generics(generics);
-    let mut functor_params = synthesize_functor_params_in_pat(&mut params.len().into(), input);
-    params.append(&mut functor_params);
-    params
-}
-
-fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<GenericParam> {
     match ty {
         Ty::Array(item) => synthesize_functor_params(next_param, item),
         Ty::Arrow(arrow) => match arrow.functors {
@@ -267,41 +286,8 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
             .iter_mut()
             .flat_map(|item| synthesize_functor_params(next_param, item))
             .collect(),
-        Ty::Infer(_) | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) | Ty::Err => Vec::new(),
+        Ty::Infer(_) | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) | Ty::Err => Vec::new(),
     }
-}
-
-fn synthesize_functor_params_in_pat(
-    next_param: &mut ParamId,
-    pat: &mut hir::Pat,
-) -> Vec<GenericParam> {
-    match &mut pat.kind {
-        hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
-            synthesize_functor_params(next_param, &mut pat.ty)
-        }
-        hir::PatKind::Tuple(items) => {
-            let mut params = Vec::new();
-            for item in &mut *items {
-                params.append(&mut synthesize_functor_params_in_pat(next_param, item));
-            }
-            if !params.is_empty() {
-                pat.ty = Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect());
-            }
-            params
-        }
-    }
-}
-
-fn ast_callable_generics(generics: &[TyParam]) -> Vec<GenericParam> {
-    generics
-        .iter()
-        .map(|param| {
-            GenericParam::Ty(TypeParamName {
-                span: param.span,
-                name: param.ty.name.clone(),
-            })
-        })
-        .collect()
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError>) {

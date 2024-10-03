@@ -5,7 +5,7 @@ use indenter::{indented, Indented};
 use qsc_data_structures::span::Span;
 use rustc_hash::FxHashMap;
 
-use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
+use crate::fir::{CallableKind, FieldPath, Functor, Ident, ItemId, Res};
 use std::{
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
@@ -181,8 +181,43 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "type"),
+            GenericParam::Ty { name, bounds } => {
+                write!(f, "type ({name}){bounds}")
+            }
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
+        }
+    }
+}
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct TyBounds(pub Box<[TyBound]>);
+
+impl std::fmt::Display for TyBounds {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            let bounds = self
+                .0
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(f, "{bounds}")
+        }
+    }
+}
+
+// TODO(sezna) support other bounds
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Copy)]
+pub enum TyBound {
+    #[default]
+    Eq,
+}
+
+impl std::fmt::Display for TyBound {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TyBound::Eq => write!(f, "Eq"),
         }
     }
 }
@@ -191,7 +226,7 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty,
+    Ty { name: Rc<str>, bounds: TyBounds },
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }

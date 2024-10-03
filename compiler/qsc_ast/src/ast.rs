@@ -1988,8 +1988,8 @@ impl ImportOrExportItem {
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
 pub struct TyParam {
     pub bounds: TyBounds,
-    pub span: Span,
     pub ty: Ident,
+    pub span: Span,
 }
 
 impl WithSpan for TyParam {
@@ -1998,16 +1998,31 @@ impl WithSpan for TyParam {
     }
 }
 
+impl TyParam {
+    pub fn new(ty: Ident, bounds: TyBounds, span: Span) -> Self {
+        Self { ty, bounds, span }
+    }
+}
+
 impl std::fmt::Debug for TyParam {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // 'A: Eq + Ord + Clone
-        write!(f, "{}: {:?}", self.ty.name, self.bounds)
+        write!(f, "{}: {:?}", self.ty, self.bounds)
     }
 }
 
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
 pub struct TyBounds(pub Box<[Ident]>);
 
+impl TyBounds {
+    /// The conjoined span of all of the bounds
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
+    }
+}
 impl std::fmt::Debug for TyBounds {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // A + B + C + D

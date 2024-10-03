@@ -118,7 +118,7 @@ impl<'a> Context<'a> {
                 // we resolve exports to their original definition.
                 Some(
                     resolve::Res::Local(_)
-                    | resolve::Res::Param(_)
+                    | resolve::Res::Param { .. }
                     | resolve::Res::ExportedItem(_, _),
                 ) => unreachable!(
                     "A path should never resolve \
@@ -126,10 +126,15 @@ impl<'a> Context<'a> {
                 ),
             },
             TyKind::Param(TyParam { ty, bounds, .. }) => match self.names.get(ty.id) {
-                Some(Res::Param(id)) => {
+                Some(Res::Param { id, bounds }) => {
+                    // TODO(sezna) what to do with res bounds?
                     let (bounds, errs) = convert::ty_bound_from_ast(&bounds);
                     if errs.is_empty() {
-                        Ty::Param(ty.name.clone(), *id, bounds)
+                        Ty::Param {
+                            name: ty.name.clone(),
+                            id: *id,
+                            bounds,
+                        }
                     } else {
                         // TODO(sezna)
                         todo!("report errors");
@@ -620,7 +625,7 @@ impl<'a> Context<'a> {
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
                     panic!("expression should not resolve to type reference")
                 }
             },

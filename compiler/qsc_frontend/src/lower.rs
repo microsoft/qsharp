@@ -7,7 +7,10 @@ mod tests;
 use crate::{
     closure::{self, Lambda, PartialApp},
     resolve::{self, Names},
-    typeck::{self, convert},
+    typeck::{
+        self,
+        convert::{self, synthesize_functor_params, ty_bound_from_ast},
+    },
 };
 use miette::Diagnostic;
 use qsc_ast::ast::{self, Ident};
@@ -16,7 +19,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, GenericArg, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, GenericParam, ParamId, Ty},
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
@@ -359,6 +362,43 @@ impl With<'_> {
             }
         }
     }
+    /// Generates generic parameters for the functors, if there were generics on the original callable.
+    /// Basically just creates new generic params for the purpose of being used in functor callable
+    /// decls.
+    pub(crate) fn synthesize_callable_generics(
+        &mut self,
+        generics: &[ast::TyParam],
+        input: &mut hir::Pat,
+    ) -> Vec<qsc_hir::ty::GenericParam> {
+        let mut params = convert::ast_callable_generics(generics);
+        let mut functor_params =
+            Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
+        params.append(&mut functor_params);
+        params
+    }
+
+    fn synthesize_functor_params_in_pat(
+        next_param: &mut ParamId,
+        pat: &mut hir::Pat,
+    ) -> Vec<GenericParam> {
+        match &mut pat.kind {
+            hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
+                synthesize_functor_params(next_param, &mut pat.ty)
+            }
+            hir::PatKind::Tuple(items) => {
+                let mut params = Vec::new();
+                for item in &mut *items {
+                    params.append(&mut Self::synthesize_functor_params_in_pat(
+                        next_param, item,
+                    ));
+                }
+                if !params.is_empty() {
+                    pat.ty = Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect());
+                }
+                params
+            }
+        }
+    }
 
     pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
         let id = self.lower_id(decl.id);
@@ -366,7 +406,7 @@ impl With<'_> {
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
         let output = convert::ty_from_ast(self.names, &decl.output).0;
-        let generics = convert::synthesize_callable_generics(&decl.generics, &mut input);
+        let generics = self.synthesize_callable_generics(&decl.generics, &mut input);
         let functors = convert::ast_callable_functors(decl);
 
         let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {
@@ -847,7 +887,7 @@ impl With<'_> {
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id, _)) => hir::Res::Item(item_id),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param { .. })
             | None => hir::Res::Err,
         }
     }

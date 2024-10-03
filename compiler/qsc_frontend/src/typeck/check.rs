@@ -224,6 +224,8 @@ impl Checker {
     }
 }
 
+/// Populates `Checker` with definitions and errors, while referring to the `Names` table to get
+/// definitions.
 struct ItemCollector<'a> {
     checker: &'a mut Checker,
     names: &'a Names,
@@ -248,6 +250,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                     self.checker.errors.push(err.into());
                 }
 
+                println!("___\nItem {:?} has scheme {:?}", item, scheme);
                 self.checker.globals.insert(item, scheme);
             }
             ast::ItemKind::Ty(name, def) => {

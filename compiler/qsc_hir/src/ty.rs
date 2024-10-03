@@ -33,7 +33,11 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(Rc<str>, ParamId, TyBounds),
+    Param {
+        name: Rc<str>,
+        id: ParamId,
+        bounds: TyBounds,
+    },
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
@@ -48,11 +52,35 @@ pub enum Ty {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct TyBounds(pub Box<[TyBound]>);
 
+impl std::fmt::Display for TyBounds {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            let bounds = self
+                .0
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(f, "{bounds}")
+        }
+    }
+}
+
 // TODO(sezna) support other bounds
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Copy)]
 pub enum TyBound {
     #[default]
     Eq,
+}
+
+impl std::fmt::Display for TyBound {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TyBound::Eq => write!(f, "Eq"),
+        }
+    }
 }
 
 impl Ty {
@@ -62,7 +90,7 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Param { .. } | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
@@ -103,7 +131,7 @@ impl Ty {
                 )
             }
             Ty::Infer(_) | Ty::Err => "?".to_string(),
-            Ty::Param(name, _, _) | Ty::Udt(name, _) => name.to_string(),
+            Ty::Param { name, .. } | Ty::Udt(name, _) => name.to_string(),
             Ty::Prim(prim) => format!("{prim:?}"),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -126,8 +154,8 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "{item}[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name, param_id, bounds) => {
-                write!(f, "Param<\"{name}\": {param_id}>")
+            Ty::Param { name, id, .. } => {
+                write!(f, "Param<\"{name}\": {id}>")
             }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
@@ -230,9 +258,9 @@ fn instantiate_ty<'a>(
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(_, param, bounds) => match arg(param) {
+        Ty::Param { id, .. } => match arg(id) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
-            Some(_) => Err(InstantiationError::Kind(*param)),
+            Some(_) => Err(InstantiationError::Kind(*id)),
             None => Ok(ty.clone()),
         },
         Ty::Tuple(items) => Ok(Ty::Tuple(
@@ -271,7 +299,15 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty(name) => write!(f, "type {name}"),
+            GenericParam::Ty { name, bounds, .. } => write!(
+                f,
+                "type {name}{}",
+                if bounds.0.is_empty() {
+                    Default::default()
+                } else {
+                    format!(" bounds: {bounds}",)
+                }
+            ),
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
         }
     }
@@ -281,7 +317,7 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty(TypeParamName),
+    Ty { name: Rc<str>, bounds: TyBounds },
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }

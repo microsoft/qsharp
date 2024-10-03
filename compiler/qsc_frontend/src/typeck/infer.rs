@@ -238,6 +238,7 @@ pub(super) enum ArgTy {
 }
 
 impl ArgTy {
+    /// Applies a function `f` to each type in the argument type.
     fn map(self, f: &mut impl FnMut(Ty) -> Ty) -> Self {
         match self {
             Self::Hole(ty) => Self::Hole(f(ty)),
@@ -246,8 +247,14 @@ impl ArgTy {
         }
     }
 
+    /// Applies the argument type to a parameter type, generating constraints and errors.
     fn apply(&self, param: &Ty, span: Span) -> App {
         match (self, param) {
+            // If `arg` is a hole, then it doesn't matter what the param is,
+            // because the hole can be anything.
+            // However, we do know that the type of Arg must be Eq to the type of Param, so we
+            // add that to the constraints.
+            // Preserve the hole.
             (Self::Hole(arg), _) => App {
                 holes: vec![param.clone()],
                 constraints: vec![Constraint::Eq {
@@ -257,6 +264,10 @@ impl ArgTy {
                 }],
                 errors: Vec::new(),
             },
+            // If `arg` is a hole, then it doesn't matter what the param is,
+            // because the hole can be anything.
+            // However, we do know that the type of Arg must be Eq to the type of Param, so we
+            // add that to the constraints.
             (Self::Given(arg), _) => App {
                 holes: Vec::new(),
                 constraints: vec![Constraint::Eq {
@@ -266,6 +277,8 @@ impl ArgTy {
                 }],
                 errors: Vec::new(),
             },
+            // if both the arg and the param are tuples, then we must check
+            // the types of each element in the tuple and generate iterative applications.
             (Self::Tuple(args), Ty::Tuple(params)) => {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
@@ -295,6 +308,7 @@ impl ArgTy {
                     errors,
                 }
             }
+
             (Self::Tuple(_), Ty::Infer(_)) => App {
                 holes: Vec::new(),
                 constraints: vec![Constraint::Eq {
@@ -336,7 +350,9 @@ struct App {
 
 #[derive(Debug)]
 enum Constraint {
+    // Constraint that says a type must satisfy a class
     Class(Class, Span),
+    // Constraint that says two types must be the same
     Eq {
         expected: Ty,
         actual: Ty,
@@ -404,7 +420,9 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty(_) => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
+                GenericParam::Ty { .. } => {
+                    GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span)))
+                }
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -621,7 +639,18 @@ impl Solver {
             (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
-            (Ty::Param(name1, id1, bounds1), Ty::Param(name2, id2, bounds2)) if id1 == id2 => {
+            (
+                Ty::Param {
+                    name: name1,
+                    id: id1,
+                    bounds: bounds1,
+                },
+                Ty::Param {
+                    name: name2,
+                    id: id2,
+                    bounds: bounds2,
+                },
+            ) if id1 == id2 => {
                 // concat the two sets of bounds
                 let bounds: BTreeSet<TyBound> = bounds1
                     .0
@@ -630,11 +659,11 @@ impl Solver {
                     .map(Clone::clone)
                     .collect();
 
-                let merged_ty = Ty::Param(
-                    name1.clone(),
-                    *id1,
-                    qsc_hir::ty::TyBounds(bounds.clone().into_iter().collect()),
-                );
+                let merged_ty = Ty::Param {
+                    name: name1.clone(),
+                    id: *id1,
+                    bounds: qsc_hir::ty::TyBounds(bounds.clone().into_iter().collect()),
+                };
                 // TODO(sezna) this might not be correct
                 bounds
                     .into_iter()
@@ -733,7 +762,7 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
             return false;
         }
         match ty {
-            Ty::Err | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) => true,
+            Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => true,
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
                 let a = substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
@@ -788,7 +817,7 @@ fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
 
 fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
     match ty {
-        Ty::Err | Ty::Param(_, _, _) | Ty::Prim(_) | Ty::Udt(_, _) => false,
+        Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
         Ty::Arrow(arrow) => {
             contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)
@@ -889,6 +918,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     )
 }
 
+/// Checks that the class `Eq` is implemented for the given type.
 fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Prim(
@@ -910,6 +940,22 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Eq
+
+            match bounds.0.iter().find(|bound| match bound {
+                TyBound::Eq => true,
+                _ => false,
+            }) {
+                Some(_) => (Vec::new(), Vec::new()),
+                None => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
+                ),
+            }
+
+            // todo!("check for {name} {bounds:?}"),
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],

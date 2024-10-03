@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
-        TyParam,
+        TyBounds, TyParam,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -65,7 +65,7 @@ pub enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param(ParamId),
+    Param { id: ParamId, bounds: TyBounds },
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -214,7 +214,7 @@ pub struct Scope {
     /// it is missed in the list. <a href=https://github.com/microsoft/qsharp/issues/897 />
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
-    ty_vars: FxHashMap<Rc<str>, ParamId>,
+    ty_vars: FxHashMap<Rc<str>, (ParamId, TyBounds)>,
 }
 
 #[derive(Debug, Clone)]
@@ -1124,12 +1124,22 @@ impl Resolver {
     }
 
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
-        decl.generics.iter().enumerate().for_each(|(ix, ident)| {
-            self.current_scope_mut()
-                .ty_vars
-                .insert(Rc::clone(&ident.ty.name), ix.into());
-            self.names.insert(ident.ty.id, Res::Param(ix.into()));
-        });
+        decl.generics
+            .iter()
+            .enumerate()
+            .for_each(|(ix, type_parameter)| {
+                self.current_scope_mut().ty_vars.insert(
+                    Rc::clone(&type_parameter.ty.name),
+                    (ix.into(), type_parameter.bounds.clone()),
+                );
+                self.names.insert(
+                    type_parameter.ty.id,
+                    Res::Param {
+                        id: ix.into(),
+                        bounds: type_parameter.bounds.clone(),
+                    },
+                );
+            });
     }
 
     fn push_scope(&mut self, span: Span, kind: ScopeKind) {
@@ -2290,8 +2300,11 @@ fn resolve_scope_locals(
                 }
             }
             NameKind::Ty => {
-                if let Some(&id) = scope.ty_vars.get(name) {
-                    return Some(Res::Param(id));
+                if let Some((id, bounds)) = scope.ty_vars.get(name) {
+                    return Some(Res::Param {
+                        id: *id,
+                        bounds: bounds.clone(),
+                    });
                 }
             }
         }
@@ -2329,9 +2342,9 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             }
         }));
 
-        names.extend(scope.ty_vars.iter().map(|id| Local {
-            name: id.0.clone(),
-            kind: LocalKind::TyParam(*id.1),
+        names.extend(scope.ty_vars.iter().map(|(name, (id, bounds))| Local {
+            name: name.clone(),
+            kind: LocalKind::TyParam(*id),
         }));
     }
 

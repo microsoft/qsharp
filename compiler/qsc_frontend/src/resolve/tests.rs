@@ -83,7 +83,7 @@ impl<'a> Renamer<'a> {
             Res::Local(node) => format!("local{node}"),
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
-            Res::Param(id) => format!("param{id}"),
+            Res::Param { id, .. } => format!("param{id}"),
             Res::ExportedItem(item, _) => match item.package {
                 None => format!("exported_item{}", item.item),
                 Some(package) => format!("reexport_from_{package}:{}", item.item),

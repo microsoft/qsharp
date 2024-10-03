@@ -4431,6 +4431,7 @@ fn bounded_polymorphism_eq() {
         "##]],
     );
 }
+
 #[test]
 fn bounded_polymorphism_example_should_fail() {
     check(
