@@ -3792,6 +3792,27 @@ fn controlled_operation_with_target_in_controls_fails() {
 }
 
 #[test]
+fn parametric_iterator() {
+    check_expr(
+        "",
+        r#"
+         {
+            function Foo<'T: Iterable[Bool]>(a: 'T) : Bool {
+                for item in a {
+                    return item;
+                }
+            }
+
+            function Main() : Unit {
+                let x = Foo([true]);
+            }
+        }
+        "#,
+        &expect![[r##""##]],
+    );
+}
+
+#[test]
 fn controlled_operation_with_unique_controls_duplicate_targets_allowed() {
     check_expr(
         "",

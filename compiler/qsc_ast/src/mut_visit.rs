@@ -161,7 +161,10 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     decl.generics.iter_mut().for_each(|p| {
         vis.visit_ident(&mut p.ty);
-        p.bounds.0.iter_mut().for_each(|b| vis.visit_ident(b));
+        p.bounds.0.iter_mut().for_each(|b| {
+            vis.visit_ident(&mut b.name);
+            b.parameters.iter_mut().for_each(|b| vis.visit_ty(b));
+        });
     });
     vis.visit_pat(&mut decl.input);
     vis.visit_ty(&mut decl.output);
@@ -225,7 +228,13 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         // TODO(sezna)
-        TyKind::Param(TyParam { ty, .. }) => vis.visit_ident(ty),
+        TyKind::Param(TyParam { ty, bounds, .. }) => {
+            for bound in bounds.0.iter_mut() {
+                vis.visit_ident(&mut bound.name);
+                bound.parameters.iter_mut().for_each(|b| vis.visit_ty(b));
+            }
+            vis.visit_ident(ty);
+        }
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
     }

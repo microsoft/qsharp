@@ -149,7 +149,10 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
     // modify visitors for this new AST element
     decl.generics.iter().for_each(|p| {
         vis.visit_ident(&p.ty);
-        p.bounds.0.iter().for_each(|b| vis.visit_ident(b));
+        p.bounds.0.iter().for_each(|b| {
+            vis.visit_ident(&b.name);
+            b.parameters.iter().for_each(|b| vis.visit_ty(b));
+        });
     });
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
@@ -203,7 +206,13 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         // TODO(sezna)
-        TyKind::Param(TyParam { ty, .. }) => vis.visit_ident(ty),
+        TyKind::Param(TyParam { ty, bounds, .. }) => {
+            for bound in bounds.0.iter() {
+                vis.visit_ident(&bound.name);
+                bound.parameters.iter().for_each(|b| vis.visit_ty(b));
+            }
+            vis.visit_ident(ty);
+        }
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
     }
 }

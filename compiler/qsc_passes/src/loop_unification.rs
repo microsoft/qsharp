@@ -325,6 +325,7 @@ impl LoopUni<'_> {
 
 impl MutVisitor for LoopUni<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
+        todo!("TODO(sezna) -- why is this expr an Expr::Err (being generated via Default)?");
         walk_expr(self, expr);
         match take(&mut expr.kind) {
             ExprKind::Repeat(block, cond, fixup) => {
@@ -336,9 +337,16 @@ impl MutVisitor for LoopUni<'_> {
                     Ty::Prim(Prim::Range) => {
                         *expr = self.visit_for_range(iter, iterable, block, expr.span);
                     }
-                    _ => {
+                    Ty::Param { bounds, .. } => {
+                        if !bounds.contains_iterable_bound() {
+                            panic!("For loops can only operate on iterable types");
+                        }
+                        // TODO(sezna) loop unification on parametric types?
+                        dbg!(&expr);
+                    }
+                    a => {
                         // This scenario should have been caught by type-checking earlier
-                        panic!("The type of the iterable must be either array or range.")
+                        panic!("The type of the iterable must be either array or range, but it is an {a:?}")
                     }
                 }
             }

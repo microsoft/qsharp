@@ -68,7 +68,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
         TyKind::Param(TyParam { ty, .. }) => match names.get(ty.id) {
             // TODO(sezna) should only res or typaram track bounds?
             Some(resolve::Res::Param { id, bounds }) => {
-                let bounds = ty_bound_from_ast(bounds);
+                let bounds = ty_bound_from_ast(names, bounds);
                 (
                     Ty::Param {
                         name: ty.name.clone(),
@@ -222,13 +222,16 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
     (def, errors)
 }
 
-pub(crate) fn ast_callable_generics(generics: &[ast::TyParam]) -> Vec<qsc_hir::ty::GenericParam> {
+pub(crate) fn ast_callable_generics(
+    names: &Names,
+    generics: &[ast::TyParam],
+) -> Vec<qsc_hir::ty::GenericParam> {
     generics
         .iter()
         .map(|param| GenericParam::Ty {
             name: param.ty.name.clone(),
             bounds: {
-                let bounds = ty_bound_from_ast(&param.bounds);
+                let bounds = ty_bound_from_ast(names, &param.bounds);
 
                 bounds
             },
@@ -240,7 +243,7 @@ pub(super) fn ast_callable_scheme(
     names: &Names,
     callable: &CallableDecl,
 ) -> (Scheme, Vec<TyConversionError>) {
-    let mut type_parameters = ast_callable_generics(&callable.generics);
+    let mut type_parameters = ast_callable_generics(names, &callable.generics);
 
     let kind = callable_kind_from_ast(callable.kind);
     let (mut input, mut errors) = ast_pat_ty(names, &callable.input);
@@ -257,7 +260,6 @@ pub(super) fn ast_callable_scheme(
         output: Box::new(output),
         functors: FunctorSet::Value(ast_callable_functors(callable)),
     };
-    dbg!(&type_parameters);
 
     (Scheme::new(type_parameters, Box::new(ty)), errors)
 }
@@ -351,16 +353,26 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 }
 
 /// Convert an AST type bound to an HIR type bound.
-pub(crate) fn ty_bound_from_ast(bounds: &qsc_ast::ast::TyBounds) -> qsc_hir::ty::TyBounds {
+pub(crate) fn ty_bound_from_ast(
+    names: &Names,
+    bounds: &qsc_ast::ast::TyBounds,
+) -> qsc_hir::ty::TyBounds {
     qsc_hir::ty::TyBounds(
         bounds
             .0
             .into_iter()
             // TODO(sezna) parse nested generics on ty params
-            .map(|bound| match &*bound.name {
-                "Eq" => qsc_hir::ty::TyBound::Eq,
-                "Add" => qsc_hir::ty::TyBound::Add,
-                otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
+            .map(|bound| {
+                match &*bound.name.name {
+                    "Eq" => qsc_hir::ty::TyBound::Eq,
+                    "Add" => qsc_hir::ty::TyBound::Add,
+                    "Iterable" => qsc_hir::ty::TyBound::Iterable {
+                        // TODO(sezna) handle errors here
+                        //                        item: Ty::Array(Box::new(ty_from_ast(names, &bound.parameters[0]).0)),
+                        item: ty_from_ast(names, &bound.parameters[0]).0,
+                    },
+                    otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
+                }
             })
             .collect(),
     )

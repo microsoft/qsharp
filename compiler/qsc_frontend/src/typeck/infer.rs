@@ -1181,6 +1181,32 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
             }],
             Vec::new(),
         ),
+        Ty::Param {
+            ref bounds,
+            ref name,
+            ..
+        } => {
+            let mut constraints = Vec::new();
+            let mut errors = Vec::new();
+            for bound in &bounds.0 {
+                match bound {
+                    TyBound::Iterable {
+                        item: expected_item,
+                    } => {
+                        constraints.push(Constraint::Eq {
+                            expected: expected_item.clone(),
+                            actual: item.clone(),
+                            span,
+                        });
+                    }
+                    _ => errors.push(Error(ErrorKind::MissingClassIterable(
+                        container.clone().display(),
+                        span,
+                    ))),
+                }
+            }
+            (constraints, errors)
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassIterable(

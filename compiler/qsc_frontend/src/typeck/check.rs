@@ -250,7 +250,6 @@ impl Visitor<'_> for ItemCollector<'_> {
                     self.checker.errors.push(err.into());
                 }
 
-                println!("___\nItem {:?} has scheme {:?}", item, scheme);
                 self.checker.globals.insert(item, scheme);
             }
             ast::ItemKind::Ty(name, def) => {

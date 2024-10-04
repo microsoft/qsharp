@@ -2012,14 +2012,26 @@ impl std::fmt::Debug for TyParam {
 }
 
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
-pub struct TyBounds(pub Box<[Ident]>);
+pub struct TyBounds(pub Box<[TyBound]>);
+
+#[derive(Default, PartialEq, Eq, Clone, Hash)]
+pub struct TyBound {
+    pub name: Ident,
+    pub parameters: Box<[Ty]>,
+}
+
+impl TyBound {
+    pub fn span(&self) -> Span {
+        self.name.span
+    }
+}
 
 impl TyBounds {
     /// The conjoined span of all of the bounds
     pub fn span(&self) -> Span {
         Span {
-            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
-            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+            lo: self.0.first().map(|i| i.span().lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span().hi).unwrap_or_default(),
         }
     }
 }

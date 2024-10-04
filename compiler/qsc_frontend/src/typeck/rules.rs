@@ -128,7 +128,7 @@ impl<'a> Context<'a> {
             TyKind::Param(TyParam { ty, bounds, .. }) => match self.names.get(ty.id) {
                 Some(Res::Param { id, bounds }) => {
                     // TODO(sezna) what to do with res bounds?
-                    let bounds = convert::ty_bound_from_ast(bounds);
+                    let bounds = convert::ty_bound_from_ast(self.names, bounds);
                     Ty::Param {
                         name: ty.name.clone(),
                         id: *id,

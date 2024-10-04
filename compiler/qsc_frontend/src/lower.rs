@@ -373,7 +373,7 @@ impl With<'_> {
         generics: &[ast::TyParam],
         input: &mut hir::Pat,
     ) -> Vec<qsc_hir::ty::GenericParam> {
-        let mut params = convert::ast_callable_generics(generics);
+        let mut params = convert::ast_callable_generics(self.names, generics);
         let mut functor_params =
             Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
         params.append(&mut functor_params);
@@ -613,7 +613,7 @@ impl With<'_> {
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
-            ast::ExprKind::Err => hir::ExprKind::Err,
+            ast::ExprKind::Err => dbg!(hir::ExprKind::Err),
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);

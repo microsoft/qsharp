@@ -4428,6 +4428,13 @@ fn bounded_polymorphism_eq() {
         "#,
         "",
         &expect![[r##"
+            #8 55-69 "(a: 'T, b: 'T)" : (Param<"'T": 0>, Param<"'T": 0>)
+            #9 56-61 "a: 'T" : Param<"'T": 0>
+            #13 63-68 "b: 'T" : Param<"'T": 0>
+            #20 77-115 "{\n                a == b\n            }" : Bool
+            #22 95-101 "a == b" : Bool
+            #23 95-96 "a" : Param<"'T": 0>
+            #26 100-101 "b" : Param<"'T": 0>
         "##]],
     );
 }
@@ -4445,6 +4452,35 @@ fn bounded_polymorphism_example_should_fail() {
         "#,
         "",
         &expect![[r##"
+            #10 63-77 "(a: 'T, b: 'O)" : (Param<"'T": 0>, Param<"'O": 1>)
+            #11 64-69 "a: 'T" : Param<"'T": 0>
+            #15 71-76 "b: 'O" : Param<"'O": 1>
+            #22 85-195 "{\n            // should fail because we can't compare two different types\n                a == b\n            }" : Bool
+            #24 175-181 "a == b" : Bool
+            #25 175-176 "a" : Param<"'T": 0>
+            #28 180-181 "b" : Param<"'O": 1>
+            Error(Type(Error(TyMismatch("'T", "'O", Span { lo: 180, hi: 181 }))))
         "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_iter() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Iterable[Bool]>(a: 'T) : Bool {
+                for item in a {
+                    return item;
+                }
+            }
+
+            function Main() : Unit {
+                let x = Foo([true]);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
     );
 }

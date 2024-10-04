@@ -51,6 +51,14 @@ pub enum Ty {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct TyBounds(pub Box<[TyBound]>);
+impl TyBounds {
+    pub fn contains_iterable_bound(&self) -> bool {
+        self.0.iter().any(|bound| match bound {
+            TyBound::Iterable { .. } => true,
+            _ => false,
+        })
+    }
+}
 
 impl std::fmt::Display for TyBounds {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

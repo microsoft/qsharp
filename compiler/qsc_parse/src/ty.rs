@@ -17,8 +17,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyBounds,
-    TyKind, TyParam,
+    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyBound,
+    TyBounds, TyKind, TyParam,
 };
 use qsc_data_structures::span::{Span, WithSpan};
 
@@ -77,10 +77,27 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
     ))
 }
 
+/// Parses the bounds of a type parameter, which are a list of class names separated by `+`.
+/// This occurs after a `:` in a generic type:
+/// `T: Eq + Iterator[Bool] + Class3`
+///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
 fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
-    let mut bounds = Vec::new();
+    let mut bounds: Vec<TyBound> = Vec::new();
     loop {
-        bounds.push(*ident(s)?);
+        let bound_name = ident(s)?;
+        // if there's a less-than sign, or "open angle bracket", try to parse type parameters for
+        // the class
+        // e.g. `Iterator[Bool]`
+        let mut ty_parameters = Vec::new();
+        if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
+            let (tys, final_sep) = seq(s, ty)?;
+            ty_parameters = tys;
+            token(s, TokenKind::Close(Delim::Bracket))?;
+        }
+        bounds.push(TyBound {
+            name: *bound_name,
+            parameters: ty_parameters.into_boxed_slice(),
+        });
         if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_err() {
             break;
         }
