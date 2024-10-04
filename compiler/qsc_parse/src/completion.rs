@@ -16,7 +16,7 @@ pub use word_kinds::*;
 ///
 /// This is useful for providing completions in an editor.
 #[must_use]
-pub fn possible_words_at_cursor_in_source(
+pub fn possible_words_at_offset_in_source(
     input: &str,
     source_name: Option<&str>,
     language_features: LanguageFeatures,
@@ -33,7 +33,7 @@ pub fn possible_words_at_cursor_in_source(
 ///
 /// This is useful for providing completions in an editor.
 #[must_use]
-pub fn possible_words_at_cursor_in_fragments(
+pub fn possible_words_at_offset_in_fragments(
     input: &str,
     language_features: LanguageFeatures,
     at_offset: u32,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::completion::possible_words_at_cursor_in_source;
+use crate::completion::possible_words_at_offset_in_source;
 use expect_test::expect;
 use qsc_data_structures::language_features::LanguageFeatures;
 
@@ -21,7 +21,7 @@ fn get_source_and_cursor(input: &str) -> (String, u32) {
 
 fn check_valid_words(input: &str, expect: &expect_test::Expect) {
     let (input, cursor) = get_source_and_cursor(input);
-    let w = possible_words_at_cursor_in_source(
+    let w = possible_words_at_offset_in_source(
         &input,
         Some("test"),
         LanguageFeatures::default(),
@@ -32,7 +32,7 @@ fn check_valid_words(input: &str, expect: &expect_test::Expect) {
 
 fn check_valid_words_no_source_name(input: &str, expect: &expect_test::Expect) {
     let (input, cursor) = get_source_and_cursor(input);
-    let w = possible_words_at_cursor_in_source(&input, None, LanguageFeatures::default(), cursor);
+    let w = possible_words_at_offset_in_source(&input, None, LanguageFeatures::default(), cursor);
     expect.assert_debug_eq(&w);
 }
 

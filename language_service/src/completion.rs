@@ -19,7 +19,7 @@ use path_context::IncompletePath;
 use qsc::{
     line_column::{Encoding, Position},
     parse::completion::{
-        possible_words_at_cursor_in_fragments, possible_words_at_cursor_in_source,
+        possible_words_at_offset_in_fragments, possible_words_at_offset_in_source,
         HardcodedIdentKind, NameKind, PathKind, WordKinds,
     },
     LanguageFeatures,
@@ -101,13 +101,13 @@ fn expected_word_kinds(
     match &compilation.kind {
         CompilationKind::OpenProject {
             package_graph_sources,
-        } => possible_words_at_cursor_in_source(
+        } => possible_words_at_offset_in_source(
             source_contents,
             Some(source_name_relative),
             package_graph_sources.root.language_features,
             cursor_offset,
         ),
-        CompilationKind::Notebook { project } => possible_words_at_cursor_in_fragments(
+        CompilationKind::Notebook { project } => possible_words_at_offset_in_fragments(
             source_contents,
             project.as_ref().map_or(LanguageFeatures::default(), |p| {
                 p.package_graph_sources.root.language_features
