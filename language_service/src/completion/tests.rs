@@ -2624,6 +2624,50 @@ fn struct_init_path_part() {
 }
 
 #[test]
+fn struct_init_path_part_in_field_assigment() {
+    check(
+        r#"
+        namespace Test {
+            function Main() : Unit {
+                let x = new FakeStdLib.Udt { x = FakeStdLib.↘ } ;
+            }
+        }"#,
+        &["Udt", "Qubit", "FakeWithParam"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+                Some(
+                    CompletionItem {
+                        label: "FakeWithParam",
+                        kind: Function,
+                        sort_text: Some(
+                            "0300FakeWithParam",
+                        ),
+                        detail: Some(
+                            "operation FakeWithParam(x : Int) : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn export_path() {
     check(
         r#"
