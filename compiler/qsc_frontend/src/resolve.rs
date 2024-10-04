@@ -7,7 +7,7 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Ident, Idents, NodeId, PathResult, SpecBody, SpecGen,
+        self, CallableBody, CallableDecl, Ident, Idents, NodeId, PathKind, SpecBody, SpecGen,
         TopLevelNode,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
@@ -510,7 +510,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                             .resolver
                             .bind_import_or_export(decl, Some((ns, &namespace.name)));
                     }
-                    ItemKind::Open(PathResult::Ok(path), alias) => {
+                    ItemKind::Open(PathKind::Ok(path), alias) => {
                         // we only need to bind opens that are in top-level namespaces, outside of callables.
                         // this is because this is for the intermediate export-binding pass
                         // and in the export-binding pass, we only need to know what symbols are available
@@ -802,7 +802,7 @@ impl Resolver {
     ) {
         match &*item.kind {
             ast::ItemKind::Open(name, alias) => {
-                if let PathResult::Ok(path) = name {
+                if let PathKind::Ok(path) = name {
                     self.bind_open(
                         path.as_ref(),
                         alias,
@@ -892,7 +892,7 @@ impl Resolver {
             // problem without upleveling the preprocessor into the resolver, so it can do resolution-aware
             // dropped_names population.
             .filter(|item| {
-                if let (Some(ref current_namespace_name), PathResult::Ok(path)) =
+                if let (Some(ref current_namespace_name), PathKind::Ok(path)) =
                     (&current_namespace_name, &item.path)
                 {
                     let item_as_tracked_name = path_as_tracked_name(path, current_namespace_name);
@@ -903,7 +903,7 @@ impl Resolver {
             })
             .collect::<Vec<_>>()
         {
-            let PathResult::Ok(path) = &decl_item.path else {
+            let PathKind::Ok(path) = &decl_item.path else {
                 continue;
             };
             let Some(decl_item_name) = decl_item.name() else {
@@ -1102,7 +1102,7 @@ impl Resolver {
     /// Globs can only be attached to namespaces, and
     /// they import all items from the namespace into the current scope.
     fn bind_glob_import_or_export(&mut self, item: &ImportOrExportItem, is_export: bool) {
-        let PathResult::Ok(path) = &item.path else {
+        let PathKind::Ok(path) = &item.path else {
             return;
         };
 
@@ -1171,7 +1171,7 @@ impl Resolver {
         current_namespace: Option<NamespaceId>,
         err: &Error,
     ) -> Result<(), ClobberedNamespace> {
-        let PathResult::Ok(path) = &item.path else {
+        let PathKind::Ok(path) = &item.path else {
             return Ok(());
         };
 
@@ -1295,7 +1295,7 @@ impl AstVisitor<'_> for With<'_> {
                 // Only locally scoped imports and exports are handled here.
                 self.resolver.bind_import_or_export(decl, None);
             }
-            ItemKind::Open(PathResult::Ok(path), alias) => {
+            ItemKind::Open(PathKind::Ok(path), alias) => {
                 let scopes = self.resolver.curr_scope_chain.iter().rev();
                 let namespace = scopes
                     .into_iter()
@@ -1361,7 +1361,7 @@ impl AstVisitor<'_> for With<'_> {
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
         match &*ty.kind {
-            ast::TyKind::Path(PathResult::Ok(path)) => {
+            ast::TyKind::Path(PathKind::Ok(path)) => {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Ty, path) {
                     self.resolver.errors.push(e);
                 }
@@ -1428,7 +1428,7 @@ impl AstVisitor<'_> for With<'_> {
                     visitor.visit_expr(output);
                 });
             }
-            ast::ExprKind::Path(PathResult::Ok(path)) => {
+            ast::ExprKind::Path(PathKind::Ok(path)) => {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
                     self.resolver.errors.push(e);
                 };
@@ -1447,7 +1447,7 @@ impl AstVisitor<'_> for With<'_> {
                 }
                 self.visit_expr(replace);
             }
-            ast::ExprKind::Struct(PathResult::Ok(path), copy, fields) => {
+            ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Ty, path) {
                     self.resolver.errors.push(e);
                 };
@@ -1694,7 +1694,7 @@ fn bind_global_items(
 pub(super) fn extract_field_name<'a>(names: &Names, expr: &'a ast::Expr) -> Option<&'a Rc<str>> {
     // Follow the same reasoning as `is_field_update`.
     match &*expr.kind {
-        ast::ExprKind::Path(PathResult::Ok(path))
+        ast::ExprKind::Path(PathKind::Ok(path))
             if path.segments.is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
         {
             Some(&path.name.name)
@@ -1711,7 +1711,7 @@ fn is_field_update<'a>(
     // Disambiguate the update operator by looking at the index expression. If it's an
     // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
     match &*index.kind {
-        ast::ExprKind::Path(PathResult::Ok(path)) if path.segments.is_none() => !matches!(
+        ast::ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() => !matches!(
             {
                 let name = &path.name;
                 let namespace = &path.segments;
@@ -1748,7 +1748,7 @@ fn bind_global_item(
                 Ok(())
             } else {
                 for decl_item in &decl.items {
-                    let PathResult::Ok(path) = &decl_item.path else {
+                    let PathKind::Ok(path) = &decl_item.path else {
                         continue;
                     };
                     let Some(decl_item_name) = decl_item.name() else {

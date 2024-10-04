@@ -10,7 +10,7 @@ use crate::{
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self, Ident, Idents, PathResult};
+use qsc_ast::ast::{self, Ident, Idents, PathKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -135,7 +135,7 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                let PathResult::Ok(path) = &item.path else {
+                let PathKind::Ok(path) = &item.path else {
                     return None;
                 };
                 self.names.get(path.id).map(|x| (x, item.alias.clone()))
@@ -324,13 +324,13 @@ impl With<'_> {
                 match &*attr.arg.kind {
                     // @Config(Capability)
                     ast::ExprKind::Paren(inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathResult::Ok(path))
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
 
                     // @Config(not Capability)
                     ast::ExprKind::Paren(inner)
                         if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathResult::Ok(path))
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
                         {}
 
@@ -619,7 +619,7 @@ impl With<'_> {
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::ExprKind::Path(PathResult::Ok(path)) => {
+            ast::ExprKind::Path(PathKind::Ok(path)) => {
                 let args = self
                     .tys
                     .generics
@@ -638,7 +638,7 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
-            ast::ExprKind::Struct(PathResult::Ok(path), copy, fields) => hir::ExprKind::Struct(
+            ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => hir::ExprKind::Struct(
                 self.node_id_to_res(path.id),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
@@ -680,10 +680,9 @@ impl With<'_> {
             ast::ExprKind::While(cond, body) => {
                 hir::ExprKind::While(Box::new(self.lower_expr(cond)), self.lower_block(body))
             }
-            ast::ExprKind::Err | &ast::ExprKind::Path(ast::PathResult::Err(_)) => {
-                hir::ExprKind::Err
-            }
-            ast::ExprKind::Struct(ast::PathResult::Err(_), ..) => hir::ExprKind::Err,
+            ast::ExprKind::Err
+            | &ast::ExprKind::Path(ast::PathKind::Err(_))
+            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => hir::ExprKind::Err,
         };
 
         hir::Expr {

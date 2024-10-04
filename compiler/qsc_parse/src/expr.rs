@@ -22,7 +22,7 @@ use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, FieldAssign, Functor, Lit, NodeId, Pat, PatKind,
-    PathResult, Pauli, StringComponent, TernOp, UnOp,
+    PathKind, Pauli, StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
 use std::{result, str::FromStr};
@@ -360,7 +360,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(PathResult::Ok(path)) if path.segments.is_none() && path.name.name.as_ref() == name)
+    matches!(kind, ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() && path.name.name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -757,7 +757,7 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(PathResult::Ok(path)) if path.segments.is_none() => {
+        ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() => {
             Ok(PatKind::Bind(path.name, None))
         }
         ExprKind::Hole => Ok(PatKind::Discard(None)),

@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
-use qsc::ast::{Idents, PathResult};
+use qsc::ast::{Idents, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
@@ -349,7 +349,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         }
                     }
                 }
-                ast::ExprKind::Struct(PathResult::Ok(ty_name), copy, fields) => {
+                ast::ExprKind::Struct(PathKind::Ok(ty_name), copy, fields) => {
                     if ty_name.span.touches(self.offset) {
                         self.visit_path(ty_name);
                         return;

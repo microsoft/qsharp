@@ -32,7 +32,7 @@ use crate::{
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
     ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-    PathResult, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef,
+    PathKind, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef,
     TyDefKind, TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -474,7 +474,7 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
 }
 
 fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
-    let TyKind::Path(PathResult::Ok(path)) = *ty.kind else {
+    let TyKind::Path(PathKind::Ok(path)) = *ty.kind else {
         return Err(Error::new(ErrorKind::Convert(
             "identifier",
             "type",
@@ -671,9 +671,9 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
 }
 
 /// A path with an optional glob indicator at the end, e.g. `Foo.Bar.*`
-fn path_import(s: &mut ParserContext) -> Result<(PathResult, bool)> {
+fn path_import(s: &mut ParserContext) -> Result<(PathKind, bool)> {
     match path(s, WordKinds::PathImport) {
-        Ok(path) => Ok((PathResult::Ok(path), false)),
+        Ok(path) => Ok((PathKind::Ok(path), false)),
         Err((error, Some(incomplete_path))) => {
             if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
                 let (name, namespace) = incomplete_path
@@ -682,7 +682,7 @@ fn path_import(s: &mut ParserContext) -> Result<(PathResult, bool)> {
                     .expect("path should have at least one part");
 
                 Ok((
-                    PathResult::Ok(Box::new(Path {
+                    PathKind::Ok(Box::new(Path {
                         id: NodeId::default(),
                         span: incomplete_path.segments.full_span(),
                         segments: if namespace.is_empty() {
@@ -696,7 +696,7 @@ fn path_import(s: &mut ParserContext) -> Result<(PathResult, bool)> {
                 ))
             } else {
                 s.push_error(error);
-                Ok((PathResult::Err(Some(incomplete_path)), false))
+                Ok((PathKind::Err(Some(incomplete_path)), false))
             }
         }
         Err((error, None)) => Err(error),

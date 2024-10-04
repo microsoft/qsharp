@@ -8,7 +8,7 @@ use num_bigint::BigInt;
 use qsc::{
     ast::{
         self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item,
-        Lit, Mutability, NodeId, Pat, PatKind, Path, PathResult, QubitInit, QubitInitKind,
+        Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
         QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
     },
     Span,
@@ -28,7 +28,7 @@ where
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
             id: NodeId::default(),
@@ -83,7 +83,7 @@ where
     };
 
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
             id: NodeId::default(),
@@ -349,7 +349,7 @@ pub(crate) fn build_math_call_from_exprs(name: &str, exprs: Vec<Expr>, span: Spa
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Math"]),
             name: Box::new(alloc_ident),
             id: NodeId::default(),
@@ -395,7 +395,7 @@ pub(crate) fn build_path_ident_expr<S: AsRef<str>>(
         segments: None,
         name: Box::new(ident),
     };
-    let path_kind = ast::ExprKind::Path(PathResult::Ok(Box::new(path)));
+    let path_kind = ast::ExprKind::Path(PathKind::Ok(Box::new(path)));
     ast::Expr {
         id: NodeId::default(),
         span: expr_span,
@@ -419,7 +419,7 @@ pub(crate) fn build_indexed_assignment_statement<S: AsRef<str>>(
     let lhs = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(PathResult::Ok(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: name_span,
             segments: None,
@@ -463,7 +463,7 @@ pub(crate) fn build_assignment_statement<S: AsRef<str>>(
     let lhs = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(PathResult::Ok(Box::new(path)))),
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(path)))),
     };
     let expr_kind = ast::ExprKind::Assign(Box::new(lhs), Box::new(rhs));
     let expr = ast::Expr {
@@ -486,7 +486,7 @@ pub(crate) fn build_convert_call_expr(expr: Expr, name: &str) -> Expr {
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Convert"]),
             name: Box::new(cast_ident),
             id: NodeId::default(),
@@ -516,7 +516,7 @@ pub(crate) fn build_array_reverse_expr(expr: Expr) -> Expr {
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Arrays"]),
             name: Box::new(cast_ident),
             id: NodeId::default(),
@@ -687,7 +687,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     let callee_expr = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(PathResult::Ok(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: Span::default(),
             segments: None,
@@ -724,7 +724,7 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
     let callee_expr = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(PathResult::Ok(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: Span::default(),
             segments: None,
@@ -786,7 +786,7 @@ pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> E
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
@@ -821,7 +821,7 @@ pub(crate) fn build_call_with_param(
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
@@ -913,7 +913,7 @@ where
         name: ty.to_string().into(),
         ..Default::default()
     };
-    let result_ty_path = ast::PathResult::Ok(Box::new(ast::Path {
+    let result_ty_path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(result_ty_ident),
         segments: None,
         id: NodeId::default(),
@@ -969,7 +969,7 @@ pub(crate) fn build_path_ident_ty<S: AsRef<str>>(name: S) -> Ty {
         name: Rc::from(name.as_ref()),
         ..Default::default()
     };
-    let path = ast::PathResult::Ok(Box::new(ast::Path {
+    let path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(ident),
         segments: Option::default(),
         id: NodeId::default(),
@@ -987,7 +987,7 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
         name: Rc::from("Complex"),
         ..Default::default()
     };
-    let path = ast::PathResult::Ok(Box::new(ast::Path {
+    let path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(ident),
         segments: build_idents(&["Microsoft", "Quantum", "Math"]),
         id: NodeId::default(),

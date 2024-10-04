@@ -12,10 +12,10 @@ use crate::{
     Error, ErrorKind,
 };
 use expect_test::expect;
-use qsc_ast::ast::PathResult;
+use qsc_ast::ast::PathKind;
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
-fn path(s: &mut ParserContext) -> Result<PathResult, Error> {
+fn path(s: &mut ParserContext) -> Result<PathKind, Error> {
     super::recovering_path(s, WordKinds::empty())
 }
 

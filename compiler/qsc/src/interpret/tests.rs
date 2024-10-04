@@ -1347,7 +1347,7 @@ mod given_interpreter {
         use indoc::indoc;
 
         use qsc_ast::ast::{
-            Expr, ExprKind, NodeId, Package, Path, PathResult, Stmt, StmtKind, TopLevelNode,
+            Expr, ExprKind, NodeId, Package, Path, PathKind, Stmt, StmtKind, TopLevelNode,
         };
         use qsc_data_structures::span::Span;
         use qsc_frontend::compile::SourceMap;
@@ -1867,7 +1867,7 @@ mod given_interpreter {
             let path_expr = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                kind: Box::new(ExprKind::Path(PathResult::Ok(Box::new(path)))),
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(path)))),
             };
             let expr = Expr {
                 id: NodeId::default(),

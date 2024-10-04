@@ -516,7 +516,7 @@ impl<'a> Display for AstTy<'a> {
             }
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", AstPathResult { path }),
+            ast::TyKind::Path(path) => write!(f, "{}", AstPathKind { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
@@ -540,13 +540,13 @@ impl<'a> Display for FunctorExpr<'a> {
     }
 }
 
-struct AstPathResult<'a> {
-    path: &'a ast::PathResult,
+struct AstPathKind<'a> {
+    path: &'a ast::PathKind,
 }
 
-impl<'a> Display for AstPathResult<'a> {
+impl<'a> Display for AstPathKind<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let ast::PathResult::Ok(path) = self.path {
+        if let ast::PathKind::Ok(path) = self.path {
             write!(f, "{}", path.full_name())
         } else {
             write!(f, "?")

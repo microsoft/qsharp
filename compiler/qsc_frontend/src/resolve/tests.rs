@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Idents, Item, ItemKind, PathResult};
+use qsc_ast::ast::{Idents, Item, ItemKind, PathKind};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
@@ -137,7 +137,7 @@ impl Visitor<'_> for Renamer<'_> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         match &*item.kind {
-            ItemKind::Open(PathResult::Ok(namespace), Some(alias)) => {
+            ItemKind::Open(PathKind::Ok(namespace), Some(alias)) => {
                 if let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) {
                     // self.changes.push((item.span, ns_id.into()));
                     self.aliases.insert(vec![alias.name.clone()], ns_id);
@@ -147,7 +147,7 @@ impl Visitor<'_> for Renamer<'_> {
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
-                    let PathResult::Ok(path) = &item.path else {
+                    let PathKind::Ok(path) = &item.path else {
                         continue;
                     };
                     if let Some(res) = self.names.get(path.id) {

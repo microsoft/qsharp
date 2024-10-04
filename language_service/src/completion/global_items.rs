@@ -9,7 +9,7 @@ use crate::{
 use qsc::{
     ast::{
         visit::{walk_block, walk_callable_decl, walk_item, walk_namespace, Visitor},
-        Idents as _, Package as AstPackage, PathResult,
+        Idents as _, Package as AstPackage, PathKind,
     },
     display::CodeDisplay,
     hir::{ty::Udt, CallableDecl, Idents, ItemKind, Package, PackageId, Visibility},
@@ -742,7 +742,7 @@ impl<'a> Visitor<'a> for ImportFinder {
 
     fn visit_item(&mut self, item: &'a qsc::ast::Item) {
         match &*item.kind {
-            qsc::ast::ItemKind::Open(PathResult::Ok(name), alias) => {
+            qsc::ast::ItemKind::Open(PathKind::Ok(name), alias) => {
                 let open_as_import = ImportItem {
                     path: name.rc_str_iter().cloned().collect(),
                     alias: alias.as_ref().map(|x| x.name.clone()),
@@ -796,7 +796,7 @@ impl ImportItem {
         };
         let mut buf = Vec::with_capacity(decl.items.len());
         for item in &decl.items {
-            let PathResult::Ok(path) = &item.path else {
+            let PathKind::Ok(path) = &item.path else {
                 continue;
             };
             let alias = item.alias.as_ref().map(|x| x.name.clone());

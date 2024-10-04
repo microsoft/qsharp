@@ -11,7 +11,7 @@ use crate::{
     lex::{Delim, TokenKind},
     ErrorKind,
 };
-use qsc_ast::ast::{Ident, IncompletePath, NodeId, Pat, PatKind, Path, PathResult};
+use qsc_ast::ast::{Ident, IncompletePath, NodeId, Pat, PatKind, Path, PathKind};
 use qsc_data_structures::span::{Span, WithSpan};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -143,14 +143,14 @@ pub(super) fn path(
 
 /// Recovering [`Path`] parser. Parsing only fails if no segments
 /// were successfully parsed. If any segments were successfully parsed,
-/// returns a [`PathResult::Err`] containing the segments that were
+/// returns a [`PathKind::Err`] containing the segments that were
 /// successfully parsed up to the final `.` token.
-pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathResult> {
+pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathKind> {
     match path(s, kind) {
-        Ok(path) => Ok(PathResult::Ok(path)),
+        Ok(path) => Ok(PathKind::Ok(path)),
         Err((error, Some(incomplete_path))) => {
             s.push_error(error);
-            Ok(PathResult::Err(Some(incomplete_path)))
+            Ok(PathKind::Err(Some(incomplete_path)))
         }
         Err((error, None)) => Err(error),
     }

@@ -273,7 +273,7 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(PathResult, Option<Box<Ident>>),
+    Open(PathKind, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
     /// A `struct` declaration.
@@ -672,7 +672,7 @@ pub enum TyKind {
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
     /// A named type.
-    Path(PathResult),
+    Path(PathKind),
     /// A type parameter.
     Param(Box<Ident>),
     /// A tuple type.
@@ -884,7 +884,7 @@ pub enum ExprKind {
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
-    Path(PathResult),
+    Path(PathKind),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -892,7 +892,7 @@ pub enum ExprKind {
     /// A return: `return a`.
     Return(Box<Expr>),
     /// A struct constructor.
-    Struct(PathResult, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
+    Struct(PathKind, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -1147,7 +1147,7 @@ fn display_repeat(
 
 fn display_struct(
     mut indent: Indented<Formatter>,
-    name: &PathResult,
+    name: &PathKind,
     copy: &Option<Box<Expr>>,
     fields: &[Box<FieldAssign>],
 ) -> fmt::Result {
@@ -1404,7 +1404,7 @@ impl Display for QubitInitKind {
 
 /// A path that may or may not have been successfully parsed.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum PathResult {
+pub enum PathKind {
     /// A successfully parsed path.
     Ok(Box<Path>),
 
@@ -1412,9 +1412,9 @@ pub enum PathResult {
     Err(Option<Box<IncompletePath>>),
 }
 
-impl Default for PathResult {
+impl Default for PathKind {
     fn default() -> Self {
-        PathResult::Err(None)
+        PathKind::Err(None)
     }
 }
 
@@ -1429,11 +1429,11 @@ pub struct IncompletePath {
     pub segments: Box<[Ident]>,
 }
 
-impl Display for PathResult {
+impl Display for PathKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            PathResult::Ok(path) => write!(f, "{path}")?,
-            PathResult::Err(Some(incomplete_path)) => {
+            PathKind::Ok(path) => write!(f, "{path}")?,
+            PathKind::Err(Some(incomplete_path)) => {
                 let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Err IncompletePath {}:", incomplete_path.span)?;
                 indent = set_indentation(indent, 1);
@@ -1441,7 +1441,7 @@ impl Display for PathResult {
                     write!(indent, "\n{part}")?;
                 }
             }
-            PathResult::Err(None) => write!(f, "Err",)?,
+            PathKind::Err(None) => write!(f, "Err",)?,
         }
         Ok(())
     }
@@ -1905,7 +1905,7 @@ pub struct ImportOrExportItem {
     /// The span of the import path including the glob and alias, if any.
     pub span: Span,
     /// The path to the item being exported.
-    pub path: PathResult,
+    pub path: PathKind,
     /// An optional alias for the item being exported.
     pub alias: Option<Ident>,
     /// Whether this is a glob import/export.
@@ -1942,7 +1942,7 @@ impl ImportOrExportItem {
         match &self.alias {
             Some(_) => self.alias.as_ref(),
             None => {
-                if let PathResult::Ok(path) = &self.path {
+                if let PathKind::Ok(path) = &self.path {
                     Some(&path.name)
                 } else {
                     None
