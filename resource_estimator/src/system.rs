@@ -98,7 +98,6 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             job_params.constraints().max_distillation_rounds,
         ),
         logical_resources.clone(),
-        partitioning,
     );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
         estimation.set_logical_depth_factor(logical_depth_factor);
@@ -126,14 +125,16 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             }
 
             let estimation_result = estimation
-                .build_frontier()
+                .build_frontier(&partitioning)
                 .map_err(std::convert::Into::into);
             estimation_result.map(|result| {
                 data::Success::new_from_multiple(job_params, logical_resources, result)
             })
         }
         EstimateType::SinglePoint => {
-            let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
+            let estimation_result = estimation
+                .estimate(&partitioning)
+                .map_err(std::convert::Into::into);
             estimation_result
                 .map(|result| data::Success::new(job_params, logical_resources, result))
         }

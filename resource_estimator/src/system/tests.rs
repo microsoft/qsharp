@@ -5,8 +5,8 @@ use serde_json::{json, Map, Value};
 
 use crate::{
     estimates::{
-        ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, FactoryPart, Overhead,
-        PhysicalResourceEstimation, PhysicalResourceEstimationResult,
+        ErrorBudget, ErrorBudgetStrategy, ErrorCorrection, Factory, FactoryBuilder, FactoryPart,
+        Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
     },
     system::modeling::{floquet_code, surface_code_gate_based},
 };
@@ -148,10 +148,9 @@ pub fn test_no_tstates() {
         qubit,
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
-    assert!(estimation.estimate().is_err());
+    assert!(estimation.estimate(&partitioning).is_err());
 }
 
 #[test]
@@ -167,10 +166,9 @@ pub fn single_tstate() -> Result<()> {
         qubit,
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
-    estimation.estimate()?;
+    estimation.estimate(&partitioning)?;
 
     Ok(())
 }
@@ -191,10 +189,9 @@ pub fn perfect_tstate() -> Result<()> {
         qubit,
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
-    estimation.estimate()?;
+    estimation.estimate(&partitioning)?;
 
     Ok(())
 }
@@ -237,10 +234,9 @@ pub fn test_hubbard_e2e() -> Result<()> {
         qubit.clone(),
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
-    let result = estimation.estimate()?;
+    let result = estimation.estimate(&partitioning)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -334,10 +330,9 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
         qubit.clone(),
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
-    let result = estimation.estimate()?;
+    let result = estimation.estimate(&partitioning)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -428,14 +423,15 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
         qubit,
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
     let max_duration_in_nanoseconds1: u64 = 50_000_000_u64;
     let max_duration_in_nanoseconds2: u64 = 500_000_000_u64;
 
-    let result1 = estimation.estimate_with_max_duration(max_duration_in_nanoseconds1)?;
-    let result2 = estimation.estimate_with_max_duration(max_duration_in_nanoseconds2)?;
+    let result1 =
+        estimation.estimate_with_max_duration(&partitioning, max_duration_in_nanoseconds1)?;
+    let result2 =
+        estimation.estimate_with_max_duration(&partitioning, max_duration_in_nanoseconds2)?;
 
     assert!(result1.runtime() <= max_duration_in_nanoseconds1);
     assert!(result2.runtime() <= max_duration_in_nanoseconds2);
@@ -456,14 +452,13 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
         qubit,
         create_factory_builder(),
         Rc::new(layout_overhead),
-        partitioning,
     );
 
     let max_num_qubits1: u64 = 11000;
     let max_num_qubits2: u64 = 20000;
 
-    let result1 = estimation.estimate_with_max_num_qubits(max_num_qubits1)?;
-    let result2 = estimation.estimate_with_max_num_qubits(max_num_qubits2)?;
+    let result1 = estimation.estimate_with_max_num_qubits(&partitioning, max_num_qubits1)?;
+    let result2 = estimation.estimate_with_max_num_qubits(&partitioning, max_num_qubits2)?;
 
     assert!(result1.physical_qubits() <= max_num_qubits1);
     assert!(result2.physical_qubits() <= max_num_qubits2);
@@ -474,8 +469,10 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
     Ok(())
 }
 
-fn prepare_chemistry_estimation_with_expected_majorana(
-) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
+fn prepare_chemistry_estimation_with_expected_majorana() -> (
+    PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts>,
+    ErrorBudget,
+) {
     let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
@@ -494,11 +491,8 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     let partitioning = ErrorBudgetSpecification::Total(0.01)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(
-        ftp,
-        qubit,
-        create_factory_builder(),
-        Rc::new(counts),
+    (
+        PhysicalResourceEstimation::new(ftp, qubit, create_factory_builder(), Rc::new(counts)),
         partitioning,
     )
 }
@@ -507,9 +501,9 @@ fn prepare_chemistry_estimation_with_expected_majorana(
 pub fn test_chemistry_small_max_duration() {
     let max_duration_in_nanoseconds: u64 = 1_000_000_000_u64;
 
-    let estimation = prepare_chemistry_estimation_with_expected_majorana();
+    let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
 
-    let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds);
+    let result = estimation.estimate_with_max_duration(&budget, max_duration_in_nanoseconds);
 
     match result {
         Err(crate::estimates::Error::MaxDurationTooSmall) => {}
@@ -520,9 +514,9 @@ pub fn test_chemistry_small_max_duration() {
 #[test]
 pub fn test_chemistry_small_max_num_qubits() {
     let max_num_qubits: u64 = 10_000;
-    let estimation = prepare_chemistry_estimation_with_expected_majorana();
+    let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
 
-    let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
+    let result = estimation.estimate_with_max_num_qubits(&budget, max_num_qubits);
 
     match result {
         Err(crate::estimates::Error::MaxPhysicalQubitsTooSmall) => {}
@@ -534,9 +528,9 @@ pub fn test_chemistry_small_max_num_qubits() {
 pub fn test_chemistry_based_max_duration() -> Result<()> {
     let max_duration_in_nanoseconds: u64 = 365 * 24 * 3600 * 1_000_000_000_u64;
 
-    let estimation = prepare_chemistry_estimation_with_expected_majorana();
+    let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
 
-    let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
+    let result = estimation.estimate_with_max_duration(&budget, max_duration_in_nanoseconds)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -591,9 +585,9 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
 pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     let max_num_qubits: u64 = 4_923_120;
 
-    let estimation = prepare_chemistry_estimation_with_expected_majorana();
+    let (estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
 
-    let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
+    let result = estimation.estimate_with_max_num_qubits(&budget, max_num_qubits)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -643,8 +637,10 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     Ok(())
 }
 
-fn prepare_factorization_estimation_with_optimistic_majorana(
-) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
+fn prepare_factorization_estimation_with_optimistic_majorana() -> (
+    PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts>,
+    ErrorBudget,
+) {
     let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
@@ -663,26 +659,23 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(
-        ftp,
-        qubit,
-        create_factory_builder(),
-        Rc::new(counts),
+    (
+        PhysicalResourceEstimation::new(ftp, qubit, create_factory_builder(), Rc::new(counts)),
         partitioning,
     )
 }
 
 #[test]
 pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result<()> {
-    let estimation = prepare_factorization_estimation_with_optimistic_majorana();
+    let (estimation, budget) = prepare_factorization_estimation_with_optimistic_majorana();
 
-    let result_no_max_duration = estimation.estimate_without_restrictions()?;
+    let result_no_max_duration = estimation.estimate_without_restrictions(&budget)?;
     let part_no_max_duration = get_factory(&result_no_max_duration);
 
     let logical_qubit_no_max_duration = result_no_max_duration.logical_patch();
 
     let max_duration_in_nanoseconds: u64 = result_no_max_duration.runtime();
-    let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
+    let result = estimation.estimate_with_max_duration(&budget, max_duration_in_nanoseconds)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -726,15 +719,15 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result
 
 #[test]
 pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Result<()> {
-    let estimation = prepare_factorization_estimation_with_optimistic_majorana();
+    let (estimation, budget) = prepare_factorization_estimation_with_optimistic_majorana();
 
-    let result_no_max_num_qubits = estimation.estimate_without_restrictions()?;
+    let result_no_max_num_qubits = estimation.estimate_without_restrictions(&budget)?;
     let part_no_max_num_qubits = get_factory(&result_no_max_num_qubits);
 
     let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_patch();
 
     let max_num_qubits = result_no_max_num_qubits.physical_qubits();
-    let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
+    let result = estimation.estimate_with_max_num_qubits(&budget, max_num_qubits)?;
     let part = get_factory(&result);
 
     let logical_qubit = result.logical_patch();
@@ -776,8 +769,10 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Resu
     Ok(())
 }
 
-fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
-) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
+fn prepare_ising20x20_estimation_with_pessimistic_gate_based() -> (
+    PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts>,
+    ErrorBudget,
+) {
     let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
 
@@ -796,11 +791,8 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(
-        ftp,
-        qubit,
-        create_factory_builder(),
-        Rc::new(counts),
+    (
+        PhysicalResourceEstimation::new(ftp, qubit, create_factory_builder(), Rc::new(counts)),
         partitioning,
     )
 }
@@ -808,10 +800,10 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
 #[test]
 fn test_chemistry_based_max_factories() {
     for max_factories in 1..=14 {
-        let mut estimation = prepare_chemistry_estimation_with_expected_majorana();
+        let (mut estimation, budget) = prepare_chemistry_estimation_with_expected_majorana();
         estimation.set_max_factories(max_factories);
 
-        let result = estimation.estimate().expect("failed to estimate");
+        let result = estimation.estimate(&budget).expect("failed to estimate");
         let actual_factories = result.factory_parts()[0]
             .as_ref()
             .expect("has factories")
@@ -825,10 +817,30 @@ fn test_chemistry_based_max_factories() {
 }
 
 #[test]
-fn build_frontier_test() {
-    let estimation = prepare_ising20x20_estimation_with_pessimistic_gate_based();
+fn test_budget_pruning() {
+    let (mut estimation, budget) = prepare_ising20x20_estimation_with_pessimistic_gate_based();
+    estimation.set_error_budget_strategy(ErrorBudgetStrategy::Static);
+    let result1 = estimation.estimate(&budget).expect("failed to estimate");
 
-    let frontier_result = estimation.build_frontier();
+    estimation.set_error_budget_strategy(ErrorBudgetStrategy::PruneLogicalAndRotations);
+    let result2 = estimation.estimate(&budget).expect("failed to estimate");
+
+    assert_eq!(result1.physical_qubits(), 2_938_540);
+    assert_eq!(result1.runtime(), 1_734_282_000_000);
+
+    assert_eq!(result2.physical_qubits(), 2_154_380);
+    assert_eq!(result2.runtime(), 1_734_282_000_000);
+
+    assert!(result1.error_budget().logical() >= result2.error_budget().logical());
+    assert!(result1.error_budget().rotations() >= result2.error_budget().rotations());
+    assert!(result1.error_budget().magic_states() <= result2.error_budget().magic_states());
+}
+
+#[test]
+fn build_frontier_test() {
+    let (estimation, budget) = prepare_ising20x20_estimation_with_pessimistic_gate_based();
+
+    let frontier_result = estimation.build_frontier(&budget);
 
     let points = frontier_result.expect("failed to estimate");
     assert_eq!(points.len(), 189);
@@ -843,7 +855,7 @@ fn build_frontier_test() {
         );
     }
 
-    let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
+    let shortest_runtime_result = estimation.estimate(&budget).expect("failed to estimate");
     assert_eq!(points[0].runtime(), shortest_runtime_result.runtime());
     assert_eq!(
         points[0].physical_qubits(),
@@ -864,7 +876,7 @@ fn build_frontier_test() {
     for _ in 0..num_iterations {
         max_duration = (max_duration as f64 * coefficient) as u64;
         let result = estimation
-            .estimate_with_max_duration(max_duration)
+            .estimate_with_max_duration(&budget, max_duration)
             .expect("failed to estimate");
 
         assert!(
@@ -882,7 +894,7 @@ fn build_frontier_test() {
     let coefficient = 1.10;
     for _ in 0..num_iterations {
         max_num_qubits = (max_num_qubits as f64 / coefficient) as u64;
-        let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
+        let result = estimation.estimate_with_max_num_qubits(&budget, max_num_qubits);
 
         if let Ok(result) = result {
             assert!(
@@ -897,8 +909,10 @@ fn build_frontier_test() {
     }
 }
 
-fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
-) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
+fn prepare_bit_flip_code_resources_and_majorana_n6_qubit() -> (
+    PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts>,
+    ErrorBudget,
+) {
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let ftp = floquet_code();
 
@@ -917,27 +931,23 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(
-        ftp,
-        qubit,
-        create_factory_builder(),
-        Rc::new(counts),
+    (
+        PhysicalResourceEstimation::new(ftp, qubit, create_factory_builder(), Rc::new(counts)),
         partitioning,
     )
 }
 
 #[test]
 fn build_frontier_bit_flip_code_test() {
-    let estimation: PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> =
-        prepare_bit_flip_code_resources_and_majorana_n6_qubit();
+    let (estimation, budget) = prepare_bit_flip_code_resources_and_majorana_n6_qubit();
 
-    let frontier_result = estimation.build_frontier();
+    let frontier_result = estimation.build_frontier(&budget);
 
     let points = frontier_result.expect("failed to estimate");
     assert_eq!(points.len(), 10);
     let part0 = get_factory(&points[0]);
 
-    let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
+    let shortest_runtime_result = estimation.estimate(&budget).expect("failed to estimate");
     let part_shortest_runtime = get_factory(&shortest_runtime_result);
 
     assert_eq!(points[0].runtime(), shortest_runtime_result.runtime());
