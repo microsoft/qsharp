@@ -797,16 +797,22 @@ impl With<'_> {
 
     fn lower_field(&mut self, record_ty: &Ty, name: &str) -> hir::Field {
         if let Ty::Udt(_, hir::Res::Item(id)) = record_ty {
-            self.tys
+            return self
+                .tys
                 .udts
                 .get(id)
                 .and_then(|udt| udt.field_path(name))
-                .map_or(hir::Field::Err, hir::Field::Path)
+                .map_or(hir::Field::Err, hir::Field::Path);
+        } else if let Ty::Param { bounds, .. } = record_ty {
+            if bounds.0.iter().any(
+                |bound| matches!(bound, qsc_hir::ty::TyBound::HasField { field, .. } if &**field == name),
+            ) {
+                // todo!("convert field access to idx access");
+            }
         } else if let Ok(prim) = name.parse() {
-            hir::Field::Prim(prim)
-        } else {
-            hir::Field::Err
+            return hir::Field::Prim(prim);
         }
+        hir::Field::Err
     }
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
