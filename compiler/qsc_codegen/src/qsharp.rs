@@ -14,11 +14,11 @@ use std::io::Write;
 use std::vec;
 
 use qsc_ast::ast::{
-    self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item, ItemKind, Lit,
-    Mutability, Pat, PatKind, Path, PathKind, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp,
-    SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef,
-    TyDefKind, TyKind, UnOp,
+    self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind,
+    FieldAccess, Functor, FunctorExpr, FunctorExprKind, Ident, Idents, ImportOrExportItem, Item,
+    ItemKind, Lit, Mutability, Pat, PatKind, Path, PathKind, Pauli, QubitInit, QubitInitKind,
+    QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
 };
 use qsc_ast::ast::{Namespace, Package};
 use qsc_ast::visit::Visitor;
@@ -483,7 +483,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write("fail ");
                 self.visit_expr(msg);
             }
-            ExprKind::Field(record, name) => {
+            ExprKind::Field(record, ast::FieldAccess::Ok(name)) => {
                 self.visit_expr(record);
                 self.write(".");
                 self.visit_ident(name);
@@ -716,7 +716,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             }
             ExprKind::Err
             | ExprKind::Path(PathKind::Err(_))
-            | ExprKind::Struct(PathKind::Err(_), ..) => {
+            | ExprKind::Struct(PathKind::Err(_), ..)
+            | ExprKind::Field(_, FieldAccess::Err) => {
                 unreachable!();
             }
         }

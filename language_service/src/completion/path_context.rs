@@ -3,34 +3,46 @@
 
 use qsc::{
     ast::{
+        self,
         visit::{self, Visitor},
         Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident, Item,
-        ItemKind, Namespace, Package, Pat, Path, QubitInit, SpecDecl, Stmt, StructDecl, Ty, TyDef,
-        TyKind,
+        ItemKind, Namespace, NodeId, Package, Pat, Path, QubitInit, SpecDecl, Stmt, StructDecl, Ty,
+        TyDef, TyKind,
     },
     parse::completion::PathKind,
 };
 use std::rc::Rc;
 
-/// Provides the qualifier and the expected name kind for the
-/// incomplete path (e.g. `foo.bar.`) at the cursor offset.
+/// Provides context for a path or field access expression at the cursor offset.
 ///
-/// Methods may panic if the offset does not fall within an incomplete path.
+/// Undefined behavior if the given offset does not fall within a path,
+/// field access or field assigment.
 #[derive(Debug)]
-pub(super) struct IncompletePath<'a> {
-    qualifier: Option<&'a [Ident]>,
-    context: Option<PathKind>,
+pub(super) struct PathOrFieldAccess<'a> {
+    path_qualifier: Option<&'a [Ident]>,
+    context: Option<Context<'a>>,
     offset: u32,
 }
 
-impl<'a> IncompletePath<'a> {
+#[derive(Debug, Copy, Clone)]
+enum Context<'a> {
+    /// The cursor is on a path or incomplete path.
+    Path(PathKind),
+    /// The cursor is on a field access or a field assignment expression.
+    Field {
+        /// The type of this expression will be the record used for the field access.
+        record: &'a Expr,
+    },
+}
+
+impl<'a> PathOrFieldAccess<'a> {
     pub fn init(offset: u32, package: &'a Package) -> Self {
         let mut offset_visitor = OffsetVisitor {
             offset,
-            visitor: IncompletePath {
+            visitor: PathOrFieldAccess {
                 offset,
                 context: None,
-                qualifier: None,
+                path_qualifier: None,
             },
         };
 
@@ -40,44 +52,54 @@ impl<'a> IncompletePath<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for IncompletePath<'a> {
+impl<'a> Visitor<'a> for PathOrFieldAccess<'a> {
     fn visit_item(&mut self, item: &Item) {
         match *item.kind {
-            ItemKind::Open(..) => self.context = Some(PathKind::Namespace),
-            ItemKind::ImportOrExport(..) => self.context = Some(PathKind::Import),
+            ItemKind::Open(..) => self.context = Some(Context::Path(PathKind::Namespace)),
+            ItemKind::ImportOrExport(..) => self.context = Some(Context::Path(PathKind::Import)),
             _ => {}
         }
     }
 
     fn visit_ty(&mut self, ty: &Ty) {
         if let TyKind::Path(..) = *ty.kind {
-            self.context = Some(PathKind::Ty);
+            self.context = Some(Context::Path(PathKind::Ty));
         }
     }
 
-    fn visit_expr(&mut self, expr: &Expr) {
+    fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Path(..) = *expr.kind {
-            self.context = Some(PathKind::Expr);
-        } else if let ExprKind::Struct(..) = *expr.kind {
-            self.context = Some(PathKind::Struct);
+            self.context = Some(Context::Path(PathKind::Expr));
+        } else if let ExprKind::Struct(..) = expr.kind.as_ref() {
+            self.context = Some(Context::Field { record: expr });
+        } else if let ExprKind::Field(record, _) = expr.kind.as_ref() {
+            self.context = Some(Context::Field { record });
         }
     }
 
-    fn visit_path_kind(&mut self, path: &'a qsc::ast::PathKind) {
-        self.qualifier = match path {
-            qsc::ast::PathKind::Ok(path) => path.segments.as_ref().map(AsRef::as_ref),
-            qsc::ast::PathKind::Err(Some(incomplete_path)) => Some(&incomplete_path.segments),
-            qsc::ast::PathKind::Err(None) => None,
+    fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
+        if let Some(Context::Field { .. }) = self.context {
+            self.context = Some(Context::Path(PathKind::Struct));
+        }
+        self.path_qualifier = match path {
+            ast::PathKind::Ok(path) => path.segments.as_ref().map(AsRef::as_ref),
+            ast::PathKind::Err(Some(incomplete_path)) => Some(&incomplete_path.segments),
+            ast::PathKind::Err(None) => None,
         };
     }
 }
 
-impl IncompletePath<'_> {
-    pub fn context(&self) -> (PathKind, Vec<Rc<str>>) {
+impl PathOrFieldAccess<'_> {
+    /// Returns the path kind and the path qualifier before the cursor offset.
+    ///
+    /// Returns `None` if the cursor is not on a path.
+    pub fn path_segment_context(&self) -> (PathKind, Vec<Rc<str>>) {
         let qualifier = self.segments_before_offset();
 
-        // WARNING: this assumption appears to hold true today, but it's subtle
-        // enough that parser and AST changes can easily violate it in the future.
+        // If this error is logged, it's probably a bug.
+        // This assumption appears to hold true today, but it's subtle
+        // enough that parser and AST changes can easily introduce bugs that violate
+        // it in the future.
         assert!(
             !qualifier.is_empty(),
             "path segment completion should only be invoked for a partially parsed path"
@@ -85,16 +107,42 @@ impl IncompletePath<'_> {
 
         let context = self
             .context
-            .expect("context must exist for path segment completion");
+            .expect("context must exist if qualifier is known");
 
-        (context, qualifier)
+        let path_kind = match context {
+            Context::Path(path_kind) => path_kind,
+            Context::Field { .. } => panic!("context must be a path for path segment completion"),
+        };
+
+        (path_kind, qualifier)
     }
 
-    fn segments_before_offset(&self) -> Vec<Rc<str>> {
-        self.qualifier
+    /// Returns the node ID of the node that the field access is being performed on, if any.
+    /// When this is a field assignment, returns the node ID of the struct expression.
+    ///
+    /// This node ID can then be used to look up the type to get field names.
+    ///
+    /// Returns `None` if the cursor is not on a field access expression or path.
+    pub fn field_access_context(&self) -> Option<NodeId> {
+        if let Some(Context::Field { record }) = &self.context {
+            // Unambiguously a field access expression, record node is an `Expr`
+            Some(record.id)
+        } else {
+            // A `Path` that may or may not be a field access expression,
+            // record node is the last identifier before the cursor
+            self.idents_before_cursor().last().map(|ident| ident.id)
+        }
+    }
+
+    fn idents_before_cursor(&self) -> impl Iterator<Item = &Ident> {
+        self.path_qualifier
             .into_iter()
             .flat_map(AsRef::as_ref)
             .take_while(|i| i.span.hi < self.offset)
+    }
+
+    fn segments_before_offset(&self) -> Vec<Rc<str>> {
+        self.idents_before_cursor()
             .map(|i| i.name.clone())
             .collect::<Vec<_>>()
     }
@@ -230,11 +278,11 @@ where
         }
     }
 
-    fn visit_path_kind(&mut self, path: &'a qsc::ast::PathKind) {
+    fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
         let span = match path {
-            qsc::ast::PathKind::Ok(path) => &path.span,
-            qsc::ast::PathKind::Err(Some(incomplete_path)) => &incomplete_path.span,
-            qsc::ast::PathKind::Err(None) => return,
+            ast::PathKind::Ok(path) => &path.span,
+            ast::PathKind::Err(Some(incomplete_path)) => &incomplete_path.span,
+            ast::PathKind::Err(None) => return,
         };
 
         if span.touches(self.offset) {
