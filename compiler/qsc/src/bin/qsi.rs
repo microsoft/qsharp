@@ -81,6 +81,16 @@ impl Receiver for TerminalReceiver {
         Ok(())
     }
 
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> std::result::Result<(), output::Error> {
+        println!("Matrix:");
+        for row in matrix {
+            let row = row.iter().map(|elem| format!("[{}, {}]", elem.re, elem.im));
+            println!("{}", row.collect::<Vec<_>>().join(", "));
+        }
+
+        Ok(())
+    }
+
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {
         println!("{msg}");
         Ok(())

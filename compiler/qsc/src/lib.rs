@@ -49,7 +49,10 @@ pub mod line_column {
 
 pub use qsc_eval::{
     backend::{Backend, SparseSim},
-    state::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase},
+    state::{
+        fmt_basis_state_label, fmt_complex, format_state_id, get_matrix_latex, get_phase,
+        get_state_latex,
+    },
 };
 
 pub mod linter {

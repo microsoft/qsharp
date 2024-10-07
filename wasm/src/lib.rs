@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use project_system::{into_qsc_args, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
-    format_state_id, get_latex,
+    format_state_id, get_matrix_latex, get_state_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -261,10 +261,49 @@ where
         )
         .expect("writing to string should succeed");
 
-        let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
+        let json_latex = serde_json::to_string(&get_state_latex(&state, qubit_count))
             .expect("serialization should succeed");
         write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
             .expect("writing to string should succeed");
+        (self.event_cb)(&dump_json);
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), output::Error> {
+        let mut dump_json = String::new();
+
+        // Write the type and open the array or rows.
+        write!(dump_json, r#"{{"type": "Matrix","matrix": ["#)
+            .expect("writing to string should succeed");
+
+        // Map each row to a string representation of the row, and join them with commas.
+        // The row is an array, and each element is a tuple formatted as "[re, im]".
+        // e.g. {"type": "Matrix", "matrix": [
+        //   [[1, 2], [3, 4], [5, 6]],
+        //   [[7, 8], [9, 10], [11, 12]]
+        // ]}
+        let row_strings = matrix
+            .iter()
+            .map(|row| {
+                let row_str = row
+                    .iter()
+                    .map(|elem| format!("[{}, {}]", elem.re, elem.im))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("[{row_str}]")
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        // Close the array of rows and the JSON object.
+        let latex_string = serde_json::to_string(&get_matrix_latex(&matrix))
+            .expect("serialization should succeed");
+        write!(
+            dump_json,
+            r#"{row_strings}], "matrixLatex": {latex_string} }}"#
+        )
+        .expect("writing to string should succeed");
+
         (self.event_cb)(&dump_json);
         Ok(())
     }

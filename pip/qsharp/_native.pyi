@@ -103,40 +103,6 @@ class TargetProfile(Enum):
     Describes the unrestricted set of capabilities required to run any Q# program.
     """
 
-class StateDumpData:
-    """
-    A state dump returned from the Q# interpreter.
-    """
-
-    qubit_count: int
-    """
-    The number of allocated qubits at the time of the dump.
-    """
-
-    def get_dict(self) -> dict:
-        """
-        Get the amplitudes of the state vector as a dictionary from state integer to
-        complex amplitudes.
-        """
-        ...
-
-    def __repr__(self) -> str: ...
-    def __str__(self) -> str: ...
-    def _repr_html_(self) -> str: ...
-    def _repr_latex_(self) -> Optional[str]: ...
-
-class Output:
-    """
-    An output returned from the Q# interpreter.
-    Outputs can be a state dumps or messages. These are normally printed to the console.
-    """
-
-    def __repr__(self) -> str: ...
-    def __str__(self) -> str: ...
-    def _repr_html_(self) -> str: ...
-    def _repr_latex_(self) -> Optional[str]: ...
-    def state_dump(self) -> Optional[StateDumpData]: ...
-
 class Interpreter:
     """A Q# interpreter."""
 
@@ -278,6 +244,37 @@ class Pauli(Enum):
     X: int
     Y: int
     Z: int
+
+class Output:
+    """
+    An output returned from the Q# interpreter.
+    Outputs can be a state dumps or messages. These are normally printed to the console.
+    """
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+    def _repr_markdown_(self) -> Optional[str]: ...
+    def state_dump(self) -> Optional[StateDumpData]: ...
+
+class StateDumpData:
+    """
+    A state dump returned from the Q# interpreter.
+    """
+
+    """
+    The number of allocated qubits at the time of the dump.
+    """
+    qubit_count: int
+
+    """
+    Get the amplitudes of the state vector as a dictionary from state integer to
+    complex amplitudes.
+    """
+    def get_dict(self) -> dict: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+    def _repr_markdown_(self) -> str: ...
+    def _repr_latex_(self) -> Optional[str]: ...
 
 class Circuit:
     def json(self) -> str: ...

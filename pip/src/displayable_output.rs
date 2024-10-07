@@ -6,11 +6,15 @@ mod tests;
 
 use num_bigint::BigUint;
 use num_complex::{Complex64, ComplexFloat};
-use qsc::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase};
+use qsc::{
+    fmt_basis_state_label, fmt_complex, format_state_id, get_matrix_latex, get_phase,
+    get_state_latex,
+};
 use std::fmt::Write;
 
 #[derive(Clone)]
 pub struct DisplayableState(pub Vec<(BigUint, Complex64)>, pub usize);
+pub struct DisplayableMatrix(pub Vec<Vec<Complex64>>);
 
 impl DisplayableState {
     pub fn to_plain(&self) -> String {
@@ -53,11 +57,35 @@ impl DisplayableState {
     }
 
     pub fn to_latex(&self) -> Option<String> {
-        get_latex(&self.0, self.1)
+        get_state_latex(&self.0, self.1)
+    }
+}
+
+impl DisplayableMatrix {
+    pub fn to_plain(&self) -> String {
+        format!(
+            "MATRIX:{}",
+            self.0.iter().fold(String::new(), |mut output, row| {
+                let _ = write!(
+                    output,
+                    "\n{}",
+                    row.iter().fold(String::new(), |mut row_output, element| {
+                        let _ = write!(row_output, " {}", fmt_complex(element));
+                        row_output
+                    })
+                );
+                output
+            })
+        )
+    }
+
+    pub fn to_latex(&self) -> String {
+        get_matrix_latex(&self.0)
     }
 }
 
 pub enum DisplayableOutput {
     State(DisplayableState),
     Message(String),
+    Matrix(DisplayableMatrix),
 }

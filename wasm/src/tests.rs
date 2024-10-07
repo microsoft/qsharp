@@ -129,6 +129,42 @@ fn test_message() {
     );
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_matrix() {
+    let code = r"namespace Test {
+        import Microsoft.Quantum.Diagnostics.DumpOperation;
+        operation Main() : Unit {
+            DumpOperation(2, Bell);
+        }
+
+        operation Bell(q: Qubit[]) : Unit is Adj {
+            H(q[0]);
+            CX(q[0], q[1]);
+        }
+    }";
+    let expr = "Test.Main()";
+    let count = std::cell::Cell::new(0);
+    let result = run_internal(
+        SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
+        |msg| {
+            if msg.contains("Matrix") {
+                count.set(count.get() + 1);
+                // Check the start and end of the matrix LaTeX is formatted as expected
+                assert!(msg.contains(
+                    r"$ \\begin{bmatrix} \\frac{1}{\\sqrt{2}} & 0 & \\frac{1}{\\sqrt{2}} & 0 \\\\"
+                ));
+                assert!(msg.contains(
+                    r"\\frac{1}{\\sqrt{2}} & 0 & -\\frac{1}{\\sqrt{2}} & 0 \\\\ \\end{bmatrix} $"
+                ));
+            }
+        },
+        1,
+    );
+    assert!(result.is_ok());
+    assert!(count.get() == 1);
+}
+
 #[test]
 fn message_with_escape_sequences() {
     let code = r#"namespace Sample {
