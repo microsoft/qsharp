@@ -26,7 +26,7 @@ use crate::{
         barrier, path, recovering, recovering_path, recovering_semi, recovering_token, shorten,
     },
     stmt::check_semis,
-    ty::{array_or_arrow, strict_ty},
+    ty::array_or_arrow,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -198,7 +198,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
 /// Invalid or disallowed characters are cleaned up in a best effort manner.
 fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Box<[Ident]>> {
     let path = std::path::Path::new(raw);
-    let mut parts = Vec::new();
+    let mut namespace = Vec::new();
     for component in path.components() {
         match component {
             std::path::Component::Normal(name) => {
@@ -216,7 +216,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Box<[Ident]>> 
                 let mut ident = validate_namespace_name(span, name)?;
                 ident.span = span;
 
-                parts.push(*ident);
+                namespace.push(*ident);
             }
             _ => {
                 return Err(Error::new(ErrorKind::InvalidFileName(
@@ -227,7 +227,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Box<[Ident]>> 
         }
     }
 
-    Ok(parts.into())
+    Ok(namespace.into())
 }
 
 fn clean_namespace_name(name: &str) -> String {
@@ -360,35 +360,7 @@ fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
     let lo = s.peek().span.lo;
-    let mut def = match parse_ty_def(s) {
-        Ok(def) => def,
-        Err(error) if s.peek().span.lo > lo => return Err(error),
-        Err(error) => {
-            s.push_error(error);
-
-            // Grab the whitespace from the end of the last token until
-            // the beginning of the next token
-            let last_hi = s.span(0).hi;
-            let span = Span {
-                lo: last_hi,
-                hi: s.peek().span.lo,
-            };
-
-            Box::new(TyDef {
-                id: NodeId::default(),
-                span,
-                kind: Box::new(TyDefKind::Field(
-                    None,
-                    Box::new(Ty {
-                        id: NodeId::default(),
-                        span,
-                        kind: Box::new(TyKind::Err),
-                    }),
-                )),
-            })
-        }
-    };
-
+    let mut def = parse_ty_def(s)?;
     if let Some(ty) = try_tydef_as_ty(def.as_ref()) {
         let ty = array_or_arrow(s, ty, lo)?;
         def = Box::new(TyDef {
@@ -456,7 +428,7 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
         token(s, TokenKind::Close(Delim::Paren))?;
         final_sep.reify(defs, TyDefKind::Paren, TyDefKind::Tuple)
     } else {
-        let field_ty = strict_ty(s)?;
+        let field_ty = ty(s)?;
         if token(s, TokenKind::Colon).is_ok() {
             let name = ty_as_ident(field_ty)?;
             let field_ty = ty(s)?;

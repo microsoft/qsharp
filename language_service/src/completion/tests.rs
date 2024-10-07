@@ -2540,6 +2540,36 @@ fn type_position_namespace() {
 }
 
 #[test]
+fn udt_base_type_part() {
+    check(
+        r#"
+        namespace Test {
+            newtype Foo = FakeStdLib.↘
+        }"#,
+        &["Udt", "Qubit", "FakeWithParam"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn struct_init() {
     check(
         r#"
@@ -3140,6 +3170,140 @@ fn open_does_not_match_pkg_alias() {
         &["CallableInFoo", "Bar"],
         &expect![[r#"
             [
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn input_type_missing() {
+    check(
+        "namespace Test { function Foo(x : FakeStdLib.↘ ) : Unit { body intrinsic; } }",
+        &["Udt", "Library"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Library",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600Library",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_top_level_path_part() {
+    check_notebook(
+        &[(
+            "cell1",
+            ("
+        FakeStdLib.↘
+    "),
+        )],
+        &["Udt", "Library", "FakeStdLib", "FakeWithParam"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Library",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600Library",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+                Some(
+                    CompletionItem {
+                        label: "FakeWithParam",
+                        kind: Function,
+                        sort_text: Some(
+                            "0300FakeWithParam",
+                        ),
+                        detail: Some(
+                            "operation FakeWithParam(x : Int) : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_top_level_path_part_in_type() {
+    check_notebook(
+        &[(
+            "cell1",
+            ("
+        let x : FakeStdLib.↘
+    "),
+        )],
+        &["Udt", "Library", "FakeStdLib", "FakeWithParam"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Library",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600Library",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
                 None,
                 None,
             ]

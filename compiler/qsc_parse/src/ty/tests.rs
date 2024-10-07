@@ -398,29 +398,6 @@ fn ty_incomplete() {
 }
 
 #[test]
-fn ty_missing() {
-    check(
-        ty,
-        "  ",
-        &expect![[r#"
-            Type _id_ [0-2]: Err
-
-            [
-                Error(
-                    Rule(
-                        "type",
-                        Eof,
-                        Span {
-                            lo: 2,
-                            hi: 2,
-                        },
-                    ),
-                ),
-            ]"#]],
-    );
-}
-
-#[test]
 fn ty_incomplete_in_tuple() {
     check(
         ty,

@@ -570,56 +570,6 @@ fn ty_def_named_duplicate_comma() {
 }
 
 #[test]
-fn ty_def_missing_type_with_semi() {
-    check(
-        parse,
-        "newtype Foo = ;",
-        &expect![[r#"
-            Item _id_ [0-15]:
-                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [13-14]: Field:
-                    Type _id_ [13-14]: Err
-
-            [
-                Error(
-                    Rule(
-                        "type",
-                        Semi,
-                        Span {
-                            lo: 14,
-                            hi: 15,
-                        },
-                    ),
-                ),
-            ]"#]],
-    );
-}
-
-#[test]
-fn ty_def_missing_type_no_semi() {
-    check(
-        parse,
-        "newtype Foo = ",
-        &expect![[r#"
-            Item _id_ [0-13]:
-                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [13-14]: Field:
-                    Type _id_ [13-14]: Err
-
-            [
-                Error(
-                    Rule(
-                        "type",
-                        Eof,
-                        Span {
-                            lo: 14,
-                            hi: 14,
-                        },
-                    ),
-                ),
-            ]"#]],
-    );
-}
-
-#[test]
 fn function_decl() {
     check(
         parse,
@@ -992,71 +942,6 @@ fn function_missing_output_ty() {
                 ),
             )
         "#]],
-    );
-}
-
-#[test]
-fn function_missing_output_ty_after_colon() {
-    check(
-        parse,
-        "function Foo() : { body intrinsic; }",
-        &expect![[r#"
-            Item _id_ [0-36]:
-                Callable _id_ [0-36] (Function):
-                    name: Ident _id_ [9-12] "Foo"
-                    input: Pat _id_ [12-14]: Unit
-                    output: Type _id_ [16-17]: Err
-                    body: Specializations:
-                        SpecDecl _id_ [19-34] (Body): Gen: Intrinsic
-
-            [
-                Error(
-                    Rule(
-                        "type",
-                        Open(
-                            Brace,
-                        ),
-                        Span {
-                            lo: 17,
-                            hi: 18,
-                        },
-                    ),
-                ),
-            ]"#]],
-    );
-}
-
-#[test]
-fn function_missing_input_ty_after_colon() {
-    check(
-        parse,
-        "function Foo(x :  ) : Unit { body intrinsic; }",
-        &expect![[r#"
-            Item _id_ [0-46]:
-                Callable _id_ [0-46] (Function):
-                    name: Ident _id_ [9-12] "Foo"
-                    input: Pat _id_ [12-19]: Paren:
-                        Pat _id_ [13-16]: Bind:
-                            Ident _id_ [13-14] "x"
-                            Type _id_ [16-18]: Err
-                    output: Type _id_ [22-26]: Path: Path _id_ [22-26] (Ident _id_ [22-26] "Unit")
-                    body: Specializations:
-                        SpecDecl _id_ [29-44] (Body): Gen: Intrinsic
-
-            [
-                Error(
-                    Rule(
-                        "type",
-                        Close(
-                            Paren,
-                        ),
-                        Span {
-                            lo: 18,
-                            hi: 19,
-                        },
-                    ),
-                ),
-            ]"#]],
     );
 }
 
