@@ -4440,6 +4440,99 @@ fn bounded_polymorphism_eq() {
 }
 
 #[test]
+fn bounded_polymorphism_exp() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Exp['T, Int]>(a: 'T, b: Int) : 'T {
+                a ^ b
+            }
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_has_field() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: HasField[foo, Int]>(a: 'T) : Int {
+                a.foo
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #11 71-78 "(a: 'T)" : Param<"'T": 0>
+            #12 72-77 "a: 'T" : Param<"'T": 0>
+            #19 85-122 "{\n                a.foo\n            }" : Int
+            #21 103-108 "a.foo" : Int
+            #23 103-104 "a" : Param<"'T": 0>
+            #24 105-108 "foo" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_has_field_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: HasField[foo, Int]>(a: 'T) : Int {
+                a.foobar
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #11 71-78 "(a: 'T)" : Param<"'T": 0>
+            #12 72-77 "a: 'T" : Param<"'T": 0>
+            #19 85-125 "{\n                a.foobar\n            }" : Int
+            #21 103-111 "a.foobar" : Int
+            #23 103-104 "a" : Param<"'T": 0>
+            #24 105-111 "foobar" : Int
+            Error(Type(Error(MissingClassHasField("'T", "foobar", Span { lo: 103, hi: 111 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_has_two_fields() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: HasField[foo, Int] + HasField[bar, Bool]>(a: 'T) : Int {
+                if a.bar {
+                    a.foo
+                } else {
+                    0
+                }
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #15 93-100 "(a: 'T)" : Param<"'T": 0>
+            #16 94-99 "a: 'T" : Param<"'T": 0>
+            #23 107-240 "{\n                if a.bar {\n                    a.foo\n                } else {\n                    0\n                }\n            }" : Int
+            #25 125-226 "if a.bar {\n                    a.foo\n                } else {\n                    0\n                }" : Int
+            #26 128-133 "a.bar" : Bool
+            #28 128-129 "a" : Param<"'T": 0>
+            #29 130-133 "bar" : Bool
+            #30 134-179 "{\n                    a.foo\n                }" : Int
+            #32 156-161 "a.foo" : Int
+            #34 156-157 "a" : Param<"'T": 0>
+            #35 158-161 "foo" : Int
+            #36 180-226 "else {\n                    0\n                }" : Int
+            #37 185-226 "{\n                    0\n                }" : Int
+            #39 207-208 "0" : Int
+        "##]],
+    );
+}
+#[test]
 fn bounded_polymorphism_example_should_fail() {
     check(
         r#"
@@ -4464,6 +4557,8 @@ fn bounded_polymorphism_example_should_fail() {
     );
 }
 
+// This test ensures that we show a pretty error for polymorphism bounds that are not supported
+// yet.
 #[test]
 fn bounded_polymorphism_iter() {
     check(
@@ -4481,6 +4576,25 @@ fn bounded_polymorphism_iter() {
         }
         "#,
         "",
-        &expect![[r##""##]],
+        &expect![[r##"
+            #11 67-74 "(a: 'T)" : Param<"'T": 0>
+            #12 68-73 "a: 'T" : Param<"'T": 0>
+            #19 82-180 "{\n                for item in a {\n                    return item;\n                }\n            }" : Bool
+            #21 100-166 "for item in a {\n                    return item;\n                }" : Bool
+            #22 104-108 "item" : Bool
+            #24 112-113 "a" : Param<"'T": 0>
+            #27 114-166 "{\n                    return item;\n                }" : Unit
+            #29 136-147 "return item" : Unit
+            #30 143-147 "item" : Bool
+            #36 207-209 "()" : Unit
+            #40 217-269 "{\n                let x = Foo([true]);\n            }" : Unit
+            #42 239-240 "x" : Bool
+            #44 243-254 "Foo([true])" : Bool
+            #45 243-246 "Foo" : (Bool[] -> Bool)
+            #48 246-254 "([true])" : Bool[]
+            #49 247-253 "[true]" : Bool[]
+            #50 248-252 "true" : Bool
+            Error(Type(Error(UnsupportedParametricClassBound(Span { lo: 112, hi: 113 }))))
+        "##]],
     );
 }

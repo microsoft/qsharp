@@ -83,6 +83,28 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
 ///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
 fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
     let mut bounds: Vec<TyBound> = Vec::new();
+
+    // parses a ty but keeps track of the ident name
+    // TODO(sezna) document why this is here
+    fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::TyWithStringifiedName> {
+        let ty = ty(s)?;
+        let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
+            if let Some(ref segs) = path.segments {
+                if segs.len() > 1 {
+                    todo!("invalid ident in ty bounds")
+                }
+            }
+            Some(*path.name.clone())
+        } else {
+            println!("none 2");
+            None
+        };
+
+        Ok(qsc_ast::ast::TyWithStringifiedName {
+            ty,
+            name: name.map(|x| x.name),
+        })
+    }
     loop {
         let bound_name = ident(s)?;
         // if there's a less-than sign, or "open angle bracket", try to parse type parameters for
@@ -90,7 +112,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
         // e.g. `Iterator[Bool]`
         let mut ty_parameters = Vec::new();
         if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
-            let (tys, final_sep) = seq(s, ty)?;
+            let (tys, final_sep) = seq(s, ty_or_ident)?;
             ty_parameters = tys;
             token(s, TokenKind::Close(Delim::Bracket))?;
         }
@@ -102,7 +124,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
             break;
         }
     }
-    Ok(TyBounds(bounds.into_boxed_slice()))
+    Ok(TyBounds(dbg!(bounds.into_boxed_slice())))
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {

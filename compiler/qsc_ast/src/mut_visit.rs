@@ -163,7 +163,19 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
         vis.visit_ident(&mut p.ty);
         p.bounds.0.iter_mut().for_each(|b| {
             vis.visit_ident(&mut b.name);
-            b.parameters.iter_mut().for_each(|b| vis.visit_ty(b));
+            let items_to_skip =
+                    // if this is a HasField constraint, then we skip name resolution on the first
+                    // item, which is the field name
+                    if &*b.name.name == "HasField" {
+                        1
+                    } else {
+                        0
+                    };
+            b.parameters.iter_mut().skip(items_to_skip).for_each(
+                |crate::ast::TyWithStringifiedName { ty, name: ident }| {
+                    vis.visit_ty(ty);
+                },
+            );
         });
     });
     vis.visit_pat(&mut decl.input);
@@ -229,9 +241,19 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         // TODO(sezna)
         TyKind::Param(TyParam { ty, bounds, .. }) => {
-            for bound in bounds.0.iter_mut() {
+            for bound in &mut bounds.0 {
                 vis.visit_ident(&mut bound.name);
-                bound.parameters.iter_mut().for_each(|b| vis.visit_ty(b));
+                // TODO(sezna) remove this items_to_skip in the visitors
+                let items_to_skip =
+                    // if this is a HasField constraint, then we skip name resolution on the first
+                    // item, which is the field name
+                    usize::from(&*bound.name.name == "HasField");
+                bound.parameters.iter_mut().skip(items_to_skip).for_each(
+                    |crate::ast::TyWithStringifiedName { ty, name }| {
+                        dbg!(&name);
+                        vis.visit_ty(ty);
+                    },
+                );
             }
             vis.visit_ident(ty);
         }

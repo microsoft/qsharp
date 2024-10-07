@@ -976,6 +976,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+    println!("Checking exp");
     match base {
         Ty::Prim(Prim::BigInt) => (
             vec![Constraint::Eq {
@@ -1021,6 +1022,36 @@ fn check_has_field(
             }],
             Vec::new(),
         ),
+        (_, Ty::Param { bounds, .. }) => {
+            let mut constraints = Vec::new();
+            let mut errors = Vec::new();
+            dbg!(&bounds.0);
+            let mut constraint_satisfied = false;
+            for bound in bounds.0.iter() {
+                match bound {
+                    TyBound::HasField {
+                        field: bound_name,
+                        ty,
+                    } if &**bound_name == &name => {
+                        constraints.push(Constraint::Eq {
+                            expected: ty.clone(),
+                            actual: item.clone(),
+                            span,
+                        });
+                        constraint_satisfied = true;
+                    }
+                    _ => (),
+                }
+            }
+            if !constraint_satisfied {
+                errors.push(Error(ErrorKind::MissingClassHasField(
+                    record.display(),
+                    name.clone(),
+                    span,
+                )));
+            }
+            (constraints, errors)
+        }
         (_, Ty::Udt(_, Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
@@ -1181,32 +1212,10 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
             }],
             Vec::new(),
         ),
-        Ty::Param {
-            ref bounds,
-            ref name,
-            ..
-        } => {
-            let mut constraints = Vec::new();
-            let mut errors = Vec::new();
-            for bound in &bounds.0 {
-                match bound {
-                    TyBound::Iterable {
-                        item: expected_item,
-                    } => {
-                        constraints.push(Constraint::Eq {
-                            expected: expected_item.clone(),
-                            actual: item.clone(),
-                            span,
-                        });
-                    }
-                    _ => errors.push(Error(ErrorKind::MissingClassIterable(
-                        container.clone().display(),
-                        span,
-                    ))),
-                }
-            }
-            (constraints, errors)
-        }
+        Ty::Param { .. } => (
+            Vec::default(),
+            vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
+        ),
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassIterable(

@@ -151,7 +151,19 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
         vis.visit_ident(&p.ty);
         p.bounds.0.iter().for_each(|b| {
             vis.visit_ident(&b.name);
-            b.parameters.iter().for_each(|b| vis.visit_ty(b));
+            let items_to_skip =
+                    // if this is a HasField constraint, then we skip name resolution on the first
+                    // item, which is the field name
+                    if &*b.name.name == "HasField" {
+                        1
+                    } else {
+                        0
+                    };
+            b.parameters.iter().skip(items_to_skip).for_each(
+                |crate::ast::TyWithStringifiedName { ty, name: ident }| {
+                    vis.visit_ty(ty);
+                },
+            );
         });
     });
     vis.visit_pat(&decl.input);
@@ -209,7 +221,20 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Param(TyParam { ty, bounds, .. }) => {
             for bound in bounds.0.iter() {
                 vis.visit_ident(&bound.name);
-                bound.parameters.iter().for_each(|b| vis.visit_ty(b));
+                let items_to_skip =
+                    // if this is a HasField constraint, then we skip name resolution on the first
+                    // item, which is the field name
+                    if &*bound.name.name == "HasField" {
+                        1
+                    } else {
+                        0
+                    };
+                bound.parameters.iter().skip(items_to_skip).for_each(
+                    |crate::ast::TyWithStringifiedName { ty, name }| {
+                        dbg!(&name);
+                        vis.visit_ty(ty);
+                    },
+                );
             }
             vis.visit_ident(ty);
         }

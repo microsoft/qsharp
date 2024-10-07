@@ -123,6 +123,9 @@ enum ErrorKind {
     #[error("unrecognized class bound {0}")]
     #[diagnostic(code("Qsc.TypeCk.UnknownClassBound"))]
     UnknownClassBound(String, #[label] Span),
+    #[error("unsupported parametric class bound")]
+    #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
+    UnsupportedParametricClassBound(#[label] Span),
 }
 
 impl From<TyConversionError> for Error {

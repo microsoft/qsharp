@@ -361,18 +361,29 @@ pub(crate) fn ty_bound_from_ast(
         bounds
             .0
             .into_iter()
-            // TODO(sezna) parse nested generics on ty params
-            .map(|bound| {
-                match &*bound.name.name {
-                    "Eq" => qsc_hir::ty::TyBound::Eq,
-                    "Add" => qsc_hir::ty::TyBound::Add,
-                    "Iterable" => qsc_hir::ty::TyBound::Iterable {
-                        // TODO(sezna) handle errors here
-                        //                        item: Ty::Array(Box::new(ty_from_ast(names, &bound.parameters[0]).0)),
-                        item: ty_from_ast(names, &bound.parameters[0]).0,
-                    },
-                    otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
+            // TODO(sezna) handle errs from ty_from_ast
+            .map(|bound| match &*bound.name.name {
+                "Eq" => qsc_hir::ty::TyBound::Eq,
+                "Add" => qsc_hir::ty::TyBound::Add,
+                "Iterable" => qsc_hir::ty::TyBound::Iterable {
+                    item: ty_from_ast(names, bound.parameters[0].ty()).0,
+                },
+                "Exp" => qsc_hir::ty::TyBound::Exp {
+                    base: ty_from_ast(names, bound.parameters[0].ty()).0,
+                    power: ty_from_ast(names, bound.parameters[1].ty()).0,
+                },
+                "HasField" => {
+                    let field = if let Some(field) = bound.parameters[0].name() {
+                        field.clone()
+                    } else {
+                        todo!("error for missing field")
+                    };
+                    qsc_hir::ty::TyBound::HasField {
+                        ty: ty_from_ast(names, bound.parameters[1].ty()).0,
+                        field,
+                    }
                 }
+                otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
             })
             .collect(),
     )

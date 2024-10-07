@@ -1616,6 +1616,10 @@ impl Idents {
         buf.push(other);
         Self(buf.into_boxed_slice())
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl Default for Ident {
@@ -2014,10 +2018,34 @@ impl std::fmt::Debug for TyParam {
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
 pub struct TyBounds(pub Box<[TyBound]>);
 
-#[derive(Default, PartialEq, Eq, Clone, Hash)]
+#[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
 pub struct TyBound {
     pub name: Ident,
-    pub parameters: Box<[Ty]>,
+    pub parameters: Box<[TyWithStringifiedName]>,
+}
+
+#[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
+pub struct TyWithStringifiedName {
+    pub ty: Ty,
+    pub name: Option<Rc<str>>,
+}
+
+impl WithSpan for TyWithStringifiedName {
+    fn with_span(self, span: Span) -> Self {
+        Self {
+            ty: self.ty.with_span(span),
+            ..self
+        }
+    }
+}
+
+impl TyWithStringifiedName {
+    pub fn ty(&self) -> &Ty {
+        &self.ty
+    }
+    pub fn name(&self) -> &Option<Rc<str>> {
+        &self.name
+    }
 }
 
 impl TyBound {
