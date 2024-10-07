@@ -276,7 +276,7 @@ $$\begin{bmatrix}
 Let's first consider the case in which **all three players got the 0 bit**.
 
 When the players make their measurements, they will collectively get one of the basis states of the original state - 000, 011, 101 or 110.
-This measn they'll report back zero \"1\" bits between them (with $25\%$ probability) or two \"1\" bits between them (with $75\%$ probability),
+This means they'll report back zero \"1\" bits between them (with $25\%$ probability) or two \"1\" bits between them (with $75\%$ probability),
 either way satisfying the win condition for the team.
 
 Now, suppose **Alice gets a 0 bit and the others get 1**.
