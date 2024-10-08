@@ -8,6 +8,7 @@ import Std.Diagnostics.*;
 import Std.Math.*;
 
 /// # Summary
+/// # Summary
 /// Applies an operation to each element in a register.
 ///
 /// # Input
@@ -32,6 +33,7 @@ operation ApplyToEach<'T>(singleElementOperation : ('T => Unit), register : 'T[]
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies an operation to each element in a register.
 /// The modifier `A` indicates that the single-element operation is adjointable.
@@ -62,6 +64,7 @@ operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Adj), registe
 }
 
 /// # Summary
+/// # Summary
 /// Applies an operation to each element in a register.
 /// The modifier `C` indicates that the single-element operation is controllable.
 ///
@@ -91,6 +94,7 @@ operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Ctl), registe
 }
 
 /// # Summary
+/// # Summary
 /// Applies an operation to each element in a register.
 /// The modifier `CA` indicates that the single-element operation is controllable and adjointable.
 ///
@@ -119,6 +123,7 @@ operation ApplyToEachCA<'T>(singleElementOperation : ('T => Unit is Adj + Ctl), 
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies the controlled-X (CX) gate to a pair of qubits.
 ///
@@ -161,6 +166,7 @@ operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
 }
 
 /// # Summary
+/// # Summary
 /// Applies the controlled-Y (CY) gate to a pair of qubits.
 ///
 /// # Input
@@ -197,6 +203,7 @@ operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
+/// # Summary
 /// # Summary
 /// Applies the controlled-Z (CZ) gate to a pair of qubits.
 ///
@@ -247,6 +254,7 @@ function Snd<'T, 'U>(pair : ('T, 'U)) : 'U {
 }
 
 /// # Summary
+/// # Summary
 /// Computes the parity of a register of qubits in-place.
 ///
 /// # Input
@@ -268,6 +276,7 @@ operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
+/// # Summary
 /// # Summary
 /// Given a single-qubit Pauli operator, applies the corresponding operation
 /// to a single qubit.
@@ -291,6 +300,7 @@ operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl {
     if pauli == PauliX { X(target); } elif pauli == PauliY { Y(target); } elif pauli == PauliZ { Z(target); }
 }
 
+/// # Summary
 /// # Summary
 /// Given a multi-qubit Pauli operator, applies the corresponding operation
 /// to a quantum register.
@@ -319,6 +329,7 @@ operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies a Pauli operator on each qubit in an array if the corresponding
 /// bit of a Boolean array matches a given input.
@@ -356,6 +367,7 @@ operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[],
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies a Pauli operator on each qubit in an array if the corresponding
 /// bit of a Little-endian integer matches a given input.
@@ -401,6 +413,7 @@ operation ApplyPauliFromInt(
 }
 
 /// # Summary
+/// # Summary
 /// Applies a unitary operation on the target if the control
 /// register state corresponds to a specified nonnegative integer.
 ///
@@ -435,6 +448,7 @@ operation ApplyControlledOnInt<'T>(
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies `oracle` on `target` when `controlRegister`
 /// is in the state specified by `bits`.
@@ -489,6 +503,7 @@ operation ApplyControlledOnBitString<'T>(
 }
 
 /// # Summary
+/// # Summary
 /// Applies the rotations of Quantum Fourier Transform (QFT) to a little-endian quantum register.
 ///
 /// # Description
@@ -520,6 +535,7 @@ operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl {
 }
 
 /// # Summary
+/// # Summary
 /// Uses SWAP gates to reverse the order of the qubits in a register.
 ///
 /// # Input
@@ -532,6 +548,7 @@ operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl {
     }
 }
 
+/// # Summary
 /// # Summary
 /// Applies a bitwise-XOR operation between a classical integer and an
 /// integer represented by a register of qubits.
@@ -558,6 +575,7 @@ operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj + Ctl {
     adjoint self;
 }
 
+/// # Summary
 /// # Summary
 /// Applies a bitwise-XOR operation between a classical integer and an
 /// integer represented by a register of qubits.

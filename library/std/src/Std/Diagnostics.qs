@@ -1,6 +1,7 @@
 open QIR.Intrinsic;
 
 /// # Summary
+/// # Summary
 /// Dumps the current target machine's status.
 ///
 /// # Description
@@ -29,6 +30,7 @@ function DumpMachine() : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// Dumps the current target machine's status associated with the given qubits.
 ///
 /// # Input
@@ -64,6 +66,7 @@ function DumpRegister(register : Qubit[]) : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// # Summary
 /// Given an operation, dumps the matrix representation of the operation action on the given
 /// number of qubits.
@@ -104,6 +107,7 @@ function DumpMatrix(qs : Qubit[]) : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// Checks whether a qubit is in the |0⟩ state, returning true if it is.
 ///
 /// # Description
@@ -125,6 +129,7 @@ operation CheckZero(qubit : Qubit) : Bool {
     body intrinsic;
 }
 
+/// # Summary
 /// Checks whether all qubits in the provided array are in the |0⟩ state. Returns true if they are.
 ///
 /// # Description
@@ -152,6 +157,7 @@ operation CheckAllZero(qubits : Qubit[]) : Bool {
     return true;
 }
 
+/// # Summary
 /// Checks whether a given condition is true, failing with a message if it is not.
 ///
 /// # Description
@@ -169,6 +175,7 @@ function Fact(actual : Bool, message : String) : Unit {
     }
 }
 
+/// # Summary
 /// Given two operations, checks that they act identically for all input states.
 ///
 /// # Description
@@ -225,6 +232,7 @@ operation CheckOperationsAreEqual(
     areEqual
 }
 
+/// # Summary
 /// Starts counting the number of times the given operation is called. Fails if the operation is already being counted.
 ///
 /// # Description
@@ -261,6 +269,7 @@ operation StartCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// Stops counting the number of times the given operation is called and returns the count. Fails
 /// if the operation was not being counted.
 ///
@@ -278,6 +287,7 @@ operation StopCountingOperation<'In, 'Out>(callable : 'In => 'Out) : Int {
     body intrinsic;
 }
 
+/// # Summary
 /// Starts counting the number of times the given function is called. Fails if the function is already being counted.
 ///
 /// # Description
@@ -305,6 +315,7 @@ operation StartCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// Stops counting the number of times the given function is called and returns the count. Fails
 /// if the function was not being counted.
 ///
@@ -322,6 +333,7 @@ operation StopCountingFunction<'In, 'Out>(callable : 'In -> 'Out) : Int {
     body intrinsic;
 }
 
+/// # Summary
 /// Starts counting the number of qubits allocated. Fails if qubits are already being counted.
 ///
 /// # Description
@@ -344,6 +356,7 @@ operation StartCountingQubits() : Unit {
     body intrinsic;
 }
 
+/// # Summary
 /// Stops counting the number of qubits allocated and returns the count. Fails if the qubits were not being counted.
 ///
 /// # Description
