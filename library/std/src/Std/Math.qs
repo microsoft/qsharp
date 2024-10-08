@@ -10,7 +10,6 @@ import Std.Diagnostics.*;
 //
 
 /// # Summary
-/// # Summary
 /// Returns a double-precision approximation of the
 /// matematical constant 𝝅 ≈ 3.14159265358979323846
 ///
@@ -63,7 +62,6 @@ function LogOf2() : Double {
 //
 
 /// # Summary
-/// # Summary
 /// Returns whether a given floating-point value is not a number (i.e. is
 /// NaN).
 ///
@@ -114,7 +112,6 @@ function IsInfinite(d : Double) : Bool {
 // Sign, Abs, Min, Max, etc.
 //
 
-/// # Summary
 /// # Summary
 /// Returns -1, 0 or +1 that indicates the sign of a number.
 function SignI(a : Int) : Int {
@@ -250,7 +247,6 @@ function Min(values : Int[]) : Int {
 //
 
 /// # Summary
-/// # Summary
 /// Returns the angle whose cosine is the specified number.
 function ArcCos(x : Double) : Double {
     body intrinsic;
@@ -334,7 +330,6 @@ function ArcTanh(x : Double) : Double {
 //
 
 /// # Summary
-/// # Summary
 /// Returns the square root of a specified number.
 function Sqrt(d : Double) : Double {
     body intrinsic;
@@ -362,7 +357,6 @@ function Lg(input : Double) : Double {
 // Truncation and Rounding
 //
 
-/// # Summary
 /// # Summary
 /// Returns the integral part of a number.
 /// For example: Truncate(3.7) = 3; Truncate(-3.7) = -3
@@ -416,7 +410,6 @@ function Round(value : Double) : Int {
 // Modular arithmetic
 //
 
-/// # Summary
 /// # Summary
 /// Divides one Integer value by another, returns the result and the remainder as a tuple.
 function DivRemI(dividend : Int, divisor : Int) : (Int, Int) {
@@ -539,7 +532,6 @@ function InverseModL(a : BigInt, modulus : BigInt) : BigInt {
 // GCD, etc.
 //
 
-/// # Summary
 /// # Summary
 /// Computes the greatest common divisor of two integers.
 /// Note: GCD is always positive except that GCD(0,0)=0.
@@ -738,7 +730,6 @@ function RealMod(value : Double, modulo : Double, minValue : Double) : Double {
 //
 
 /// # Summary
-/// # Summary
 /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
 /// NOTE: This function returns the smallest n such that a < 2^n.
 function BitSizeI(a : Int) : Int {
@@ -813,7 +804,6 @@ function HammingWeightI(n : Int) : Int {
 // Combinatorics
 //
 
-/// # Summary
 /// # Summary
 /// Returns the factorial of a given number.
 ///
@@ -1023,7 +1013,6 @@ function Binom(n : Int, k : Int) : Int {
 //
 
 /// # Summary
-/// # Summary
 /// Returns the squared 2-norm of a vector.
 ///
 /// # Description
@@ -1104,7 +1093,6 @@ function PNormalized(p : Double, array : Double[]) : Double[] {
 // Complex numbers
 //
 
-/// # Summary
 /// # Summary
 /// Represents a complex number by its real and imaginary components.
 /// The first element of the tuple is the real component,
@@ -1431,7 +1419,6 @@ function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar {
 // Fixed point
 //
 
-/// # Summary
 /// # Summary
 /// Returns the smallest representable number for specific fixed point dimensions.
 ///

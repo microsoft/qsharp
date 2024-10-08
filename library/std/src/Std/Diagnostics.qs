@@ -1,7 +1,6 @@
 open QIR.Intrinsic;
 
 /// # Summary
-/// # Summary
 /// Dumps the current target machine's status.
 ///
 /// # Description
@@ -66,7 +65,6 @@ function DumpRegister(register : Qubit[]) : Unit {
     body intrinsic;
 }
 
-/// # Summary
 /// # Summary
 /// Given an operation, dumps the matrix representation of the operation action on the given
 /// number of qubits.

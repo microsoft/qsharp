@@ -2,7 +2,6 @@ import Std.Diagnostics.*;
 import Std.Math.*;
 
 /// # Summary
-/// # Summary
 /// Converts a given integer `number` to an equivalent
 /// double-precision floating-point number.
 ///

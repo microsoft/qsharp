@@ -8,7 +8,6 @@ import Std.Diagnostics.*;
 open QIR.Intrinsic;
 
 /// # Summary
-/// # Summary
 /// Jointly measures a register of qubits in the Pauli Z basis.
 ///
 /// # Description

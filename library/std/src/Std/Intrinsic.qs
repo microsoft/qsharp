@@ -10,7 +10,6 @@ open QIR.Intrinsic;
 import Std.InternalHelpers.*;
 
 /// # Summary
-/// # Summary
 /// Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
 /// Note that target qubit must be in |0⟩ state.
 ///

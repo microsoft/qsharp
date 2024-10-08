@@ -3,7 +3,6 @@
 
 
 /// # Summary
-/// # Summary
 /// Returns the defined start value of the given range.
 ///
 /// # Input
@@ -28,7 +27,6 @@
 function RangeStart(r : Range) : Int { r.Start }
 
 /// # Summary
-/// # Summary
 /// Returns the defined end value of the given range,
 /// which is not necessarily the last element in the sequence.
 ///
@@ -50,7 +48,6 @@ function RangeEnd(r : Range) : Int { r.End }
 
 
 /// # Summary
-/// # Summary
 /// Returns the integer that specifies how the next value of a range is calculated.
 ///
 /// # Input
@@ -66,7 +63,6 @@ function RangeEnd(r : Range) : Int { r.End }
 /// until `end` is passed.
 function RangeStep(r : Range) : Int { r.Step }
 
-/// # Summary
 /// # Summary
 /// Returns a new range which is the reverse of the input range.
 ///
@@ -85,7 +81,6 @@ function RangeReverse(r : Range) : Range {
     start..-r.Step..r.Start
 }
 
-/// # Summary
 /// # Summary
 /// Returns true if and only if the input range is empty.
 ///

@@ -3,7 +3,6 @@
 
 
 /// # Summary
-/// # Summary
 /// Returns the boolean exclusive disjunction (eXclusive OR, XOR)
 /// of two input boolean values.
 ///
