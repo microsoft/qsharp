@@ -30,6 +30,15 @@ impl<
     ) -> Result<PhysicalResourceEstimationResult<E, B::Factory>, Error> {
         let mut num_cycles = self.compute_num_cycles(error_budget)?;
 
+        // NOTE: for now we reset the error_budget_strategy if also
+        // max_factories is set, because it may lead to an inconsistent
+        // configuration.
+        let adjusted_strategy = if self.max_factories.is_some() {
+            ErrorBudgetStrategy::Static
+        } else {
+            self.error_budget_strategy
+        };
+
         loop {
             let mut error_budget = error_budget.clone();
 
@@ -40,7 +49,7 @@ impl<
                 self.required_logical_error_rate(error_budget.logical(), num_cycles);
             let code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
 
-            let max_allowed_num_cycles_for_code_parameter = match self.error_budget_strategy {
+            let max_allowed_num_cycles_for_code_parameter = match adjusted_strategy {
                 ErrorBudgetStrategy::Static => {
                     self.logical_cycles_for_code_parameter(error_budget.logical(), &code_parameter)?
                 }
