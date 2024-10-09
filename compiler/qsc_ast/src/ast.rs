@@ -835,6 +835,16 @@ impl WithSpan for Expr {
     }
 }
 
+/// The identifier in a field access expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum FieldAccess {
+    /// The field name.
+    Ok(Box<Ident>),
+    /// The field access was missing a field name.
+    #[default]
+    Err,
+}
+
 /// An expression kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
@@ -862,7 +872,7 @@ pub enum ExprKind {
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F` or `a.F`.
-    Field(Box<Expr>, Box<Ident>),
+    Field(Box<Expr>, FieldAccess),
     /// A for loop: `for a in b { ... }`.
     For(Box<Pat>, Box<Expr>, Box<Block>),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -1030,11 +1040,14 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &FieldAccess) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\n{id}")?;
+    match field {
+        FieldAccess::Ok(i) => write!(indent, "\n{i}")?,
+        FieldAccess::Err => write!(indent, "\nErr")?,
+    }
     Ok(())
 }
 
