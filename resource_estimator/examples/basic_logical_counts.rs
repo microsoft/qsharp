@@ -52,11 +52,13 @@ fn main() {
 
     // After we have set up all required inputs for the resource estimation
     // task, we can set up an estimation instance.
-    let estimation = PhysicalResourceEstimation::new(code, qubit, builder, logical_counts, budget);
+    let estimation = PhysicalResourceEstimation::new(code, qubit, builder, logical_counts);
 
     // In this example, we perform a standard estimation without any further
     // constraints.
-    let result = estimation.estimate().expect("estimation does not fail");
+    let result = estimation
+        .estimate(&budget)
+        .expect("estimation does not fail");
 
     // There is a lot of data contained in the resource estimation result
     // object, but in this sample we are only printing the total number of

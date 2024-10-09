@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 
-use super::ErrorBudget;
+use super::{ErrorBudget, ErrorBudgetStrategy};
 
 /// Trait to model post-layout logical overhead
 pub trait Overhead {
@@ -23,6 +23,11 @@ pub trait Overhead {
     /// The index is used to indicate the type of magic states and must be
     /// supported by available factory builders in the physical estimation.
     fn num_magic_states(&self, budget: &ErrorBudget, index: usize) -> u64;
+
+    /// When implemented, prunes the error budget with respect to the provided
+    /// strategy
+    #[allow(unused_variables)]
+    fn prune_error_budget(&self, budget: &mut ErrorBudget, strategy: ErrorBudgetStrategy) {}
 }
 
 /// This is the realized logical overhead after applying an error budget.  This

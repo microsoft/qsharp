@@ -4,7 +4,7 @@
 mod error;
 pub use error::Error;
 mod error_budget;
-pub use error_budget::ErrorBudget;
+pub use error_budget::{ErrorBudget, ErrorBudgetStrategy};
 mod error_correction;
 pub use error_correction::{
     CodeWithThresholdAndDistance, CodeWithThresholdAndDistanceEvaluator, ErrorCorrection,

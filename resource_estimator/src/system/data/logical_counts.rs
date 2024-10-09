@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    estimates::{ErrorBudget, Overhead},
+    estimates::{ErrorBudget, ErrorBudgetStrategy, Overhead},
     system::constants::{
         NUM_MEASUREMENTS_PER_R, NUM_MEASUREMENTS_PER_TOF, NUM_TS_PER_ROTATION_A_COEFFICIENT,
         NUM_TS_PER_ROTATION_B_COEFFICIENT,
@@ -76,6 +76,22 @@ impl Overhead for LogicalResourceCounts {
                 .num_ts_per_rotation(budget.rotations())
                 .unwrap_or_default()
                 * self.rotation_count
+    }
+
+    fn prune_error_budget(&self, budget: &mut ErrorBudget, strategy: ErrorBudgetStrategy) {
+        if matches![strategy, ErrorBudgetStrategy::PruneLogicalAndRotations] {
+            if let Some(num_ts_per_rotation) = self.num_ts_per_rotation(budget.rotations()) {
+                let new_rotations_budget = (self.rotation_count as f64)
+                    / 2.0_f64.powf(
+                        ((num_ts_per_rotation as f64) - NUM_TS_PER_ROTATION_B_COEFFICIENT)
+                            / NUM_TS_PER_ROTATION_A_COEFFICIENT,
+                    );
+
+                let diff = budget.rotations() - new_rotations_budget;
+                budget.set_rotations(new_rotations_budget);
+                budget.set_magic_states(budget.magic_states() + diff);
+            }
+        }
     }
 }
 
