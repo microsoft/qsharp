@@ -1311,3 +1311,60 @@ fn if_else_expression_with_result_literal_fails() {
         ]],
     );
 }
+
+#[test]
+fn if_comparison_with_mixed_static_dynamic_array() {
+    let program = get_rir_program(indoc!{r#"
+        @EntryPoint()
+        operation circuit_160() : Result[] {
+            mutable c = Repeated(Zero, 3);
+            use qs = Qubit[3];
+            H(qs[0]);
+            CNOT(qs[0], qs[1]);
+            set c w/= 0 <- M(qs[0]);
+            if Std.Convert.ResultArrayAsInt(c) == 4 {
+                Rz(0.5, qs[1]);
+            }
+            set c w/= 1 <- M(qs[1]);
+            set c w/= 2 <- M(qs[2]);
+            c
+        }
+    "#});
+
+    // Verify the callables added to the program.
+    let h_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        h_callable_id,
+        &expect![],
+    );
+    let cnot_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        cnot_callable_id,
+        &expect![],
+    );
+    let m_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        m_callable_id,
+        &expect![],
+    );
+    let read_result_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![],
+    );
+    let rz_callable_id = CallableId(5);
+    assert_callable(
+        &program,
+        rz_callable_id,
+        &expect![],
+    );
+
+    assert_blocks(
+        &program,
+        &expect![],
+    );
+}
