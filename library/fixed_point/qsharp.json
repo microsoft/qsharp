@@ -3,13 +3,18 @@
   "license": "MIT",
   "dependencies": {
     "Signed": {
-      "path": "/Users/alexanderhansen/code/qsharp/library/signed"
+      "github": {
+        "owner": "Microsoft",
+        "repo": "qsharp",
+        "ref": "3195043",
+        "path": "library/signed"
+      }
     },
     "Unstable": {
       "github": {
         "owner": "Microsoft",
         "repo": "qsharp",
-        "ref": "adcefe8",
+        "ref": "3195043",
         "path": "library/unstable"
       }
     }
