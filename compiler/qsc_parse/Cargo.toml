@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitflags = { workspace = true }
 enum-iterator = { workspace = true }
 miette = { workspace = true }
 num-bigint = { workspace = true }

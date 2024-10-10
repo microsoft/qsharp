@@ -5,6 +5,7 @@
 //! The parser produces a tree with placeholder node identifiers that are expected to be replaced with
 //! unique identifiers by a later stage.
 
+pub mod completion;
 mod expr;
 mod item;
 pub mod keyword;
@@ -16,14 +17,11 @@ mod stmt;
 mod tests;
 mod ty;
 
-use crate::item::parse_doc;
-use crate::keyword::Keyword;
 use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace, TopLevelNode};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use scan::ParserContext;
-use std::rc::Rc;
 use std::result;
 use thiserror::Error;
 
@@ -185,32 +183,7 @@ pub fn namespaces(
     language_features: LanguageFeatures,
 ) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features);
-    let doc = parse_doc(&mut scanner);
-    let doc = Rc::from(doc.unwrap_or_default());
-    #[allow(clippy::unnecessary_unwrap)]
-    let result: Result<_> = (|| {
-        if source_name.is_some() && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace) {
-            let mut ns = item::parse_implicit_namespace(
-                source_name.expect("invariant checked above via `.is_some()`"),
-                &mut scanner,
-            )
-            .map(|x| vec![x])?;
-            if let Some(ref mut ns) = ns.get_mut(0) {
-                if let Some(x) = ns.items.get_mut(0) {
-                    x.span.lo = 0;
-                    x.doc = doc;
-                };
-            }
-            Ok(ns)
-        } else {
-            let mut ns = item::parse_namespaces(&mut scanner)?;
-            if let Some(x) = ns.get_mut(0) {
-                x.span.lo = 0;
-                x.doc = doc;
-            };
-            Ok(ns)
-        }
-    })();
+    let result = item::parse_namespaces_or_implicit(&mut scanner, source_name);
 
     match result {
         Ok(namespaces) => (namespaces, scanner.into_errors()),

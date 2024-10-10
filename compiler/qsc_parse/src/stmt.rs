@@ -13,6 +13,7 @@ use super::{
     Error, Result,
 };
 use crate::{
+    completion::WordKinds,
     lex::{Delim, TokenKind},
     prim::{barrier, recovering, recovering_semi, recovering_token},
     ErrorKind,
@@ -90,10 +91,17 @@ fn parse_local(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     };
 
     let lhs = pat(s)?;
-    token(s, TokenKind::Eq)?;
-    let rhs = expr(s)?;
-    recovering_semi(s);
-    Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
+    match token(s, TokenKind::Eq) {
+        Ok(()) => {
+            let rhs = expr(s)?;
+            recovering_semi(s);
+            Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
+        }
+        Err(e) => {
+            s.push_error(e);
+            Ok(Box::new(StmtKind::Local(mutability, lhs, Box::default())))
+        }
+    }
 }
 
 fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
@@ -127,6 +135,7 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
 
 fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
+    s.expect(WordKinds::Qubit);
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
             return Err(Error::new(ErrorKind::Convert(

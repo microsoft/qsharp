@@ -8,7 +8,7 @@ use crate::{
 use qsc_ast::{
     ast::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
-        QubitInit, SpecDecl, Stmt, TopLevelNode, Ty, TyDef,
+        PathKind, QubitInit, SpecDecl, Stmt, TopLevelNode, Ty, TyDef,
     },
     visit::Visitor,
 };
@@ -57,6 +57,7 @@ pub(crate) trait AstLintPass {
     fn check_package(&self, _package: &Package, _buffer: &mut Vec<Lint>) {}
     fn check_pat(&self, _pat: &Pat, _buffer: &mut Vec<Lint>) {}
     fn check_path(&self, _path: &Path, _buffer: &mut Vec<Lint>) {}
+    fn check_path_kind(&self, _path: &PathKind, _buffer: &mut Vec<Lint>) {}
     fn check_qubit_init(&self, _qubit_init: &QubitInit, _buffer: &mut Vec<Lint>) {}
     fn check_spec_decl(&self, _spec_decl: &SpecDecl, _buffer: &mut Vec<Lint>) {}
     fn check_stmt(&self, _stmt: &Stmt, _buffer: &mut Vec<Lint>) {}
@@ -84,7 +85,7 @@ macro_rules! declare_ast_lints {
             use crate::{linter::ast::{declare_ast_lints, AstLintPass}, Lint, LintLevel};
             use qsc_ast::{
                 ast::{
-                    Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
+                    Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path, PathKind,
                     QubitInit, SpecDecl, Stmt, Ty, TyDef,
                 },
                 visit::{self, Visitor},
@@ -204,6 +205,7 @@ macro_rules! declare_ast_lints {
             fn check_pat(&mut self, pat: &Pat) { $(self.$lint_name.check_pat(pat, &mut self.buffer));*; }
             fn check_qubit_init(&mut self, init: &QubitInit) { $(self.$lint_name.check_qubit_init(init, &mut self.buffer));*; }
             fn check_path(&mut self, path: &Path) { $(self.$lint_name.check_path(path, &mut self.buffer));*; }
+            fn check_path_kind(&mut self, path: &PathKind) { $(self.$lint_name.check_path_kind(path, &mut self.buffer));*; }
             fn check_ident(&mut self, ident: &Ident) { $(self.$lint_name.check_ident(ident, &mut self.buffer));*; }
         }
 
@@ -281,6 +283,11 @@ macro_rules! declare_ast_lints {
             fn visit_path(&mut self, path: &'a Path) {
                 self.check_path(path);
                 visit::walk_path(self, path);
+            }
+
+            fn visit_path_kind(&mut self, path: &'a PathKind) {
+                self.check_path_kind(path);
+                visit::walk_path_kind(self, path);
             }
 
             fn visit_ident(&mut self, ident: &'a Ident) {

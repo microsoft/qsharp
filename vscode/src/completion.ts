@@ -82,6 +82,8 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       });
       return item;
     });
-    return results.concat(this.samples);
+
+    // Include the samples list for empty documents
+    return document.lineCount === 0 ? results.concat(this.samples) : results;
   }
 }

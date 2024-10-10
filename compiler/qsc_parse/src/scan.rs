@@ -3,6 +3,7 @@
 
 use super::Error;
 use crate::{
+    completion::{collector::ValidWordCollector, WordKinds},
     lex::{Lexer, Token, TokenKind},
     ErrorKind,
 };
@@ -14,6 +15,7 @@ pub(super) struct NoBarrierError;
 pub(super) struct ParserContext<'a> {
     scanner: Scanner<'a>,
     language_features: LanguageFeatures,
+    word_collector: Option<&'a mut ValidWordCollector>,
 }
 
 /// Scans over the token stream. Notably enforces LL(1) parser behavior via
@@ -35,6 +37,23 @@ impl<'a> ParserContext<'a> {
         Self {
             scanner: Scanner::new(input),
             language_features,
+            word_collector: None,
+        }
+    }
+
+    pub fn with_word_collector(
+        input: &'a str,
+        language_features: LanguageFeatures,
+        word_collector: &'a mut ValidWordCollector,
+    ) -> Self {
+        let mut scanner = Scanner::new(input);
+
+        word_collector.did_advance(&mut scanner.peek, scanner.offset);
+
+        Self {
+            scanner,
+            language_features,
+            word_collector: Some(word_collector),
         }
     }
 
@@ -50,8 +69,19 @@ impl<'a> ParserContext<'a> {
         self.scanner.span(from)
     }
 
+    /// Advances the scanner to start of the the next valid token.
     pub(super) fn advance(&mut self) {
         self.scanner.advance();
+
+        if let Some(e) = &mut self.word_collector {
+            e.did_advance(&mut self.scanner.peek, self.scanner.offset);
+        }
+    }
+
+    /// Moves the scanner to the start of the current token,
+    /// returning the span of the skipped trivia.
+    pub(super) fn skip_trivia(&mut self) -> Span {
+        self.scanner.skip_trivia()
     }
 
     /// Pushes a recovery barrier. While the barrier is active, recovery will never advance past any
@@ -74,6 +104,10 @@ impl<'a> ParserContext<'a> {
 
     pub(super) fn push_error(&mut self, error: Error) {
         self.scanner.push_error(error);
+
+        if let Some(e) = &mut self.word_collector {
+            e.did_error();
+        }
     }
 
     pub(super) fn into_errors(self) -> Vec<Error> {
@@ -82,6 +116,12 @@ impl<'a> ParserContext<'a> {
 
     pub(crate) fn contains_language_feature(&self, feat: LanguageFeatures) -> bool {
         self.language_features.contains(feat)
+    }
+
+    pub fn expect(&mut self, expected: WordKinds) {
+        if let Some(e) = &mut self.word_collector {
+            e.expect(expected);
+        }
     }
 }
 
@@ -93,13 +133,13 @@ impl<'a> Scanner<'a> {
             input,
             tokens,
             barriers: Vec::new(),
+            peek: peek.unwrap_or_else(|| eof(input.len())),
             errors: errors
                 .into_iter()
                 .map(|e| Error::new(ErrorKind::Lex(e)))
                 .collect(),
-            recovered_eof: false,
-            peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
+            recovered_eof: false,
         }
     }
 
@@ -116,6 +156,15 @@ impl<'a> Scanner<'a> {
             lo: from,
             hi: self.offset,
         }
+    }
+
+    /// Moves the scanner to the start of the current token,
+    /// returning the span of the skipped trivia.
+    pub(super) fn skip_trivia(&mut self) -> Span {
+        let lo = self.offset;
+        self.offset = self.peek.span.lo;
+        let hi = self.offset;
+        Span { lo, hi }
     }
 
     pub(super) fn advance(&mut self) {
@@ -155,6 +204,7 @@ impl<'a> Scanner<'a> {
             if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
                 break;
             }
+
             self.advance();
         }
     }

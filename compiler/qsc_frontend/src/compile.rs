@@ -154,7 +154,7 @@ impl SourceMap {
 
     /// Returns the sources as an iter, but with the project root directory subtracted
     /// from the individual source names.
-    pub(crate) fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
+    pub fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
             let relative_name = if let Some(common_prefix) = &self.common_prefix {

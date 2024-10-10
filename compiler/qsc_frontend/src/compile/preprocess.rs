@@ -3,7 +3,7 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind, UnOp},
+    ast::{Attr, ExprKind, Idents, ItemKind, Namespace, PathKind, Stmt, StmtKind, UnOp},
     mut_visit::MutVisitor,
 };
 use qsc_hir::hir;
@@ -54,12 +54,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name(),
+                                namespace: namespace.name.full_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name(),
+                            namespace: namespace.name.full_name(),
                         }),
                         _ => {}
                     }
@@ -69,12 +69,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name(),
+                                namespace: namespace.name.full_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name(),
+                            namespace: namespace.name.full_name(),
                         }),
                         _ => {}
                     }
@@ -141,7 +141,7 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
     for attr in attrs {
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
             match inner.kind.as_ref() {
-                ExprKind::Path(path) => {
+                ExprKind::Path(PathKind::Ok(path)) => {
                     if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
                     {
                         if capability.is_empty() {
@@ -153,7 +153,7 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
                     }
                 }
                 ExprKind::UnOp(UnOp::NotL, inner) => {
-                    if let ExprKind::Path(path) = inner.kind.as_ref() {
+                    if let ExprKind::Path(PathKind::Ok(path)) = inner.kind.as_ref() {
                         if let Ok(capability) =
                             TargetCapabilityFlags::from_str(path.name.name.as_ref())
                         {

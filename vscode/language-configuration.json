@@ -21,20 +21,5 @@
     ["(", ")"],
     ["{", "}"],
     ["\"", "\""]
-  ],
-  // This is the default word pattern from https://code.visualstudio.com/api/language-extensions/language-configuration-guide
-  // with the following modifications:
-  //   @foo - Attributes, including the leading '@', are treated as one word.
-  //   foo.bar - Qualified names, including the dots, are treated as one word.
-  //
-  // This setting influences how completions are committed when a partial word has been typed.
-  // Some completions contain non-word characters (e.g. '@' and '.'), and when these completions are
-  // committed, they must replace the entire word that has been typed until the cursor, including any special
-  // characters.
-  //
-  // If you change this word pattern, please verify that Monaco and VS Code completions are working as intended
-  // for attributes and namespaces, by explicitly invoking completions after typing '@', '@Entr', 'Microsoft.Q', etc.
-  //
-  // This setting is duplicated for the Monaco setting for the playground: playground/src/main.tsx
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\.\\'\\\"\\,\\<\\>\\/\\?\\s]+)"
+  ]
 }

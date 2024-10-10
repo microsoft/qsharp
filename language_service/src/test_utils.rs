@@ -10,11 +10,48 @@ use qsc::{
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
     location::Location,
+    packages::prepare_package_store,
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
 use qsc_project::{PackageGraphSources, PackageInfo};
 use rustc_hash::FxHashMap;
+
+const FAKE_STDLIB_CONTENTS: &str = r#"
+    namespace FakeStdLib {
+        operation Fake() : Unit {}
+        operation FakeWithParam(x : Int) : Unit {}
+        operation FakeCtlAdj() : Unit is Ctl + Adj {}
+        newtype Udt = (x : Int, y : Int);
+        newtype UdtWrapper = (inner : Udt);
+        newtype UdtFn = (Int -> Int);
+        newtype UdtFnWithUdtParams = (Udt -> Udt);
+        function TakesUdt(input : Udt) : Udt {
+            fail "not implemented"
+        }
+        operation RefFake() : Unit {
+            Fake();
+        }
+        operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
+        internal operation Hidden() : Unit {}
+        struct FakeStruct { x : Int, y : Int }
+        struct StructWrapper { inner : FakeStruct }
+        struct StructFn { inner : Int -> Int }
+        struct StructFnWithStructParams { inner : FakeStruct -> FakeStruct }
+        function TakesStruct(input : FakeStruct) : FakeStruct {
+            fail "not implemented"
+        }
+        export Fake, FakeWithParam, FakeCtlAdj, Udt, UdtWrapper, UdtFn, UdtFnWithUdtParams, TakesUdt, RefFake, FakeWithTypeParam;
+        export FakeStruct, StructWrapper, StructFn, StructFnWithStructParams, TakesStruct;
+    }
+
+    namespace FakeStdLib.Library {
+        operation OperationInLibrary() : Unit {}
+        export OperationInLibrary;
+    }
+    "#;
+
+const FAKE_STDLIB_NAME: &str = "qsharp-library-source:<std>";
 
 pub(crate) fn compile_with_markers(
     source_with_markers: &str,
@@ -45,7 +82,27 @@ pub(crate) fn compile_project_with_markers(
     use_fake_stdlib: bool,
 ) -> (Compilation, String, Position, Vec<Location>) {
     let (compilation, cursor_location, target_spans) =
-        compile_project_with_markers_cursor_optional(sources_with_markers, use_fake_stdlib);
+        compile_project_with_markers_cursor_optional(sources_with_markers, None, use_fake_stdlib);
+
+    let (cursor_uri, cursor_offset) =
+        cursor_location.expect("input string should have a cursor marker");
+
+    (compilation, cursor_uri, cursor_offset, target_spans)
+}
+
+pub(crate) fn compile_with_dependency_with_markers(
+    sources_with_markers: &[(&str, &str)],
+    dependency_alias: &str,
+    dependency_sources: &[(&str, &str)],
+) -> (Compilation, String, Position, Vec<Location>) {
+    let (compilation, cursor_location, target_spans) = compile_project_with_markers_cursor_optional(
+        sources_with_markers,
+        Some(Dependency {
+            sources: dependency_sources,
+            alias: dependency_alias,
+        }),
+        true,
+    );
 
     let (cursor_uri, cursor_offset) =
         cursor_location.expect("input string should have a cursor marker");
@@ -58,7 +115,7 @@ pub(crate) fn compile_project_with_markers_no_cursor(
     use_fake_stdlib: bool,
 ) -> (Compilation, Vec<Location>) {
     let (compilation, cursor_location, target_spans) =
-        compile_project_with_markers_cursor_optional(sources_with_markers, use_fake_stdlib);
+        compile_project_with_markers_cursor_optional(sources_with_markers, None, use_fake_stdlib);
 
     assert!(
         cursor_location.is_none(),
@@ -68,21 +125,98 @@ pub(crate) fn compile_project_with_markers_no_cursor(
     (compilation, target_spans)
 }
 
+struct Dependency<'a> {
+    sources: &'a [(&'a str, &'a str)],
+    alias: &'a str,
+}
+
 fn compile_project_with_markers_cursor_optional(
     sources_with_markers: &[(&str, &str)],
+    dependency: Option<Dependency>,
     use_fake_stdlib: bool,
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
 
-    let source_map = SourceMap::new(sources.clone(), None);
-    let (std_package_id, mut package_store) = if use_fake_stdlib {
-        compile_fake_stdlib()
-    } else {
-        qsc::compile::package_store_with_stdlib(qsc::TargetCapabilityFlags::all())
+    let mut package_graph_sources = PackageGraphSources {
+        root: PackageInfo {
+            sources: sources.clone(),
+            language_features: LanguageFeatures::default(),
+            dependencies: FxHashMap::default(),
+            package_type: None,
+        },
+        packages: FxHashMap::default(),
     };
+
+    if use_fake_stdlib {
+        package_graph_sources.packages.insert(
+            "<stdlib>".into(),
+            PackageInfo {
+                sources: vec![(FAKE_STDLIB_NAME.into(), FAKE_STDLIB_CONTENTS.into())],
+                language_features: LanguageFeatures::default(),
+                dependencies: FxHashMap::default(),
+                package_type: None,
+            },
+        );
+
+        package_graph_sources
+            .root
+            .dependencies
+            .insert("FakeStdLib".into(), "<stdlib>".into());
+    }
+
+    let (mut package_store, dependencies) = if let Some(dependency) = dependency {
+        package_graph_sources
+            .root
+            .dependencies
+            .insert(dependency.alias.into(), "<dependency_package>".into());
+
+        package_graph_sources.packages.insert(
+            "<dependency_package>".into(),
+            PackageInfo {
+                sources: dependency
+                    .sources
+                    .iter()
+                    .map(|(n, s)| (Arc::from(*n), Arc::from(*s)))
+                    .collect(),
+                language_features: LanguageFeatures::default(),
+                dependencies: FxHashMap::default(),
+                package_type: Some(qsc_project::PackageType::Lib),
+            },
+        );
+
+        let buildable_program = prepare_package_store(
+            qsc::TargetCapabilityFlags::all(),
+            package_graph_sources.clone(),
+        );
+        let mut dependencies = buildable_program.user_code_dependencies;
+
+        if use_fake_stdlib {
+            // We still paid the cost of building the stdlib above,
+            // that's ok, but we'll remove it from the dependencies now.
+
+            // Remove the real stdlib
+            dependencies.retain(|(_, alias)| alias.is_some());
+
+            // Erase the alias for the fake stdlib to make it act like the real stdlib
+            dependencies
+                .iter_mut()
+                .find(|(_, alias)| alias.as_deref() == Some("FakeStdLib"))
+                .expect("expected to find the fake stdlib")
+                .1 = None;
+        }
+        (buildable_program.store, dependencies)
+    } else {
+        let (std_package_id, package_store) = if use_fake_stdlib {
+            compile_fake_stdlib()
+        } else {
+            qsc::compile::package_store_with_stdlib(qsc::TargetCapabilityFlags::all())
+        };
+        (package_store, vec![(std_package_id, None)])
+    };
+    let source_map = SourceMap::new(sources, None);
     let (unit, errors) = compile::compile(
         &package_store,
-        &[(std_package_id, None)],
+        &dependencies,
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
@@ -96,19 +230,11 @@ fn compile_project_with_markers_cursor_optional(
             package_store,
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
-                package_graph_sources: PackageGraphSources {
-                    root: PackageInfo {
-                        sources,
-                        language_features: LanguageFeatures::default(),
-                        dependencies: FxHashMap::default(),
-                        package_type: None,
-                    },
-                    packages: FxHashMap::default(),
-                },
+                package_graph_sources,
             },
             compile_errors: errors,
             project_errors: Vec::new(),
-            dependencies: FxHashMap::default(),
+            dependencies: dependencies.into_iter().collect(),
         },
         cursor_location,
         target_spans,
@@ -131,18 +257,7 @@ where
     I: Iterator<Item = (&'a str, &'a str)>,
 {
     let std_source_map = SourceMap::new(
-        [(
-            "qsharp-library-source:<std>".into(),
-            "namespace FakeStdLib {
-                operation Fake() : Unit {}
-                operation FakeWithParam(x: Int) : Unit {}
-                operation FakeCtlAdj() : Unit is Ctl + Adj {}
-                newtype Complex = (Real: Double, Imag: Double);
-                function TakesComplex(input : Complex) : Unit {}
-                export Fake, FakeWithParam, FakeCtlAdj, Complex, TakesComplex;
-            }"
-            .into(),
-        )],
+        [(FAKE_STDLIB_NAME.into(), FAKE_STDLIB_CONTENTS.into())],
         None,
     );
 
@@ -169,6 +284,7 @@ where
         compiler.update(increment);
     }
 
+    let source_package_id = compiler.source_package_id();
     let (package_store, package_id) = compiler.into_package_store();
 
     Compilation {
@@ -177,43 +293,15 @@ where
         compile_errors: errors,
         kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
-        dependencies: FxHashMap::default(),
+        dependencies: [(source_package_id, None)].into_iter().collect(),
     }
 }
 
 fn compile_fake_stdlib() -> (PackageId, PackageStore) {
     let mut package_store = PackageStore::new(compile::core());
+
     let std_source_map = SourceMap::new(
-        [(
-            "qsharp-library-source:<std>".into(),
-            r#"namespace FakeStdLib {
-                operation Fake() : Unit {}
-                operation FakeWithParam(x : Int) : Unit {}
-                operation FakeCtlAdj() : Unit is Ctl + Adj {}
-                newtype Udt = (x : Int, y : Int);
-                newtype UdtWrapper = (inner : Udt);
-                newtype UdtFn = (Int -> Int);
-                newtype UdtFnWithUdtParams = (Udt -> Udt);
-                function TakesUdt(input : Udt) : Udt {
-                    fail "not implemented"
-                }
-                operation RefFake() : Unit {
-                    Fake();
-                }
-                operation FakeWithTypeParam<'A>(a : 'A) : 'A { a }
-                internal operation Hidden() : Unit {}
-                struct FakeStruct { x : Int, y : Int }
-                struct StructWrapper { inner : FakeStruct }
-                struct StructFn { inner : Int -> Int }
-                struct StructFnWithStructParams { inner : FakeStruct -> FakeStruct }
-                function TakesStruct(input : FakeStruct) : FakeStruct {
-                    fail "not implemented"
-                }
-                export Fake, FakeWithParam, FakeCtlAdj, Udt, UdtWrapper, UdtFn, UdtFnWithUdtParams, TakesUdt, RefFake, FakeWithTypeParam;
-                export FakeStruct, StructWrapper, StructFn, StructFnWithStructParams, TakesStruct;
-            }"#
-            .into(),
-        )],
+        [(FAKE_STDLIB_NAME.into(), FAKE_STDLIB_CONTENTS.into())],
         None,
     );
     let (std_compile_unit, std_errors) = compile::compile(
