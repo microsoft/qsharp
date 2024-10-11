@@ -22,11 +22,11 @@ bitflags! {
     /// possible names are hardcoded into the language, e.g. "EntryPoint", "Qubit".
     ///
     /// IF UPDATING: If new values are added before the keyword range,
-    ///   [`KEYWORDS_START`] *must* be udpated.
+    ///   [`KEYWORDS_START`] *must* be updated.
     ///
     #[repr(transparent)]
     #[derive(Default, PartialEq, Debug, Clone, Copy)]
-    pub struct WordKinds: u64 {
+    pub struct WordKinds: u128 {
 
         //
         // Begin names.
@@ -63,6 +63,8 @@ bitflags! {
         const Attr = 1 << 8;
         /// The word `Qubit`.
         const Qubit = 1 << 9;
+        /// The word `size`.
+        const Size = 1 << 10;
 
         //
         // End hardcoded identifiers.
@@ -129,8 +131,8 @@ bitflags! {
     }
 }
 
-const KEYWORDS_START: u8 = 10;
-const fn keyword_bit(k: Keyword) -> u64 {
+const KEYWORDS_START: u8 = 11;
+const fn keyword_bit(k: Keyword) -> u128 {
     1 << (k as u8 + KEYWORDS_START)
 }
 
@@ -161,6 +163,7 @@ impl WordKinds {
         self.iter().filter_map(|p| match p {
             WordKinds::Attr => Some(HardcodedIdentKind::Attr),
             WordKinds::Qubit => Some(HardcodedIdentKind::Qubit),
+            WordKinds::Size => Some(HardcodedIdentKind::Size),
             _ => None,
         })
     }
@@ -180,6 +183,8 @@ pub enum HardcodedIdentKind {
     Attr,
     /// The word `Qubit`.
     Qubit,
+    /// The word `size`.
+    Size,
 }
 
 /// A name (see: [`Predictions`])

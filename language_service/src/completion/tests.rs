@@ -3310,3 +3310,97 @@ fn notebook_top_level_path_part_in_type() {
         "#]],
     );
 }
+
+#[test]
+fn prefix_ops() {
+    check(
+        "namespace Test { function Main() : Unit { let x = ↘ ; } }",
+        &["and", "or", "not", "Adjoint"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                Some(
+                    CompletionItem {
+                        label: "not",
+                        kind: Keyword,
+                        sort_text: Some(
+                            "0000not",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Adjoint",
+                        kind: Keyword,
+                        sort_text: Some(
+                            "0000Adjoint",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn binary_ops() {
+    check(
+        "namespace Test { function Main() : Unit { let x = 1 ↘ ; } }",
+        &["and", "or", "not"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "and",
+                        kind: Keyword,
+                        sort_text: Some(
+                            "0000and",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "or",
+                        kind: Keyword,
+                        sort_text: Some(
+                            "0000or",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn array_size() {
+    check(
+        "namespace Test { function Main() : Unit { let x = [0, ↘] ; } }",
+        &["size"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "size",
+                        kind: Keyword,
+                        sort_text: Some(
+                            "0000size",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

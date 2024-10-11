@@ -99,6 +99,8 @@ pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
 
 fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
+
+    s.expect(WordKinds::AdjointUpper | WordKinds::ControlledUpper | WordKinds::Not);
     let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
@@ -117,6 +119,7 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
         OpContext::Stmt => 0,
     };
 
+    s.expect(WordKinds::And | WordKinds::Or);
     while let Some(op) = mixfix_op(op_name(s)) {
         if op.precedence < min_precedence {
             break;
@@ -346,6 +349,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
         return Ok(Box::new(ExprKind::Array(vec![first].into_boxed_slice())));
     }
 
+    s.expect(WordKinds::Size);
     let second = expr(s)?;
     if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
         let size = expr(s)?;
