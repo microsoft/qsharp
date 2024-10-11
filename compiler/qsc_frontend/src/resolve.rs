@@ -364,9 +364,9 @@ pub enum LocalKind {
 
 #[derive(Debug, Clone, Default)]
 pub struct GlobalScope {
-    tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
-    terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
-    namespaces: NamespaceTreeRoot,
+    pub tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    pub terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    pub namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
@@ -578,12 +578,12 @@ impl Resolver {
         &self.names
     }
 
-    pub(crate) fn namespaces(&self) -> &qsc_data_structures::namespaces::NamespaceTreeRoot {
-        &self.globals.namespaces
-    }
-
     pub(super) fn locals(&self) -> &Locals {
         &self.locals
+    }
+
+    pub(super) fn globals(&self) -> &GlobalScope {
+        &self.globals
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -597,13 +597,8 @@ impl Resolver {
         }
     }
 
-    pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>, NamespaceTreeRoot) {
-        (
-            self.names,
-            self.locals,
-            self.errors,
-            self.globals.namespaces,
-        )
+    pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>, GlobalScope) {
+        (self.names, self.locals, self.errors, self.globals)
     }
 
     pub(super) fn extend_dropped_names(&mut self, dropped_names: Vec<TrackedName>) {
@@ -1608,7 +1603,12 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                    self.scope.insert_or_find_namespace(global.namespace);
+                    // self.scope.insert_or_find_namespace(global.namespace);
+
+                    // (mineyalc) I think this should go under `root`:
+
+                    self.scope
+                        .insert_or_find_namespace_from_root(global.namespace, root);
                 }
                 (global::Kind::Export(item_id), _) => {
                     let Some(item) = find_item(store, item_id, id) else {
@@ -1624,6 +1624,13 @@ impl GlobalTable {
                         hir::ItemKind::Namespace(ns, _items) => {
                             self.scope
                                 .insert_or_find_namespace(ns.iter().map(|s| s.name.clone()));
+                            // (minestarks) inserting under `root` seems more correct,
+                            // but this change actually has no effect in any of my test cases:
+                            //
+                            // self.scope.insert_or_find_namespace_from_root(
+                            //     ns.iter().map(|s| s.name.clone()).collect(),
+                            //     root,
+                            // );
                         }
                         hir::ItemKind::Ty(..) => {
                             self.scope

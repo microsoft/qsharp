@@ -211,7 +211,7 @@ async fn completions_requested_after_document_load() {
     worker.apply_pending().await;
 
     expect![[r#"
-        337
+        339
     "#]]
     .assert_debug_eq(
         &ls.get_completions(

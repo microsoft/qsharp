@@ -638,7 +638,7 @@ fn members_of_aliased_namespace() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0300Fake",
+                            "0100Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -652,7 +652,7 @@ fn members_of_aliased_namespace() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0600Library",
+                            "0200Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2078,7 +2078,7 @@ fn member_completion() {
                         label: "MyCallable",
                         kind: Function,
                         sort_text: Some(
-                            "0200MyCallable",
+                            "0100MyCallable",
                         ),
                         detail: Some(
                             "function MyCallable() : Unit",
@@ -2119,7 +2119,7 @@ fn member_completion_in_imported_namespace() {
                         label: "MyCallable",
                         kind: Function,
                         sort_text: Some(
-                            "0200MyCallable",
+                            "0100MyCallable",
                         ),
                         detail: Some(
                             "function MyCallable() : Unit",
@@ -2132,7 +2132,7 @@ fn member_completion_in_imported_namespace() {
                         label: "Bar",
                         kind: Module,
                         sort_text: Some(
-                            "0500Bar",
+                            "0200Bar",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2166,7 +2166,7 @@ fn namespace_completion() {
                         label: "Foo",
                         kind: Module,
                         sort_text: Some(
-                            "0500Foo",
+                            "0200Foo",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2198,7 +2198,7 @@ fn nested_namespace() {
                         label: "MyCallable",
                         kind: Function,
                         sort_text: Some(
-                            "0200MyCallable",
+                            "0100MyCallable",
                         ),
                         detail: Some(
                             "function MyCallable() : Unit",
@@ -2229,7 +2229,7 @@ fn std_member() {
                         label: "Fake",
                         kind: Function,
                         sort_text: Some(
-                            "0300Fake",
+                            "0100Fake",
                         ),
                         detail: Some(
                             "operation Fake() : Unit",
@@ -2242,7 +2242,7 @@ fn std_member() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0600Library",
+                            "0200Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2269,7 +2269,7 @@ fn open_namespace() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0300Library",
+                            "0100Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2296,7 +2296,7 @@ fn open_namespace_no_semi() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0300Library",
+                            "0100Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2324,7 +2324,7 @@ fn open_namespace_no_semi_followed_by_decl() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0300Library",
+                            "0100Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2352,7 +2352,7 @@ fn open_namespace_partial_path_part() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0300Library",
+                            "0100Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2522,7 +2522,7 @@ fn type_position_namespace() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -2554,7 +2554,7 @@ fn udt_base_type_part() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -2636,7 +2636,7 @@ fn struct_init_path_part() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -2670,7 +2670,7 @@ fn struct_init_path_part_in_field_assigment() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -2684,7 +2684,7 @@ fn struct_init_path_part_in_field_assigment() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0300FakeWithParam",
+                            "0100FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -2759,7 +2759,7 @@ fn export_path_part() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -2775,7 +2775,7 @@ fn export_path_part() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0300FakeWithParam",
+                            "0100FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -2920,6 +2920,7 @@ fn package_aliases() {
 }
 
 #[test]
+// #[ignore = "Main and Std show up as namespaces under MyDep, but they shouldn't"]
 fn package_alias_members() {
     check_with_dependency(
         "namespace Test { function Foo() : Unit { MyDep.↘ } }",
@@ -2928,7 +2929,7 @@ fn package_alias_members() {
         namespace Other { export OtherFunc; function OtherFunc() : Unit {} }
         namespace Other.Sub { export OtherFunc; function OtherFunc() : Unit {} }
         ",
-        &["Main", "Other", "MainFunc", "Other.Sub", "Sub"],
+        &["Main", "Other", "MainFunc", "Other.Sub", "Sub", "Std"],
         &expect![[r#"
             [
                 None,
@@ -2937,7 +2938,7 @@ fn package_alias_members() {
                         label: "Other",
                         kind: Module,
                         sort_text: Some(
-                            "0700Other",
+                            "0200Other",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2948,7 +2949,7 @@ fn package_alias_members() {
                         label: "MainFunc",
                         kind: Function,
                         sort_text: Some(
-                            "0300MainFunc",
+                            "0100MainFunc",
                         ),
                         detail: Some(
                             "function MainFunc() : Unit",
@@ -2956,6 +2957,7 @@ fn package_alias_members() {
                         additional_text_edits: None,
                     },
                 ),
+                None,
                 None,
                 None,
             ]
@@ -2984,7 +2986,7 @@ fn dependency_namespace_members() {
                         label: "Sub",
                         kind: Module,
                         sort_text: Some(
-                            "0700Sub",
+                            "0200Sub",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -2995,7 +2997,7 @@ fn dependency_namespace_members() {
                         label: "OtherFunc",
                         kind: Function,
                         sort_text: Some(
-                            "0300OtherFunc",
+                            "0100OtherFunc",
                         ),
                         detail: Some(
                             "function OtherFunc() : Unit",
@@ -3009,6 +3011,7 @@ fn dependency_namespace_members() {
 }
 
 #[test]
+// #[ignore = "Main shows up as a namespace under MyDep, but it shouldn't"]
 fn package_alias_members_in_open() {
     check_with_dependency(
         "namespace Test { open MyDep.↘  }",
@@ -3026,7 +3029,7 @@ fn package_alias_members_in_open() {
                         label: "Other",
                         kind: Module,
                         sort_text: Some(
-                            "0300Other",
+                            "0100Other",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3069,7 +3072,7 @@ fn member_completion_in_imported_namespace_from_dependency() {
                         label: "CallableInFoo",
                         kind: Function,
                         sort_text: Some(
-                            "0300CallableInFoo",
+                            "0100CallableInFoo",
                         ),
                         detail: Some(
                             "function CallableInFoo() : Unit",
@@ -3082,7 +3085,7 @@ fn member_completion_in_imported_namespace_from_dependency() {
                         label: "Bar",
                         kind: Module,
                         sort_text: Some(
-                            "0700Bar",
+                            "0200Bar",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3122,7 +3125,7 @@ fn aliased_namespace_in_dependency() {
                         label: "CallableInFoo",
                         kind: Function,
                         sort_text: Some(
-                            "0300CallableInFoo",
+                            "0100CallableInFoo",
                         ),
                         detail: Some(
                             "function CallableInFoo() : Unit",
@@ -3135,7 +3138,7 @@ fn aliased_namespace_in_dependency() {
                         label: "Bar",
                         kind: Module,
                         sort_text: Some(
-                            "0700Bar",
+                            "0200Bar",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3189,7 +3192,7 @@ fn input_type_missing() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -3202,7 +3205,7 @@ fn input_type_missing() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0600Library",
+                            "0200Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3230,7 +3233,7 @@ fn notebook_top_level_path_part() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -3243,7 +3246,7 @@ fn notebook_top_level_path_part() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0600Library",
+                            "0200Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3255,7 +3258,7 @@ fn notebook_top_level_path_part() {
                         label: "FakeWithParam",
                         kind: Function,
                         sort_text: Some(
-                            "0300FakeWithParam",
+                            "0100FakeWithParam",
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
@@ -3285,7 +3288,7 @@ fn notebook_top_level_path_part_in_type() {
                         label: "Udt",
                         kind: Interface,
                         sort_text: Some(
-                            "0300Udt",
+                            "0100Udt",
                         ),
                         detail: Some(
                             "struct Udt { x : Int, y : Int }",
@@ -3298,7 +3301,7 @@ fn notebook_top_level_path_part_in_type() {
                         label: "Library",
                         kind: Module,
                         sort_text: Some(
-                            "0600Library",
+                            "0200Library",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3506,6 +3509,194 @@ fn path_segment_before_glob_with_alias() {
                         additional_text_edits: None,
                     },
                 ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+// #[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// `Baz` should appear *without* an auto-import edit since it's already in scope.
+fn reexport_item_from_dependency() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            operation Qux() : Unit {}
+            export Qux, Bar.Baz;
+        }
+        ",
+        &["Qux", "Baz", "Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Qux",
+                        kind: Function,
+                        sort_text: Some(
+                            "0400Qux",
+                        ),
+                        detail: Some(
+                            "operation Qux() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Baz",
+                        kind: Function,
+                        sort_text: Some(
+                            "0401Baz",
+                        ),
+                        detail: Some(
+                            "operation Baz() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn reexport_item_with_alias_from_dependency() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            export Bar.Baz as BazAlias;
+        }
+        ",
+        &["BazAlias"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "BazAlias",
+                        kind: Function,
+                        sort_text: Some(
+                            "0400BazAlias",
+                        ),
+                        detail: Some(
+                            "operation Baz() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn reexport_namespace_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep.Baz.↘
+        }",
+        "MyDep",
+        "namespace Foo.Bar {
+         }
+         namespace Baz {
+            operation Qux() : Unit {}
+            export Qux, Foo.Bar;
+         }",
+        &["Qux", "Bar", "Foo"],
+        &expect![[r#"
+            [
+                None,
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Module,
+                        sort_text: Some(
+                            "0100Bar",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+// #[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// `Baz` should be in the list
+fn reexport_item_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+            namespace Test {
+                operation Test() : Unit {
+                    MyDep.↘
+                }
+            }",
+        "MyDep",
+        "namespace Foo {
+                operation Baz() : Unit {}
+                export Baz;
+             }
+             namespace Main {
+                operation Qux() : Unit {}
+                export Qux, Foo.Baz;
+             }",
+        &["Qux", "Baz"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Qux",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Qux",
+                        ),
+                        detail: Some(
+                            "operation Qux() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                // THERE SHOULD BE `Baz` HERE
             ]
         "#]],
     );

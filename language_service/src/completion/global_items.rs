@@ -11,8 +11,9 @@ use qsc::{
         visit::{walk_block, walk_callable_decl, walk_item, walk_namespace, Visitor},
         Idents as _, Package as AstPackage, PathKind,
     },
-    display::CodeDisplay,
-    hir::{ty::Udt, CallableDecl, Idents, ItemKind, Package, PackageId, Visibility},
+    display::{CodeDisplay, Lookup},
+    hir::{ty::Udt, CallableDecl, ItemId, ItemKind, Package, PackageId, Visibility},
+    resolve::Res,
     PRELUDE,
 };
 use std::{iter::once, rc::Rc};
@@ -79,7 +80,7 @@ impl<'a> Globals<'a> {
     /// and available at the current offset,
     /// taking into account any imports that are in scope.
     ///
-    /// Does not
+    /// Does not add any auto-import edits.
     pub fn expr_names_in_scope_only(&self) -> Vec<Vec<Completion>> {
         // let mut completions = Vec::new();
 
@@ -100,8 +101,7 @@ impl<'a> Globals<'a> {
     /// and available at the current offset,
     /// taking into account any imports that are in scope.
     ///
-    /// If the item name is not in scope, and `in_scope_only` is false,
-    /// includes the item with text edits (auto-imports, etc.) to bring the item into scope.
+    /// Does not add any auto-import edits.
     pub fn type_names_in_scope_only(&self) -> Vec<Vec<Completion>> {
         let mut completions = Vec::new();
 
@@ -120,42 +120,35 @@ impl<'a> Globals<'a> {
     pub fn namespaces(&self) -> Vec<Completion> {
         let mut completions = Vec::new();
 
-        // Add all package aliases, and all top-level
-        // namespaces where the package does not have an alias
-        for (is_user_package, package_alias, package) in self.iter_all_packages() {
-            if let Some(package_alias) = package_alias {
-                completions.push(Completion::new(
-                    (*package_alias).into(),
-                    CompletionItemKind::Module,
-                ));
-            } else {
-                completions.extend(Self::namespaces_in_namespace(package, &[], is_user_package));
-            }
-        }
+        completions.extend(self.namespaces_in(&[]).into_iter().flatten());
         completions
     }
 
     /// Returns all namespaces that are valid completions at the current offset,
     /// for the given qualifier.
     pub fn namespaces_in(&self, qualifier: &[Rc<str>]) -> Vec<Vec<Completion>> {
-        let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
+        let namespaces = self.matching_namespaces(qualifier);
+        let mut completions = Vec::new();
 
-        let mut groups = Vec::new();
-        for (package, is_user_package, namespaces) in &namespaces_in_packages {
-            let mut completions = Vec::new();
+        for parent_ns in namespaces {
+            let global_scope = &self.compilation.user_unit().ast.globals;
 
-            for namespace in namespaces {
-                completions.extend(Self::namespaces_in_namespace(
-                    package,
-                    namespace,
-                    *is_user_package,
-                ));
+            let ns_id = global_scope
+                .namespaces
+                .get_namespace_id(parent_ns.iter().map(AsRef::as_ref));
+
+            if let Some(ns_id) = ns_id {
+                let (_, node) = global_scope.namespaces.find_namespace_by_id(&ns_id);
+                for child_name in node.borrow().children().keys() {
+                    completions.push(Completion::new(
+                        child_name.to_string(),
+                        CompletionItemKind::Module,
+                    ));
+                }
             }
-
-            groups.push(completions);
         }
 
-        groups
+        vec![completions]
     }
 
     /// Returns all names that are valid completions at the current offset,
@@ -198,14 +191,15 @@ impl<'a> Globals<'a> {
     ) -> Vec<Vec<Completion>> {
         let mut groups = Vec::new();
 
-        for (is_user_package, package_alias, package) in self.iter_all_packages() {
+        for (is_user_package, package_alias, package, package_id) in self.iter_all_packages() {
             // Given the package, get all completion items by iterating over its items
             // and converting any that would be valid as completions into completions
             let completions = package
                 .items
                 .values()
                 .filter_map(|item| {
-                    Self::is_item_relevant(
+                    self.is_item_relevant(
+                        package_id,
                         package,
                         item,
                         include_callables,
@@ -234,145 +228,73 @@ impl<'a> Globals<'a> {
         include_callables: bool,
         include_udts: bool,
     ) -> Vec<Vec<Completion>> {
-        let namespaces_in_packages = self.matching_namespaces_in_packages(qualifier);
-
-        let mut groups = Vec::new();
-        for (package, is_user_package, namespaces) in &namespaces_in_packages {
-            let mut completions = Vec::new();
-
-            for namespace in namespaces {
-                completions.extend(
-                    Self::items_in_namespace(
-                        package,
-                        namespace,
-                        include_callables,
-                        include_udts,
-                        *is_user_package,
-                    )
-                    .into_iter()
-                    .map(|item| self.to_completion(&item, ImportInfo::InScope, None)),
-                );
-            }
-
-            groups.push(completions);
-        }
-
-        groups
-    }
-
-    /// For a given package, returns all namespace names that are direct
-    /// children of the given namespace prefix.
-    ///
-    /// E.g. if the package contains `Foo.Bar.Baz` and `Foo.Qux` , and
-    /// the given prefix is `Foo` , this will return `Bar` and `Qux`.
-    fn namespaces_in_namespace(
-        package: &Package,
-        ns_prefix: &[Rc<str>],
-        is_user_package: bool,
-    ) -> Vec<Completion> {
-        package
-            .items
-            .values()
-            .filter_map(move |i| match &i.kind {
-                ItemKind::Namespace(namespace, _) => {
-                    let candidate_ns: Vec<Rc<str>> = namespace.into();
-
-                    // Skip the `Main` namespace from dependency packages.
-                    if !is_user_package && candidate_ns == ["Main".into()] {
-                        return None;
-                    }
-
-                    let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
-                    if let Some(end) = prefix_stripped {
-                        if let Some(first) = end.first() {
-                            return Some(Completion::new(
-                                first.to_string(),
-                                CompletionItemKind::Module,
-                            ));
-                        }
-                    }
-                    None
-                }
-                _ => None,
-            })
-            .collect()
-    }
-
-    /// For a given package, returns all items that are in the given namespace.
-    fn items_in_namespace(
-        package: &'a Package,
-        namespace: &[Rc<str>],
-        include_callables: bool,
-        include_udts: bool,
-        is_user_package: bool,
-    ) -> Vec<RelevantItem<'a>> {
-        let ns_items = package.items.values().find_map(move |i| {
-            if let ItemKind::Namespace(candidate_ns, items) = &i.kind {
-                let candidate_ns: Vec<Rc<str>> = candidate_ns.into();
-
-                // If the namespace matches exactly, include the items.
-                if candidate_ns == namespace {
-                    return Some(items);
-                }
-
-                // If we're being asked for the the top-level namespace in a dependency package,
-                // include items from the `Main` namespace.
-                if namespace.is_empty() && candidate_ns == ["Main".into()] && !is_user_package {
-                    return Some(items);
-                }
-            }
-            None
-        });
-
-        ns_items
-            .into_iter()
-            .flatten()
-            .filter_map(|item_id| {
-                let item = package
-                    .items
-                    .get(*item_id)
-                    .expect("item id should exist in package");
-
-                Self::is_item_relevant(
-                    package,
-                    item,
-                    include_callables,
-                    include_udts,
-                    is_user_package,
-                )
-            })
-            .collect()
-    }
-
-    /// Given a qualifier, and any imports that are in scope,
-    /// produces a list of `(package, is_user_package, namespaces)`
-    /// tuples that this qualifier could match.
-    #[allow(clippy::type_complexity)]
-    fn matching_namespaces_in_packages(
-        &self,
-        qualifier: &[Rc<str>],
-    ) -> Vec<(&Package, bool, Vec<Vec<Rc<str>>>)> {
         let namespaces = self.matching_namespaces(qualifier);
+        let mut completions = Vec::new();
 
-        let mut packages_and_namespaces = Vec::new();
+        for parent_ns in namespaces {
+            let global_scope = &self.compilation.user_unit().ast.globals;
 
-        for (is_user_package, package_alias, package) in self.iter_all_packages() {
-            let mut namespaces_for_package = Vec::new();
-            for namespace in &namespaces {
-                if let Some(package_alias) = package_alias {
-                    // Only include the namespace if it starts with this package's alias
-                    if !namespace.is_empty() && *namespace[0] == *package_alias {
-                        namespaces_for_package.push(namespace[1..].to_vec());
+            let ns_id = global_scope
+                .namespaces
+                .get_namespace_id(parent_ns.iter().map(AsRef::as_ref));
+
+            if let Some(ns_id) = ns_id {
+                // if include_udts {
+                //     let _tys = global_scope.tys.get(ns_id).unwrap_or(&FxHashMap::default());
+                // }
+
+                // if include_callables {
+                let callables = global_scope.terms.get(ns_id);
+                let Some(callables) = callables else { continue };
+
+                for (name, res) in callables {
+                    let Res::Item(item_id, _item_status) = res else {
+                        panic!("expected res to be an item")
+                    };
+
+                    let (item, _package, _item_id) = self
+                        .compilation
+                        .resolve_item_relative_to_user_package(item_id);
+
+                    let relevant_item = match &item.kind {
+                        ItemKind::Callable(callable) => RelevantItem {
+                            name: name.clone(),
+                            kind: RelevantItemKind::Callable(callable),
+                            namespace: parent_ns.clone(),
+                        },
+                        ItemKind::Ty(_, udt) => RelevantItem {
+                            name: name.clone(),
+                            kind: RelevantItemKind::Udt(udt),
+                            namespace: parent_ns.clone(),
+                        },
+                        _ => panic!("only expect callables and UDTs in the terms table"),
+                    };
+
+                    if include_callables
+                        && matches!(relevant_item.kind, RelevantItemKind::Callable(_))
+                        || include_udts && matches!(relevant_item.kind, RelevantItemKind::Udt(_))
+                    {
+                        completions.push(self.to_completion(
+                            &relevant_item,
+                            ImportInfo::InScope,
+                            None,
+                        ));
                     }
-                } else {
-                    // No package alias, always include the namespace
-                    namespaces_for_package.push(namespace.clone());
                 }
+                // }
+
+                // let (_, node) = global_scope.namespaces.find_namespace_by_id(&ns_id);
+
+                // for (child_name, child_node) in node.borrow().children() {
+                //     completions.push(Completion::new(
+                //         child_name.to_string(),
+                //         CompletionItemKind::Module,
+                //     ));
+                // }
             }
-            packages_and_namespaces.push((package, is_user_package, namespaces_for_package));
         }
 
-        packages_and_namespaces
+        vec![completions]
     }
 
     /// Given a qualifier, and any imports that are in scope,
@@ -432,8 +354,10 @@ impl<'a> Globals<'a> {
     /// Iterating in this order ensures that the user package items appear
     /// first, and indirect dependencies are lower on the completion list.
     ///
-    /// Returns the tuple of `(is_user_package, alias, package)`
-    fn iter_all_packages(&self) -> impl Iterator<Item = (bool, Option<&'a str>, &'a Package)> + 'a {
+    /// Returns the tuple of `(is_user_package, alias, package, package_id)`
+    fn iter_all_packages(
+        &self,
+    ) -> impl Iterator<Item = (bool, Option<&'a str>, &'a Package, PackageId)> + 'a {
         let packages = self
             .compilation
             .package_store
@@ -441,12 +365,12 @@ impl<'a> Globals<'a> {
             .rev()
             .filter_map(|(id, unit)| {
                 if self.compilation.user_package_id == id {
-                    return Some((true, None, &unit.package));
+                    return Some((true, None, &unit.package, id));
                 }
                 self.compilation
                     .dependencies
                     .get(&id)
-                    .map(|alias| (false, alias.as_ref().map(AsRef::as_ref), &unit.package))
+                    .map(|alias| (false, alias.as_ref().map(AsRef::as_ref), &unit.package, id))
             });
         once((
             false,
@@ -457,6 +381,7 @@ impl<'a> Globals<'a> {
                 .get(PackageId::CORE)
                 .expect("core package must exist")
                 .package,
+            PackageId::CORE,
         ))
         .chain(packages)
     }
@@ -479,6 +404,8 @@ impl<'a> Globals<'a> {
 
     /// An item is "relevant" if it's a callable or UDT that's visible to the user package.
     fn is_item_relevant(
+        &self,
+        package_id: PackageId,
         package: &'a qsc::hir::Package,
         item: &'a qsc::hir::Item,
         include_callables: bool,
@@ -499,15 +426,43 @@ impl<'a> Globals<'a> {
                         ItemKind::Callable(callable_decl) if include_callables => {
                             Some(RelevantItem {
                                 name: callable_decl.name.name.clone(),
-                                namespace,
+                                namespace: namespace.into(),
                                 kind: RelevantItemKind::Callable(callable_decl),
                             })
                         }
                         ItemKind::Ty(_, udt) if include_udts => Some(RelevantItem {
                             name: udt.name.clone(),
-                            namespace,
+                            namespace: namespace.into(),
                             kind: RelevantItemKind::Udt(udt),
                         }),
+                        ItemKind::Export(name, item_id) => {
+                            let (
+                                item,
+                                package,
+                                ItemId {
+                                    package: package_id,
+                                    item: _,
+                                },
+                            ) = self.compilation.resolve_item(package_id, item_id);
+                            return self
+                                .is_item_relevant(
+                                    package_id.expect("package id should have been resolved"),
+                                    package,
+                                    item,
+                                    include_callables,
+                                    include_udts,
+                                    is_user_package,
+                                )
+                                .map(|item| {
+                                    // Use the name and namespace from the export, but the
+                                    // hir node from the original item.
+                                    RelevantItem {
+                                        name: name.name.clone(),
+                                        namespace: namespace.into(),
+                                        kind: item.kind,
+                                    }
+                                });
+                        }
                         _ => None,
                     };
                 }
@@ -519,9 +474,17 @@ impl<'a> Globals<'a> {
     /// For a given item, produces any auto-imports, prefixes or aliases that would
     /// make that item a valid completion in the current scope.
     fn import_info(&self, item: &RelevantItem<'a>, package_alias: Option<&str>) -> ImportInfo {
-        let namespace_without_pkg_alias = Into::<Vec<_>>::into(item.namespace);
+        let namespace_without_pkg_alias = item.namespace.clone();
         let mut namespace = namespace_without_pkg_alias.clone();
         if let Some(package_alias) = package_alias {
+            if namespace
+                .first()
+                .expect("namespace should have at least one part")
+                .as_ref()
+                == "Main"
+            {
+                namespace.remove(0);
+            }
             namespace.insert(0, package_alias.into());
         }
 
@@ -653,20 +616,23 @@ enum ImportInfo {
 }
 
 /// A callable or UDT that's visible to the user package.
+#[derive(Debug)]
 enum RelevantItemKind<'a> {
     Callable(&'a CallableDecl),
     Udt(&'a Udt),
 }
 
 /// A callable or UDT that's visible to the user package.
+#[derive(Debug)]
 struct RelevantItem<'a> {
     name: Rc<str>,
     kind: RelevantItemKind<'a>,
-    namespace: &'a Idents,
+    namespace: Vec<Rc<str>>,
 }
 
 /// Format an external fully qualified name.
 /// This will prepend the package alias and remove `Main` if it is the first namespace.
+// TODO: I feel like this can be fixed up before we call here
 fn fully_qualify_name(
     package_alias: Option<&str>,
     namespace: &[Rc<str>],
