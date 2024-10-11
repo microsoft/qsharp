@@ -4,9 +4,9 @@
 use qsc::{
     ast::{
         visit::{self, Visitor},
-        Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident, Item,
-        ItemKind, Namespace, Package, Pat, Path, QubitInit, SpecDecl, Stmt, StructDecl, Ty, TyDef,
-        TyKind,
+        Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
+        Idents, Item, ItemKind, Namespace, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
+        StructDecl, Ty, TyDef, TyKind,
     },
     parse::completion::PathKind,
 };
@@ -18,7 +18,7 @@ use std::rc::Rc;
 /// Methods may panic if the offset does not fall within an incomplete path.
 #[derive(Debug)]
 pub(super) struct IncompletePath<'a> {
-    qualifier: Option<&'a [Ident]>,
+    qualifier: Option<Vec<&'a Ident>>,
     context: Option<PathKind>,
     offset: u32,
 }
@@ -41,10 +41,28 @@ impl<'a> IncompletePath<'a> {
 }
 
 impl<'a> Visitor<'a> for IncompletePath<'a> {
-    fn visit_item(&mut self, item: &Item) {
-        match *item.kind {
+    fn visit_item(&mut self, item: &'a Item) {
+        match &*item.kind {
             ItemKind::Open(..) => self.context = Some(PathKind::Namespace),
-            ItemKind::ImportOrExport(..) => self.context = Some(PathKind::Import),
+            ItemKind::ImportOrExport(decl) => {
+                self.context = Some(PathKind::Import);
+                for item in &decl.items {
+                    if item.is_glob
+                        && item.span.touches(self.offset)
+                        && item
+                            .alias
+                            .as_ref()
+                            .map_or(true, |a| !a.span.touches(self.offset))
+                    {
+                        // Special case when the cursor falls *between* the
+                        // `Path` and the glob asterisk,
+                        // e.g. `foo.bar.|*` . In that case, the visitor
+                        // will not visit the path since the cursor technically
+                        // is not within the path.
+                        self.visit_path_kind(&item.path);
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -65,35 +83,31 @@ impl<'a> Visitor<'a> for IncompletePath<'a> {
 
     fn visit_path_kind(&mut self, path: &'a qsc::ast::PathKind) {
         self.qualifier = match path {
-            qsc::ast::PathKind::Ok(path) => path.segments.as_ref().map(AsRef::as_ref),
-            qsc::ast::PathKind::Err(Some(incomplete_path)) => Some(&incomplete_path.segments),
+            qsc::ast::PathKind::Ok(path) => Some(path.iter().collect()),
+            qsc::ast::PathKind::Err(Some(incomplete_path)) => {
+                Some(incomplete_path.segments.iter().collect())
+            }
             qsc::ast::PathKind::Err(None) => None,
         };
     }
 }
 
 impl IncompletePath<'_> {
-    pub fn context(&self) -> (PathKind, Vec<Rc<str>>) {
+    pub fn context(&self) -> Option<(PathKind, Vec<Rc<str>>)> {
+        let context = self.context?;
         let qualifier = self.segments_before_offset();
 
-        // WARNING: this assumption appears to hold true today, but it's subtle
-        // enough that parser and AST changes can easily violate it in the future.
-        assert!(
-            !qualifier.is_empty(),
-            "path segment completion should only be invoked for a partially parsed path"
-        );
+        if qualifier.is_empty() {
+            return None;
+        }
 
-        let context = self
-            .context
-            .expect("context must exist for path segment completion");
-
-        (context, qualifier)
+        Some((context, qualifier))
     }
 
     fn segments_before_offset(&self) -> Vec<Rc<str>> {
         self.qualifier
-            .into_iter()
-            .flat_map(AsRef::as_ref)
+            .iter()
+            .flatten()
             .take_while(|i| i.span.hi < self.offset)
             .map(|i| i.name.clone())
             .collect::<Vec<_>>()

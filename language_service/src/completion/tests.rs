@@ -3404,3 +3404,109 @@ fn array_size() {
         "#]],
     );
 }
+
+#[test]
+fn path_segment_partial_ident_is_keyword() {
+    check(
+        "namespace Test { import FakeStdLib.struct↘ }",
+        &["StructFn"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "StructFn",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300StructFn",
+                        ),
+                        detail: Some(
+                            "struct StructFn { inner : (Int -> Int) }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn path_segment_followed_by_wslash() {
+    // `w/` is a single token, so it gets tricky
+    // to separate out the `w` and treat it as an identifier.
+    // We're just not going to worry about doing anything clever here.
+    check(
+        "namespace Test { import FakeStdLib.w↘/ }",
+        &["StructFn"],
+        &expect![[r#"
+            [
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn path_segment_followed_by_op_token() {
+    // Invoking in the middle of a multi-character op token
+    // shouldn't break anything.
+    check(
+        "namespace Test { import FakeStdLib.<↘<< }",
+        &["StructFn"],
+        &expect![[r#"
+            [
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn path_segment_before_glob() {
+    check(
+        "namespace Test { import FakeStdLib.↘* }",
+        &["StructFn"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "StructFn",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300StructFn",
+                        ),
+                        detail: Some(
+                            "struct StructFn { inner : (Int -> Int) }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn path_segment_before_glob_with_alias() {
+    check(
+        "namespace Test { import FakeStdLib.↘* as Alias }",
+        &["StructFn"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "StructFn",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300StructFn",
+                        ),
+                        detail: Some(
+                            "struct StructFn { inner : (Int -> Int) }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

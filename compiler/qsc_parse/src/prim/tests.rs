@@ -144,6 +144,33 @@ fn path_trailing_dot() {
 }
 
 #[test]
+fn path_followed_by_keyword() {
+    check(
+        path,
+        "Foo.Bar.in",
+        &expect![[r#"
+            Err IncompletePath [0-10]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar"
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Keyword(
+                            In,
+                        ),
+                        Span {
+                            lo: 8,
+                            hi: 10,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn pat_bind() {
     check(
         pat,

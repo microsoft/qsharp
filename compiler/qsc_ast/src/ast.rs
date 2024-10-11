@@ -1423,10 +1423,14 @@ impl Default for PathKind {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IncompletePath {
     /// The whole span of the incomplete path,
-    /// including the final `.` and any whitespace that follows it.
+    /// including the final `.` and any whitespace or keyword
+    /// that follows it.
     pub span: Span,
     /// Any segments that were successfully parsed before the final `.`.
     pub segments: Box<[Ident]>,
+    /// Whether a keyword exists after the final `.`.
+    /// This keyword can be presumed to be a partially typed identifier.
+    pub keyword: bool,
 }
 
 impl Display for PathKind {

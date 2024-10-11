@@ -2077,6 +2077,44 @@ fn invalid_glob_syntax_with_following_ident() {
 }
 
 #[test]
+fn invalid_glob_syntax_follows_keyword() {
+    check(
+        parse_import_or_export,
+        "import Foo.in*;",
+        &expect![[r#"
+            ImportOrExportDecl [0-13]: [Err IncompletePath [7-13]:
+                Ident _id_ [7-10] "Foo"]
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Keyword(
+                            In,
+                        ),
+                        Span {
+                            lo: 11,
+                            hi: 13,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Semi,
+                        ClosedBinOp(
+                            Star,
+                        ),
+                        Span {
+                            lo: 13,
+                            hi: 14,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn disallow_top_level_recursive_glob() {
     check(
         parse_import_or_export,
@@ -2158,11 +2196,9 @@ fn missing_semi_between_items() {
             Namespace _id_ [0-45] (Ident _id_ [10-13] "Foo"):
                 Item _id_ [16-24]:
                     Open (Path _id_ [21-24] (Ident _id_ [21-24] "Foo"))
-                Item _id_ [25-35]:
-                    Open (Err IncompletePath [30-35]:
+                Item _id_ [25-39]:
+                    Open (Err IncompletePath [30-39]:
                         Ident _id_ [30-33] "Bar")
-                Item _id_ [35-43]:
-                    Open (Path _id_ [40-43] (Ident _id_ [40-43] "Baz"))
 
             [
                 Error(
@@ -2192,24 +2228,22 @@ fn missing_semi_between_items() {
                 Error(
                     Token(
                         Semi,
-                        Keyword(
-                            Open,
-                        ),
+                        Ident,
                         Span {
-                            lo: 35,
-                            hi: 39,
+                            lo: 40,
+                            hi: 43,
                         },
                     ),
                 ),
                 Error(
                     Token(
-                        Semi,
                         Close(
                             Brace,
                         ),
+                        Ident,
                         Span {
-                            lo: 44,
-                            hi: 45,
+                            lo: 40,
+                            hi: 43,
                         },
                     ),
                 ),

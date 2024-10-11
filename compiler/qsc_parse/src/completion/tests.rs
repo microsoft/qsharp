@@ -365,3 +365,15 @@ fn base_type_tuple() {
         "]],
     );
 }
+
+#[test]
+fn keyword_after_incomplete_path() {
+    check_valid_words(
+        "import Foo.in|",
+        &expect![[r"
+            WordKinds(
+                PathSegment,
+            )
+        "]],
+    );
+}

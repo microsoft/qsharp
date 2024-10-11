@@ -647,7 +647,9 @@ fn path_import(s: &mut ParserContext) -> Result<(PathKind, bool)> {
     match path(s, WordKinds::PathImport) {
         Ok(path) => Ok((PathKind::Ok(path), false)),
         Err((error, Some(incomplete_path))) => {
-            if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
+            if !incomplete_path.keyword
+                && token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok()
+            {
                 let (name, namespace) = incomplete_path
                     .segments
                     .split_last()

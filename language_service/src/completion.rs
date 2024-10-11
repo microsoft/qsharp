@@ -257,7 +257,9 @@ fn collect_paths(
 /// `let x : Microsoft.Quantum.Math.↘`  should include `Complex` (a type) while
 /// `let x = Microsoft.Quantum.Math.↘` should include `PI` (a callable).
 fn collect_path_segments(globals: &Globals, path_context: &IncompletePath) -> Vec<Vec<Completion>> {
-    let (path_kind, qualifier) = path_context.context();
+    let Some((path_kind, qualifier)) = path_context.context() else {
+        return Vec::new();
+    };
 
     match path_kind {
         PathKind::Namespace => globals.namespaces_in(&qualifier),

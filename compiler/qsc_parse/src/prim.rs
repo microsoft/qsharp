@@ -114,12 +114,20 @@ pub(super) fn path(
             Ok(ident) => parts.push(*ident),
             Err(error) => {
                 let _ = s.skip_trivia();
+                let peek = s.peek();
+                let keyword = matches!(peek.kind, TokenKind::Keyword(_));
+                if keyword {
+                    // Consume any keyword that comes after the final
+                    // dot, assuming it was intended to be part of the path.
+                    s.advance();
+                }
 
                 return Err((
                     error,
                     Some(Box::new(IncompletePath {
                         span: s.span(lo),
                         segments: parts.into(),
+                        keyword,
                     })),
                 ));
             }
