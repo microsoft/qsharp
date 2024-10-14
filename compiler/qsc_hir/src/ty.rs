@@ -73,7 +73,7 @@ impl Ty {
             Ty::Arrow(arrow) => {
                 let arrow_symbol = match arrow.kind {
                     CallableKind::Function => "->",
-                    CallableKind::Operation => "=>",
+                    CallableKind::Operation | CallableKind::Measurement => "=>",
                 };
 
                 let functors = match arrow.functors {
@@ -370,7 +370,7 @@ impl Display for Arrow {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let arrow = match self.kind {
             CallableKind::Function => "->",
-            CallableKind::Operation => "=>",
+            CallableKind::Operation | CallableKind::Measurement => "=>",
         };
         write!(f, "({} {arrow} {}", self.input, self.output)?;
         if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {

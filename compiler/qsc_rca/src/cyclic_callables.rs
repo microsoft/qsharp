@@ -90,6 +90,9 @@ impl<'a> Analyzer<'a> {
                 &input_params,
                 &callable.output,
             ),
+            CallableKind::Measurement => {
+                panic!("measurements are intrinsics, and intrinsics shouldn't have specializations")
+            }
         };
 
         // Find the specialization.

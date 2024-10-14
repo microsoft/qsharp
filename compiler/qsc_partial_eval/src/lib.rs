@@ -1288,6 +1288,19 @@ impl<'a> PartialEvaluator<'a> {
         args_span: PackageSpan,        // For diagnostic purposes only.
         callee_expr_span: PackageSpan, // For diagnostic puprposes only.
     ) -> Result<Value, Error> {
+        if matches!(callable_decl.kind, qsc_fir::fir::CallableKind::Measurement) {
+            return Ok(self.measure_qubit(
+                Callable {
+                    name: callable_decl.name.name.to_string(),
+                    input_type: vec![qsc_rir::rir::Ty::Qubit, qsc_rir::rir::Ty::Result],
+                    output_type: None,
+                    body: None,
+                    call_type: CallableType::Measurement,
+                },
+                args_value,
+            ));
+        }
+
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             // Qubit allocations and measurements have special handling.
