@@ -1313,17 +1313,17 @@ fn if_else_expression_with_result_literal_fails() {
 }
 
 #[test]
-fn if_comparison_with_mixed_static_dynamic_array() {
+fn if_expression_with_classical_operand_from_hybrid_results_array_comparing_to_literal_zero() {
     let program = get_rir_program(indoc! {r#"
         @EntryPoint()
         operation Main() : Result[] {
-            mutable measurements = Repeated(Zero, 2);
-            use qs = Qubit[2];
-            set measurements w/= 0 <- MResetZ(qs[0]);
-            if measurements[1] == One {
-                X(qs[1]);
+            mutable measurements = [Zero, Zero];
+            use (a, b) = (Qubit(), Qubit());
+            set measurements w/= 0 <- MResetZ(a);
+            if measurements[1] == Zero {
+                X(b);
             }
-            set measurements w/= 1 <- MResetZ(qs[1]);
+            set measurements w/= 1 <- MResetZ(b);
             measurements
         }
         "#
@@ -1331,10 +1331,159 @@ fn if_comparison_with_mixed_static_dynamic_array() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &expect![]);
-    let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &expect![]);
-    let x_callable_id = CallableId(1);
-    assert_callable(&program, x_callable_id, &expect![]);
-    assert_blocks(&program, &expect![]);
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let x_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        x_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__x__body
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let record_array_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        record_array_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let record_result_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        record_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(2), args( Qubit(1), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Call id(3), args( Integer(2), Pointer, )
+            Call id(4), args( Result(0), Pointer, )
+            Call id(4), args( Result(1), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn if_expression_with_classical_operand_from_hybrid_results_array_comparing_to_literal_one() {
+    let program = get_rir_program(indoc! {r#"
+        @EntryPoint()
+        operation Main() : Result[] {
+            mutable measurements = [Zero, Zero];
+            use (a, b) = (Qubit(), Qubit());
+            set measurements w/= 0 <- MResetZ(a);
+            if measurements[1] != One {
+                X(b);
+            }
+            set measurements w/= 1 <- MResetZ(b);
+            measurements
+        }
+        "#
+    });
+
+    // Verify the callables added to the program.
+    let mresetz_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let x_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        x_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__x__body
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let record_array_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        record_array_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__array_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let record_result_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        record_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__result_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Result
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(2), args( Qubit(1), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Call id(3), args( Integer(2), Pointer, )
+            Call id(4), args( Result(0), Pointer, )
+            Call id(4), args( Result(1), Pointer, )
+            Return"#]],
+    );
 }
