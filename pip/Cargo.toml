@@ -19,6 +19,13 @@ resource_estimator = { path = "../resource_estimator" }
 miette = { workspace = true, features = ["fancy-no-syscall"] }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
+# TODO(sezna) move to workspace deps
+opentelemetry = "0.25"
+opentelemetry_sdk = { version = "0.25", features = ["rt-tokio", "metrics", "testing"] }
+opentelemetry-application-insights = "0.35"
+# reqwest = { version = "0.12", features = ["blocking"], default-features = false }
+reqwest = "0.12"
+opentelemetry-http = { version = "0.25.0", features = ["reqwest"] }
 
 [lints]
 workspace = true

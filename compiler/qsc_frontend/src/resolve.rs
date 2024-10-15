@@ -936,6 +936,9 @@ impl Resolver {
                 // if the item already exists in the scope, return a duplicate error
                 let scope_term_result = scope.terms.get(&local_name);
                 let scope_ty_result = scope.tys.get(&local_name);
+
+                // the below match performs special case side-effectual handling to generate errors
+                // or other side effects based on the nature of the import or export
                 match (is_export, scope_term_result, scope_ty_result) {
                     // if either has already been exported or imported, generate a duplicate import or export error
                     (true, Some(entry), _) | (true, _, Some(entry))
@@ -946,7 +949,10 @@ impl Resolver {
                         self.errors.push(err);
                         continue;
                     }
-                    (false, Some(entry), _) | (true, _, Some(entry))
+
+                    // if this is an import of an item already in scope, OR an export of a ty that
+                    // is already in scope
+                    (false, Some(entry), _) | (false, _, Some(entry))
                         if matches!(entry.source, ItemSource::Imported(..)) =>
                     {
                         // only push this error if the import is of a different item.
