@@ -19,10 +19,18 @@ mod events {
 pub(crate) use events::*;
 
 pub struct TelemetryClient {
-    enabled: bool,
+    /// `None` if telemetry is disabled or unable to initialize
+    client: Option<SdkMeterProvider>,
 }
 
 impl TelemetryClient {
+    #[cfg(feature = "test-telemetry")]
+    pub fn new() -> Self {
+        let provider = InMemoryMetricsExporter::new();
+        Self { client: Some(provider.into())
+    }
+
+    #[cfg(not(feature = "test-telemetry"))]
     pub fn new() -> Self {
         let connection_string = std::env::var("APPLICATIONINSIGHTS_CONNECTION_STRING").unwrap();
         let Ok(exporter) = opentelemetry_application_insights::Exporter::new_from_connection_string(
@@ -31,7 +39,7 @@ impl TelemetryClient {
         ) else {
             // silently fail if telemetry fails to initialize, since we don't want to crash the
             // application in the case of telemetry failure (no network connection, etc.)
-            return Self { enabled: false };
+            return Self { client: None };
         };
 
         let reader = opentelemetry_sdk::metrics::PeriodicReader::builder(
@@ -53,13 +61,11 @@ impl TelemetryClient {
 
         opentelemetry::global::set_meter_provider(provider.clone());
 
-        Self {
-            enabled: events::telemetry_enabled(),
-        }
+        Self { client: Some(provider) }
     }
 
     pub fn send_event(&self, event: events::TelemetryEvent) {
-        if !self.enabled {
+        if self.client.is_none() {
             return;
         }
         match event {
