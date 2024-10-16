@@ -185,6 +185,7 @@ fn type_position() {
 fn namespace_declaration() {
     check_valid_words(
         "namespace |",
+        // No word kinds expected here.
         &expect![[r"
             WordKinds(
                 0x0,

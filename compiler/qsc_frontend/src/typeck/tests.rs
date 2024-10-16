@@ -3080,7 +3080,7 @@ fn local_open() {
             namespace B { function Bar() : () {} }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 26-28 "()" : Unit
             #8 34-52 "{ open B; Bar(); }" : Unit
             #14 44-49 "Bar()" : Unit
@@ -3088,7 +3088,7 @@ fn local_open() {
             #18 47-49 "()" : Unit
             #24 81-83 "()" : Unit
             #26 89-91 "{}" : Unit
-        "##]],
+        "#]],
     );
 }
 

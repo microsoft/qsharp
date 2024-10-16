@@ -3,6 +3,7 @@
 
 use qsc::{
     ast::{
+        self,
         visit::{self, Visitor},
         Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
         Idents, Item, ItemKind, Namespace, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
@@ -81,13 +82,13 @@ impl<'a> Visitor<'a> for IncompletePath<'a> {
         }
     }
 
-    fn visit_path_kind(&mut self, path: &'a qsc::ast::PathKind) {
+    fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
         self.qualifier = match path {
-            qsc::ast::PathKind::Ok(path) => Some(path.iter().collect()),
-            qsc::ast::PathKind::Err(Some(incomplete_path)) => {
+            ast::PathKind::Ok(path) => Some(path.iter().collect()),
+            ast::PathKind::Err(Some(incomplete_path)) => {
                 Some(incomplete_path.segments.iter().collect())
             }
-            qsc::ast::PathKind::Err(None) => None,
+            ast::PathKind::Err(None) => None,
         };
     }
 }
@@ -244,11 +245,11 @@ where
         }
     }
 
-    fn visit_path_kind(&mut self, path: &'a qsc::ast::PathKind) {
+    fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
         let span = match path {
-            qsc::ast::PathKind::Ok(path) => &path.span,
-            qsc::ast::PathKind::Err(Some(incomplete_path)) => &incomplete_path.span,
-            qsc::ast::PathKind::Err(None) => return,
+            ast::PathKind::Ok(path) => &path.span,
+            ast::PathKind::Err(Some(incomplete_path)) => &incomplete_path.span,
+            ast::PathKind::Err(None) => return,
         };
 
         if span.touches(self.offset) {

@@ -1940,7 +1940,7 @@ impl WithSpan for ImportOrExportItem {
 
 impl ImportOrExportItem {
     /// Returns the alias ident, if any, or the name from the path if no alias is present.
-    /// Returns `None` if this the path has an error.
+    /// Returns `None` if the path has an error.
     #[must_use]
     pub fn name(&self) -> Option<&Ident> {
         match &self.alias {

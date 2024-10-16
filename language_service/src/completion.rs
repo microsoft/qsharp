@@ -46,13 +46,7 @@ pub(crate) fn get_completions(
     let source_offset: u32 = package_offset - source.offset;
 
     // The parser uses the relative source name to figure out the implicit namespace.
-    let source_name_relative = compilation
-        .user_unit()
-        .sources
-        .relative_sources()
-        .find(|s| s.offset == source.offset)
-        .expect("source should exist in the user source map")
-        .name;
+    let source_name_relative = compilation.user_unit().sources.relative_name(&source.name);
 
     if log_enabled!(Trace) {
         let last_char = if source_offset > 0 {
@@ -68,7 +62,7 @@ pub(crate) fn get_completions(
     // What kinds of words are expected at the cursor location?
     let expected_words_at_cursor = expected_word_kinds(
         compilation,
-        &source_name_relative,
+        source_name_relative,
         &source.contents,
         source_offset,
     );

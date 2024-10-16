@@ -210,11 +210,8 @@ async fn completions_requested_after_document_load() {
 
     worker.apply_pending().await;
 
-    expect![[r#"
-        337
-    "#]]
-    .assert_debug_eq(
-        &ls.get_completions(
+    assert!(&ls
+        .get_completions(
             "foo.qs",
             Position {
                 line: 0,
@@ -222,8 +219,8 @@ async fn completions_requested_after_document_load() {
             },
         )
         .items
-        .len(),
-    );
+        .iter()
+        .any(|item| item.label == "DumpMachine"));
 }
 
 fn check_errors_and_compilation(

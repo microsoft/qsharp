@@ -113,11 +113,11 @@ pub(super) fn path(
         match ident(s) {
             Ok(ident) => parts.push(*ident),
             Err(error) => {
-                let _ = s.skip_trivia();
-                let peek = s.peek();
-                let keyword = matches!(peek.kind, TokenKind::Keyword(_));
+                let trivia_span = s.skip_trivia();
+                let keyword = trivia_span.hi == trivia_span.lo
+                    && matches!(s.peek().kind, TokenKind::Keyword(_));
                 if keyword {
-                    // Consume any keyword that comes after the final
+                    // Consume any keyword that comes immediately after the final
                     // dot, assuming it was intended to be part of the path.
                     s.advance();
                 }

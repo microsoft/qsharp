@@ -630,7 +630,7 @@ fn members_of_aliased_namespace() {
             Alias.↘
         }
     }"#},
-        &["Fake", "Alias.Fake", "Library", "Alias.Library"],
+        &["Fake", "Alias.Fake", "Library", "Alias.Library", "Foo"],
         &expect![[r#"
             [
                 Some(
@@ -658,6 +658,7 @@ fn members_of_aliased_namespace() {
                         additional_text_edits: None,
                     },
                 ),
+                None,
                 None,
             ]
         "#]],

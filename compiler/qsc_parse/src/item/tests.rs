@@ -2196,9 +2196,11 @@ fn missing_semi_between_items() {
             Namespace _id_ [0-45] (Ident _id_ [10-13] "Foo"):
                 Item _id_ [16-24]:
                     Open (Path _id_ [21-24] (Ident _id_ [21-24] "Foo"))
-                Item _id_ [25-39]:
-                    Open (Err IncompletePath [30-39]:
+                Item _id_ [25-35]:
+                    Open (Err IncompletePath [30-35]:
                         Ident _id_ [30-33] "Bar")
+                Item _id_ [35-43]:
+                    Open (Path _id_ [40-43] (Ident _id_ [40-43] "Baz"))
 
             [
                 Error(
@@ -2228,22 +2230,24 @@ fn missing_semi_between_items() {
                 Error(
                     Token(
                         Semi,
-                        Ident,
+                        Keyword(
+                            Open,
+                        ),
                         Span {
-                            lo: 40,
-                            hi: 43,
+                            lo: 35,
+                            hi: 39,
                         },
                     ),
                 ),
                 Error(
                     Token(
+                        Semi,
                         Close(
                             Brace,
                         ),
-                        Ident,
                         Span {
-                            lo: 40,
-                            hi: 43,
+                            lo: 44,
+                            hi: 45,
                         },
                     ),
                 ),

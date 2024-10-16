@@ -304,6 +304,7 @@ function registerMonacoLanguageServiceProviders(
         }),
       };
     },
+    // Trigger characters should be kept in sync with the ones in `vscode/src/extension.ts`
     triggerCharacters: ["@", "."],
   });
 
