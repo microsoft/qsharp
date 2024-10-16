@@ -12,7 +12,7 @@
 import Std.Diagnostics.DumpMachine;
 
 /// In the below code, all varibles have type annotations to showcase their type.
-operation Main() : Result {
+operation Main() : Unit {
     // The following statement allocates three qubits.
     use qs = Qubit[3];
 
@@ -40,13 +40,4 @@ operation Main() : Result {
     // Reset the single qubit.
     Reset(qubit);
 
-    use q1 = Qubit();
-    use q2 = Qubit();
-    H(q1);
-    Mzz(q1, q2)
-}
-
-@Measurement()
-operation Mzz(q1: Qubit, q2: Qubit) : Result {
-    body intrinsic;
 }
