@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-const excludeTargets: string[] = ["ionq.qpu", "rigetti.qpu.aspen-m-2"];
+const excludeTargets: string[] = [
+  "ionq.qpu",
+  "rigetti.qpu.aspen-m-2",
+  "rigetti.qpu.ankaa-2",
+];
 
 const excludeProviders: string[] = [];
 

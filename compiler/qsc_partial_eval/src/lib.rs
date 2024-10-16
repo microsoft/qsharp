@@ -488,6 +488,28 @@ impl<'a> PartialEvaluator<'a> {
             panic!("expected result value from RHS expression");
         };
 
+        // Even though to get to this path, an expression would have to be categorized as hybrid by RCA, it is
+        // possible that the expression is in fact purely classical.
+        // This can happen in cases where a data structure such an array, tuple or UDT contains a mix of static and
+        // dynamic values. In such instances, RCA identifies all the contents of the data structure as dynamic even if
+        // some values are static.
+        // Here we handle this case and if both operands are purely classical we evaluate them.
+        if let (val::Result::Val(lhs_result_value), val::Result::Val(rhs_result_value)) =
+            (lhs_result, rhs_result)
+        {
+            let bool_value = match bin_op {
+                BinOp::Eq => lhs_result_value == rhs_result_value,
+                BinOp::Neq => lhs_result_value != rhs_result_value,
+                _ => {
+                    return Err(Error::Unexpected(
+                        format!("invalid binary operator for Result operands: {bin_op:?})"),
+                        bin_op_expr_span,
+                    ))
+                }
+            };
+            return Ok(EvalControlFlow::Continue(Value::Bool(bool_value)));
+        }
+
         // Get the operands to use when generating the binary operation instruction.
         let lhs_operand = self.eval_result_as_bool_operand(lhs_result);
         let rhs_operand = self.eval_result_as_bool_operand(rhs_result);

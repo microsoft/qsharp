@@ -795,6 +795,22 @@ export class QscDebugSession extends LoggingDebugSession {
             {},
           );
           const state = await this.debugService.captureQuantumState();
+
+          // When there is no quantum state, return a single variable with a message
+          // for the user.
+          if (state.length == 0) {
+            response.body = {
+              variables: [
+                {
+                  name: "None",
+                  value: "No qubits allocated",
+                  variablesReference: 0,
+                },
+              ],
+            };
+            break;
+          }
+
           const variables: DebugProtocol.Variable[] = state.map((entry) => {
             const variable: DebugProtocol.Variable = {
               name: entry.name,
