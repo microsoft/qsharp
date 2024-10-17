@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::tests::{compile_qasm_to_qsharp, compile_qasm_to_qsharp_file};
 
 use expect_test::expect;

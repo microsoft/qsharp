@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::Expect;
 
 use crate::capabilitiesck::check_supported_capabilities;

@@ -88,6 +88,8 @@ unwrap_used = "warn"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 module_name_repetitions = "allow"
+needless_raw_string_hashes = "allow"
+unnecessary_wraps = "allow"
 
 [profile.release]
 debug = "limited"
