@@ -19,6 +19,7 @@ static TELEMETRY_CLIENT: OnceLock<TelemetryClient> = OnceLock::new();
 trait PythonLoggingProvider: Send + Sync {
     fn log(&self, event: events::TelemetryEvent);
     fn flush(&self) {}
+    fn mode(&self) -> &'static str;
 }
 
 impl PythonLoggingProvider for opentelemetry_sdk::logs::LoggerProvider {
@@ -46,13 +47,23 @@ impl PythonLoggingProvider for opentelemetry_sdk::logs::LoggerProvider {
         }
         opentelemetry::global::shutdown_tracer_provider();
     }
+
+    fn mode(&self) -> &'static str {
+        "opentelemetry"
+    }
 }
 
-struct TelemetryDisabled;
+struct TelemetryDisabled {
+    reason: &'static str,
+}
 
 impl PythonLoggingProvider for TelemetryDisabled {
     fn log(&self, _event: events::TelemetryEvent) {
         // do nothing
+    }
+
+    fn mode(&self) -> &'static str {
+        self.reason
     }
 }
 
@@ -62,12 +73,9 @@ pub struct TelemetryClient {
 }
 
 impl TelemetryClient {
-    fn new(test_mode: bool) -> Self {
-        if test_mode {
-            return Self::from_logger_provider(MockLoggingProvider::new().1);
-        }
+    fn new() -> Self {
         if !events::telemetry_enabled() {
-            return Self::disable_telemetry();
+            return Self::disable_telemetry("disabled by environment variable");
         }
         let connection_string = "TODO: application insights key";
         let Ok(exporter) = opentelemetry_application_insights::Exporter::new_from_connection_string(
@@ -76,7 +84,7 @@ impl TelemetryClient {
         ) else {
             // silently fail if telemetry fails to initialize, since we don't want to crash the
             // application in the case of telemetry failure (no network connection, etc.)
-            return Self::disable_telemetry();
+            return Self::disable_telemetry("failed to connect to application insights");
         };
 
         let logger_provider = opentelemetry_sdk::logs::LoggerProvider::builder()
@@ -97,26 +105,34 @@ impl TelemetryClient {
     }
 
     pub fn init_mock_logging() {
-        let (receiver, provider) = MockLoggingProvider::new();
-        assert!(
-            TELEMETRY_CLIENT.get().is_none(),
-            "Attempted to init mock logging when client already initialized"
-        );
+        if let Some(provider) = TELEMETRY_CLIENT.get() {
+            let mode = provider.logger_provider.mode();
+            match mode {
+                "mock" => {
+                    // clear out existing mocked logs
+                    let _ = mock::drain_logs_from_mock();
+                }
+                other => {
+                    panic!("Attempted to init mock logging when client already initialized in mode {other}");
+                }
+            }
+        }
+        let provider = MockLoggingProvider::new();
         let _ = TELEMETRY_CLIENT.get_or_init(|| TelemetryClient::from_logger_provider(provider));
-
-        *mock::MOCK_LOG_RECEIVER
-            .lock()
-            .expect("failed to get lock on mock logging receiver") = Some(receiver);
     }
 
     pub fn send_event(event: events::TelemetryEvent) {
-        let client = TELEMETRY_CLIENT.get_or_init(|| TelemetryClient::new(false));
-        client.logger_provider.log(event);
+        if let Some(client) = TELEMETRY_CLIENT.get() {
+            client.logger_provider.log(event);
+        }
+        // TODO(sezna) auto-init here
+        // let client = TELEMETRY_CLIENT.get_or_init(TelemetryClient::new);
+        // client.logger_provider.log(event);
     }
 
-    fn disable_telemetry() -> Self {
+    fn disable_telemetry(reason: &'static str) -> Self {
         Self {
-            logger_provider: Box::new(TelemetryDisabled),
+            logger_provider: Box::new(TelemetryDisabled { reason }),
         }
     }
 }

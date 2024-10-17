@@ -8,6 +8,8 @@ from qsharp.noisy_simulator import (
     DensityMatrixSimulator,
     StateVectorSimulator,
 )
+from qsharp._native import init_mock_logging, drain_logs_from_mock
+
 import pytest
 
 
@@ -78,6 +80,7 @@ def test_constructing_an_instrument_with_a_valid_operation_succeeds():
 
 
 def test_constructing_an_ill_formed_instrument_throws_exception():
+    init_mock_logging()
     op0 = Operation([[[1, 0], [0, 0]]])
     op1 = Operation(
         [
@@ -98,6 +101,7 @@ def test_constructing_an_ill_formed_instrument_throws_exception():
         == "error when building instrument: all Operations should target the same number of qubits"
     )
 
+    assert drain_logs_from_mock() == ""
 
 def test_constructing_an_empty_instrument_throws_exception():
     with pytest.raises(NoisySimulatorError) as excinfo:
@@ -186,8 +190,10 @@ def test_state_vector_simulator_sample_instrument_is_mapped_correctly():
 
 
 def test_state_vector_simulator_get_state_is_mapped_correctly():
+    init_mock_logging()
     sim = StateVectorSimulator(1)
     assert sim.get_state().data() == [1, 0]
+    assert drain_logs_from_mock() == "CreateStateVectorSimulator"
 
 
 def test_state_vector_simulator_set_state_is_mapped_correctly():

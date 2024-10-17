@@ -437,3 +437,13 @@ def compile_qasm3_to_qsharp(
         str: The converted Q# code as a string.
     """
     ...
+
+def init_mock_logging():
+    """
+    Initializes mock logging, which will capture all telemetry events .
+    """
+
+def drain_logs_from_mock() -> str:
+    """
+    Drains all logs from the mock logging system.
+    """

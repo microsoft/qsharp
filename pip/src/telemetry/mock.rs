@@ -1,39 +1,46 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 //! Used for testing telemetry logging.
+use std::sync::{Arc, RwLock};
+
 use pyo3::pyfunction;
 
 use super::{events::TelemetryEvent, PythonLoggingProvider, TelemetryClient};
 
-pub(super) static MOCK_LOG_RECEIVER: std::sync::Mutex<
-    Option<std::sync::mpsc::Receiver<TelemetryEvent>>,
-> = std::sync::Mutex::new(None);
-
-pub(super) struct MockLoggingProvider {
-    sender: std::sync::mpsc::Sender<TelemetryEvent>,
+lazy_static::lazy_static! {
+    pub(super) static ref MOCK_LOG_RECEIVER: Arc<RwLock<Vec<TelemetryEvent>>> =
+    Arc::new(RwLock::new(vec![]));
 }
+
+pub(super) struct MockLoggingProvider;
 
 impl MockLoggingProvider {
-    pub(super) fn new() -> (std::sync::mpsc::Receiver<TelemetryEvent>, Self) {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        (receiver, Self { sender })
+    pub(super) fn new() -> Self {
+        Self
     }
 }
+
 impl PythonLoggingProvider for MockLoggingProvider {
     fn log(&self, event: TelemetryEvent) {
-        self.sender.send(event).expect("mock logger failed");
+        let mut receiver = MOCK_LOG_RECEIVER
+            .write()
+            .expect("failed to get lock on mock logging receiver");
+        receiver.push(event);
+    }
+
+    fn mode(&self) -> &'static str {
+        "mock"
     }
 }
 
 #[pyfunction]
 pub fn drain_logs_from_mock() -> String {
-    let receiver = MOCK_LOG_RECEIVER
-        .lock()
-        .expect("failed to get lock on mock logging receiver")
-        .take()
-        .expect("drain_logs_from_mock called before mock logging initialized");
+    let mut receiver = MOCK_LOG_RECEIVER
+        .write()
+        .expect("failed to get lock on mock logging receiver");
+
     receiver
-        .try_iter()
+        .drain(..)
         .map(|x| format!("{x:?}"))
         .collect::<Vec<_>>()
         .join("\n")

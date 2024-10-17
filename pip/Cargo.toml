@@ -27,6 +27,8 @@ opentelemetry-application-insights = "0.35"
 reqwest = "0.12"
 opentelemetry-http = { version = "0.25.0", features = ["reqwest"] }
 opentelemetry-semantic-conventions = { version = "0.25.0" }
+# only used for testing
+lazy_static = { version = "1.4" }
 
 [lints]
 workspace = true

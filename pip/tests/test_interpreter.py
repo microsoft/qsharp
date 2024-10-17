@@ -11,6 +11,12 @@ from qsharp._native import (
 )
 import pytest
 
+@pytest.fixture(scope="session")
+def setup_session():
+    init_mock_logging()
+    yield
+    drain_logs_from_mock()
+
 
 # Tests for the native Q# interpreter class
 
