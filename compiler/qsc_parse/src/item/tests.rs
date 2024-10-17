@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{
     parse, parse_attr, parse_implicit_namespace, parse_import_or_export, parse_open,
     parse_spec_decl,

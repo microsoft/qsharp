@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{assert_block_instructions, assert_callable, get_rir_program};
 use expect_test::expect;
 use indoc::indoc;
