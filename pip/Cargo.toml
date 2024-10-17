@@ -26,6 +26,7 @@ opentelemetry-application-insights = "0.35"
 # reqwest = { version = "0.12", features = ["blocking"], default-features = false }
 reqwest = "0.12"
 opentelemetry-http = { version = "0.25.0", features = ["reqwest"] }
+opentelemetry-semantic-conventions = { version = "0.25.0" }
 
 [lints]
 workspace = true

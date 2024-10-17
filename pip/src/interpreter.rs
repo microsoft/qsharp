@@ -9,6 +9,7 @@ use crate::{
         map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
+    telemetry::{InitInterpreter, SynthesizeCircuit, TelemetryClient},
 };
 use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
@@ -238,6 +239,7 @@ impl Interpreter {
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
+        TelemetryClient::send_event(InitInterpreter);
         let target = Into::<Profile>::into(target_profile).into();
 
         let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
@@ -371,6 +373,7 @@ impl Interpreter {
         entry_expr: Option<String>,
         operation: Option<String>,
     ) -> PyResult<PyObject> {
+        TelemetryClient::send_event(SynthesizeCircuit);
         let entrypoint = match (entry_expr, operation) {
             (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
             (None, Some(operation)) => CircuitEntryPoint::Operation(operation),

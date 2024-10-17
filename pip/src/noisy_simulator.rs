@@ -7,7 +7,7 @@ use noisy_simulator::{ComplexVector, NoisySimulator, SquareMatrix};
 use num_complex::Complex;
 use pyo3::{exceptions::PyException, prelude::*};
 
-use crate::telemetry::{TelemetryClient, TelemetryEvent};
+use crate::telemetry::{CreateStateVectorSimulator, TelemetryClient};
 type PythonMatrix = Vec<Vec<Complex<f64>>>;
 
 pub(crate) fn register_noisy_simulator_submodule<'a>(
@@ -330,7 +330,7 @@ impl StateVectorSimulator {
     #[new]
     #[pyo3(signature=(number_of_qubits, seed=None))]
     pub fn new(number_of_qubits: usize, seed: Option<u64>) -> Self {
-        TelemetryClient::new().send_event(TelemetryEvent::CreateStateVectorSimulator);
+        TelemetryClient::send_event(CreateStateVectorSimulator);
         if let Some(seed) = seed {
             Self(noisy_simulator::StateVectorSimulator::new_with_seed(
                 number_of_qubits,

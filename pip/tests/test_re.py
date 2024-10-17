@@ -6,6 +6,7 @@ from qsharp.estimator import EstimatorParams, QubitParams, QECScheme, LogicalCou
 
 
 def test_qsharp_estimation() -> None:
+    qsharp.init_mock_logging()
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     res = qsharp.estimate(
         """{{
@@ -28,6 +29,8 @@ def test_qsharp_estimation() -> None:
             "measurementCount": 10,
         }
     )
+
+    assert qsharp.drain_logs_from_mock() == "TODO"
 
 
 def test_qsharp_estimation_from_precalculated_counts() -> None:

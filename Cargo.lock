@@ -2366,6 +2366,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-application-insights",
  "opentelemetry-http",
+ "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "pyo3",
  "qsc",
