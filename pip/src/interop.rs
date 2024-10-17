@@ -26,6 +26,10 @@ use crate::interpreter::{
     format_error, format_errors, OptionalCallbackReceiver, OutputSemantics, ProgramType,
     QSharpError, QasmError, TargetProfile, ValueWrapper,
 };
+use crate::telemetry::{
+    CompileQasm, CompileQasm3ToQir, CompileQasm3ToQsharp, ResourceEstimateQasm3, RunQasm3,
+    TelemetryClient,
+};
 
 use resource_estimator as re;
 
@@ -86,6 +90,7 @@ pub fn run_qasm3(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<PyObject> {
+    TelemetryClient::send_event(RunQasm3);
     let mut receiver = OptionalCallbackReceiver { callback, py };
 
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
@@ -166,6 +171,7 @@ pub(crate) fn resource_estimate_qasm3(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
+    TelemetryClient::send_event(ResourceEstimateQasm3);
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
     let operation_name = get_operation_name(&kwargs)?;
@@ -228,6 +234,7 @@ pub(crate) fn compile_qasm3_to_qir(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
+    TelemetryClient::send_event(CompileQasm3ToQir);
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
     let target = get_target_profile(&kwargs)?;
@@ -265,6 +272,7 @@ pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
 ) -> PyResult<QasmCompileUnit> {
+    TelemetryClient::send_event(CompileQasm);
     let parse_result = qsc_qasm3::parse::parse_source(
         source,
         format!("{}.qasm", operation_name.as_ref()),
@@ -367,6 +375,7 @@ pub(crate) fn compile_qasm3_to_qsharp(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
+    TelemetryClient::send_event(CompileQasm3ToQsharp);
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
 
     let operation_name = get_operation_name(&kwargs)?;

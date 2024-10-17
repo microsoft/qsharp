@@ -4,8 +4,11 @@
 import qsharp
 from qsharp.estimator import EstimatorParams, QubitParams, QECScheme, LogicalCounts
 
+from qsharp._native import init_mock_logging, drain_logs_from_mock
+import pytest
 
 def test_qsharp_estimation() -> None:
+    init_mock_logging()
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     res = qsharp.estimate(
         """{{
@@ -28,6 +31,8 @@ def test_qsharp_estimation() -> None:
             "measurementCount": 10,
         }
     )
+
+    assert drain_logs_from_mock() == "InitInterpreter"
 
 
 def test_qsharp_estimation_from_precalculated_counts() -> None:

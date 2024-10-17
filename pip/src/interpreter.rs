@@ -9,7 +9,12 @@ use crate::{
         map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
+    telemetry::{
+        mock::{drain_logs_from_mock, init_mock_logging},
+        InitInterpreter, SynthesizeCircuit, TelemetryClient,
+    },
 };
+
 use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -82,6 +87,11 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
+
+    // Telemetry
+    m.add_function(wrap_pyfunction!(init_mock_logging, m)?)?;
+    m.add_function(wrap_pyfunction!(drain_logs_from_mock, m)?)?;
+
     Ok(())
 }
 
@@ -238,6 +248,7 @@ impl Interpreter {
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
+        TelemetryClient::send_event(InitInterpreter);
         let target = Into::<Profile>::into(target_profile).into();
 
         let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
@@ -371,6 +382,7 @@ impl Interpreter {
         entry_expr: Option<String>,
         operation: Option<String>,
     ) -> PyResult<PyObject> {
+        TelemetryClient::send_event(SynthesizeCircuit);
         let entrypoint = match (entry_expr, operation) {
             (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
             (None, Some(operation)) => CircuitEntryPoint::Operation(operation),

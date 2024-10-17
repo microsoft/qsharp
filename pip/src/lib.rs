@@ -8,3 +8,4 @@ mod fs;
 mod interop;
 mod interpreter;
 mod noisy_simulator;
+mod telemetry;
