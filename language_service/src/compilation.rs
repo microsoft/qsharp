@@ -17,8 +17,8 @@ use qsc::{
 use qsc_linter::{LintConfig, LintLevel};
 use qsc_project::{PackageGraphSources, Project};
 use rustc_hash::FxHashMap;
-use std::mem::take;
 use std::sync::Arc;
+use std::{iter::once, mem::take};
 
 /// The alias that a project gives a dependency in its qsharp.json.
 /// In other words, this is the name that a given project uses to reference
@@ -197,6 +197,7 @@ impl Compilation {
             compiler.update(increment);
         }
 
+        let source_package_id = compiler.source_package_id();
         let (package_store, package_id) = compiler.into_package_store();
         let unit = package_store
             .get(package_id)
@@ -212,13 +213,18 @@ impl Compilation {
 
         run_linter_passes(&mut errors, &package_store, unit, lints_config);
 
+        let dependencies = dependencies
+            .into_iter()
+            .chain(once((source_package_id, None)))
+            .collect();
+
         Self {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
-            dependencies: dependencies.into_iter().collect(),
+            dependencies,
         }
     }
 

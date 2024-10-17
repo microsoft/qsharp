@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Idents, Item, ItemKind};
+use qsc_ast::ast::{Idents, Item, ItemKind, PathKind};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
@@ -26,8 +26,8 @@ use qsc_data_structures::{
 };
 use qsc_hir::assigner::Assigner as HirAssigner;
 use rustc_hash::FxHashMap;
-use std::fmt::Write;
 use std::rc::Rc;
+use std::{fmt::Write, vec};
 
 #[derive(Debug)]
 enum Change {
@@ -95,10 +95,38 @@ impl<'a> Renamer<'a> {
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
         if let Some(res) = self.names.get(path.id) {
+            // The whole path node can be a resolved name
             self.changes.push((path.span, res.clone().into()));
-        } else {
-            visit::walk_path(self, path);
+            return;
         }
+
+        let ns_id = self.find_namespace_id(path);
+        if let Some(ns_id) = ns_id {
+            // The whole path can be a namespace
+            self.changes.push((path.span, ns_id.into()));
+            return;
+        }
+
+        if let Some(segments) = &path.segments {
+            // The segments part can be a namespace
+            let ns_id = self.find_namespace_id(segments);
+            if let Some(ns_id) = ns_id {
+                self.changes.push((segments.full_span(), ns_id.into()));
+                return;
+            }
+        }
+
+        // Individual ident nodes can be resolved names
+        visit::walk_path(self, path);
+    }
+
+    fn visit_idents(&mut self, idents: &[Ident]) {
+        let ns_id = self.find_namespace_id(&idents);
+        if let Some(ns_id) = ns_id {
+            self.changes.push((idents.full_span(), ns_id.into()));
+            return;
+        }
+        visit::walk_idents(self, idents);
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
@@ -109,21 +137,34 @@ impl Visitor<'_> for Renamer<'_> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         match &*item.kind {
-            ItemKind::Open(namespace, Some(alias)) => {
-                let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) else {
+            ItemKind::Open(PathKind::Ok(namespace), Some(alias)) => {
+                if let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) {
+                    // self.changes.push((item.span, ns_id.into()));
+                    self.aliases.insert(vec![alias.name.clone()], ns_id);
+                } else {
                     return;
                 };
-                self.aliases.insert(vec![alias.name.clone()], ns_id);
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {
-                    if let Some(res) = self.names.get(item.path.id) {
-                        self.changes.push((item.span(), (res.clone()).into()));
-                    } else if let Some(namespace_id) = self
-                        .namespaces
-                        .get_namespace_id(Into::<Idents>::into(item.clone().path).str_iter())
+                    let PathKind::Ok(path) = &item.path else {
+                        continue;
+                    };
+                    if let Some(res) = self.names.get(path.id) {
+                        // Path node can be a resolved name
+                        self.changes.push((item.span, (res.clone()).into()));
+                    } else if let Some(namespace_id) =
+                        self.namespaces.get_namespace_id(path.str_iter())
                     {
-                        self.changes.push((item.span(), namespace_id.into()));
+                        // Path can be a namespace
+                        self.changes.push((
+                            if item.alias.is_some() {
+                                item.span
+                            } else {
+                                path.span
+                            },
+                            namespace_id.into(),
+                        ));
                     }
                 }
                 return;
@@ -132,27 +173,19 @@ impl Visitor<'_> for Renamer<'_> {
         }
         visit::walk_item(self, item);
     }
+}
 
-    fn visit_idents(&mut self, vec_ident: &Idents) {
-        let parts: Vec<Ident> = vec_ident.clone().into();
-        let first = parts.first().expect("should contain at least one item");
-        if let Some(res) = self.names.get(first.id) {
-            self.changes.push((first.span, res.clone().into()));
-            return;
-        }
-
-        let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
-            Some(x) => x,
-            None => match self
-                .aliases
-                .get(&(Into::<Vec<Rc<str>>>::into(vec_ident)))
-                .copied()
-            {
-                Some(x) => x,
-                None => return,
-            },
-        };
-        self.changes.push((vec_ident.span(), ns_id.into()));
+impl<'a> Renamer<'a> {
+    fn find_namespace_id(&mut self, idents: &impl Idents) -> Option<NamespaceId> {
+        let ns_id = self
+            .namespaces
+            .get_namespace_id(idents.str_iter())
+            .or_else(|| {
+                self.aliases
+                    .get(&idents.rc_str_iter().cloned().collect::<Vec<_>>())
+                    .copied()
+            });
+        ns_id
     }
 }
 
@@ -1374,7 +1407,7 @@ fn open_ambiguous_tys() {
                 open namespace3;
                 open namespace4;
 
-                function item5(local28 : A) : Unit {}
+                function item5(local30 : A) : Unit {}
             }
 
             // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 146, hi: 147 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 121, hi: 124 } }
@@ -1458,7 +1491,7 @@ fn merged_aliases_ambiguous_tys() {
                 open namespace3 as Alias;
                 open namespace4 as Alias;
 
-                function item5(local30 : namespace4.A) : Unit {}
+                function item5(local32 : namespace4.A) : Unit {}
             }
 
             // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 170, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
@@ -4201,7 +4234,7 @@ fn export_udt_and_construct_it() {
             namespace namespace4 {
                 open namespace3;
                 operation item3() : Unit {
-                    let local33: item1 = item1(1, 2);
+                    let local34: item1 = item1(1, 2);
                 }
             }
         "#]],
