@@ -48,7 +48,8 @@ bitflags! {
         const PathSegment = 1 << 5;
         /// A type parameter, without the leading `'`.
         const TyParam = 1 << 6;
-        /// A field name that follows a `.` or `::` in a field access expression.
+        /// A field name. Can follow a `.` or `::` in a field access expression,
+        /// or can be in a field assignment.
         const Field = 1 << 7;
 
         //
