@@ -210,19 +210,17 @@ async fn completions_requested_after_document_load() {
 
     worker.apply_pending().await;
 
-    // this should be empty, because the doc hasn't loaded
-    assert_eq!(
-        ls.get_completions(
+    assert!(&ls
+        .get_completions(
             "foo.qs",
             Position {
                 line: 0,
-                column: 76
-            }
+                column: 92,
+            },
         )
         .items
-        .len(),
-        13
-    );
+        .iter()
+        .any(|item| item.label == "DumpMachine"));
 }
 
 fn check_errors_and_compilation(

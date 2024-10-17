@@ -6,11 +6,12 @@ mod tests;
 
 use super::{keyword::Keyword, scan::ParserContext, ty::ty, Error, Parser, Result};
 use crate::{
+    completion::WordKinds,
     item::throw_away_doc,
     lex::{Delim, TokenKind},
     ErrorKind,
 };
-use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
+use qsc_ast::ast::{Ident, IncompletePath, NodeId, Pat, PatKind, Path, PathKind};
 use qsc_data_structures::span::{Span, WithSpan};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -35,6 +36,10 @@ impl FinalSep {
 }
 
 pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
+    if let TokenKind::Keyword(k) = t {
+        s.expect(k.into());
+    }
+
     if s.peek().kind == t {
         s.advance();
         Ok(())
@@ -48,6 +53,7 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
 }
 
 pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
+    s.expect(WordKinds::TyParam);
     let peek = s.peek();
     if peek.kind == TokenKind::AposIdent {
         let name = s.read().into();
@@ -85,50 +91,77 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }
 }
 
-pub fn single_ident_path(s: &mut ParserContext) -> Result<Box<Path>> {
-    let lo = s.peek().span.lo;
-    let name = ident(s)?;
-    Ok(Box::new(Path {
-        id: NodeId::default(),
-        span: s.span(lo),
-        segments: None,
-        name,
-    }))
-}
-
 /// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
-/// this can be either a namespace name (in an open statement or namespace declaration) or
-/// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
-pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
+/// this can be a namespace name (in an open statement or namespace declaration),
+/// a reference to an item, like `Microsoft.Quantum.Diagnostics.DumpMachine`,
+/// or a field access.
+///
+/// Path parser. If parsing fails, also returns any valid segments
+/// that were parsed up to the final `.` token.
+pub(super) fn path(
+    s: &mut ParserContext,
+    kind: WordKinds,
+) -> std::result::Result<Box<Path>, (Error, Option<Box<IncompletePath>>)> {
+    s.expect(kind);
+
     let lo = s.peek().span.lo;
-    let mut parts = vec![ident(s)?];
+    let i = ident(s).map_err(|e| (e, None))?;
+
+    let mut parts = vec![*i];
     while token(s, TokenKind::Dot).is_ok() {
-        parts.push(ident(s)?);
+        s.expect(WordKinds::PathSegment);
+        match ident(s) {
+            Ok(ident) => parts.push(*ident),
+            Err(error) => {
+                let trivia_span = s.skip_trivia();
+                let keyword = trivia_span.hi == trivia_span.lo
+                    && matches!(s.peek().kind, TokenKind::Keyword(_));
+                if keyword {
+                    // Consume any keyword that comes immediately after the final
+                    // dot, assuming it was intended to be part of the path.
+                    s.advance();
+                }
+
+                return Err((
+                    error,
+                    Some(Box::new(IncompletePath {
+                        span: s.span(lo),
+                        segments: parts.into(),
+                        keyword,
+                    })),
+                ));
+            }
+        }
     }
 
     let name = parts.pop().expect("path should have at least one part");
     let namespace = if parts.is_empty() {
         None
     } else {
-        Some(
-            parts
-                .iter()
-                .map(|part| Ident {
-                    id: NodeId::default(),
-                    span: part.span,
-                    name: part.name.clone(),
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )
+        Some(parts.into())
     };
 
     Ok(Box::new(Path {
         id: NodeId::default(),
         span: s.span(lo),
         segments: namespace,
-        name,
+        name: name.into(),
     }))
+}
+
+/// Recovering [`Path`] parser. Parsing only fails if no segments
+/// were successfully parsed. If any segments were successfully parsed,
+/// returns a [`PathKind::Err`] containing the segments that were
+/// successfully parsed up to the final `.` token.
+pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathKind> {
+    match path(s, kind) {
+        Ok(path) => Ok(PathKind::Ok(path)),
+        Err((error, Some(incomplete_path))) => {
+            s.push_error(error);
+            Ok(PathKind::Err(Some(incomplete_path)))
+        }
+        Err((error, None)) => Err(error),
+    }
 }
 
 pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
@@ -184,6 +217,7 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     }
     Ok(xs)
 }
+
 /// Parses a sequence of items separated by commas.
 /// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>

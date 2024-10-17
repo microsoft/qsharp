@@ -237,30 +237,6 @@ fn dependency_error() {
                     ),
                 ),
             },
-            WithSource {
-                sources: [
-                    Source {
-                        name: "librarymain",
-                        contents: "broken_syntax",
-                        offset: 0,
-                    },
-                ],
-                error: Frontend(
-                    Error(
-                        Parse(
-                            Error(
-                                ExpectedItem(
-                                    Eof,
-                                    Span {
-                                        lo: 0,
-                                        hi: 13,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            },
         ]
     "#]]
     .assert_debug_eq(&buildable_program.dependency_errors);
