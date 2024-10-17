@@ -3177,6 +3177,39 @@ fn open_does_not_match_pkg_alias() {
 }
 
 #[test]
+fn field_access_expr() {
+    check(
+        "namespace Test {
+        struct Foo {
+            bar : Int,
+        }
+
+        function Main() : Unit {
+            (new Foo { bar = 3 }).↘
+        }
+    }",
+        &["bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn input_type_missing() {
     check(
         "namespace Test { function Foo(x : FakeStdLib.↘ ) : Unit { body intrinsic; } }",
@@ -3258,6 +3291,40 @@ fn notebook_top_level_path_part() {
                         ),
                         detail: Some(
                             "operation FakeWithParam(x : Int) : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_access_path() {
+    check(
+        "namespace Test {
+        struct Foo {
+            bar : Int,
+        }
+
+        function Main() : Unit {
+            let foo = new Foo { bar = 3 };
+            foo.↘
+        }
+    }",
+        &["bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "Int",
                         ),
                         additional_text_edits: None,
                     },
@@ -3501,6 +3568,234 @@ fn path_segment_before_glob_with_alias() {
                         ),
                         detail: Some(
                             "struct StructFn { inner : (Int -> Int) }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_in_initializer() {
+    check(
+        "namespace Test {
+        struct Foo {
+            bar : Int,
+        }
+
+        function Main() : Unit {
+            new Foo { ↘ };
+        }
+    }",
+        &["bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn stdlib_struct_field_init() {
+    check(
+        "namespace Test {
+            import FakeStdLib.FakeStruct as StructAlias;
+            function Main() : Unit {
+                new StructAlias { ↘ };
+            }
+        }",
+        &["x"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "x",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100x",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn newtype_named_field() {
+    check(
+        "namespace Test {
+            newtype Foo = (field : Int);
+            function Main() : Unit {
+                Foo(3).↘
+            }
+        }",
+        &["field"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "field",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100field",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_access_path_chained() {
+    check(
+        "namespace Test {
+            newtype Foo = ( fieldFoo : Int );
+            struct Bar { fieldBar : Foo );
+            function Main() : Unit {
+                let bar = new Bar { fieldBar = Foo(3) };
+                bar.fieldBar.↘
+            }
+        }",
+        &["fieldFoo", "fieldBar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "fieldFoo",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100fieldFoo",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_access_expr_chained() {
+    check(
+        "namespace Test {
+            newtype Foo = ( fieldFoo : Int );
+            struct Bar { fieldBar : Foo );
+            function Main() : Unit {
+                (new Bar { fieldBar = Foo(3) }).fieldBar.↘
+            }
+        }",
+        &["fieldFoo", "fieldBar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "fieldFoo",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100fieldFoo",
+                        ),
+                        detail: Some(
+                            "Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_assignment_rhs() {
+    check(
+        "namespace Test {
+        struct Foo {
+            bar : Int,
+        }
+
+        function Main() : Unit {
+            let var = 3;
+            new Foo { bar = ↘ };
+        }
+    }",
+        &["bar", "var"],
+        &expect![[r#"
+            [
+                None,
+                Some(
+                    CompletionItem {
+                        label: "var",
+                        kind: Variable,
+                        sort_text: Some(
+                            "0100var",
+                        ),
+                        detail: Some(
+                            "var : Int",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn field_access_local_shadows_global() {
+    check(
+        "namespace Test {
+        struct Foo {
+            bar : Int,
+        }
+
+        function Main() : Unit {
+            let FakeStdLib = new Foo { bar = 3 };
+            FakeStdLib.↘
+        }
+    }",
+        &["Fake", "bar"],
+        &expect![[r#"
+            [
+                None,
+                Some(
+                    CompletionItem {
+                        label: "bar",
+                        kind: Field,
+                        sort_text: Some(
+                            "0100bar",
+                        ),
+                        detail: Some(
+                            "Int",
                         ),
                         additional_text_edits: None,
                     },

@@ -68,6 +68,7 @@ pub enum CompletionItemKind {
     Property,
     Variable,
     TypeParameter,
+    Field,
 }
 
 #[derive(Debug, Default)]

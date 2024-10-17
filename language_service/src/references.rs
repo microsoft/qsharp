@@ -400,7 +400,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
 
     fn visit_expr(&mut self, expr: &ast::Expr) {
         match &*expr.kind {
-            ast::ExprKind::Field(qualifier, field_name) => {
+            ast::ExprKind::Field(qualifier, ast::FieldAccess::Ok(field_name)) => {
                 self.visit_expr(qualifier);
                 if field_name.name == self.field_name {
                     if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {

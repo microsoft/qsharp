@@ -21,8 +21,8 @@ use crate::{
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
-    self, BinOp, CallableKind, Expr, ExprKind, FieldAssign, Functor, Lit, NodeId, Pat, PatKind,
-    PathKind, Pauli, StringComponent, TernOp, UnOp,
+    self, BinOp, CallableKind, Expr, ExprKind, FieldAccess, FieldAssign, Functor, Lit, NodeId, Pat,
+    PatKind, PathKind, Pauli, StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
 use std::{result, str::FromStr};
@@ -276,6 +276,7 @@ fn struct_fields(
 
 fn parse_field_assign(s: &mut ParserContext) -> Result<Box<FieldAssign>> {
     let lo = s.peek().span.lo;
+    s.expect(WordKinds::Field);
     let field = ident(s)?;
     token(s, TokenKind::Eq)?;
     let value = expr(s)?;
@@ -675,7 +676,7 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: 15,
         }),
         OpName::Token(TokenKind::ColonColon | TokenKind::Dot) => Some(MixfixOp {
-            kind: OpKind::Rich(field_op),
+            kind: OpKind::Rich(recovering_field_op),
             precedence: 15,
         }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
@@ -710,9 +711,20 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
     Ok(Box::new(ExprKind::Lambda(kind, input, output)))
 }
 
-fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+#[allow(clippy::unnecessary_wraps)]
+fn recovering_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     s.expect(WordKinds::Field);
-    Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+    let expr = ExprKind::Field(
+        lhs,
+        match ident(s) {
+            Ok(i) => FieldAccess::Ok(i),
+            Err(e) => {
+                s.push_error(e);
+                FieldAccess::Err
+            }
+        },
+    );
+    Ok(Box::new(expr))
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {

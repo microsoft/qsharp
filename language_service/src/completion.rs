@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod fields;
 mod global_items;
 mod locals;
 mod path_context;
@@ -12,10 +13,11 @@ use crate::{
     compilation::{Compilation, CompilationKind},
     protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit},
 };
+use fields::Fields;
 use global_items::Globals;
 use locals::Locals;
 use log::{log_enabled, trace, Level::Trace};
-use path_context::IncompletePath;
+use path_context::PathOrFieldAccess;
 use qsc::{
     line_column::{Encoding, Position},
     parse::completion::{
@@ -172,16 +174,21 @@ fn collect_names(
             NameKind::PathSegment => {
                 let globals = Globals::init(cursor_offset, compilation);
                 let path =
-                    IncompletePath::init(cursor_offset, &compilation.user_unit().ast.package);
+                    PathOrFieldAccess::init(cursor_offset, &compilation.user_unit().ast.package);
+                let fields = Fields::new(compilation, &path);
 
-                groups.extend(collect_path_segments(&globals, &path));
+                groups.extend(collect_path_segments(&path, &globals, &fields));
             }
             NameKind::TyParam => {
                 let locals = Locals::new(cursor_offset, compilation);
                 groups.push(locals.type_names());
             }
             NameKind::Field => {
-                // Not yet implemented
+                let path =
+                    PathOrFieldAccess::init(cursor_offset, &compilation.user_unit().ast.package);
+                let fields = Fields::new(compilation, &path);
+
+                groups.push(fields.fields());
             }
         };
     }
@@ -250,14 +257,27 @@ fn collect_paths(
 /// as the name kind expected at that syntax node. For example,
 /// `let x : Microsoft.Quantum.Math.↘`  should include `Complex` (a type) while
 /// `let x = Microsoft.Quantum.Math.↘` should include `PI` (a callable).
-fn collect_path_segments(globals: &Globals, path_context: &IncompletePath) -> Vec<Vec<Completion>> {
-    let Some((path_kind, qualifier)) = path_context.context() else {
+fn collect_path_segments(
+    path_context: &PathOrFieldAccess,
+    globals: &Globals,
+    fields: &Fields,
+) -> Vec<Vec<Completion>> {
+    let Some((path_kind, qualifier)) = path_context.path_segment_context() else {
         return Vec::new();
     };
 
     match path_kind {
         PathKind::Namespace => globals.namespaces_in(&qualifier),
-        PathKind::Expr => globals.expr_names_in(&qualifier),
+        PathKind::Expr => {
+            // First try treating the path as a field access, then
+            // as a global.
+            let fields = fields.fields();
+            if fields.is_empty() {
+                globals.expr_names_in(&qualifier)
+            } else {
+                vec![fields]
+            }
+        }
         PathKind::Ty | PathKind::Struct => globals.type_names_in(&qualifier),
         PathKind::Import => [
             globals.expr_names_in(&qualifier),
