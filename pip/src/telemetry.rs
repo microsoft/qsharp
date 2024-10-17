@@ -1,46 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// TODO(sezna): use a trait for the loggerprovider and abstract for testing
-
 mod events;
+pub(crate) mod mock;
 
 use std::sync::OnceLock;
 
 pub(crate) use events::TelemetryEvent::*;
+use mock::MockLoggingProvider;
 use opentelemetry::logs::{LogRecord, Logger, LoggerProvider};
 use opentelemetry::KeyValue;
 use opentelemetry_sdk::Resource;
 use opentelemetry_semantic_conventions as semcov;
-use pyo3::pyfunction;
 
 // store telemetry client in a once cell
 static TELEMETRY_CLIENT: OnceLock<TelemetryClient> = OnceLock::new();
 
-static MOCK_LOG_RECEIVER: std::sync::Mutex<
-    Option<std::sync::mpsc::Receiver<events::TelemetryEvent>>,
-> = std::sync::Mutex::new(None);
-
-pub struct MockLoggingProvider {
-    sender: std::sync::mpsc::Sender<events::TelemetryEvent>,
-}
-
-impl MockLoggingProvider {
-    pub fn new() -> (std::sync::mpsc::Receiver<events::TelemetryEvent>, Self) {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        (receiver, Self { sender })
-    }
-}
-
 trait PythonLoggingProvider: Send + Sync {
     fn log(&self, event: events::TelemetryEvent);
     fn flush(&self) {}
-}
-
-impl PythonLoggingProvider for MockLoggingProvider {
-    fn log(&self, event: events::TelemetryEvent) {
-        self.sender.send(event).expect("mock logger failed");
-    }
 }
 
 impl PythonLoggingProvider for opentelemetry_sdk::logs::LoggerProvider {
@@ -120,12 +98,13 @@ impl TelemetryClient {
 
     pub fn init_mock_logging() {
         let (receiver, provider) = MockLoggingProvider::new();
-        if TELEMETRY_CLIENT.get().is_some() {
-            panic!("Attempted to init mock logging when client already initialized");
-        }
+        assert!(
+            TELEMETRY_CLIENT.get().is_none(),
+            "Attempted to init mock logging when client already initialized"
+        );
         let _ = TELEMETRY_CLIENT.get_or_init(|| TelemetryClient::from_logger_provider(provider));
 
-        *MOCK_LOG_RECEIVER
+        *mock::MOCK_LOG_RECEIVER
             .lock()
             .expect("failed to get lock on mock logging receiver") = Some(receiver);
     }
@@ -140,25 +119,6 @@ impl TelemetryClient {
             logger_provider: Box::new(TelemetryDisabled),
         }
     }
-}
-
-#[pyfunction]
-pub fn drain_logs_from_mock() -> String {
-    let receiver = MOCK_LOG_RECEIVER
-        .lock()
-        .expect("failed to get lock on mock logging receiver")
-        .take()
-        .expect("drain_logs_from_mock called before mock logging initialized");
-    receiver
-        .try_iter()
-        .map(|x| format!("{x:?}"))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-#[pyfunction]
-pub fn init_mock_logging() {
-    TelemetryClient::init_mock_logging();
 }
 
 impl Drop for TelemetryClient {

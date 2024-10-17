@@ -9,8 +9,12 @@ use crate::{
         map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
-    telemetry::{InitInterpreter, SynthesizeCircuit, TelemetryClient},
+    telemetry::{
+        mock::{drain_logs_from_mock, init_mock_logging},
+        InitInterpreter, SynthesizeCircuit, TelemetryClient,
+    },
 };
+
 use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -83,6 +87,11 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
+
+    // Telemetry
+    m.add_function(wrap_pyfunction!(init_mock_logging, m)?)?;
+    m.add_function(wrap_pyfunction!(drain_logs_from_mock, m)?)?;
+
     Ok(())
 }
 
