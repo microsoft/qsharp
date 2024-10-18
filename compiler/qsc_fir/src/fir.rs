@@ -1589,13 +1589,15 @@ pub enum CallableKind {
     Function,
     /// An operation.
     Operation,
+    /// A measurement.
+    Measurement,
 }
 
 impl Display for CallableKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             CallableKind::Function => f.write_str("function"),
-            CallableKind::Operation => f.write_str("operation"),
+            CallableKind::Operation | CallableKind::Measurement => f.write_str("operation"),
         }
     }
 }

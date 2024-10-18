@@ -406,7 +406,7 @@ fn get_metadata(
             display.hir_callable_decl(decl).to_string(),
             match &decl.kind {
                 CallableKind::Function => MetadataKind::Function,
-                CallableKind::Operation => MetadataKind::Operation,
+                CallableKind::Operation | CallableKind::Measurement => MetadataKind::Operation,
             },
         )),
         ItemKind::Ty(ident, udt) => Some((
