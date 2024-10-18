@@ -289,7 +289,7 @@ impl CompletionListBuilder {
     }
 
     fn push_attributes(&mut self) {
-        static ATTRIBUTES: [&str; 3] = ["@EntryPoint()", "@Config()", "@Measurement()"];
+        static ATTRIBUTES: [&str; 3] = ["@EntryPoint()", "@Config()"];
 
         self.push_completions(
             ATTRIBUTES
