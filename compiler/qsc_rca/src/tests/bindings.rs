@@ -3,8 +3,6 @@
 
 //! These tests use bindings to check that RCA for the use of different static and dynamic types is correct.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{check_last_statement_compute_properties, CompilationContext};
 use expect_test::expect;
 

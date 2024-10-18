@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::{
     compile::{self, Offsetter},
     resolve::{self, Resolver},
@@ -12,7 +10,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, Ident, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
+    ast::{Block, Expr, Idents, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -40,10 +38,10 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 
     fn visit_path(&mut self, path: &'a Path) {
         visit::walk_path(self, path);
-        let parts: Vec<Ident> = path.into();
+        let mut parts = path.iter().peekable();
         if self
             .tys
-            .get(parts.first().expect("should contain at least one part").id)
+            .get(parts.peek().expect("should contain at least one part").id)
             .is_some()
         {
             for part in parts {
@@ -3083,11 +3081,11 @@ fn local_open() {
         &expect![[r#"
             #6 26-28 "()" : Unit
             #8 34-52 "{ open B; Bar(); }" : Unit
-            #13 44-49 "Bar()" : Unit
-            #14 44-47 "Bar" : (Unit -> Unit)
-            #17 47-49 "()" : Unit
-            #23 81-83 "()" : Unit
-            #25 89-91 "{}" : Unit
+            #14 44-49 "Bar()" : Unit
+            #15 44-47 "Bar" : (Unit -> Unit)
+            #18 47-49 "()" : Unit
+            #24 81-83 "()" : Unit
+            #26 89-91 "{}" : Unit
         "#]],
     );
 }

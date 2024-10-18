@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::{expect, Expect};
 use qsc::location::Location;
 
@@ -478,12 +476,12 @@ fn std_call() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 1,
-                            column: 26,
+                            line: 2,
+                            column: 18,
                         },
                         end: Position {
-                            line: 1,
-                            column: 30,
+                            line: 2,
+                            column: 22,
                         },
                     },
                 },
@@ -586,12 +584,12 @@ fn std_udt() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 24,
+                            line: 5,
+                            column: 16,
                         },
                         end: Position {
-                            line: 4,
-                            column: 27,
+                            line: 5,
+                            column: 19,
                         },
                     },
                 },
@@ -618,12 +616,12 @@ fn std_udt_udt_field() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 31,
+                            line: 5,
+                            column: 23,
                         },
                         end: Position {
-                            line: 4,
-                            column: 32,
+                            line: 5,
+                            column: 24,
                         },
                     },
                 },

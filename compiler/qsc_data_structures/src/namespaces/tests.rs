@@ -4,8 +4,6 @@
 // allowing needless raw hashes here because we auto-update these expected outputs
 // and don't want to risk weird breakages
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::expect;
 
 use super::*;

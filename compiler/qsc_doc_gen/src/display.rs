@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast;
+use qsc_ast::ast::{self, Idents};
 use qsc_frontend::resolve;
 use qsc_hir::{
     hir::{self, PackageId},
@@ -516,7 +516,7 @@ impl<'a> Display for AstTy<'a> {
             }
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", AstPath { path }),
+            ast::TyKind::Path(path) => write!(f, "{}", AstPathKind { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
@@ -540,15 +540,16 @@ impl<'a> Display for FunctorExpr<'a> {
     }
 }
 
-struct AstPath<'a> {
-    path: &'a ast::Path,
+struct AstPathKind<'a> {
+    path: &'a ast::PathKind,
 }
 
-impl<'a> Display for AstPath<'a> {
+impl<'a> Display for AstPathKind<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.path.segments.as_ref() {
-            Some(parts) => write!(f, "{parts}.{}", self.path.name.name),
-            None => write!(f, "{}", self.path.name.name),
+        if let ast::PathKind::Ok(path) = self.path {
+            write!(f, "{}", path.full_name())
+        } else {
+            write!(f, "?")
         }
     }
 }

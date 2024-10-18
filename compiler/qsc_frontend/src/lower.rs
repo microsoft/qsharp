@@ -10,7 +10,7 @@ use crate::{
     typeck::{self, convert},
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self, Ident};
+use qsc_ast::ast::{self, Ident, Idents, PathKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -135,9 +135,10 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                self.names
-                    .get(item.path.id)
-                    .map(|x| (x, item.alias.clone()))
+                let PathKind::Ok(path) = &item.path else {
+                    return None;
+                };
+                self.names.get(path.id).map(|x| (x, item.alias.clone()))
             })
             .collect::<Vec<_>>();
 
@@ -173,6 +174,7 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
+    #[allow(clippy::too_many_lines)]
     fn lower_item(
         &mut self,
         item: &ast::Item,
@@ -201,19 +203,22 @@ impl With<'_> {
                     return None;
                 }
                 for item in &item.items {
-                    let Some((id, alias)) = resolve_id(item.name().id) else {
+                    let Some(item_name) = item.name() else {
+                        continue;
+                    };
+                    let Some((id, alias)) = resolve_id(item_name.id) else {
                         continue;
                     };
                     let is_reexport = id.package.is_some() || alias.is_some();
                     // if the package is Some, then this is a re-export and we
                     // need to preserve the reference to the original `ItemId`
                     if is_reexport {
-                        let mut name = self.lower_ident(item.name());
+                        let mut name = self.lower_ident(item_name);
                         name.id = self.assigner.next_node();
                         let kind = hir::ItemKind::Export(name, id);
                         self.lowerer.items.push(hir::Item {
                             id: self.assigner.next_item(),
-                            span: item.span(),
+                            span: item.span,
                             parent: self.lowerer.parent,
                             doc: "".into(),
                             // attrs on exports not supported
@@ -319,13 +324,13 @@ impl With<'_> {
                 match &*attr.arg.kind {
                     // @Config(Capability)
                     ast::ExprKind::Paren(inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
 
                     // @Config(not Capability)
                     ast::ExprKind::Paren(inner)
                         if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
                         {}
 
@@ -583,7 +588,6 @@ impl With<'_> {
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
-            ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
@@ -628,7 +632,7 @@ impl With<'_> {
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::ExprKind::Path(path) => {
+            ast::ExprKind::Path(PathKind::Ok(path)) => {
                 let args = self
                     .tys
                     .generics
@@ -647,8 +651,8 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
-            ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
-                self.node_id_to_res(name.id),
+            ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => hir::ExprKind::Struct(
+                self.node_id_to_res(path.id),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
                     .iter()
@@ -689,6 +693,9 @@ impl With<'_> {
             ast::ExprKind::While(cond, body) => {
                 hir::ExprKind::While(Box::new(self.lower_expr(cond)), self.lower_block(body))
             }
+            ast::ExprKind::Err
+            | &ast::ExprKind::Path(ast::PathKind::Err(_))
+            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => hir::ExprKind::Err,
         };
 
         hir::Expr {
@@ -879,7 +886,7 @@ impl With<'_> {
     fn path_parts_to_fields(
         &mut self,
         init_kind: hir::ExprKind,
-        parts: &[Ident],
+        parts: &[&Ident],
         lo: u32,
     ) -> hir::ExprKind {
         let (first, rest) = parts
@@ -922,7 +929,7 @@ impl With<'_> {
         })
     }
 
-    fn lower_idents(&mut self, name: &ast::Idents) -> hir::Idents {
+    fn lower_idents(&mut self, name: &impl Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }
