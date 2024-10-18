@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast::{Attr, Expr, ExprKind, Ident, NodeId, Path};
+use qsc_ast::ast::{Attr, Expr, ExprKind, Ident, NodeId, Path, PathKind};
 use qsc_data_structures::span::Span;
 
 use crate::compile::{preprocess::matches_config, TargetCapabilityFlags};
@@ -36,7 +36,7 @@ fn name_value_attr(name: &str, value: &str) -> Attr {
             kind: Box::new(ExprKind::Paren(Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                kind: Box::new(ExprKind::Path(Box::new(Path {
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
                     id: NodeId::default(),
                     span: Span::default(),
                     segments: None,
@@ -45,7 +45,7 @@ fn name_value_attr(name: &str, value: &str) -> Attr {
                         span: Span::default(),
                         id: NodeId::default(),
                     }),
-                }))),
+                })))),
             }))),
         }),
         span: Span::default(),

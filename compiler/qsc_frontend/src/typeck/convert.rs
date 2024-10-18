@@ -9,7 +9,7 @@ use itertools::{Either, Itertools};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
-    Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TyParam,
+    Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TyParam, PathKind,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -64,6 +64,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
+<<<<<<< HEAD
         TyKind::Path(path) => (ty_from_path(names, path), Vec::new()),
         TyKind::Param(TyParam { ty, .. }) => match names.get(ty.id) {
             // TODO(sezna) should only res or typaram track bounds?
@@ -78,6 +79,11 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
                     Vec::new(),
                 )
             }
+=======
+        TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
+        TyKind::Param(name) => match names.get(name.id) {
+            Some(resolve::Res::Param(id)) => (Ty::Param(name.name.clone(), *id), Vec::new()),
+>>>>>>> e4df79d44f8c0be8de3142bf2bae857f0e223c35
             Some(_) => unreachable!(
                 "A parameter should never resolve to a non-parameter type, as there \
                     is syntactic differentiation"
@@ -94,7 +100,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
             }
             (Ty::Tuple(tys), errors)
         }
-        TyKind::Err => (Ty::Err, Vec::new()),
+        TyKind::Err | TyKind::Path(PathKind::Err { .. }) => (Ty::Err, Vec::new()),
     }
 }
 

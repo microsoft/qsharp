@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::capabilitiesck::tests_common::USE_DYNAMIC_RANGE;
 
 use super::tests_common::{

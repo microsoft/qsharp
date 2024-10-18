@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::get_references;
 use crate::{
     test_utils::{compile_notebook_with_markers, compile_with_markers},
@@ -93,12 +91,12 @@ fn std_callable_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 1,
-                            column: 26,
+                            line: 2,
+                            column: 18,
                         },
                         end: Position {
-                            line: 1,
-                            column: 30,
+                            line: 2,
+                            column: 22,
                         },
                     },
                 },
@@ -250,12 +248,12 @@ fn std_udt_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 24,
+                            line: 5,
+                            column: 16,
                         },
                         end: Position {
-                            line: 4,
-                            column: 27,
+                            line: 5,
+                            column: 19,
                         },
                     },
                 },
@@ -340,12 +338,12 @@ fn std_field_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 31,
+                            line: 5,
+                            column: 23,
                         },
                         end: Position {
-                            line: 4,
-                            column: 32,
+                            line: 5,
+                            column: 24,
                         },
                     },
                 },
@@ -446,12 +444,12 @@ fn std_struct_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 16,
-                            column: 23,
+                            line: 17,
+                            column: 15,
                         },
                         end: Position {
-                            line: 16,
-                            column: 33,
+                            line: 17,
+                            column: 25,
                         },
                     },
                 },
@@ -551,12 +549,12 @@ fn std_struct_field_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 16,
-                            column: 36,
+                            line: 17,
+                            column: 28,
                         },
                         end: Position {
-                            line: 16,
-                            column: 37,
+                            line: 17,
+                            column: 29,
                         },
                     },
                 },
@@ -660,12 +658,12 @@ fn std_struct_field_path_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 16,
-                            column: 36,
+                            line: 17,
+                            column: 28,
                         },
                         end: Position {
-                            line: 16,
-                            column: 37,
+                            line: 17,
+                            column: 29,
                         },
                     },
                 },
@@ -718,12 +716,12 @@ fn std_struct_field_path_with_expr_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 16,
-                            column: 36,
+                            line: 17,
+                            column: 28,
                         },
                         end: Position {
-                            line: 16,
-                            column: 37,
+                            line: 17,
+                            column: 29,
                         },
                     },
                 },

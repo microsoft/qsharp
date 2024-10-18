@@ -29,6 +29,7 @@ operation MeasureAllZ(register : Qubit[]) : Result {
     Measure(Repeated(PauliZ, Length(register)), register)
 }
 
+/// # Summary
 /// Measures each qubit in a given array in the standard basis.
 ///
 /// # Description
@@ -63,6 +64,7 @@ operation MeasureEachZ(register : Qubit[]) : Result[] {
     results
 }
 
+/// # Summary
 /// Measures each qubit in a given array in the Z basis
 /// and resets them to a fixed initial state.
 ///
@@ -83,6 +85,7 @@ operation MResetEachZ(register : Qubit[]) : Result[] {
     results
 }
 
+/// # Summary
 /// Measures a single qubit in the X basis,
 /// and resets it to a fixed initial state
 /// following the measurement.
@@ -105,6 +108,7 @@ operation MResetX(target : Qubit) : Result {
     MResetZ(target)
 }
 
+/// # Summary
 /// Measures a single qubit in the Y basis,
 /// and resets it to a fixed initial state
 /// following the measurement.
@@ -129,6 +133,7 @@ operation MResetY(target : Qubit) : Result {
     MResetZ(target)
 }
 
+/// # Summary
 /// Measures a single qubit in the Z basis,
 /// and resets it to a fixed initial state
 /// following the measurement.
@@ -148,6 +153,7 @@ operation MResetZ(target : Qubit) : Result {
     __quantum__qis__mresetz__body(target)
 }
 
+/// # Summary
 /// Measures the content of a quantum register and converts
 /// it to an integer. The measurement is performed with respect
 /// to the standard computational basis, i.e., the eigenbasis of `PauliZ`.

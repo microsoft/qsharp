@@ -7,9 +7,9 @@ use num_bigint::BigInt;
 
 use qsc::{
     ast::{
-        self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Idents,
-        Item, Lit, Mutability, NodeId, Pat, PatKind, Path, QubitInit, QubitInitKind, QubitSource,
-        Stmt, StmtKind, TopLevelNode, Ty, TyKind,
+        self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item,
+        Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
+        QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
     },
     Span,
 };
@@ -28,11 +28,12 @@ where
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call_expr = Expr {
@@ -82,11 +83,12 @@ where
     };
 
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["QIR", "Runtime"]),
             name: Box::new(alloc_ident),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call_expr = Expr {
@@ -347,11 +349,12 @@ pub(crate) fn build_math_call_from_exprs(name: &str, exprs: Vec<Expr>, span: Spa
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Math"]),
             name: Box::new(alloc_ident),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let exprs: Vec<_> = exprs.into_iter().map(Box::new).collect();
@@ -392,7 +395,7 @@ pub(crate) fn build_path_ident_expr<S: AsRef<str>>(
         segments: None,
         name: Box::new(ident),
     };
-    let path_kind = ast::ExprKind::Path(Box::new(path));
+    let path_kind = ast::ExprKind::Path(PathKind::Ok(Box::new(path)));
     ast::Expr {
         id: NodeId::default(),
         span: expr_span,
@@ -416,12 +419,12 @@ pub(crate) fn build_indexed_assignment_statement<S: AsRef<str>>(
     let lhs = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: name_span,
             segments: None,
             name: Box::new(ident.clone()),
-        }))),
+        })))),
     };
 
     let assign_up = ast::StmtKind::Semi(Box::new(ast::Expr {
@@ -460,7 +463,7 @@ pub(crate) fn build_assignment_statement<S: AsRef<str>>(
     let lhs = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(Box::new(path))),
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(path)))),
     };
     let expr_kind = ast::ExprKind::Assign(Box::new(lhs), Box::new(rhs));
     let expr = ast::Expr {
@@ -483,11 +486,12 @@ pub(crate) fn build_convert_call_expr(expr: Expr, name: &str) -> Expr {
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Convert"]),
             name: Box::new(cast_ident),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -512,11 +516,12 @@ pub(crate) fn build_array_reverse_expr(expr: Expr) -> Expr {
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments: build_idents(&["Microsoft", "Quantum", "Arrays"]),
             name: Box::new(cast_ident),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -682,12 +687,12 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     let callee_expr = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: Span::default(),
             segments: None,
             name: Box::new(ident),
-        }))),
+        })))),
     };
 
     let param_expr_kind = ast::ExprKind::Paren(Box::new(expr));
@@ -719,12 +724,12 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
     let callee_expr = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(Box::new(ast::Path {
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
             span: Span::default(),
             segments: None,
             name: Box::new(ident),
-        }))),
+        })))),
     };
 
     let param_expr_kind = ast::ExprKind::Tuple(Box::new([Box::new(fst), Box::new(snd)]));
@@ -781,11 +786,12 @@ pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> E
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments,
             name: Box::new(fn_name),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -815,11 +821,12 @@ pub(crate) fn build_call_with_param(
         ..Default::default()
     };
     let path_expr = Expr {
-        kind: Box::new(ExprKind::Path(Box::new(Path {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
             segments,
             name: Box::new(fn_name),
-            ..Default::default()
-        }))),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -906,11 +913,13 @@ where
         name: ty.to_string().into(),
         ..Default::default()
     };
-    let result_ty_path = ast::Path {
+    let result_ty_path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(result_ty_ident),
-        ..Default::default()
-    };
-    let result_ty_kind = ast::TyKind::Path(Box::new(result_ty_path));
+        segments: None,
+        id: NodeId::default(),
+        span: Span::default(),
+    }));
+    let result_ty_kind = ast::TyKind::Path(result_ty_path);
 
     let tydef = if USE_IMPLICIT_TYPE_DEF {
         None
@@ -960,11 +969,13 @@ pub(crate) fn build_path_ident_ty<S: AsRef<str>>(name: S) -> Ty {
         name: Rc::from(name.as_ref()),
         ..Default::default()
     };
-    let path = ast::Path {
+    let path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(ident),
-        ..Default::default()
-    };
-    let kind = TyKind::Path(Box::new(path));
+        segments: Option::default(),
+        id: NodeId::default(),
+        span: Span::default(),
+    }));
+    let kind = TyKind::Path(path);
     Ty {
         kind: Box::new(kind),
         ..Default::default()
@@ -976,12 +987,13 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
         name: Rc::from("Complex"),
         ..Default::default()
     };
-    let path = ast::Path {
+    let path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(ident),
         segments: build_idents(&["Microsoft", "Quantum", "Math"]),
-        ..Default::default()
-    };
-    let kind = TyKind::Path(Box::new(path));
+        id: NodeId::default(),
+        span: Span::default(),
+    }));
+    let kind = TyKind::Path(path);
     Ty {
         kind: Box::new(kind),
         ..Default::default()
@@ -996,11 +1008,12 @@ pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
     TopLevelNode::Namespace(qsc::ast::Namespace {
         id: NodeId::default(),
         span: whole_span,
-        name: qsc::ast::Idents(Box::new([Ident {
+        name: [Ident {
             name: Rc::from(ns.as_ref()),
             span: Span::default(),
             id: NodeId::default(),
-        }])),
+        }]
+        .into(),
         items: Box::new([Box::new(entry)]),
         doc: "".into(),
     })
@@ -1464,18 +1477,17 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     }
 }
 
-fn build_idents(idents: &[&str]) -> Option<Idents> {
+fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
     let idents = idents
         .iter()
         .map(|name| Ident {
             name: Rc::from(*name),
             ..Default::default()
         })
-        .collect::<Vec<_>>()
-        .into_boxed_slice();
+        .collect::<Vec<_>>();
     if idents.is_empty() {
         None
     } else {
-        Some(Idents(idents))
+        Some(idents.into())
     }
 }

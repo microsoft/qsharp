@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{
     get_matrix_latex, get_state_latex, write_latex_for_algebraic_number,
     write_latex_for_cartesian_form, write_latex_for_complex_number, write_latex_for_decimal_number,

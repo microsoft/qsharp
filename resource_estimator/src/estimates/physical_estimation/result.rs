@@ -37,6 +37,7 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
             impl Overhead,
         >,
         logical_patch: LogicalPatch<E>,
+        error_budget: &ErrorBudget,
         num_cycles: u64,
         factory_parts: Vec<Option<FactoryPart<F>>>,
         required_logical_error_rate: f64,
@@ -71,10 +72,10 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
             rqops,
             layout_overhead: RealizedOverhead::from_overhead(
                 estimation.layout_overhead(),
-                estimation.error_budget(),
+                error_budget,
                 estimation.factory_builder().num_magic_state_types(),
             ),
-            error_budget: estimation.error_budget().clone(),
+            error_budget: error_budget.clone(),
         }
     }
 
@@ -85,12 +86,14 @@ impl<E: ErrorCorrection<Parameter = impl Clone>, F: Factory<Parameter = E::Param
             impl Overhead,
         >,
         logical_patch: LogicalPatch<E>,
+        error_budget: &ErrorBudget,
         num_cycles: u64,
         required_logical_patch_error_rate: f64,
     ) -> Self {
         Self::new(
             estimation,
             logical_patch,
+            error_budget,
             num_cycles,
             std::iter::repeat(())
                 .map(|()| None)

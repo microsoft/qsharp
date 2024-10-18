@@ -21,11 +21,13 @@ function IntAsDouble(number : Int) : Double {
     body intrinsic;
 }
 
+/// # Summary
 /// Converts a given integer `number` to an equivalent big integer.
 function IntAsBigInt(number : Int) : BigInt {
     body intrinsic;
 }
 
+/// # Summary
 /// Converts a `Result` type to a `Bool` type, where `One` is mapped to
 /// `true` and `Zero` is mapped to `false`.
 ///
@@ -39,6 +41,7 @@ function ResultAsBool(input : Result) : Bool {
     input == One
 }
 
+/// # Summary
 /// Converts a `Bool` type to a `Result` type, where `true` is mapped to
 /// `One` and `false` is mapped to `Zero`.
 ///
@@ -52,6 +55,7 @@ function BoolAsResult(input : Bool) : Result {
     if input { One } else { Zero }
 }
 
+/// # Summary
 /// Produces a non-negative integer from a string of bits in little-endian format.
 /// `bits[0]` represents the least significant bit.
 ///
@@ -72,6 +76,7 @@ function BoolArrayAsInt(bits : Bool[]) : Int {
     number
 }
 
+/// # Summary
 /// Produces a binary representation of a non-negative integer, using the
 /// little-endian representation for the returned array.
 ///
@@ -101,6 +106,7 @@ function IntAsBoolArray(number : Int, bits : Int) : Bool[] {
     result
 }
 
+/// # Summary
 /// Converts an array of Boolean values into a non-negative BigInt, interpreting the
 /// array as a binary representation in little-endian format.
 ///
@@ -126,6 +132,7 @@ function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt {
     result
 }
 
+/// # Summary
 /// Produces a binary representation of a non-negative BigInt, using the
 /// little-endian representation for the returned array.
 ///
@@ -155,6 +162,7 @@ function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[] {
     result
 }
 
+/// # Summary
 /// Produces a non-negative integer from a string of Results in little-endian format.
 ///
 /// # Input
@@ -183,6 +191,7 @@ function ResultArrayAsInt(results : Result[]) : Int {
     number
 }
 
+/// # Summary
 /// Converts a `Result[]` type to a `Bool[]` type, where `One`
 /// is mapped to `true` and `Zero` is mapped to `false`.
 ///
@@ -201,6 +210,7 @@ function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
     output
 }
 
+/// # Summary
 /// Converts a `Bool[]` type to a `Result[]` type, where `true`
 /// is mapped to `One` and `false` is mapped to `Zero`.
 ///
@@ -219,6 +229,7 @@ function BoolArrayAsResultArray(input : Bool[]) : Result[] {
     output
 }
 
+/// # Summary
 /// Converts a complex number of type `Complex` to a complex
 /// number of type `ComplexPolar`.
 ///
@@ -232,6 +243,7 @@ function ComplexAsComplexPolar(input : Complex) : ComplexPolar {
     return ComplexPolar(AbsComplex(input), ArgComplex(input));
 }
 
+/// # Summary
 /// Converts a complex number of type `ComplexPolar` to a complex
 /// number of type `Complex`.
 ///
@@ -248,6 +260,7 @@ function ComplexPolarAsComplex(input : ComplexPolar) : Complex {
     );
 }
 
+/// # Summary
 /// Converts a given double-precision floating-point number to a string representation with desired precision, rounding if required.
 ///
 /// # Input
