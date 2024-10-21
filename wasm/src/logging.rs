@@ -66,7 +66,7 @@ impl log::Log for MyLogger {
     fn flush(&self) {}
 }
 
-pub fn hook(info: &std::panic::PanicInfo) {
+pub fn hook(info: &std::panic::PanicHookInfo) {
     // Code similar to https://github.com/rustwasm/console_error_panic_hook/blob/master/src/lib.rs#L97
     // for capturing the JS stack as well as the panic info
     let mut msg = info.to_string();
