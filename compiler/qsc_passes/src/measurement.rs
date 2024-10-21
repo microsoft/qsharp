@@ -32,19 +32,19 @@ pub enum Error {
     NotIntrinsic(#[label] Span),
 }
 
+/// For each measurement declaration check that:
+///  1. It takes at least one argument.
+///  2. It only takes Qubits as arguments.
+///  3. It only outputs Results.
+///  4. It is an intrinsic.
 pub(super) fn validate_measurement_declarations(package: &mut Package) -> Vec<Error> {
     let mut errors = Vec::new();
-    for (decl, attrs) in get_callables(package) {
+    for (decl, attrs) in get_measurements(package) {
         validate_measurement_declaration(decl, attrs, &mut errors);
     }
     errors
 }
 
-/// For each measurement declaration we need to check that:
-///  1. It takes at least one argument.
-///  2. It only takes Qubits as arguments.
-///  3. It only outputs Results.
-///  4. It is an intrinsic.
 fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors: &mut Vec<Error>) {
     // 1. Check that the declaration takes at least one argument.
     if decl.input.ty == Ty::UNIT {
@@ -66,11 +66,12 @@ fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors:
         _ => errors.push(Error::NonQubitArgument(decl.input.span)),
     }
 
-    // 3. Check that the declaration only outputs Results.
+    // 3. Check that the declaration only outputs Results: specifically check for Unit.
     if decl.output == Ty::UNIT {
         errors.push(Error::NonResultOutput(decl.span));
     }
 
+    // 3. Check that the declaration only outputs Results.
     match &decl.output {
         Ty::Prim(Prim::Result) => (),
         Ty::Tuple(types) => {
@@ -91,18 +92,18 @@ fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors:
     }
 }
 
+/// Returns `true` if a declaration is an intrinsic. A declaration is
+/// an intrinsic if it has `body intrinsic;` in its body or if it has
+/// the `@SimulatableIntrinsic()` attribute.
 fn decl_is_intrinsic(decl: &CallableDecl, attrs: &[Attr]) -> bool {
-    if attrs
-        .iter()
-        .any(|attr| matches!(attr, Attr::SimulatableIntrinsic))
-    {
-        return true;
-    }
-
     matches!(decl.body.body, SpecBody::Gen(SpecGen::Intrinsic))
+        || attrs
+            .iter()
+            .any(|attr| matches!(attr, Attr::SimulatableIntrinsic))
 }
 
-fn get_callables(package: &Package) -> Vec<(&CallableDecl, &[Attr])> {
+/// Returns a list of all the measurement callables and their attributes in a given `Package`.
+fn get_measurements(package: &Package) -> Vec<(&CallableDecl, &[Attr])> {
     let mut finder = MeasurementFinder {
         callables: Vec::new(),
     };
@@ -110,6 +111,7 @@ fn get_callables(package: &Package) -> Vec<(&CallableDecl, &[Attr])> {
     finder.callables
 }
 
+/// A helper structure to find the measurement callables in a Package.
 struct MeasurementFinder<'a> {
     callables: Vec<(&'a CallableDecl, &'a [Attr])>,
 }
