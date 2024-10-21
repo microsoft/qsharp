@@ -67,6 +67,10 @@ fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors:
     }
 
     // 3. Check that the declaration only outputs Results.
+    if decl.output == Ty::UNIT {
+        errors.push(Error::NonResultOutput(decl.span));
+    }
+
     match &decl.output {
         Ty::Prim(Prim::Result) => (),
         Ty::Tuple(types) => {

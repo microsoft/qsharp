@@ -105,6 +105,28 @@ fn test_non_qubit_arguments_error() {
 }
 
 #[test]
+fn test_unit_output_error() {
+    check(
+        indoc! {"
+            namespace Test {
+                @Measurement()
+                operation Mx(target: Qubit) : Unit { body intrinsic; }
+            }"},
+        "",
+        &expect![[r#"
+            [
+                NonResultOutput(
+                    Span {
+                        lo: 41,
+                        hi: 95,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn test_non_result_output_error() {
     check(
         indoc! {"
