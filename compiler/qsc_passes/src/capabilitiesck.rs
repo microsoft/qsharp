@@ -178,7 +178,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
         // We only care about callables.
         if let ItemKind::Callable(callable_decl) = &item.kind {
             self.set_current_callable(item.id);
-            self.check_measurement(&item.attrs, item.span);
+            self.check_measurement(&item.attrs, callable_decl.name.span);
             self.visit_callable_decl(callable_decl);
             let callable_id = self.clear_current_callable();
             assert!(item.id == callable_id);
