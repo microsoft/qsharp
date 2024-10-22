@@ -554,8 +554,8 @@ fn custom_measurement_yields_errors() {
             [
                 CustomMeasurement(
                     Span {
-                        lo: 30,
-                        hi: 125,
+                        lo: 63,
+                        hi: 66,
                     },
                 ),
             ]
