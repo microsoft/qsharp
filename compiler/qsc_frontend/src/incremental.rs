@@ -400,8 +400,13 @@ impl Compiler {
         namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
     ) -> hir::Package {
         self.lowerer
-            .with(hir_assigner, self.resolver.names(), self.checker.table())
-            .lower_package(package, namespaces)
+            .with(
+                hir_assigner,
+                self.resolver.names(),
+                self.checker.table(),
+                &namespaces,
+            )
+            .lower_package(package)
     }
 }
 

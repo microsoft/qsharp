@@ -35,7 +35,28 @@ use crate::compile::preprocess::TrackedName;
 // All AST Path nodes that are namespace paths get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
 // The first Ident of an AST Path node that is a field accessor gets mapped instead of the Path node
-pub(super) type Names = IndexMap<NodeId, Res>;
+#[derive(Default, Debug, Clone)]
+pub(super) struct Names {
+    names: IndexMap<NodeId, (Res, NamespaceId)>,
+}
+
+impl Names {
+    pub fn get(&self, id: NodeId) -> Option<&Res> {
+        self.names.get(id).map(|(res, _)| res)
+    }
+
+    pub fn get_with_namespace(&self, id: NodeId) -> Option<&(Res, NamespaceId)> {
+        self.names.get(id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (NodeId, &Res)> {
+        self.names.iter().map(|(id, (res, _))| (id, res))
+    }
+
+    pub fn insert(&mut self, id: NodeId, res: Res, namespace: NamespaceId) {
+        self.names.insert(id, (res, namespace));
+    }
+}
 
 // If the path is a field accessor, returns the mapped node id of the first ident's declaration and the vec of part's idents.
 // Otherwise, returns None.
@@ -642,7 +663,8 @@ impl Resolver {
         ) {
             Ok(res) => {
                 self.check_item_status(&res, name.name.to_string(), name.span);
-                self.names.insert(name.id, res);
+                let namespace_id = todo!();
+                self.names.insert(name.id, res, namespace_id);
             }
             Err(err) => self.errors.push(err),
         }
@@ -1668,18 +1690,20 @@ fn find_item(
 
 /// Given some namespace `namespace`, add all the globals declared within it to the global scope.
 fn bind_global_items(
-    names: &mut IndexMap<NodeId, Res>,
+    names: &mut Names, //IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
     namespace: &ast::Namespace,
     assigner: &mut Assigner,
     errors: &mut Vec<Error>,
 ) {
+    let namespace_id = scope.insert_or_find_namespace(namespace.name.rc_str_iter().cloned());
     names.insert(
+        // this id is the `NodeId` of the AST node
         namespace.id,
         Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
+        // this id is the `NamespaceId` from the namespace tree
+        namespace_id,
     );
-
-    let namespace_id = scope.insert_or_find_namespace(namespace.name.rc_str_iter().cloned());
 
     for item in &namespace.items {
         match bind_global_item(

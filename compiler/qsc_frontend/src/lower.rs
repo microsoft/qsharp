@@ -76,12 +76,14 @@ impl Lowerer {
         assigner: &'a mut Assigner,
         names: &'a Names,
         tys: &'a typeck::Table,
+        namespaces: &'a qsc_data_structures::namespaces::NamespaceTreeRoot,
     ) -> With {
         With {
             lowerer: self,
             assigner,
             names,
             tys,
+            namespaces,
         }
     }
 }
@@ -90,15 +92,12 @@ pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     assigner: &'a mut Assigner,
     names: &'a Names,
+    namespaces: &'a qsc_data_structures::namespaces::NamespaceTreeRoot,
     tys: &'a typeck::Table,
 }
 
 impl With<'_> {
-    pub(super) fn lower_package(
-        &mut self,
-        package: &ast::Package,
-        namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
-    ) -> hir::Package {
+    pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         let mut stmts = Vec::new();
         for node in &package.nodes {
             match node {
@@ -115,7 +114,7 @@ impl With<'_> {
         let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         hir::Package {
             items,
-            namespaces,
+            namespaces: self.namespaces.clone(),
             stmts,
             entry,
         }
@@ -187,12 +186,15 @@ impl With<'_> {
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
-        let resolve_id = |id| match self.names.get(id) {
-            Some(&resolve::Res::ExportedItem(item, ref hir_alias)) => {
-                Some((item, hir_alias.clone()))
-            }
-            Some(&resolve::Res::Item(item, _)) => Some((item, None)),
-            _otherwise => None,
+        let resolve_id = |id| -> Option<(hir::ItemId, Option<Ident>)> {
+            let (id, alias) = match self.names.get(id) {
+                Some(&resolve::Res::ExportedItem(item, ref hir_alias)) => (item, hir_alias.clone()),
+                Some(&resolve::Res::Item(item, _)) => (item, None),
+                _otherwise => return None,
+            };
+
+            // fetch the namespace from self.namespaces
+            Some((id, alias))
         };
 
         let (id, kind) = match &*item.kind {
@@ -209,6 +211,10 @@ impl With<'_> {
                     let Some((id, alias)) = resolve_id(item_name.id) else {
                         continue;
                     };
+
+                    let is_reexport_from_same_package_but_different_namespace =
+                        todo!("get ns from Names");
+
                     let is_reexport = id.package.is_some() || alias.is_some();
                     // if the package is Some, then this is a re-export and we
                     // need to preserve the reference to the original `ItemId`

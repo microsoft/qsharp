@@ -30,23 +30,17 @@ fn compile_one_operation(code: &str) -> (Item, String) {
             None
         }
     });
-    let mut namespaces = unit.package.items.values().filter_map(|i| {
-        if let ItemKind::Namespace(ident, _) = &i.kind {
-            Some(ident.clone())
-        } else {
-            None
-        }
-    });
+    let mut namespaces = unit.package.namespaces.iter();
     let (only_callable, callable_name) = callables.next().expect("Expected exactly one callable");
     assert!(callables.next().is_none(), "Expected exactly one callable");
-    let only_namespace = namespaces.next().expect("Expected exactly one namespace");
+    let only_namespace = namespaces.next().expect("Expected exactly one namespace")[0].clone();
     assert!(
         namespaces.next().is_none(),
         "Expected exactly one namespace"
     );
     (
         only_callable.clone(),
-        format!("{}.{callable_name}", only_namespace.name()),
+        format!("{}.{callable_name}", only_namespace[0]),
     )
 }
 

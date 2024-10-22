@@ -243,9 +243,11 @@ impl NamespaceTreeRoot {
         Ok(())
     }
 
-    /// Each item in this iterator is the same, single namespace. The reason there are multiple paths for it,
+    /// Each item in this iterator is one singluar namespace. The reason there are multiple paths for it,
     /// each represented by a `Vec<Rc<str>>`, is because there may be multiple paths to the same
     /// namespace, through aliasing or re-exports.
+    /// For example, the first item yielded may be the namespace 0, but it could be referred to by
+    /// A.B.C or D.E.F, so both are included.
     pub fn iter(&self) -> std::collections::btree_map::IntoValues<NamespaceId, Vec<Vec<Rc<str>>>> {
         let mut stack = vec![(vec![], self.tree.clone())];
         let mut result: Vec<(NamespaceId, Vec<Rc<str>>)> = vec![];

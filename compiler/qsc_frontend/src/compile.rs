@@ -402,8 +402,8 @@ pub fn compile_ast(
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
     let mut lowerer = Lowerer::new();
     let package = lowerer
-        .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package, globals.namespaces.clone());
+        .with(&mut hir_assigner, &names, &tys, &globals.namespaces)
+        .lower_package(&ast_package);
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
