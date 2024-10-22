@@ -178,7 +178,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
         // We only care about callables.
         if let ItemKind::Callable(callable_decl) = &item.kind {
             self.set_current_callable(item.id);
-            self.check_measurement(&item.attrs, callable_decl.name.span);
+            self.check_attrs(&item.attrs, callable_decl.name.span);
             self.visit_callable_decl(callable_decl);
             let callable_id = self.clear_current_callable();
             assert!(item.id == callable_id);
@@ -278,7 +278,7 @@ impl<'a> Checker<'a> {
     }
 
     /// Check that there are no custom measurements in Base Profile.
-    fn check_measurement(&mut self, attrs: &[Attr], span: Span) {
+    fn check_attrs(&mut self, attrs: &[Attr], span: Span) {
         let allow_custom_measurement = self
             .target_capabilities
             .contains(TargetCapabilityFlags::Adaptive);
