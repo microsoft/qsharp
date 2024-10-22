@@ -19,7 +19,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         LanguageFeatures::default(),
     );
 
-    let errors = validate_measurement_declarations(&mut unit.package);
+    let errors = validate_measurement_declarations(&unit.package);
     expect.assert_debug_eq(&errors);
 }
 
