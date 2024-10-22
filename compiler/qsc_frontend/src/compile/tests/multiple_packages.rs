@@ -509,3 +509,52 @@ fn aliased_export_via_aliased_import() {
         ),
     ]);
 }
+
+#[test]
+fn reexport_item_from_dependency() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+    namespace Inner {
+        function InnerFunc() : Unit {}
+    }
+
+    namespace Main {
+        export Inner.InnerFunc;
+    }"#,
+        ),
+        (
+            "A",
+            r#"
+//        import B.InnerFunc;
+        operation Main() : Unit {
+            B.InnerFunc();
+        }
+        "#,
+        ),
+    ]);
+}
+
+#[test]
+fn reexport_item_from_implicit_namespace() {
+    multiple_package_check(vec![
+        (
+            "B",
+            r#"
+        function InnerFunc() : Unit {}
+
+        export InnerFunc;
+    "#,
+        ),
+        (
+            "A",
+            r#"
+//        import B.InnerFunc;
+        operation Main() : Unit {
+            B.B.InnerFunc();
+        }
+        "#,
+        ),
+    ]);
+}

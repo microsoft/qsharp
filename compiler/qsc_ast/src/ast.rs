@@ -1412,6 +1412,17 @@ pub enum PathKind {
     Err(Option<Box<IncompletePath>>),
 }
 
+impl PathKind {
+    /// Returns the namespace of the path, if it exists and if the path is valid.
+    #[must_use]
+    pub fn ok_namespace(&self) -> Option<&[Ident]> {
+        match self {
+            PathKind::Ok(path) => path.namespace(),
+            PathKind::Err(_) => None,
+        }
+    }
+}
+
 impl Default for PathKind {
     fn default() -> Self {
         PathKind::Err(None)
@@ -1463,6 +1474,18 @@ pub struct Path {
     pub segments: Option<Box<[Ident]>>,
     /// The declaration or field name.
     pub name: Box<Ident>,
+}
+
+impl Path {
+    #[must_use]
+    pub fn namespace(&self) -> Option<&[Ident]> {
+        match self.segments {
+            // It should never be Some([]) but just in case we check it here
+            Some(ref segs) if segs.is_empty() => None,
+            None => None,
+            Some(ref segs) => Some(segs),
+        }
+    }
 }
 
 impl Display for Path {
