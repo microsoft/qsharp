@@ -37,7 +37,7 @@ pub enum Error {
 ///  2. It only takes Qubits as arguments.
 ///  3. It only outputs Results.
 ///  4. It is an intrinsic.
-pub(super) fn validate_measurement_declarations(package: &mut Package) -> Vec<Error> {
+pub(super) fn validate_measurement_declarations(package: &Package) -> Vec<Error> {
     let mut errors = Vec::new();
     for (decl, attrs) in get_measurements(package) {
         validate_measurement_declaration(decl, attrs, &mut errors);
