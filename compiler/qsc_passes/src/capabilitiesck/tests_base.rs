@@ -5,7 +5,7 @@ use super::tests_common::{
     check, check_for_exe, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
@@ -539,6 +539,23 @@ fn measurement_within_dynamic_scope_yields_errors() {
                     Span {
                         lo: 137,
                         hi: 141,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_measurement_yields_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT,
+        &expect![[r#"
+            [
+                CustomMeasurement(
+                    Span {
+                        lo: 30,
+                        hi: 125,
                     },
                 ),
             ]

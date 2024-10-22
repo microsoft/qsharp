@@ -325,6 +325,14 @@ pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
         }
     }"#;
 
+pub const CUSTOM_MEASUREMENT: &str = r#"
+    namespace Test {
+        @Measurement()
+        operation Foo(q: Qubit) : Result {
+            body intrinsic;
+        }
+    }"#;
+
 pub const USE_DYNAMIC_INDEX: &str = r#"
     namespace Test {
         import Std.Convert.*;

@@ -887,10 +887,8 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
         .iter()
         .filter_map(|attr| match attr {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
-            hir::Attr::Measurement
-            | hir::Attr::SimulatableIntrinsic
-            | hir::Attr::Unimplemented
-            | hir::Attr::Config => None,
+            hir::Attr::Measurement => Some(fir::Attr::Measurement),
+            hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
         })
         .collect()
 }

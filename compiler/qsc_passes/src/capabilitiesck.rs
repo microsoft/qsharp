@@ -17,7 +17,7 @@ use qsc_data_structures::{span::Span, target::TargetCapabilityFlags};
 
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Ident, Item, ItemKind,
+        Attr, Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Ident, Item, ItemKind,
         LocalItemId, LocalVarId, Package, PackageLookup, Pat, PatId, PatKind, Res, SpecDecl,
         SpecImpl, Stmt, StmtId, StmtKind,
     },
@@ -87,6 +87,7 @@ pub fn check_supported_capabilities(
         current_callable: None,
         missing_features_map: FxHashMap::<Span, RuntimeFeatureFlags>::default(),
         store,
+        errors: Vec::new(),
     };
 
     checker.check_all()
@@ -99,6 +100,7 @@ struct Checker<'a> {
     current_callable: Option<LocalItemId>,
     missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
     store: &'a qsc_fir::fir::PackageStore,
+    errors: Vec<Error>,
 }
 
 impl<'a> Visitor<'a> for Checker<'a> {
@@ -176,6 +178,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
         // We only care about callables.
         if let ItemKind::Callable(callable_decl) = &item.kind {
             self.set_current_callable(item.id);
+            self.check_measurement(&item.attrs, item.span);
             self.visit_callable_decl(callable_decl);
             let callable_id = self.clear_current_callable();
             assert!(item.id == callable_id);
@@ -271,6 +274,17 @@ impl<'a> Checker<'a> {
             post_spans_with_missing_features_count - pre_spans_with_missing_features_count;
         if errors_delta == 0 {
             self.check_expr(expr_id);
+        }
+    }
+
+    /// Check that there are no custom measurements in Base Profile.
+    fn check_measurement(&mut self, attrs: &[Attr], span: Span) {
+        let allow_custom_measurement = self
+            .target_capabilities
+            .contains(TargetCapabilityFlags::Adaptive);
+
+        if attrs.contains(&Attr::Measurement) && !allow_custom_measurement {
+            self.errors.push(Error::CustomMeasurement(span));
         }
     }
 
@@ -395,6 +409,7 @@ impl<'a> Checker<'a> {
             let mut span_errors = generate_errors_from_runtime_features(missing_features, span);
             errors.append(&mut span_errors);
         }
+        errors.append(&mut self.errors);
         errors
     }
 

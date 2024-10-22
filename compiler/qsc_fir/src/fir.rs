@@ -1519,6 +1519,8 @@ impl Display for Ident {
 pub enum Attr {
     /// Indicates that a callable is an entry point to a program.
     EntryPoint,
+    /// Indicates that a callable is a measurement.
+    Measurement,
 }
 
 /// A field.
