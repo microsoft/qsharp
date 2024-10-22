@@ -11,7 +11,7 @@ use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(
+    let unit = compile(
         &PackageStore::new(compile::core()),
         &[],
         sources,
