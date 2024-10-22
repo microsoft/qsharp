@@ -334,7 +334,7 @@ impl Backend for SparseSim {
     }
 
     fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
-        // This is an service function rather than a gate so it doesn't incur noise.
+        // This is a service function rather than a gate so it doesn't incur noise.
         self.sim.swap_qubit_ids(q0, q1);
     }
 
@@ -359,7 +359,7 @@ impl Backend for SparseSim {
     }
 
     fn qubit_is_zero(&mut self, q: usize) -> bool {
-        // This is an service function rather than a measurement so it doesn't incur noise.
+        // This is a service function rather than a measurement so it doesn't incur noise.
         self.sim.qubit_is_zero(q)
     }
 
