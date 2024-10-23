@@ -117,6 +117,7 @@ wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
 npm_src = os.path.join(root_dir, "npm", "qsharp")
+circuit_vis_src = os.path.join(root_dir, "circuit_vis")
 play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
 widgets_src = os.path.join(root_dir, "widgets")
@@ -357,23 +358,6 @@ if build_pip:
         step_end()
 
 
-if build_widgets:
-    step_start("Building the Python widgets")
-
-    widgets_build_args = [
-        sys.executable,
-        "-m",
-        "pip",
-        "wheel",
-        "--no-deps",
-        "--wheel-dir",
-        wheels_dir,
-        widgets_src,
-    ]
-    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
-
-    step_end()
-
 if build_wasm:
     step_start("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
@@ -392,6 +376,17 @@ if build_wasm:
     subprocess.run(
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
+    step_end()
+
+if build_npm:
+    step_start("Building the circuit_vis package")
+
+    npm_args = [npm_cmd, "install"]
+    subprocess.run(npm_args, check=True, text=True, cwd=circuit_vis_src)
+
+    npm_args = [npm_cmd, "run", "build:prod"]
+    subprocess.run(npm_args, check=True, text=True, cwd=circuit_vis_src)
+
     step_end()
 
 if build_npm:
@@ -420,6 +415,23 @@ if build_npm:
         print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
         subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
+    step_end()
+
+if build_widgets:
+    step_start("Building the Python widgets")
+
+    widgets_build_args = [
+        sys.executable,
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--wheel-dir",
+        wheels_dir,
+        widgets_src,
+    ]
+    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
+
     step_end()
 
 if build_play:
