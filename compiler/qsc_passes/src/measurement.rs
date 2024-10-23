@@ -75,18 +75,18 @@ fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors:
         Ty::Tuple(types) => {
             for ty in types {
                 if !matches!(ty, Ty::Prim(Prim::Result)) {
-                    errors.push(Error::NonResultOutput(decl.span));
+                    errors.push(Error::NonResultOutput(decl.name.span));
                     // break so that we don't repeat the same error multiple times
                     break;
                 }
             }
         }
-        _ => errors.push(Error::NonResultOutput(decl.span)),
+        _ => errors.push(Error::NonResultOutput(decl.name.span)),
     }
 
     // 4. Check that the declaration is an intrinsic.
     if !decl_is_intrinsic(decl, attrs) {
-        errors.push(Error::NotIntrinsic(decl.span));
+        errors.push(Error::NotIntrinsic(decl.name.span));
     }
 }
 
