@@ -73,8 +73,8 @@ fn test_non_intrinsic_measurement_error() {
             [
                 NotIntrinsic(
                     Span {
-                        lo: 41,
-                        hi: 91,
+                        lo: 51,
+                        hi: 53,
                     },
                 ),
             ]
@@ -139,8 +139,8 @@ fn test_non_result_output_error() {
             [
                 NonResultOutput(
                     Span {
-                        lo: 41,
-                        hi: 104,
+                        lo: 51,
+                        hi: 53,
                     },
                 ),
             ]
