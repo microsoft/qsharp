@@ -2326,7 +2326,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             _ => {
                 return Err(Error::EvaluationFailed(
-                    "the arguments of a measurement should be Qubits".to_string(),
+                    "the outputs of a measurement should be Results".to_string(),
                     args_span,
                 ));
             }

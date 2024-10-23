@@ -446,7 +446,7 @@ fn measurement_within_dynamic_scope_yields_no_errors() {
 }
 
 #[test]
-fn custom_measurement_yields_errors() {
+fn custom_measurement_yields_no_errors() {
     check_profile(
         CUSTOM_MEASUREMENT,
         &expect![[r#"
