@@ -209,11 +209,12 @@ impl Backend for SparseSim {
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        self.apply_noise(q);
+        self.apply_noise(q); // Applying noise before measurement
         let res = self.sim.measure(q);
         if res {
             self.sim.x(q);
         }
+        self.apply_noise(q); // Applying noise after reset
         res
     }
 
@@ -318,8 +319,9 @@ impl Backend for SparseSim {
     }
 
     fn qubit_allocate(&mut self) -> usize {
-        self.sim.allocate()
-        // No noise is applied on allocation
+        let q = self.sim.allocate();
+        self.apply_noise(q); // Noise is applied to fresh qubit.
+        q
     }
 
     fn qubit_release(&mut self, q: usize) -> bool {
