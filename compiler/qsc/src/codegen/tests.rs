@@ -551,7 +551,7 @@ mod adaptive_profile {
             store,
             &[(std_id, None)],
         )
-        .expect("Failed to generate QIR");
+        .expect("the input program set in the `source` variable should be valid Q#");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -619,7 +619,7 @@ mod adaptive_profile {
             store,
             &[(std_id, None)],
         )
-        .expect("Failed to generate QIR");
+        .expect("the input program set in the `source` variable should be valid Q#");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -911,7 +911,7 @@ mod adaptive_ri_profile {
             store,
             &[(std_id, None)],
         )
-        .expect("Failed to generate QIR");
+        .expect("the input program set in the `source` variable should be valid Q#");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -982,7 +982,7 @@ mod adaptive_ri_profile {
             store,
             &[(std_id, None)],
         )
-        .expect("Failed to generate QIR");
+        .expect("the input program set in the `source` variable should be valid Q#");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
