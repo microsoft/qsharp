@@ -38,11 +38,9 @@ pub enum Error {
 ///  3. It only outputs Results.
 ///  4. It is an intrinsic.
 pub(super) fn validate_measurement_declarations(package: &Package) -> Vec<Error> {
-    let mut errors = Vec::new();
-    for (decl, attrs) in get_measurements(package) {
-        validate_measurement_declaration(decl, attrs, &mut errors);
-    }
-    errors
+    let mut validator = MeasurementValidator { errors: Vec::new() };
+    validator.visit_package(package);
+    validator.errors
 }
 
 fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors: &mut Vec<Error>) {
@@ -102,25 +100,16 @@ fn decl_is_intrinsic(decl: &CallableDecl, attrs: &[Attr]) -> bool {
             .any(|attr| matches!(attr, Attr::SimulatableIntrinsic))
 }
 
-/// Returns a list of all the measurement callables and their attributes in a given `Package`.
-fn get_measurements(package: &Package) -> Vec<(&CallableDecl, &[Attr])> {
-    let mut finder = MeasurementFinder {
-        callables: Vec::new(),
-    };
-    finder.visit_package(package);
-    finder.callables
+/// A helper structure to find and validate measurement callables in a Package.
+struct MeasurementValidator {
+    errors: Vec<Error>,
 }
 
-/// A helper structure to find the measurement callables in a Package.
-struct MeasurementFinder<'a> {
-    callables: Vec<(&'a CallableDecl, &'a [Attr])>,
-}
-
-impl<'a> Visitor<'a> for MeasurementFinder<'a> {
+impl<'a> Visitor<'a> for MeasurementValidator {
     fn visit_item(&mut self, item: &'a Item) {
         if let ItemKind::Callable(callable) = &item.kind {
             if item.attrs.contains(&Attr::Measurement) {
-                self.callables.push((callable, &item.attrs));
+                validate_measurement_declaration(callable, &item.attrs, &mut self.errors);
             }
         }
     }
