@@ -15,19 +15,19 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error("a measurement should take at least one Qubit as argument")]
+    #[error("a callable with the measurement attribute should take at least one argument of type")]
     #[diagnostic(code("Qsc.Measurement.NoArguments"))]
     NoArguments(#[label] Span),
 
-    #[error("a measurement should only take Qubits as arguments")]
+    #[error("a callable with the measurement attribute should only take arguments of type Qubit")]
     #[diagnostic(code("Qsc.Measurement.NonQubitArgument"))]
     NonQubitArgument(#[label] Span),
 
-    #[error("a measurement should only have Results as outputs")]
+    #[error("a callable with the measurement attribute should only have outputs of type Result")]
     #[diagnostic(code("Qsc.Measurement.NonResultOutput"))]
     NonResultOutput(#[label] Span),
 
-    #[error("a measurement should be an intrinsic")]
+    #[error("a callable with the measurement attribute should be an intrinsic")]
     #[diagnostic(code("Qsc.Measurement.NotIntrinsic"))]
     NotIntrinsic(#[label] Span),
 }
