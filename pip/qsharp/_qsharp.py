@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from . import telemetry_events
 from ._native import (
     Interpreter,
     TargetProfile,
@@ -22,6 +23,7 @@ from typing import (
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
+from time import monotonic
 
 _interpreter = None
 
@@ -234,6 +236,9 @@ def run(
     if shots < 1:
         raise QSharpError("The number of shots must be greater than 0.")
 
+    telemetry_events.on_run(shots)
+    start_time = monotonic()
+
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
@@ -262,6 +267,9 @@ def run(
         # a rerun of the last executed expression without paying the cost for any additional
         # compilation.
         entry_expr = None
+
+    durationMs = (monotonic() - start_time) * 1000
+    telemetry_events.on_run_end(durationMs, shots)
 
     if save_events:
         return results

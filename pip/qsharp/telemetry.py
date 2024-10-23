@@ -15,12 +15,13 @@ Disable qsharp Python telemetry by setting the environment variable `QSHARP_PYTH
 """
 
 import atexit
+import json
 import locale
 import logging
 import os
 import platform
 import time
-import urllib3
+import urllib.request
 import warnings
 
 from datetime import datetime, timezone
@@ -133,7 +134,7 @@ def flush_telemetry():
     telemetry_queue.put("flush")
 
 
-def add_to_pending(metric: Metric):
+def _add_to_pending(metric: Metric):
     """Used by the telemetry thread to aggregate metrics before sending"""
 
     if metric["type"] not in ["counter", "histogram"]:
@@ -168,8 +169,8 @@ def add_to_pending(metric: Metric):
         prop_entry["max"] = max(prop_entry["max"], metric["value"])
 
 
-def pending_to_payload():
-    """Converts the pending metrics to the JSON payload (as a list of dicts) for Azure Monitor"""
+def _pending_to_payload():
+    """Converts the pending metrics to the JSON payload for Azure Monitor"""
 
     result_array = []
     formatted_time = (
@@ -215,7 +216,7 @@ def pending_to_payload():
     return result_array
 
 
-def post_telemetry():
+def _post_telemetry():
     """Posts the pending telemetry to Azure Monitor"""
 
     if not TELEMETRY_ENABLED:
@@ -224,54 +225,57 @@ def post_telemetry():
     if len(pending_metrics) == 0:
         return True  # Nothing to send
 
-    payload = pending_to_payload()
+    payload = json.dumps(_pending_to_payload()).encode("utf-8")
     logger.debug("Sending telemetry request: %s", payload)
     try:
-        response = urllib3.request(
-            "POST", AIURL, timeout=5, retries=False, json=payload
-        )
-        logger.debug("Telemetry response: %s", response.status)
-        # On a successful post, clear the pending list. (Else they will be included on the next retry)
-        pending_metrics.clear()
-        return True
+        request = urllib.request.Request(AIURL, data=payload, method="POST")
+        request.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(request, timeout=10) as response:
+            logger.debug("Telemetry response: %s", response.status)
+            # On a successful post, clear the pending list. (Else they will be included on the next retry)
+            pending_metrics.clear()
+            return True
+
     except Exception as e:
-        logger.exception("Failed to post telemetry")
+        logger.exception(
+            "Failed to post telemetry. Pending metrics will be retried at the next interval."
+        )
         return False
 
 
 # This is the thread that aggregates and posts telemetry at a regular interval.
 # The main thread will signal the thread loop to exit when the process is about to exit.
-def telemetry_thread_start():
-    next_post_time_sec: Union[float, None] = None
+def _telemetry_thread_start():
+    next_post_sec: Union[float, None] = None
 
     def on_metric(msg: Metric):
-        nonlocal next_post_time_sec
+        nonlocal next_post_sec
 
         # Add to the pending batch to send next
-        add_to_pending(msg)
+        _add_to_pending(msg)
 
         # Schedule the next post if we don't have one scheduled
-        if next_post_time_sec == None:
-            next_post_time_sec = time.monotonic() + BATCH_INTERVAL_SEC
+        if next_post_sec == None:
+            next_post_sec = time.monotonic() + BATCH_INTERVAL_SEC
 
     while True:
         try:
             # Block if no timeout, else wait a maximum of time until the next post is due
             timeout = (
                 None
-                if next_post_time_sec == None
-                else max(next_post_time_sec - time.monotonic(), 0)
+                if next_post_sec == None
+                else max(next_post_sec - time.monotonic(), 0)
             )
             msg = telemetry_queue.get(timeout=timeout)
 
             if msg == "exit":
                 logger.debug("Exiting telemetry thread")
-                if not post_telemetry():
+                if not _post_telemetry():
                     logger.error("Failed to post telemetry on exit")
                 return
             elif msg == "flush":
                 logger.debug("Flushing telemetry")
-                if not post_telemetry():
+                if not _post_telemetry():
                     logger.error("Failed to post telemetry on flush")
             else:
                 on_metric(msg)
@@ -280,14 +284,14 @@ def telemetry_thread_start():
                 continue
         except Empty:
             # No more telemetry within timeout, so write what we have pending
-            post_telemetry()
+            _post_telemetry()
 
         # If we get here, it's after a post attempt. Pending will still have items if the attempt
         # failed, so updated the time for the next attempt in that case.
         if len(pending_metrics) == 0:
-            next_post_time_sec = None
+            next_post_sec = None
         else:
-            next_post_time_sec = time.monotonic() + BATCH_INTERVAL_SEC
+            next_post_sec = time.monotonic() + BATCH_INTERVAL_SEC
 
 
 # When the process is about to exit, notify the telemetry thread to flush, and wait max 3 sec before exiting anyway
@@ -299,6 +303,6 @@ def on_exit():
 
 # Mark the telemetry thread as a deamon thread, else it will keep the process alive when the main thread exits
 if TELEMETRY_ENABLED:
-    telemetry_thread = Thread(target=telemetry_thread_start, daemon=True)
+    telemetry_thread = Thread(target=_telemetry_thread_start, daemon=True)
     telemetry_thread.start()
     atexit.register(on_exit)

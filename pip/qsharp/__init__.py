@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from . import telemetry_events
 from ._qsharp import (
     init,
     eval,
@@ -15,6 +16,8 @@ from ._qsharp import (
     StateDump,
     ShotResult,
 )
+
+telemetry_events.on_import()
 
 from ._native import Result, Pauli, QSharpError, TargetProfile
 

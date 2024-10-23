@@ -29,23 +29,23 @@ def get_shots_bucket(shots: int):
         return 10 ** math.ceil(math.log10(shots))
 
 
-def on_init():
-    log_telemetry("qsharp.init", 1, properties=default_props)
+def on_import():
+    log_telemetry("qsharp.import", 1, properties=default_props)
 
 
 def on_run(shots: int):
     log_telemetry(
-        "qsharp.simulate",
+        "qsharp.run",
         1,
-        properties={**default_props, shots: get_shots_bucket(shots)},
+        properties={**default_props, "shots": get_shots_bucket(shots)},
     )
 
 
 def on_run_end(durationMs: float, shots: int):
     log_telemetry(
-        "qsharp.simulate.durationMs",
+        "qsharp.run.durationMs",
         durationMs,
-        properties={**default_props, shots: get_shots_bucket(shots)},
+        properties={**default_props, "shots": get_shots_bucket(shots)},
         type="histogram",
     )
 
