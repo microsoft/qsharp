@@ -1158,6 +1158,9 @@ impl<'a> Analyzer<'a> {
             CallableKind::Operation => {
                 derive_instrinsic_operation_application_generator_set(callable_context)
             }
+            CallableKind::Measurement => {
+                derive_instrinsic_measurement_application_generator_set(callable_context)
+            }
         };
 
         // Insert the generator set in the entry corresponding to the body specialization of the callable.
@@ -2289,6 +2292,60 @@ fn derive_instrinsic_operation_application_generator_set(
     }
 }
 
+fn derive_instrinsic_measurement_application_generator_set(
+    callable_context: &CallableContext,
+) -> ApplicationGeneratorSet {
+    assert!(matches!(callable_context.kind, CallableKind::Measurement));
+
+    // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
+    let value_kind = if callable_context.output_type == Ty::UNIT
+        || callable_context.output_type == Ty::Prim(Prim::Qubit)
+    {
+        ValueKind::Element(RuntimeKind::Static)
+    } else {
+        ValueKind::new_dynamic_from_type(&callable_context.output_type)
+    };
+
+    // The compute kind of intrinsic operations is always quantum.
+    let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
+        runtime_features: RuntimeFeatureFlags::CustomMeasurement,
+        value_kind,
+    });
+
+    // Determine the compute kind of all dynamic parameter applications.
+    let mut dynamic_param_applications =
+        Vec::<ParamApplication>::with_capacity(callable_context.input_params.len());
+    for param in &callable_context.input_params {
+        // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
+        // dynamic the output of the operation is dynamic.
+        // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
+        // operation application.
+        let runtime_features = derive_runtime_features_for_value_kind_associated_to_type(
+            ValueKind::new_dynamic_from_type(&param.ty),
+            &param.ty,
+        );
+        let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
+        let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        });
+
+        // Create a parameter application depending on the parameter type.
+        let param_application = match &param.ty {
+            Ty::Array(_) => {
+                array_param_application_from_runtime_features(runtime_features, value_kind)
+            }
+            _ => ParamApplication::Element(param_compute_kind),
+        };
+        dynamic_param_applications.push(param_application);
+    }
+
+    ApplicationGeneratorSet {
+        inherent: inherent_compute_kind,
+        dynamic_param_applications,
+    }
+}
+
 fn is_length_intrinsic(callable_decl: &CallableDecl) -> bool {
     matches!(callable_decl.implementation, CallableImpl::Intrinsic)
         && callable_decl.name.name.as_ref() == "Length"
@@ -2377,6 +2434,9 @@ fn derive_runtime_features_for_value_kind_associated_to_type(
         match arrow.kind {
             CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
             CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
+            CallableKind::Measurement => {
+                panic!("measurements are intrinsics, and arrow kinds cannot be intrinsics");
+            }
         }
     }
 

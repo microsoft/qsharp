@@ -131,6 +131,7 @@ fn collect_hardcoded_words(expected: WordKinds) -> Vec<Completion> {
                 completions.extend([
                     Completion::new("EntryPoint".to_string(), CompletionItemKind::Interface),
                     Completion::new("Config".to_string(), CompletionItemKind::Interface),
+                    Completion::new("Measurement".to_string(), CompletionItemKind::Interface),
                 ]);
             }
             HardcodedIdentKind::Size => {

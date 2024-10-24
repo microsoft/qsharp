@@ -887,6 +887,7 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
         .iter()
         .filter_map(|attr| match attr {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::Measurement => Some(fir::Attr::Measurement),
             hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
         })
         .collect()
@@ -972,6 +973,7 @@ fn lower_callable_kind(kind: hir::CallableKind) -> fir::CallableKind {
     match kind {
         hir::CallableKind::Function => fir::CallableKind::Function,
         hir::CallableKind::Operation => fir::CallableKind::Operation,
+        hir::CallableKind::Measurement => fir::CallableKind::Measurement,
     }
 }
 

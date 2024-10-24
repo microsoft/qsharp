@@ -87,6 +87,7 @@ pub fn check_supported_capabilities(
         current_callable: None,
         missing_features_map: FxHashMap::<Span, RuntimeFeatureFlags>::default(),
         store,
+        errors: Vec::new(),
     };
 
     checker.check_all()
@@ -99,6 +100,7 @@ struct Checker<'a> {
     current_callable: Option<LocalItemId>,
     missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
     store: &'a qsc_fir::fir::PackageStore,
+    errors: Vec<Error>,
 }
 
 impl<'a> Visitor<'a> for Checker<'a> {
@@ -395,6 +397,7 @@ impl<'a> Checker<'a> {
             let mut span_errors = generate_errors_from_runtime_features(missing_features, span);
             errors.append(&mut span_errors);
         }
+        errors.append(&mut self.errors);
         errors
     }
 
