@@ -2347,10 +2347,7 @@ impl<'a> PartialEvaluator<'a> {
         current_block.0.push(instruction);
 
         match results_values.len() {
-            0 => Err(Error::EvaluationFailed(
-                "a measurement should return one or more results".to_string(),
-                args_span,
-            )),
+            0 => panic!("unexpected unitary measurement"),
             1 => Ok(results_values[0].clone()),
             2.. => Ok(Value::Tuple(results_values.into())),
         }
