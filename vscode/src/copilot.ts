@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { getRandomGuid } from "./utils";
 import { log } from "qsharp-lang";
 import { getAuthSession, scopes } from "./azure/auth";
@@ -14,6 +15,7 @@ import {
 } from "vscode";
 
 const chatUrl = "https://westus3.aqa.quantum.azure.com/api/chat/streaming";
+const newUrl = "https://api.quantum-test.microsoft.com/api/chat/completions";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 const latexContext = String.raw`Please ensure any LaTeX code is enclosed in single or double dollar signs, e.g. $x^2$ or $$x^2$$ , and not escaped parentheses, e.g. \(x^2\).`;
