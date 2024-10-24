@@ -13,6 +13,7 @@ mod tests;
 
 pub use qsc_eval::{
     debug::Frame,
+    noise::PauliNoise,
     output::{self, GenericReceiver},
     val::Closure,
     val::Range as ValueRange,
@@ -468,8 +469,17 @@ impl Interpreter {
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
     /// but using the current compilation.
-    pub fn run(&mut self, receiver: &mut impl Receiver, expr: Option<&str>) -> InterpretResult {
-        self.run_with_sim(&mut SparseSim::new(), receiver, expr)
+    pub fn run(
+        &mut self,
+        receiver: &mut impl Receiver,
+        expr: Option<&str>,
+        noise: Option<PauliNoise>,
+    ) -> InterpretResult {
+        let mut sim = match noise {
+            Some(noise) => SparseSim::new_with_noise(&noise),
+            None => SparseSim::new(),
+        };
+        self.run_with_sim(&mut sim, receiver, expr)
     }
 
     /// Gets the current quantum state of the simulator.

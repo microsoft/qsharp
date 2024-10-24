@@ -139,12 +139,19 @@ class Interpreter:
         """
         ...
 
-    def run(self, entry_expr: str, output_fn: Callable[[Output], None]) -> Any:
+    def run(
+        self,
+        entry_expr: str,
+        output_fn: Callable[[Output], None],
+        pauli_noise: Optional[Tuple[float, float, float]],
+    ) -> Any:
         """
         Runs the given Q# expression with an independent instance of the simulator.
 
         :param entry_expr: The entry expression.
         :param output_fn: A callback function that will be called with each output.
+        :param pauli_noise: The noise probability to apply to the simulator, expressed as a tuple of
+            the probability of Pauli-X, Pauli-Y, and Pauli-Z errors.
 
         :returns values: A result or runtime errors.
 
