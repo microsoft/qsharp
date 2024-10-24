@@ -42,7 +42,6 @@ fn test_custom_measurement_declaration_with_simulatable_intrinsic_attr() {
     );
 }
 
-
 #[test]
 fn test_custom_measurement_declaration() {
     check(
