@@ -327,6 +327,11 @@ pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
 
 pub const CUSTOM_MEASUREMENT: &str = r#"
     namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            Foo(q)
+        }
+
         @Measurement()
         operation Foo(q: Qubit) : Result {
             body intrinsic;

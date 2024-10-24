@@ -307,6 +307,9 @@ pub fn generate_errors_from_runtime_features(
     if runtime_features.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
         errors.push(Error::UseOfAdvancedOutput(span));
     }
+    if runtime_features.contains(RuntimeFeatureFlags::CustomMeasurement) {
+        errors.push(Error::CustomMeasurement(span));
+    }
     errors
 }
 
