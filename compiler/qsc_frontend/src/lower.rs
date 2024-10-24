@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self, Ident, Idents, PathKind};
+use qsc_ast::ast::{self, FieldAccess, Ident, Idents, PathKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -620,7 +620,7 @@ impl With<'_> {
             }
             ast::ExprKind::Err => dbg!(hir::ExprKind::Err),
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
-            ast::ExprKind::Field(container, name) => {
+            ast::ExprKind::Field(container, FieldAccess::Ok(name)) => {
                 let container = self.lower_expr(container);
                 let field = self.lower_field(&container.ty, &name.name);
                 hir::ExprKind::Field(Box::new(container), field)
@@ -726,7 +726,8 @@ impl With<'_> {
             }
             ast::ExprKind::Err
             | &ast::ExprKind::Path(ast::PathKind::Err(_))
-            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => hir::ExprKind::Err,
+            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..)
+            | ast::ExprKind::Field(_, FieldAccess::Err) => hir::ExprKind::Err,
         };
 
         hir::Expr {

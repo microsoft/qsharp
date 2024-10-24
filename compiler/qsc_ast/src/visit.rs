@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
-    FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, PathKind,
-    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TyParam,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
+    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
+    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TyParam,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -297,7 +297,9 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         ExprKind::Fail(msg) => vis.visit_expr(msg),
         ExprKind::Field(record, name) => {
             vis.visit_expr(record);
-            vis.visit_ident(name);
+            if let FieldAccess::Ok(name) = name {
+                vis.visit_ident(name);
+            }
         }
         ExprKind::For(pat, iter, block) => {
             vis.visit_pat(pat);

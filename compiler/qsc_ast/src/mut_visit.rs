@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
-    FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, PathKind,
-    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
+    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
+    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TyParam,
 };
 use qsc_data_structures::span::Span;
 
@@ -254,9 +254,9 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
                     // item, which is the field name
                     usize::from(&*bound.name.name == "HasField");
                 bound.parameters.iter_mut().skip(items_to_skip).for_each(
-                    |crate::ast::TyWithStringifiedName { ty, name }| {
+                    |crate::ast::TyWithStringifiedName {ref  mut ty, name }| {
                         dbg!(&name);
-                        vis.visit_ty(ty);
+                        vis.visit_ty( ty);
                     },
                 );
             }
@@ -323,7 +323,9 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         ExprKind::Fail(msg) => vis.visit_expr(msg),
         ExprKind::Field(record, name) => {
             vis.visit_expr(record);
-            vis.visit_ident(name);
+            if let FieldAccess::Ok(name) = name {
+                vis.visit_ident(name);
+            }
         }
         ExprKind::For(pat, iter, block) => {
             vis.visit_pat(pat);

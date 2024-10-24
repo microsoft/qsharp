@@ -6,32 +6,43 @@ use qsc::{
         self,
         visit::{self, Visitor},
         Attr, Block, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr, Ident,
-        Idents, Item, ItemKind, Namespace, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
+        Idents, Item, ItemKind, Namespace, NodeId, Package, Pat, Path, QubitInit, SpecDecl, Stmt,
         StructDecl, Ty, TyDef, TyKind,
     },
     parse::completion::PathKind,
 };
 use std::rc::Rc;
 
-/// Provides the qualifier and the expected name kind for the
-/// incomplete path (e.g. `foo.bar.`) at the cursor offset.
+/// Provides context for a path or field access expression at the cursor offset.
 ///
-/// Methods may panic if the offset does not fall within an incomplete path.
+/// Undefined behavior if the given offset does not fall within a path,
+/// field access or field assigment.
 #[derive(Debug)]
-pub(super) struct IncompletePath<'a> {
-    qualifier: Option<Vec<&'a Ident>>,
-    context: Option<PathKind>,
+pub(super) struct PathOrFieldAccess<'a> {
+    path_qualifier: Option<Vec<&'a Ident>>,
+    context: Option<Context<'a>>,
     offset: u32,
 }
 
-impl<'a> IncompletePath<'a> {
+#[derive(Debug, Copy, Clone)]
+enum Context<'a> {
+    /// The cursor is on a path or incomplete path.
+    Path(PathKind),
+    /// The cursor is on a field access or a field assignment expression.
+    Field {
+        /// The type of this expression will be the record used for the field access.
+        record: &'a Expr,
+    },
+}
+
+impl<'a> PathOrFieldAccess<'a> {
     pub fn init(offset: u32, package: &'a Package) -> Self {
         let mut offset_visitor = OffsetVisitor {
             offset,
-            visitor: IncompletePath {
+            visitor: PathOrFieldAccess {
                 offset,
                 context: None,
-                qualifier: None,
+                path_qualifier: None,
             },
         };
 
@@ -41,12 +52,12 @@ impl<'a> IncompletePath<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for IncompletePath<'a> {
+impl<'a> Visitor<'a> for PathOrFieldAccess<'a> {
     fn visit_item(&mut self, item: &'a Item) {
         match &*item.kind {
-            ItemKind::Open(..) => self.context = Some(PathKind::Namespace),
+            ItemKind::Open(..) => self.context = Some(Context::Path(PathKind::Namespace)),
             ItemKind::ImportOrExport(decl) => {
-                self.context = Some(PathKind::Import);
+                self.context = Some(Context::Path(PathKind::Import));
                 for item in &decl.items {
                     if item.is_glob
                         && item.span.touches(self.offset)
@@ -70,20 +81,25 @@ impl<'a> Visitor<'a> for IncompletePath<'a> {
 
     fn visit_ty(&mut self, ty: &Ty) {
         if let TyKind::Path(..) = *ty.kind {
-            self.context = Some(PathKind::Ty);
+            self.context = Some(Context::Path(PathKind::Ty));
         }
     }
 
-    fn visit_expr(&mut self, expr: &Expr) {
+    fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Path(..) = *expr.kind {
-            self.context = Some(PathKind::Expr);
-        } else if let ExprKind::Struct(..) = *expr.kind {
-            self.context = Some(PathKind::Struct);
+            self.context = Some(Context::Path(PathKind::Expr));
+        } else if let ExprKind::Struct(..) = expr.kind.as_ref() {
+            self.context = Some(Context::Field { record: expr });
+        } else if let ExprKind::Field(record, _) = expr.kind.as_ref() {
+            self.context = Some(Context::Field { record });
         }
     }
 
     fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
-        self.qualifier = match path {
+        if let Some(Context::Field { .. }) = self.context {
+            self.context = Some(Context::Path(PathKind::Struct));
+        }
+        self.path_qualifier = match path {
             ast::PathKind::Ok(path) => Some(path.iter().collect()),
             ast::PathKind::Err(Some(incomplete_path)) => {
                 Some(incomplete_path.segments.iter().collect())
@@ -93,23 +109,52 @@ impl<'a> Visitor<'a> for IncompletePath<'a> {
     }
 }
 
-impl IncompletePath<'_> {
-    pub fn context(&self) -> Option<(PathKind, Vec<Rc<str>>)> {
-        let context = self.context?;
+impl PathOrFieldAccess<'_> {
+    /// Returns the path kind and the path qualifier before the cursor offset.
+    ///
+    /// Returns `None` if the cursor is not on a path.
+    pub fn path_segment_context(&self) -> Option<(PathKind, Vec<Rc<str>>)> {
+        let path_kind = match self.context? {
+            Context::Path(path_kind) => path_kind,
+            Context::Field { .. } => return None,
+        };
+
         let qualifier = self.segments_before_offset();
 
         if qualifier.is_empty() {
             return None;
         }
 
-        Some((context, qualifier))
+        Some((path_kind, qualifier))
+    }
+
+    /// Returns the node ID of the node that the field access is being performed on, if any.
+    /// When this is a field assignment, returns the node ID of the struct expression.
+    ///
+    /// This node ID can then be used to look up the type to get field names.
+    ///
+    /// Returns `None` if the cursor is not on a field access expression or path.
+    pub fn field_access_context(&self) -> Option<NodeId> {
+        if let Some(Context::Field { record }) = &self.context {
+            // Unambiguously a field access expression, record node is an `Expr`
+            Some(record.id)
+        } else {
+            // A `Path` that may or may not be a field access expression,
+            // record node is the last identifier before the cursor
+            self.idents_before_cursor().last().map(|ident| ident.id)
+        }
+    }
+
+    fn idents_before_cursor(&self) -> impl Iterator<Item = &Ident> {
+        self.path_qualifier
+            .iter()
+            .flatten()
+            .copied()
+            .take_while(|i| i.span.hi < self.offset)
     }
 
     fn segments_before_offset(&self) -> Vec<Rc<str>> {
-        self.qualifier
-            .iter()
-            .flatten()
-            .take_while(|i| i.span.hi < self.offset)
+        self.idents_before_cursor()
             .map(|i| i.name.clone())
             .collect::<Vec<_>>()
     }

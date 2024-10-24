@@ -8,8 +8,9 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
-    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, TyParam, UnOp, PathKind
+    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
+    TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -276,16 +277,20 @@ impl<'a> Context<'a> {
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
-                let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
-                self.inferrer.class(
-                    expr.span,
-                    Class::HasField {
-                        record: record.ty,
-                        name: name.name.to_string(),
-                        item: item_ty.clone(),
-                    },
-                );
-                self.diverge_if(record.diverges, converge(item_ty))
+                if let FieldAccess::Ok(name) = name {
+                    let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
+                    self.inferrer.class(
+                        expr.span,
+                        Class::HasField {
+                            record: record.ty,
+                            name: name.name.to_string(),
+                            item: item_ty.clone(),
+                        },
+                    );
+                    self.diverge_if(record.diverges, converge(item_ty))
+                } else {
+                    converge(Ty::Err)
+                }
             }
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
@@ -402,7 +407,7 @@ impl<'a> Context<'a> {
                 Lit::String(_) => converge(Ty::Prim(Prim::String)),
             },
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(PathKind::Ok(path)) => self.infer_path(expr, path),
+            ExprKind::Path(path) => self.infer_path_kind(expr, path),
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;
                 for expr in start.iter().chain(step).chain(end) {
@@ -540,9 +545,7 @@ impl<'a> Context<'a> {
                 self.typed_holes.push((expr.id, expr.span));
                 converge(self.inferrer.fresh_ty(TySource::not_divergent(expr.span)))
             }
-            ExprKind::Err
-            | ast::ExprKind::Path(ast::PathKind::Err(_))
-            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => converge(Ty::Err),
+            ExprKind::Err | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
@@ -578,24 +581,23 @@ impl<'a> Context<'a> {
         record
     }
 
-    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        match resolve::path_as_field_accessor(self.names, path) {
-            // If the path is a field accessor, we infer the type of first segment
-            // as an expr, and the rest as subsequent fields.
-            Some((first_id, parts)) => {
-                let record = converge(
-                    self.table
-                        .terms
-                        .get(first_id)
-                        .expect("local should have type")
-                        .clone(),
-                );
-                let (first, rest) = parts
-                    .split_first()
-                    .expect("path should have at least one part");
-                self.record(first.id, record.ty.clone());
-                self.infer_path_parts(record, rest, expr.span.lo)
+    fn infer_path_kind(&mut self, expr: &Expr, path: &PathKind) -> Partial<Ty> {
+        match path {
+            PathKind::Ok(path) => self.infer_path(expr, path),
+            PathKind::Err(incomplete_path) => {
+                if let Some(incomplete_path) = incomplete_path {
+                    // If this is a field access, infer the fields,
+                    // but leave the whole expression as `Err`.
+                    let _ = self.infer_path_as_field_access(&incomplete_path.segments, expr);
+                }
+                converge(Ty::Err)
             }
+        }
+    }
+
+    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
+        match self.infer_path_as_field_access(path, expr) {
+            Some(record) => record,
             // Otherwise we infer the path as a namespace path.
             None => match self.names.get(path.id) {
                 None => converge(Ty::Err),
@@ -625,6 +627,31 @@ impl<'a> Context<'a> {
                     panic!("expression should not resolve to type reference")
                 }
             },
+        }
+    }
+
+    fn infer_path_as_field_access(
+        &mut self,
+        path: &impl Idents,
+        expr: &Expr,
+    ) -> Option<Partial<Ty>> {
+        // If the path is a field accessor, we infer the type of first segment
+        // as an expr, and the rest as subsequent fields.
+        if let Some((first_id, parts)) = resolve::path_as_field_accessor(self.names, path) {
+            let record = converge(
+                self.table
+                    .terms
+                    .get(first_id)
+                    .expect("local should have type")
+                    .clone(),
+            );
+            let (first, rest) = parts
+                .split_first()
+                .expect("path should have at least one part");
+            self.record(first.id, record.ty.clone());
+            Some(self.infer_path_parts(record, rest, expr.span.lo))
+        } else {
+            None
         }
     }
 

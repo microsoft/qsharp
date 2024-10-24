@@ -91,12 +91,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
     fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::TyWithStringifiedName> {
         let ty = ty(s)?;
         let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
-            if let Some(ref segs) = path.segments {
-                if segs.len() > 1 {
-                    todo!("invalid ident in ty bounds")
-                }
-            }
-            Some(*path.name.clone())
+            path.name().cloned()
         } else {
             println!("none 2");
             None
