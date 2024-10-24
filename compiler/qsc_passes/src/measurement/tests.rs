@@ -24,6 +24,26 @@ fn check(file: &str, expr: &str, expect: &Expect) {
 }
 
 #[test]
+fn test_custom_measurement_declaration_with_simulatable_intrinsic_attr() {
+    check(
+        indoc! {"
+            namespace Test {
+                @Measurement()
+                @SimulatableIntrinsic()
+                operation Mx(target: Qubit) : Result {
+                    H(target);
+                    M(target)
+                }
+            }"},
+        "",
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+
+#[test]
 fn test_custom_measurement_declaration() {
     check(
         indoc! {"
