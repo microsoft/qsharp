@@ -161,10 +161,11 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
     MeasurementWithinDynamicScope(#[label] Span),
 
-    #[error("cannot define a custom measurement")]
-    #[diagnostic(help("cannot define a custom measurement in the configured target profile"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.CustomMeasurement"))]
-    CustomMeasurement(#[label] Span),
+    #[error("cannot call a custom measurement")]
+    #[diagnostic(help("cannot call a custom measurement in the configured target profile"))]
+    #[diagnostic(url("https://aka.ms/qdk.qir#call-to-custom-measurement"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.CallToCustomMeasurement"))]
+    CallToCustomMeasurement(#[label] Span),
 
     #[error("cannot access an array using a dynamic index")]
     #[diagnostic(help("accessing an array using an index that depends on a measurement result is not supported by the configured target profile"))]
@@ -308,7 +309,7 @@ pub fn generate_errors_from_runtime_features(
         errors.push(Error::UseOfAdvancedOutput(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::CustomMeasurement) {
-        errors.push(Error::CustomMeasurement(span));
+        errors.push(Error::CallToCustomMeasurement(span));
     }
     errors
 }

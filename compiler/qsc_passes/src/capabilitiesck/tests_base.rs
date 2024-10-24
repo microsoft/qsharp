@@ -553,7 +553,7 @@ fn custom_measurement_yields_errors() {
         CUSTOM_MEASUREMENT,
         &expect![[r#"
             [
-                CustomMeasurement(
+                CallToCustomMeasurement(
                     Span {
                         lo: 99,
                         hi: 105,
@@ -570,7 +570,7 @@ fn custom_measurement_with_simulatable_intrinsic_yields_errors() {
         CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR,
         &expect![[r#"
             [
-                CustomMeasurement(
+                CallToCustomMeasurement(
                     Span {
                         lo: 99,
                         hi: 105,
