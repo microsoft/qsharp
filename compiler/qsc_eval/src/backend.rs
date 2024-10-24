@@ -214,12 +214,13 @@ impl Backend for SparseSim {
         if res {
             self.sim.x(q);
         }
-        self.apply_noise(q); // Applying noise after reset
+        // After reset qubits start in ground state even with noise.
         res
     }
 
     fn reset(&mut self, q: usize) {
         self.mresetz(q);
+        // After reset qubits start in ground state even with noise.
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
@@ -319,9 +320,8 @@ impl Backend for SparseSim {
     }
 
     fn qubit_allocate(&mut self) -> usize {
-        let q = self.sim.allocate();
-        self.apply_noise(q); // Noise is applied to fresh qubit.
-        q
+        // Fresh qubit start in ground state even with noise.
+        self.sim.allocate()
     }
 
     fn qubit_release(&mut self, q: usize) -> bool {
