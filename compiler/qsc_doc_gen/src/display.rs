@@ -158,7 +158,7 @@ impl HirCallableDecl<'_> {
     fn get_param_offset(&self) -> u32 {
         let offset = match self.decl.kind {
             hir::CallableKind::Function => "function".len(),
-            hir::CallableKind::Operation => "operation".len(),
+            hir::CallableKind::Operation | hir::CallableKind::Measurement => "operation".len(),
         } + 1 // this is for the space between keyword and name
         + self.decl.name.name.len()
         + display_type_params(&self.decl.generics).len();
@@ -172,7 +172,7 @@ impl Display for HirCallableDecl<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let kind = match self.decl.kind {
             hir::CallableKind::Function => "function",
-            hir::CallableKind::Operation => "operation",
+            hir::CallableKind::Operation | hir::CallableKind::Measurement => "operation",
         };
 
         write!(f, "{} {}", kind, self.decl.name.name)?;

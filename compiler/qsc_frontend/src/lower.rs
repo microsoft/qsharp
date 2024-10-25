@@ -30,6 +30,10 @@ pub(super) enum Error {
     #[error("invalid attribute arguments: expected {0}")]
     #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(String, #[label] Span),
+    #[error("invalid use of the Measurement attribute on a function")]
+    #[diagnostic(help("try declaring the callable as an operation"))]
+    #[diagnostic(code("Qsc.LowerAst.InvalidMeasurementAttrOnFunction"))]
+    InvalidMeasurementAttrOnFunction(#[label] Span),
     #[error("missing callable body")]
     #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
@@ -234,7 +238,7 @@ impl With<'_> {
                 let (id, _) = resolve_id(callable.name.id)?;
                 let grandparent = self.lowerer.parent;
                 self.lowerer.parent = Some(id.item);
-                let callable = self.lower_callable_decl(callable);
+                let callable = self.lower_callable_decl(callable, &attrs);
                 self.lowerer.parent = grandparent;
                 (id, hir::ItemKind::Callable(callable))
             }
@@ -355,6 +359,15 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Measurement) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::Measurement),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
@@ -365,9 +378,13 @@ impl With<'_> {
         }
     }
 
-    pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
+    pub(super) fn lower_callable_decl(
+        &mut self,
+        decl: &ast::CallableDecl,
+        attrs: &[qsc_hir::hir::Attr],
+    ) -> hir::CallableDecl {
         let id = self.lower_id(decl.id);
-        let kind = lower_callable_kind(decl.kind);
+        let kind = self.lower_callable_kind(decl.kind, attrs, decl.name.span);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
         let output = convert::ty_from_ast(self.names, &decl.output).0;
@@ -412,6 +429,30 @@ impl With<'_> {
             adj,
             ctl,
             ctl_adj,
+        }
+    }
+
+    fn lower_callable_kind(
+        &mut self,
+        kind: ast::CallableKind,
+        attrs: &[qsc_hir::hir::Attr],
+        span: Span,
+    ) -> hir::CallableKind {
+        if attrs.contains(&qsc_hir::hir::Attr::Measurement) {
+            match kind {
+                ast::CallableKind::Operation => hir::CallableKind::Measurement,
+                ast::CallableKind::Function => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidMeasurementAttrOnFunction(span));
+                    hir::CallableKind::Function
+                }
+            }
+        } else {
+            match kind {
+                ast::CallableKind::Operation => hir::CallableKind::Operation,
+                ast::CallableKind::Function => hir::CallableKind::Function,
+            }
         }
     }
 
@@ -610,7 +651,7 @@ impl With<'_> {
                     FunctorSetValue::Empty
                 };
                 let lambda = Lambda {
-                    kind: lower_callable_kind(*kind),
+                    kind: self.lower_callable_kind(*kind, &[], expr.span),
                     functors,
                     input: self.lower_pat(input),
                     body: self.lower_expr(body),
@@ -919,13 +960,6 @@ impl With<'_> {
 
     fn lower_idents(&mut self, name: &impl Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
-    }
-}
-
-fn lower_callable_kind(kind: ast::CallableKind) -> hir::CallableKind {
-    match kind {
-        ast::CallableKind::Function => hir::CallableKind::Function,
-        ast::CallableKind::Operation => hir::CallableKind::Operation,
     }
 }
 
