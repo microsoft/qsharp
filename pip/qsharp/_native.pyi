@@ -150,8 +150,8 @@ class Interpreter:
 
         :param entry_expr: The entry expression.
         :param output_fn: A callback function that will be called with each output.
-        :param pauli_noise: The noise probability to apply to the simulator, expressed as a tuple of
-            the probability of Pauli-X, Pauli-Y, and Pauli-Z errors.
+        :param pauli_noise: A tuple with probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
+            to use in simulation as a parametric Pauli noise.
 
         :returns values: A result or runtime errors.
 

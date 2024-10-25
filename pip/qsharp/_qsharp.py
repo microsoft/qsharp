@@ -97,8 +97,8 @@ class Config:
 
 class PauliNoise(Tuple[float, float, float]):
     """
-    The noise probability to apply to the simulator, expressed as a tuple of
-    the probability of Pauli-X, Pauli-Y, and Pauli-Z errors.
+    The Pauli noise to use in simulation represented
+    as probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
     """
     def __new__(cls, x: float, y: float, z: float):
         if x < 0 or y < 0 or z < 0:
@@ -109,21 +109,21 @@ class PauliNoise(Tuple[float, float, float]):
 
 class DepolarizingNoise(PauliNoise):
     """
-    The depolarizing noise to apply to the simulator.
+    The depolarizing noise to use in simulation.
     """
     def __new__(cls, p: float):
         return super().__new__(cls, p / 3, p / 3, p / 3)
 
 class BitFlipNoise(PauliNoise):
     """
-    The bit flip noise to apply to the simulator.
+    The bit flip noise to use in simulation.
     """
     def __new__(cls, p: float):
         return super().__new__(cls, p, 0, 0)
 
 class PhaseFlipNoise(PauliNoise):
     """
-    The phase flip noise to apply to the simulator.
+    The phase flip noise to use in simulation.
     """
     def __new__(cls, p: float):
         return super().__new__(cls, 0, 0, p)
@@ -259,7 +259,7 @@ def run(
     :param shots: The number of shots to run.
     :param on_result: A callback function that will be called with each result.
     :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
-    :param noise: The noise to apply to the simulator.
+    :param noise: The noise to use in simulation.
 
     :returns values: A list of results or runtime errors. If `save_events` is true,
     a List of ShotResults is returned.

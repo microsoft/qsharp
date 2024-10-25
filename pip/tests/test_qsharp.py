@@ -261,7 +261,7 @@ def test_run_with_noise_produces_noisy_results() -> None:
     qsharp.init()
     qsharp.set_quantum_seed(0)
     result = qsharp.run(
-        "{ mutable mismatches=0; for _ in 0..100 { use q1=Qubit(); use q2=Qubit(); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set mismatches+=1; } } mismatches }",
+        "{ mutable errors=0; for _ in 0..100 { use q1=Qubit(); use q2=Qubit(); H(q1); CNOT(q1, q2); if MResetZ(q1) != MResetZ(q2) { set errors+=1; } } errors }",
         shots=1,
         noise=qsharp.BitFlipNoise(0.1),
     )
