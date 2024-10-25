@@ -95,11 +95,13 @@ class Config:
     ) -> Dict[str, Dict[str, str]]:
         return {"application/x.qsharp-config": self._config}
 
+
 class PauliNoise(Tuple[float, float, float]):
     """
     The Pauli noise to use in simulation represented
     as probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
     """
+
     def __new__(cls, x: float, y: float, z: float):
         if x < 0 or y < 0 or z < 0:
             raise ValueError("Pauli noise probabilities must be non-negative.")
@@ -107,26 +109,33 @@ class PauliNoise(Tuple[float, float, float]):
             raise ValueError("The sum of Pauli noise probabilities must be at most 1.")
         return super().__new__(cls, (x, y, z))
 
+
 class DepolarizingNoise(PauliNoise):
     """
     The depolarizing noise to use in simulation.
     """
+
     def __new__(cls, p: float):
         return super().__new__(cls, p / 3, p / 3, p / 3)
+
 
 class BitFlipNoise(PauliNoise):
     """
     The bit flip noise to use in simulation.
     """
+
     def __new__(cls, p: float):
         return super().__new__(cls, p, 0, 0)
+
 
 class PhaseFlipNoise(PauliNoise):
     """
     The phase flip noise to use in simulation.
     """
+
     def __new__(cls, p: float):
         return super().__new__(cls, 0, 0, p)
+
 
 def init(
     *,
@@ -247,9 +256,15 @@ def run(
     *,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
-    noise: Optional [
-        Tuple[float, float, float] | PauliNoise | BitFlipNoise | PhaseFlipNoise | DepolarizingNoise
-    ] = None
+    noise: Optional[
+        Union[
+            Tuple[float, float, float],
+            PauliNoise,
+            BitFlipNoise,
+            PhaseFlipNoise,
+            DepolarizingNoise,
+        ]
+    ] = None,
 ) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
