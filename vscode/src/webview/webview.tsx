@@ -224,13 +224,22 @@ function App({ state }: { state: State }) {
       return <div>Loading...</div>;
     case "histogram":
       return (
-        <Histogram
-          data={new Map(state.buckets)}
-          shotCount={state.shotCount}
-          filter=""
-          onFilter={onFilter}
-          shotsHeader={true}
-        ></Histogram>
+        <>
+          <Histogram
+            data={new Map(state.buckets)}
+            shotCount={state.shotCount}
+            filter=""
+            onFilter={onFilter}
+            shotsHeader={true}
+          ></Histogram>
+          <p style="margin-top: 8px; font-size: 0.8em">
+            Note: If a{" "}
+            <a href="vscode://settings/Q%23.simulation.pauliNoise">
+              noise model
+            </a>{" "}
+            has been configured, this may impact results
+          </p>
+        </>
       );
     case "estimates":
       return (
