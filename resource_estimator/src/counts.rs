@@ -502,8 +502,9 @@ impl Backend for LogicalCounter {
         }
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.free_list.push(q);
+        true
     }
 
     fn qubit_swap_id(&mut self, _q0: usize, _q1: usize) {
