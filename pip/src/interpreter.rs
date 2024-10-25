@@ -333,17 +333,17 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None, pauli_noise=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
-        pauli_noise: Option<(f64, f64, f64)>,
+        noise: Option<(f64, f64, f64)>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
-        let noise = match pauli_noise {
+        let noise = match noise {
             None => None,
             Some((px, py, pz)) => match PauliNoise::from_probabilities(px, py, pz) {
                 Ok(noise_struct) => Some(noise_struct),
