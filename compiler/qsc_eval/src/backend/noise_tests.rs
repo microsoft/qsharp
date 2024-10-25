@@ -119,17 +119,17 @@ fn noisy_measurement() {
     let mut sim = SparseSim::new_with_noise(&noise);
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
     sim.set_seed(Some(0));
-    let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
     let mut true_count = 0;
-    for _ in 0..200 {
-        sim.reset(q);
-        // sim.m sometimes applies X before measuring
+    for _ in 0..1000 {
+        let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
+                                      // sim.m sometimes applies X before measuring
         if sim.m(q) {
             true_count += 1;
         };
+        sim.qubit_release(q);
     }
     assert!(
-        true_count > 40 && true_count < 80,
+        true_count > 200 && true_count < 400,
         "Expected about 30% bit flip noise."
     );
 }
