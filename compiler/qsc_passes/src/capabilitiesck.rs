@@ -87,7 +87,6 @@ pub fn check_supported_capabilities(
         current_callable: None,
         missing_features_map: FxHashMap::<Span, RuntimeFeatureFlags>::default(),
         store,
-        errors: Vec::new(),
     };
 
     checker.check_all()
