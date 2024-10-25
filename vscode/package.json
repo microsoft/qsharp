@@ -408,6 +408,10 @@
         "extensions": [
           ".qs"
         ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        },
         "configuration": "./language-configuration.json"
       }
     ],
