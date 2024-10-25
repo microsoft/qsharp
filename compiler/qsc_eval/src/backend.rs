@@ -88,7 +88,7 @@ pub trait Backend {
     /// `false` indicates that the qubit was in a non-zero state before the release,
     /// but should have been in the zero state.
     /// `true` otherwise. This includes the case when the qubit was in
-    /// a non-zero state during a noisy simulation.
+    /// a non-zero state during a noisy simulation, which is allowed.
     fn qubit_release(&mut self, _q: usize) -> bool {
         unimplemented!("qubit_release operation");
     }
@@ -220,6 +220,7 @@ impl Backend for SparseSim {
 
     fn reset(&mut self, q: usize) {
         self.mresetz(q);
+        // Noise applied in mresetz.
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
@@ -319,9 +320,8 @@ impl Backend for SparseSim {
     }
 
     fn qubit_allocate(&mut self) -> usize {
-        let q = self.sim.allocate();
-        self.apply_noise(q); // Noise is applied to fresh qubit.
-        q
+        // Fresh qubit start in ground state even with noise.
+        self.sim.allocate()
     }
 
     fn qubit_release(&mut self, q: usize) -> bool {

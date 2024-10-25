@@ -99,16 +99,38 @@ fn bitflip_measurement() {
         .expect("bit flip noise with probability 100% should be constructable.");
     let mut sim = SparseSim::new_with_noise(&noise);
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
-    let q = sim.qubit_allocate(); // Allocation applies X
+    let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
     for _ in 0..100 {
         let res1 = sim.m(q); // Always applies X before measuring
-        assert!(!res1, "Expected False for 100% bit flip noise.");
+        assert!(res1, "Expected True for 100% bit flip noise.");
         let res2 = sim.m(q); // Always applies X before measuring
-        assert!(res2, "Expected True for 100% bit flip noise.");
+        assert!(!res2, "Expected False for 100% bit flip noise.");
     }
     assert!(
         sim.qubit_release(q),
         "Expected correct qubit state on release."
+    );
+}
+
+#[test]
+fn noisy_measurement() {
+    let noise = PauliNoise::from_probabilities(0.3, 0.0, 0.0)
+        .expect("bit flip noise with probability 100% should be constructable.");
+    let mut sim = SparseSim::new_with_noise(&noise);
+    assert!(!sim.is_noiseless(), "Expected noisy simulator.");
+    sim.set_seed(Some(0));
+    let mut true_count = 0;
+    for _ in 0..1000 {
+        let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
+                                      // sim.m sometimes applies X before measuring
+        if sim.m(q) {
+            true_count += 1;
+        };
+        sim.qubit_release(q);
+    }
+    assert!(
+        true_count > 200 && true_count < 400,
+        "Expected about 30% bit flip noise."
     );
 }
 
@@ -139,14 +161,14 @@ fn noisy_via_x() {
         .expect("bit flip noise with probability 100% should be constructable.");
     let mut sim = SparseSim::new_with_noise(&noise);
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
-    let q = sim.qubit_allocate(); // Followed by X.
-    check_state(&mut sim, &expect!["|1⟩: 1.0000+0.0000𝑖 "]);
+    let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
+    check_state(&mut sim, &expect!["|0⟩: 1.0000+0.0000𝑖 "]);
     sim.x(q); // Followed by X. So, no op.
-    check_state(&mut sim, &expect!["|1⟩: 1.0000+0.0000𝑖 "]);
+    check_state(&mut sim, &expect!["|0⟩: 1.0000+0.0000𝑖 "]);
     sim.y(q); // Followed by X.
-    check_state(&mut sim, &expect!["|1⟩: 0.0000−1.0000𝑖 "]);
-    sim.z(q); // Followed by X.
     check_state(&mut sim, &expect!["|0⟩: 0.0000+1.0000𝑖 "]);
+    sim.z(q); // Followed by X.
+    check_state(&mut sim, &expect!["|1⟩: 0.0000+1.0000𝑖 "]);
 }
 
 #[test]
@@ -155,14 +177,14 @@ fn noisy_via_y() {
         .expect("0.0, 1.0, 0.0 Pauli noise should be constructable.");
     let mut sim = SparseSim::new_with_noise(&noise);
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
-    let q = sim.qubit_allocate(); // Followed by Y.
-    check_state(&mut sim, &expect!["|1⟩: 0.0000+1.0000𝑖 "]);
+    let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
+    check_state(&mut sim, &expect!["|0⟩: 1.0000+0.0000𝑖 "]);
     sim.x(q); // Followed by Y.
-    check_state(&mut sim, &expect!["|1⟩: −1.0000+0.0000𝑖 "]);
-    sim.y(q); // Followed by Y. So, no op.
-    check_state(&mut sim, &expect!["|1⟩: −1.0000+0.0000𝑖 "]);
-    sim.z(q); // Followed by Y.
     check_state(&mut sim, &expect!["|0⟩: 0.0000−1.0000𝑖 "]);
+    sim.y(q); // Followed by Y. So, no op.
+    check_state(&mut sim, &expect!["|0⟩: 0.0000−1.0000𝑖 "]);
+    sim.z(q); // Followed by Y.
+    check_state(&mut sim, &expect!["|1⟩: 1.0000+0.0000𝑖 "]);
 }
 
 #[test]
@@ -171,7 +193,7 @@ fn noisy_via_z() {
         .expect("phase flip noise with probability 100% should be constructable.");
     let mut sim = SparseSim::new_with_noise(&noise);
     assert!(!sim.is_noiseless(), "Expected noisy simulator.");
-    let q = sim.qubit_allocate(); // Followed by Z.
+    let q = sim.qubit_allocate(); // Allocation is noiseless even with noise.
     check_state(&mut sim, &expect!["|0⟩: 1.0000+0.0000𝑖 "]);
     sim.x(q); // Followed by Z.
     check_state(&mut sim, &expect!["|1⟩: −1.0000+0.0000𝑖 "]);
