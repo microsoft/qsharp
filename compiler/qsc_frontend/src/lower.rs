@@ -31,11 +31,11 @@ pub(super) enum Error {
     #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(String, #[label] Span),
     #[error("invalid use of the Measurement attribute on a function")]
+    #[diagnostic(help("try declaring the callable as an operation"))]
     #[diagnostic(code("Qsc.LowerAst.InvalidMeasurementAttrOnFunction"))]
     InvalidMeasurementAttrOnFunction(#[label] Span),
     #[error("missing callable body")]
     #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
-    #[diagnostic(help("try declaring the callable as an operation"))]
     MissingBody(#[label] Span),
     #[error("duplicate specialization")]
     #[diagnostic(code("Qsc.LowerAst.DuplicateSpec"))]
