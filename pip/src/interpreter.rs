@@ -342,10 +342,15 @@ impl Interpreter {
         pauli_noise: Option<(f64, f64, f64)>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        let noise = pauli_noise.map(|(px, py, pz)| {
-            PauliNoise::from_probabilities(px, py, pz)
-                .expect("TODO Implement error reporting properly.")
-        });
+
+        let noise = match pauli_noise {
+            None => None,
+            Some((px, py, pz)) => match PauliNoise::from_probabilities(px, py, pz) {
+                Ok(noise_struct) => Some(noise_struct),
+                Err(error_message) => return Err(PyException::new_err(error_message)),
+            },
+        };
+
         match self.interpreter.run(&mut receiver, entry_expr, noise) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
