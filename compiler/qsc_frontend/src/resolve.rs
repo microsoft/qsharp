@@ -43,14 +43,12 @@ pub(super) type Names = IndexMap<NodeId, Res>;
 #[must_use]
 pub fn path_as_field_accessor<'a>(
     names: &Names,
-    path: &'a ast::Path,
+    path: &'a impl Idents,
 ) -> Option<(NodeId, Vec<&'a ast::Ident>)> {
-    if path.segments.is_some() {
-        let parts: Vec<&Ident> = path.iter().collect();
-        let first = parts.first().expect("path should have at least one part");
-        if let Some(&Res::Local(node_id)) = names.get(first.id) {
-            return Some((node_id, parts));
-        }
+    let parts: Vec<&Ident> = path.iter().collect();
+    let first = parts.first().expect("path should have at least one part");
+    if let Some(&Res::Local(node_id)) = names.get(first.id) {
+        return Some((node_id, parts));
     }
     // If any of the above conditions are not met, return None.
     None
@@ -650,6 +648,38 @@ impl Resolver {
                 self.names.insert(name.id, res);
             }
             Err(err) => self.errors.push(err),
+        }
+    }
+
+    fn resolve_path_kind(&mut self, kind: NameKind, path: &ast::PathKind) -> Result<(), Error> {
+        match path {
+            PathKind::Ok(path) => self.resolve_path(kind, path).map(|_| ()),
+            PathKind::Err(incomplete_path) => {
+                // First we check if the the path can be resolved as a field accessor.
+                // We do this by checking if the first part of the path is a local variable.
+                if let (NameKind::Term, Some(incomplet_path)) = (kind, incomplete_path) {
+                    let first = incomplet_path
+                        .segments
+                        .first()
+                        .expect("path `segments` should have at least one element");
+                    match resolve(
+                        NameKind::Term,
+                        &self.globals,
+                        self.locals.get_scopes(&self.curr_scope_chain),
+                        first,
+                        &None,
+                    ) {
+                        Ok(res) if matches!(res, Res::Local(_)) => {
+                            // The path is a field accessor.
+                            self.names.insert(first.id, res.clone());
+                            return Ok(());
+                        }
+                        Err(err) if !matches!(err, Error::NotFound(_, _)) => return Err(err), // Local was found but has issues.
+                        _ => return Ok(()), // The path is assumed to not be a field accessor, so move on.
+                    }
+                }
+                Ok(())
+            }
         }
     }
 
@@ -1428,8 +1458,8 @@ impl AstVisitor<'_> for With<'_> {
                     visitor.visit_expr(output);
                 });
             }
-            ast::ExprKind::Path(PathKind::Ok(path)) => {
-                if let Err(e) = self.resolver.resolve_path(NameKind::Term, path) {
+            ast::ExprKind::Path(path) => {
+                if let Err(e) = self.resolver.resolve_path_kind(NameKind::Term, path) {
                     self.resolver.errors.push(e);
                 };
             }
