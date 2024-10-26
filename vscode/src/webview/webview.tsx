@@ -15,7 +15,7 @@ import {
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
-import { DocumentationView } from "./docview";
+import { DocumentationView, IDocFile } from "./docview";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -52,7 +52,7 @@ type CircuitState = {
 
 type DocumentationState = {
   viewType: "documentation";
-  fragmentsToRender: string[];
+  fragmentsToRender: IDocFile[];
 };
 
 type State =

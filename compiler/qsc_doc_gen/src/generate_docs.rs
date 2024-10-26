@@ -350,6 +350,18 @@ enum PackageKind {
     Core,
 }
 
+impl Display for PackageKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            PackageKind::UserCode => "__Main__",
+            PackageKind::AliasedPackage(alias) => alias,
+            PackageKind::StandardLibrary => "__Std__",
+            PackageKind::Core => "__Core__",
+        };
+        write!(f, "{s}")
+    }
+}
+
 impl Display for Metadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let kind = match &self.kind {
@@ -366,11 +378,19 @@ title: {}
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
+qsharp.package: {}
 qsharp.namespace: {}
 qsharp.name: {}
 qsharp.summary: \"{}\"
 ---",
-            self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
+            self.uid,
+            self.title,
+            self.topic,
+            kind,
+            self.package,
+            self.namespace,
+            self.name,
+            self.summary
         )
     }
 }
