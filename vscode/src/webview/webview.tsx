@@ -53,6 +53,7 @@ type CircuitState = {
 type DocumentationState = {
   viewType: "documentation";
   fragmentsToRender: IDocFile[];
+  projectName: string;
 };
 
 type State =
@@ -186,6 +187,7 @@ function onMessage(event: any) {
         state = {
           viewType: "documentation",
           fragmentsToRender: message.fragmentsToRender,
+          projectName: message.projectName,
         };
       }
       break;
@@ -260,7 +262,12 @@ function App({ state }: { state: State }) {
       // too large in the others right now. Something to unify later.
       document.body.classList.add("markdown-body");
       document.body.style.fontSize = "0.8em";
-      return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
+      return (
+        <DocumentationView
+          fragmentsToRender={state.fragmentsToRender}
+          projectName={state.projectName}
+        />
+      );
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;

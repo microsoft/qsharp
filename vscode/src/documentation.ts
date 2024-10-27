@@ -38,9 +38,13 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     }
   }
 
+  let projectName = program.programConfig.projectName ?? "App";
+  if (projectName.endsWith(".qs")) projectName = projectName.slice(0, -3);
+
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
     fragmentsToRender: documentation,
+    projectName,
   };
 
   sendMessageToPanel(
