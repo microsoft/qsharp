@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 import { Markdown } from "qsharp-lang/ux";
+import { useState } from "preact/hooks";
 
 /* TODO
-- Flesh out the page structure with Home, breadcrum, search text and icon, index, and content.
-- When at the top level, show the list of packages, and default select the __Main__ package.
-- When at the package level, show the list of modules in that package, and render the __Main__ module by default.
-- When at the module level, show the list of submodules, show the list of members in that module
-- Add a search bar and search results
+- Wire up search functionality
+- Test single-page functionality
+- How to wire up dir name (for project) or file name for top-level project?
+- How to move CSS to a separate file and respond to theme?
 */
 
 export interface IDocFile {
@@ -25,20 +25,94 @@ interface ItemDocs {
 }
 
 function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
-  const filtered = props.fragmentsToRender.filter((x) =>
-    x.module.startsWith("Std.Canon"),
-  );
+  // currPath is of the format: "<pkg>/<module>/<member>", e.g.
+  // "Std/Canon/CCNOT" or "Std/Microsoft.Quantum.Diagnostics/AssertMeasurementEqual" or
+  // "Unsigned/Main/GetInt" or "Main/Particle/Particle". When at the top level, currPath is "".
+
+  const [currPath, setPath] = useState("");
+
+  const contents: {
+    [name: string]: {
+      onclick: (evt: Event) => void;
+      content: string;
+      anchor: string;
+    };
+  } = {};
+
+  // Calculate the current list of content to render based on the current package and module
+  if (currPath === "") {
+    // Collect the set of all packages
+    props.fragmentsToRender.forEach((doc) => {
+      if (!(doc.pkg in contents)) {
+        contents[doc.pkg] = {
+          onclick: () => setPath(doc.pkg),
+          content: "",
+          anchor: "",
+        };
+      }
+    });
+  } else if (currPath.indexOf("/") === -1) {
+    // Render the list of modules in the current package
+    props.fragmentsToRender.forEach((doc) => {
+      if (doc.pkg === currPath) {
+        if (!(doc.module in contents)) {
+          contents[doc.module] = {
+            onclick: () => setPath(`${currPath}/${doc.module}`),
+            content: "",
+            anchor: "",
+          };
+        }
+      }
+    });
+  } else {
+    // Render the list of members in the current module
+    props.fragmentsToRender.forEach((doc) => {
+      if (
+        doc.pkg === currPath.split("/")[0] &&
+        doc.module === currPath.split("/")[1]
+      ) {
+        contents[doc.member] = {
+          onclick: (evt: Event) => {
+            evt.preventDefault();
+            const elem = document.getElementById(doc.member)!;
+            //elem.scrollIntoView({ behavior: "instant", block: "start" });
+            const yOffset = -64; // Negative value to offset from the top
+            const yPosition =
+              elem.getBoundingClientRect().top + window.scrollY + yOffset;
+
+            window.scrollTo({
+              top: yPosition,
+              behavior: "instant",
+            });
+          },
+          content: doc.content,
+          anchor: doc.member,
+        };
+      }
+    });
+  }
+
+  function overLi(e: MouseEvent) {
+    (e.target as HTMLElement).style.fontWeight = "600";
+  }
+
+  function outLi(e: MouseEvent) {
+    (e.target as HTMLElement).style.fontWeight = "400";
+  }
+
+  function onPathClick() {
+    if (currPath) {
+      setPath(currPath.split("/")[0]);
+    }
+  }
 
   return (
-    <div
-      class="qs-docsPage"
-      style="width: 100%; position: relative; padding-top: 0.1px;"
-    >
+    <div class="qs-docsPage" style="width: 100%; position: relative;">
       <div
         class="qs-docsHeader"
-        style="height: 3em; display: flex; justify-content: space-between; align-items: center;position: fixed; width: 95%; background-color: #0d1117;"
+        style="height: 3em; display: flex; justify-content: space-between; align-items: center; margin-top: 0px; padding-top: 1.5em; padding-bottom: 1em; position: fixed; top: 0; width: 95%; background-color: black; z-index: 1;"
       >
-        <div>
+        <div onClick={() => setPath("")}>
           <svg
             style="height: 2.25em; width: 2.25em; margin: 0.25em"
             viewBox="0 0 100 100"
@@ -52,8 +126,11 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
             </g>
           </svg>
         </div>
-        <div style="flex-grow: 1; font-size: 1.4em; margin-left: 0.5em;">
-          Std &gt; Canon
+        <div
+          style="flex-grow: 1; font-size: 1.4em; margin-left: 0.5em;"
+          onClick={onPathClick}
+        >
+          {currPath ? currPath.replace("/", " > ") : "Q# API documentation"}
         </div>
         <div>
           <input type="text" placeholder="Search..." />
@@ -70,21 +147,39 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
           </svg>
         </div>
       </div>
-      <div class="qs-docsContent" style="margin: 2em; margin-top: 3.25em">
+      <div
+        class="qs-docsContent"
+        style="margin: 2em; position: relative; top: 2em;"
+      >
         <div class="qs-index" style="background: #161b22; padding: 0.1em">
           <p style="font-size: 1.1em; font-weight: 600; margin: 0.8em;">
-            Contents
+            {currPath === ""
+              ? "Packages"
+              : currPath.indexOf("/") === -1
+                ? "Modules"
+                : "Members"}
           </p>
           <ul>
-            {filtered.map((doc) => (
-              <li>{doc.member}</li>
+            {Object.keys(contents).map((key) => (
+              <li
+                onClick={contents[key].onclick}
+                onMouseOver={overLi}
+                onMouseOut={outLi}
+              >
+                {key}
+              </li>
             ))}
           </ul>
         </div>
 
-        {filtered.map((doc) => (
-          <Markdown markdown={doc.content} />
-        ))}
+        {Object.keys(contents).map((key) =>
+          !contents[key].content ? null : (
+            <div id={contents[key].anchor} style="margin-top: 12px;">
+              <Markdown markdown={contents[key].content} />
+              <hr />
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
@@ -92,9 +187,6 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
 
 export function DocumentationView(props: { fragmentsToRender: IDocFile[] }) {
   const docs: ItemDocs[] = [];
-
-  let currentPkg = "";
-  let currentModule = "";
 
   props.fragmentsToRender.forEach((doc) => {
     if (!doc.metadata) {
@@ -106,31 +198,35 @@ export function DocumentationView(props: { fragmentsToRender: IDocFile[] }) {
 
     if (pkg && module && member) {
       docs.push({
-        pkg: pkg === "__Core__" ? "__Std__" : pkg, // Treat Core like Std
+        pkg:
+          pkg === "__Core__" || pkg === "__Std__"
+            ? "Std"
+            : pkg === "__Main__"
+              ? "Main"
+              : pkg,
         module,
         member,
         content: doc.contents,
       });
     }
   });
-  console.log(docs);
 
   docs.sort((a, b) => {
     if (a.pkg != b.pkg) {
       // Sorted by __Main__, then reference packages, then __Std__ (which includes __Core__)
-      if (a.pkg === "__Main__" || b.pkg === "__Std__") {
+      if (a.pkg === "Main" || b.pkg === "Std") {
         return -1;
-      } else if (b.pkg === "__Main__" || a.pkg === "__Std__") {
+      } else if (b.pkg === "Main" || a.pkg === "Std") {
         return 1;
       } else {
         return a.pkg.localeCompare(b.pkg);
       }
     } else if (a.module != b.module) {
       // Main module comes first and "Microsoft.Quantum.*" comes last
-      if (a.module === "__Main__" || b.module.startsWith("Microsoft.Quantum")) {
+      if (a.module === "Main" || b.module.startsWith("Microsoft.Quantum")) {
         return -1;
       } else if (
-        b.module === "__Main__" ||
+        b.module === "Main" ||
         a.module.startsWith("Microsoft.Quantum")
       ) {
         return 1;
@@ -142,6 +238,10 @@ export function DocumentationView(props: { fragmentsToRender: IDocFile[] }) {
     }
   });
 
-  //return <Markdown markdown={contentToRender} />;
+  // document.documentElement.style.height = "100%";
+  // document.body.style.height = "100%";
+  // document.documentElement.style.overflow = "hidden";
+  // document.body.style.overflow = "hidden";
+
   return <DocsPage fragmentsToRender={docs} />;
 }
