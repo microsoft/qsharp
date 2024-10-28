@@ -15,6 +15,10 @@ from ._qsharp import (
     dump_circuit,
     StateDump,
     ShotResult,
+    PauliNoise,
+    DepolarizingNoise,
+    BitFlipNoise,
+    PhaseFlipNoise,
 )
 
 telemetry_events.on_import()
@@ -49,4 +53,8 @@ __all__ = [
     "TargetProfile",
     "StateDump",
     "ShotResult",
+    "PauliNoise",
+    "DepolarizingNoise",
+    "BitFlipNoise",
+    "PhaseFlipNoise"
 ]

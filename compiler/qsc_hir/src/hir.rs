@@ -1351,6 +1351,9 @@ pub enum Attr {
     /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
     /// and any implementation should be ignored.
     SimulatableIntrinsic,
+    /// Indicates that a callable is a measurement. This means that the operation will be marked as
+    /// "irreversible" in the generated QIR.
+    Measurement,
 }
 
 impl FromStr for Attr {
@@ -1362,6 +1365,7 @@ impl FromStr for Attr {
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
+            "Measurement" => Ok(Self::Measurement),
             _ => Err(()),
         }
     }
@@ -1435,13 +1439,15 @@ pub enum CallableKind {
     Function,
     /// An operation.
     Operation,
+    /// A measurement.
+    Measurement,
 }
 
 impl Display for CallableKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             CallableKind::Function => f.write_str("function"),
-            CallableKind::Operation => f.write_str("operation"),
+            CallableKind::Operation | CallableKind::Measurement => f.write_str("operation"),
         }
     }
 }

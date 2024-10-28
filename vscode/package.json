@@ -110,6 +110,34 @@
             "The Adaptive_RI target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification."
           ],
           "markdownDescription": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. [Learn more](https://aka.ms/qdk.qir)"
+        },
+        "Q#.simulation.pauliNoise": {
+          "markdownDescription": "The Pauli noise to apply when running multiple shots via the Histogram command. This is applied for every gate or measurement on all qubits referenced.\n\nProbability values are in the range [0, 1].",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "X": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a bit flip error occurring"
+            },
+            "Y": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a bit-and-phase flip error occurring"
+            },
+            "Z": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a phase flip error occurring"
+            }
+          }
         }
       }
     },
@@ -408,6 +436,10 @@
         "extensions": [
           ".qs"
         ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        },
         "configuration": "./language-configuration.json"
       }
     ],

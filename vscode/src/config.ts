@@ -41,3 +41,15 @@ export function getTargetFriendlyName(targetProfile?: string) {
       return "Q#: invalid";
   }
 }
+
+export function getPauliNoiseModel(): number[] {
+  const pauliNoiseSettings = vscode.workspace.getConfiguration(
+    "Q#.simulation.pauliNoise",
+  );
+  const noiseTuple = [
+    pauliNoiseSettings.get("X", 0),
+    pauliNoiseSettings.get("Y", 0),
+    pauliNoiseSettings.get("Z", 0),
+  ];
+  return noiseTuple;
+}

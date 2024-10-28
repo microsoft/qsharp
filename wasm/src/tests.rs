@@ -3,7 +3,9 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc::{
+    interpret, LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags,
+};
 
 use crate::_get_qir;
 
@@ -22,6 +24,7 @@ where
         TargetCapabilityFlags::all(),
         store,
         &[(std_id, None)],
+        &PauliNoise::default(),
     )
 }
 
