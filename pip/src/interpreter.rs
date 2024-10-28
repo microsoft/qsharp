@@ -645,8 +645,8 @@ impl StateDumpData {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[pyclass(eq, eq_int, ord)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
