@@ -5,7 +5,7 @@ import { Markdown } from "qsharp-lang/ux";
 import { useEffect, useState } from "preact/hooks";
 
 /* TODO
-- Move CSS to a separate file and respond to current theme
+- Move CSS to a separate file
 - Add right-click GoTo Help on Q# code window
 */
 
@@ -234,12 +234,20 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
   }
 
   return (
-    <div class="qs-docsPage" style="width: 100%; position: relative;">
+    <div
+      class="qs-docsPage"
+      style="width: 100%; position: relative; background-color: var(--main-background); color: var(--main-color)"
+    >
       <div
         class="qs-docsHeader"
-        style="height: 3em; display: flex; justify-content: space-between; align-items: center; margin-top: 0px; padding-top: 1.5em; padding-bottom: 1em; position: fixed; top: 0; width: 95%; background-color: black; z-index: 1;"
+        style="height: 3em; display: flex; justify-content: space-between; align-items: center; margin-top: 0px; padding-top: 1.5em; padding-bottom: 1em; position: fixed; top: 0; width: 95%; background-color: var(--main-background); z-index: 1;"
       >
-        <div onClick={() => setPath("")}>
+        <div
+          onClick={() => {
+            setSearchText("");
+            setPath("");
+          }}
+        >
           <svg
             style="height: 2.25em; width: 2.25em; margin: 0.25em"
             viewBox="0 0 100 100"
@@ -307,7 +315,10 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
           class="qs-docsContent"
           style="margin: 2em; position: relative; top: 2em;"
         >
-          <div class="qs-index" style="background: #161b22; padding: 0.1em">
+          <div
+            class="qs-index"
+            style="background: var(--vscode-textCodeBlock-background); padding: 0.1em"
+          >
             <p style="font-size: 1.1em; font-weight: 600; margin: 0.8em;">
               {currPath === ""
                 ? "Packages"
@@ -401,6 +412,20 @@ export function DocumentationView(props: {
       return a.member.localeCompare(b.member);
     }
   });
+
+  const style = document.createElement("style");
+  style.textContent = `
+body {
+  background-color: var(--main-background);
+  margin: 0;
+  padding: 0;
+}
+
+.markdown-body code {
+  color: var(--main-color);
+}
+`;
+  document.head.appendChild(style);
 
   return <DocsPage fragmentsToRender={docs} />;
 }
