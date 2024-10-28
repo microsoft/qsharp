@@ -24,8 +24,9 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { CopilotWebviewViewProvider } from "./copilot";
+import { CopilotWebviewViewProvider, makeChatRequest } from "./copilot";
 import { Copilot } from "./copilot2";
+import { CopilotStreamCallback } from "./copilotTools";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -468,6 +469,7 @@ export class QSharpWebViewPanel {
   private _ready = false;
   private _queuedMessages: any[] = [];
   private _copilot: Copilot;
+  private _streamCallback: CopilotStreamCallback;
 
   constructor(
     private type: PanelType,
@@ -476,13 +478,15 @@ export class QSharpWebViewPanel {
     log.info("Creating webview panel of type", type);
     this.panel.onDidDispose(() => this.dispose());
 
-    this._copilot = new Copilot((payload, command) => {
+    this._streamCallback = (payload, command) => {
       log.info("message posted with command: ", command);
       this.panel.webview.postMessage({
         command: command,
         ...payload,
       });
-    });
+    };
+
+    this._copilot = new Copilot(this._streamCallback);
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }
@@ -551,7 +555,8 @@ export class QSharpWebViewPanel {
       } else if (message.command == "copilotRequest") {
         // Send the message to the copilot
         // TODO: Move this view specific logic out of here
-        this._copilot.makeChatRequest(message.request);
+        //this._copilot.makeChatRequest(message.request);
+        makeChatRequest(message.request, this._streamCallback);
       }
     });
   }

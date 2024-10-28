@@ -13,9 +13,10 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
 } from "vscode";
+import { CopilotStreamCallback } from "./copilotTools";
 
-const chatUrl = "https://westus3.aqa.quantum.azure.com/api/chat/streaming";
-const newUrl = "https://api.quantum-test.microsoft.com/api/chat/completions";
+// const chatUrl = "https://westus3.aqa.quantum.azure.com/api/chat/streaming";
+const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming"; // new API
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 const latexContext = String.raw`Please ensure any LaTeX code is enclosed in single or double dollar signs, e.g. $x^2$ or $$x^2$$ , and not escaped parentheses, e.g. \(x^2\).`;
@@ -34,14 +35,18 @@ type QuantumChatResponse = {
   ConversationId: string; // GUID,
   Role: string; // e.g. "assistant"
   Content?: string; // The full response
+  ToolCalls?: ToolCall[];
   Delta?: string; // The next response token
   FinishReason?: string; // e.g. "stop"|"content_filter"|"length"|null,
   EmbeddedData: any;
   Created: string; // e.g. "2021-09-29T17:00:00.000Z"
 };
 
-// Consider using a generator function to handle the stream
-export type CopilotStreamCallback = (mdFragment: string, done: boolean) => void;
+type ToolCall = {
+  name: string; // The name of the function to call
+  arguments: any; // dictionary of the argument names and their values
+  id: string; // the tool call id used to match the toll call responses appropriately
+};
 
 export async function makeChatRequest(
   question: string,
@@ -106,15 +111,25 @@ async function chatRequest(
     await fetchEventSource(chatUrl, {
       ...options,
       onMessage(ev) {
-        log.debug("Received copilot fetch message: ", ev);
+        log.info("Received copilot fetch message: ", ev);
         const messageReceived: QuantumChatResponse = JSON.parse(ev.data);
-        log.debug("Received message: ", messageReceived);
-        if (messageReceived.Delta) streamCallback(messageReceived.Delta, false);
+        log.info("Received message: ", messageReceived);
+        if (messageReceived.Delta) {
+          streamCallback(
+            {
+              response: messageReceived.Delta,
+            },
+            "copilotResponse",
+          );
+        } else if (messageReceived.ToolCalls) {
+          // ToDo
+          log.info("Tools Call message: ", messageReceived);
+        }
       },
     });
 
     log.debug("ChatAPI fetch completed");
-    streamCallback("", true);
+    streamCallback({}, "copilotResponseDone");
     return Promise.resolve({});
   } catch (error) {
     log.error("ChatAPI fetch failed with error: ", error);
@@ -127,9 +142,7 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
 
   private view?: WebviewView;
 
-  constructor(private readonly extensionUri: Uri) {
-    log.info("In Copilot WebviewView constructor");
-  }
+  constructor(private readonly extensionUri: Uri) {}
 
   resolveWebviewView(
     webviewView: WebviewView,
@@ -137,7 +150,6 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
     token: CancellationToken,
   ): Thenable<void> | void {
     if (token.isCancellationRequested) return;
-    log.info("In resolveWebviewView with state: ", context.state);
 
     this.view = webviewView;
 
