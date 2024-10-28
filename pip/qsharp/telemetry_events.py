@@ -29,6 +29,17 @@ def get_shots_bucket(shots: int):
         return 10 ** math.ceil(math.log10(shots))
 
 
+# gets the order of magnitude for the number of qubits
+def get_qubits_bucket(qubits: int):
+    if qubits <= 1:
+        return 1
+    elif qubits >= 1000000:
+        # Limit the buckets upper bound
+        return 1000000
+    else:
+        # Bucket into nearest (rounded up) power of 10, e.g. 75 -> 100, 450 -> 1000, etc.
+        return 10 ** math.ceil(math.log10(qubits))
+
 def on_import():
     log_telemetry("qsharp.import", 1, properties=default_props)
 
@@ -63,8 +74,8 @@ def on_compile_end(durationMs: float, profile: str) -> None:
     )
 
 
-def on_estimate():
-    log_telemetry("qsharp.estimate", 1, properties=default_props)
+def on_estimate(qubits: int):
+    log_telemetry("qsharp.estimate", 1, properties={ **default_props, "qubits": get_qubits_bucket(qubits) })
 
 
 def on_estimate_end(durationMs: float):
