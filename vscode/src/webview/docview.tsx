@@ -4,11 +4,6 @@
 import { Markdown } from "qsharp-lang/ux";
 import { useEffect, useState } from "preact/hooks";
 
-/* TODO
-- Move CSS to a separate file
-- Add right-click GoTo Help on Q# code window
-*/
-
 export interface IDocFile {
   filename: string;
   metadata: string;
@@ -193,11 +188,13 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
   function overLi(e: MouseEvent) {
     (e.target as HTMLElement).style.fontWeight = "600";
     (e.target as HTMLElement).style.textDecoration = "underline";
+    (e.target as HTMLElement).style.cursor = "pointer";
   }
 
   function outLi(e: MouseEvent) {
     (e.target as HTMLElement).style.fontWeight = "400";
     (e.target as HTMLElement).style.textDecoration = "none";
+    (e.target as HTMLElement).style.cursor = "default";
   }
 
   // Whenever the breadcrumbs are clicked, go up one level
@@ -247,6 +244,8 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
             setSearchText("");
             setPath("");
           }}
+          onMouseOver={overLi}
+          onMouseOut={outLi}
         >
           <svg
             style="height: 2.25em; width: 2.25em; margin: 0.25em"
