@@ -236,7 +236,7 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
   return (
     <div
       class="qs-docsPage"
-      style="width: 100%; position: relative; background-color: var(--main-background); color: var(--main-color)"
+      style="width: 100%; padding-bottom: 1em; position: relative; background-color: var(--main-background); color: var(--main-color)"
     >
       <div
         class="qs-docsHeader"
@@ -419,6 +419,10 @@ body {
   background-color: var(--main-background);
   margin: 0;
   padding: 0;
+}
+
+.markdown-body {
+  background-color: var(--main-background);
 }
 
 .markdown-body code {
