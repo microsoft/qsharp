@@ -323,7 +323,7 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
               {currPath === ""
                 ? "Packages"
                 : currPath.indexOf("/") === -1
-                  ? "Modules"
+                  ? "Namespaces"
                   : "Members"}
             </p>
             <ul>
