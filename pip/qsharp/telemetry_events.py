@@ -75,7 +75,7 @@ def on_compile_end(durationMs: float, profile: str) -> None:
 
 
 def on_estimate(qubits: int):
-    log_telemetry("qsharp.estimate", 1, properties={ **default_props, "qubits": get_qubits_bucket(qubits) })
+    log_telemetry("qsharp.estimate", 1, properties={**default_props, "qubits": get_qubits_bucket(qubits)})
 
 
 def on_estimate_end(durationMs: float):
