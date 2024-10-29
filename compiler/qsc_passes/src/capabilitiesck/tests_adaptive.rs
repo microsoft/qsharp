@@ -25,6 +25,14 @@ fn check_profile(source: &str, expect: &Expect) {
     check(source, expect, TargetCapabilityFlags::Adaptive);
 }
 
+fn check_profile_extended(source: &str, capabilities: TargetCapabilityFlags, expect: &Expect) {
+    check(
+        source,
+        expect,
+        TargetCapabilityFlags::Adaptive | capabilities,
+    );
+}
+
 fn check_profile_for_exe(source: &str, expect: &Expect) {
     check_for_exe(source, expect, TargetCapabilityFlags::Adaptive);
 }
@@ -459,8 +467,9 @@ fn custom_measurement_yields_no_errors() {
 
 #[test]
 fn custom_measurement_with_simulatable_intrinsic_yields_no_errors() {
-    check_profile(
+    check_profile_extended(
         CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        TargetCapabilityFlags::QubitReset,
         &expect![[r#"
             []
         "#]],
@@ -469,8 +478,9 @@ fn custom_measurement_with_simulatable_intrinsic_yields_no_errors() {
 
 #[test]
 fn custom_reset_yields_no_errors() {
-    check_profile(
+    check_profile_extended(
         CUSTOM_RESET,
+        TargetCapabilityFlags::QubitReset,
         &expect![[r#"
             []
         "#]],
