@@ -2221,10 +2221,36 @@ fn test_measurement_attr_on_function_issues_error() {
         "#},
         &expect![[r#"
             [
-                InvalidMeasurementAttrOnFunction(
+                InvalidAttrOnFunction(
+                    "Measurement",
                     Span {
                         lo: 49,
                         hi: 52,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_reset_attr_on_function_issues_error() {
+    check_errors(
+        indoc! {r#"
+            namespace Test {
+                @Reset()
+                function Foo(q: Qubit) : Unit {
+                    body intrinsic;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrOnFunction(
+                    "Reset",
+                    Span {
+                        lo: 43,
+                        hi: 46,
                     },
                 ),
             ]
