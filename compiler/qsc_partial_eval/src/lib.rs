@@ -1313,6 +1313,9 @@ impl<'a> PartialEvaluator<'a> {
         if matches!(callable_decl.kind, qsc_fir::fir::CallableKind::Measurement) {
             return self.measure_qubits(callable_decl, args_value, args_span);
         }
+        if callable_decl.attrs.contains(&fir::Attr::Reset) {
+            return self.reset_qubits(store_item_id, callable_decl, args_value);
+        }
 
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
@@ -2370,6 +2373,60 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the result value.
         result_value
+    }
+
+    fn reset_qubits(
+        &mut self,
+        store_item_id: StoreItemId,
+        callable_decl: &CallableDecl,
+        args_value: Value,
+    ) -> Result<Value, Error> {
+        let callable_package = self.package_store.get(store_item_id.package);
+        let input_type: Vec<rir::Ty> = callable_package
+            .derive_callable_input_params(callable_decl)
+            .iter()
+            .map(|input_param| map_fir_type_to_rir_type(&input_param.ty))
+            .collect();
+        let output_type = if callable_decl.output == Ty::UNIT {
+            None
+        } else {
+            panic!("the expressions that make it to this point should return Unit");
+        };
+
+        let measurement_callable = Callable {
+            name: callable_decl.name.name.to_string(),
+            input_type,
+            output_type,
+            body: None,
+            call_type: CallableType::Reset,
+        };
+
+        // Resove the call arguments, create the call instruction and insert it to the current block.
+        let (args, ctls_arg) = self
+            .resolve_args(
+                (store_item_id.package, callable_decl.input).into(),
+                args_value,
+                None,
+                None,
+                None,
+            )
+            .expect("no controls to verify");
+        assert!(
+            ctls_arg.is_none(),
+            "intrinsic operations cannot have controls"
+        );
+        let operands = args
+            .into_iter()
+            .map(|arg| self.map_eval_value_to_rir_operand(&arg.into_value()))
+            .collect();
+
+        // Check if the callable has already been added to the program and if not do so now.
+        let measure_callable_id = self.get_or_insert_callable(measurement_callable);
+        let instruction = Instruction::Call(measure_callable_id, operands, None);
+        let current_block = self.get_current_rir_block_mut();
+        current_block.0.push(instruction);
+
+        Ok(Value::unit())
     }
 
     fn release_qubit(&mut self, args_value: Value) -> Value {

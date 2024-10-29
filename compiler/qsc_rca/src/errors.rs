@@ -167,6 +167,12 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToCustomMeasurement"))]
     CallToCustomMeasurement(#[label] Span),
 
+    #[error("cannot call a custom reset")]
+    #[diagnostic(help("cannot call a custom reset in the configured target profile"))]
+    #[diagnostic(url("https://aka.ms/qdk.qir#call-to-custom-reset"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.CallToCustomReset"))]
+    CallToCustomReset(#[label] Span),
+
     #[error("cannot access an array using a dynamic index")]
     #[diagnostic(help("accessing an array using an index that depends on a measurement result is not supported by the configured target profile"))]
     #[diagnostic(url("https://aka.ms/qdk.qir#use-of-dynamic-array-index"))]
@@ -308,8 +314,11 @@ pub fn generate_errors_from_runtime_features(
     if runtime_features.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
         errors.push(Error::UseOfAdvancedOutput(span));
     }
-    if runtime_features.contains(RuntimeFeatureFlags::CustomMeasurement) {
+    if runtime_features.contains(RuntimeFeatureFlags::CallToCustomMeasurement) {
         errors.push(Error::CallToCustomMeasurement(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::CallToCustomReset) {
+        errors.push(Error::CallToCustomReset(span));
     }
     errors
 }

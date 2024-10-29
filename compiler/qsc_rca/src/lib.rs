@@ -810,8 +810,10 @@ bitflags! {
         const UseOfDynamicResult = 1 << 26;
         /// Use of a dynamic tuple variable.
         const UseOfDynamicTuple = 1 << 27;
-        /// A custom measurement was declared using the @Measurement attribute.
-        const CustomMeasurement = 1 << 28;
+        /// A callee expression to a measurement.
+        const CallToCustomMeasurement = 1 << 28;
+        /// A callee expression to a reset.
+        const CallToCustomReset = 1 << 29;
     }
 }
 
@@ -914,8 +916,12 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::CustomMeasurement) {
+        if self.contains(RuntimeFeatureFlags::CallToCustomMeasurement) {
             capabilities |= TargetCapabilityFlags::Adaptive;
+        }
+        if self.contains(RuntimeFeatureFlags::CallToCustomReset) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+            capabilities |= TargetCapabilityFlags::QubitReset;
         }
         capabilities
     }

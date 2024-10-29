@@ -504,7 +504,10 @@ impl ToQir<String> for rir::Callable {
             return format!(
                 "declare {output_type} @{}({input_type}){}",
                 self.name,
-                if self.call_type == rir::CallableType::Measurement {
+                if matches!(
+                    self.call_type,
+                    rir::CallableType::Measurement | rir::CallableType::Reset
+                ) {
                     // Measurement callables are a special case that needs the irreversable attribute.
                     " #1"
                 } else {

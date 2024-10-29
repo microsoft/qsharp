@@ -30,10 +30,10 @@ pub(super) enum Error {
     #[error("invalid attribute arguments: expected {0}")]
     #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(String, #[label] Span),
-    #[error("invalid use of the Measurement attribute on a function")]
+    #[error("invalid use of the {0} attribute on a function")]
     #[diagnostic(help("try declaring the callable as an operation"))]
-    #[diagnostic(code("Qsc.LowerAst.InvalidMeasurementAttrOnFunction"))]
-    InvalidMeasurementAttrOnFunction(#[label] Span),
+    #[diagnostic(code("Qsc.LowerAst.InvalidAttrOnFunction"))]
+    InvalidAttrOnFunction(String, #[label] Span),
     #[error("missing callable body")]
     #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
@@ -368,6 +368,15 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Reset) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::Reset),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
@@ -429,29 +438,40 @@ impl With<'_> {
             adj,
             ctl,
             ctl_adj,
+            attrs: attrs.to_vec(),
+        }
+    }
+
+    fn check_invalid_attrs_on_function(&mut self, attrs: &[hir::Attr], span: Span) {
+        const INVALID_ATTRS: [hir::Attr; 2] = [hir::Attr::Measurement, hir::Attr::Reset];
+
+        for invalid_attr in &INVALID_ATTRS {
+            if attrs.contains(invalid_attr) {
+                self.lowerer.errors.push(Error::InvalidAttrOnFunction(
+                    format!("{invalid_attr:?}"),
+                    span,
+                ));
+            }
         }
     }
 
     fn lower_callable_kind(
         &mut self,
         kind: ast::CallableKind,
-        attrs: &[qsc_hir::hir::Attr],
+        attrs: &[hir::Attr],
         span: Span,
     ) -> hir::CallableKind {
-        if attrs.contains(&qsc_hir::hir::Attr::Measurement) {
-            match kind {
-                ast::CallableKind::Operation => hir::CallableKind::Measurement,
-                ast::CallableKind::Function => {
-                    self.lowerer
-                        .errors
-                        .push(Error::InvalidMeasurementAttrOnFunction(span));
-                    hir::CallableKind::Function
-                }
+        match kind {
+            ast::CallableKind::Function => {
+                self.check_invalid_attrs_on_function(attrs, span);
+                hir::CallableKind::Function
             }
-        } else {
-            match kind {
-                ast::CallableKind::Operation => hir::CallableKind::Operation,
-                ast::CallableKind::Function => hir::CallableKind::Function,
+            ast::CallableKind::Operation => {
+                if attrs.contains(&hir::Attr::Measurement) {
+                    hir::CallableKind::Measurement
+                } else {
+                    hir::CallableKind::Operation
+                }
             }
         }
     }

@@ -15,37 +15,35 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error(
-        "a callable with the measurement attribute should take at least one argument of type Qubit"
-    )]
-    #[diagnostic(code("Qsc.Measurement.NoArguments"))]
+    #[error("a callable with the reset attribute should take at least one argument of type Qubit")]
+    #[diagnostic(code("Qsc.Reset.NoArguments"))]
     NoArguments(#[label] Span),
 
-    #[error("a callable with the measurement attribute should only take arguments of type Qubit")]
-    #[diagnostic(code("Qsc.Measurement.NonQubitArgument"))]
+    #[error("a callable with the reset attribute should only take arguments of type Qubit")]
+    #[diagnostic(code("Qsc.Reset.NonQubitArgument"))]
     NonQubitArgument(#[label] Span),
 
-    #[error("a callable with the measurement attribute should only have outputs of type Result")]
-    #[diagnostic(code("Qsc.Measurement.NonResultOutput"))]
-    NonResultOutput(#[label] Span),
+    #[error("a callable with the reset attribute should only have outputs of type Result")]
+    #[diagnostic(code("Qsc.Reset.NonResultOutput"))]
+    NonUnitOutput(#[label] Span),
 
-    #[error("a callable with the measurement attribute should be an intrinsic")]
-    #[diagnostic(code("Qsc.Measurement.NotIntrinsic"))]
+    #[error("a callable with the reset attribute should be an intrinsic")]
+    #[diagnostic(code("Qsc.Reset.NotIntrinsic"))]
     NotIntrinsic(#[label] Span),
 }
 
-/// For each measurement declaration check that:
+/// For each reset declaration check that:
 ///  1. It takes at least one argument.
 ///  2. It only takes Qubits as arguments.
 ///  3. It only outputs Results.
 ///  4. It is an intrinsic.
-pub(super) fn validate_measurement_declarations(package: &Package) -> Vec<Error> {
-    let mut validator = MeasurementValidator { errors: Vec::new() };
+pub(super) fn validate_reset_declarations(package: &Package) -> Vec<Error> {
+    let mut validator = ResetValidator { errors: Vec::new() };
     validator.visit_package(package);
     validator.errors
 }
 
-fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors: &mut Vec<Error>) {
+fn validate_reset_declaration(decl: &CallableDecl, attrs: &[Attr], errors: &mut Vec<Error>) {
     // 1. Check that the declaration takes at least one argument.
     if decl.input.ty == Ty::UNIT {
         errors.push(Error::NoArguments(decl.input.span));
@@ -66,24 +64,9 @@ fn validate_measurement_declaration(decl: &CallableDecl, attrs: &[Attr], errors:
         _ => errors.push(Error::NonQubitArgument(decl.input.span)),
     }
 
-    // 3. Check that the declaration only outputs Results: specifically check for Unit.
-    if decl.output == Ty::UNIT {
-        errors.push(Error::NonResultOutput(decl.span));
-    }
-
-    // 3. Check that the declaration only outputs Results.
-    match &decl.output {
-        Ty::Prim(Prim::Result) => (),
-        Ty::Tuple(types) => {
-            for ty in types {
-                if !matches!(ty, Ty::Prim(Prim::Result)) {
-                    errors.push(Error::NonResultOutput(decl.name.span));
-                    // break so that we don't repeat the same error multiple times
-                    break;
-                }
-            }
-        }
-        _ => errors.push(Error::NonResultOutput(decl.name.span)),
+    // 3. Check that the declaration only outputs Unit.
+    if decl.output != Ty::UNIT {
+        errors.push(Error::NonUnitOutput(decl.span));
     }
 
     // 4. Check that the declaration is an intrinsic.
@@ -102,16 +85,16 @@ fn decl_is_intrinsic(decl: &CallableDecl, attrs: &[Attr]) -> bool {
             .any(|attr| matches!(attr, Attr::SimulatableIntrinsic))
 }
 
-/// A helper structure to find and validate measurement callables in a Package.
-struct MeasurementValidator {
+/// A helper structure to find and validate reset callables in a Package.
+struct ResetValidator {
     errors: Vec<Error>,
 }
 
-impl<'a> Visitor<'a> for MeasurementValidator {
+impl<'a> Visitor<'a> for ResetValidator {
     fn visit_item(&mut self, item: &'a Item) {
         if let ItemKind::Callable(callable) = &item.kind {
-            if item.attrs.contains(&Attr::Measurement) {
-                validate_measurement_declaration(callable, &item.attrs, &mut self.errors);
+            if item.attrs.contains(&Attr::Reset) {
+                validate_reset_declaration(callable, &item.attrs, &mut self.errors);
             }
         }
     }
