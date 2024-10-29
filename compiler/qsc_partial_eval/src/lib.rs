@@ -2401,7 +2401,7 @@ impl<'a> PartialEvaluator<'a> {
             call_type: CallableType::Reset,
         };
 
-        // Resove the call arguments, create the call instruction and insert it to the current block.
+        // Resolve the call arguments, create the call instruction and insert it to the current block.
         let (args, ctls_arg) = self
             .resolve_args(
                 (store_item_id.package, callable_decl.input).into(),
