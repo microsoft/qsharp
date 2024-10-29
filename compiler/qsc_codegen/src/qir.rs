@@ -508,7 +508,7 @@ impl ToQir<String> for rir::Callable {
                     self.call_type,
                     rir::CallableType::Measurement | rir::CallableType::Reset
                 ) {
-                    // Measurement callables are a special case that needs the irreversable attribute.
+                    // These callables are a special case that need the irreversable attribute.
                     " #1"
                 } else {
                     ""
