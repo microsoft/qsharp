@@ -386,8 +386,12 @@ if build_npm:
 
     npm_args = [npm_cmd, "run", "build:prod"]
     subprocess.run(npm_args, check=True, text=True, cwd=circuit_vis_src)
-
     step_end()
+
+    if run_tests:
+        step_start("Running the circuit_vis tests")
+        subprocess.run([npm_cmd, "test"], check=True, text=True, cwd=circuit_vis_src)
+        step_end()
 
 if build_npm:
     step_start("Building the npm package")

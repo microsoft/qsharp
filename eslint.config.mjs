@@ -12,7 +12,6 @@ export default tseslint.config(
   },
   {
     ignores: [
-      "circuit_vis/example/",
       "circuit_vis/lib/",
       "circuit_vis/coverage/",
       "circuit_vis/dist/",
