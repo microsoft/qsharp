@@ -6,7 +6,8 @@ use super::tests_common::{
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
-    CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR, LOOP_WITH_DYNAMIC_CONDITION,
+    CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR, CUSTOM_RESET,
+    CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR, LOOP_WITH_DYNAMIC_CONDITION,
     MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL, RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION,
     USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE,
     USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP,
@@ -22,6 +23,14 @@ use qsc_data_structures::target::TargetCapabilityFlags;
 
 fn check_profile(source: &str, expect: &Expect) {
     check(source, expect, TargetCapabilityFlags::Adaptive);
+}
+
+fn check_profile_extended(source: &str, capabilities: TargetCapabilityFlags, expect: &Expect) {
+    check(
+        source,
+        expect,
+        TargetCapabilityFlags::Adaptive | capabilities,
+    );
 }
 
 fn check_profile_for_exe(source: &str, expect: &Expect) {
@@ -460,6 +469,28 @@ fn custom_measurement_yields_no_errors() {
 fn custom_measurement_with_simulatable_intrinsic_yields_no_errors() {
     check_profile(
         CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_yields_no_errors() {
+    check_profile_extended(
+        CUSTOM_RESET,
+        TargetCapabilityFlags::QubitReset,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_with_simulatable_intrinsic_yields_no_errors() {
+    check_profile_extended(
+        CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        TargetCapabilityFlags::QubitReset,
         &expect![[r#"
             []
         "#]],

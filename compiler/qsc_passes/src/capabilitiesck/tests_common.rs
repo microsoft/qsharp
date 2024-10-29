@@ -353,6 +353,39 @@ pub const CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
         }
     }"#;
 
+pub const CUSTOM_RESET: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        operation Foo(q: Qubit) : Unit {
+            body intrinsic;
+        }
+    }"#;
+
+pub const CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        @SimulatableIntrinsic()
+        operation Foo(q: Qubit) : Unit {
+            Reset(q);
+        }
+    }"#;
+
 pub const USE_DYNAMIC_INDEX: &str = r#"
     namespace Test {
         import Std.Convert.*;
