@@ -38,7 +38,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     }
   }
 
-  let projectName = program.programConfig.projectName ?? "App";
+  let projectName = program.programConfig.projectName;
   if (projectName.endsWith(".qs")) projectName = projectName.slice(0, -3);
 
   const message = {
