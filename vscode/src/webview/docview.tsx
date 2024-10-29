@@ -12,7 +12,7 @@ export interface IDocFile {
 
 interface ItemDocs {
   pkg: string;
-  module: string;
+  namespace: string;
   member: string;
   content: string;
 }
@@ -44,12 +44,12 @@ function GetPageContents(
       }
     });
   } else if (currPath.indexOf("/") === -1) {
-    // Render the list of modules in the current package
+    // Render the list of namespaces in the current package
     docs.forEach((doc) => {
       if (doc.pkg === currPath) {
-        if (!(doc.module in contents)) {
-          contents[doc.module] = {
-            onclick: () => setPath(`${currPath}/${doc.module}`),
+        if (!(doc.namespace in contents)) {
+          contents[doc.namespace] = {
+            onclick: () => setPath(`${currPath}/${doc.namespace}`),
             content: "",
             anchor: "",
           };
@@ -57,11 +57,11 @@ function GetPageContents(
       }
     });
   } else {
-    // Render the list of members in the current module
+    // Render the list of members in the current namespace
     docs.forEach((doc) => {
       if (
         doc.pkg === currPath.split("/")[0] &&
-        doc.module === currPath.split("/")[1]
+        doc.namespace === currPath.split("/")[1]
       ) {
         contents[doc.member] = {
           onclick: (evt: Event) => {
@@ -109,7 +109,7 @@ function getSearchResults(
 ): SearchResult[] {
   const results: SearchResult[] = [];
 
-  // Search on member name first, then on module name, then on package name, then on content
+  // Search on member name first, then on namespace name, then on package name, then on content
   // Prefer earlier matches (e.g. "X" should match "X" before "CX")
 
   // RegExp groups
@@ -133,9 +133,9 @@ function getSearchResults(
     }
 
     if (!rank) {
-      rank = (doc.module.toLowerCase().indexOf(lowerText) + 1) * 100;
+      rank = (doc.namespace.toLowerCase().indexOf(lowerText) + 1) * 100;
       if (rank) {
-        rank += doc.module.length;
+        rank += doc.namespace.length;
       }
     }
     if (!rank) {
@@ -148,7 +148,7 @@ function getSearchResults(
     if (rank) {
       results.push({
         rank,
-        anchor: `${doc.pkg}/${doc.module}/${doc.member}`,
+        anchor: `${doc.pkg}/${doc.namespace}/${doc.member}`,
         header,
         summary,
       });
@@ -160,7 +160,7 @@ function getSearchResults(
 }
 
 function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
-  // currPath is of the format: "<pkg>/<module>/<member>", e.g.
+  // currPath is of the format: "<pkg>/<namespace>/<member>", e.g.
   // "Std/Canon/CCNOT" or "Std/Microsoft.Quantum.Diagnostics/AssertMeasurementEqual" or
   // "Unsigned/Main/GetInt" or "Main/Particle/Particle". When at the top level, currPath is "".
 
@@ -363,10 +363,10 @@ export function DocumentationView(props: {
       return;
     }
     const pkg = doc.metadata.match(/^(?:qsharp\.package: )(.*)$/m)?.[1];
-    const module = doc.metadata.match(/^(?:qsharp\.namespace: )(.*)$/m)?.[1];
+    const namespace = doc.metadata.match(/^(?:qsharp\.namespace: )(.*)$/m)?.[1];
     const member = doc.metadata.match(/^(?:qsharp\.name: )(.*)$/m)?.[1];
 
-    if (pkg && module && member) {
+    if (pkg && namespace && member) {
       docs.push({
         pkg:
           pkg === "__Core__" || pkg === "__Std__"
@@ -374,8 +374,10 @@ export function DocumentationView(props: {
             : pkg === "__Main__"
               ? props.projectName
               : pkg,
-        // For some reason Std modules include the package name. Remove it.
-        module: module.startsWith("Std.") ? module.slice(4) : module,
+        // For some reason Std namespaces include the package name. Remove it.
+        namespace: namespace.startsWith("Std.")
+          ? namespace.slice(4)
+          : namespace,
         member,
         content: doc.contents,
       });
@@ -392,20 +394,20 @@ export function DocumentationView(props: {
       } else {
         return a.pkg.localeCompare(b.pkg);
       }
-    } else if (a.module != b.module) {
-      // Main module comes first and "Microsoft.Quantum.*" comes last
+    } else if (a.namespace != b.namespace) {
+      // Main namespace comes first and "Microsoft.Quantum.*" comes last
       if (
-        a.module === props.projectName ||
-        b.module.startsWith("Microsoft.Quantum")
+        a.namespace === props.projectName ||
+        b.namespace.startsWith("Microsoft.Quantum")
       ) {
         return -1;
       } else if (
-        b.module === props.projectName ||
-        a.module.startsWith("Microsoft.Quantum")
+        b.namespace === props.projectName ||
+        a.namespace.startsWith("Microsoft.Quantum")
       ) {
         return 1;
       } else {
-        return a.module.localeCompare(b.module);
+        return a.namespace.localeCompare(b.namespace);
       }
     } else {
       return a.member.localeCompare(b.member);
