@@ -23,7 +23,7 @@ pub enum Error {
     #[diagnostic(code("Qsc.Reset.NonQubitArgument"))]
     NonQubitArgument(#[label] Span),
 
-    #[error("a callable with the reset attribute should only have outputs of type Result")]
+    #[error("a callable with the reset attribute should have output of type Unit")]
     #[diagnostic(code("Qsc.Reset.NonResultOutput"))]
     NonUnitOutput(#[label] Span),
 
