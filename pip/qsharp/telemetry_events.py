@@ -23,7 +23,10 @@ def get_shots_bucket(shots: int) -> int:
 
 
 # gets the order of magnitude for the number of qubits
-def get_qubits_bucket(qubits: int) -> int:
+def get_qubits_bucket(qubits: str) -> str:
+    if qubits == "unknown":
+        return "unknown"
+    qubits = int(qubits)
     if qubits <= 1:
         return 1
     elif qubits >= 50:

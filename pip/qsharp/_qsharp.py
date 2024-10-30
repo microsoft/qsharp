@@ -27,6 +27,7 @@ import os
 from time import monotonic
 
 _interpreter = None
+_config = None
 
 # Check if we are running in a Jupyter notebook to use the IPython display function
 _in_jupyter = False
@@ -163,6 +164,7 @@ def init(
     from ._http import fetch_github
 
     global _interpreter
+    global _config
 
     if isinstance(target_name, str):
         target = target_name.split(".")[0].lower()
@@ -200,9 +202,10 @@ def init(
         fetch_github,
     )
 
+    _config = Config(target_profile, language_features, manifest_contents, project_root)
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features, manifest_contents, project_root)
+    return _config 
 
 
 def get_interpreter() -> Interpreter:
@@ -374,10 +377,15 @@ def compile(entry_expr: str) -> QirInputData:
             file.write(str(program))
     """
     ipython_helper()
-
+    start = monotonic()
+    global _config
+    target_profile = _config._config.get("targetProfile", "unspecified")
+    telemetry_events.on_compile(target_profile)
     ll_str = get_interpreter().qir(entry_expr)
-    return QirInputData("main", ll_str)
-
+    res = QirInputData("main", ll_str)
+    durationMs = (monotonic() - start) * 1000
+    telemetry_events.on_compile_end(durationMs, target_profile)
+    return res
 
 def circuit(
     entry_expr: Optional[str] = None, *, operation: Optional[str] = None
@@ -429,9 +437,15 @@ def estimate(
 
     params = _coerce_estimator_params(params)
     param_str = json.dumps(params)
-
+    telemetry_events.on_estimate()
+    start = monotonic()
     res_str = get_interpreter().estimate(entry_expr, param_str)
     res = json.loads(res_str)
+
+    qubits = res[0]["logicalCounts"]["numQubits"]
+
+    durationMs = (monotonic() - start) * 1000
+    telemetry_events.on_estimate_end(durationMs, qubits)
     return EstimatorResult(res)
 
 
