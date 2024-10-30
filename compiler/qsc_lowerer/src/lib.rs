@@ -976,7 +976,6 @@ fn lower_callable_kind(kind: hir::CallableKind) -> fir::CallableKind {
     match kind {
         hir::CallableKind::Function => fir::CallableKind::Function,
         hir::CallableKind::Operation => fir::CallableKind::Operation,
-        hir::CallableKind::Measurement => fir::CallableKind::Measurement,
     }
 }
 
