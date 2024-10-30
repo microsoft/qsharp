@@ -33,12 +33,11 @@ def get_shots_bucket(shots: int):
 def get_qubits_bucket(qubits: int):
     if qubits <= 1:
         return 1
-    elif qubits >= 1000000:
-        # Limit the buckets upper bound
-        return 1000000
+    elif qubits >= 30:
+        return 25
     else:
-        # Bucket into nearest (rounded up) power of 10, e.g. 75 -> 100, 450 -> 1000, etc.
-        return 10 ** math.ceil(math.log10(qubits))
+        # integer divide by 5 to get nearest 5
+        return qubits // 5 * 5
 
 def on_import():
     log_telemetry("qsharp.import", 1, properties=default_props)
