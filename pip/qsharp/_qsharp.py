@@ -442,7 +442,10 @@ def estimate(
     res_str = get_interpreter().estimate(entry_expr, param_str)
     res = json.loads(res_str)
 
-    qubits = res[0]["logicalCounts"]["numQubits"]
+    try:
+        qubits = res[0]["logicalCounts"]["numQubits"]
+    except (KeyError, IndexError):
+        qubits = "unknown"
 
     durationMs = (monotonic() - start) * 1000
     telemetry_events.on_estimate_end(durationMs, qubits)
