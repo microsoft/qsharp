@@ -33,8 +33,8 @@ def get_shots_bucket(shots: int) -> int:
 def get_qubits_bucket(qubits: int) -> int:
     if qubits <= 1:
         return 1
-    elif qubits >= 30:
-        return 25
+    elif qubits >= 50:
+        return 50
     else:
         # integer divide by 5 to get nearest 5
         return qubits // 5 * 5
