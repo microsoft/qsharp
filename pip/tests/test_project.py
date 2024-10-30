@@ -3,7 +3,9 @@
 
 import pytest
 import os
-
+from unittest.mock import patch
+from qsharp.telemetry import AIURL
+import urllib.request
 
 @pytest.fixture
 def qsharp():
@@ -20,205 +22,220 @@ def qsharp():
 
     return qsharp
 
+class MockResponse:
+    def __init__(self, status_code, content):
+        self.status_code = status_code
+        self.content = content
 
-def test_project(qsharp) -> None:
-    qsharp.init(project_root="/good")
-    result = qsharp.eval("Test.ReturnsFour()")
-    assert result == 4
+    def read(self):
+        return self.content
 
+def mock_urlopen(url, *args, **kwargs):
+    if url == AIURL:
+        return MockResponse(200, b'{"status": "success"}')
+    raise ValueError("Unmocked url: " + url)
 
-def test_project_compile_error(qsharp) -> None:
-    with pytest.raises(Exception) as excinfo:
-        qsharp.init(project_root="/compile_error")
-    assert str(excinfo.value).startswith("Qsc.TypeCk.TyMismatch")
+@patch("urllib.request.urlopen")
+class ProjectTests:
 
-
-def test_project_bad_qsharp_json(qsharp) -> None:
-    with pytest.raises(Exception) as excinfo:
-        qsharp.init(project_root="/bad_qsharp_json")
-    assert str(excinfo.value).find("Failed to parse manifest") != -1
-
-
-def test_project_unreadable_qsharp_json(qsharp) -> None:
-    with pytest.raises(Exception) as excinfo:
-        qsharp.init(project_root="/unreadable_qsharp_json")
-    assert str(excinfo.value).startswith(
-        "Error reading /unreadable_qsharp_json/qsharp.json."
-    )
+    def test_project(qsharp) -> None:
+        qsharp.init(project_root="/good")
+        result = qsharp.eval("Test.ReturnsFour()")
+        assert result == 4
 
 
-def test_project_unreadable_source(qsharp) -> None:
-    with pytest.raises(Exception) as excinfo:
-        qsharp.init(project_root="/unreadable_source")
-    # If this seems like a silly substring to assert on, it's
-    # because the error reporting code is inserting a line break
-    # between "could not" and "read test.qs"
-    assert str(excinfo.value).find("OSError: could not") != -1
+    def test_project_compile_error(qsharp) -> None:
+        with pytest.raises(Exception) as excinfo:
+            qsharp.init(project_root="/compile_error")
+        assert str(excinfo.value).startswith("Qsc.TypeCk.TyMismatch")
 
 
-def test_project_dependencies(qsharp) -> None:
-    qsharp.init(project_root="/with_deps")
-    result = qsharp.eval("Test.CallsDependency()")
-    assert result == 4
+    def test_project_bad_qsharp_json(qsharp) -> None:
+        with pytest.raises(Exception) as excinfo:
+            qsharp.init(project_root="/bad_qsharp_json")
+        assert str(excinfo.value).find("Failed to parse manifest") != -1
 
 
-def test_project_circular_dependency_error(qsharp) -> None:
-    with pytest.raises(Exception) as excinfo:
-        qsharp.init(project_root="/circular")
-    assert str(excinfo.value).find("Circular dependency detected between") != -1
+    def test_project_unreadable_qsharp_json(qsharp) -> None:
+        with pytest.raises(Exception) as excinfo:
+            qsharp.init(project_root="/unreadable_qsharp_json")
+        assert str(excinfo.value).startswith(
+            "Error reading /unreadable_qsharp_json/qsharp.json."
+        )
 
 
-def test_github_dependency(qsharp) -> None:
-    qsharp.init(project_root="/with_github_dep")
-    result = qsharp.eval("Test.CallsDependency()")
-    assert result == 12
+    def test_project_unreadable_source(qsharp) -> None:
+        with pytest.raises(Exception) as excinfo:
+            qsharp.init(project_root="/unreadable_source")
+        # If this seems like a silly substring to assert on, it's
+        # because the error reporting code is inserting a line break
+        # between "could not" and "read test.qs"
+        assert str(excinfo.value).find("OSError: could not") != -1
 
 
-memfs = {
-    "": {
-        "good": {
-            "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
+    def test_project_dependencies(qsharp) -> None:
+        qsharp.init(project_root="/with_deps")
+        result = qsharp.eval("Test.CallsDependency()")
+        assert result == 4
+
+
+    def test_project_circular_dependency_error(qsharp) -> None:
+        with pytest.raises(Exception) as excinfo:
+            qsharp.init(project_root="/circular")
+        assert str(excinfo.value).find("Circular dependency detected between") != -1
+
+
+    def test_github_dependency(qsharp) -> None:
+        qsharp.init(project_root="/with_github_dep")
+        result = qsharp.eval("Test.CallsDependency()")
+        assert result == 12
+
+
+    memfs = {
+        "": {
+            "good": {
+                "src": {
+                    "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
+                },
+                "qsharp.json": "{}",
             },
-            "qsharp.json": "{}",
-        },
-        "bad_qsharp_json": {"qsharp.json": "BAD_JSON_CONTENTS"},
-        "unreadable_qsharp_json": {
-            "qsharp.json": OSError("could not read qsharp.json")
-        },
-        "unreadable_source": {
-            "src": {
-                "test.qs": OSError("could not read test.qs"),
+            "bad_qsharp_json": {"qsharp.json": "BAD_JSON_CONTENTS"},
+            "unreadable_qsharp_json": {
+                "qsharp.json": OSError("could not read qsharp.json")
             },
-            "qsharp.json": "{}",
-        },
-        "compile_error": {
-            "src": {
-                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
+            "unreadable_source": {
+                "src": {
+                    "test.qs": OSError("could not read test.qs"),
+                },
+                "qsharp.json": "{}",
             },
-            "qsharp.json": "{}",
-        },
-        "with_deps": {
-            "src": {
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
+            "compile_error": {
+                "src": {
+                    "test.qs": "namespace Test { operation ReturnsFour() : Int { 4.0 } }",
+                },
+                "qsharp.json": "{}",
             },
-            "qsharp.json": """
-                {
-                    "dependencies": {
-                        "Foo": {
-                            "path": "../good"
-                        }
-                    }
-                }""",
-        },
-        "circular": {
-            "src": {
-                "test.qs": "namespace Test {}",
-            },
-            "qsharp.json": """
-                {
-                    "dependencies": {
-                        "Foo": {
-                            "path": "../circular"
-                        }
-                    }
-                }""",
-        },
-        "with_github_dep": {
-            "src": {
-                "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsTwelve(); } }",
-            },
-            "qsharp.json": """
-                {
-                    "dependencies": {
-                        "Foo": {
-                            "github" : {
-                                "owner" : "test-owner",
-                                "repo" : "test-repo",
-                                "ref" : "12345"
+            "with_deps": {
+                "src": {
+                    "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsFour(); } }",
+                },
+                "qsharp.json": """
+                    {
+                        "dependencies": {
+                            "Foo": {
+                                "path": "../good"
                             }
                         }
-                    }
-                }""",
-        },
-    }
-}
-
-
-def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
-        return """{ "files" : ["src/test.qs"] }"""
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
-        return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
-    raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
-
-
-
-def read_file_memfs(path):
-    global memfs
-    item = memfs
-    for part in path.split("/"):
-        if part in item:
-            if isinstance(item[part], OSError):
-                raise item[part]
-            else:
-                item = item[part]
-        else:
-            raise Exception("File not found: " + path)
-
-    return (path, item)
-
-
-def list_directory_memfs(dir_path):
-    global memfs
-    item = memfs
-    for part in dir_path.split("/"):
-        if part in item:
-            item = item[part]
-        else:
-            raise Exception("Directory not found: " + dir_path)
-
-    contents = list(
-        map(
-            lambda x: {
-                "path": join_memfs(dir_path, x[0]),
-                "entry_name": x[0],
-                "type": "folder" if isinstance(x[1], dict) else "file",
+                    }""",
             },
-            item.items(),
+            "circular": {
+                "src": {
+                    "test.qs": "namespace Test {}",
+                },
+                "qsharp.json": """
+                    {
+                        "dependencies": {
+                            "Foo": {
+                                "path": "../circular"
+                            }
+                        }
+                    }""",
+            },
+            "with_github_dep": {
+                "src": {
+                    "test.qs": "namespace Test { operation CallsDependency() : Int { return Foo.Test.ReturnsTwelve(); } }",
+                },
+                "qsharp.json": """
+                    {
+                        "dependencies": {
+                            "Foo": {
+                                "github" : {
+                                    "owner" : "test-owner",
+                                    "repo" : "test-repo",
+                                    "ref" : "12345"
+                                }
+                            }
+                        }
+                    }""",
+            },
+        }
+    }
+
+
+    def fetch_github_test(owner: str, repo: str, ref: str, path: str):
+        if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
+            return """{ "files" : ["src/test.qs"] }"""
+        if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
+            return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
+        raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
+
+
+
+    def read_file_memfs(path):
+        global memfs
+        item = memfs
+        for part in path.split("/"):
+            if part in item:
+                if isinstance(item[part], OSError):
+                    raise item[part]
+                else:
+                    item = item[part]
+            else:
+                raise Exception("File not found: " + path)
+
+        return (path, item)
+
+
+    def list_directory_memfs(dir_path):
+        global memfs
+        item = memfs
+        for part in dir_path.split("/"):
+            if part in item:
+                item = item[part]
+            else:
+                raise Exception("Directory not found: " + dir_path)
+
+        contents = list(
+            map(
+                lambda x: {
+                    "path": join_memfs(dir_path, x[0]),
+                    "entry_name": x[0],
+                    "type": "folder" if isinstance(x[1], dict) else "file",
+                },
+                item.items(),
+            )
         )
-    )
 
-    return contents
-
-
-def exists_memfs(path):
-    global memfs
-    parts = path.split("/")
-    item = memfs
-    for part in parts:
-        if part in item:
-            item = item[part]
-        else:
-            return False
-
-    return True
+        return contents
 
 
-# The below functions force the use of `/` separators in the unit tests
-# so that they function on Windows consistently with other platforms.
-def join_memfs(path, *paths):
-    return "/".join([path, *paths])
+    def exists_memfs(path):
+        global memfs
+        parts = path.split("/")
+        item = memfs
+        for part in parts:
+            if part in item:
+                item = item[part]
+            else:
+                return False
+
+        return True
 
 
-def resolve_memfs(base, path):
-    parts = f"{base}/{path}".split("/")
-    new_parts = []
-    for part in parts:
-        if part == ".":
-            continue
-        if part == "..":
-            new_parts.pop()
-            continue
-        new_parts.append(part)
-    return "/".join(new_parts)
+    # The below functions force the use of `/` separators in the unit tests
+    # so that they function on Windows consistently with other platforms.
+    def join_memfs(path, *paths):
+        return "/".join([path, *paths])
+
+
+    def resolve_memfs(base, path):
+        parts = f"{base}/{path}".split("/")
+        new_parts = []
+        for part in parts:
+            if part == ".":
+                continue
+            if part == "..":
+                new_parts.pop()
+                continue
+            new_parts.append(part)
+        return "/".join(new_parts)
