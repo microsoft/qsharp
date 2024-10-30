@@ -28,12 +28,12 @@ def get_qubits_bucket(qubits: str) -> str:
         return "unknown"
     qubits = int(qubits)
     if qubits <= 1:
-        return 1
+        return "1"
     elif qubits >= 50:
-        return 50
+        return "50"
     else:
         # integer divide by 5 to get nearest 5
-        return qubits // 5 * 5
+        return str(qubits // 5 * 5)
 
 
 def on_import() -> None:
