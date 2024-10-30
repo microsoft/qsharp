@@ -3804,3 +3804,45 @@ fn field_access_local_shadows_global() {
         "#]],
     );
 }
+
+#[test]
+fn no_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(↘)
+        function Main() : Unit {
+            let FakeStdLib = new Foo { bar = 3 };
+            FakeStdLib.↘
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn no_path_segment_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(FakeStdLib.↘)
+        function Main() : Unit {
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
