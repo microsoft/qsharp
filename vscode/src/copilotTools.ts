@@ -176,7 +176,23 @@ export const GetJobs = async (): Promise<Job[]> => {
     const limited_jobs =
       jobs.length > job_limit ? jobs.slice(0, job_limit) : jobs;
 
-    return limited_jobs;
+    const truncated_jobs = limited_jobs.map((job) => {
+      return {
+        id: job.id,
+        name: job.name,
+        target: job.target,
+        status: job.status,
+        outputDataUri: job.outputDataUri,
+        creationTime: job.creationTime,
+        beginExecutionTime: job.beginExecutionTime,
+        endExecutionTime: job.endExecutionTime,
+        cancellationTime: job.cancellationTime,
+        costEstimate: job.costEstimate,
+        errorData: job.errorData,
+      };
+    });
+
+    return truncated_jobs;
   } else {
     return [];
   }
@@ -391,6 +407,8 @@ export const ToolCallSwitch = async (
 ): Promise<any> => {
   const content: any = {};
 
+  log.info("Tool call name: ", tool_name);
+  log.info("Tool call args: ", args);
   if (tool_name === "GetJob") {
     const job_id = args.job_id;
     const job = await GetJob(job_id);
