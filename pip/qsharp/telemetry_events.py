@@ -4,13 +4,6 @@
 from .telemetry import log_telemetry
 import math
 
-# TODO: This should be populated by the build in the main module
-QSHARP_VERSION = "0.0.0"
-
-# TODO: Log extra params like qubit count (buckets), qubit type for RE, etc.?
-
-default_props = {"qsharp.version": QSHARP_VERSION}
-
 # For metrics such as duration, we want to capture things like how many shots or qubits in
 # the additional properties. However properties shouldn't be 'continuous' values, as they
 # create new 'dimensions' on the backend, which is limited, thus we want to bucket these properties.
@@ -41,14 +34,14 @@ def get_qubits_bucket(qubits: int) -> int:
 
 
 def on_import() -> None:
-    log_telemetry("qsharp.import", 1, properties=default_props)
+    log_telemetry("qsharp.import", 1)
 
 
 def on_run(shots: int) -> None:
     log_telemetry(
         "qsharp.run",
         1,
-        properties={**default_props, "shots": get_shots_bucket(shots)},
+        properties={"shots": get_shots_bucket(shots)},
     )
 
 
@@ -56,20 +49,20 @@ def on_run_end(durationMs: float, shots: int) -> None:
     log_telemetry(
         "qsharp.run.durationMs",
         durationMs,
-        properties={**default_props, "shots": get_shots_bucket(shots)},
+        properties={"shots": get_shots_bucket(shots)},
         type="histogram",
     )
 
 
 def on_compile(profile: str) -> None:
-    log_telemetry("qsharp.compile", 1, properties={**default_props, "profile": profile})
+    log_telemetry("qsharp.compile", 1, properties={"profile": profile})
 
 
 def on_compile_end(durationMs: float, profile: str) -> None:
     log_telemetry(
         "qsharp.compile.durationMs",
         durationMs,
-        properties={**default_props, "profile": profile},
+        properties={"profile": profile},
         type="histogram",
     )
 
@@ -78,7 +71,7 @@ def on_estimate(qubits: int) -> None:
     log_telemetry(
         "qsharp.estimate",
         1,
-        properties={**default_props, "qubits": get_qubits_bucket(qubits)},
+        properties={"qubits": get_qubits_bucket(qubits)},
     )
 
 
@@ -86,6 +79,5 @@ def on_estimate_end(durationMs: float) -> None:
     log_telemetry(
         "qsharp.estimate.durationMs",
         durationMs,
-        properties=default_props,
         type="histogram",
     )

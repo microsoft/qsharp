@@ -31,15 +31,26 @@ from typing import Any, Dict, Literal, List, TypedDict, Union
 
 logger = logging.getLogger(__name__)
 
-# TODO: These should be potentially set by the build pipeline. However, they are not
-# secret values, and it might be useful to still get telemetry even from other builds or forks
-AIKEY = os.environ.get("QSHARP_AI_KEY") or "5ef527ea-7943-4e42-866d-e3b291d44e2b"
+QSHARP_VERSION = "0.0.0.dev0"
+
+AIKEY = os.environ.get("QSHARP_PYTHON_AI_KEY") or "5ef527ea-7943-4e42-866d-e3b291d44e2b"
 AIURL = (
-    os.environ.get("QSHARP_AI_URL")
+    os.environ.get("QSHARP_PYTHON_AI_URL")
     or "https://westus2-2.in.applicationinsights.azure.com//v2.1/track"
 )
 
-TELEMETRY_ENABLED = not os.environ.get("QSHARP_PYTHON_TELEMETRY") == "none"
+# Environment variables take precedence, else disable telemetry for non 'stable' builds
+QSHARP_PYTHON_TELEMETRY = (os.environ.get("QSHARP_PYTHON_TELEMETRY") or "").lower()
+TELEMETRY_ENABLED = (
+    True
+    if QSHARP_PYTHON_TELEMETRY in ["1", "true", "enabled"]
+    else (
+        False
+        if QSHARP_PYTHON_TELEMETRY in ["0", "false", "disabled", "none"]
+        else (not "dev" in QSHARP_VERSION)
+    )
+)
+
 BATCH_INTERVAL_SEC = int(os.environ.get("QSHARP_PYTHON_TELEMETRY_INTERVAL") or 60)
 
 
@@ -115,11 +126,12 @@ def log_telemetry(
     """
     if not TELEMETRY_ENABLED:
         return
+
     obj: Metric = {
         "name": name,
         "value": value,
         "count": count,
-        "properties": properties,
+        "properties": {**properties, "qsharp.version": QSHARP_VERSION},
         "type": type,
     }
 
@@ -212,11 +224,8 @@ def _pending_to_payload() -> List[Dict[str, Any]]:
 def _post_telemetry() -> bool:
     """Posts the pending telemetry to Azure Monitor"""
 
-    if not TELEMETRY_ENABLED:
-        return True
-
     if len(pending_metrics) == 0:
-        return True  # Nothing to send
+        return True
 
     payload = json.dumps(_pending_to_payload()).encode("utf-8")
     logger.debug("Sending telemetry request: %s", payload)
