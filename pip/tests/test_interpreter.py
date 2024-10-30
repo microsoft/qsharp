@@ -28,12 +28,12 @@ def mock_urlopen(url, *args, **kwargs):
         return MockResponse(200, b'{"status": "success"}')
     raise ValueError("Unmocked url: " + url)
 # Tests for the native Q# interpreter class
-@patch("urllib.request.urlopen")
+@patch("urllib.request.urlopen",  side_effect=mock_urlopen)
 class QSharpInterpreterTests:
 
 
 
-    def test_output() -> None:
+    def test_output(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         def callback(output):
@@ -46,7 +46,7 @@ class QSharpInterpreterTests:
         assert called
 
 
-    def test_dump_output() -> None:
+    def test_dump_output(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         def callback(output):
@@ -68,7 +68,7 @@ class QSharpInterpreterTests:
         assert called
 
 
-    def test_quantum_seed() -> None:
+    def test_quantum_seed(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.set_quantum_seed(42)
         value1 = e.interpret(
@@ -82,7 +82,7 @@ class QSharpInterpreterTests:
         assert value1 == value2
 
 
-    def test_classical_seed() -> None:
+    def test_classical_seed(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.set_classical_seed(42)
         value1 = e.interpret(
@@ -96,7 +96,7 @@ class QSharpInterpreterTests:
         assert value1 == value2
 
 
-    def test_dump_machine() -> None:
+    def test_dump_machine(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         def callback(output):
@@ -119,7 +119,7 @@ class QSharpInterpreterTests:
         assert state_dump[2].imag == 0.0
 
 
-    def test_error() -> None:
+    def test_error(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         with pytest.raises(QSharpError) as excinfo:
@@ -127,7 +127,7 @@ class QSharpInterpreterTests:
         assert str(excinfo.value).find("name error") != -1
 
 
-    def test_multiple_errors() -> None:
+    def test_multiple_errors(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         with pytest.raises(QSharpError) as excinfo:
@@ -136,67 +136,65 @@ class QSharpInterpreterTests:
         assert str(excinfo.value).find("`Baz` not found") != -1
 
 
-    def test_multiple_statements() -> None:
+    def test_multiple_statements(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("1; Zero")
         assert value == Result.Zero
-
-
-    def test_value_int() -> None:
+    def test_value_int(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("5")
         assert value == 5
 
 
-    def test_value_double() -> None:
+    def test_value_double(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("3.1")
         assert value == 3.1
 
 
-    def test_value_bool() -> None:
+    def test_value_bool(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("true")
         assert value == True
 
 
-    def test_value_string() -> None:
+    def test_value_string(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret('"hello"')
         assert value == "hello"
 
 
-    def test_value_result() -> None:
+    def test_value_result(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("One")
         assert value == Result.One
 
 
-    def test_value_pauli() -> None:
+    def test_value_pauli(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("PauliX")
         assert value == Pauli.X
 
 
-    def test_value_tuple() -> None:
+    def test_value_tuple(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret('(1, "hello", One)')
         assert value == (1, "hello", Result.One)
 
 
-    def test_value_unit() -> None:
+    def test_value_unit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("()")
         assert value is None
 
 
-    def test_value_array() -> None:
+    def test_value_array(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         value = e.interpret("[1, 2, 3]")
         assert value == [1, 2, 3]
 
 
-    def test_target_error() -> None:
+    def test_target_error(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Base)
         with pytest.raises(QSharpError) as excinfo:
             e.interpret(
@@ -205,7 +203,7 @@ class QSharpInterpreterTests:
         assert str(excinfo.value).startswith("Qsc.CapabilitiesCk.UseOfDynamicBool")
 
 
-    def test_qirgen_compile_error() -> None:
+    def test_qirgen_compile_error(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Base)
         e.interpret("operation Program() : Int { return 0 }")
         with pytest.raises(QSharpError) as excinfo:
@@ -213,7 +211,7 @@ class QSharpInterpreterTests:
         assert str(excinfo.value).startswith("Qsc.Resolve.NotFound")
 
 
-    def test_error_spans_from_multiple_lines() -> None:
+    def test_error_spans_from_multiple_lines(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         # Qsc.Resolve.Ambiguous is chosen as a test case
@@ -226,14 +224,14 @@ class QSharpInterpreterTests:
         assert str(excinfo.value).startswith("Qsc.Resolve.Ambiguous")
 
 
-    def test_qirgen() -> None:
+    def test_qirgen(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Base)
         e.interpret("operation Program() : Result { use q = Qubit(); return M(q) }")
         qir = e.qir("Program()")
         assert isinstance(qir, str)
 
 
-    def test_run_with_shots() -> None:
+    def test_run_with_shots(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
 
         def callback(output):
@@ -253,7 +251,7 @@ class QSharpInterpreterTests:
         assert value == [None, None, None, None, None]
 
 
-    def test_dump_circuit() -> None:
+    def test_dump_circuit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.interpret(
             """
@@ -280,7 +278,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_entry_expr_circuit() -> None:
+    def test_entry_expr_circuit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.interpret("operation Foo() : Result { use q = Qubit(); H(q); return M(q) }")
         circuit = e.circuit("Foo()")
@@ -292,7 +290,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_swap_label_circuit() -> None:
+    def test_swap_label_circuit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.interpret(
             "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); Relabel([q1, q2], [q2, q1]); X(q2); }"
@@ -306,7 +304,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_callables_failing_profile_validation_are_not_registered() -> None:
+    def test_callables_failing_profile_validation_are_not_registered(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Adaptive_RI)
         with pytest.raises(Exception) as excinfo:
             e.interpret(
@@ -322,7 +320,7 @@ class QSharpInterpreterTests:
         assert "Qsc.Eval.UnboundName" in str(excinfo)
 
 
-    def test_once_callable_fails_profile_validation_it_fails_compile_to_QIR() -> None:
+    def test_once_callable_fails_profile_validation_it_fails_compile_to_QIR(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Adaptive_RI)
         with pytest.raises(Exception) as excinfo:
             e.interpret(
@@ -335,7 +333,7 @@ class QSharpInterpreterTests:
         assert "name is not bound" in str(excinfo)
 
 
-    def test_once_rca_validation_fails_following_calls_do_not_fail() -> None:
+    def test_once_rca_validation_fails_following_calls_do_not_fail(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Adaptive_RI)
         with pytest.raises(Exception) as excinfo:
             e.interpret(
@@ -346,7 +344,7 @@ class QSharpInterpreterTests:
         assert value == 5
 
 
-    def test_adaptive_errors_are_raised_when_interpreting() -> None:
+    def test_adaptive_errors_are_raised_when_interpreting(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Adaptive_RI)
         with pytest.raises(Exception) as excinfo:
             e.interpret(
@@ -355,7 +353,7 @@ class QSharpInterpreterTests:
         assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
 
 
-    def test_adaptive_errors_are_raised_from_entry_expr() -> None:
+    def test_adaptive_errors_are_raised_from_entry_expr(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Adaptive_RI)
         e.interpret("use q = Qubit();")
         with pytest.raises(Exception) as excinfo:
@@ -363,7 +361,7 @@ class QSharpInterpreterTests:
         assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
 
 
-    def test_adaptive_ri_qir_can_be_generated() -> None:
+    def test_adaptive_ri_qir_can_be_generated(mock_urlopen) -> None:
         adaptive_input = """
             namespace Test {
                 import Std.Math.*;
@@ -427,7 +425,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_base_qir_can_be_generated() -> None:
+    def test_base_qir_can_be_generated(mock_urlopen) -> None:
         base_input = """
             namespace Test {
                 import Std.Math.*;
@@ -484,7 +482,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_operation_circuit() -> None:
+    def test_operation_circuit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.interpret("operation Foo(q: Qubit) : Result { H(q); return M(q) }")
         circuit = e.circuit(operation="Foo")
@@ -496,7 +494,7 @@ class QSharpInterpreterTests:
         )
 
 
-    def test_unsupported_operation_circuit() -> None:
+    def test_unsupported_operation_circuit(mock_urlopen) -> None:
         e = Interpreter(TargetProfile.Unrestricted)
         e.interpret("operation Foo(n: Int) : Result { return One }")
         with pytest.raises(QSharpError) as excinfo:

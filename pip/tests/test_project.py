@@ -35,36 +35,32 @@ def mock_urlopen(url, *args, **kwargs):
         return MockResponse(200, b'{"status": "success"}')
     raise ValueError("Unmocked url: " + url)
 
-@patch("urllib.request.urlopen")
+@patch("urllib.request.urlopen", side_effect=mock_urlopen)
 class ProjectTests:
 
-    def test_project(qsharp) -> None:
+    def test_project(qsharp, mock_urlopen) -> None:
         qsharp.init(project_root="/good")
         result = qsharp.eval("Test.ReturnsFour()")
         assert result == 4
 
-
-    def test_project_compile_error(qsharp) -> None:
+    def test_project_compile_error(qsharp, mock_urlopen) -> None:
         with pytest.raises(Exception) as excinfo:
             qsharp.init(project_root="/compile_error")
         assert str(excinfo.value).startswith("Qsc.TypeCk.TyMismatch")
 
-
-    def test_project_bad_qsharp_json(qsharp) -> None:
+    def test_project_bad_qsharp_json(qsharp, mock_urlopen) -> None:
         with pytest.raises(Exception) as excinfo:
             qsharp.init(project_root="/bad_qsharp_json")
         assert str(excinfo.value).find("Failed to parse manifest") != -1
 
-
-    def test_project_unreadable_qsharp_json(qsharp) -> None:
+    def test_project_unreadable_qsharp_json(qsharp, mock_urlopen) -> None:
         with pytest.raises(Exception) as excinfo:
             qsharp.init(project_root="/unreadable_qsharp_json")
         assert str(excinfo.value).startswith(
             "Error reading /unreadable_qsharp_json/qsharp.json."
         )
 
-
-    def test_project_unreadable_source(qsharp) -> None:
+    def test_project_unreadable_source(qsharp, mock_urlopen) -> None:
         with pytest.raises(Exception) as excinfo:
             qsharp.init(project_root="/unreadable_source")
         # If this seems like a silly substring to assert on, it's
@@ -72,24 +68,20 @@ class ProjectTests:
         # between "could not" and "read test.qs"
         assert str(excinfo.value).find("OSError: could not") != -1
 
-
-    def test_project_dependencies(qsharp) -> None:
+    def test_project_dependencies(qsharp, mock_urlopen) -> None:
         qsharp.init(project_root="/with_deps")
         result = qsharp.eval("Test.CallsDependency()")
         assert result == 4
 
-
-    def test_project_circular_dependency_error(qsharp) -> None:
+    def test_project_circular_dependency_error(qsharp, mock_urlopen) -> None:
         with pytest.raises(Exception) as excinfo:
             qsharp.init(project_root="/circular")
         assert str(excinfo.value).find("Circular dependency detected between") != -1
 
-
-    def test_github_dependency(qsharp) -> None:
+    def test_github_dependency(qsharp, mock_urlopen) -> None:
         qsharp.init(project_root="/with_github_dep")
         result = qsharp.eval("Test.CallsDependency()")
         assert result == 12
-
 
     memfs = {
         "": {
@@ -161,15 +153,12 @@ class ProjectTests:
         }
     }
 
-
     def fetch_github_test(owner: str, repo: str, ref: str, path: str):
         if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
             return """{ "files" : ["src/test.qs"] }"""
         if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
             return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
         raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
-
-
 
     def read_file_memfs(path):
         global memfs
@@ -184,7 +173,6 @@ class ProjectTests:
                 raise Exception("File not found: " + path)
 
         return (path, item)
-
 
     def list_directory_memfs(dir_path):
         global memfs
@@ -208,7 +196,6 @@ class ProjectTests:
 
         return contents
 
-
     def exists_memfs(path):
         global memfs
         parts = path.split("/")
@@ -221,12 +208,10 @@ class ProjectTests:
 
         return True
 
-
     # The below functions force the use of `/` separators in the unit tests
     # so that they function on Windows consistently with other platforms.
     def join_memfs(path, *paths):
         return "/".join([path, *paths])
-
 
     def resolve_memfs(base, path):
         parts = f"{base}/{path}".split("/")

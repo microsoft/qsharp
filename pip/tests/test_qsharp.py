@@ -26,7 +26,7 @@ def mock_urlopen(url, *args, **kwargs):
         return MockResponse(200, b'{"status": "success"}')
     raise ValueError("Unmocked url: " + url)
 
-@patch("urllib.request.urlopen")
+@patch("urllib.request.urlopen",  side_effect=mock_urlopen)
 class QSharpLibraryTests:
     def test_stdout() -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
@@ -38,7 +38,7 @@ class QSharpLibraryTests:
         assert f.getvalue() == "Hello, world!\n"
 
 
-    def test_stdout_multiple_lines() -> None:
+    def test_stdout_multiple_lines(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
         f = io.StringIO()
         with redirect_stdout(f):
@@ -53,7 +53,7 @@ class QSharpLibraryTests:
         assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
 
 
-    def test_quantum_seed() -> None:
+    def test_quantum_seed(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
         qsharp.set_quantum_seed(42)
         value1 = qsharp.eval(
@@ -72,7 +72,7 @@ class QSharpLibraryTests:
         assert value1 != value3
 
 
-    def test_classical_seed() -> None:
+    def test_classical_seed(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
         qsharp.set_classical_seed(42)
         value1 = qsharp.eval(
@@ -92,7 +92,7 @@ class QSharpLibraryTests:
         assert value1 != value3
 
 
-    def test_dump_machine() -> None:
+    def test_dump_machine(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
         qsharp.eval(
             """
@@ -155,7 +155,7 @@ class QSharpLibraryTests:
         assert state_dump.check_eq([1.0], tolerance=1e-4)
 
 
-    def test_dump_operation() -> None:
+    def test_dump_operation(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
         res = qsharp.utils.dump_operation("qs => ()", 1)
         assert res == [
@@ -275,7 +275,7 @@ class QSharpLibraryTests:
                 else:
                     assert res[i][j] == complex(0.0, 0.0)
 
-    def test_run_with_noise_produces_noisy_results() -> None:
+    def test_run_with_noise_produces_noisy_results(mock_urlopen) -> None:
         qsharp.init()
         qsharp.set_quantum_seed(0)
         result = qsharp.run(
@@ -291,7 +291,7 @@ class QSharpLibraryTests:
         )
         assert result[0] > 5
 
-    def test_compile_qir_input_data() -> None:
+    def test_compile_qir_input_data(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Base)
         qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
         operation = qsharp.compile("Program()")
@@ -299,7 +299,7 @@ class QSharpLibraryTests:
         assert isinstance(qir, bytes)
 
 
-    def test_compile_qir_str() -> None:
+    def test_compile_qir_str(mock_urlopen) -> None:
         qsharp.init(target_profile=qsharp.TargetProfile.Base)
         qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
         operation = qsharp.compile("Program()")
@@ -307,7 +307,7 @@ class QSharpLibraryTests:
         assert "define void @ENTRYPOINT__main()" in qir
 
 
-    def test_init_from_provider_name() -> None:
+    def test_init_from_provider_name(mock_urlopen) -> None:
         config = qsharp.init(target_name="ionq.simulator")
         assert config._config["targetProfile"] == "base"
         config = qsharp.init(target_name="rigetti.sim.qvm")
@@ -349,7 +349,7 @@ class QSharpLibraryTests:
         assert called
 
 
-    def test_run_with_invalid_shots_produces_error() -> None:
+    def test_run_with_invalid_shots_produces_error(mock_urlopen) -> None:
         qsharp.init()
         qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
         try:
@@ -367,7 +367,7 @@ class QSharpLibraryTests:
             assert False
 
 
-    def test_target_profile_str_values_match_enum_values() -> None:
+    def test_target_profile_str_values_match_enum_values(mock_urlopen) -> None:
         target_profile = qsharp.TargetProfile.Base
         str_value = str(target_profile)
         assert str_value == "Base"
@@ -379,7 +379,7 @@ class QSharpLibraryTests:
         assert str_value == "Unrestricted"
 
 
-    def test_target_profile_from_str_match_enum_values() -> None:
+    def test_target_profile_from_str_match_enum_values(mock_urlopen) -> None:
         target_profile = qsharp.TargetProfile.Base
         str_value = str(target_profile)
         assert qsharp.TargetProfile.from_str(str_value) == target_profile

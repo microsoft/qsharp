@@ -16,7 +16,7 @@ class MockResponse:
         return self.content
 
 def mock_urlopen(url, *args, **kwargs):
-    if url == "AIURL":
+    if url == AIURL:
         return MockResponse(200, b'{"status": "success"}')
     raise ValueError("Unmocked url: " + url)
 

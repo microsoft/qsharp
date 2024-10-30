@@ -28,10 +28,10 @@ def mock_urlopen(url, *args, **kwargs):
     raise ValueError("Unmocked url: " + url)
  
 # Tests for the Q# noisy simulator.
-@patch("urllib.request.urlopen")
+@patch("urllib.request.urlopen",  side_effect=mock_urlopen)
 class QSharpNoisySimTests:
 
-    def test_matrices_are_not_transposed_when_returned_back_to_python():
+    def test_matrices_are_not_transposed_when_returned_back_to_python(mock_urlopen):
         """
         This test is due to the performance optimization we make in
         `noisy_simulator/src/operation.rs/Operation::new`, we want to check that
@@ -46,22 +46,22 @@ class QSharpNoisySimTests:
     # Operation tests
 
 
-    def test_operation_number_of_qubits_is_mapped_correctly():
+    def test_operation_number_of_qubits_is_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         assert op.get_number_of_qubits() == 1
 
 
-    def test_operation_kraus_operators_are_mapped_correctly():
+    def test_operation_kraus_operators_are_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         assert op.get_kraus_operators() == [[[(1 + 0j), 0j], [0j, 0j]]]
 
 
-    def test_operation_effect_matrix_is_mapped_correctly():
+    def test_operation_effect_matrix_is_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         assert op.get_effect_matrix() == [[(1 + 0j), 0j], [0j, 0j]]
 
 
-    def test_operation_matrix_is_mapped_correctly():
+    def test_operation_matrix_is_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         assert op.get_operation_matrix() == [
             [(1 + 0j), 0j, 0j, 0j],
@@ -71,7 +71,7 @@ class QSharpNoisySimTests:
         ]
 
 
-    def test_constructing_an_empty_operation_throws_exception():
+    def test_constructing_an_empty_operation_throws_exception(mock_urlopen):
         with pytest.raises(NoisySimulatorError) as excinfo:
             _ = Operation([])
         assert (
@@ -80,7 +80,7 @@ class QSharpNoisySimTests:
         )
 
 
-    def test_constructed_an_ill_formed_operation_throws_exception():
+    def test_constructed_an_ill_formed_operation_throws_exception(mock_urlopen):
         with pytest.raises(NoisySimulatorError) as excinfo:
             op = Operation([[[1, 0], [0, 0, 0]]])
         assert str(excinfo.value) == "ill formed matrix, all rows should be the same length"
@@ -89,12 +89,12 @@ class QSharpNoisySimTests:
     # Instrument tests
 
 
-    def test_constructing_an_instrument_with_a_valid_operation_succeeds():
+    def test_constructing_an_instrument_with_a_valid_operation_succeeds(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         _ = Instrument([op])
 
 
-    def test_constructing_an_ill_formed_instrument_throws_exception():
+    def test_constructing_an_ill_formed_instrument_throws_exception(mock_urlopen):
         op0 = Operation([[[1, 0], [0, 0]]])
         op1 = Operation(
             [
@@ -116,7 +116,7 @@ class QSharpNoisySimTests:
         )
 
 
-    def test_constructing_an_empty_instrument_throws_exception():
+    def test_constructing_an_empty_instrument_throws_exception(mock_urlopen):
         with pytest.raises(NoisySimulatorError) as excinfo:
             inst = Instrument([])
         assert (
@@ -128,32 +128,32 @@ class QSharpNoisySimTests:
     # DensityMatrixSimulator tests
 
 
-    def test_density_matrix_simulator_apply_operation_is_mapped_correctly():
+    def test_density_matrix_simulator_apply_operation_is_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         sim = DensityMatrixSimulator(1, seed=42)
         sim.apply_operation(op, [0])
 
 
-    def test_density_matrix_simulator_apply_instrument_is_mapped_correctly():
+    def test_density_matrix_simulator_apply_instrument_is_mapped_correctly(mock_urlopen):
         mz0 = Operation([[[1, 0], [0, 0]]])
         mz = Instrument([mz0])
         sim = DensityMatrixSimulator(1, seed=42)
         sim.apply_instrument(mz, [0])
 
 
-    def test_density_matrix_simulator_sample_instrument_is_mapped_correctly():
+    def test_density_matrix_simulator_sample_instrument_is_mapped_correctly(mock_urlopen):
         mz0 = Operation([[[1, 0], [0, 0]]])
         mz = Instrument([mz0])
         sim = DensityMatrixSimulator(1, seed=42)
         assert 0 == sim.sample_instrument(mz, [0])
 
 
-    def test_density_matrix_simulator_get_state_is_mapped_correctly():
+    def test_density_matrix_simulator_get_state_is_mapped_correctly(mock_urlopen):
         sim = DensityMatrixSimulator(1)
         assert sim.get_state().data() == [[1, 0], [0, 0]]
 
 
-    def test_density_matrix_simulator_set_state_is_mapped_correctly():
+    def test_density_matrix_simulator_set_state_is_mapped_correctly(mock_urlopen):
         f = 0.5**0.5
         h = Operation([[[f, f], [f, -f]]])
         sim = DensityMatrixSimulator(1)
@@ -163,12 +163,12 @@ class QSharpNoisySimTests:
         assert sim.get_state().data() == [[1, 0], [0, 0]]
 
 
-    def test_density_matrix_simulator_set_trace_is_mapped_correctly():
+    def test_density_matrix_simulator_set_trace_is_mapped_correctly(mock_urlopen):
         sim = DensityMatrixSimulator(1)
         sim.set_trace(0.5)
 
 
-    def test_density_matrix_simulator_out_of_bounds_qubit():
+    def test_density_matrix_simulator_out_of_bounds_qubit(mock_urlopen):
         f = 0.5**0.5
         h = Operation([[[f, f], [f, -f]]])
         sim = DensityMatrixSimulator(1)
@@ -182,32 +182,32 @@ class QSharpNoisySimTests:
     # StateVectorSimulator tests
 
 
-    def test_state_vector_simulator_apply_operation_is_mapped_correctly():
+    def test_state_vector_simulator_apply_operation_is_mapped_correctly(mock_urlopen):
         op = Operation([[[1, 0], [0, 0]]])
         sim = StateVectorSimulator(1, seed=42)
         sim.apply_operation(op, [0])
 
 
-    def test_state_vector_simulator_apply_instrument_is_mapped_correctly():
+    def test_state_vector_simulator_apply_instrument_is_mapped_correctly(mock_urlopen):
         mz0 = Operation([[[1, 0], [0, 0]]])
         mz = Instrument([mz0])
         sim = StateVectorSimulator(1, seed=42)
         sim.apply_instrument(mz, [0])
 
 
-    def test_state_vector_simulator_sample_instrument_is_mapped_correctly():
+    def test_state_vector_simulator_sample_instrument_is_mapped_correctly(mock_urlopen):
         mz0 = Operation([[[1, 0], [0, 0]]])
         mz = Instrument([mz0])
         sim = StateVectorSimulator(1, seed=42)
         assert 0 == sim.sample_instrument(mz, [0])
 
 
-    def test_state_vector_simulator_get_state_is_mapped_correctly():
+    def test_state_vector_simulator_get_state_is_mapped_correctly(mock_urlopen):
         sim = StateVectorSimulator(1)
         assert sim.get_state().data() == [1, 0]
 
 
-    def test_state_vector_simulator_set_state_is_mapped_correctly():
+    def test_state_vector_simulator_set_state_is_mapped_correctly(mock_urlopen):
         f = 0.5**0.5
         h = Operation([[[f, f], [f, -f]]])
         sim = StateVectorSimulator(1)
@@ -217,12 +217,12 @@ class QSharpNoisySimTests:
         assert sim.get_state().data() == [1, 0]
 
 
-    def test_state_vector_simulator_set_trace_is_mapped_correctly():
+    def test_state_vector_simulator_set_trace_is_mapped_correctly(mock_urlopen):
         sim = StateVectorSimulator(1)
         sim.set_trace(0.5)
 
 
-    def test_state_vector_simulator_out_of_bounds_qubit():
+    def test_state_vector_simulator_out_of_bounds_qubit(mock_urlopen):
         f = 0.5**0.5
         h = Operation([[[f, f], [f, -f]]])
         sim = StateVectorSimulator(1)
@@ -231,3 +231,4 @@ class QSharpNoisySimTests:
             sim.apply_operation(h, [1])
 
         assert str(excinfo.value) == "qubit id out of bounds: 1"
+
