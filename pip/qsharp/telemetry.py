@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 QSHARP_VERSION = "0.0.0.dev0"
 
-AIKEY = os.environ.get("QSHARP_PYTHON_AI_KEY") or "5ef527ea-7943-4e42-866d-e3b291d44e2b"
+AIKEY = os.environ.get("QSHARP_PYTHON_AI_KEY") or "95d25b22-8b6d-448e-9677-78ad4047a95a"
 AIURL = (
     os.environ.get("QSHARP_PYTHON_AI_URL")
     or "https://westus2-2.in.applicationinsights.azure.com//v2.1/track"
