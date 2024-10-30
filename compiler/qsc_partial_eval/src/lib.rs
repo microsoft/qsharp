@@ -1310,7 +1310,7 @@ impl<'a> PartialEvaluator<'a> {
         args_span: PackageSpan,        // For diagnostic purposes only.
         callee_expr_span: PackageSpan, // For diagnostic puprposes only.
     ) -> Result<Value, Error> {
-        if matches!(callable_decl.kind, qsc_fir::fir::CallableKind::Measurement) {
+        if callable_decl.attrs.contains(&fir::Attr::Measurement) {
             return self.measure_qubits(callable_decl, args_value, args_span);
         }
         if callable_decl.attrs.contains(&fir::Attr::Reset) {
