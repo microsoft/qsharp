@@ -287,17 +287,22 @@ fn pat_missing_ty() {
         pat,
         "foo :",
         &expect![[r#"
-            Error(
-                Rule(
-                    "type",
-                    Eof,
-                    Span {
-                        lo: 5,
-                        hi: 5,
-                    },
+            Pat _id_ [0-5]: Bind:
+                Ident _id_ [0-3] "foo"
+                Type _id_ [5-5]: Err
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 5,
+                            hi: 5,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
