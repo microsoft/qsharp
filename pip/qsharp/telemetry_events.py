@@ -5,7 +5,7 @@ from .telemetry import log_telemetry
 import math
 
 # TODO: This should be populated by the build in the main module
-QSHARP_VERSION = "1.9.0"
+QSHARP_VERSION = "0.0.0"
 
 # TODO: Log extra params like qubit count (buckets), qubit type for RE, etc.?
 
@@ -18,7 +18,7 @@ default_props = {"qsharp.version": QSHARP_VERSION}
 # See some of the notes at: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-custom-overview#design-limitations-and-considerations
 
 
-def get_shots_bucket(shots: int):
+def get_shots_bucket(shots: int) -> int:
     if shots <= 1:
         return 1
     elif shots >= 1000000:
@@ -30,7 +30,7 @@ def get_shots_bucket(shots: int):
 
 
 # gets the order of magnitude for the number of qubits
-def get_qubits_bucket(qubits: int):
+def get_qubits_bucket(qubits: int) -> int:
     if qubits <= 1:
         return 1
     elif qubits >= 30:
@@ -39,11 +39,12 @@ def get_qubits_bucket(qubits: int):
         # integer divide by 5 to get nearest 5
         return qubits // 5 * 5
 
-def on_import():
+
+def on_import() -> None:
     log_telemetry("qsharp.import", 1, properties=default_props)
 
 
-def on_run(shots: int):
+def on_run(shots: int) -> None:
     log_telemetry(
         "qsharp.run",
         1,
@@ -51,7 +52,7 @@ def on_run(shots: int):
     )
 
 
-def on_run_end(durationMs: float, shots: int):
+def on_run_end(durationMs: float, shots: int) -> None:
     log_telemetry(
         "qsharp.run.durationMs",
         durationMs,
@@ -73,11 +74,15 @@ def on_compile_end(durationMs: float, profile: str) -> None:
     )
 
 
-def on_estimate(qubits: int):
-    log_telemetry("qsharp.estimate", 1, properties={**default_props, "qubits": get_qubits_bucket(qubits)})
+def on_estimate(qubits: int) -> None:
+    log_telemetry(
+        "qsharp.estimate",
+        1,
+        properties={**default_props, "qubits": get_qubits_bucket(qubits)},
+    )
 
 
-def on_estimate_end(durationMs: float):
+def on_estimate_end(durationMs: float) -> None:
     log_telemetry(
         "qsharp.estimate.durationMs",
         durationMs,
