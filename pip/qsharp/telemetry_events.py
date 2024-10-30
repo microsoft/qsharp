@@ -3,6 +3,7 @@
 
 from .telemetry import log_telemetry
 import math
+from typing import Union
 
 # For metrics such as duration, we want to capture things like how many shots or qubits in
 # the additional properties. However properties shouldn't be 'continuous' values, as they
@@ -23,7 +24,7 @@ def get_shots_bucket(shots: int) -> int:
 
 
 # gets the order of magnitude for the number of qubits
-def get_qubits_bucket(qubits: str) -> str:
+def get_qubits_bucket(qubits: Union[str, int]) -> str:
     if qubits == "unknown":
         return "unknown"
     qubits = int(qubits)
@@ -77,7 +78,7 @@ def on_estimate() -> None:
     )
 
 
-def on_estimate_end(durationMs: float, qubits: int) -> None:
+def on_estimate_end(durationMs: float, qubits: Union[str, int]) -> None:
     log_telemetry(
         "qsharp.estimate.durationMs",
         durationMs,
