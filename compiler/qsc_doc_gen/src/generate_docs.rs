@@ -190,6 +190,7 @@ pub fn generate_docs(
         let package = &unit.package;
         for (_, item) in &package.items {
             if let Some((ns, line)) = generate_doc_for_item(
+                &package_id,
                 package,
                 package_kind.clone(),
                 is_current_package,
@@ -227,14 +228,13 @@ pub fn generate_docs(
     result
 }
 
-fn generate_doc_for_item<'a>(
+fn get_item_info<'a>(
+    package_id: &PackageId,
     package: &'a Package,
-    package_kind: PackageKind,
     include_internals: bool,
     item: &'a Item,
     display: &'a CodeDisplay,
-    files: &mut FilesWithMetadata,
-) -> Option<(Rc<str>, String)> {
+) -> Option<(&'a Package, &'a Item)> {
     // Filter items
     if !include_internals && (item.visibility == Visibility::Internal) {
         return None;
@@ -242,12 +242,41 @@ fn generate_doc_for_item<'a>(
     if matches!(item.kind, ItemKind::Namespace(_, _)) {
         return None;
     }
+    if let ItemKind::Export(_, id) = item.kind {
+        let (exported_item, _, _) = display.compilation.resolve_item(*package_id, &id);
+        return get_item_info(
+            package_id,
+            package,
+            include_internals,
+            exported_item,
+            display,
+        );
+    }
+
+    Some((package, item))
+}
+
+fn generate_doc_for_item<'a>(
+    package_id: &PackageId,
+    package: &'a Package,
+    package_kind: PackageKind,
+    include_internals: bool,
+    item: &'a Item,
+    display: &'a CodeDisplay,
+    files: &mut FilesWithMetadata,
+) -> Option<(Rc<str>, String)> {
+    let (true_package, true_item) =
+        get_item_info(package_id, package, include_internals, item, display)?;
 
     // Get namespace for item
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (metadata, content) = generate_file(package_kind, &ns, item, display)?;
+    let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
+        generate_exported_file(package_kind.clone(), &ns, item, display, true_item)?
+    } else {
+        generate_file(package_kind, &ns, item, display)?
+    };
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
 
@@ -304,6 +333,42 @@ Fully qualified name: {fqn}
 ```qsharp
 {sig}
 ```
+"
+    );
+
+    let content = if doc.is_empty() {
+        content
+    } else {
+        format!("{content}\n{doc}\n")
+    };
+
+    Some((metadata, content))
+}
+
+fn generate_exported_file(
+    package_kind: PackageKind,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+    true_item: &Item,
+) -> Option<(Metadata, String)> {
+    let metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
+
+    let doc = increase_header_level(&item.doc);
+    let title = &metadata.title;
+    let fqn = &metadata.fully_qualified_name();
+
+    // Note: we are assuming the package kind does not change
+    let true_metadata = get_metadata(package_kind, ns.clone(), true_item, display)?;
+    let true_fqn = true_metadata.fully_qualified_name();
+    let name = true_metadata.name;
+
+    let content = format!(
+        "# {title}
+
+Fully qualified name: {fqn}
+
+This is an exported item. The actual definition is found here: [{name}](xref:{true_fqn})
 "
     );
 
