@@ -345,6 +345,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
 
         const noise = getPauliNoiseModel();
+        if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+          sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
+        }
         await worker.runWithPauliNoise(
           program.programConfig,
           "",

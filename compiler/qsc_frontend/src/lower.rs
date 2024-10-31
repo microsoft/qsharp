@@ -466,13 +466,7 @@ impl With<'_> {
                 self.check_invalid_attrs_on_function(attrs, span);
                 hir::CallableKind::Function
             }
-            ast::CallableKind::Operation => {
-                if attrs.contains(&hir::Attr::Measurement) {
-                    hir::CallableKind::Measurement
-                } else {
-                    hir::CallableKind::Operation
-                }
-            }
+            ast::CallableKind::Operation => hir::CallableKind::Operation,
         }
     }
 

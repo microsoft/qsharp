@@ -258,6 +258,7 @@ impl<'a> PartialEvaluator<'a> {
         &self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
+        call_type: CallableType,
     ) -> Callable {
         let callable_package = self.package_store.get(store_item_id.package);
         let name = callable_decl.name.name.to_string();
@@ -275,7 +276,7 @@ impl<'a> PartialEvaluator<'a> {
         let call_type = if name.eq("__quantum__qis__reset__body") {
             CallableType::Reset
         } else {
-            CallableType::Regular
+            call_type
         };
         Callable {
             name,
@@ -1310,11 +1311,17 @@ impl<'a> PartialEvaluator<'a> {
         args_span: PackageSpan,        // For diagnostic purposes only.
         callee_expr_span: PackageSpan, // For diagnostic puprposes only.
     ) -> Result<Value, Error> {
-        if matches!(callable_decl.kind, qsc_fir::fir::CallableKind::Measurement) {
-            return self.measure_qubits(callable_decl, args_value, args_span);
+        if callable_decl.attrs.contains(&fir::Attr::Measurement) {
+            return Ok(self.measure_qubits(callable_decl, args_value));
         }
         if callable_decl.attrs.contains(&fir::Attr::Reset) {
-            return self.reset_qubits(store_item_id, callable_decl, args_value);
+            return self.eval_expr_call_to_intrinsic_qis(
+                store_item_id,
+                callable_decl,
+                args_value,
+                callee_expr_span,
+                CallableType::Reset,
+            );
         }
 
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
@@ -1354,6 +1361,7 @@ impl<'a> PartialEvaluator<'a> {
                 callable_decl,
                 args_value,
                 callee_expr_span,
+                CallableType::Regular,
             ),
         }
     }
@@ -1364,6 +1372,7 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
         callee_expr_span: PackageSpan,
+        call_type: CallableType,
     ) -> Result<Value, Error> {
         // Intrinsic callables that make it to this point are expected to be unitary.
         if callable_decl.output != Ty::UNIT {
@@ -1377,7 +1386,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Check if the callable is already in the program, and if not add it.
-        let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
+        let callable = self.create_intrinsic_callable(store_item_id, callable_decl, call_type);
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
@@ -2267,12 +2276,7 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn measure_qubits(
-        &mut self,
-        callable_decl: &CallableDecl,
-        args_value: Value,
-        args_span: PackageSpan, // For diagnostic purposes only.
-    ) -> Result<Value, Error> {
+    fn measure_qubits(&mut self, callable_decl: &CallableDecl, args_value: Value) -> Value {
         let mut input_type = Vec::new();
         let mut operands = Vec::new();
         let mut results_values = Vec::new();
@@ -2285,20 +2289,14 @@ impl<'a> PartialEvaluator<'a> {
             Value::Tuple(values) => {
                 for value in &*values {
                     let Value::Qubit(qubit) = value else {
-                        return Err(Error::EvaluationFailed(
-                            "the arguments of a measurement should be Qubits".to_string(),
-                            args_span,
-                        ));
+                        panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
                     };
                     input_type.push(qsc_rir::rir::Ty::Qubit);
                     operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(*qubit)));
                 }
             }
             _ => {
-                return Err(Error::EvaluationFailed(
-                    "the arguments of a measurement should be Qubits".to_string(),
-                    args_span,
-                ))
+                panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
             }
         }
 
@@ -2320,18 +2318,12 @@ impl<'a> PartialEvaluator<'a> {
                         operands.push(result_operand);
                         results_values.push(result_value);
                     } else {
-                        return Err(Error::EvaluationFailed(
-                            "the arguments of a measurement should be Qubits".to_string(),
-                            args_span,
-                        ));
+                        panic!("by this point a qsc_pass should have checked that all outputs are Results")
                     }
                 }
             }
             _ => {
-                return Err(Error::EvaluationFailed(
-                    "the outputs of a measurement should be Results".to_string(),
-                    args_span,
-                ));
+                panic!("by this point a qsc_pass should have checked that all outputs are Results")
             }
         }
 
@@ -2351,8 +2343,8 @@ impl<'a> PartialEvaluator<'a> {
 
         match results_values.len() {
             0 => panic!("unexpected unitary measurement"),
-            1 => Ok(results_values[0].clone()),
-            2.. => Ok(Value::Tuple(results_values.into())),
+            1 => results_values[0].clone(),
+            2.. => Value::Tuple(results_values.into()),
         }
     }
 
@@ -2373,60 +2365,6 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the result value.
         result_value
-    }
-
-    fn reset_qubits(
-        &mut self,
-        store_item_id: StoreItemId,
-        callable_decl: &CallableDecl,
-        args_value: Value,
-    ) -> Result<Value, Error> {
-        let callable_package = self.package_store.get(store_item_id.package);
-        let input_type: Vec<rir::Ty> = callable_package
-            .derive_callable_input_params(callable_decl)
-            .iter()
-            .map(|input_param| map_fir_type_to_rir_type(&input_param.ty))
-            .collect();
-        let output_type = if callable_decl.output == Ty::UNIT {
-            None
-        } else {
-            panic!("the expressions that make it to this point should return Unit");
-        };
-
-        let measurement_callable = Callable {
-            name: callable_decl.name.name.to_string(),
-            input_type,
-            output_type,
-            body: None,
-            call_type: CallableType::Reset,
-        };
-
-        // Resolve the call arguments, create the call instruction and insert it to the current block.
-        let (args, ctls_arg) = self
-            .resolve_args(
-                (store_item_id.package, callable_decl.input).into(),
-                args_value,
-                None,
-                None,
-                None,
-            )
-            .expect("no controls to verify");
-        assert!(
-            ctls_arg.is_none(),
-            "intrinsic operations cannot have controls"
-        );
-        let operands = args
-            .into_iter()
-            .map(|arg| self.map_eval_value_to_rir_operand(&arg.into_value()))
-            .collect();
-
-        // Check if the callable has already been added to the program and if not do so now.
-        let measure_callable_id = self.get_or_insert_callable(measurement_callable);
-        let instruction = Instruction::Call(measure_callable_id, operands, None);
-        let current_block = self.get_current_rir_block_mut();
-        current_block.0.push(instruction);
-
-        Ok(Value::unit())
     }
 
     fn release_qubit(&mut self, args_value: Value) -> Value {

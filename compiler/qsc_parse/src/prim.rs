@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{keyword::Keyword, scan::ParserContext, ty::ty, Error, Parser, Result};
+use super::{keyword::Keyword, scan::ParserContext, ty::recovering_ty, Error, Parser, Result};
 use crate::{
     completion::WordKinds,
     item::throw_away_doc,
@@ -169,7 +169,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(Box::new(ty(s)?))
+            Some(Box::new(recovering_ty(s)?))
         } else {
             None
         };
@@ -183,7 +183,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     } else {
         let name = ident(s).map_err(|e| map_rule_name("pattern", e))?;
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(Box::new(ty(s)?))
+            Some(Box::new(recovering_ty(s)?))
         } else {
             None
         };
@@ -252,6 +252,36 @@ where
     Ok((xs, final_sep))
 }
 
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, returns the default value.
+///
+/// If the parser fails after consuming some tokens, propagates the error.
+pub(super) fn parse_or_else<T>(
+    s: &mut ParserContext,
+    default: impl FnOnce(Span) -> T,
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    let lo = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => Ok(value),
+        Err(error) if advanced(s, lo) => Err(error),
+        Err(error) => {
+            s.push_error(error);
+            // The whitespace will become part of the error span
+            s.skip_trivia();
+            Ok(default(s.span(lo)))
+        }
+    }
+}
+
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, propagates the error.
+///
+/// If the parser fails after consuming some tokens, performs
+/// recovery by advancing until the next token in `tokens` is found.
+/// The recovery token is consumed.
 pub(super) fn recovering<T>(
     s: &mut ParserContext,
     default: impl FnOnce(Span) -> T,
@@ -267,6 +297,39 @@ pub(super) fn recovering<T>(
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),
+    }
+}
+
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, returns the default value.
+///
+/// If the parser fails after consuming some tokens, performs
+/// recovery by advancing until the next token in `tokens` is found.
+/// The recovery token is consumed.
+///
+/// This behavior is a combination of [`recovering`] and [`parse_or_else`],
+/// and provides the most aggressive error recovery.
+pub(super) fn recovering_parse_or_else<T>(
+    s: &mut ParserContext,
+    default: impl FnOnce(Span) -> T,
+    tokens: &[TokenKind],
+    mut p: impl Parser<T>,
+) -> T {
+    let lo = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => value,
+        Err(error) => {
+            s.push_error(error);
+
+            if advanced(s, lo) {
+                s.recover(tokens);
+            } else {
+                // The whitespace will become part of the error node span
+                s.skip_trivia();
+            }
+            default(s.span(lo))
+        }
     }
 }
 
