@@ -16,7 +16,7 @@ from qiskit.result import Result
 from qiskit.providers import JobV1, JobStatus, JobError
 
 from ..execution import DetaultExecutor
-from ... import telemetry_events
+from .... import telemetry_events
 from ....estimator import EstimatorResult
 
 logger = logging.getLogger(__name__)

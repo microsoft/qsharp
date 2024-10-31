@@ -18,7 +18,7 @@ from qiskit.result.result import Result, ExperimentResult
 
 from .qsjob import QsSimJob, RunInputCallable
 from ..execution import DetaultExecutor
-from ... import telemetry_events
+from .... import telemetry_events
 
 logger = logging.getLogger(__name__)
 

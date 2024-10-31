@@ -12,15 +12,15 @@ from typing import Union
 # See some of the notes at: https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-custom-overview#design-limitations-and-considerations
 
 
-def get_shots_bucket(shots: int) -> int:
-    if shots <= 1:
+def get_next_power_of_ten_bucket(value: int) -> int:
+    if value <= 1:
         return 1
-    elif shots >= 1000000:
+    elif value >= 1000000:
         # Limit the buckets upper bound
         return 1000000
     else:
         # Bucket into nearest (rounded up) power of 10, e.g. 75 -> 100, 450 -> 1000, etc.
-        return 10 ** math.ceil(math.log10(shots))
+        return 10 ** math.ceil(math.log10(value))
 
 
 # gets the order of magnitude for the number of qubits
@@ -45,7 +45,7 @@ def on_run(shots: int) -> None:
     log_telemetry(
         "qsharp.run",
         1,
-        properties={"shots": get_shots_bucket(shots)},
+        properties={"shots": get_next_power_of_ten_bucket(shots)},
     )
 
 
@@ -53,7 +53,7 @@ def on_run_end(durationMs: float, shots: int) -> None:
     log_telemetry(
         "qsharp.run.durationMs",
         durationMs,
-        properties={"shots": get_shots_bucket(shots)},
+        properties={"shots": get_next_power_of_ten_bucket(shots)},
         type="histogram",
     )
 
@@ -90,23 +90,25 @@ def on_estimate_end(durationMs: float, qubits: Union[str, int]) -> None:
 # Qiskit telemetry events
 
 
-def on_qiskit_import() -> None:
-    log_telemetry("qiskit.import", 1)
-
-
 def on_qiskit_run(shots: int, num_circuits: int) -> None:
     log_telemetry(
         "qiskit.run",
         1,
-        properties={"shots": get_shots_bucket(shots), "num_circuits": num_circuits},
+        properties={
+            "shots": get_next_power_of_ten_bucket(shots),
+            "circuits": get_next_power_of_ten_bucket(num_circuits),
+        },
     )
 
 
-def on_qiskit_run_end(shots: int, num_circuits: int, durationMs: float) -> None:
+def on_qiskit_run_end(shots: int, num_circuits: int, duration_ms: float) -> None:
     log_telemetry(
         "qiskit.run.durationMs",
-        durationMs,
-        properties={"shots": get_shots_bucket(shots), "num_circuits": num_circuits},
+        duration_ms,
+        properties={
+            "shots": get_next_power_of_ten_bucket(shots),
+            "circuits": get_next_power_of_ten_bucket(num_circuits),
+        },
         type="histogram",
     )
 
@@ -118,9 +120,9 @@ def on_qiskit_run_re() -> None:
     )
 
 
-def on_qiskit_run_re_end(durationMs: float) -> None:
+def on_qiskit_run_re_end(duration_ms: float) -> None:
     log_telemetry(
         "qiskit.run.re.durationMs",
-        durationMs,
+        duration_ms,
         type="histogram",
     )
