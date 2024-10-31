@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
-        TyBounds, TyParam, PathKind,
+        ClassConstraints, TypeParameter, PathKind,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -63,7 +63,7 @@ pub enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param { id: ParamId, bounds: TyBounds },
+    Param { id: ParamId, bounds: ClassConstraints },
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -212,7 +212,7 @@ pub struct Scope {
     /// it is missed in the list. <a href=https://github.com/microsoft/qsharp/issues/897 />
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
-    ty_vars: FxHashMap<Rc<str>, (ParamId, TyBounds)>,
+    ty_vars: FxHashMap<Rc<str>, (ParamId, ClassConstraints)>,
 }
 
 #[derive(Debug, Clone)]
@@ -1171,13 +1171,13 @@ impl Resolver {
             .for_each(|(ix, type_parameter)| {
                 self.current_scope_mut().ty_vars.insert(
                     Rc::clone(&type_parameter.ty.name),
-                    (ix.into(), type_parameter.bounds.clone()),
+                    (ix.into(), type_parameter.constraints.clone()),
                 );
                 self.names.insert(
                     type_parameter.ty.id,
                     Res::Param {
                         id: ix.into(),
-                        bounds: type_parameter.bounds.clone(),
+                        bounds: type_parameter.constraints.clone(),
                     },
                 );
             });
@@ -1406,7 +1406,7 @@ impl AstVisitor<'_> for With<'_> {
                     self.resolver.errors.push(e);
                 }
             }
-            ast::TyKind::Param(TyParam { ty, .. }) => {
+            ast::TyKind::Param(TypeParameter { ty, .. }) => {
                 self.resolver.resolve_ident(NameKind::Ty, ty);
             }
             _ => ast_visit::walk_ty(self, ty),
@@ -2386,7 +2386,7 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             }
         }));
 
-        names.extend(scope.ty_vars.iter().map(|(name, (id, bounds))| Local {
+        names.extend(scope.ty_vars.iter().map(|(name, (id, _constraints))| Local {
             name: name.clone(),
             kind: LocalKind::TyParam(*id),
         }));

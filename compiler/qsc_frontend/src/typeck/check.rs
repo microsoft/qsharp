@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     resolve::{Names, Res},
-    typeck::convert::{self, MissingTyError},
+    typeck::convert::{self},
 };
 use qsc_ast::{
     ast::{self, NodeId, TopLevelNode},

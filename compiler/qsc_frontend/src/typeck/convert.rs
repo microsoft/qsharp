@@ -5,18 +5,18 @@
 use std::rc::Rc;
 
 use crate::resolve::{self, Names};
-use itertools::{Either, Itertools};
-use miette::{Diagnostic, LabeledSpan};
+
+use miette::Diagnostic;
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
-    Path, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TyParam, PathKind,
+    Path, PathKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{self, Ident},
+    hir::{self},
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, TyBound, TyBounds,
-        TypeParamName, UdtDef, UdtDefKind, UdtField,
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
+        UdtField,
     },
 };
 use thiserror::Error;
@@ -64,7 +64,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
-        TyKind::Param(TyParam { ty, .. }) => match names.get(ty.id) {
+        TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             // TODO(sezna) should only res or typaram track bounds?
             Some(resolve::Res::Param { id, bounds }) => {
                 let bounds = ty_bound_from_ast(names, bounds);
@@ -77,6 +77,9 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
                     Vec::new(),
                 )
             }
+            // TODO(sezna) verify that this is the correct thing to do here
+            Some(_) | None => (Ty::Err, vec![MissingTyError(ty.span).into()]),
+        },
         TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
@@ -218,14 +221,14 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
 
 pub(crate) fn ast_callable_generics(
     names: &Names,
-    generics: &[ast::TyParam],
+    generics: &[ast::TypeParameter],
 ) -> Vec<qsc_hir::ty::GenericParam> {
     generics
         .iter()
         .map(|param| GenericParam::Ty {
             name: param.ty.name.clone(),
             bounds: {
-                let bounds = ty_bound_from_ast(names, &param.bounds);
+                let bounds = ty_bound_from_ast(names, &param.constraints);
 
                 bounds
             },
@@ -349,12 +352,12 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 /// Convert an AST type bound to an HIR type bound.
 pub(crate) fn ty_bound_from_ast(
     names: &Names,
-    bounds: &qsc_ast::ast::TyBounds,
+    bounds: &qsc_ast::ast::ClassConstraints,
 ) -> qsc_hir::ty::TyBounds {
     qsc_hir::ty::TyBounds(
         bounds
             .0
-            .into_iter()
+            .iter()
             // TODO(sezna) handle errs from ty_from_ast
             .map(|bound| match &*bound.name.name {
                 "Eq" => qsc_hir::ty::TyBound::Eq,

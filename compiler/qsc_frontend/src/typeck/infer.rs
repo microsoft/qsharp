@@ -12,7 +12,7 @@ use qsc_hir::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    collections::{hash_map::Entry, BTreeSet, HashSet, VecDeque},
+    collections::{hash_map::Entry, BTreeSet, VecDeque},
     fmt::Debug,
     rc::Rc,
 };
@@ -657,7 +657,7 @@ impl Solver {
                     bounds: bounds1,
                 },
                 Ty::Param {
-                    name: name2,
+                    name: _name2,
                     id: id2,
                     bounds: bounds2,
                 },
@@ -665,8 +665,8 @@ impl Solver {
                 // concat the two sets of bounds
                 let bounds: BTreeSet<TyBound> = bounds1
                     .0
-                    .into_iter()
-                    .chain(bounds2.0.into_iter())
+                    .iter()
+                    .chain(bounds2.0.iter())
                     .map(Clone::clone)
                     .collect();
 

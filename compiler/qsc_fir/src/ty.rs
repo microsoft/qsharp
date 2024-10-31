@@ -5,7 +5,7 @@ use indenter::{indented, Indented};
 use qsc_data_structures::span::Span;
 use rustc_hash::FxHashMap;
 
-use crate::fir::{CallableKind, FieldPath, Functor, Ident, ItemId, Res};
+use crate::fir::{CallableKind, FieldPath, Functor, ItemId, Res};
 use std::{
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,

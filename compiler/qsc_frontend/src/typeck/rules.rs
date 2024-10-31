@@ -8,9 +8,7 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
-    PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
-    TernOp, TyKind, UnOp,
+    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, TypeParameter, UnOp
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -126,7 +124,7 @@ impl<'a> Context<'a> {
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(TyParam { ty, bounds, .. }) => match self.names.get(ty.id) {
+            TyKind::Param(TypeParameter { ty, constraints: _, .. }) => match self.names.get(ty.id) {
                 Some(Res::Param { id, bounds }) => {
                     // TODO(sezna) what to do with res bounds?
                     let bounds = convert::ty_bound_from_ast(self.names, bounds);

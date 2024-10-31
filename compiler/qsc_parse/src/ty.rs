@@ -18,10 +18,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyBound,
-    TyBounds, TyKind, TyParam,
+    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, ClassConstraint,
+    ClassConstraints, TyKind, TypeParameter,
 };
-use qsc_data_structures::span::{Span, WithSpan};
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
     s.expect(WordKinds::PathTy);
@@ -62,7 +61,7 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
     }
 }
 
-pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
+pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let generic = apos_ident(s)?;
@@ -72,9 +71,9 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
         None
     };
 
-    Ok(TyParam::new(
+    Ok(TypeParameter::new(
         *generic,
-        bounds.unwrap_or_else(|| TyBounds(Box::new([]))),
+        bounds.unwrap_or_else(|| ClassConstraints(Box::new([]))),
         s.span(lo),
     ))
 }
@@ -83,12 +82,12 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TyParam> {
 /// This occurs after a `:` in a generic type:
 /// `T: Eq + Iterator[Bool] + Class3`
 ///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
-fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
-    let mut bounds: Vec<TyBound> = Vec::new();
+fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
+    let mut bounds: Vec<ClassConstraint> = Vec::new();
 
     // parses a ty but keeps track of the ident name
     // TODO(sezna) document why this is here
-    fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::TyWithStringifiedName> {
+    fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
         let ty = ty(s)?;
         let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
             path.name().cloned()
@@ -97,7 +96,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
             None
         };
 
-        Ok(qsc_ast::ast::TyWithStringifiedName {
+        Ok(qsc_ast::ast::ConstraintParameter {
             ty,
             name: name.map(|x| x.name),
         })
@@ -109,11 +108,11 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
         // e.g. `Iterator[Bool]`
         let mut ty_parameters = Vec::new();
         if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
-            let (tys, final_sep) = seq(s, ty_or_ident)?;
+            let (tys, _final_sep) = seq(s, ty_or_ident)?;
             ty_parameters = tys;
             token(s, TokenKind::Close(Delim::Bracket))?;
         }
-        bounds.push(TyBound {
+        bounds.push(ClassConstraint {
             name: *bound_name,
             parameters: ty_parameters.into_boxed_slice(),
         });
@@ -121,7 +120,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<TyBounds> {
             break;
         }
     }
-    Ok(TyBounds(dbg!(bounds.into_boxed_slice())))
+    Ok(ClassConstraints(dbg!(bounds.into_boxed_slice())))
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {

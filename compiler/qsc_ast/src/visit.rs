@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
     FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TyParam,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -153,7 +153,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
     // modify visitors for this new AST element
     decl.generics.iter().for_each(|p| {
         vis.visit_ident(&p.ty);
-        p.bounds.0.iter().for_each(|b| {
+        p.constraints.0.iter().for_each(|b| {
             vis.visit_ident(&b.name);
             let items_to_skip =
                     // if this is a HasField constraint, then we skip name resolution on the first
@@ -164,7 +164,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
                         0
                     };
             b.parameters.iter().skip(items_to_skip).for_each(
-                |crate::ast::TyWithStringifiedName { ty, name: ident }| {
+                |crate::ast::ConstraintParameter { ty, name: _ }| {
                     vis.visit_ty(ty);
                 },
             );
@@ -222,7 +222,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path_kind(path),
         // TODO(sezna)
-        TyKind::Param(TyParam { ty, bounds, .. }) => {
+        TyKind::Param(TypeParameter { ty, constraints: bounds, .. }) => {
             for bound in bounds.0.iter() {
                 vis.visit_ident(&bound.name);
                 let items_to_skip =
@@ -234,7 +234,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
                         0
                     };
                 bound.parameters.iter().skip(items_to_skip).for_each(
-                    |crate::ast::TyWithStringifiedName { ty, name }| {
+                    |crate::ast::ConstraintParameter { ty, name }| {
                         dbg!(&name);
                         vis.visit_ty(ty);
                     },

@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
     FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TyParam,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 use qsc_data_structures::span::Span;
 
@@ -166,7 +166,7 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     decl.generics.iter_mut().for_each(|p| {
         vis.visit_ident(&mut p.ty);
-        p.bounds.0.iter_mut().for_each(|b| {
+        p.constraints.0.iter_mut().for_each(|b| {
             vis.visit_ident(&mut b.name);
             let items_to_skip =
                     // if this is a HasField constraint, then we skip name resolution on the first
@@ -177,7 +177,7 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
                         0
                     };
             b.parameters.iter_mut().skip(items_to_skip).for_each(
-                |crate::ast::TyWithStringifiedName { ty, name: ident }| {
+                |crate::ast::ConstraintParameter { ty, name: _ident }| {
                     vis.visit_ty(ty);
                 },
             );
@@ -245,7 +245,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         // TODO(sezna)
-        TyKind::Param(TyParam { ty, bounds, .. }) => {
+        TyKind::Param(TypeParameter { ty, constraints: bounds, .. }) => {
             for bound in &mut bounds.0 {
                 vis.visit_ident(&mut bound.name);
                 // TODO(sezna) remove this items_to_skip in the visitors
@@ -254,7 +254,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
                     // item, which is the field name
                     usize::from(&*bound.name.name == "HasField");
                 bound.parameters.iter_mut().skip(items_to_skip).for_each(
-                    |crate::ast::TyWithStringifiedName {ref  mut ty, name }| {
+                    |crate::ast::ConstraintParameter {ref  mut ty, name }| {
                         dbg!(&name);
                         vis.visit_ty( ty);
                     },

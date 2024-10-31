@@ -486,7 +486,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The generic parameters to the callable.
-    pub generics: Box<[TyParam]>,
+    pub generics: Box<[TypeParameter]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -678,7 +678,7 @@ pub enum TyKind {
     /// A named type.
     Path(PathKind),
     /// A type parameter.
-    Param(TyParam),
+    Param(TypeParameter),
     /// A tuple type.
     Tuple(Box<[Ty]>),
     /// An invalid type.
@@ -1436,6 +1436,7 @@ impl Default for PathKind {
 }
 
 impl PathKind {
+    /// Returns the segments of the path, whether parsed successfully or not.
     pub fn segments(&self) -> &[Ident] {
         match self {
             PathKind::Ok(path) => path.segments.as_deref().unwrap_or_default(),
@@ -1444,6 +1445,7 @@ impl PathKind {
         }
     }
 
+    /// Returns the name of the path, whether parsed successfully or not.
     pub fn name(&self) -> Option<&Ident> {
         match self {
             PathKind::Ok(path) => Some(&path.name),
@@ -1991,48 +1993,69 @@ impl ImportOrExportItem {
     }
 }
 
+
+/// A [`TypeParameter`] is a generic type variable with optional bounds (constraints).
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
-pub struct TyParam {
-    pub bounds: TyBounds,
+pub struct TypeParameter {
+    /// Class constraints specified for this type parameter -- any type variable passed in 
+    /// as an argument to these parameters must satisfy these constraints.
+    pub constraints: ClassConstraints,
+    /// The name of the type parameter.
     pub ty: Ident,
+    /// The span of the full type parameter, including its name and its constraints.
     pub span: Span,
 }
 
-impl WithSpan for TyParam {
+impl WithSpan for TypeParameter {
     fn with_span(self, span: Span) -> Self {
         Self { span, ..self }
     }
 }
 
-impl TyParam {
-    pub fn new(ty: Ident, bounds: TyBounds, span: Span) -> Self {
-        Self { ty, bounds, span }
+impl TypeParameter {
+    /// Instantiates a new `TypeParameter` with the given type name, constraints, and span.
+    pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
+        Self { ty, constraints: bounds, span }
     }
 }
 
-impl std::fmt::Debug for TyParam {
+impl std::fmt::Debug for TypeParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // 'A: Eq + Ord + Clone
-        write!(f, "{}: {:?}", self.ty, self.bounds)
+        write!(f, "{}: {:?}", self.ty, self.constraints)
     }
 }
 
+/// A list of class constraints, used when constraining a type parameter.
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
-pub struct TyBounds(pub Box<[TyBound]>);
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
 
+/// An individual class constraint, used when constraining a type parameter.
+/// To understand this concept, think of parameters in a function signature -- the potential arguments that can
+/// be passed to them are constrained by what type is specified. Type-level parameters are no different, and
+/// the type variables that are passed to a type parameter must satisfy the constraints specified in the type parameter.
 #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
-pub struct TyBound {
+pub struct ClassConstraint {
+    /// The name of the constraint.
     pub name: Ident,
-    pub parameters: Box<[TyWithStringifiedName]>,
+    /// Parameters for a constraint. For example, `Iterator` has a parameter `T` in `Iterator<T>` -- this
+    /// is the type of the item that is coming out of the iterator.
+    pub parameters: Box<[ConstraintParameter]>,
 }
 
+/// An individual constraint parameter is a type that is passed to a constraint, such as `T` in `Iterator<T>`.
+/// #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
 #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
-pub struct TyWithStringifiedName {
+
+pub struct ConstraintParameter {
+    /// The type variable being passed as a constraint parameter.
     pub ty: Ty,
+    /// The same thing as `ty`, but parsed as a `str` instead, for use in some peculiar
+    /// classes which require non-type parameters. This is a special case.
     pub name: Option<Rc<str>>,
 }
 
-impl WithSpan for TyWithStringifiedName {
+impl WithSpan for ConstraintParameter {
     fn with_span(self, span: Span) -> Self {
         Self {
             ty: self.ty.with_span(span),
@@ -2041,22 +2064,26 @@ impl WithSpan for TyWithStringifiedName {
     }
 }
 
-impl TyWithStringifiedName {
+impl ConstraintParameter {
+    /// Getter for the `ty` field.
     pub fn ty(&self) -> &Ty {
         &self.ty
     }
+
+    /// Getter for the `name` field.
     pub fn name(&self) -> &Option<Rc<str>> {
         &self.name
     }
 }
 
-impl TyBound {
+impl ClassConstraint {
+    /// Getter for the `span` field of the `name` field (the name of the class constraint).
     pub fn span(&self) -> Span {
         self.name.span
     }
 }
 
-impl TyBounds {
+impl ClassConstraints {
     /// The conjoined span of all of the bounds
     pub fn span(&self) -> Span {
         Span {
@@ -2065,7 +2092,7 @@ impl TyBounds {
         }
     }
 }
-impl std::fmt::Debug for TyBounds {
+impl std::fmt::Debug for ClassConstraints {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // A + B + C + D
         write!(

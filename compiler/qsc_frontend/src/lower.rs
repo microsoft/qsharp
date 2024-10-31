@@ -9,7 +9,7 @@ use crate::{
     resolve::{self, Names},
     typeck::{
         self,
-        convert::{self, synthesize_functor_params, ty_bound_from_ast},
+        convert::{self, synthesize_functor_params},
     },
 };
 use miette::Diagnostic;
@@ -397,7 +397,7 @@ impl With<'_> {
     /// decls.
     pub(crate) fn synthesize_callable_generics(
         &mut self,
-        generics: &[ast::TyParam],
+        generics: &[ast::TypeParameter],
         input: &mut hir::Pat,
     ) -> Vec<qsc_hir::ty::GenericParam> {
         let mut params = convert::ast_callable_generics(self.names, generics);
@@ -673,7 +673,6 @@ impl With<'_> {
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
-            ast::ExprKind::Err => dbg!(hir::ExprKind::Err),
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, FieldAccess::Ok(name)) => {
                 let container = self.lower_expr(container);
