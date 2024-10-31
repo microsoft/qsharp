@@ -53,10 +53,7 @@ pub enum Ty {
 pub struct TyBounds(pub Box<[TyBound]>);
 impl TyBounds {
     #[must_use] pub fn contains_iterable_bound(&self) -> bool {
-        self.0.iter().any(|bound| match bound {
-            TyBound::Iterable { .. } => true,
-            _ => false,
-        })
+        self.0.iter().any(|bound| matches!(bound, TyBound::Iterable { .. }))
     }
 }
 
@@ -332,7 +329,7 @@ impl Display for GenericParam {
                 f,
                 "type {name}{}",
                 if bounds.0.is_empty() {
-                    Default::default()
+                    String::new()
                 } else {
                     format!(" bounds: {bounds}",)
                 }

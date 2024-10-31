@@ -1449,7 +1449,7 @@ impl PathKind {
     #[must_use] pub fn name(&self) -> Option<&Ident> {
         match self {
             PathKind::Ok(path) => Some(&path.name),
-            PathKind::Err(Some(incomplete_path)) => Some(incomplete_path.segments.last().unwrap()),
+            PathKind::Err(Some(incomplete_path)) => incomplete_path.segments.last(),
             PathKind::Err(None) => None
         }
     }
