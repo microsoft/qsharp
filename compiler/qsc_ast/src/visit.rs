@@ -228,8 +228,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
                     usize::from(&*bound.name.name == "HasField");
                         
                 bound.parameters.iter().skip(items_to_skip).for_each(
-                    |crate::ast::ConstraintParameter { ty, name }| {
-                        dbg!(&name);
+                    |crate::ast::ConstraintParameter { ty, name: _ }| {
                         vis.visit_ty(ty);
                     },
                 );

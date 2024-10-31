@@ -132,7 +132,6 @@ impl Checker {
     pub(crate) fn check_package(&mut self, names: &Names, package: &ast::Package) {
         ItemCollector::new(self, names).visit_package(package);
         ItemChecker::new(self, names).visit_package(package);
-
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 names,
@@ -141,7 +140,6 @@ impl Checker {
                 entry,
             ));
         }
-
         for top_level_node in &package.nodes {
             if let TopLevelNode::Stmt(stmt) = top_level_node {
                 self.new.append(&mut rules::stmt(
@@ -153,11 +151,12 @@ impl Checker {
                 ));
             }
         }
+        
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
         self.check_callable_signature(names, decl);
-        let output = convert::ty_from_ast(names, &decl.output).0;
+        let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
         match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
                 names,
@@ -192,7 +191,7 @@ impl Checker {
 
     fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
         if convert::ast_callable_functors(decl) != FunctorSetValue::Empty {
-            let output = convert::ty_from_ast(names, &decl.output).0;
+            let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TyMismatch(
@@ -276,6 +275,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                 self.checker.globals.insert(item, cons);
             }
             ast::ItemKind::Struct(decl) => {
+
                 let span = item.span;
                 let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
                     panic!("type should have item ID");
@@ -307,7 +307,8 @@ impl Visitor<'_> for ItemCollector<'_> {
     }
 
     // We do not typecheck attributes, as they are verified during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {}
+    fn visit_attr(&mut self, _: &ast::Attr) {
+    }
 }
 
 struct ItemChecker<'a> {
@@ -328,5 +329,6 @@ impl Visitor<'_> for ItemChecker<'_> {
     }
 
     // We do not typecheck attributes, as they are verified during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {}
+    fn visit_attr(&mut self, _: &ast::Attr) {
+    }
 }

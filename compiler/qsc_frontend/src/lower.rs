@@ -24,6 +24,8 @@ use qsc_hir::{
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
+use self::convert::TyConversionError;
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
@@ -52,6 +54,9 @@ pub(super) enum Error {
     #[error("unrecognized class name")]
     #[diagnostic(code("Qsc.LowerAst.UnrecognizedClass"))]
     UnrecognizedClass(#[from] typeck::convert::UnrecognizedBoundError),
+    #[error(transparent)]
+    #[diagnostic(code("Qsc.LowerAst.TyConversionError"))]
+    TyConversion(#[from] convert::TyConversionError),
 }
 
 pub(super) struct Lowerer {
@@ -205,73 +210,77 @@ impl With<'_> {
             _otherwise => None,
         };
 
-        let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+        let (id, kind) =
+            match &*item.kind {
+                ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
 
-            ast::ItemKind::ImportOrExport(item) => {
-                if item.is_import() {
+                ast::ItemKind::ImportOrExport(item) => {
+                    if item.is_import() {
+                        return None;
+                    }
+                    for item in &item.items {
+                        let Some(item_name) = item.name() else {
+                            continue;
+                        };
+                        let Some((id, alias)) = resolve_id(item_name.id) else {
+                            continue;
+                        };
+                        let is_reexport = id.package.is_some() || alias.is_some();
+                        // if the package is Some, then this is a re-export and we
+                        // need to preserve the reference to the original `ItemId`
+                        if is_reexport {
+                            let mut name = self.lower_ident(item_name);
+                            name.id = self.assigner.next_node();
+                            let kind = hir::ItemKind::Export(name, id);
+                            self.lowerer.items.push(hir::Item {
+                                id: self.assigner.next_item(),
+                                span: item.span,
+                                parent: self.lowerer.parent,
+                                doc: "".into(),
+                                // attrs on exports not supported
+                                attrs: Vec::new(),
+                                visibility: Visibility::Public,
+                                kind,
+                            });
+                        }
+                    }
                     return None;
                 }
-                for item in &item.items {
-                    let Some(item_name) = item.name() else {
-                        continue;
-                    };
-                    let Some((id, alias)) = resolve_id(item_name.id) else {
-                        continue;
-                    };
-                    let is_reexport = id.package.is_some() || alias.is_some();
-                    // if the package is Some, then this is a re-export and we
-                    // need to preserve the reference to the original `ItemId`
-                    if is_reexport {
-                        let mut name = self.lower_ident(item_name);
-                        name.id = self.assigner.next_node();
-                        let kind = hir::ItemKind::Export(name, id);
-                        self.lowerer.items.push(hir::Item {
-                            id: self.assigner.next_item(),
-                            span: item.span,
-                            parent: self.lowerer.parent,
-                            doc: "".into(),
-                            // attrs on exports not supported
-                            attrs: Vec::new(),
-                            visibility: Visibility::Public,
-                            kind,
-                        });
-                    }
+                ast::ItemKind::Callable(callable) => {
+                    let (id, _) = resolve_id(callable.name.id)?;
+                    let grandparent = self.lowerer.parent;
+                    self.lowerer.parent = Some(id.item);
+                    let (callable, errs) = self.lower_callable_decl(callable, &attrs);
+                    self.lowerer.errors.extend(errs.into_iter().map(|err| {
+                        Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
+                    }));
+                    self.lowerer.parent = grandparent;
+                    (id, hir::ItemKind::Callable(callable))
                 }
-                return None;
-            }
-            ast::ItemKind::Callable(callable) => {
-                let (id, _) = resolve_id(callable.name.id)?;
-                let grandparent = self.lowerer.parent;
-                self.lowerer.parent = Some(id.item);
-                let callable = self.lower_callable_decl(callable, &attrs);
-                self.lowerer.parent = grandparent;
-                (id, hir::ItemKind::Callable(callable))
-            }
-            ast::ItemKind::Ty(name, _) => {
-                let (id, _) = resolve_id(name.id)?;
-                let udt = self
-                    .tys
-                    .udts
-                    .get(&id)
-                    .expect("type item should have lowered UDT");
+                ast::ItemKind::Ty(name, _) => {
+                    let (id, _) = resolve_id(name.id)?;
+                    let udt = self
+                        .tys
+                        .udts
+                        .get(&id)
+                        .expect("type item should have lowered UDT");
 
-                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
-            }
-            ast::ItemKind::Struct(decl) => {
-                let (id, _) = resolve_id(decl.name.id)?;
-                let strct = self
-                    .tys
-                    .udts
-                    .get(&id)
-                    .expect("type item should have lowered struct");
+                    (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+                }
+                ast::ItemKind::Struct(decl) => {
+                    let (id, _) = resolve_id(decl.name.id)?;
+                    let strct = self
+                        .tys
+                        .udts
+                        .get(&id)
+                        .expect("type item should have lowered struct");
 
-                (
-                    id,
-                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
-                )
-            }
-        };
+                    (
+                        id,
+                        hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                    )
+                }
+            };
 
         let export_info = exported_ids.iter().find(|(hir_id, _)| hir_id == &id);
         let visibility = match export_info {
@@ -399,12 +408,12 @@ impl With<'_> {
         &mut self,
         generics: &[ast::TypeParameter],
         input: &mut hir::Pat,
-    ) -> Vec<qsc_hir::ty::GenericParam> {
-        let mut params = convert::ast_callable_generics(self.names, generics);
+    ) -> (Vec<qsc_hir::ty::GenericParam>, Vec<TyConversionError>) {
+        let (mut params, errs) = convert::ast_callable_generics(self.names, generics);
         let mut functor_params =
             Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
         params.append(&mut functor_params);
-        params
+        (params, errs)
     }
 
     fn synthesize_functor_params_in_pat(
@@ -434,13 +443,13 @@ impl With<'_> {
         &mut self,
         decl: &ast::CallableDecl,
         attrs: &[qsc_hir::hir::Attr],
-    ) -> hir::CallableDecl {
+    ) -> (hir::CallableDecl, Vec<TyConversionError>) {
         let id = self.lower_id(decl.id);
         let kind = self.lower_callable_kind(decl.kind, attrs, decl.name.span);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
-        let output = convert::ty_from_ast(self.names, &decl.output).0;
-        let generics = self.synthesize_callable_generics(&decl.generics, &mut input);
+        let output = convert::ty_from_ast(self.names, &decl.output, &mut Default::default()).0;
+        let (generics, errs) = self.synthesize_callable_generics(&decl.generics, &mut input);
         let functors = convert::ast_callable_functors(decl);
 
         let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {
@@ -468,21 +477,24 @@ impl With<'_> {
             }
         };
 
-        hir::CallableDecl {
-            id,
-            span: decl.span,
-            kind,
-            name,
-            generics,
-            input,
-            output,
-            functors,
-            body,
-            adj,
-            ctl,
-            ctl_adj,
-            attrs: attrs.to_vec(),
-        }
+        (
+            hir::CallableDecl {
+                id,
+                span: decl.span,
+                kind,
+                name,
+                generics,
+                input,
+                output,
+                functors,
+                body,
+                adj,
+                ctl,
+                ctl_adj,
+                attrs: attrs.to_vec(),
+            },
+            errs,
+        )
     }
 
     fn check_invalid_attrs_on_function(&mut self, attrs: &[hir::Attr], span: Span) {

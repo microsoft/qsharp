@@ -498,6 +498,10 @@ impl Inferrer {
     pub(super) fn substitute_functor(&mut self, functors: &mut FunctorSet) {
         substitute_functor(&self.solver.solution, functors);
     }
+
+    pub(super) fn report_error(&mut self, error: impl Into<Error>) {
+        self.solver.errors.push(error.into());
+    }
 }
 
 #[derive(Debug)]
@@ -973,7 +977,6 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    println!("Checking exp");
     match base {
         Ty::Prim(Prim::BigInt) => (
             vec![Constraint::Eq {
@@ -1022,7 +1025,6 @@ fn check_has_field(
         (_, Ty::Param { bounds, .. }) => {
             let mut constraints = Vec::new();
             let mut errors = Vec::new();
-            dbg!(&bounds.0);
             let mut constraint_satisfied = false;
             for bound in &bounds.0 {
                 match bound {
@@ -1211,7 +1213,8 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         ),
         Ty::Param { .. } => (
             Vec::default(),
-            vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
+            todo!("TODO(sezna) fix this")
+            // vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
         ),
         _ => (
             Vec::new(),

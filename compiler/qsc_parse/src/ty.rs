@@ -86,7 +86,6 @@ fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParamete
     let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
         path.name().cloned()
     } else {
-        println!("none 2");
         None
     };
 
@@ -121,7 +120,7 @@ fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
             break;
         }
     }
-    Ok(ClassConstraints(dbg!(bounds.into_boxed_slice())))
+    Ok(ClassConstraints(bounds.into_boxed_slice()))
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {

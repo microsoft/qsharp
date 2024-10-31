@@ -19,13 +19,14 @@ use qsc_hir::{
         UdtField,
     },
 };
+use rustc_hash::FxHashSet;
 use thiserror::Error;
 
-#[derive(Debug, Error, Diagnostic, Clone)]
+#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
 #[error("missing type")]
 pub(crate) struct MissingTyError(#[label] pub(super) Span);
 
-#[derive(Debug, Error, Diagnostic, Clone)]
+#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
 #[error("unrecognized type bound {name}")]
 pub(crate) struct UnrecognizedBoundError {
     #[label]
@@ -33,23 +34,38 @@ pub(crate) struct UnrecognizedBoundError {
     pub name: String,
 }
 
-#[derive(Debug, Error, Diagnostic, Clone)]
-pub(crate) enum TyConversionError {
-    #[error(transparent)]
-    MissingTyError(#[from] MissingTyError),
-    #[error(transparent)]
-    UnrecognizedBoundError(#[from] UnrecognizedBoundError),
+#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
+#[error("class constraint is recursive via {name}")]
+#[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+pub(crate) struct RecursiveClassConstraintError {
+    #[label]
+    pub span: Span,
+    pub name: String,
 }
 
-pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionError>) {
+#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum TyConversionError {
+    #[error(transparent)]
+    MissingTy(#[from] MissingTyError),
+    #[error(transparent)]
+    UnrecognizedBound(#[from] UnrecognizedBoundError),
+    #[error(transparent)]
+    RecursiveClassConstraint(#[from] RecursiveClassConstraintError),
+}
+
+pub(crate) fn ty_from_ast(
+    names: &Names,
+    ty: &ast::Ty,
+    stack: &mut FxHashSet<qsc_ast::ast::ClassConstraint>,
+) -> (Ty, Vec<TyConversionError>) {
     match &*ty.kind {
         TyKind::Array(item) => {
-            let (item, errors) = ty_from_ast(names, item);
+            let (item, errors) = ty_from_ast(names, item, stack);
             (Ty::Array(Box::new(item)), errors)
         }
         TyKind::Arrow(kind, input, output, functors) => {
-            let (input, mut errors) = ty_from_ast(names, input);
-            let (output, output_errors) = ty_from_ast(names, output);
+            let (input, mut errors) = ty_from_ast(names, input, stack);
+            let (output, output_errors) = ty_from_ast(names, output, stack);
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
@@ -63,18 +79,18 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
             (ty, errors)
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
-        TyKind::Paren(inner) => ty_from_ast(names, inner),
+        TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             // TODO(sezna) should only res or typaram track bounds?
             Some(resolve::Res::Param { id, bounds }) => {
-                let bounds = ty_bound_from_ast(names, bounds);
+                let (bounds, errors) = ty_bound_from_ast(names, bounds, stack);
                 (
                     Ty::Param {
                         name: ty.name.clone(),
                         id: *id,
                         bounds,
                     },
-                    Vec::new(),
+                    errors,
                 )
             }
             // TODO(sezna) verify that this is the correct thing to do here
@@ -85,7 +101,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionE
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ty_from_ast(names, item);
+                let (item_ty, item_errors) = ty_from_ast(names, item, stack);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
@@ -157,7 +173,7 @@ pub(super) fn ast_ty_def_cons(
 
 fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<TyConversionError>) {
     match &*def.kind {
-        TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
+        TyDefKind::Field(_, ty) => ty_from_ast(names, ty, &mut Default::default()),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
         TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
@@ -184,7 +200,7 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
         span: def.span,
         kind: match &*def.kind {
             TyDefKind::Field(name, ty) => {
-                let (ty, item_errors) = ty_from_ast(names, ty);
+                let (ty, item_errors) = ty_from_ast(names, ty, &mut Default::default());
                 errors.extend(item_errors);
                 let (name_span, name) = match name {
                     Some(name) => (Some(name.span), Some(name.name.clone())),
@@ -222,33 +238,42 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
 pub(crate) fn ast_callable_generics(
     names: &Names,
     generics: &[ast::TypeParameter],
-) -> Vec<qsc_hir::ty::GenericParam> {
-    generics
-        .iter()
-        .map(|param| GenericParam::Ty {
+) -> (Vec<qsc_hir::ty::GenericParam>, Vec<TyConversionError>) {
+    let mut errors = Vec::new();
+    let mut generics_buf = Vec::with_capacity(generics.len());
+    for param in generics.iter() {
+        let (bounds, new_errors) =
+            ty_bound_from_ast(names, &param.constraints, &mut Default::default());
+        errors.extend(new_errors);
+        generics_buf.push(GenericParam::Ty {
             name: param.ty.name.clone(),
-            bounds: {
-                
-
-                ty_bound_from_ast(names, &param.constraints)
-            },
-        })
-        .collect()
+            bounds,
+        });
+    }
+    (generics_buf, errors)
 }
 
 pub(super) fn ast_callable_scheme(
     names: &Names,
     callable: &CallableDecl,
 ) -> (Scheme, Vec<TyConversionError>) {
-    let mut type_parameters = ast_callable_generics(names, &callable.generics);
-
+    let (mut type_parameters, errors) = ast_callable_generics(names, &callable.generics);
+    let mut errors = errors
+        .into_iter()
+        .map(TyConversionError::from)
+        .collect::<Vec<_>>();
     let kind = callable_kind_from_ast(callable.kind);
-    let (mut input, mut errors) = ast_pat_ty(names, &callable.input);
-    let (output, output_errors) = ty_from_ast(names, &callable.output);
+
+    let (mut input, new_errors) = ast_pat_ty(names, &callable.input);
+    errors.extend(&mut new_errors.into_iter());
+
+    let (output, output_errors) = ty_from_ast(names, &callable.output, &mut Default::default());
+
     errors.extend(output_errors);
 
     let mut functor_params =
         synthesize_functor_params(&mut type_parameters.len().into(), &mut input);
+
     type_parameters.append(&mut functor_params);
 
     let ty = Arrow {
@@ -289,7 +314,9 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
             (Ty::Err, vec![MissingTyError(pat.span).into()])
         }
-        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => ty_from_ast(names, ty),
+        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => {
+            ty_from_ast(names, ty, &mut Default::default())
+        }
         PatKind::Paren(inner) => ast_pat_ty(names, inner),
         PatKind::Tuple(items) => {
             let mut tys = Vec::new();
@@ -353,35 +380,63 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 pub(crate) fn ty_bound_from_ast(
     names: &Names,
     bounds: &qsc_ast::ast::ClassConstraints,
-) -> qsc_hir::ty::TyBounds {
-    qsc_hir::ty::TyBounds(
-        bounds
-            .0
-            .iter()
-            // TODO(sezna) handle errs from ty_from_ast
-            .map(|bound| match &*bound.name.name {
-                "Eq" => qsc_hir::ty::TyBound::Eq,
-                "Add" => qsc_hir::ty::TyBound::Add,
-                "Iterable" => qsc_hir::ty::TyBound::Iterable {
-                    item: ty_from_ast(names, bound.parameters[0].ty()).0,
-                },
-                "Exp" => qsc_hir::ty::TyBound::Exp {
-                    base: ty_from_ast(names, bound.parameters[0].ty()).0,
-                    power: ty_from_ast(names, bound.parameters[1].ty()).0,
-                },
-                "HasField" => {
-                    let field = if let Some(field) = bound.parameters[0].name() {
-                        field.clone()
-                    } else {
-                        todo!("error for missing field")
-                    };
-                    qsc_hir::ty::TyBound::HasField {
-                        ty: ty_from_ast(names, bound.parameters[1].ty()).0,
-                        field,
-                    }
+    // used to check for recursive types
+    stack: &mut FxHashSet<qsc_ast::ast::ClassConstraint>,
+) -> (qsc_hir::ty::TyBounds, Vec<TyConversionError>) {
+    let mut bounds_buf = Vec::new();
+    let mut errors = FxHashSet::default();
+
+    for bound in &bounds.0 {
+        if stack.contains(bound) {
+            errors.insert(
+                RecursiveClassConstraintError {
+                    span: bound.span(),
+                    name: bound.name.name.to_string(),
                 }
-                otherwise => qsc_hir::ty::TyBound::NonNativeClass(otherwise.into()),
-            })
-            .collect(),
+                .into(),
+            );
+            continue;
+        }
+        stack.insert(bound.clone());
+        let bound_result = match &*bound.name.name {
+            "Eq" => Ok(qsc_hir::ty::TyBound::Eq),
+            "Add" => Ok(qsc_hir::ty::TyBound::Add),
+            "Iterable" => {
+                let (item, item_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
+                errors.extend(item_errors.into_iter());
+                Ok(qsc_hir::ty::TyBound::Iterable { item })
+            }
+            "Exp" => {
+                let (base, base_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
+                errors.extend(base_errors.into_iter());
+                let (power, power_errors) = ty_from_ast(names, bound.parameters[1].ty(), stack);
+                errors.extend(power_errors.into_iter());
+                Ok(qsc_hir::ty::TyBound::Exp { base, power })
+            }
+
+            "HasField" => {
+                let field = if let Some(field) = bound.parameters[0].name() {
+                    field.clone()
+                } else {
+                    todo!("error for missing field")
+                };
+                let (ty, ty_errors) = ty_from_ast(names, bound.parameters[1].ty(), stack);
+                errors.extend(ty_errors.into_iter());
+                Ok(qsc_hir::ty::TyBound::HasField { ty, field })
+            }
+            otherwise => Ok(qsc_hir::ty::TyBound::NonNativeClass(otherwise.into())),
+        };
+
+        match bound_result {
+            Ok(bound) => bounds_buf.push(bound),
+            Err(e) => {
+                errors.insert(e);
+            }
+        }
+    }
+
+    (
+        qsc_hir::ty::TyBounds(bounds_buf.into_boxed_slice()),
+        errors.into_iter().collect(),
     )
 }

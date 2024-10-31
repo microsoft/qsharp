@@ -8,7 +8,7 @@ mod rules;
 #[cfg(test)]
 mod tests;
 
-use convert::{MissingTyError, TyConversionError, UnrecognizedBoundError};
+use convert::TyConversionError;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -108,10 +108,10 @@ enum ErrorKind {
     #[error("expected superset of {0}, found {1}")]
     #[diagnostic(code("Qsc.TypeCk.MissingFunctor"))]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
-    #[error("missing type in item signature")]
-    #[diagnostic(help("types cannot be inferred for global declarations"))]
-    #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
-    MissingItemTy(#[label] Span),
+    // #[error("missing type in item signature")]
+    // #[diagnostic(help("types cannot be inferred for global declarations"))]
+    // #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
+    // MissingItemTy(#[label] Span),
     #[error("found hole with type {0}")]
     #[diagnostic(help("replace this hole with an expression of the expected type"))]
     #[diagnostic(code("Qsc.TypeCk.TyHole"))]
@@ -120,23 +120,19 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
-    #[error("unrecognized class bound {0}")]
-    #[diagnostic(code("Qsc.TypeCk.UnknownClassBound"))]
-    UnknownClassBound(String, #[label] Span),
-    #[error("unsupported parametric class bound")]
-    #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
-    UnsupportedParametricClassBound(#[label] Span),
+    #[error(transparent)]
+    #[diagnostic(code("Qsc.TypeCk.TyConversionError"))]
+    TyConversionError(#[from] TyConversionError),
+    // #[error("unrecognized class bound {0}")]
+    // #[diagnostic(code("Qsc.TypeCk.UnknownClassBound"))]
+    // UnknownClassBound(String, #[label] Span),
+    // #[error("unsupported parametric class bound")]
+    // #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
+    // UnsupportedParametricClassBound(#[label] Span),
 }
 
 impl From<TyConversionError> for Error {
     fn from(err: TyConversionError) -> Self {
-        Error(match err {
-            TyConversionError::MissingTyError(MissingTyError(span)) => {
-                ErrorKind::MissingItemTy(span)
-            }
-            TyConversionError::UnrecognizedBoundError(UnrecognizedBoundError { span, name }) => {
-                ErrorKind::UnknownClassBound(name, span)
-            }
-        })
+        Error(ErrorKind::TyConversionError(err))
     }
 }

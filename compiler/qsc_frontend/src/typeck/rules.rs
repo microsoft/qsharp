@@ -126,8 +126,11 @@ impl<'a> Context<'a> {
             },
             TyKind::Param(TypeParameter { ty, constraints: _, .. }) => match self.names.get(ty.id) {
                 Some(Res::Param { id, bounds }) => {
+                    let (bounds, errs) = convert::ty_bound_from_ast(self.names, bounds, &mut Default::default());
                     // TODO(sezna) what to do with res bounds?
-                    let bounds = convert::ty_bound_from_ast(self.names, bounds);
+                    for err in errs {
+                        self.inferrer.report_error(err);
+                    }
                     Ty::Param {
                         name: ty.name.clone(),
                         id: *id,

@@ -123,7 +123,6 @@ fn compile(
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
     resolver.bind_and_resolve_imports_and_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
@@ -138,7 +137,6 @@ fn compile(
         .chain(ty_errors.into_iter().map(Into::into))
         .map(compile::Error)
         .collect();
-
     (package, tys, errors)
 }
 
@@ -4203,12 +4201,13 @@ fn undeclared_generic_param() {
     check(
         r#"namespace c{operation y(g: 'U): Unit {} }"#,
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-        "#]],
+            Error(Type(Error(TyConversionError(MissingTy(MissingTyError(Span { lo: 27, hi: 29 }))))))
+        "##]],
     );
 }
 
@@ -4439,6 +4438,14 @@ fn within_block_should_be_unit_error() {
     );
 }
 
+mod bounded_polymorphism {
+    use expect_test::expect;
+
+    use super::check;
+
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #[test]
 fn bounded_polymorphism_eq() {
     check(
@@ -4462,8 +4469,9 @@ fn bounded_polymorphism_eq() {
     );
 }
 
+// TODO(sezna) figure out why the error message is duplicated here
 #[test]
-fn bounded_polymorphism_exp() {
+fn bounded_polymorphism_error_on_infinite_recursive_generic() {
     check(
         r#"
         namespace A {
@@ -4473,9 +4481,49 @@ fn bounded_polymorphism_exp() {
         }
         "#,
         "",
-        &expect![[r##""##]],
+        &expect![[r##"
+            #13 65-80 "(a: 'T, b: Int)" : (Param<"'T": 0>, Int)
+            #14 66-71 "a: 'T" : Param<"'T": 0>
+            #18 73-79 "b: Int" : Int
+            #25 86-123 "{\n                a ^ b\n            }" : Param<"'T": 0>
+            #27 104-109 "a ^ b" : Param<"'T": 0>
+            #28 104-105 "a" : Param<"'T": 0>
+            #31 108-109 "b" : Int
+            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
+            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
+            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
+            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
+            Error(Type(Error(MissingClassExp("'T", Span { lo: 104, hi: 109 }))))
+            Error(Type(Error(MissingClassExp("'T", Span { lo: 104, hi: 109 }))))
+        "##]],
     );
 }
+
+#[test]
+fn bounded_polymorphism_exp() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'E, 'T: Exp['E, Int]>(a: 'E, b: Int) : 'T {
+                a ^ b
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #14 69-84 "(a: 'E, b: Int)" : (Param<"'E": 0>, Int)
+            #15 70-75 "a: 'E" : Param<"'E": 0>
+            #19 77-83 "b: Int" : Int
+            #26 90-127 "{\n                a ^ b\n            }" : Param<"'E": 0>
+            #28 108-113 "a ^ b" : Param<"'E": 0>
+            #29 108-109 "a" : Param<"'E": 0>
+            #32 112-113 "b" : Int
+            Error(Type(Error(MissingClassExp("'E", Span { lo: 108, hi: 113 }))))
+            Error(Type(Error(TyMismatch("'T", "'E", Span { lo: 108, hi: 113 }))))
+        "##]],
+    );
+}
+
 
 #[test]
 fn bounded_polymorphism_has_field() {
@@ -4576,27 +4624,6 @@ fn bounded_polymorphism_example_should_fail() {
             #25 175-176 "a" : Param<"'T": 0>
             #28 180-181 "b" : Param<"'O": 1>
             Error(Type(Error(TyMismatch("'T", "'O", Span { lo: 180, hi: 181 }))))
-fn path_field_access() {
-    check(
-        indoc! {"
-            namespace A {
-                struct B { C : Int }
-                function Foo() : Unit {
-                    let b = new B { C = 5 };
-                    b.C;
-                }
-            }
-        "},
-        "",
-        &expect![[r##"
-            #14 55-57 "()" : Unit
-            #18 65-118 "{\n        let b = new B { C = 5 };\n        b.C;\n    }" : Unit
-            #20 79-80 "b" : UDT<"B": Item 1>
-            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
-            #27 95-96 "5" : Int
-            #29 108-111 "b.C" : Int
-            #31 108-109 "b" : UDT<"B": Item 1>
-            #32 110-111 "C" : Int
         "##]],
     );
 }
@@ -4643,7 +4670,7 @@ fn bounded_polymorphism_iter() {
             "##]]
     );
 }
-
+}
 
 #[test]
 fn field_access_chained() {
