@@ -1105,8 +1105,7 @@ impl State {
             }
             (ref value, ref field) => {
                 panic!(
-                    "invalid field access. value: {:?}, field: {:?}",
-                    value, field
+                    "invalid field access. value: {value:?}, field: {field:?}"
                 )
             }
         };

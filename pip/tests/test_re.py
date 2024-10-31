@@ -5,6 +5,7 @@ import qsharp
 from qsharp.estimator import EstimatorParams, QubitParams, QECScheme, LogicalCounts
 
 
+
 def test_qsharp_estimation() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     res = qsharp.estimate(

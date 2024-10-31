@@ -52,7 +52,7 @@ pub enum Ty {
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct TyBounds(pub Box<[TyBound]>);
 impl TyBounds {
-    pub fn contains_iterable_bound(&self) -> bool {
+    #[must_use] pub fn contains_iterable_bound(&self) -> bool {
         self.0.iter().any(|bound| match bound {
             TyBound::Iterable { .. } => true,
             _ => false,

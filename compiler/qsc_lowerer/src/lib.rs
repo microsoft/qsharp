@@ -905,24 +905,24 @@ impl Lowerer {
         qsc_fir::ty::TyBounds(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
     }
 
-    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::TyBound {
+    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::ClassConstraint {
         match b {
-            qsc_hir::ty::TyBound::Eq => qsc_fir::ty::TyBound::Eq,
-            qsc_hir::ty::TyBound::Exp { base, power } => qsc_fir::ty::TyBound::Exp {
+            qsc_hir::ty::TyBound::Eq => qsc_fir::ty::ClassConstraint::Eq,
+            qsc_hir::ty::TyBound::Exp { base, power } => qsc_fir::ty::ClassConstraint::Exp {
                 base: self.lower_ty(base),
                 power: self.lower_ty(power),
             },
-            qsc_hir::ty::TyBound::Add => qsc_fir::ty::TyBound::Add,
+            qsc_hir::ty::TyBound::Add => qsc_fir::ty::ClassConstraint::Add,
 
             qsc_hir::ty::TyBound::NonNativeClass(name) => {
-                qsc_fir::ty::TyBound::NonNativeClass(name.clone())
+                qsc_fir::ty::ClassConstraint::NonNativeClass(name.clone())
             }
-            qsc_hir::ty::TyBound::HasField { ty, field } => qsc_fir::ty::TyBound::HasField {
+            qsc_hir::ty::TyBound::HasField { ty, field } => qsc_fir::ty::ClassConstraint::HasField {
                 ty: self.lower_ty(ty),
                 // TODO(sezna) should we use the `Field` type here?
                 field: field.clone(),
             },
-            qsc_hir::ty::TyBound::Iterable { item } => qsc_fir::ty::TyBound::Iterable {
+            qsc_hir::ty::TyBound::Iterable { item } => qsc_fir::ty::ClassConstraint::Iterable {
                 item: self.lower_ty(item),
             },
         }

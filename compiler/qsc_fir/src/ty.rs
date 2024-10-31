@@ -189,7 +189,7 @@ impl Display for GenericParam {
     }
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct TyBounds(pub Box<[TyBound]>);
+pub struct TyBounds(pub Box<[ClassConstraint]>);
 
 impl std::fmt::Display for TyBounds {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -209,7 +209,7 @@ impl std::fmt::Display for TyBounds {
 
 // TODO(sezna) support other bounds
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub enum TyBound {
+pub enum ClassConstraint {
     #[default]
     Eq,
     Add,
@@ -230,15 +230,15 @@ pub enum TyBound {
     NonNativeClass(Rc<str>),
 }
 
-impl std::fmt::Display for TyBound {
+impl std::fmt::Display for ClassConstraint {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            TyBound::Eq => write!(f, "Eq"),
-            TyBound::NonNativeClass(name) => write!(f, "{name}"),
-            TyBound::Exp { base, power } => write!(f, "Exp<{base}, {power}>"),
-            TyBound::HasField { ty, field } => write!(f, "HasField<{ty}, {field}>"),
-            TyBound::Iterable { item } => write!(f, "Iterable<{item}>"),
-            TyBound::Add => write!(f, "Add"),
+            ClassConstraint::Eq => write!(f, "Eq"),
+            ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
+            ClassConstraint::Exp { base, power } => write!(f, "Exp<{base}, {power}>"),
+            ClassConstraint::HasField { ty, field } => write!(f, "HasField<{ty}, {field}>"),
+            ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Add => write!(f, "Add"),
         }
     }
 }

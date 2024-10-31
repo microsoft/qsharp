@@ -14,12 +14,13 @@ use crate::{
     completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
-    prim::recovering_path, prim::ident,
+    prim::ident,
+    prim::recovering_path,
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, ClassConstraint,
-    ClassConstraints, TyKind, TypeParameter,
+    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind, Ident,
+    NodeId, SetOp, Ty, TyKind, TypeParameter,
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
@@ -78,29 +79,29 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
     ))
 }
 
+// parses a ty but keeps track of the ident name
+// TODO(sezna) document why this is here
+fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
+    let ty = ty(s)?;
+    let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
+        path.name().cloned()
+    } else {
+        println!("none 2");
+        None
+    };
+
+    Ok(qsc_ast::ast::ConstraintParameter {
+        ty,
+        name: name.map(|x| x.name),
+    })
+}
+
 /// Parses the bounds of a type parameter, which are a list of class names separated by `+`.
 /// This occurs after a `:` in a generic type:
 /// `T: Eq + Iterator[Bool] + Class3`
 ///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
 fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
     let mut bounds: Vec<ClassConstraint> = Vec::new();
-
-    // parses a ty but keeps track of the ident name
-    // TODO(sezna) document why this is here
-    fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
-        let ty = ty(s)?;
-        let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
-            path.name().cloned()
-        } else {
-            println!("none 2");
-            None
-        };
-
-        Ok(qsc_ast::ast::ConstraintParameter {
-            ty,
-            name: name.map(|x| x.name),
-        })
-    }
     loop {
         let bound_name = ident(s)?;
         // if there's a less-than sign, or "open angle bracket", try to parse type parameters for

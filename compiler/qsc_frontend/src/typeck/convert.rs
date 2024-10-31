@@ -228,9 +228,9 @@ pub(crate) fn ast_callable_generics(
         .map(|param| GenericParam::Ty {
             name: param.ty.name.clone(),
             bounds: {
-                let bounds = ty_bound_from_ast(names, &param.constraints);
+                
 
-                bounds
+                ty_bound_from_ast(names, &param.constraints)
             },
         })
         .collect()

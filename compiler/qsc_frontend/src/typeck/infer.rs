@@ -73,7 +73,7 @@ pub(super) enum Class {
     // A user-defined class
     // When we actually support this, and don't just use it to generate an error,
     // it should have an ID here instead of a name
-    NonNativeClass(Rc<str>),
+    NonNative(Rc<str>),
 }
 
 impl Class {
@@ -98,7 +98,7 @@ impl Class {
             Self::Iterable { container, .. } => vec![container],
             Self::Unwrap { wrapper, .. } => vec![wrapper],
             // TODO(sezna) support for non native classes
-            Self::NonNativeClass(_) => Vec::new(),
+            Self::NonNative(_) => Vec::new(),
         }
     }
 
@@ -160,7 +160,7 @@ impl Class {
                 base: f(base),
             },
             // TODO(sezna) support for non native classes
-            Self::NonNativeClass(name) => Self::NonNativeClass(name),
+            Self::NonNative(name) => Self::NonNative(name),
         }
     }
 
@@ -208,7 +208,7 @@ impl Class {
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
             // TODO(sezna)
-            Class::NonNativeClass(_) => (vec![], vec![]),
+            Class::NonNative(_) => (vec![], vec![]),
         }
     }
 }
@@ -955,10 +955,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         Ty::Param { ref bounds, .. } => {
             // check if the bounds contain Eq
 
-            match bounds.0.iter().find(|bound| match bound {
-                TyBound::Eq => true,
-                _ => false,
-            }) {
+            match bounds.0.iter().find(|bound| matches!(bound, TyBound::Eq)) {
                 Some(_) => (Vec::new(), Vec::new()),
                 None => (
                     Vec::new(),
@@ -1027,12 +1024,12 @@ fn check_has_field(
             let mut errors = Vec::new();
             dbg!(&bounds.0);
             let mut constraint_satisfied = false;
-            for bound in bounds.0.iter() {
+            for bound in &bounds.0 {
                 match bound {
                     TyBound::HasField {
                         field: bound_name,
                         ty,
-                    } if &**bound_name == &name => {
+                    } if **bound_name == name => {
                         constraints.push(Constraint::Eq {
                             expected: ty.clone(),
                             actual: item.clone(),
@@ -1313,7 +1310,7 @@ fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
         ),
 
         TyBound::NonNativeClass(name) => {
-            Constraint::Class(Class::NonNativeClass(name.clone()), span)
+            Constraint::Class(Class::NonNative(name.clone()), span)
         }
     }
 }

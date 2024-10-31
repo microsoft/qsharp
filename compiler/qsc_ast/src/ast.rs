@@ -516,7 +516,7 @@ impl Display for CallableDecl {
             }
 
             let buf = buf.join(",\n");
-            write!(indent, "\n{}", buf)?;
+            write!(indent, "\n{buf}")?;
             indent = set_indentation(indent, 1);
         }
         write!(indent, "\ninput: {}", self.input)?;
@@ -1437,7 +1437,7 @@ impl Default for PathKind {
 
 impl PathKind {
     /// Returns the segments of the path, whether parsed successfully or not.
-    pub fn segments(&self) -> &[Ident] {
+    #[must_use] pub fn segments(&self) -> &[Ident] {
         match self {
             PathKind::Ok(path) => path.segments.as_deref().unwrap_or_default(),
             PathKind::Err(Some(incomplete_path)) => &incomplete_path.segments,
@@ -1446,10 +1446,10 @@ impl PathKind {
     }
 
     /// Returns the name of the path, whether parsed successfully or not.
-    pub fn name(&self) -> Option<&Ident> {
+    #[must_use] pub fn name(&self) -> Option<&Ident> {
         match self {
             PathKind::Ok(path) => Some(&path.name),
-            PathKind::Err(Some(incomplete_path)) => Some(&incomplete_path.segments.last().unwrap()),
+            PathKind::Err(Some(incomplete_path)) => Some(incomplete_path.segments.last().unwrap()),
             PathKind::Err(None) => None
         }
     }
@@ -2014,7 +2014,7 @@ impl WithSpan for TypeParameter {
 
 impl TypeParameter {
     /// Instantiates a new `TypeParameter` with the given type name, constraints, and span.
-    pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
+    #[must_use] pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
         Self { ty, constraints: bounds, span }
     }
 }
@@ -2044,7 +2044,7 @@ pub struct ClassConstraint {
 }
 
 /// An individual constraint parameter is a type that is passed to a constraint, such as `T` in `Iterator<T>`.
-/// #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
+/// #[derive(Default, `PartialEq`, Eq, Clone, Hash, Debug)]
 #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
 
 pub struct ConstraintParameter {
@@ -2066,26 +2066,26 @@ impl WithSpan for ConstraintParameter {
 
 impl ConstraintParameter {
     /// Getter for the `ty` field.
-    pub fn ty(&self) -> &Ty {
+    #[must_use] pub fn ty(&self) -> &Ty {
         &self.ty
     }
 
     /// Getter for the `name` field.
-    pub fn name(&self) -> &Option<Rc<str>> {
+    #[must_use] pub fn name(&self) -> &Option<Rc<str>> {
         &self.name
     }
 }
 
 impl ClassConstraint {
     /// Getter for the `span` field of the `name` field (the name of the class constraint).
-    pub fn span(&self) -> Span {
+    #[must_use] pub fn span(&self) -> Span {
         self.name.span
     }
 }
 
 impl ClassConstraints {
     /// The conjoined span of all of the bounds
-    pub fn span(&self) -> Span {
+    #[must_use] pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span().lo).unwrap_or_default(),
             hi: self.0.last().map(|i| i.span().hi).unwrap_or_default(),
