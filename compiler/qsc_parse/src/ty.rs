@@ -19,7 +19,7 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind, Ident,
+    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind,
     NodeId, SetOp, Ty, TyKind, TypeParameter,
 };
 
@@ -83,15 +83,8 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
 // TODO(sezna) document why this is here
 fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
     let ty = ty(s)?;
-    let name: Option<Ident> = if let TyKind::Path(path) = ty.kind.as_ref() {
-        path.name().cloned()
-    } else {
-        None
-    };
-
     Ok(qsc_ast::ast::ConstraintParameter {
         ty,
-        name: name.map(|x| x.name),
     })
 }
 

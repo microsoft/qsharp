@@ -917,11 +917,6 @@ impl Lowerer {
             qsc_hir::ty::TyBound::NonNativeClass(name) => {
                 qsc_fir::ty::ClassConstraint::NonNativeClass(name.clone())
             }
-            qsc_hir::ty::TyBound::HasField { ty, field } => qsc_fir::ty::ClassConstraint::HasField {
-                ty: self.lower_ty(ty),
-                // TODO(sezna) should we use the `Field` type here?
-                field: field.clone(),
-            },
             qsc_hir::ty::TyBound::Iterable { item } => qsc_fir::ty::ClassConstraint::Iterable {
                 item: self.lower_ty(item),
             },

@@ -173,7 +173,7 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
                     // item, which is the field name
                     usize::from(&*b.name.name == "HasField");
             b.parameters.iter_mut().skip(items_to_skip).for_each(
-                |crate::ast::ConstraintParameter { ty, name: _ident }| {
+                |crate::ast::ConstraintParameter { ty, .. }| {
                     vis.visit_ty(ty);
                 },
             );
@@ -250,7 +250,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
                     // item, which is the field name
                     usize::from(&*bound.name.name == "HasField");
                 bound.parameters.iter_mut().skip(items_to_skip).for_each(
-                    |crate::ast::ConstraintParameter {ref  mut ty, name: _ }| {
+                    |crate::ast::ConstraintParameter {ref  mut ty, .. }| {
                         vis.visit_ty(ty);
                     },
                 );

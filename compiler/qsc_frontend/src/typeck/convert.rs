@@ -413,17 +413,6 @@ pub(crate) fn ty_bound_from_ast(
                 errors.extend(power_errors.into_iter());
                 Ok(qsc_hir::ty::TyBound::Exp { base, power })
             }
-
-            "HasField" => {
-                let field = if let Some(field) = bound.parameters[0].name() {
-                    field.clone()
-                } else {
-                    todo!("error for missing field")
-                };
-                let (ty, ty_errors) = ty_from_ast(names, bound.parameters[1].ty(), stack);
-                errors.extend(ty_errors.into_iter());
-                Ok(qsc_hir::ty::TyBound::HasField { ty, field })
-            }
             otherwise => Ok(qsc_hir::ty::TyBound::NonNativeClass(otherwise.into())),
         };
 

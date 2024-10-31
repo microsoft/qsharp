@@ -141,8 +141,7 @@ impl Class {
             },
             Self::HasIndex {
                 container,
-                index,
-                item,
+                index,                item,
             } => Self::HasIndex {
                 container: f(container),
                 index: f(index),
@@ -1022,35 +1021,6 @@ fn check_has_field(
             }],
             Vec::new(),
         ),
-        (_, Ty::Param { bounds, .. }) => {
-            let mut constraints = Vec::new();
-            let mut errors = Vec::new();
-            let mut constraint_satisfied = false;
-            for bound in &bounds.0 {
-                match bound {
-                    TyBound::HasField {
-                        field: bound_name,
-                        ty,
-                    } if **bound_name == name => {
-                        constraints.push(Constraint::Eq {
-                            expected: ty.clone(),
-                            actual: item.clone(),
-                            span,
-                        });
-                        constraint_satisfied = true;
-                    }
-                    _ => (),
-                }
-            }
-            if !constraint_satisfied {
-                errors.push(Error(ErrorKind::MissingClassHasField(
-                    record.display(),
-                    name.clone(),
-                    span,
-                )));
-            }
-            (constraints, errors)
-        }
         (_, Ty::Udt(_, Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
@@ -1073,7 +1043,10 @@ fn check_has_field(
                 ),
             }
         }
-        _ => (
+        // `HasField` cannot be used to constrain an arbitrary type parameter, it is used
+        // internally only, so it will never resolve to a ty param.
+        (_, Ty::Param { .. }) 
+        | _=> (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasField(
                 record.display(),
@@ -1293,17 +1266,6 @@ fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
             span,
         ),
         TyBound::Add => Constraint::Class(Class::Add(ty), span),
-        TyBound::HasField {
-            ty: expected_ty,
-            field,
-        } => Constraint::Class(
-            Class::HasField {
-                record: ty.clone(),
-                name: field.to_string(),
-                item: expected_ty.clone(),
-            },
-            span,
-        ),
         TyBound::Iterable { item } => Constraint::Class(
             Class::Iterable {
                 item: item.clone(),

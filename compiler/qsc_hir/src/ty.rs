@@ -83,11 +83,6 @@ pub enum TyBound {
         base: Ty,
         power: Ty,
     },
-    HasField {
-        /// the expected type of the field
-        ty: Ty,
-        field: Rc<str>,
-    },
     Iterable {
         item: Ty,
     },
@@ -103,7 +98,6 @@ impl std::fmt::Display for TyBound {
             TyBound::NonNativeClass(name) => write!(f, "{name}"),
             TyBound::Add => write!(f, "Add"),
             TyBound::Exp { base, power } => write!(f, "Exp({base}^{power})"),
-            TyBound::HasField { ty, field } => write!(f, "HasField<{field}: {ty}>"),
             TyBound::Iterable { item } => write!(f, "Iterable<{item}>"),
         }
     }

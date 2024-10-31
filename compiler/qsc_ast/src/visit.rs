@@ -161,7 +161,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
                     usize::from(&*b.name.name == "HasField" );
                         
             b.parameters.iter().skip(items_to_skip).for_each(
-                |crate::ast::ConstraintParameter { ty, name: _ }| {
+                |crate::ast::ConstraintParameter { ty, .. }| {
                     vis.visit_ty(ty);
                 },
             );
@@ -228,7 +228,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
                     usize::from(&*bound.name.name == "HasField");
                         
                 bound.parameters.iter().skip(items_to_skip).for_each(
-                    |crate::ast::ConstraintParameter { ty, name: _ }| {
+                    |crate::ast::ConstraintParameter { ty,.. }| {
                         vis.visit_ty(ty);
                     },
                 );

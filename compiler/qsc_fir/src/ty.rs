@@ -217,11 +217,6 @@ pub enum ClassConstraint {
         base: Ty,
         power: Ty,
     },
-    HasField {
-        /// the expected type of the field
-        ty: Ty,
-        field: Rc<str>,
-    },
     Iterable {
         item: Ty,
     },
@@ -236,7 +231,6 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Eq => write!(f, "Eq"),
             ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
             ClassConstraint::Exp { base, power } => write!(f, "Exp<{base}, {power}>"),
-            ClassConstraint::HasField { ty, field } => write!(f, "HasField<{ty}, {field}>"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
             ClassConstraint::Add => write!(f, "Add"),
         }

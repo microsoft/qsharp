@@ -878,12 +878,6 @@ impl With<'_> {
                 .get(id)
                 .and_then(|udt| udt.field_path(name))
                 .map_or(hir::Field::Err, hir::Field::Path);
-        } else if let Ty::Param { bounds, .. } = record_ty {
-            if bounds.0.iter().any(
-                |bound| matches!(bound, qsc_hir::ty::TyBound::HasField { field, .. } if &**field == name),
-            ) {
-                // todo!("convert field access to idx access");
-            }
         } else if let Ok(prim) = name.parse() {
             return hir::Field::Prim(prim);
         }

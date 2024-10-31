@@ -2050,16 +2050,12 @@ pub struct ClassConstraint {
 pub struct ConstraintParameter {
     /// The type variable being passed as a constraint parameter.
     pub ty: Ty,
-    /// The same thing as `ty`, but parsed as a `str` instead, for use in some peculiar
-    /// classes which require non-type parameters. This is a special case.
-    pub name: Option<Rc<str>>,
 }
 
 impl WithSpan for ConstraintParameter {
     fn with_span(self, span: Span) -> Self {
         Self {
             ty: self.ty.with_span(span),
-            ..self
         }
     }
 }
@@ -2068,11 +2064,6 @@ impl ConstraintParameter {
     /// Getter for the `ty` field.
     #[must_use] pub fn ty(&self) -> &Ty {
         &self.ty
-    }
-
-    /// Getter for the `name` field.
-    #[must_use] pub fn name(&self) -> &Option<Rc<str>> {
-        &self.name
     }
 }
 
