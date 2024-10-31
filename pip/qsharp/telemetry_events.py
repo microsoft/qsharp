@@ -85,3 +85,42 @@ def on_estimate_end(durationMs: float, qubits: Union[str, int]) -> None:
         properties={"qubits": get_qubits_bucket(qubits)},
         type="histogram",
     )
+
+
+# Qiskit telemetry events
+
+
+def on_qiskit_import() -> None:
+    log_telemetry("qiskit.import", 1)
+
+
+def on_qiskit_run(shots: int, num_circuits: int) -> None:
+    log_telemetry(
+        "qiskit.run",
+        1,
+        properties={"shots": get_shots_bucket(shots), "num_circuits": num_circuits},
+    )
+
+
+def on_qiskit_run_end(shots: int, num_circuits: int, durationMs: float) -> None:
+    log_telemetry(
+        "qiskit.run.durationMs",
+        durationMs,
+        properties={"shots": get_shots_bucket(shots), "num_circuits": num_circuits},
+        type="histogram",
+    )
+
+
+def on_qiskit_run_re() -> None:
+    log_telemetry(
+        "qiskit.run.re",
+        1,
+    )
+
+
+def on_qiskit_run_re_end(durationMs: float) -> None:
+    log_telemetry(
+        "qiskit.run.re.durationMs",
+        durationMs,
+        type="histogram",
+    )
