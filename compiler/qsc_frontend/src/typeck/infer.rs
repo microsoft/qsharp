@@ -73,7 +73,7 @@ pub(super) enum Class {
     // A user-defined class
     // When we actually support this, and don't just use it to generate an error,
     // it should have an ID here instead of a name
-    NonNative(Rc<str>),
+    NonPrimitive(Rc<str>),
 }
 
 impl Class {
@@ -98,7 +98,7 @@ impl Class {
             Self::Iterable { container, .. } => vec![container],
             Self::Unwrap { wrapper, .. } => vec![wrapper],
             // TODO(sezna) support for non native classes
-            Self::NonNative(_) => Vec::new(),
+            Self::NonPrimitive(_) => Vec::new(),
         }
     }
 
@@ -160,7 +160,7 @@ impl Class {
                 base: f(base),
             },
             // TODO(sezna) support for non native classes
-            Self::NonNative(name) => Self::NonNative(name),
+            Self::NonPrimitive(name) => Self::NonPrimitive(name),
         }
     }
 
@@ -208,7 +208,7 @@ impl Class {
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
             // TODO(sezna)
-            Class::NonNative(_) => (vec![], vec![]),
+            Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
 }
@@ -1313,7 +1313,7 @@ fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
         ),
 
         TyBound::NonNativeClass(name) => {
-            Constraint::Class(Class::NonNative(name.clone()), span)
+            Constraint::Class(Class::NonPrimitive(name.clone()), span)
         }
     }
 }
