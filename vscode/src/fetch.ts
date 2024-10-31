@@ -280,8 +280,18 @@ export function fetchEventSource(
 function onOpen(response: Response) {
   const contentType = response.headers.get("content-type");
   if (!contentType?.startsWith(EventStreamContentType)) {
-    throw new Error(
-      `Expected content-type to be ${EventStreamContentType}, Actual: ${contentType}`,
-    );
+    if (contentType?.startsWith("application/json")) {
+      return response.json().then((json) => {
+        throw new Error(
+          `Expected content-type to be ${EventStreamContentType}, Actual: ${contentType}, Body: ${JSON.stringify(
+            json,
+          )}`,
+        );
+      });
+    } else {
+      throw new Error(
+        `Expected content-type to be ${EventStreamContentType}, Actual: ${contentType}`,
+      );
+    }
   }
 }

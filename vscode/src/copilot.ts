@@ -177,7 +177,7 @@ export class CopilotConversation {
       body: JSON.stringify(payload),
     };
 
-    log.info("About to call ChatAPI with payload: ", options);
+    // log.info("About to call ChatAPI with payload: ", options);
     try {
       const onMessage = this.onMessage;
       await fetchEventSource(chatUrl, {
