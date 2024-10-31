@@ -278,7 +278,7 @@ class BackendBase(BackendV2, ABC):
         output["backend_name"] = self.name
         output["backend_version"] = self.backend_version
 
-        duration = datetime.timedelta(seconds=(monotonic() - start))
+        duration = monotonic() - start
         output["time_taken"] = str(duration)
         output["config"] = {
             "qasm_export_options": str(self._build_qasm_export_options(**options)),
@@ -304,7 +304,7 @@ class BackendBase(BackendV2, ABC):
             qasm = self._qasm3(circuit, **args)
             end = monotonic()
 
-            time_taken = datetime.timedelta(seconds=(end - start))
+            time_taken = end - start
             compilation = Compilation(circuit, qasm, time_taken)
             compilations.append(compilation)
         return compilations

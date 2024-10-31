@@ -119,7 +119,7 @@ class QsJobSet(Job):
         output["backend_name"] = self.backend().name
         output["backend_version"] = self.backend().backend_version
 
-        duration = datetime.timedelta(seconds=(self._end_time - self._start_time))
+        duration = self._end_time - self._start_time
         output["time_taken"] = str(duration)
         output["header"] = {
             "metadata": {},
