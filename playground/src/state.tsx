@@ -17,7 +17,34 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function StateTable(props: { dump: Dump; latexDump: string | null }) {
+export function StateTable(props: {
+  dump: Dump;
+  latexDump: string | null;
+  count: number;
+}) {
+  if (props.count === 0) {
+    return (
+      <div>
+        <table class="state-table">
+          <thead>
+            <tr>
+              <th>Basis State</th>
+              <th>Amplitude</th>
+              <th>Measurement Probability</th>
+              <th colSpan={2}>Phase</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No qubits allocated</td>
+            </tr>
+          </tbody>
+        </table>
+        <br></br>
+      </div>
+    );
+  }
+
   return (
     <div>
       <table class="state-table">

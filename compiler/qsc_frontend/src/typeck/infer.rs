@@ -1000,6 +1000,9 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     }
 }
 
+// i'm using the wildcard below to enforce that Ty::Param is always matched in the err branch, as
+// it shouldn't be constrained by HasField as long as we don't support structural typing
+#[allow(clippy::wildcard_in_or_patterns)]
 fn check_has_field(
     udts: &FxHashMap<ItemId, Udt>,
     record: &Ty,

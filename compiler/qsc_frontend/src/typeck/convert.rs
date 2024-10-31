@@ -241,7 +241,7 @@ pub(crate) fn ast_callable_generics(
 ) -> (Vec<qsc_hir::ty::GenericParam>, Vec<TyConversionError>) {
     let mut errors = Vec::new();
     let mut generics_buf = Vec::with_capacity(generics.len());
-    for param in generics.iter() {
+    for param in generics {
         let (bounds, new_errors) =
             ty_bound_from_ast(names, &param.constraints, &mut Default::default());
         errors.extend(new_errors);

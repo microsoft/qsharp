@@ -13,12 +13,10 @@ use qsc::{
 };
 use std::rc::Rc;
 
-/// Provides context for a path or field access expression at the cursor offset.
-///
-/// Undefined behavior if the given offset does not fall within a path,
-/// field access or field assigment.
+/// Provides additional syntactic context for the cursor offset,
+/// for various special cases where it's needed.
 #[derive(Debug)]
-pub(super) struct PathOrFieldAccess<'a> {
+pub(super) struct AstContext<'a> {
     path_qualifier: Option<Vec<&'a Ident>>,
     context: Option<Context<'a>>,
     offset: u32,
@@ -33,13 +31,15 @@ enum Context<'a> {
         /// The type of this expression will be the record used for the field access.
         record: &'a Expr,
     },
+    /// The cursor is on an attribute.
+    AttrArg,
 }
 
-impl<'a> PathOrFieldAccess<'a> {
+impl<'a> AstContext<'a> {
     pub fn init(offset: u32, package: &'a Package) -> Self {
         let mut offset_visitor = OffsetVisitor {
             offset,
-            visitor: PathOrFieldAccess {
+            visitor: AstContext {
                 offset,
                 context: None,
                 path_qualifier: None,
@@ -50,14 +50,21 @@ impl<'a> PathOrFieldAccess<'a> {
 
         offset_visitor.visitor
     }
+
+    fn set_context(&mut self, context: Context<'a>) {
+        if matches!(self.context, Some(Context::AttrArg)) {
+            return;
+        }
+        self.context = Some(context);
+    }
 }
 
-impl<'a> Visitor<'a> for PathOrFieldAccess<'a> {
+impl<'a> Visitor<'a> for AstContext<'a> {
     fn visit_item(&mut self, item: &'a Item) {
         match &*item.kind {
-            ItemKind::Open(..) => self.context = Some(Context::Path(PathKind::Namespace)),
+            ItemKind::Open(..) => self.set_context(Context::Path(PathKind::Namespace)),
             ItemKind::ImportOrExport(decl) => {
-                self.context = Some(Context::Path(PathKind::Import));
+                self.set_context(Context::Path(PathKind::Import));
                 for item in &decl.items {
                     if item.is_glob
                         && item.span.touches(self.offset)
@@ -81,23 +88,23 @@ impl<'a> Visitor<'a> for PathOrFieldAccess<'a> {
 
     fn visit_ty(&mut self, ty: &Ty) {
         if let TyKind::Path(..) = *ty.kind {
-            self.context = Some(Context::Path(PathKind::Ty));
+            self.set_context(Context::Path(PathKind::Ty));
         }
     }
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Path(..) = *expr.kind {
-            self.context = Some(Context::Path(PathKind::Expr));
+            self.set_context(Context::Path(PathKind::Expr));
         } else if let ExprKind::Struct(..) = expr.kind.as_ref() {
-            self.context = Some(Context::Field { record: expr });
+            self.set_context(Context::Field { record: expr });
         } else if let ExprKind::Field(record, _) = expr.kind.as_ref() {
-            self.context = Some(Context::Field { record });
+            self.set_context(Context::Field { record });
         }
     }
 
     fn visit_path_kind(&mut self, path: &'a ast::PathKind) {
         if let Some(Context::Field { .. }) = self.context {
-            self.context = Some(Context::Path(PathKind::Struct));
+            self.set_context(Context::Path(PathKind::Struct));
         }
         self.path_qualifier = match path {
             ast::PathKind::Ok(path) => Some(path.iter().collect()),
@@ -107,16 +114,21 @@ impl<'a> Visitor<'a> for PathOrFieldAccess<'a> {
             ast::PathKind::Err(None) => None,
         };
     }
+
+    fn visit_attr(&mut self, attr: &'a Attr) {
+        if attr.arg.span.touches(self.offset) {
+            self.set_context(Context::AttrArg);
+        }
+    }
 }
 
-impl PathOrFieldAccess<'_> {
+impl AstContext<'_> {
     /// Returns the path kind and the path qualifier before the cursor offset.
     ///
     /// Returns `None` if the cursor is not on a path.
     pub fn path_segment_context(&self) -> Option<(PathKind, Vec<Rc<str>>)> {
-        let path_kind = match self.context? {
-            Context::Path(path_kind) => path_kind,
-            Context::Field { .. } => return None,
+        let Some(Context::Path(path_kind)) = self.context else {
+            return None;
         };
 
         let qualifier = self.segments_before_offset();
@@ -143,6 +155,11 @@ impl PathOrFieldAccess<'_> {
             // record node is the last identifier before the cursor
             self.idents_before_cursor().last().map(|ident| ident.id)
         }
+    }
+
+    /// Returns whether the cursor is in an attribute argument.
+    pub fn is_in_attr_arg(&self) -> bool {
+        matches!(self.context, Some(Context::AttrArg))
     }
 
     fn idents_before_cursor(&self) -> impl Iterator<Item = &Ident> {

@@ -3,7 +3,7 @@
 
 use super::{
     parse, parse_attr, parse_implicit_namespace, parse_import_or_export, parse_open,
-    parse_spec_decl,
+    parse_spec_decl, parse_top_level_nodes,
 };
 use crate::{
     scan::ParserContext,
@@ -927,19 +927,28 @@ fn function_missing_output_ty() {
         parse,
         "function Foo() { body intrinsic; }",
         &expect![[r#"
-            Error(
-                Token(
-                    Colon,
-                    Open(
-                        Brace,
+            Item _id_ [0-34]:
+                Callable _id_ [0-34] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [15-15]: Err
+                    body: Specializations:
+                        SpecDecl _id_ [17-32] (Body): Gen: Intrinsic
+
+            [
+                Error(
+                    Token(
+                        Colon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 15,
+                            hi: 16,
+                        },
                     ),
-                    Span {
-                        lo: 15,
-                        hi: 16,
-                    },
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -1405,7 +1414,12 @@ fn recover_callable_item() {
                         body: Block: Block _id_ [47-52]:
                             Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(5)
                 Item _id_ [65-86]:
-                    Err
+                    Callable _id_ [65-86] (Function):
+                        name: Ident _id_ [74-77] "Bar"
+                        input: Pat _id_ [77-79]: Unit
+                        output: Type _id_ [80-80]: Err
+                        body: Block: Block _id_ [80-86]:
+                            Stmt _id_ [82-84]: Expr: Expr _id_ [82-84]: Lit: Int(10)
                 Item _id_ [99-131]:
                     Callable _id_ [99-131] (Operation):
                         name: Ident _id_ [109-112] "Baz"
@@ -2259,5 +2273,117 @@ fn allow_class_bound_on_type_param() {
         parse,
         "operation Foo<'T: Eq + Ord, 'E: Eq>() : Unit {}",
         &expect![[r#""#]],
+    );
+}
+
+#[test]
+fn callable_decl_no_return_type_or_body_recovery() {
+    check(
+        parse,
+        "operation Foo<'T>() : ",
+        &expect![[r#"
+            Item _id_ [0-22]:
+                Callable _id_ [0-22] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    generics:
+                        Ident _id_ [14-16] "'T"
+                    input: Pat _id_ [17-19]: Unit
+                    output: Type _id_ [22-22]: Err
+                    body: Block: Block _id_ [22-22]: <empty>
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 22,
+                            hi: 22,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn callable_decl_broken_return_type_no_body_recovery() {
+    check(
+        parse,
+        "operation Foo<'T>() : () => ",
+        &expect![[r#"
+            Item _id_ [0-28]:
+                Callable _id_ [0-28] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    generics:
+                        Ident _id_ [14-16] "'T"
+                    input: Pat _id_ [17-19]: Unit
+                    output: Type _id_ [22-28]: Arrow (Operation):
+                        param: Type _id_ [22-24]: Unit
+                        return: Type _id_ [28-28]: Err
+                    body: Block: Block _id_ [28-28]: <empty>
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 28,
+                            hi: 28,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn top_level_nodes() {
+    check_vec(
+        parse_top_level_nodes,
+        "function Foo() : Unit { body intrinsic; } let x = 5;",
+        &expect![[r#"
+            Stmt _id_ [0-41]: Item: Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Path: Path _id_ [17-21] (Ident _id_ [17-21] "Unit")
+                    body: Specializations:
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic,
+            Stmt _id_ [42-52]: Local (Immutable):
+                Pat _id_ [46-47]: Bind:
+                    Ident _id_ [46-47] "x"
+                Expr _id_ [50-51]: Lit: Int(5)"#]],
+    );
+}
+
+#[test]
+fn top_level_nodes_error_recovery() {
+    check_vec(
+        parse_top_level_nodes,
+        "function Foo() : Unit { body intrinsic; } 3 + ",
+        &expect![[r#"
+            Stmt _id_ [0-41]: Item: Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Path: Path _id_ [17-21] (Ident _id_ [17-21] "Unit")
+                    body: Specializations:
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic,
+            Stmt _id_ [42-45]: Err
+
+            [
+                Error(
+                    Rule(
+                        "expression",
+                        Eof,
+                        Span {
+                            lo: 46,
+                            hi: 46,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

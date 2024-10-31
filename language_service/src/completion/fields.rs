@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{path_context::PathOrFieldAccess, Completion};
+use super::{ast_context::AstContext, Completion};
 use crate::{compilation::Compilation, protocol::CompletionItemKind};
 use qsc::{
     display::Lookup,
@@ -15,19 +15,19 @@ use qsc::{
 /// provides the possible field names.
 pub(super) struct Fields<'a> {
     compilation: &'a Compilation,
-    path_context: &'a PathOrFieldAccess<'a>,
+    ast_context: &'a AstContext<'a>,
 }
 
 impl<'a> Fields<'a> {
-    pub(crate) fn new(compilation: &'a Compilation, path_context: &'a PathOrFieldAccess) -> Self {
+    pub(crate) fn new(compilation: &'a Compilation, ast_context: &'a AstContext) -> Self {
         Self {
             compilation,
-            path_context,
+            ast_context,
         }
     }
 
     pub(crate) fn fields(&self) -> Vec<Completion> {
-        let Some(id) = self.path_context.field_access_context() else {
+        let Some(id) = self.ast_context.field_access_context() else {
             return vec![];
         };
 

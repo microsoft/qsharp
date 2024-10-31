@@ -214,11 +214,11 @@ pub const LOGICALOPERATORS_EXPECT: Expect = expect!["()"];
 pub const LOGICALOPERATORS_EXPECT_DEBUG: Expect = expect!["()"];
 pub const NAMESPACES_EXPECT: Expect = expect![[r#"
     STATE:
-    |0⟩: 1.0000+0.0000𝑖
+    No qubits allocated
     []"#]];
 pub const NAMESPACES_EXPECT_DEBUG: Expect = expect![[r#"
     STATE:
-    |0⟩: 1.0000+0.0000𝑖
+    No qubits allocated
     []"#]];
 pub const OPERATIONS_EXPECT: Expect = expect![[r#"
     Measurement result: Zero

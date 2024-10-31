@@ -14,8 +14,7 @@ use crate::{
     completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
-    prim::ident,
-    prim::recovering_path,
+    prim::{parse_or_else, ident, recovering_path},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -30,6 +29,18 @@ pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
     array_or_arrow(s, lhs, lo)
 }
 
+pub(super) fn recovering_ty(s: &mut ParserContext) -> Result<Ty> {
+    parse_or_else(
+        s,
+        |span| Ty {
+            id: NodeId::default(),
+            span,
+            kind: Box::new(TyKind::Err),
+        },
+        ty,
+    )
+}
+
 pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) -> Result<Ty> {
     loop {
         if let Some(()) = opt(s, array)? {
@@ -39,7 +50,7 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
                 kind: Box::new(TyKind::Array(Box::new(lhs))),
             }
         } else if let Some(kind) = opt(s, arrow)? {
-            let output = ty(s)?;
+            let output = recovering_ty(s)?;
             let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
                 Some(Box::new(functor_expr(s)?))
             } else {

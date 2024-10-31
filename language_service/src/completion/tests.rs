@@ -1473,6 +1473,67 @@ fn notebook_auto_open_start_of_cell() {
 }
 
 #[test]
+fn notebook_last_expr() {
+    check_notebook(
+        &[(
+            "cell1",
+            indoc! {"
+                    //qsharp
+                    function Foo() : Unit {}
+                    3 + ↘"
+            },
+        )],
+        &["Foo", "Fake"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Foo",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Foo",
+                        ),
+                        detail: Some(
+                            "function Foo() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "Fake",
+                        kind: Function,
+                        sort_text: Some(
+                            "0401Fake",
+                        ),
+                        detail: Some(
+                            "operation Fake() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import FakeStdLib.Fake;\n",
+                                    range: Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 0,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 0,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn local_vars() {
     check(
         r#"
@@ -3800,6 +3861,255 @@ fn field_access_local_shadows_global() {
                         additional_text_edits: None,
                     },
                 ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn ty_param_in_signature() {
+    check(
+        r"namespace Test {
+            operation Test<'T>(x: ↘) : Unit {}
+        }",
+        &["'T", "FakeStdLib"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn ty_param_in_return_type() {
+    check(
+        r"namespace Test {
+            operation Test<'T>(x: 'T) : ↘ {}
+        }",
+        &["'T", "FakeStdLib"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn path_segment_in_return_type() {
+    check(
+        r"namespace Test {
+            operation Test(x: 'T) : FakeStdLib.↘ {}
+        }",
+        &["Udt"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Udt",
+                        kind: Interface,
+                        sort_text: Some(
+                            "0300Udt",
+                        ),
+                        detail: Some(
+                            "struct Udt { x : Int, y : Int }",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn return_type_in_partial_callable_signature() {
+    check(
+        r"namespace Test {
+            operation Test<'T>() : ↘
+        }",
+        &["'T", "FakeStdLib"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn arg_type_in_partial_callable_signature() {
+    check(
+        r"namespace Test {
+            operation Test<'T>(x: ↘)
+        }",
+        &["'T", "FakeStdLib"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn incomplete_return_type_in_partial_callable_signature() {
+    check(
+        r"namespace Test {
+            operation Test<'T>() : () => ↘
+        }",
+        &["'T", "FakeStdLib"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "'T",
+                        kind: TypeParameter,
+                        sort_text: Some(
+                            "0100'T",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                Some(
+                    CompletionItem {
+                        label: "FakeStdLib",
+                        kind: Module,
+                        sort_text: Some(
+                            "0600FakeStdLib",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn no_path_segment_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(FakeStdLib.↘)
+        function Main() : Unit {
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn no_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(↘)
+        function Main() : Unit {
+            let FakeStdLib = new Foo { bar = 3 };
+            FakeStdLib.↘
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
             ]
         "#]],
     );

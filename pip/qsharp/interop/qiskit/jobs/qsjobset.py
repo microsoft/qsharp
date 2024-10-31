@@ -4,6 +4,7 @@
 
 from concurrent.futures import Executor, Future
 import datetime
+from time import monotonic
 import logging
 from typing import Dict, List, Optional, Any
 from uuid import uuid4
@@ -17,6 +18,7 @@ from qiskit.result.result import Result, ExperimentResult
 
 from .qsjob import QsSimJob, RunInputCallable
 from ..execution import DetaultExecutor
+from .... import telemetry_events
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +43,8 @@ class QsJobSet(Job):
         self._job_indexes: List[int] = []
         self._executor: Executor = executor or DetaultExecutor()
         self._job_callable = job_callable
-        self._start_time: datetime.datetime = None
-        self._end_time: datetime.datetime = None
+        self._start_time: float = None
+        self._end_time: float = None
 
     def submit(self):
         """Submit the job to the backend for execution.
@@ -52,7 +54,9 @@ class QsJobSet(Job):
         """
         if len(self._jobs) > 0:
             raise JobError("Jobs have already been submitted.")
-        self._start_time = datetime.datetime.now()
+        self._start_time = monotonic()
+        shots = self._input_params.get("shots", -1)
+        telemetry_events.on_qiskit_run(shots, len(self._run_input))
         job_index = 0
         for circuit in self._run_input:
             job_id = str(uuid4())
@@ -71,7 +75,13 @@ class QsJobSet(Job):
             self._jobs.append(job)
 
     def _job_done(self, _future: Future):
-        self._end_time = datetime.datetime.now()
+        self._end_time = monotonic()
+        if all(job.in_final_state() for job in self._jobs):
+            # all jobs are done, so we can log the telemetry event
+            shots = self._input_params.get("shots", -1)
+            duration_in_ms = (self._end_time - self._start_time) * 1000
+            num_circuits = len(self._run_input)
+            telemetry_events.on_qiskit_run_end(shots, num_circuits, duration_in_ms)
 
     def cancel(self):
         """Attempt to cancel the job."""
@@ -108,7 +118,9 @@ class QsJobSet(Job):
         output["date"] = str(datetime.datetime.now().isoformat())
         output["backend_name"] = self.backend().name
         output["backend_version"] = self.backend().backend_version
-        output["time_taken"] = str(self._end_time - self._start_time)
+
+        duration = self._end_time - self._start_time
+        output["time_taken"] = str(duration)
         output["header"] = {
             "metadata": {},
         }
