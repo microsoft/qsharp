@@ -40,14 +40,18 @@ impl<'a> GenericReceiver<'a> {
 impl<'a> Receiver for GenericReceiver<'a> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.writer, "STATE:").map_err(|_| Error)?;
-        for (id, state) in state {
-            writeln!(
-                self.writer,
-                "{}: {}",
-                format_state_id(&id, qubit_count),
-                fmt_complex(&state),
-            )
-            .map_err(|_| Error)?;
+        if qubit_count > 0 {
+            for (id, state) in state {
+                writeln!(
+                    self.writer,
+                    "{}: {}",
+                    format_state_id(&id, qubit_count),
+                    fmt_complex(&state),
+                )
+                .map_err(|_| Error)?;
+            }
+        } else {
+            writeln!(self.writer, "No qubits allocated").map_err(|_| Error)?;
         }
         Ok(())
     }
@@ -88,14 +92,18 @@ impl<'a> CursorReceiver<'a> {
 impl<'a> Receiver for CursorReceiver<'a> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.cursor, "STATE:").map_err(|_| Error)?;
-        for (id, state) in state {
-            writeln!(
-                self.cursor,
-                "{}: {}",
-                format_state_id(&id, qubit_count),
-                state
-            )
-            .map_err(|_| Error)?;
+        if qubit_count > 0 {
+            for (id, state) in state {
+                writeln!(
+                    self.cursor,
+                    "{}: {}",
+                    format_state_id(&id, qubit_count),
+                    state
+                )
+                .map_err(|_| Error)?;
+            }
+        } else {
+            writeln!(self.cursor, "No qubits allocated").map_err(|_| Error)?;
         }
         Ok(())
     }
