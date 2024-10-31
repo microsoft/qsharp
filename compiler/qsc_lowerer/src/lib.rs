@@ -282,6 +282,7 @@ impl Lowerer {
             };
             CallableImpl::Spec(specialized_implementation)
         };
+        let attrs = lower_attrs(&decl.attrs);
 
         self.assigner.reset_local();
         self.locals.clear();
@@ -299,6 +300,7 @@ impl Lowerer {
             output,
             functors,
             implementation,
+            attrs,
         }
     }
 
@@ -932,6 +934,8 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
         .iter()
         .filter_map(|attr| match attr {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::Measurement => Some(fir::Attr::Measurement),
+            hir::Attr::Reset => Some(fir::Attr::Reset),
             hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
         })
         .collect()

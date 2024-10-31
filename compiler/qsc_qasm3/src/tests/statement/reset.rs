@@ -139,7 +139,7 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
           ret void
         }
 
-        declare void @__quantum__qis__reset__body(%Qubit*)
+        declare void @__quantum__qis__reset__body(%Qubit*) #1
 
         declare void @__quantum__qis__h__body(%Qubit*)
 

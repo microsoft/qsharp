@@ -5,15 +5,17 @@ use super::tests_common::{
     check, check_for_exe, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
-    LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
-    RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
-    USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP, USE_DYNAMIC_OPERATION,
-    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_RHS_EXP_BINOP,
-    USE_DYNAMIC_STRING, USE_DYNAMIC_UDT, USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
-    USE_ENTRY_POINT_STATIC_BIG_INT, USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE,
-    USE_ENTRY_POINT_STATIC_INT, USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
+    CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR, CUSTOM_RESET,
+    CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR, LOOP_WITH_DYNAMIC_CONDITION,
+    MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL, RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION,
+    USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE,
+    USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP,
+    USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE,
+    USE_DYNAMIC_RHS_EXP_BINOP, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
+    USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE, USE_ENTRY_POINT_STATIC_BIG_INT,
+    USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE, USE_ENTRY_POINT_STATIC_INT,
+    USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
     USE_ENTRY_POINT_STATIC_RANGE, USE_ENTRY_POINT_STATIC_STRING,
 };
 use expect_test::{expect, Expect};
@@ -539,6 +541,74 @@ fn measurement_within_dynamic_scope_yields_errors() {
                     Span {
                         lo: 137,
                         hi: 141,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_measurement_yields_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT,
+        &expect![[r#"
+            [
+                CallToCustomMeasurement(
+                    Span {
+                        lo: 99,
+                        hi: 105,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_measurement_with_simulatable_intrinsic_yields_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        &expect![[r#"
+            [
+                CallToCustomMeasurement(
+                    Span {
+                        lo: 99,
+                        hi: 105,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_yields_errors() {
+    check_profile(
+        CUSTOM_RESET,
+        &expect![[r#"
+            [
+                CallToCustomReset(
+                    Span {
+                        lo: 145,
+                        hi: 151,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_with_simulatable_intrinsic_yields_errors() {
+    check_profile(
+        CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        &expect![[r#"
+            [
+                CallToCustomReset(
+                    Span {
+                        lo: 145,
+                        hi: 151,
                     },
                 ),
             ]

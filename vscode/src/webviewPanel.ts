@@ -24,6 +24,7 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { getPauliNoiseModel } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -343,10 +344,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
 
-        await worker.run(
+        const noise = getPauliNoiseModel();
+        if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+          sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
+        }
+        await worker.runWithPauliNoise(
           program.programConfig,
           "",
           parseInt(numberOfShots),
+          noise,
           evtTarget,
         );
         sendTelemetryEvent(

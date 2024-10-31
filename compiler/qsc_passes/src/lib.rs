@@ -11,7 +11,9 @@ mod id_update;
 mod invert_block;
 mod logic_sep;
 mod loop_unification;
+mod measurement;
 mod replace_qubit_allocation;
+mod reset;
 mod spec_gen;
 
 use callable_limits::CallableLimits;
@@ -47,6 +49,8 @@ pub enum Error {
     CapabilitiesCk(qsc_rca::errors::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
+    Measurement(measurement::Error),
+    Reset(reset::Error),
     SpecGen(spec_gen::Error),
 }
 
@@ -105,6 +109,9 @@ impl PassContext {
         let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, package, assigner);
         Validator::default().visit_package(package);
 
+        let measurement_decl_errors = measurement::validate_measurement_declarations(package);
+        let reset_decl_errors = reset::validate_reset_declarations(package);
+
         let entry_point_errors = generate_entry_expr(package, assigner, package_type);
         Validator::default().visit_package(package);
 
@@ -121,6 +128,8 @@ impl PassContext {
             .chain(spec_errors.into_iter().map(Error::SpecGen))
             .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
             .chain(entry_point_errors)
+            .chain(measurement_decl_errors.into_iter().map(Error::Measurement))
+            .chain(reset_decl_errors.into_iter().map(Error::Reset))
             .collect()
     }
 

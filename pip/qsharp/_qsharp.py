@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from . import telemetry_events
 from ._native import (
     Interpreter,
     TargetProfile,
@@ -14,6 +15,7 @@ from typing import (
     Callable,
     Dict,
     Optional,
+    Tuple,
     TypedDict,
     Union,
     List,
@@ -22,8 +24,10 @@ from typing import (
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
+from time import monotonic
 
 _interpreter = None
+_config = None
 
 # Check if we are running in a Jupyter notebook to use the IPython display function
 _in_jupyter = False
@@ -95,6 +99,47 @@ class Config:
         return {"application/x.qsharp-config": self._config}
 
 
+class PauliNoise(Tuple[float, float, float]):
+    """
+    The Pauli noise to use in simulation represented
+    as probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
+    """
+
+    def __new__(cls, x: float, y: float, z: float):
+        if x < 0 or y < 0 or z < 0:
+            raise ValueError("Pauli noise probabilities must be non-negative.")
+        if x + y + z > 1:
+            raise ValueError("The sum of Pauli noise probabilities must be at most 1.")
+        return super().__new__(cls, (x, y, z))
+
+
+class DepolarizingNoise(PauliNoise):
+    """
+    The depolarizing noise to use in simulation.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, p / 3, p / 3, p / 3)
+
+
+class BitFlipNoise(PauliNoise):
+    """
+    The bit flip noise to use in simulation.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, p, 0, 0)
+
+
+class PhaseFlipNoise(PauliNoise):
+    """
+    The phase flip noise to use in simulation.
+    """
+
+    def __new__(cls, p: float):
+        return super().__new__(cls, 0, 0, p)
+
+
 def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
@@ -119,6 +164,7 @@ def init(
     from ._http import fetch_github
 
     global _interpreter
+    global _config
 
     if isinstance(target_name, str):
         target = target_name.split(".")[0].lower()
@@ -156,9 +202,10 @@ def init(
         fetch_github,
     )
 
+    _config = Config(target_profile, language_features, manifest_contents, project_root)
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features, manifest_contents, project_root)
+    return _config 
 
 
 def get_interpreter() -> Interpreter:
@@ -214,6 +261,15 @@ def run(
     *,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
+    noise: Optional[
+        Union[
+            Tuple[float, float, float],
+            PauliNoise,
+            BitFlipNoise,
+            PhaseFlipNoise,
+            DepolarizingNoise,
+        ]
+    ] = None,
 ) -> List[Any]:
     """
     Runs the given Q# expression for the given number of shots.
@@ -223,6 +279,7 @@ def run(
     :param shots: The number of shots to run.
     :param on_result: A callback function that will be called with each result.
     :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
+    :param noise: The noise to use in simulation.
 
     :returns values: A list of results or runtime errors. If `save_events` is true,
     a List of ShotResults is returned.
@@ -233,6 +290,9 @@ def run(
 
     if shots < 1:
         raise QSharpError("The number of shots must be greater than 0.")
+
+    telemetry_events.on_run(shots)
+    start_time = monotonic()
 
     results: List[ShotResult] = []
 
@@ -253,7 +313,9 @@ def run(
     for shot in range(shots):
         results.append({"result": None, "events": []})
         run_results = get_interpreter().run(
-            entry_expr, on_save_events if save_events else print_output
+            entry_expr,
+            on_save_events if save_events else print_output,
+            noise,
         )
         results[-1]["result"] = run_results
         if on_result:
@@ -262,6 +324,9 @@ def run(
         # a rerun of the last executed expression without paying the cost for any additional
         # compilation.
         entry_expr = None
+
+    durationMs = (monotonic() - start_time) * 1000
+    telemetry_events.on_run_end(durationMs, shots)
 
     if save_events:
         return results
@@ -312,10 +377,15 @@ def compile(entry_expr: str) -> QirInputData:
             file.write(str(program))
     """
     ipython_helper()
-
+    start = monotonic()
+    global _config
+    target_profile = _config._config.get("targetProfile", "unspecified")
+    telemetry_events.on_compile(target_profile)
     ll_str = get_interpreter().qir(entry_expr)
-    return QirInputData("main", ll_str)
-
+    res = QirInputData("main", ll_str)
+    durationMs = (monotonic() - start) * 1000
+    telemetry_events.on_compile_end(durationMs, target_profile)
+    return res
 
 def circuit(
     entry_expr: Optional[str] = None, *, operation: Optional[str] = None
@@ -367,9 +437,18 @@ def estimate(
 
     params = _coerce_estimator_params(params)
     param_str = json.dumps(params)
-
+    telemetry_events.on_estimate()
+    start = monotonic()
     res_str = get_interpreter().estimate(entry_expr, param_str)
     res = json.loads(res_str)
+
+    try:
+        qubits = res[0]["logicalCounts"]["numQubits"]
+    except (KeyError, IndexError):
+        qubits = "unknown"
+
+    durationMs = (monotonic() - start) * 1000
+    telemetry_events.on_estimate_end(durationMs, qubits)
     return EstimatorResult(res)
 
 

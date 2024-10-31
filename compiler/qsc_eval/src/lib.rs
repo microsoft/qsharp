@@ -21,6 +21,7 @@ pub mod backend;
 pub mod debug;
 mod error;
 pub mod intrinsic;
+pub mod noise;
 pub mod output;
 pub mod state;
 pub mod val;

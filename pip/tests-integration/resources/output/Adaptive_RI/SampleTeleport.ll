@@ -46,7 +46,7 @@ declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
 
 declare void @__quantum__qis__z__body(%Qubit*)
 
-declare void @__quantum__qis__reset__body(%Qubit*)
+declare void @__quantum__qis__reset__body(%Qubit*) #1
 
 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 

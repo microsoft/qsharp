@@ -18,7 +18,7 @@ declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
 declare void @__quantum__qis__x__body(%Qubit*)
 
-declare void @__quantum__qis__reset__body(%Qubit*)
+declare void @__quantum__qis__reset__body(%Qubit*) #1
 
 declare void @__quantum__rt__tuple_record_output(i64, i8*)
 

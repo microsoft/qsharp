@@ -391,6 +391,8 @@ pub struct CallableDecl {
     pub ctl: Option<SpecDecl>,
     /// The controlled adjoint specialization.
     pub ctl_adj: Option<SpecDecl>,
+    /// The attributes of the callable, (e.g.: Measurement or Reset).
+    pub attrs: Vec<Attr>,
 }
 
 impl CallableDecl {
@@ -1351,6 +1353,12 @@ pub enum Attr {
     /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
     /// and any implementation should be ignored.
     SimulatableIntrinsic,
+    /// Indicates that a callable is a measurement. This means that the operation will be marked as
+    /// "irreversible" in the generated QIR, and output Result types will be moved to the arguments.
+    Measurement,
+    /// Indicates that a callable is a reset. This means that the operation will be marked as
+    /// "irreversible" in the generated QIR.
+    Reset,
 }
 
 impl FromStr for Attr {
@@ -1362,6 +1370,8 @@ impl FromStr for Attr {
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
+            "Measurement" => Ok(Self::Measurement),
+            "Reset" => Ok(Self::Reset),
             _ => Err(()),
         }
     }

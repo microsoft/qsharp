@@ -58,7 +58,7 @@ declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
 declare i1 @__quantum__qis__read_result__body(%Result*)
 
-declare void @__quantum__qis__reset__body(%Qubit*)
+declare void @__quantum__qis__reset__body(%Qubit*) #1
 
 declare void @__quantum__qis__ry__body(double, %Qubit*)
 

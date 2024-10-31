@@ -325,6 +325,67 @@ pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
         }
     }"#;
 
+pub const CUSTOM_MEASUREMENT: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            Foo(q)
+        }
+
+        @Measurement()
+        operation Foo(q: Qubit) : Result {
+            body intrinsic;
+        }
+    }"#;
+
+pub const CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            Foo(q)
+        }
+
+        @Measurement()
+        @SimulatableIntrinsic()
+        operation Foo(q: Qubit) : Result {
+            H(q);
+            M(q)
+        }
+    }"#;
+
+pub const CUSTOM_RESET: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        operation Foo(q: Qubit) : Unit {
+            body intrinsic;
+        }
+    }"#;
+
+pub const CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        @SimulatableIntrinsic()
+        operation Foo(q: Qubit) : Unit {
+            Reset(q);
+        }
+    }"#;
+
 pub const USE_DYNAMIC_INDEX: &str = r#"
     namespace Test {
         import Std.Convert.*;
