@@ -4,14 +4,15 @@
 # Licensed under the MIT License.
 
 import os
-from datetime import datetime, timezone
 
 # To be updated every time we start a new major.minor version.
-major_minor = "1.9"
+major_minor = "1.10"
 
 # Default to 'dev' builds
 BUILD_TYPE = os.environ.get("BUILD_TYPE") or "dev"
 BUILD_NUMBER = os.environ.get("BUILD_NUMBER")
+if not BUILD_NUMBER:
+    raise Exception("BUILD_NUMBER environment variable must be set")
 
 if BUILD_TYPE not in ["dev", "rc", "stable"]:
     print("BUILD_TYPE environment variable must be 'dev', 'rc', or 'stable'")
@@ -38,7 +39,7 @@ print("Npm version: {}".format(npm_version))
 print("VS Code version: {}".format(version_triple))
 
 
-def update_file(file, old_text, new_text):
+def update_file(file: str, old_text: str, new_text: str):
     # Open the file and replace the first string matching the old text with the new text
     with open(file, "r+", newline="") as f:
         contents = f.read()
