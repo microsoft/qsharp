@@ -4072,3 +4072,45 @@ fn incomplete_return_type_in_partial_callable_signature() {
         "#]],
     );
 }
+
+#[test]
+fn no_path_segment_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(FakeStdLib.↘)
+        function Main() : Unit {
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn no_completion_inside_attr() {
+    check(
+        "namespace Test {
+
+        @Config(↘)
+        function Main() : Unit {
+            let FakeStdLib = new Foo { bar = 3 };
+            FakeStdLib.↘
+        }
+    }",
+        &["Fake", "not", "Test"],
+        &expect![[r#"
+            [
+                None,
+                None,
+                None,
+            ]
+        "#]],
+    );
+}
