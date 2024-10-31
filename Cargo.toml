@@ -90,6 +90,7 @@ missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 needless_raw_string_hashes = "allow"
 unnecessary_wraps = "allow"
+default_trait_access = "allow"
 
 [profile.release]
 debug = "limited"
