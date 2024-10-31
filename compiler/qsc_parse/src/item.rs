@@ -15,7 +15,7 @@ use super::{
     prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
-    ty::{self, ty},
+    ty::{self, recovering_ty, ty},
     Error, Result,
 };
 
@@ -23,17 +23,18 @@ use crate::{
     completion::WordKinds,
     lex::{ClosedBinOp, Delim, TokenKind},
     prim::{
-        barrier, path, recovering, recovering_path, recovering_semi, recovering_token, shorten,
+        barrier, parse_or_else, path, recovering, recovering_path, recovering_semi,
+        recovering_token, shorten,
     },
     stmt::check_semis,
     ty::array_or_arrow,
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, FunctorExpr, Ident, Idents,
     ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-    PathKind, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef,
-    TyDefKind, TyKind,
+    PathKind, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StructDecl, TopLevelNode, Ty,
+    TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -118,7 +119,23 @@ pub(super) fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<Namespace>> 
 }
 
 pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<TopLevelNode>> {
-    let nodes = many(s, parse_top_level_node)?;
+    const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
+    let nodes = {
+        many(s, |s| {
+            recovering(
+                s,
+                |span| {
+                    TopLevelNode::Stmt(Box::new(Stmt {
+                        id: NodeId::default(),
+                        span,
+                        kind: Box::new(StmtKind::Err),
+                    }))
+                },
+                RECOVERY_TOKENS,
+                parse_top_level_node,
+            )
+        })
+    }?;
     recovering_token(s, TokenKind::Eof);
     Ok(nodes)
 }
@@ -498,16 +515,35 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
 
     let input = pat(s)?;
     check_input_parens(&input)?;
-    token(s, TokenKind::Colon)?;
+
+    let (output, functors) = parse_or_else(
+        s,
+        |span| {
+            (
+                Box::new(Ty {
+                    id: NodeId::default(),
+                    span,
+                    kind: Box::new(TyKind::Err),
+                }),
+                None,
+            )
+        },
+        parse_callable_output_and_functors,
+    )?;
+
     throw_away_doc(s);
-    let output = ty(s)?;
-    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
-        Some(Box::new(ty::functor_expr(s)?))
-    } else {
-        None
-    };
-    throw_away_doc(s);
-    let body = parse_callable_body(s)?;
+
+    let body = parse_or_else(
+        s,
+        |span| {
+            CallableBody::Block(Box::new(Block {
+                id: NodeId::default(),
+                span,
+                stmts: Box::default(),
+            }))
+        },
+        parse_callable_body,
+    )?;
 
     Ok(Box::new(CallableDecl {
         id: NodeId::default(),
@@ -516,10 +552,25 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
         name,
         generics: generics.into_boxed_slice(),
         input,
-        output: Box::new(output),
+        output,
         functors,
         body: Box::new(body),
     }))
+}
+
+/// The output and functors part of the callable signature, e.g. `: Unit is Adj`
+fn parse_callable_output_and_functors(
+    s: &mut ParserContext,
+) -> Result<(Box<Ty>, Option<Box<FunctorExpr>>)> {
+    token(s, TokenKind::Colon)?;
+    throw_away_doc(s);
+    let output = recovering_ty(s)?;
+    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
+        Some(Box::new(ty::functor_expr(s)?))
+    } else {
+        None
+    };
+    Ok((output.into(), functors))
 }
 
 fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
