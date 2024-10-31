@@ -137,14 +137,17 @@ impl SparseSim {
 
     #[must_use]
     pub fn new_with_noise(noise: &PauliNoise) -> Self {
-        Self {
-            sim: QuantumSim::new(None),
-            noise: *noise,
-            rng: if noise.is_noiseless() {
-                None
-            } else {
-                Some(StdRng::from_entropy())
-            },
+        let mut sim = SparseSim::new();
+        sim.set_noise(noise);
+        sim
+    }
+
+    fn set_noise(&mut self, noise: &PauliNoise) {
+        self.noise = *noise;
+        if noise.is_noiseless() {
+            self.rng = None;
+        } else {
+            self.rng = Some(StdRng::from_entropy());
         }
     }
 
@@ -393,6 +396,26 @@ impl Backend for SparseSim {
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal" => Some(Ok(Value::unit())),
+            "ConfigurePauliNoise" => {
+                let [xv, yv, zv] = &*arg.unwrap_tuple() else {
+                    panic!("tuple arity for SetPauliNoise intrinsic should be 3");
+                };
+                let px = xv.get_double();
+                let py = yv.get_double();
+                let pz = zv.get_double();
+                match PauliNoise::from_probabilities(px, py, pz) {
+                    Ok(noise) => {
+                        self.set_noise(&noise);
+                        Some(Ok(Value::unit()))
+                    }
+                    Err(message) => Some(Err(message)),
+                }
+            }
+            "ApplyIdleNoise" => {
+                let q = arg.unwrap_qubit().0;
+                self.apply_noise(q);
+                Some(Ok(Value::unit()))
+            }
             _ => None,
         }
     }

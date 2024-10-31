@@ -368,6 +368,46 @@ operation StopCountingQubits() : Int {
     body intrinsic;
 }
 
+/// # Summary
+/// Configures Pauli noise for simulation.
+///
+/// # Description
+/// This function configures Pauli noise for simulation. Parameters represent
+/// probabilities of applying X, Y, and Z gates and must add up to at most 1.0.
+/// Noise is applied after each gate and before each measurement in the simulator
+/// backend. Decompositions may affect the number of times noise is applied.
+/// Use 0.0 for all parameters to simulate without noise.
+///
+/// # Input
+/// # px
+/// Probability of applying X gate.
+/// # py
+/// Probability of applying Y gate.
+/// # pz
+/// Probability of applying Z gate.
+@Config(Unrestricted)
+function ConfigurePauliNoise(px: Double, py: Double, pz: Double): Unit {
+    body intrinsic;
+}
+
+/// # Summary
+/// Applies configured noise to a qubit.
+///
+/// # Description
+/// This operation applies configured noise to a qubit during simulation. For example,
+/// if configured noise is a bit-flip noise with 5% probability, the X gate will be applied
+/// with 5% probability. If no noise is configured, no noise is applied.
+/// This is useful to simulate noise during idle periods. It could also be used to
+/// apply noise immediately after qubit allocation.
+///
+/// # Input
+/// ## qubit
+/// The qubit to which noise is applied.
+@Config(Unrestricted)
+operation ApplyIdleNoise(qubit: Qubit): Unit {
+    body intrinsic;
+}
+
 export
     DumpMachine,
     DumpRegister,
@@ -381,4 +421,6 @@ export
     StartCountingFunction,
     StopCountingFunction,
     StartCountingQubits,
-    StopCountingQubits;
+    StopCountingQubits,
+    ConfigurePauliNoise,
+    ApplyIdleNoise;

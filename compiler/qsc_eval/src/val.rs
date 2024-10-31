@@ -263,6 +263,14 @@ impl Value {
         v
     }
 
+    #[must_use]
+    pub fn get_double(&self) -> f64 {
+        let Value::Double(v) = self else {
+            panic!("value should be Double, got {}", self.type_name());
+        };
+        *v
+    }
+
     /// Convert the [Value] into a global tuple
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Global`].
