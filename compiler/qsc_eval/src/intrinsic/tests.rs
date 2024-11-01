@@ -143,7 +143,7 @@ impl Backend for CustomSim {
         match name {
             "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),
             "Check" => Some(Err("cannot verify input".to_string())),
-            _ => None,
+            _ => self.sim.custom_intrinsic(name, arg),
         }
     }
 }
@@ -1593,5 +1593,25 @@ fn start_counting_qubits_called_twice_before_stop_fails() {
             Std.Diagnostics.StartCountingQubits();
         }"},
         &expect!["qubits already counted"],
+    );
+}
+
+#[test]
+fn check_pauli_noise() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            import Std.Diagnostics.*;
+            use q = Qubit();
+            ConfigurePauliNoise(1.0,0.0,0.0);
+            ApplyIdleNoise(q);
+            ConfigurePauliNoise(0.0,0.0,0.0);
+            DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |1⟩: 1.0000+0.0000𝑖
+        "#]],
     );
 }
