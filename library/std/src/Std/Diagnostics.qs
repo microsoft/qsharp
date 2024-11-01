@@ -379,14 +379,14 @@ operation StopCountingQubits() : Int {
 /// Use 0.0 for all parameters to simulate without noise.
 ///
 /// # Input
-/// # px
+/// ## px
 /// Probability of applying X gate.
-/// # py
+/// ## py
 /// Probability of applying Y gate.
-/// # pz
+/// ## pz
 /// Probability of applying Z gate.
 @Config(Unrestricted)
-function ConfigurePauliNoise(px: Double, py: Double, pz: Double): Unit {
+function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
     body intrinsic;
 }
 
@@ -404,7 +404,7 @@ function ConfigurePauliNoise(px: Double, py: Double, pz: Double): Unit {
 /// ## qubit
 /// The qubit to which noise is applied.
 @Config(Unrestricted)
-operation ApplyIdleNoise(qubit: Qubit): Unit {
+operation ApplyIdleNoise(qubit : Qubit) : Unit {
     body intrinsic;
 }
 
