@@ -141,7 +141,8 @@ impl Class {
             },
             Self::HasIndex {
                 container,
-                index,                item,
+                index,
+                item,
             } => Self::HasIndex {
                 container: f(container),
                 index: f(index),
@@ -1048,8 +1049,7 @@ fn check_has_field(
         }
         // `HasField` cannot be used to constrain an arbitrary type parameter, it is used
         // internally only, so it will never resolve to a ty param.
-        (_, Ty::Param { .. }) 
-        | _=> (
+        (_, Ty::Param { .. }) | _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasField(
                 record.display(),
@@ -1189,8 +1189,7 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         ),
         Ty::Param { .. } => (
             Vec::default(),
-            todo!("TODO(sezna) fix this")
-            // vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
+            vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
         ),
         _ => (
             Vec::new(),
@@ -1277,8 +1276,6 @@ fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
             span,
         ),
 
-        TyBound::NonNativeClass(name) => {
-            Constraint::Class(Class::NonPrimitive(name.clone()), span)
-        }
+        TyBound::NonNativeClass(name) => Constraint::Class(Class::NonPrimitive(name.clone()), span),
     }
 }
