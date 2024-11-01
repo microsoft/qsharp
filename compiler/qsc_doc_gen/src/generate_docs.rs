@@ -480,7 +480,7 @@ fn generate_toc(map: &mut FxHashMap<Rc<str>, Vec<String>>, files: &mut Files) {
         .collect::<Vec<_>>();
 
     table.sort_unstable_by_key(|(n, _)| {
-        // Ensures that the Microsoft.Quantum.Unstable namespace is listed last.
+        // Ensures that the Microsoft.Quantum.Unstable namespaces are listed last.
         if n.starts_with("Microsoft.Quantum.Unstable") {
             format!("1{n}")
         } else {
