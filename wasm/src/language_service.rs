@@ -164,6 +164,7 @@ impl LanguageService {
                         qsls::protocol::CompletionItemKind::Variable => "variable",
                         qsls::protocol::CompletionItemKind::TypeParameter => "typeParameter",
                         qsls::protocol::CompletionItemKind::Field => "field",
+                        qsls::protocol::CompletionItemKind::Class => "class",
                     })
                     .to_string(),
                     sortText: i.sort_text,

@@ -727,7 +727,7 @@ fn function_two_ty_params() {
                 Callable _id_ [0-49] (Function):
                     name: Ident _id_ [9-12] "Foo"
                     generics:
-                        Ident _id_ [13-15] "'T"
+                        Ident _id_ [13-15] "'T",
                         Ident _id_ [17-19] "'U"
                     input: Pat _id_ [20-22]: Unit
                     output: Type _id_ [25-29]: Path: Path _id_ [25-29] (Ident _id_ [25-29] "Unit")
@@ -746,7 +746,7 @@ fn function_duplicate_comma_in_ty_param() {
                 Callable _id_ [0-47] (Function):
                     name: Ident _id_ [9-12] "Foo"
                     generics:
-                        Ident _id_ [13-15] "'T"
+                        Ident _id_ [13-15] "'T",
                         Ident _id_ [16-16] ""
                     input: Pat _id_ [18-20]: Unit
                     output: Type _id_ [23-27]: Path: Path _id_ [23-27] (Ident _id_ [23-27] "Unit")
@@ -2272,7 +2272,16 @@ fn allow_class_bound_on_type_param() {
     check(
         parse,
         "operation Foo<'T: Eq + Ord, 'E: Eq>() : Unit {}",
-        &expect![[r#""#]],
+        &expect![[r#"
+            Item _id_ [0-47]:
+                Callable _id_ [0-47] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    generics:
+                        Ident _id_ [14-16] "'T": Ident _id_ [18-20] "Eq" + Ident _id_ [23-26] "Ord",
+                        Ident _id_ [28-30] "'E": Ident _id_ [32-34] "Eq"
+                    input: Pat _id_ [35-37]: Unit
+                    output: Type _id_ [40-44]: Path: Path _id_ [40-44] (Ident _id_ [40-44] "Unit")
+                    body: Block: Block _id_ [45-47]: <empty>"#]],
     );
 }
 

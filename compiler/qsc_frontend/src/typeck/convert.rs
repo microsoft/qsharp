@@ -23,7 +23,8 @@ use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
-#[error("missing type")]
+#[error("missing type in item signature")]
+#[help("a type must be provided for this item")]
 pub(crate) struct MissingTyError(#[label] pub(super) Span);
 
 #[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
@@ -48,7 +49,7 @@ pub(crate) enum TyConversionError {
     #[error(transparent)]
     MissingTy(#[from] MissingTyError),
     #[error(transparent)]
-    UnrecognizedBound(#[from] UnrecognizedBoundError),
+    UnrecognizedClass(#[from] UnrecognizedBoundError),
     #[error(transparent)]
     RecursiveClassConstraint(#[from] RecursiveClassConstraintError),
 }
@@ -399,21 +400,22 @@ pub(crate) fn ty_bound_from_ast(
         }
         stack.insert(bound.clone());
         let bound_result = match &*bound.name.name {
-            "Eq" => Ok(qsc_hir::ty::TyBound::Eq),
-            "Add" => Ok(qsc_hir::ty::TyBound::Add),
+            "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
+            "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
             "Iterable" => {
                 let (item, item_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
                 errors.extend(item_errors.into_iter());
-                Ok(qsc_hir::ty::TyBound::Iterable { item })
+                Ok(qsc_hir::ty::ClassConstraint::Iterable { item })
             }
             "Exp" => {
-                let (base, base_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
-                errors.extend(base_errors.into_iter());
-                let (power, power_errors) = ty_from_ast(names, bound.parameters[1].ty(), stack);
+                let (power, power_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
                 errors.extend(power_errors.into_iter());
-                Ok(qsc_hir::ty::TyBound::Exp { base, power })
+                // TODO(sezna) make sure that there are not excess parameters
+                Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }
-            otherwise => Ok(qsc_hir::ty::TyBound::NonNativeClass(otherwise.into())),
+            otherwise => Ok(qsc_hir::ty::ClassConstraint::NonNativeClass(
+                otherwise.into(),
+            )),
         };
 
         match bound_result {

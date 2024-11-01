@@ -214,7 +214,6 @@ pub enum ClassConstraint {
     Eq,
     Add,
     Exp {
-        base: Ty,
         power: Ty,
     },
     Iterable {
@@ -230,7 +229,7 @@ impl std::fmt::Display for ClassConstraint {
         match self {
             ClassConstraint::Eq => write!(f, "Eq"),
             ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
-            ClassConstraint::Exp { base, power } => write!(f, "Exp<{base}, {power}>"),
+            ClassConstraint::Exp { power } => write!(f, "Exp<{power}>"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
             ClassConstraint::Add => write!(f, "Add"),
         }

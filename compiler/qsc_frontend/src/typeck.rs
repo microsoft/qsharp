@@ -108,10 +108,10 @@ enum ErrorKind {
     #[error("expected superset of {0}, found {1}")]
     #[diagnostic(code("Qsc.TypeCk.MissingFunctor"))]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
-    // #[error("missing type in item signature")]
-    // #[diagnostic(help("types cannot be inferred for global declarations"))]
-    // #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
-    // MissingItemTy(#[label] Span),
+    #[error("missing type in item signature")]
+    #[diagnostic(help("types cannot be inferred for global declarations"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
+    MissingItemTy(#[label] Span),
     #[error("found hole with type {0}")]
     #[diagnostic(help("replace this hole with an expression of the expected type"))]
     #[diagnostic(code("Qsc.TypeCk.TyHole"))]
@@ -120,12 +120,9 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
-    #[error(transparent)]
-    #[diagnostic(code("Qsc.TypeCk.TyConversionError"))]
-    TyConversionError(#[from] TyConversionError),
-    // #[error("unrecognized class bound {0}")]
-    // #[diagnostic(code("Qsc.TypeCk.UnknownClassBound"))]
-    // UnknownClassBound(String, #[label] Span),
+    #[error("unrecognized class bound {0}")]
+    #[diagnostic(code("Qsc.TypeCk.UnrecognizedClass"))]
+    UnrecognizedClass(String, #[label] Span),
     #[error("unsupported parametric class bound")]
     #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
     UnsupportedParametricClassBound(#[label] Span),
@@ -133,6 +130,14 @@ enum ErrorKind {
 
 impl From<TyConversionError> for Error {
     fn from(err: TyConversionError) -> Self {
-        Error(ErrorKind::TyConversionError(err))
+        match err {
+            TyConversionError::MissingTy(err) => Error(ErrorKind::MissingItemTy(err.0)),
+            TyConversionError::UnrecognizedClass(err) => {
+                Error(ErrorKind::UnrecognizedClass(err.name, err.span))
+            }
+            TyConversionError::RecursiveClassConstraint(err) => {
+                Error(ErrorKind::UnsupportedParametricClassBound(err.span))
+            }
+        }
     }
 }

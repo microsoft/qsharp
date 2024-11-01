@@ -224,6 +224,28 @@ fn collect_names(
 
                 groups.push(fields.fields());
             }
+            NameKind::PrimitiveClass => {
+                // we know the types of the primitive classes, so we can just return them
+                // hard coded here.
+                // If we ever support user-defined primitive classes, we'll need to change this.
+
+                // this is here to force us to update completions if a new primitive class
+                // constraint is supported
+                match qsc::hir::ty::ClassConstraint::Add {
+                    qsc::hir::ty::ClassConstraint::Eq
+                    | qsc::hir::ty::ClassConstraint::Add
+                    | qsc::hir::ty::ClassConstraint::Exp { .. }
+                    | qsc::hir::ty::ClassConstraint::Iterable { .. }
+                    | qsc::hir::ty::ClassConstraint::NonNativeClass(_) => (),
+                };
+
+                groups.push(vec![
+                    Completion::new("Add".to_string(), CompletionItemKind::Class),
+                    Completion::new("Eq".to_string(), CompletionItemKind::Class),
+                    Completion::new("Exp".to_string(), CompletionItemKind::Class),
+                    Completion::new("Iterable".to_string(), CompletionItemKind::Class),
+                ]);
+            }
         };
     }
     groups

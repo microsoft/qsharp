@@ -14,12 +14,12 @@ use crate::{
     completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
-    prim::{parse_or_else, ident, recovering_path},
+    prim::{ident, parse_or_else, recovering_path},
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind,
-    NodeId, SetOp, Ty, TyKind, TypeParameter,
+    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind, NodeId,
+    SetOp, Ty, TyKind, TypeParameter,
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
@@ -94,9 +94,7 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
 // TODO(sezna) document why this is here
 fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
     let ty = ty(s)?;
-    Ok(qsc_ast::ast::ConstraintParameter {
-        ty,
-    })
+    Ok(qsc_ast::ast::ConstraintParameter { ty })
 }
 
 /// Parses the bounds of a type parameter, which are a list of class names separated by `+`.
@@ -106,6 +104,7 @@ fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParamete
 fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
     let mut bounds: Vec<ClassConstraint> = Vec::new();
     loop {
+        s.expect(WordKinds::PrimitiveClass);
         let bound_name = ident(s)?;
         // if there's a less-than sign, or "open angle bracket", try to parse type parameters for
         // the class

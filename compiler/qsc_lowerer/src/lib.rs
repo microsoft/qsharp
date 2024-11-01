@@ -905,21 +905,22 @@ impl Lowerer {
         qsc_fir::ty::TyBounds(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
     }
 
-    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::TyBound) -> qsc_fir::ty::ClassConstraint {
+    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::ClassConstraint) -> qsc_fir::ty::ClassConstraint {
         match b {
-            qsc_hir::ty::TyBound::Eq => qsc_fir::ty::ClassConstraint::Eq,
-            qsc_hir::ty::TyBound::Exp { base, power } => qsc_fir::ty::ClassConstraint::Exp {
-                base: self.lower_ty(base),
+            qsc_hir::ty::ClassConstraint::Eq => qsc_fir::ty::ClassConstraint::Eq,
+            qsc_hir::ty::ClassConstraint::Exp { power } => qsc_fir::ty::ClassConstraint::Exp {
                 power: self.lower_ty(power),
             },
-            qsc_hir::ty::TyBound::Add => qsc_fir::ty::ClassConstraint::Add,
+            qsc_hir::ty::ClassConstraint::Add => qsc_fir::ty::ClassConstraint::Add,
 
-            qsc_hir::ty::TyBound::NonNativeClass(name) => {
+            qsc_hir::ty::ClassConstraint::NonNativeClass(name) => {
                 qsc_fir::ty::ClassConstraint::NonNativeClass(name.clone())
             }
-            qsc_hir::ty::TyBound::Iterable { item } => qsc_fir::ty::ClassConstraint::Iterable {
-                item: self.lower_ty(item),
-            },
+            qsc_hir::ty::ClassConstraint::Iterable { item } => {
+                qsc_fir::ty::ClassConstraint::Iterable {
+                    item: self.lower_ty(item),
+                }
+            }
         }
     }
 }

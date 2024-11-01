@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     hir::{ItemId, PrimField, Res},
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, InferFunctorId, InferTyId,
-        Prim, Scheme, Ty, TyBound, Udt,
+        Arrow, ClassConstraint, FunctorSet, FunctorSetValue, GenericArg, GenericParam,
+        InferFunctorId, InferTyId, Prim, Scheme, Ty, Udt,
     },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -667,7 +667,7 @@ impl Solver {
                 },
             ) if id1 == id2 => {
                 // concat the two sets of bounds
-                let bounds: BTreeSet<TyBound> = bounds1
+                let bounds: BTreeSet<ClassConstraint> = bounds1
                     .0
                     .iter()
                     .chain(bounds2.0.iter())
@@ -845,7 +845,10 @@ fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
 fn check_add(ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_) => true,
-        Ty::Param { ref bounds, .. } => bounds.0.iter().any(|bound| matches!(bound, TyBound::Add)),
+        Ty::Param { ref bounds, .. } => bounds
+            .0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Add)),
         _ => false,
     }
 }
@@ -959,7 +962,11 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         Ty::Param { ref bounds, .. } => {
             // check if the bounds contain Eq
 
-            match bounds.0.iter().find(|bound| matches!(bound, TyBound::Eq)) {
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Eq))
+            {
                 Some(_) => (Vec::new(), Vec::new()),
                 None => (
                     Vec::new(),
@@ -1257,25 +1264,30 @@ fn check_unwrap(
     )
 }
 
-fn into_constraint(ty: Ty, bound: &TyBound, span: Span) -> Constraint {
+fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
     match bound {
-        TyBound::Eq => Constraint::Class(Class::Eq(ty), span),
-        TyBound::Exp { base, power } => Constraint::Class(
+        ClassConstraint::Eq => Constraint::Class(Class::Eq(ty), span),
+        ClassConstraint::Exp { power } => Constraint::Class(
             Class::Exp {
-                base: base.clone(),
+                // `ty` here is basically `Self` -- so Exp[Double] is a type that can be raised to
+                // the power of a double.
+                // Exponentiation is a _closed_ operation, meaning the domain and codomain are the
+                // same.
+                base: ty.clone(),
                 power: power.clone(),
             },
             span,
         ),
-        TyBound::Add => Constraint::Class(Class::Add(ty), span),
-        TyBound::Iterable { item } => Constraint::Class(
+        ClassConstraint::Add => Constraint::Class(Class::Add(ty), span),
+        ClassConstraint::Iterable { item } => Constraint::Class(
             Class::Iterable {
                 item: item.clone(),
                 container: ty.clone(),
             },
             span,
         ),
-
-        TyBound::NonNativeClass(name) => Constraint::Class(Class::NonPrimitive(name.clone()), span),
+        ClassConstraint::NonNativeClass(name) => {
+            Constraint::Class(Class::NonPrimitive(name.clone()), span)
+        }
     }
 }

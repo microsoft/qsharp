@@ -50,10 +50,13 @@ pub enum Ty {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct TyBounds(pub Box<[TyBound]>);
+pub struct TyBounds(pub Box<[ClassConstraint]>);
 impl TyBounds {
-    #[must_use] pub fn contains_iterable_bound(&self) -> bool {
-        self.0.iter().any(|bound| matches!(bound, TyBound::Iterable { .. }))
+    #[must_use]
+    pub fn contains_iterable_bound(&self) -> bool {
+        self.0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Iterable { .. }))
     }
 }
 
@@ -73,14 +76,14 @@ impl std::fmt::Display for TyBounds {
     }
 }
 
-// TODO(sezna) support other bounds
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub enum TyBound {
+pub enum ClassConstraint {
+    // TODO(sezna) why is this the default?
     #[default]
     Eq,
     Add,
     Exp {
-        base: Ty,
+        // `base` is inferred to be the self type
         power: Ty,
     },
     Iterable {
@@ -91,14 +94,14 @@ pub enum TyBound {
     NonNativeClass(Rc<str>),
 }
 
-impl std::fmt::Display for TyBound {
+impl std::fmt::Display for ClassConstraint {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            TyBound::Eq => write!(f, "Eq"),
-            TyBound::NonNativeClass(name) => write!(f, "{name}"),
-            TyBound::Add => write!(f, "Add"),
-            TyBound::Exp { base, power } => write!(f, "Exp({base}^{power})"),
-            TyBound::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Eq => write!(f, "Eq"),
+            ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
+            ClassConstraint::Add => write!(f, "Add"),
+            ClassConstraint::Exp { power } => write!(f, "Exp(^{power})"),
+            ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
         }
     }
 }

@@ -1437,7 +1437,8 @@ impl Default for PathKind {
 
 impl PathKind {
     /// Returns the segments of the path, whether parsed successfully or not.
-    #[must_use] pub fn segments(&self) -> &[Ident] {
+    #[must_use]
+    pub fn segments(&self) -> &[Ident] {
         match self {
             PathKind::Ok(path) => path.segments.as_deref().unwrap_or_default(),
             PathKind::Err(Some(incomplete_path)) => &incomplete_path.segments,
@@ -1446,11 +1447,12 @@ impl PathKind {
     }
 
     /// Returns the name of the path, whether parsed successfully or not.
-    #[must_use] pub fn name(&self) -> Option<&Ident> {
+    #[must_use]
+    pub fn name(&self) -> Option<&Ident> {
         match self {
             PathKind::Ok(path) => Some(&path.name),
             PathKind::Err(Some(incomplete_path)) => incomplete_path.segments.last(),
-            PathKind::Err(None) => None
+            PathKind::Err(None) => None,
         }
     }
 }
@@ -1993,11 +1995,10 @@ impl ImportOrExportItem {
     }
 }
 
-
 /// A [`TypeParameter`] is a generic type variable with optional bounds (constraints).
 #[derive(Default, PartialEq, Eq, Clone, Hash)]
 pub struct TypeParameter {
-    /// Class constraints specified for this type parameter -- any type variable passed in 
+    /// Class constraints specified for this type parameter -- any type variable passed in
     /// as an argument to these parameters must satisfy these constraints.
     pub constraints: ClassConstraints,
     /// The name of the type parameter.
@@ -2008,21 +2009,40 @@ pub struct TypeParameter {
 
 impl WithSpan for TypeParameter {
     fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
+        Self {
+            span,
+            ty: self.ty.with_span(span),
+            ..self
+        }
     }
 }
 
 impl TypeParameter {
     /// Instantiates a new `TypeParameter` with the given type name, constraints, and span.
-    #[must_use] pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
-        Self { ty, constraints: bounds, span }
+    #[must_use]
+    pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
+        Self {
+            ty,
+            constraints: bounds,
+            span,
+        }
     }
 }
 
 impl std::fmt::Debug for TypeParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // 'A: Eq + Ord + Clone
-        write!(f, "{}: {:?}", self.ty, self.constraints)
+        write!(
+            f,
+            "{}{}{:?}",
+            self.ty,
+            if self.constraints.0.is_empty() {
+                ""
+            } else {
+                ": "
+            },
+            self.constraints
+        )
     }
 }
 
@@ -2062,21 +2082,24 @@ impl WithSpan for ConstraintParameter {
 
 impl ConstraintParameter {
     /// Getter for the `ty` field.
-    #[must_use] pub fn ty(&self) -> &Ty {
+    #[must_use]
+    pub fn ty(&self) -> &Ty {
         &self.ty
     }
 }
 
 impl ClassConstraint {
     /// Getter for the `span` field of the `name` field (the name of the class constraint).
-    #[must_use] pub fn span(&self) -> Span {
+    #[must_use]
+    pub fn span(&self) -> Span {
         self.name.span
     }
 }
 
 impl ClassConstraints {
     /// The conjoined span of all of the bounds
-    #[must_use] pub fn span(&self) -> Span {
+    #[must_use]
+    pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span().lo).unwrap_or_default(),
             hi: self.0.last().map(|i| i.span().hi).unwrap_or_default(),
