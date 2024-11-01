@@ -4,6 +4,11 @@
 // # Description
 // Q# supports constraining generic types via _class constraints_. The formal term for this concept is bounded polymorphism,
 // or parametric polymorphism. 
+// The currently supported classes are `Exp`, for exponentiation; `Eq`, for comparison via the `==` operator; `Add`, for addition via the `+` operator; 
+// `Num`, if a type is numeric; `Integral`, if a type is a form of integer; and `Show`, if a type can be rendered as a string.
+
+// TODO(sezna): num, show, integral types. Also, document class constraint parameters.
+
 // A generic type, or type parameter, is specified on a callable declaration to signify that a function can take multiple types of data as input. 
 // For a generic type parameter to be useful, we need to be able to know enough about it to operate on it. This is where class constraints come in. By specifying
 // class constraints for a type parameter, we are limiting what types can be passed as arguments to a subset with known properties.
