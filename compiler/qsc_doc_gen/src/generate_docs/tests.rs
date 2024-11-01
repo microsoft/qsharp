@@ -5,7 +5,7 @@ use super::generate_docs;
 use expect_test::expect;
 
 #[test]
-fn generates_standard_function() {
+fn generates_standard_item() {
     let files = generate_docs(None, None, None);
     let (_, metadata, contents) = files
         .iter()
@@ -53,7 +53,7 @@ fn generates_standard_function() {
 }
 
 #[test]
-fn generates_unrestricted_function() {
+fn generates_unrestricted_item() {
     let files = generate_docs(None, None, None);
     let (_, metadata, contents) = files
         .iter()
@@ -99,6 +99,54 @@ fn generates_unrestricted_function() {
         ## Remarks
         This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
         this on hardware without measuring the qubit, which could change the state.
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn generates_adaptive_item() {
+    let files = generate_docs(None, None, None);
+    let (_, metadata, contents) = files
+        .iter()
+        .find(|(file_name, _, _)| &**file_name == "Std.Intrinsic/AND.md")
+        .expect("Could not file doc file for Length");
+    let full_contents = format!("{metadata}\n\n{contents}");
+
+    expect![[r#"
+        ---
+        uid: Qdk.Std.Intrinsic.AND
+        title: AND operation
+        ms.date: {TIMESTAMP}
+        ms.topic: managed-reference
+        qsharp.kind: operation
+        qsharp.package: __Std__
+        qsharp.namespace: Std.Intrinsic
+        qsharp.name: AND
+        qsharp.summary: "Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations. Note that target qubit must be in |0⟩ state."
+        ---
+
+        # AND operation
+
+        Fully qualified name: Std.Intrinsic.AND
+
+        ```qsharp
+        operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj
+        ```
+
+        ## Summary
+        Applies the AND gate that is more efficient for use with decomposition of multi-controlled operations.
+        Note that target qubit must be in |0⟩ state.
+
+        ## Input
+        ### control1
+        First control qubit for the AND gate.
+        ### control2
+        Second control qubit for the AND gate.
+        ### target
+        Target qubit for the AND gate.
+
+        ## Remarks
+        Use the Adjoint only for uncomputation purposes.
     "#]]
     .assert_eq(full_contents.as_str());
 }
