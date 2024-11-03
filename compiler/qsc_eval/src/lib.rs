@@ -1104,9 +1104,7 @@ impl State {
                 follow_field_path(record, &path.indices).expect("field path should be valid")
             }
             (ref value, ref field) => {
-                panic!(
-                    "invalid field access. value: {value:?}, field: {field:?}"
-                )
+                panic!("invalid field access. value: {value:?}, field: {field:?}")
             }
         };
         self.set_val_register(val);

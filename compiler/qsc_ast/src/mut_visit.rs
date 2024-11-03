@@ -241,7 +241,11 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         // TODO(sezna)
-        TyKind::Param(TypeParameter { ty, constraints: bounds, .. }) => {
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
             for bound in &mut bounds.0 {
                 vis.visit_ident(&mut bound.name);
                 // TODO(sezna) remove this items_to_skip in the visitors
@@ -250,7 +254,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
                     // item, which is the field name
                     usize::from(&*bound.name.name == "HasField");
                 bound.parameters.iter_mut().skip(items_to_skip).for_each(
-                    |crate::ast::ConstraintParameter {ref  mut ty, .. }| {
+                    |crate::ast::ConstraintParameter { ref mut ty, .. }| {
                         vis.visit_ty(ty);
                     },
                 );

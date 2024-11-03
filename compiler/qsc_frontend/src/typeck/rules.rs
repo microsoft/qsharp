@@ -8,7 +8,9 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, TypeParameter, UnOp
+    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
+    TernOp, TyKind, TypeParameter, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -124,9 +126,12 @@ impl<'a> Context<'a> {
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(TypeParameter { ty, constraints: _, .. }) => match self.names.get(ty.id) {
+            TyKind::Param(TypeParameter {
+                ty, constraints: _, ..
+            }) => match self.names.get(ty.id) {
                 Some(Res::Param { id, bounds }) => {
-                    let (bounds, errs) = convert::ty_bound_from_ast(self.names, bounds, &mut Default::default());
+                    let (bounds, errs) =
+                        convert::ty_bound_from_ast(self.names, bounds, &mut Default::default());
                     // TODO(sezna) what to do with res bounds?
                     for err in errs {
                         self.inferrer.report_error(err);
@@ -244,6 +249,7 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
+                dbg!(&callee);
                 let callee = self.infer_expr(callee);
                 let input = self.infer_hole_tuple(
                     ArgTy::Hole,

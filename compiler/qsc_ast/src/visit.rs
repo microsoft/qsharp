@@ -159,7 +159,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
                     // if this is a HasField constraint, then we skip name resolution on the first
                     // item, which is the field name
                     usize::from(&*b.name.name == "HasField" );
-                        
+
             b.parameters.iter().skip(items_to_skip).for_each(
                 |crate::ast::ConstraintParameter { ty, .. }| {
                     vis.visit_ty(ty);
@@ -219,16 +219,20 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path_kind(path),
         // TODO(sezna)
-        TyKind::Param(TypeParameter { ty, constraints: bounds, .. }) => {
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
             for bound in &bounds.0 {
                 vis.visit_ident(&bound.name);
                 let items_to_skip =
                     // if this is a HasField constraint, then we skip name resolution on the first
                     // item, which is the field name
                     usize::from(&*bound.name.name == "HasField");
-                        
+
                 bound.parameters.iter().skip(items_to_skip).for_each(
-                    |crate::ast::ConstraintParameter { ty,.. }| {
+                    |crate::ast::ConstraintParameter { ty, .. }| {
                         vis.visit_ty(ty);
                     },
                 );

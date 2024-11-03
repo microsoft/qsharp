@@ -620,7 +620,7 @@ fn display_type_params(generics: &[GenericParam]) -> String {
         .iter()
         .filter_map(|generic| match generic {
             GenericParam::Ty { name, .. } => Some(name.clone()),
-            GenericParam::Functor(_) => None,
+            GenericParam::Functor(set) => Some(format!("{set:?}").into()),
         })
         .collect::<Vec<_>>()
         .join(", ");

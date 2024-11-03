@@ -7,8 +7,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
-        ClassConstraints, TypeParameter, PathKind,
+        self, CallableBody, CallableDecl, ClassConstraints, Ident, Idents, NodeId, PathKind,
+        SpecBody, SpecGen, TopLevelNode, TypeParameter,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -63,7 +63,10 @@ pub enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param { id: ParamId, bounds: ClassConstraints },
+    Param {
+        id: ParamId,
+        bounds: ClassConstraints,
+    },
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -2386,10 +2389,15 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             }
         }));
 
-        names.extend(scope.ty_vars.iter().map(|(name, (id, _constraints))| Local {
-            name: name.clone(),
-            kind: LocalKind::TyParam(*id),
-        }));
+        names.extend(
+            scope
+                .ty_vars
+                .iter()
+                .map(|(name, (id, _constraints))| Local {
+                    name: name.clone(),
+                    kind: LocalKind::TyParam(*id),
+                }),
+        );
     }
 
     // items

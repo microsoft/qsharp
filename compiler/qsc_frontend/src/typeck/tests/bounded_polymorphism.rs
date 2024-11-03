@@ -293,6 +293,119 @@ fn transitive_class_check() {
 }
 
 #[test]
+fn transitive_class_check_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Integral>(a: 'T) : 'T {
+                a
+            }
+
+            function Bar<'F>(a: 'F) : 'F {
+                // below should be an error as 'F has no
+                // Integral bound
+                Foo(a)
+            }
+
+            function Main() : Unit {
+                let x: Int = Foo(1);
+                // below should be an error as it is a double and not an integral type
+                let y: Double = Foo(1.0);
+                let z: BigInt = Foo(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 61-68 "(a: 'T)" : Param<"'T": 0>
+            #9 62-67 "a: 'T" : Param<"'T": 0>
+            #15 74-107 "{\n                a\n            }" : Param<"'T": 0>
+            #17 92-93 "a" : Param<"'T": 0>
+            #24 137-144 "(a: 'F)" : Param<"'F": 0>
+            #25 138-143 "a: 'F" : Param<"'F": 0>
+            #31 150-279 "{\n                // below should be an error as 'F has no\n                // Integral bound\n                Foo(a)\n            }" : Param<"'F": 0>
+            #33 259-265 "Foo(a)" : Param<"'F": 0>
+            #34 259-262 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
+            #37 262-265 "(a)" : Param<"'F": 0>
+            #38 263-264 "a" : Param<"'F": 0>
+            #44 306-308 "()" : Unit
+            #48 316-539 "{\n                let x: Int = Foo(1);\n                // below should be an error as it is a double and not an integral type\n                let y: Double = Foo(1.0);\n                let z: BigInt = Foo(10L);\n            }" : Unit
+            #50 338-344 "x: Int" : Int
+            #55 347-353 "Foo(1)" : Int
+            #56 347-350 "Foo" : (Int -> Int)
+            #59 350-353 "(1)" : Int
+            #60 351-352 "1" : Int
+            #62 462-471 "y: Double" : Double
+            #67 474-482 "Foo(1.0)" : Double
+            #68 474-477 "Foo" : (Double -> Double)
+            #71 477-482 "(1.0)" : Double
+            #72 478-481 "1.0" : Double
+            #74 504-513 "z: BigInt" : BigInt
+            #79 516-524 "Foo(10L)" : BigInt
+            #80 516-519 "Foo" : (BigInt -> BigInt)
+            #83 519-524 "(10L)" : BigInt
+            #84 520-523 "10L" : BigInt
+            Error(Type(Error(MissingClassInteger("'F", Span { lo: 259, hi: 265 }))))
+            Error(Type(Error(MissingClassInteger("Double", Span { lo: 474, hi: 482 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn transitive_class_check_superset() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Num>(a: 'T) : 'T {
+                -a
+            }
+
+            function Bar<'F: Num + Eq>(a: 'F) : 'F {
+                Foo(a)
+            }
+
+            function Main() : Unit {
+                let x: Int = Bar(1);
+                let y: Double = Bar(1.0);
+                let z: BigInt = Bar(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 56-63 "(a: 'T)" : Param<"'T": 0>
+            #9 57-62 "a: 'T" : Param<"'T": 0>
+            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
+            #17 87-89 "-a" : Param<"'T": 0>
+            #18 88-89 "a" : Param<"'T": 0>
+            #27 143-150 "(a: 'F)" : Param<"'F": 0>
+            #28 144-149 "a: 'F" : Param<"'F": 0>
+            #34 156-194 "{\n                Foo(a)\n            }" : Param<"'F": 0>
+            #36 174-180 "Foo(a)" : Param<"'F": 0>
+            #37 174-177 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
+            #40 177-180 "(a)" : Param<"'F": 0>
+            #41 178-179 "a" : Param<"'F": 0>
+            #47 221-223 "()" : Unit
+            #51 231-367 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
+            #53 253-259 "x: Int" : Int
+            #58 262-268 "Bar(1)" : Int
+            #59 262-265 "Bar" : (Int -> Int)
+            #62 265-268 "(1)" : Int
+            #63 266-267 "1" : Int
+            #65 290-299 "y: Double" : Double
+            #70 302-310 "Bar(1.0)" : Double
+            #71 302-305 "Bar" : (Double -> Double)
+            #74 305-310 "(1.0)" : Double
+            #75 306-309 "1.0" : Double
+            #77 332-341 "z: BigInt" : BigInt
+            #82 344-352 "Bar(10L)" : BigInt
+            #83 344-347 "Bar" : (BigInt -> BigInt)
+            #86 347-352 "(10L)" : BigInt
+            #87 348-351 "10L" : BigInt
+        "##]],
+    );
+}
+#[test]
 fn bounded_polymorphism_show() {
     check(
         r#"
@@ -388,3 +501,41 @@ fn bounded_polymorphism_show_fail() {
     );
 }
 
+#[test]
+fn bounded_polymorphism_integral() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Integral>(a: 'T) : 'T {
+                a ^^^ a
+            }
+
+            function Main() : Unit {
+                let x: Int = Foo(1);
+                let y: BigInt = Foo(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
+    );
+}
+#[test]
+fn bounded_polymorphism_integral_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Integral>(a: 'T) : 'T {
+                a ^^^ a
+            }
+
+            function Main() : Unit {
+                let x = Foo(1.0);
+                let y = Foo(true);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
+    );
+}

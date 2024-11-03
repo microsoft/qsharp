@@ -151,7 +151,6 @@ impl Checker {
                 ));
             }
         }
-        
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
@@ -275,7 +274,6 @@ impl Visitor<'_> for ItemCollector<'_> {
                 self.checker.globals.insert(item, cons);
             }
             ast::ItemKind::Struct(decl) => {
-
                 let span = item.span;
                 let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
                     panic!("type should have item ID");
@@ -307,8 +305,7 @@ impl Visitor<'_> for ItemCollector<'_> {
     }
 
     // We do not typecheck attributes, as they are verified during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {
-    }
+    fn visit_attr(&mut self, _: &ast::Attr) {}
 }
 
 struct ItemChecker<'a> {
@@ -329,6 +326,5 @@ impl Visitor<'_> for ItemChecker<'_> {
     }
 
     // We do not typecheck attributes, as they are verified during lowering.
-    fn visit_attr(&mut self, _: &ast::Attr) {
-    }
+    fn visit_attr(&mut self, _: &ast::Attr) {}
 }

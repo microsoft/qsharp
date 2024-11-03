@@ -211,6 +211,37 @@ impl Class {
             Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
+
+    fn contains(&self, ty: Ty) -> bool {
+        match self {
+            Class::Add(ty1)
+            | Class::Adj(ty1)
+            | Class::Eq(ty1)
+            | Class::Integral(ty1)
+            | Class::Num(ty1)
+            | Class::Show(ty1)
+            | Class::Struct(ty1) => ty == *ty1,
+            Class::Call {
+                callee,
+                input,
+                output,
+            } => ty == *callee || input.to_ty() == ty || ty == *output,
+            Class::Ctl { op, with_ctls } => ty == *op || ty == *with_ctls,
+            Class::Exp { base, power } => ty == *base || ty == *power,
+            Class::HasField { record, item, .. } => ty == *record || ty == *item,
+            Class::HasStructShape { record, .. } => ty == *record,
+            Class::HasIndex {
+                container,
+                index,
+                item,
+            } => ty == *container || ty == *index || ty == *item,
+            Class::Iterable { container, item } => ty == *container || ty == *item,
+            Class::Unwrap { wrapper, base } => ty == *wrapper || ty == *base,
+            // NonPrimitive classes are not yet supported
+            // so we don't need to check for them
+            Class::NonPrimitive(_) => false,
+        }
+    }
 }
 
 /// Meta-level descriptions about the source of a type.
@@ -237,7 +268,9 @@ impl TySource {
     }
 }
 
-/// An argument type and tags describing the call syntax.
+/// An argument type and tags describing the call syntax. This represents the type of something
+/// that appears in a _call_ to a _callable_, and an argument can be a hole, a given argument, or,
+/// in the most standard case, a tuple. Foo(1, 2, 3) is [`ArgTy::Tuple`], not [`ArgTy::Given`].
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
     /// A missing argument, indicating partial application.
@@ -375,6 +408,24 @@ enum Constraint {
         span: Span,
     },
 }
+impl Constraint {
+    /// Returns true if the constraint references the specified type.
+    fn contains(&self, ty: Ty) -> bool {
+        match self {
+            Constraint::Class(class, _) => class.contains(ty),
+            Constraint::Eq {
+                expected,
+                actual,
+                span,
+            } => expected == &ty || actual == &ty,
+            Constraint::Superset {
+                expected,
+                actual,
+                span,
+            } => false,
+        }
+    }
+}
 
 pub(super) struct Inferrer {
     solver: Solver,
@@ -410,12 +461,37 @@ impl Inferrer {
         self.constraints.push_back(Constraint::Class(class, span));
     }
 
+    /// Returns a unique type variable with specified constraints.
+    pub(super) fn constrained_ty(
+        &mut self,
+        meta: TySource,
+        with_constraints: impl Fn(Ty) -> Vec<Constraint>,
+    ) -> Ty {
+        let fresh = self.next_ty;
+        self.next_ty = fresh.successor();
+        self.ty_metadata.insert(fresh, meta);
+        let constraints = with_constraints(Ty::Infer(fresh));
+        self.constraints.extend(constraints);
+        Ty::Infer(fresh)
+    }
+
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh_ty(&mut self, meta: TySource) -> Ty {
         let fresh = self.next_ty;
         self.next_ty = fresh.successor();
         self.ty_metadata.insert(fresh, meta);
         Ty::Infer(fresh)
+    }
+    /// Given an inferred type, collect all pending constraints.
+    pub(super) fn collect_constraints(&self, ty: Ty) -> Vec<&Constraint> {
+        match ty {
+            ref ty @ Ty::Infer(_) => self
+                .constraints
+                .iter()
+                .filter(|constraint| constraint.contains(ty.clone()))
+                .collect(),
+            _ => Default::default(),
+        }
     }
 
     /// Returns a unique unconstrained functor variable.
@@ -431,9 +507,22 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty { .. } => {
-                    GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span)))
+                GenericParam::Ty { bounds, .. } => {
+                    GenericArg::Ty(self.constrained_ty(TySource::not_divergent(span), |ty| {
+                        bounds
+                            .0
+                            .iter()
+                            .map(|x| into_constraint(ty.clone(), x, span))
+                            .collect()
+                    }))
                 }
+                /*
+                GenericParam::Ty { name, bounds } => GenericArg::Ty(Ty::Param {
+                    name: name.clone(),
+                    id: 0.into(), // TODO(sezna)
+                    bounds: bounds.clone(),
+                }),
+                */
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -871,12 +960,17 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+    dbg!(&callee);
+    dbg!(&input);
     let Ty::Arrow(arrow) = callee else {
         return (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
         );
     };
+
+    // generate constraints for the arg ty that correspond to any class constraints specified in
+    // the parameters
 
     let mut app = input.apply(&arrow.input, span);
     let expected = if app.holes.len() > 1 {
@@ -1173,7 +1267,14 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Int) => true,
+        Ty::Param { ref bounds, .. } => bounds
+            .0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Integral)),
+        _ => false,
+    }
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {

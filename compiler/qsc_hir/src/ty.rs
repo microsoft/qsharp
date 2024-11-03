@@ -346,7 +346,9 @@ impl Display for GenericParam {
 pub enum GenericParam {
     /// A type parameter.
     Ty { name: Rc<str>, bounds: TyBounds },
-    /// A functor parameter with a lower bound.
+    /// A functor parameter with a minimal set (lower bound) of functors.
+    /// if `'T is Adj` then `functor ('T)` is the minimal set of functors.
+    /// This can currently only occur on lambda expressions.
     Functor(FunctorSetValue),
 }
 
