@@ -28,36 +28,32 @@ fn bounded_polymorphism_eq() {
 
 // TODO(sezna) figure out why the error message is duplicated here
 #[test]
-fn bounded_polymorphism_error_on_infinite_recursive_generic() {
+fn bounded_polymorphism_exp() {
     check(
         r#"
         namespace A {
-            function Foo<'T: Exp['T, Int]>(a: 'T, b: Int) : 'T {
+            function Foo<'T: Exp[Int]>(a: 'T, b: Int) : 'T {
                 a ^ b
             }
         }
         "#,
         "",
         &expect![[r##"
-            #13 65-80 "(a: 'T, b: Int)" : (Param<"'T": 0>, Int)
-            #14 66-71 "a: 'T" : Param<"'T": 0>
-            #18 73-79 "b: Int" : Int
-            #25 86-123 "{\n                a ^ b\n            }" : Param<"'T": 0>
-            #27 104-109 "a ^ b" : Param<"'T": 0>
-            #28 104-105 "a" : Param<"'T": 0>
-            #31 108-109 "b" : Int
-            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
-            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
-            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
-            Error(Type(Error(TyConversionError(RecursiveClassConstraint(RecursiveClassConstraintError { span: Span { lo: 52, hi: 55 }, name: "Exp" })))))
-            Error(Type(Error(MissingClassExp("'T", Span { lo: 104, hi: 109 }))))
-            Error(Type(Error(MissingClassExp("'T", Span { lo: 104, hi: 109 }))))
+            #11 61-76 "(a: 'T, b: Int)" : (Param<"'T": 0>, Int)
+            #12 62-67 "a: 'T" : Param<"'T": 0>
+            #16 69-75 "b: Int" : Int
+            #23 82-119 "{\n                a ^ b\n            }" : Param<"'T": 0>
+            #25 100-105 "a ^ b" : Param<"'T": 0>
+            #26 100-101 "a" : Param<"'T": 0>
+            #29 104-105 "b" : Int
+            Error(Type(Error(MissingClassExp("'T", Span { lo: 100, hi: 105 }))))
+            Error(Type(Error(MissingClassExp("'T", Span { lo: 100, hi: 105 }))))
         "##]],
     );
 }
 
 #[test]
-fn bounded_polymorphism_exp() {
+fn bounded_polymorphism_exp_extra_arg() {
     check(
         r#"
         namespace A {
@@ -75,6 +71,8 @@ fn bounded_polymorphism_exp() {
             #28 108-113 "a ^ b" : Param<"'E": 0>
             #29 108-109 "a" : Param<"'E": 0>
             #32 112-113 "b" : Int
+            Error(Type(Error(IncorrectNumberOfConstraintParameters(1, 2, Span { lo: 56, hi: 59 }))))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters(1, 2, Span { lo: 56, hi: 59 }))))
             Error(Type(Error(MissingClassExp("'E", Span { lo: 108, hi: 113 }))))
             Error(Type(Error(TyMismatch("'T", "'E", Span { lo: 108, hi: 113 }))))
         "##]],
@@ -532,6 +530,21 @@ fn bounded_polymorphism_integral_fail() {
             function Main() : Unit {
                 let x = Foo(1.0);
                 let y = Foo(true);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
+    );
+}
+
+#[test]
+fn constraint_arguments_for_class_with_no_args() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq[Int]>() : Bool {
+                true
             }
         }
         "#,

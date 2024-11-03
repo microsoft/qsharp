@@ -126,6 +126,9 @@ enum ErrorKind {
     #[error("unsupported parametric class bound")]
     #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
     UnsupportedParametricClassBound(#[label] Span),
+    #[error("incorrect number of constraint parameters: expected {0}, found {1}")]
+    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
+    IncorrectNumberOfConstraintParameters(usize, usize, #[label] Span),
 }
 
 impl From<TyConversionError> for Error {
@@ -138,6 +141,13 @@ impl From<TyConversionError> for Error {
             TyConversionError::RecursiveClassConstraint(err) => {
                 Error(ErrorKind::UnsupportedParametricClassBound(err.span))
             }
+            TyConversionError::IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            } => Error(ErrorKind::IncorrectNumberOfConstraintParameters(
+                expected, found, span,
+            )),
         }
     }
 }

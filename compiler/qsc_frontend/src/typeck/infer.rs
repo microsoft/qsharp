@@ -482,17 +482,6 @@ impl Inferrer {
         self.ty_metadata.insert(fresh, meta);
         Ty::Infer(fresh)
     }
-    /// Given an inferred type, collect all pending constraints.
-    pub(super) fn collect_constraints(&self, ty: Ty) -> Vec<&Constraint> {
-        match ty {
-            ref ty @ Ty::Infer(_) => self
-                .constraints
-                .iter()
-                .filter(|constraint| constraint.contains(ty.clone()))
-                .collect(),
-            _ => Default::default(),
-        }
-    }
 
     /// Returns a unique unconstrained functor variable.
     pub(super) fn fresh_functor(&mut self) -> FunctorSet {

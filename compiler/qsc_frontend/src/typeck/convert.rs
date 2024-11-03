@@ -44,6 +44,7 @@ pub(crate) struct RecursiveClassConstraintError {
     pub name: String,
 }
 
+// TODO(sezna) clean this up and maybe just make it part of the parent error ty
 #[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum TyConversionError {
     #[error(transparent)]
@@ -52,6 +53,14 @@ pub(crate) enum TyConversionError {
     UnrecognizedClass(#[from] UnrecognizedBoundError),
     #[error(transparent)]
     RecursiveClassConstraint(#[from] RecursiveClassConstraintError),
+    #[error("expected {expected} parameters for constraint, found {found}")]
+    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
+    IncorrectNumberOfConstraintParameters {
+        expected: usize,
+        found: usize,
+        #[label]
+        span: Span,
+    },
 }
 
 pub(crate) fn ty_from_ast(
@@ -387,28 +396,28 @@ pub(crate) fn ty_bound_from_ast(
     let mut bounds_buf = Vec::new();
     let mut errors = FxHashSet::default();
 
-    for bound in &bounds.0 {
-        if stack.contains(bound) {
+    for ast_bound in &bounds.0 {
+        if stack.contains(ast_bound) {
             errors.insert(
                 RecursiveClassConstraintError {
-                    span: bound.span(),
-                    name: bound.name.name.to_string(),
+                    span: ast_bound.span(),
+                    name: ast_bound.name.name.to_string(),
                 }
                 .into(),
             );
             continue;
         }
-        stack.insert(bound.clone());
-        let bound_result = match &*bound.name.name {
+        stack.insert(ast_bound.clone());
+        let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
             "Iterable" => {
-                let (item, item_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
+                let (item, item_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
                 errors.extend(item_errors.into_iter());
                 Ok(qsc_hir::ty::ClassConstraint::Iterable { item })
             }
             "Exp" => {
-                let (power, power_errors) = ty_from_ast(names, bound.parameters[0].ty(), stack);
+                let (power, power_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
                 errors.extend(power_errors.into_iter());
                 // TODO(sezna) make sure that there are not excess parameters
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
@@ -422,7 +431,15 @@ pub(crate) fn ty_bound_from_ast(
         };
 
         match bound_result {
-            Ok(bound) => bounds_buf.push(bound),
+            Ok(hir_bound) => {
+                check_param_length(
+                    &hir_bound,
+                    &mut errors,
+                    ast_bound.parameters.len(),
+                    ast_bound.span(),
+                );
+                bounds_buf.push(hir_bound);
+            }
             Err(e) => {
                 errors.insert(e);
             }
@@ -433,4 +450,29 @@ pub(crate) fn ty_bound_from_ast(
         qsc_hir::ty::TyBounds(bounds_buf.into_boxed_slice()),
         errors.into_iter().collect(),
     )
+}
+
+fn check_param_length(
+    bound: &qsc_hir::ty::ClassConstraint,
+    errors: &mut FxHashSet<TyConversionError>,
+    num_given_parameters: usize,
+    span: Span,
+) {
+    let num_parameters = match bound {
+        qsc_hir::ty::ClassConstraint::Eq => 0,
+        qsc_hir::ty::ClassConstraint::Add => 0,
+        qsc_hir::ty::ClassConstraint::Iterable { .. } => 1,
+        qsc_hir::ty::ClassConstraint::Exp { .. } => 1,
+        qsc_hir::ty::ClassConstraint::Integral => 0,
+        qsc_hir::ty::ClassConstraint::Num => 0,
+        qsc_hir::ty::ClassConstraint::Show => 0,
+        qsc_hir::ty::ClassConstraint::NonNativeClass(_) => 0,
+    };
+    if num_parameters != num_given_parameters {
+        errors.insert(TyConversionError::IncorrectNumberOfConstraintParameters {
+            expected: num_parameters,
+            found: num_given_parameters,
+            span,
+        });
+    }
 }
