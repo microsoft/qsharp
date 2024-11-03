@@ -147,3 +147,244 @@ fn bounded_polymorphism_iter() {
             "##]],
     );
 }
+
+#[test]
+fn bounded_polymorphism_num() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Num>(a: 'T) : 'T {
+                -a
+            }
+
+            function Main() : Unit {
+                let x: Int = Foo(1);
+                let y: Double = Foo(1.0);
+                let z: BigInt = Foo(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 56-63 "(a: 'T)" : Param<"'T": 0>
+            #9 57-62 "a: 'T" : Param<"'T": 0>
+            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
+            #17 87-89 "-a" : Param<"'T": 0>
+            #18 88-89 "a" : Param<"'T": 0>
+            #24 130-132 "()" : Unit
+            #28 140-276 "{\n                let x: Int = Foo(1);\n                let y: Double = Foo(1.0);\n                let z: BigInt = Foo(10L);\n            }" : Unit
+            #30 162-168 "x: Int" : Int
+            #35 171-177 "Foo(1)" : Int
+            #36 171-174 "Foo" : (Int -> Int)
+            #39 174-177 "(1)" : Int
+            #40 175-176 "1" : Int
+            #42 199-208 "y: Double" : Double
+            #47 211-219 "Foo(1.0)" : Double
+            #48 211-214 "Foo" : (Double -> Double)
+            #51 214-219 "(1.0)" : Double
+            #52 215-218 "1.0" : Double
+            #54 241-250 "z: BigInt" : BigInt
+            #59 253-261 "Foo(10L)" : BigInt
+            #60 253-256 "Foo" : (BigInt -> BigInt)
+            #63 256-261 "(10L)" : BigInt
+            #64 257-260 "10L" : BigInt
+        "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_num_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq>(a: 'T) : 'T {
+                -a
+            }
+
+            function Main() : Unit {
+                let x: Int = Foo(1);
+                let y: Double = Foo(1.0);
+                let z: BigInt = Foo(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 55-62 "(a: 'T)" : Param<"'T": 0>
+            #9 56-61 "a: 'T" : Param<"'T": 0>
+            #15 68-102 "{\n                -a\n            }" : Param<"'T": 0>
+            #17 86-88 "-a" : Param<"'T": 0>
+            #18 87-88 "a" : Param<"'T": 0>
+            #24 129-131 "()" : Unit
+            #28 139-275 "{\n                let x: Int = Foo(1);\n                let y: Double = Foo(1.0);\n                let z: BigInt = Foo(10L);\n            }" : Unit
+            #30 161-167 "x: Int" : Int
+            #35 170-176 "Foo(1)" : Int
+            #36 170-173 "Foo" : (Int -> Int)
+            #39 173-176 "(1)" : Int
+            #40 174-175 "1" : Int
+            #42 198-207 "y: Double" : Double
+            #47 210-218 "Foo(1.0)" : Double
+            #48 210-213 "Foo" : (Double -> Double)
+            #51 213-218 "(1.0)" : Double
+            #52 214-217 "1.0" : Double
+            #54 240-249 "z: BigInt" : BigInt
+            #59 252-260 "Foo(10L)" : BigInt
+            #60 252-255 "Foo" : (BigInt -> BigInt)
+            #63 255-260 "(10L)" : BigInt
+            #64 256-259 "10L" : BigInt
+            Error(Type(Error(MissingClassNum("'T", Span { lo: 87, hi: 88 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn transitive_class_check() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Num>(a: 'T) : 'T {
+                -a
+            }
+
+            function Bar<'F: Num>(a: 'F) : 'F {
+                Foo(a)
+            }
+
+            function Main() : Unit {
+                let x: Int = Bar(1);
+                let y: Double = Bar(1.0);
+                let z: BigInt = Bar(10L);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 56-63 "(a: 'T)" : Param<"'T": 0>
+            #9 57-62 "a: 'T" : Param<"'T": 0>
+            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
+            #17 87-89 "-a" : Param<"'T": 0>
+            #18 88-89 "a" : Param<"'T": 0>
+            #26 138-145 "(a: 'F)" : Param<"'F": 0>
+            #27 139-144 "a: 'F" : Param<"'F": 0>
+            #33 151-189 "{\n                Foo(a)\n            }" : Param<"'F": 0>
+            #35 169-175 "Foo(a)" : Param<"'F": 0>
+            #36 169-172 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
+            #39 172-175 "(a)" : Param<"'F": 0>
+            #40 173-174 "a" : Param<"'F": 0>
+            #46 216-218 "()" : Unit
+            #50 226-362 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
+            #52 248-254 "x: Int" : Int
+            #57 257-263 "Bar(1)" : Int
+            #58 257-260 "Bar" : (Int -> Int)
+            #61 260-263 "(1)" : Int
+            #62 261-262 "1" : Int
+            #64 285-294 "y: Double" : Double
+            #69 297-305 "Bar(1.0)" : Double
+            #70 297-300 "Bar" : (Double -> Double)
+            #73 300-305 "(1.0)" : Double
+            #74 301-304 "1.0" : Double
+            #76 327-336 "z: BigInt" : BigInt
+            #81 339-347 "Bar(10L)" : BigInt
+            #82 339-342 "Bar" : (BigInt -> BigInt)
+            #85 342-347 "(10L)" : BigInt
+            #86 343-346 "10L" : BigInt
+        "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_show() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Show>(a: 'T) : String {
+                let x = $"Value: {a}";
+                x
+            }
+
+            function Main() : Unit {
+                let x: String = Foo(1);
+                let y: String = Foo(1.0);
+                let z: String = Foo(true);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #8 57-64 "(a: 'T)" : Param<"'T": 0>
+            #9 58-63 "a: 'T" : Param<"'T": 0>
+            #16 74-146 "{\n                let x = $\"Value: {a}\";\n                x\n            }" : String
+            #18 96-97 "x" : String
+            #20 100-113 "$\"Value: {a}\"" : String
+            #21 110-111 "a" : Param<"'T": 0>
+            #25 131-132 "x" : String
+            #31 173-175 "()" : Unit
+            #35 183-323 "{\n                let x: String = Foo(1);\n                let y: String = Foo(1.0);\n                let z: String = Foo(true);\n            }" : Unit
+            #37 205-214 "x: String" : String
+            #42 217-223 "Foo(1)" : String
+            #43 217-220 "Foo" : (Int -> String)
+            #46 220-223 "(1)" : Int
+            #47 221-222 "1" : Int
+            #49 245-254 "y: String" : String
+            #54 257-265 "Foo(1.0)" : String
+            #55 257-260 "Foo" : (Double -> String)
+            #58 260-265 "(1.0)" : Double
+            #59 261-264 "1.0" : Double
+            #61 287-296 "z: String" : String
+            #66 299-308 "Foo(true)" : String
+            #67 299-302 "Foo" : (Bool -> String)
+            #70 302-308 "(true)" : Bool
+            #71 303-307 "true" : Bool
+        "##]],
+    );
+}
+
+#[test]
+fn bounded_polymorphism_show_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T>(a: 'T) : String {
+                Message($"Value: {a}")
+            }
+
+            function Main() : Unit {
+                let x = Foo(1);
+                let y = Foo(1.0);
+                let z = Foo(true);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #7 51-58 "(a: 'T)" : Param<"'T": 0>
+            #8 52-57 "a: 'T" : Param<"'T": 0>
+            #15 68-122 "{\n                Message($\"Value: {a}\")\n            }" : String
+            #17 86-108 "Message($\"Value: {a}\")" : String
+            #18 86-93 "Message" : ?
+            #21 93-108 "($\"Value: {a}\")" : String
+            #22 94-107 "$\"Value: {a}\"" : String
+            #23 104-105 "a" : Param<"'T": 0>
+            #29 149-151 "()" : Unit
+            #33 159-275 "{\n                let x = Foo(1);\n                let y = Foo(1.0);\n                let z = Foo(true);\n            }" : Unit
+            #35 181-182 "x" : String
+            #37 185-191 "Foo(1)" : String
+            #38 185-188 "Foo" : (Int -> String)
+            #41 188-191 "(1)" : Int
+            #42 189-190 "1" : Int
+            #44 213-214 "y" : String
+            #46 217-225 "Foo(1.0)" : String
+            #47 217-220 "Foo" : (Double -> String)
+            #50 220-225 "(1.0)" : Double
+            #51 221-224 "1.0" : Double
+            #53 247-248 "z" : String
+            #55 251-260 "Foo(true)" : String
+            #56 251-254 "Foo" : (Bool -> String)
+            #59 254-260 "(true)" : Bool
+            #60 255-259 "true" : Bool
+            Error(Resolve(NotFound("Message", Span { lo: 86, hi: 93 })))
+            Error(Type(Error(MissingClassShow("'T", Span { lo: 104, hi: 105 }))))
+        "##]],
+    );
+}
+

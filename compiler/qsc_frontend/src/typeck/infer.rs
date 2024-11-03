@@ -1209,7 +1209,17 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
 }
 
 fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Num
+            bounds
+                .0
+                .iter()
+                .any(|bound| matches!(&bound, ClassConstraint::Num))
+        }
+        _ => false,
+    }
 }
 
 fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
@@ -1226,6 +1236,20 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Show
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Show))
+            {
+                Some(_) => (Vec::new(), Vec::new()),
+                None => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
+                ),
+            }
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
@@ -1289,5 +1313,8 @@ fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
         ClassConstraint::NonNativeClass(name) => {
             Constraint::Class(Class::NonPrimitive(name.clone()), span)
         }
+        ClassConstraint::Show => Constraint::Class(Class::Show(ty), span),
+        ClassConstraint::Num => Constraint::Class(Class::Num(ty), span),
+        ClassConstraint::Integral => Constraint::Class(Class::Integral(ty), span),
     }
 }

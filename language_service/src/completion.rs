@@ -231,13 +231,17 @@ fn collect_names(
 
                 // this is here to force us to update completions if a new primitive class
                 // constraint is supported
-                match qsc::hir::ty::ClassConstraint::Add {
-                    qsc::hir::ty::ClassConstraint::Eq
-                    | qsc::hir::ty::ClassConstraint::Add
-                    | qsc::hir::ty::ClassConstraint::Exp { .. }
-                    | qsc::hir::ty::ClassConstraint::Iterable { .. }
-                    | qsc::hir::ty::ClassConstraint::NonNativeClass(_) => (),
-                };
+                use qsc::hir::ty::ClassConstraint::*;
+                match Add {
+                    Add
+                    | Eq
+                    | Exp { .. }
+                    | Iterable { .. }
+                    | NonNativeClass(_)
+                    | Num
+                    | Integral
+                    | Show => (),
+                }
 
                 groups.push(vec![
                     Completion::new("Add".to_string(), CompletionItemKind::Class),

@@ -413,6 +413,9 @@ pub(crate) fn ty_bound_from_ast(
                 // TODO(sezna) make sure that there are not excess parameters
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }
+            "Integral" => Ok(qsc_hir::ty::ClassConstraint::Integral),
+            "Num" => Ok(qsc_hir::ty::ClassConstraint::Num),
+            "Show" => Ok(qsc_hir::ty::ClassConstraint::Show),
             otherwise => Ok(qsc_hir::ty::ClassConstraint::NonNativeClass(
                 otherwise.into(),
             )),

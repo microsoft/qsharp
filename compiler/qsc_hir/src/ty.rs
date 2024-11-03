@@ -89,7 +89,9 @@ pub enum ClassConstraint {
     Iterable {
         item: Ty,
     },
-
+    Num,
+    Integral,
+    Show,
     /// A class that is not built-in to the compiler.
     NonNativeClass(Rc<str>),
 }
@@ -102,6 +104,9 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Add => write!(f, "Add"),
             ClassConstraint::Exp { power } => write!(f, "Exp(^{power})"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Num => write!(f, "Num"),
+            ClassConstraint::Integral => write!(f, "Integral"),
+            ClassConstraint::Show => write!(f, "Show"),
         }
     }
 }

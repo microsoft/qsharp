@@ -921,6 +921,9 @@ impl Lowerer {
                     item: self.lower_ty(item),
                 }
             }
+            qsc_hir::ty::ClassConstraint::Num => qsc_fir::ty::ClassConstraint::Num,
+            qsc_hir::ty::ClassConstraint::Integral => qsc_fir::ty::ClassConstraint::Integral,
+            qsc_hir::ty::ClassConstraint::Show => qsc_fir::ty::ClassConstraint::Show,
         }
     }
 }
