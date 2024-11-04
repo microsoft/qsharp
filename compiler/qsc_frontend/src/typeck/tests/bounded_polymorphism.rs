@@ -769,3 +769,16 @@ fn class_constraint_in_lambda() {
         "##]],
     );
 }
+
+#[test]
+fn test_harness_use_case() {
+    check(
+        r#"
+        function Test<'T: Eq>(test_cases: ('T, 'T)[]) : Unit {
+
+        }
+        "#,
+        "",
+        &expect![[r##""##]],
+    )
+}
