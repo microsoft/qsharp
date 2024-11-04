@@ -155,7 +155,7 @@ impl Checker {
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
         self.check_callable_signature(names, decl);
-        let output = convert::ty_from_ast(names, &decl.output).0;
+        let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
         match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
                 names,
@@ -190,7 +190,7 @@ impl Checker {
 
     fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
         if convert::ast_callable_functors(decl) != FunctorSetValue::Empty {
-            let output = convert::ty_from_ast(names, &decl.output).0;
+            let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TyMismatch(
