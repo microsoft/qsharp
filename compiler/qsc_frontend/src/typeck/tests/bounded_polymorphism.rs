@@ -4,7 +4,7 @@ use expect_test::expect;
 use super::check;
 
 #[test]
-fn bounded_polymorphism_eq() {
+fn eq() {
     check(
         r#"
         namespace A {
@@ -28,7 +28,7 @@ fn bounded_polymorphism_eq() {
 
 // TODO(sezna) figure out why the error message is duplicated here
 #[test]
-fn bounded_polymorphism_exp() {
+fn exp() {
     check(
         r#"
         namespace A {
@@ -53,7 +53,7 @@ fn bounded_polymorphism_exp() {
 }
 
 #[test]
-fn bounded_polymorphism_exp_extra_arg() {
+fn exp_extra_arg() {
     check(
         r#"
         namespace A {
@@ -80,7 +80,7 @@ fn bounded_polymorphism_exp_extra_arg() {
 }
 
 #[test]
-fn bounded_polymorphism_example_should_fail() {
+fn example_should_fail() {
     check(
         r#"
         namespace A {
@@ -107,7 +107,7 @@ fn bounded_polymorphism_example_should_fail() {
 // This test ensures that we show a pretty error for polymorphism bounds that are not supported
 // yet.
 #[test]
-fn bounded_polymorphism_iter() {
+fn iter() {
     check(
         r#"
         namespace A {
@@ -147,7 +147,7 @@ fn bounded_polymorphism_iter() {
 }
 
 #[test]
-fn bounded_polymorphism_num() {
+fn num() {
     check(
         r#"
         namespace A {
@@ -191,7 +191,7 @@ fn bounded_polymorphism_num() {
 }
 
 #[test]
-fn bounded_polymorphism_num_fail() {
+fn num_fail() {
     check(
         r#"
         namespace A {
@@ -404,7 +404,7 @@ fn transitive_class_check_superset() {
     );
 }
 #[test]
-fn bounded_polymorphism_show() {
+fn show() {
     check(
         r#"
         namespace A {
@@ -451,7 +451,7 @@ fn bounded_polymorphism_show() {
 }
 
 #[test]
-fn bounded_polymorphism_show_fail() {
+fn show_fail() {
     check(
         r#"
         namespace A {
@@ -500,7 +500,7 @@ fn bounded_polymorphism_show_fail() {
 }
 
 #[test]
-fn bounded_polymorphism_integral() {
+fn integral() {
     check(
         r#"
         namespace A {
@@ -538,7 +538,7 @@ fn bounded_polymorphism_integral() {
     );
 }
 #[test]
-fn bounded_polymorphism_integral_fail() {
+fn integral_fail() {
     check(
         r#"
         namespace A {
@@ -595,5 +595,116 @@ fn constraint_arguments_for_class_with_no_args() {
             #17 88-92 "true" : Bool
             Error(Type(Error(IncorrectNumberOfConstraintParameters(0, 1, Span { lo: 52, hi: 54 }))))
         "##]],
+    );
+}
+
+#[test]
+fn show_and_eq() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq + Show>(a: 'T, b: 'T) : String {
+                if a == b {
+                    $"Value: {a}"
+                } else {
+                    $"Value: {b}"
+                }
+            }
+
+            function Main() : Unit {
+                let x = Foo(1, 1);
+                let y = Foo(1, 2);
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #9 62-76 "(a: 'T, b: 'T)" : (Param<"'T": 0>, Param<"'T": 0>)
+            #10 63-68 "a: 'T" : Param<"'T": 0>
+            #14 70-75 "b: 'T" : Param<"'T": 0>
+            #21 86-240 "{\n                if a == b {\n                    $\"Value: {a}\"\n                } else {\n                    $\"Value: {b}\"\n                }\n            }" : String
+            #23 104-226 "if a == b {\n                    $\"Value: {a}\"\n                } else {\n                    $\"Value: {b}\"\n                }" : String
+            #24 107-113 "a == b" : Bool
+            #25 107-108 "a" : Param<"'T": 0>
+            #28 112-113 "b" : Param<"'T": 0>
+            #31 114-167 "{\n                    $\"Value: {a}\"\n                }" : String
+            #33 136-149 "$\"Value: {a}\"" : String
+            #34 146-147 "a" : Param<"'T": 0>
+            #37 168-226 "else {\n                    $\"Value: {b}\"\n                }" : String
+            #38 173-226 "{\n                    $\"Value: {b}\"\n                }" : String
+            #40 195-208 "$\"Value: {b}\"" : String
+            #41 205-206 "b" : Param<"'T": 0>
+            #47 267-269 "()" : Unit
+            #51 277-362 "{\n                let x = Foo(1, 1);\n                let y = Foo(1, 2);\n            }" : Unit
+            #53 299-300 "x" : String
+            #55 303-312 "Foo(1, 1)" : String
+            #56 303-306 "Foo" : ((Int, Int) -> String)
+            #59 306-312 "(1, 1)" : (Int, Int)
+            #60 307-308 "1" : Int
+            #61 310-311 "1" : Int
+            #63 334-335 "y" : String
+            #65 338-347 "Foo(1, 2)" : String
+            #66 338-341 "Foo" : ((Int, Int) -> String)
+            #69 341-347 "(1, 2)" : (Int, Int)
+            #70 342-343 "1" : Int
+            #71 345-346 "2" : Int
+        "##]]
+    );
+}
+
+#[test]
+fn show_and_eq_should_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq + Show>(a: 'T, b: 'T) : String {
+                if a == b {
+                    $"Value: {a}"
+                } else {
+                    $"Value: {b}"
+                }
+            }
+
+            function Main() : Unit {
+                let x = Foo(1, true);
+                let y = Foo(1, "2");
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #9 62-76 "(a: 'T, b: 'T)" : (Param<"'T": 0>, Param<"'T": 0>)
+            #10 63-68 "a: 'T" : Param<"'T": 0>
+            #14 70-75 "b: 'T" : Param<"'T": 0>
+            #21 86-240 "{\n                if a == b {\n                    $\"Value: {a}\"\n                } else {\n                    $\"Value: {b}\"\n                }\n            }" : String
+            #23 104-226 "if a == b {\n                    $\"Value: {a}\"\n                } else {\n                    $\"Value: {b}\"\n                }" : String
+            #24 107-113 "a == b" : Bool
+            #25 107-108 "a" : Param<"'T": 0>
+            #28 112-113 "b" : Param<"'T": 0>
+            #31 114-167 "{\n                    $\"Value: {a}\"\n                }" : String
+            #33 136-149 "$\"Value: {a}\"" : String
+            #34 146-147 "a" : Param<"'T": 0>
+            #37 168-226 "else {\n                    $\"Value: {b}\"\n                }" : String
+            #38 173-226 "{\n                    $\"Value: {b}\"\n                }" : String
+            #40 195-208 "$\"Value: {b}\"" : String
+            #41 205-206 "b" : Param<"'T": 0>
+            #47 267-269 "()" : Unit
+            #51 277-367 "{\n                let x = Foo(1, true);\n                let y = Foo(1, \"2\");\n            }" : Unit
+            #53 299-300 "x" : String
+            #55 303-315 "Foo(1, true)" : String
+            #56 303-306 "Foo" : ((Int, Int) -> String)
+            #59 306-315 "(1, true)" : (Int, Bool)
+            #60 307-308 "1" : Int
+            #61 310-314 "true" : Bool
+            #63 337-338 "y" : String
+            #65 341-352 "Foo(1, \"2\")" : String
+            #66 341-344 "Foo" : ((Int, Int) -> String)
+            #69 344-352 "(1, \"2\")" : (Int, String)
+            #70 345-346 "1" : Int
+            #71 348-351 "\"2\"" : String
+            Error(Type(Error(TyMismatch("Int", "Bool", Span { lo: 303, hi: 315 }))))
+            Error(Type(Error(TyMismatch("Int", "String", Span { lo: 341, hi: 352 }))))
+        "##]]
+
     );
 }
