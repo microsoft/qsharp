@@ -247,7 +247,10 @@ fn collect_names(
                     Completion::new("Add".to_string(), CompletionItemKind::Class),
                     Completion::new("Eq".to_string(), CompletionItemKind::Class),
                     Completion::new("Exp".to_string(), CompletionItemKind::Class),
-                    Completion::new("Iterable".to_string(), CompletionItemKind::Class),
+                    Completion::new("Num".to_string(), CompletionItemKind::Class),
+                    Completion::new("Integral".to_string(), CompletionItemKind::Class),
+                    Completion::new("Show".to_string(), CompletionItemKind::Class),
+                    // omit Iterable for now because it isn't supported
                 ]);
             }
         };
