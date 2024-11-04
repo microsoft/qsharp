@@ -176,23 +176,7 @@ export const GetJobs = async (): Promise<Job[]> => {
     const limited_jobs =
       jobs.length > job_limit ? jobs.slice(0, job_limit) : jobs;
 
-    const truncated_jobs = limited_jobs.map((job) => {
-      return {
-        id: job.id,
-        name: job.name,
-        target: job.target,
-        status: job.status,
-        outputDataUri: job.outputDataUri,
-        creationTime: job.creationTime,
-        beginExecutionTime: job.beginExecutionTime,
-        endExecutionTime: job.endExecutionTime,
-        cancellationTime: job.cancellationTime,
-        costEstimate: job.costEstimate,
-        errorData: job.errorData,
-      };
-    });
-
-    return truncated_jobs;
+    return limited_jobs;
   } else {
     return [];
   }
@@ -224,6 +208,7 @@ const GetJob = async (jobId: string): Promise<Job | undefined> => {
 
 const tryRenderResults = (
   file: string,
+  shots: number,
   streamCallback: CopilotStreamCallback,
 ): boolean => {
   try {
@@ -244,7 +229,7 @@ const tryRenderResults = (
     streamCallback(
       {
         buckets: histo,
-        shotCount: 100, // ToDo: Where are the actual shot counts stored?
+        shotCount: shots,
       },
       "copilotResponseHistogram",
     );
@@ -299,7 +284,7 @@ export const DownloadJobResults = async (
     if (file) {
       // log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file, streamCallback)) {
+      if (!tryRenderResults(file, job.shots, streamCallback)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",

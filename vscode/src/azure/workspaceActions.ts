@@ -10,7 +10,7 @@ import {
   ResponseTypes,
   storageRequest,
 } from "./networkRequests";
-import { WorkspaceConnection } from "./treeView";
+import { Job, WorkspaceConnection } from "./treeView";
 import {
   shouldExcludeProvider,
   shouldExcludeTarget,
@@ -427,7 +427,7 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   // Sort by creation time from newest to oldest
   workspace.jobs = jobs.value
     .sort((a, b) => (a.creationTime < b.creationTime ? 1 : -1))
-    .map((job) => ({ ...job }));
+    .map(responseJobToJob);
 
   sendTelemetryEvent(
     EventType.QueryWorkspaceEnd,
@@ -436,6 +436,24 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
   );
 
   return;
+}
+
+function responseJobToJob(job: ResponseTypes.Job): Job {
+  return {
+    id: job.id,
+    name: job.name,
+    target: job.target,
+    status: job.status,
+    outputDataUri: job.outputDataUri,
+    count: job.inputParams.count,
+    shots: job.inputParams.shots,
+    creationTime: job.creationTime,
+    beginExecutionTime: job.beginExecutionTime,
+    endExecutionTime: job.endExecutionTime,
+    cancellationTime: job.cancellationTime,
+    costEstimate: job.costEstimate,
+    errorData: job.errorData,
+  };
 }
 
 export async function getJobFiles(
