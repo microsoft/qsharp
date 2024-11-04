@@ -23,6 +23,7 @@ export default [
     { title: "Hidden Shift", file: "./algorithms/HiddenShiftNISQ.qs", shots: 1 },
     { title: "Hidden Shift (Advanced)", file: "./algorithms/HiddenShift.qs", shots: 1 },
     { title: "Shor", file: "./algorithms/Shor.qs", shots: 1 },
+    { title: "Three Qubit Repetition Code", file: "./algorithms/ThreeQubitRepetitionCode.qs", shots: 1 },
     { title: "Dynamics (Resource Estimation)", file: "./estimation/Dynamics.qs", shots: 1, omitFromTests: true },
     { title: "Precalculated (Resource Estimation)", file: "./estimation/Precalculated.qs", shots: 1, omitFromTests: true  },
     { title: "Shor (Resource Estimation)", file: "./estimation/ShorRE.qs", shots: 1, omitFromTests: true },
