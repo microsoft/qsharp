@@ -296,7 +296,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError
     match &*pat.kind {
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => (
             Ty::Err,
-            vec![TyConversionError::MissingTy { span: pat.span }],
+            vec![TyConversionError::MissingTy { span: pat.span }.into()],
         ),
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => ty_from_ast(names, ty),
         PatKind::Paren(inner) => ast_pat_ty(names, inner),

@@ -134,6 +134,14 @@ enum ErrorKind {
         span: Span,
         name: String,
     },
+    #[error("class constraint is recursive via {name}")]
+    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[diagnostic(code("Qsc.TypeCk.RecursiveClassConstraint"))]
+    RecursiveClassConstraint {
+        #[label]
+        span: Span,
+        name: String,
+    },
     #[error("expected {expected} parameters for constraint, found {found}")]
     #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
     IncorrectNumberOfConstraintParameters {
