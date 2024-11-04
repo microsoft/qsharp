@@ -97,7 +97,6 @@ impl Class {
             } => vec![container, index],
             Self::Iterable { container, .. } => vec![container],
             Self::Unwrap { wrapper, .. } => vec![wrapper],
-            // TODO(sezna) support for non native classes
             Self::NonPrimitive(_) => Vec::new(),
         }
     }
