@@ -91,6 +91,7 @@ module_name_repetitions = "allow"
 needless_raw_string_hashes = "allow"
 unnecessary_wraps = "allow"
 default_trait_access = "allow"
+enum_glob_use = "allow"
 
 [profile.release]
 debug = "limited"
