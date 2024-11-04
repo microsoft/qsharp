@@ -708,3 +708,37 @@ fn show_and_eq_should_fail() {
 
     );
 }
+
+#[test]
+fn unknown_class() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Unknown>(a: 'T) : 'T {
+                a
+            }
+
+            function Main() : Unit {
+                let x = Foo(1);
+            }
+        }"#,
+        "",
+        &expect![[r##"
+            #8 60-67 "(a: 'T)" : Param<"'T": 0>
+            #9 61-66 "a: 'T" : Param<"'T": 0>
+            #15 73-106 "{\n                a\n            }" : Param<"'T": 0>
+            #17 91-92 "a" : Param<"'T": 0>
+            #23 133-135 "()" : Unit
+            #27 143-190 "{\n                let x = Foo(1);\n            }" : Unit
+            #29 165-166 "x" : Int
+            #31 169-175 "Foo(1)" : Int
+            #32 169-172 "Foo" : (Int -> Int)
+            #35 172-175 "(1)" : Int
+            #36 173-174 "1" : Int
+            Error(Type(Error(UnrecognizedClass("Unknown", Span { lo: 52, hi: 59 }))))
+            Error(Type(Error(UnrecognizedClass("Unknown", Span { lo: 52, hi: 59 }))))
+            Error(Type(Error(UnrecognizedClass("Unknown", Span { lo: 52, hi: 59 }))))
+            Error(Type(Error(UnrecognizedClass("Unknown", Span { lo: 52, hi: 59 }))))
+        "##]],
+    );
+}

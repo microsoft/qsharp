@@ -134,12 +134,12 @@ enum ErrorKind {
 impl From<TyConversionError> for Error {
     fn from(err: TyConversionError) -> Self {
         match err {
-            TyConversionError::MissingTy(err) => Error(ErrorKind::MissingItemTy(err.0)),
-            TyConversionError::UnrecognizedClass(err) => {
-                Error(ErrorKind::UnrecognizedClass(err.name, err.span))
+            TyConversionError::MissingTy { span } => Error(ErrorKind::MissingItemTy(span)),
+            TyConversionError::UnrecognizedClass { span, name } => {
+                Error(ErrorKind::UnrecognizedClass(name, span))
             }
-            TyConversionError::RecursiveClassConstraint(err) => {
-                Error(ErrorKind::UnsupportedParametricClassBound(err.span))
+            TyConversionError::RecursiveClassConstraint{ span, .. } => {
+                Error(ErrorKind::UnsupportedParametricClassBound(span))
             }
             TyConversionError::IncorrectNumberOfConstraintParameters {
                 expected,

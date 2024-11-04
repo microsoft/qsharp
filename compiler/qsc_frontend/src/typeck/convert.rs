@@ -22,37 +22,26 @@ use qsc_hir::{
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
-#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
-#[error("missing type in item signature")]
-#[help("a type must be provided for this item")]
-pub(crate) struct MissingTyError(#[label] pub(super) Span);
-
-#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
-#[error("unrecognized type bound {name}")]
-pub(crate) struct UnrecognizedBoundError {
-    #[label]
-    pub span: Span,
-    pub name: String,
-}
-
-#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
-#[error("class constraint is recursive via {name}")]
-#[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
-pub(crate) struct RecursiveClassConstraintError {
-    #[label]
-    pub span: Span,
-    pub name: String,
-}
-
 // TODO(sezna) clean this up and maybe just make it part of the parent error ty
 #[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum TyConversionError {
-    #[error(transparent)]
-    MissingTy(#[from] MissingTyError),
-    #[error(transparent)]
-    UnrecognizedClass(#[from] UnrecognizedBoundError),
-    #[error(transparent)]
-    RecursiveClassConstraint(#[from] RecursiveClassConstraintError),
+    #[error("missing type in item signature")]
+    #[help("a type must be provided for this item")]
+    MissingTy { #[label] span: Span },
+    #[error("unrecognized class constraint {name}")]
+    UnrecognizedClass {
+        #[label]
+         span: Span,
+         name: String,
+    },
+    #[error("class constraint is recursive via {name}")]
+    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    RecursiveClassConstraint 
+        {
+            #[label]
+             span: Span,
+             name: String,
+        },
     #[error("expected {expected} parameters for constraint, found {found}")]
     #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
     IncorrectNumberOfConstraintParameters {
@@ -89,7 +78,7 @@ pub(crate) fn ty_from_ast(
             }));
             (ty, errors)
         }
-        TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
+        TyKind::Hole => (Ty::Err, vec![TyConversionError::MissingTy { span: ty.span }]),
         TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             Some(resolve::Res::Param { id, bounds }) => {
@@ -103,7 +92,7 @@ pub(crate) fn ty_from_ast(
                     errors,
                 )
             }
-            Some(_) | None => (Ty::Err, vec![MissingTyError(ty.span).into()]),
+            Some(_) | None => (Ty::Err, vec![TyConversionError::MissingTy { span: ty.span }]),
         },
         TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
         TyKind::Tuple(items) => {
@@ -321,7 +310,7 @@ pub(crate) fn synthesize_functor_params(
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError>) {
     match &*pat.kind {
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
-            (Ty::Err, vec![MissingTyError(pat.span).into()])
+            (Ty::Err, vec![TyConversionError::MissingTy { span: pat.span }.into()])
         }
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => {
             ty_from_ast(names, ty, &mut Default::default())
@@ -398,11 +387,10 @@ pub(crate) fn ty_bound_from_ast(
     for ast_bound in &bounds.0 {
         if stack.contains(ast_bound) {
             errors.insert(
-                RecursiveClassConstraintError {
+                TyConversionError::RecursiveClassConstraint {
                     span: ast_bound.span(),
                     name: ast_bound.name.name.to_string(),
                 }
-                .into(),
             );
             continue;
         }
@@ -423,9 +411,12 @@ pub(crate) fn ty_bound_from_ast(
             "Integral" => Ok(qsc_hir::ty::ClassConstraint::Integral),
             "Num" => Ok(qsc_hir::ty::ClassConstraint::Num),
             "Show" => Ok(qsc_hir::ty::ClassConstraint::Show),
-            otherwise => Ok(qsc_hir::ty::ClassConstraint::NonNativeClass(
-                otherwise.into(),
-            )),
+            otherwise => Err(
+                TyConversionError::UnrecognizedClass {
+                    span: ast_bound.span(),
+                    name: otherwise.to_string(),
+                }
+            ),
         };
 
         match bound_result {

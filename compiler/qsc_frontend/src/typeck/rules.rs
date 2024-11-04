@@ -132,7 +132,6 @@ impl<'a> Context<'a> {
                 Some(Res::Param { id, bounds }) => {
                     let (bounds, errs) =
                         convert::ty_bound_from_ast(self.names, bounds, &mut Default::default());
-                    // TODO(sezna) what to do with res bounds?
                     for err in errs {
                         self.inferrer.report_error(err);
                     }
