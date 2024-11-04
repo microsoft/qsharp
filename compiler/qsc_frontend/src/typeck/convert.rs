@@ -63,6 +63,7 @@ pub(crate) enum TyConversionError {
     },
 }
 
+/// Given an `ast::Ty` and a list of resolved `Names`, convert the `ast::Ty` to an `hir::Ty`.
 pub(crate) fn ty_from_ast(
     names: &Names,
     ty: &ast::Ty,
@@ -91,7 +92,6 @@ pub(crate) fn ty_from_ast(
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
-            // TODO(sezna) should only res or typaram track bounds?
             Some(resolve::Res::Param { id, bounds }) => {
                 let (bounds, errors) = ty_bound_from_ast(names, bounds, stack);
                 (
@@ -103,7 +103,6 @@ pub(crate) fn ty_from_ast(
                     errors,
                 )
             }
-            // TODO(sezna) verify that this is the correct thing to do here
             Some(_) | None => (Ty::Err, vec![MissingTyError(ty.span).into()]),
         },
         TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
@@ -419,7 +418,6 @@ pub(crate) fn ty_bound_from_ast(
             "Exp" => {
                 let (power, power_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
                 errors.extend(power_errors.into_iter());
-                // TODO(sezna) make sure that there are not excess parameters
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }
             "Integral" => Ok(qsc_hir::ty::ClassConstraint::Integral),

@@ -158,7 +158,6 @@ impl Class {
                 wrapper: f(wrapper),
                 base: f(base),
             },
-            // TODO(sezna) support for non native classes
             Self::NonPrimitive(name) => Self::NonPrimitive(name),
         }
     }
@@ -206,7 +205,6 @@ impl Class {
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
-            // TODO(sezna)
             Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
@@ -455,13 +453,6 @@ impl Inferrer {
                             .collect()
                     }))
                 }
-                /*
-                GenericParam::Ty { name, bounds } => GenericArg::Ty(Ty::Param {
-                    name: name.clone(),
-                    id: 0.into(), // TODO(sezna)
-                    bounds: bounds.clone(),
-                }),
-                */
                 GenericParam::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
@@ -707,7 +698,6 @@ impl Solver {
                     id: *id1,
                     bounds: qsc_hir::ty::TyBounds(bounds.clone().into_iter().collect()),
                 };
-                // TODO(sezna) this might not be correct
                 bounds
                     .into_iter()
                     .map(|x| into_constraint(merged_ty.clone(), &x, span))

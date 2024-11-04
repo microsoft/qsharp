@@ -76,10 +76,8 @@ impl std::fmt::Display for TyBounds {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug,  Eq, PartialEq, PartialOrd, Ord)]
 pub enum ClassConstraint {
-    // TODO(sezna) why is this the default?
-    #[default]
     Eq,
     Add,
     Exp {

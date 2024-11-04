@@ -18,8 +18,7 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, ClassConstraint, ClassConstraints, Functor, FunctorExpr, FunctorExprKind, NodeId,
-    SetOp, Ty, TyKind, TypeParameter,
+    CallableKind, ClassConstraint, ClassConstraints, ConstraintParameter, Functor, FunctorExpr, FunctorExprKind, NodeId, SetOp, Ty, TyKind, TypeParameter
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
@@ -90,13 +89,6 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
     ))
 }
 
-// parses a ty but keeps track of the ident name
-// TODO(sezna) document why this is here
-fn ty_or_ident(s: &mut ParserContext) -> Result<qsc_ast::ast::ConstraintParameter> {
-    let ty = ty(s)?;
-    Ok(qsc_ast::ast::ConstraintParameter { ty })
-}
-
 /// Parses the bounds of a type parameter, which are a list of class names separated by `+`.
 /// This occurs after a `:` in a generic type:
 /// `T: Eq + Iterator[Bool] + Class3`
@@ -111,13 +103,13 @@ fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
         // e.g. `Iterator[Bool]`
         let mut ty_parameters = Vec::new();
         if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
-            let (tys, _final_sep) = seq(s, ty_or_ident)?;
+            let (tys, _final_sep) = seq(s, ty)?;
             ty_parameters = tys;
             token(s, TokenKind::Close(Delim::Bracket))?;
         }
         bounds.push(ClassConstraint {
             name: *bound_name,
-            parameters: ty_parameters.into_boxed_slice(),
+            parameters: ty_parameters.into_iter().map(|ty| ConstraintParameter { ty } ).collect(),
         });
         if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_err() {
             break;

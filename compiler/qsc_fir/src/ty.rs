@@ -207,7 +207,6 @@ impl std::fmt::Display for TyBounds {
     }
 }
 
-// TODO(sezna) support other bounds
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ClassConstraint {
     #[default]
