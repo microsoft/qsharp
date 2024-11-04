@@ -71,8 +71,8 @@ fn exp_extra_arg() {
             #28 108-113 "a ^ b" : Param<"'E": 0>
             #29 108-109 "a" : Param<"'E": 0>
             #32 112-113 "b" : Int
-            Error(Type(Error(TyConversion(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } }))))
-            Error(Type(Error(TyConversion(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } }))))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } })))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } })))
             Error(Type(Error(MissingClassExp("'E", Span { lo: 108, hi: 113 }))))
             Error(Type(Error(TyMismatch("'T", "'E", Span { lo: 108, hi: 113 }))))
         "##]],
@@ -593,7 +593,7 @@ fn constraint_arguments_for_class_with_no_args() {
             #11 60-62 "()" : Unit
             #15 70-106 "{\n                true\n            }" : Bool
             #17 88-92 "true" : Bool
-            Error(Type(Error(TyConversion(IncorrectNumberOfConstraintParameters { expected: 0, found: 1, span: Span { lo: 52, hi: 54 } }))))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 0, found: 1, span: Span { lo: 52, hi: 54 } })))
         "##]],
     );
 }
@@ -734,10 +734,38 @@ fn unknown_class() {
             #32 169-172 "Foo" : (Int -> Int)
             #35 172-175 "(1)" : Int
             #36 173-174 "1" : Int
-            Error(Type(Error(TyConversion(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" }))))
-            Error(Type(Error(TyConversion(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" }))))
-            Error(Type(Error(TyConversion(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" }))))
-            Error(Type(Error(TyConversion(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" }))))
+            Error(Type(Error(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" })))
+            Error(Type(Error(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" })))
+            Error(Type(Error(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" })))
+            Error(Type(Error(UnrecognizedClass { span: Span { lo: 52, hi: 59 }, name: "Unknown" })))
+        "##]],
+    );
+}
+
+#[test]
+fn class_constraint_in_lambda() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Eq>(a: 'T -> Bool, b: 'T) : Bool {
+                a(b);
+                b == b
+            }
+        }
+    "#,
+        "",
+        &expect![[r##"
+            #8 55-77 "(a: 'T -> Bool, b: 'T)" : ((Param<"'T": 0> -> Bool), Param<"'T": 0>)
+            #9 56-69 "a: 'T -> Bool" : (Param<"'T": 0> -> Bool)
+            #17 71-76 "b: 'T" : Param<"'T": 0>
+            #24 85-145 "{\n                a(b);\n                b == b\n            }" : Bool
+            #26 103-107 "a(b)" : Bool
+            #27 103-104 "a" : (Param<"'T": 0> -> Bool)
+            #30 104-107 "(b)" : Param<"'T": 0>
+            #31 105-106 "b" : Param<"'T": 0>
+            #35 125-131 "b == b" : Bool
+            #36 125-126 "b" : Param<"'T": 0>
+            #39 130-131 "b" : Param<"'T": 0>
         "##]],
     );
 }

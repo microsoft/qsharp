@@ -4208,7 +4208,7 @@ fn undeclared_generic_param() {
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-            Error(Type(Error(TyConversion(MissingTy { span: Span { lo: 27, hi: 29 } }))))
+            Error(Type(Error(MissingTy { span: Span { lo: 27, hi: 29 } })))
         "##]],
     );
 }

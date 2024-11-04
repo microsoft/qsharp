@@ -6,7 +6,6 @@ use std::rc::Rc;
 
 use crate::resolve::{self, Names};
 
-use miette::Diagnostic;
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
     Path, PathKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TypeParameter,
@@ -20,36 +19,23 @@ use qsc_hir::{
     },
 };
 use rustc_hash::FxHashSet;
-use thiserror::Error;
 
-#[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum TyConversionError {
-    #[error("missing type in item signature")]
-    #[help("a type must be provided for this item")]
     MissingTy {
-        #[label]
         span: Span,
     },
-    #[error("unrecognized class constraint {name}")]
-    #[help("supported classes are Eq, Add, Exp, Integral, Num, and Show")]
     UnrecognizedClass {
-        #[label]
         span: Span,
         name: String,
     },
-    #[error("class constraint is recursive via {name}")]
-    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
     RecursiveClassConstraint {
-        #[label]
         span: Span,
         name: String,
     },
-    #[error("expected {expected} parameters for constraint, found {found}")]
-    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
     IncorrectNumberOfConstraintParameters {
         expected: usize,
         found: usize,
-        #[label]
         span: Span,
     },
 }

@@ -119,12 +119,49 @@ enum ErrorKind {
     #[error("unsupported parametric class bound")]
     #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
     UnsupportedParametricClassBound(#[label] Span),
-    #[error(transparent)]
-    TyConversion(#[from] TyConversionError),
+    #[error("missing type in item signature")]
+    #[diagnostic(help("a type must be provided for this item"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingTy"))]
+    MissingTy {
+        #[label]
+        span: Span,
+    },
+    #[error("unrecognized class constraint {name}")]
+    #[help("supported classes are Eq, Add, Exp, Integral, Num, and Show")]
+    #[diagnostic(code("Qsc.TypeCk.UnrecognizedClass"))]
+    UnrecognizedClass {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("class constraint is recursive via {name}")]
+    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[diagnostic(code("Qsc.TypeCk.RecursiveClassConstraint"))]
+    RecursiveClassConstraint {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("expected {expected} parameters for constraint, found {found}")]
+    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
+    IncorrectNumberOfConstraintParameters {
+        expected: usize,
+        found: usize,
+        #[label]
+        span: Span,
+    },
 }
 
 impl From<TyConversionError> for Error {
     fn from(err: TyConversionError) -> Self {
-        Error(ErrorKind::TyConversion(err))
+        use TyConversionError::*;
+        match err {
+            MissingTy { span } => Error(ErrorKind::MissingTy { span }),
+            UnrecognizedClass { span, name } => Error(ErrorKind::UnrecognizedClass { span, name }),
+            RecursiveClassConstraint { span, name } => Error(ErrorKind::RecursiveClassConstraint { span, name }),
+            IncorrectNumberOfConstraintParameters { expected, found, span } => {
+                Error(ErrorKind::IncorrectNumberOfConstraintParameters { expected, found, span })
+            }
+        }
     }
 }
