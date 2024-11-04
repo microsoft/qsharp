@@ -130,8 +130,7 @@ impl<'a> Context<'a> {
                 ty, constraints: _, ..
             }) => match self.names.get(ty.id) {
                 Some(Res::Param { id, bounds }) => {
-                    let (bounds, errs) =
-                        convert::ty_bound_from_ast(self.names, bounds, &mut Default::default());
+                    let (bounds, errs) = convert::ty_bound_from_ast(self.names, bounds);
                     for err in errs {
                         self.inferrer.report_error(err);
                     }

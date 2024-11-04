@@ -66,14 +66,6 @@ pub(super) enum Error {
         span: Span,
         name: String,
     },
-    #[error("class constraint is recursive via {name}")]
-    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
-    #[diagnostic(code("Qsc.LowerAst.RecursiveClassConstraint"))]
-    RecursiveClassConstraint {
-        #[label]
-        span: Span,
-        name: String,
-    },
     #[error("expected {expected} parameters for constraint, found {found}")]
     #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
     IncorrectNumberOfConstraintParameters {
@@ -90,9 +82,6 @@ impl From<TyConversionError> for Error {
         match err {
             MissingTy { span } => Error::MissingTy { span },
             UnrecognizedClass { span, name } => Error::UnrecognizedClass { span, name },
-            RecursiveClassConstraint { span, name } => {
-                Error::RecursiveClassConstraint { span, name }
-            }
             IncorrectNumberOfConstraintParameters {
                 expected,
                 found,
@@ -495,7 +484,7 @@ impl With<'_> {
         let kind = self.lower_callable_kind(decl.kind, attrs, decl.name.span);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
-        let output = convert::ty_from_ast(self.names, &decl.output, &mut Default::default()).0;
+        let output = convert::ty_from_ast(self.names, &decl.output).0;
         let (generics, errs) = self.synthesize_callable_generics(&decl.generics, &mut input);
         let functors = convert::ast_callable_functors(decl);
 

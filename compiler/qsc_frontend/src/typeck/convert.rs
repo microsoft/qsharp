@@ -29,10 +29,6 @@ pub(crate) enum TyConversionError {
         span: Span,
         name: String,
     },
-    RecursiveClassConstraint {
-        span: Span,
-        name: String,
-    },
     IncorrectNumberOfConstraintParameters {
         expected: usize,
         found: usize,
@@ -41,19 +37,15 @@ pub(crate) enum TyConversionError {
 }
 
 /// Given an `ast::Ty` and a list of resolved `Names`, convert the `ast::Ty` to an `hir::Ty`.
-pub(crate) fn ty_from_ast(
-    names: &Names,
-    ty: &ast::Ty,
-    stack: &mut FxHashSet<qsc_ast::ast::ClassConstraint>,
-) -> (Ty, Vec<TyConversionError>) {
+pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<TyConversionError>) {
     match &*ty.kind {
         TyKind::Array(item) => {
-            let (item, errors) = ty_from_ast(names, item, stack);
+            let (item, errors) = ty_from_ast(names, item);
             (Ty::Array(Box::new(item)), errors)
         }
         TyKind::Arrow(kind, input, output, functors) => {
-            let (input, mut errors) = ty_from_ast(names, input, stack);
-            let (output, output_errors) = ty_from_ast(names, output, stack);
+            let (input, mut errors) = ty_from_ast(names, input);
+            let (output, output_errors) = ty_from_ast(names, output);
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
@@ -70,10 +62,10 @@ pub(crate) fn ty_from_ast(
             Ty::Err,
             vec![TyConversionError::MissingTy { span: ty.span }],
         ),
-        TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
+        TyKind::Paren(inner) => ty_from_ast(names, inner),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             Some(resolve::Res::Param { id, bounds }) => {
-                let (bounds, errors) = ty_bound_from_ast(names, bounds, stack);
+                let (bounds, errors) = ty_bound_from_ast(names, bounds);
                 (
                     Ty::Param {
                         name: ty.name.clone(),
@@ -93,7 +85,7 @@ pub(crate) fn ty_from_ast(
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ty_from_ast(names, item, stack);
+                let (item_ty, item_errors) = ty_from_ast(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
@@ -165,7 +157,7 @@ pub(super) fn ast_ty_def_cons(
 
 fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<TyConversionError>) {
     match &*def.kind {
-        TyDefKind::Field(_, ty) => ty_from_ast(names, ty, &mut Default::default()),
+        TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
         TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
@@ -192,7 +184,7 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
         span: def.span,
         kind: match &*def.kind {
             TyDefKind::Field(name, ty) => {
-                let (ty, item_errors) = ty_from_ast(names, ty, &mut Default::default());
+                let (ty, item_errors) = ty_from_ast(names, ty);
                 errors.extend(item_errors);
                 let (name_span, name) = match name {
                     Some(name) => (Some(name.span), Some(name.name.clone())),
@@ -234,8 +226,7 @@ pub(crate) fn ast_callable_generics(
     let mut errors = Vec::new();
     let mut generics_buf = Vec::with_capacity(generics.len());
     for param in generics {
-        let (bounds, new_errors) =
-            ty_bound_from_ast(names, &param.constraints, &mut Default::default());
+        let (bounds, new_errors) = ty_bound_from_ast(names, &param.constraints);
         errors.extend(new_errors);
         generics_buf.push(GenericParam::Ty {
             name: param.ty.name.clone(),
@@ -259,7 +250,7 @@ pub(super) fn ast_callable_scheme(
     let (mut input, new_errors) = ast_pat_ty(names, &callable.input);
     errors.extend(&mut new_errors.into_iter());
 
-    let (output, output_errors) = ty_from_ast(names, &callable.output, &mut Default::default());
+    let (output, output_errors) = ty_from_ast(names, &callable.output);
 
     errors.extend(output_errors);
 
@@ -307,9 +298,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError
             Ty::Err,
             vec![TyConversionError::MissingTy { span: pat.span }.into()],
         ),
-        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => {
-            ty_from_ast(names, ty, &mut Default::default())
-        }
+        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => ty_from_ast(names, ty),
         PatKind::Paren(inner) => ast_pat_ty(names, inner),
         PatKind::Tuple(items) => {
             let mut tys = Vec::new();
@@ -373,31 +362,21 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 pub(crate) fn ty_bound_from_ast(
     names: &Names,
     bounds: &qsc_ast::ast::ClassConstraints,
-    // used to check for recursive types
-    stack: &mut FxHashSet<qsc_ast::ast::ClassConstraint>,
 ) -> (qsc_hir::ty::TyBounds, Vec<TyConversionError>) {
     let mut bounds_buf = Vec::new();
     let mut errors = FxHashSet::default();
 
     for ast_bound in &bounds.0 {
-        if stack.contains(ast_bound) {
-            errors.insert(TyConversionError::RecursiveClassConstraint {
-                span: ast_bound.span(),
-                name: ast_bound.name.name.to_string(),
-            });
-            continue;
-        }
-        stack.insert(ast_bound.clone());
         let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
             "Iterable" => {
-                let (item, item_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
+                let (item, item_errors) = ty_from_ast(names, ast_bound.parameters[0].ty());
                 errors.extend(item_errors.into_iter());
                 Ok(qsc_hir::ty::ClassConstraint::Iterable { item })
             }
             "Exp" => {
-                let (power, power_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
+                let (power, power_errors) = ty_from_ast(names, ast_bound.parameters[0].ty());
                 errors.extend(power_errors.into_iter());
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }

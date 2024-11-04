@@ -158,10 +158,15 @@ impl From<TyConversionError> for Error {
         match err {
             MissingTy { span } => Error(ErrorKind::MissingTy { span }),
             UnrecognizedClass { span, name } => Error(ErrorKind::UnrecognizedClass { span, name }),
-            RecursiveClassConstraint { span, name } => Error(ErrorKind::RecursiveClassConstraint { span, name }),
-            IncorrectNumberOfConstraintParameters { expected, found, span } => {
-                Error(ErrorKind::IncorrectNumberOfConstraintParameters { expected, found, span })
-            }
+            IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            } => Error(ErrorKind::IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            }),
         }
     }
 }
