@@ -22,13 +22,13 @@ use qsc_hir::{
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
-// TODO(sezna) clean this up and maybe just make it part of the parent error ty
 #[derive(Debug, Error, Diagnostic, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum TyConversionError {
     #[error("missing type in item signature")]
     #[help("a type must be provided for this item")]
     MissingTy { #[label] span: Span },
     #[error("unrecognized class constraint {name}")]
+    #[help("supported classes are Eq, Add, Exp, Integral, Num, and Show")]
     UnrecognizedClass {
         #[label]
          span: Span,

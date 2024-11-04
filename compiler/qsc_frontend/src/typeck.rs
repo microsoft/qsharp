@@ -108,10 +108,6 @@ enum ErrorKind {
     #[error("expected superset of {0}, found {1}")]
     #[diagnostic(code("Qsc.TypeCk.MissingFunctor"))]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
-    #[error("missing type in item signature")]
-    #[diagnostic(help("types cannot be inferred for global declarations"))]
-    #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
-    MissingItemTy(#[label] Span),
     #[error("found hole with type {0}")]
     #[diagnostic(help("replace this hole with an expression of the expected type"))]
     #[diagnostic(code("Qsc.TypeCk.TyHole"))]
@@ -120,34 +116,15 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
-    #[error("unrecognized class bound {0}")]
-    #[diagnostic(code("Qsc.TypeCk.UnrecognizedClass"))]
-    UnrecognizedClass(String, #[label] Span),
     #[error("unsupported parametric class bound")]
     #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
     UnsupportedParametricClassBound(#[label] Span),
-    #[error("incorrect number of constraint parameters: expected {0}, found {1}")]
-    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
-    IncorrectNumberOfConstraintParameters(usize, usize, #[label] Span),
+    #[error(transparent)]
+    TyConversion(#[from] TyConversionError),
 }
 
 impl From<TyConversionError> for Error {
     fn from(err: TyConversionError) -> Self {
-        match err {
-            TyConversionError::MissingTy { span } => Error(ErrorKind::MissingItemTy(span)),
-            TyConversionError::UnrecognizedClass { span, name } => {
-                Error(ErrorKind::UnrecognizedClass(name, span))
-            }
-            TyConversionError::RecursiveClassConstraint{ span, .. } => {
-                Error(ErrorKind::UnsupportedParametricClassBound(span))
-            }
-            TyConversionError::IncorrectNumberOfConstraintParameters {
-                expected,
-                found,
-                span,
-            } => Error(ErrorKind::IncorrectNumberOfConstraintParameters(
-                expected, found, span,
-            )),
-        }
+        Error(ErrorKind::TyConversion(err))
     }
 }
