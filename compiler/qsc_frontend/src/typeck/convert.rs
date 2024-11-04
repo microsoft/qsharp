@@ -458,15 +458,10 @@ fn check_param_length(
     num_given_parameters: usize,
     span: Span,
 ) {
+    use qsc_hir::ty::ClassConstraint::*;
     let num_parameters = match bound {
-        qsc_hir::ty::ClassConstraint::Eq => 0,
-        qsc_hir::ty::ClassConstraint::Add => 0,
-        qsc_hir::ty::ClassConstraint::Iterable { .. } => 1,
-        qsc_hir::ty::ClassConstraint::Exp { .. } => 1,
-        qsc_hir::ty::ClassConstraint::Integral => 0,
-        qsc_hir::ty::ClassConstraint::Num => 0,
-        qsc_hir::ty::ClassConstraint::Show => 0,
-        qsc_hir::ty::ClassConstraint::NonNativeClass(_) => 0,
+        Eq | Add | Integral | Num | Show | NonNativeClass(_) => 0,
+        Iterable { .. } | Exp { .. } => 1,
     };
     if num_parameters != num_given_parameters {
         errors.insert(TyConversionError::IncorrectNumberOfConstraintParameters {

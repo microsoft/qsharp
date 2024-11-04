@@ -515,7 +515,26 @@ fn bounded_polymorphism_integral() {
         }
         "#,
         "",
-        &expect![[r##""##]],
+        &expect![[r##"
+            #8 61-68 "(a: 'T)" : Param<"'T": 0>
+            #9 62-67 "a: 'T" : Param<"'T": 0>
+            #15 74-113 "{\n                a ^^^ a\n            }" : Param<"'T": 0>
+            #17 92-99 "a ^^^ a" : Param<"'T": 0>
+            #18 92-93 "a" : Param<"'T": 0>
+            #21 98-99 "a" : Param<"'T": 0>
+            #27 140-142 "()" : Unit
+            #31 150-244 "{\n                let x: Int = Foo(1);\n                let y: BigInt = Foo(10L);\n            }" : Unit
+            #33 172-178 "x: Int" : Int
+            #38 181-187 "Foo(1)" : Int
+            #39 181-184 "Foo" : (Int -> Int)
+            #42 184-187 "(1)" : Int
+            #43 185-186 "1" : Int
+            #45 209-218 "y: BigInt" : BigInt
+            #50 221-229 "Foo(10L)" : BigInt
+            #51 221-224 "Foo" : (BigInt -> BigInt)
+            #54 224-229 "(10L)" : BigInt
+            #55 225-228 "10L" : BigInt
+        "##]],
     );
 }
 #[test]
@@ -534,7 +553,28 @@ fn bounded_polymorphism_integral_fail() {
         }
         "#,
         "",
-        &expect![[r##""##]],
+        &expect![[r##"
+            #8 61-68 "(a: 'T)" : Param<"'T": 0>
+            #9 62-67 "a: 'T" : Param<"'T": 0>
+            #15 74-113 "{\n                a ^^^ a\n            }" : Param<"'T": 0>
+            #17 92-99 "a ^^^ a" : Param<"'T": 0>
+            #18 92-93 "a" : Param<"'T": 0>
+            #21 98-99 "a" : Param<"'T": 0>
+            #27 140-142 "()" : Unit
+            #31 150-234 "{\n                let x = Foo(1.0);\n                let y = Foo(true);\n            }" : Unit
+            #33 172-173 "x" : Double
+            #35 176-184 "Foo(1.0)" : Double
+            #36 176-179 "Foo" : (Double -> Double)
+            #39 179-184 "(1.0)" : Double
+            #40 180-183 "1.0" : Double
+            #42 206-207 "y" : Bool
+            #44 210-219 "Foo(true)" : Bool
+            #45 210-213 "Foo" : (Bool -> Bool)
+            #48 213-219 "(true)" : Bool
+            #49 214-218 "true" : Bool
+            Error(Type(Error(MissingClassInteger("Double", Span { lo: 176, hi: 184 }))))
+            Error(Type(Error(MissingClassInteger("Bool", Span { lo: 210, hi: 219 }))))
+        "##]],
     );
 }
 
@@ -549,6 +589,11 @@ fn constraint_arguments_for_class_with_no_args() {
         }
         "#,
         "",
-        &expect![[r##""##]],
+        &expect![[r##"
+            #11 60-62 "()" : Unit
+            #15 70-106 "{\n                true\n            }" : Bool
+            #17 88-92 "true" : Bool
+            Error(Type(Error(IncorrectNumberOfConstraintParameters(0, 1, Span { lo: 52, hi: 54 }))))
+        "##]],
     );
 }

@@ -211,37 +211,6 @@ impl Class {
             Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
-
-    fn contains(&self, ty: Ty) -> bool {
-        match self {
-            Class::Add(ty1)
-            | Class::Adj(ty1)
-            | Class::Eq(ty1)
-            | Class::Integral(ty1)
-            | Class::Num(ty1)
-            | Class::Show(ty1)
-            | Class::Struct(ty1) => ty == *ty1,
-            Class::Call {
-                callee,
-                input,
-                output,
-            } => ty == *callee || input.to_ty() == ty || ty == *output,
-            Class::Ctl { op, with_ctls } => ty == *op || ty == *with_ctls,
-            Class::Exp { base, power } => ty == *base || ty == *power,
-            Class::HasField { record, item, .. } => ty == *record || ty == *item,
-            Class::HasStructShape { record, .. } => ty == *record,
-            Class::HasIndex {
-                container,
-                index,
-                item,
-            } => ty == *container || ty == *index || ty == *item,
-            Class::Iterable { container, item } => ty == *container || ty == *item,
-            Class::Unwrap { wrapper, base } => ty == *wrapper || ty == *base,
-            // NonPrimitive classes are not yet supported
-            // so we don't need to check for them
-            Class::NonPrimitive(_) => false,
-        }
-    }
 }
 
 /// Meta-level descriptions about the source of a type.
@@ -408,24 +377,6 @@ enum Constraint {
         span: Span,
     },
 }
-impl Constraint {
-    /// Returns true if the constraint references the specified type.
-    fn contains(&self, ty: Ty) -> bool {
-        match self {
-            Constraint::Class(class, _) => class.contains(ty),
-            Constraint::Eq {
-                expected,
-                actual,
-                span,
-            } => expected == &ty || actual == &ty,
-            Constraint::Superset {
-                expected,
-                actual,
-                span,
-            } => false,
-        }
-    }
-}
 
 pub(super) struct Inferrer {
     solver: Solver,
@@ -462,7 +413,7 @@ impl Inferrer {
     }
 
     /// Returns a unique type variable with specified constraints.
-    pub(super) fn constrained_ty(
+    fn constrained_ty(
         &mut self,
         meta: TySource,
         with_constraints: impl Fn(Ty) -> Vec<Constraint>,
@@ -949,8 +900,6 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    dbg!(&callee);
-    dbg!(&input);
     let Ty::Arrow(arrow) = callee else {
         return (
             Vec::new(),

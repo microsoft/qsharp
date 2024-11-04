@@ -249,7 +249,6 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
-                dbg!(&callee);
                 let callee = self.infer_expr(callee);
                 let input = self.infer_hole_tuple(
                     ArgTy::Hole,
