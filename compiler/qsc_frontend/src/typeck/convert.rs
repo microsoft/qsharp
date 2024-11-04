@@ -227,6 +227,8 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
     (def, errors)
 }
 
+/// Given a list of ast type parameters, convert them to HIR type parameters and generate errors if
+/// there are any type errors resulting from this.
 pub(crate) fn ast_callable_generics(
     names: &Names,
     generics: &[ast::TypeParameter],

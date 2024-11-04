@@ -774,11 +774,17 @@ fn class_constraint_in_lambda() {
 fn test_harness_use_case() {
     check(
         r#"
-        function Test<'T: Eq>(test_cases: ('T, 'T)[]) : Unit {
-
+        namespace A {
+            function Test<'T: Eq>(test_cases: (() => 'T)[], answers: 'T[]) : Unit {
+            }
         }
         "#,
         "",
-        &expect![[r##""##]],
-    )
+        &expect![[r##"
+            #8 56-97 "(test_cases: (() => 'T)[], answers: 'T[])" : ((Unit => Param<"'T": 0>)[], Param<"'T": 0>[])
+            #9 57-81 "test_cases: (() => 'T)[]" : (Unit => Param<"'T": 0>)[]
+            #17 83-96 "answers: 'T[]" : Param<"'T": 0>[]
+            #25 105-120 "{\n            }" : Unit
+        "##]],
+    );
 }
