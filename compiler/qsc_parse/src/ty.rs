@@ -18,7 +18,8 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, ClassConstraint, ClassConstraints, ConstraintParameter, Functor, FunctorExpr, FunctorExprKind, NodeId, SetOp, Ty, TyKind, TypeParameter
+    CallableKind, ClassConstraint, ClassConstraints, ConstraintParameter, Functor, FunctorExpr,
+    FunctorExprKind, NodeId, SetOp, Ty, TyKind, TypeParameter,
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
@@ -109,7 +110,10 @@ fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
         }
         bounds.push(ClassConstraint {
             name: *bound_name,
-            parameters: ty_parameters.into_iter().map(|ty| ConstraintParameter { ty } ).collect(),
+            parameters: ty_parameters
+                .into_iter()
+                .map(|ty| ConstraintParameter { ty })
+                .collect(),
         });
         if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_err() {
             break;

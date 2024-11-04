@@ -76,7 +76,7 @@ impl std::fmt::Display for TyBounds {
     }
 }
 
-#[derive(Clone, Debug,  Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ClassConstraint {
     Eq,
     Add,

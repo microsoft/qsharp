@@ -26,22 +26,24 @@ use thiserror::Error;
 pub(crate) enum TyConversionError {
     #[error("missing type in item signature")]
     #[help("a type must be provided for this item")]
-    MissingTy { #[label] span: Span },
+    MissingTy {
+        #[label]
+        span: Span,
+    },
     #[error("unrecognized class constraint {name}")]
     #[help("supported classes are Eq, Add, Exp, Integral, Num, and Show")]
     UnrecognizedClass {
         #[label]
-         span: Span,
-         name: String,
+        span: Span,
+        name: String,
     },
     #[error("class constraint is recursive via {name}")]
     #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
-    RecursiveClassConstraint 
-        {
-            #[label]
-             span: Span,
-             name: String,
-        },
+    RecursiveClassConstraint {
+        #[label]
+        span: Span,
+        name: String,
+    },
     #[error("expected {expected} parameters for constraint, found {found}")]
     #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
     IncorrectNumberOfConstraintParameters {
@@ -78,7 +80,10 @@ pub(crate) fn ty_from_ast(
             }));
             (ty, errors)
         }
-        TyKind::Hole => (Ty::Err, vec![TyConversionError::MissingTy { span: ty.span }]),
+        TyKind::Hole => (
+            Ty::Err,
+            vec![TyConversionError::MissingTy { span: ty.span }],
+        ),
         TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             Some(resolve::Res::Param { id, bounds }) => {
@@ -92,7 +97,10 @@ pub(crate) fn ty_from_ast(
                     errors,
                 )
             }
-            Some(_) | None => (Ty::Err, vec![TyConversionError::MissingTy { span: ty.span }]),
+            Some(_) | None => (
+                Ty::Err,
+                vec![TyConversionError::MissingTy { span: ty.span }],
+            ),
         },
         TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
         TyKind::Tuple(items) => {
@@ -309,9 +317,10 @@ pub(crate) fn synthesize_functor_params(
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError>) {
     match &*pat.kind {
-        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
-            (Ty::Err, vec![TyConversionError::MissingTy { span: pat.span }.into()])
-        }
+        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => (
+            Ty::Err,
+            vec![TyConversionError::MissingTy { span: pat.span }.into()],
+        ),
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => {
             ty_from_ast(names, ty, &mut Default::default())
         }
@@ -386,12 +395,10 @@ pub(crate) fn ty_bound_from_ast(
 
     for ast_bound in &bounds.0 {
         if stack.contains(ast_bound) {
-            errors.insert(
-                TyConversionError::RecursiveClassConstraint {
-                    span: ast_bound.span(),
-                    name: ast_bound.name.name.to_string(),
-                }
-            );
+            errors.insert(TyConversionError::RecursiveClassConstraint {
+                span: ast_bound.span(),
+                name: ast_bound.name.name.to_string(),
+            });
             continue;
         }
         stack.insert(ast_bound.clone());
@@ -411,12 +418,10 @@ pub(crate) fn ty_bound_from_ast(
             "Integral" => Ok(qsc_hir::ty::ClassConstraint::Integral),
             "Num" => Ok(qsc_hir::ty::ClassConstraint::Num),
             "Show" => Ok(qsc_hir::ty::ClassConstraint::Show),
-            otherwise => Err(
-                TyConversionError::UnrecognizedClass {
-                    span: ast_bound.span(),
-                    name: otherwise.to_string(),
-                }
-            ),
+            otherwise => Err(TyConversionError::UnrecognizedClass {
+                span: ast_bound.span(),
+                name: otherwise.to_string(),
+            }),
         };
 
         match bound_result {

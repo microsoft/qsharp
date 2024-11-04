@@ -153,11 +153,11 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
         vis.visit_ident(&p.ty);
         p.constraints.0.iter().for_each(|b| {
             vis.visit_ident(&b.name);
-            b.parameters.iter().for_each(
-                |crate::ast::ConstraintParameter { ty, .. }| {
+            b.parameters
+                .iter()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
                     vis.visit_ty(ty);
-                },
-            );
+                });
         });
     });
     vis.visit_pat(&decl.input);

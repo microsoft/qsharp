@@ -648,7 +648,7 @@ fn show_and_eq() {
             #69 341-347 "(1, 2)" : (Int, Int)
             #70 342-343 "1" : Int
             #71 345-346 "2" : Int
-        "##]]
+        "##]],
     );
 }
 
@@ -704,8 +704,7 @@ fn show_and_eq_should_fail() {
             #71 348-351 "\"2\"" : String
             Error(Type(Error(TyMismatch("Int", "Bool", Span { lo: 303, hi: 315 }))))
             Error(Type(Error(TyMismatch("Int", "String", Span { lo: 341, hi: 352 }))))
-        "##]]
-
+        "##]],
     );
 }
 
