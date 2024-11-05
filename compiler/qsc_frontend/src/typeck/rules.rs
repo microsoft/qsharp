@@ -10,7 +10,7 @@ use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
     PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
-    TernOp, TyKind, UnOp,
+    TernOp, TyKind, TypeParameter, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -119,15 +119,31 @@ impl<'a> Context<'a> {
                 // we resolve exports to their original definition.
                 Some(
                     resolve::Res::Local(_)
-                    | resolve::Res::Param(_)
+                    | resolve::Res::Param { .. }
                     | resolve::Res::ExportedItem(_, _),
                 ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
+            TyKind::Param(TypeParameter {
+                ty, constraints: _, ..
+            }) => match self.names.get(ty.id) {
+                Some(Res::Param { id, bounds }) => {
+                    let (bounds, errs) = convert::class_constraints_from_ast(
+                        self.names,
+                        bounds,
+                        &mut Default::default(),
+                    );
+                    for err in errs {
+                        self.inferrer.report_error(err);
+                    }
+                    Ty::Param {
+                        name: ty.name.clone(),
+                        id: *id,
+                        bounds,
+                    }
+                }
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
@@ -615,7 +631,7 @@ impl<'a> Context<'a> {
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
                     panic!("expression should not resolve to type reference")
                 }
             },

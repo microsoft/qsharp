@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     resolve::{Names, Res},
-    typeck::convert::{self, MissingTyError},
+    typeck::convert::{self},
 };
 use qsc_ast::{
     ast::{self, NodeId, TopLevelNode},
@@ -132,7 +132,6 @@ impl Checker {
     pub(crate) fn check_package(&mut self, names: &Names, package: &ast::Package) {
         ItemCollector::new(self, names).visit_package(package);
         ItemChecker::new(self, names).visit_package(package);
-
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 names,
@@ -141,7 +140,6 @@ impl Checker {
                 entry,
             ));
         }
-
         for top_level_node in &package.nodes {
             if let TopLevelNode::Stmt(stmt) = top_level_node {
                 self.new.append(&mut rules::stmt(
@@ -157,7 +155,7 @@ impl Checker {
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
         self.check_callable_signature(names, decl);
-        let output = convert::ty_from_ast(names, &decl.output).0;
+        let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
         match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
                 names,
@@ -192,7 +190,7 @@ impl Checker {
 
     fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
         if convert::ast_callable_functors(decl) != FunctorSetValue::Empty {
-            let output = convert::ty_from_ast(names, &decl.output).0;
+            let output = convert::ty_from_ast(names, &decl.output, &mut Default::default()).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TyMismatch(
@@ -224,6 +222,8 @@ impl Checker {
     }
 }
 
+/// Populates `Checker` with definitions and errors, while referring to the `Names` table to get
+/// definitions.
 struct ItemCollector<'a> {
     checker: &'a mut Checker,
     names: &'a Names,
@@ -244,10 +244,8 @@ impl Visitor<'_> for ItemCollector<'_> {
                 };
 
                 let (scheme, errors) = convert::ast_callable_scheme(self.names, decl);
-                for MissingTyError(span) in errors {
-                    self.checker
-                        .errors
-                        .push(Error(ErrorKind::MissingItemTy(span)));
+                for err in errors {
+                    self.checker.errors.push(err.into());
                 }
 
                 self.checker.globals.insert(item, scheme);
@@ -261,12 +259,9 @@ impl Visitor<'_> for ItemCollector<'_> {
                 let (cons, cons_errors) =
                     convert::ast_ty_def_cons(self.names, &name.name, item, def);
                 let (udt_def, def_errors) = convert::ast_ty_def(self.names, def);
-                self.checker.errors.extend(
-                    cons_errors
-                        .into_iter()
-                        .chain(def_errors)
-                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
-                );
+                self.checker
+                    .errors
+                    .extend(cons_errors.into_iter().chain(def_errors).map(Into::into));
 
                 self.checker.table.udts.insert(
                     item,
@@ -289,12 +284,9 @@ impl Visitor<'_> for ItemCollector<'_> {
                 let (cons, cons_errors) =
                     convert::ast_ty_def_cons(self.names, &decl.name.name, item, &def);
                 let (udt_def, def_errors) = convert::ast_ty_def(self.names, &def);
-                self.checker.errors.extend(
-                    cons_errors
-                        .into_iter()
-                        .chain(def_errors)
-                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
-                );
+                self.checker
+                    .errors
+                    .extend(cons_errors.into_iter().chain(def_errors).map(Into::into));
 
                 self.checker.table.udts.insert(
                     item,

@@ -336,9 +336,9 @@ impl MutVisitor for LoopUni<'_> {
                     Ty::Prim(Prim::Range) => {
                         *expr = self.visit_for_range(iter, iterable, block, expr.span);
                     }
-                    _ => {
+                    a => {
                         // This scenario should have been caught by type-checking earlier
-                        panic!("The type of the iterable must be either array or range.")
+                        panic!("The type of the iterable must be either array or range, but it is an {a:?}")
                     }
                 }
             }

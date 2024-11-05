@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod bounded_polymorphism;
+
 use crate::{
     compile::{self, Offsetter},
     resolve::{self, Resolver},
@@ -123,7 +125,6 @@ fn compile(
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
     resolver.bind_and_resolve_imports_and_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
@@ -138,7 +139,6 @@ fn compile(
         .chain(ty_errors.into_iter().map(Into::into))
         .map(compile::Error)
         .collect();
-
     (package, tys, errors)
 }
 
@@ -4203,12 +4203,13 @@ fn undeclared_generic_param() {
     check(
         r#"namespace c{operation y(g: 'U): Unit {} }"#,
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-        "#]],
+            Error(Type(Error(MissingTy { span: Span { lo: 27, hi: 29 } })))
+        "##]],
     );
 }
 
@@ -4435,32 +4436,6 @@ fn within_block_should_be_unit_error() {
             #5 19-24 "{ 0 }" : Int
             #7 21-22 "0" : Int
             Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
-        "##]],
-    );
-}
-
-#[test]
-fn path_field_access() {
-    check(
-        indoc! {"
-            namespace A {
-                struct B { C : Int }
-                function Foo() : Unit {
-                    let b = new B { C = 5 };
-                    b.C;
-                }
-            }
-        "},
-        "",
-        &expect![[r##"
-            #14 55-57 "()" : Unit
-            #18 65-118 "{\n        let b = new B { C = 5 };\n        b.C;\n    }" : Unit
-            #20 79-80 "b" : UDT<"B": Item 1>
-            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
-            #27 95-96 "5" : Int
-            #29 108-111 "b.C" : Int
-            #31 108-109 "b" : UDT<"B": Item 1>
-            #32 110-111 "C" : Int
         "##]],
     );
 }

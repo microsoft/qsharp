@@ -14,11 +14,12 @@ use crate::{
     completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
-    prim::{parse_or_else, recovering_path},
+    prim::{ident, parse_or_else, recovering_path},
     ErrorKind,
 };
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind,
+    CallableKind, ClassConstraint, ClassConstraints, ConstraintParameter, Functor, FunctorExpr,
+    FunctorExprKind, NodeId, SetOp, Ty, TyKind, TypeParameter,
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
@@ -72,9 +73,53 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
     }
 }
 
-pub(super) fn param(s: &mut ParserContext) -> Result<Box<Ident>> {
+pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
     throw_away_doc(s);
-    apos_ident(s)
+    let lo = s.peek().span.lo;
+    let generic = apos_ident(s)?;
+    let bounds = if token(s, TokenKind::Colon).is_ok() {
+        Some(class_constraints(s)?)
+    } else {
+        None
+    };
+
+    Ok(TypeParameter::new(
+        *generic,
+        bounds.unwrap_or_else(|| ClassConstraints(Box::new([]))),
+        s.span(lo),
+    ))
+}
+
+/// Parses the bounds of a type parameter, which are a list of class names separated by `+`.
+/// This occurs after a `:` in a generic type:
+/// `T: Eq + Iterator[Bool] + Class3`
+///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
+fn class_constraints(s: &mut ParserContext) -> Result<ClassConstraints> {
+    let mut bounds: Vec<ClassConstraint> = Vec::new();
+    loop {
+        s.expect(WordKinds::PrimitiveClass);
+        let bound_name = ident(s)?;
+        // if there's a less-than sign, or "open angle bracket", try to parse type parameters for
+        // the class
+        // e.g. `Iterator[Bool]`
+        let mut ty_parameters = Vec::new();
+        if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
+            let (tys, _final_sep) = seq(s, ty)?;
+            ty_parameters = tys;
+            token(s, TokenKind::Close(Delim::Bracket))?;
+        }
+        bounds.push(ClassConstraint {
+            name: *bound_name,
+            parameters: ty_parameters
+                .into_iter()
+                .map(|ty| ConstraintParameter { ty })
+                .collect(),
+        });
+        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_err() {
+            break;
+        }
+    }
+    Ok(ClassConstraints(bounds.into_boxed_slice()))
 }
 
 fn array(s: &mut ParserContext) -> Result<()> {
@@ -97,6 +142,9 @@ fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
     }
 }
 
+/// the base type of a type, which can be a hole, a type parameter, a path, or a parenthesized type
+/// (or a tuple)
+/// This parses the part before the arrow or array in a type, if an arrow or array is present.
 fn base(s: &mut ParserContext) -> Result<Ty> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;

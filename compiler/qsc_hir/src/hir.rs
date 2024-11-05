@@ -214,7 +214,7 @@ impl ItemStatus {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -1439,7 +1439,7 @@ pub enum Visibility {
 }
 
 /// A callable kind.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum CallableKind {
     /// A function.
     Function,

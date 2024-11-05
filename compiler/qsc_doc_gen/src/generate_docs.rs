@@ -301,10 +301,17 @@ fn generate_file(
 
 Fully qualified name: {fqn}
 
-```qsharp
+{}
+",
+        if sig.is_empty() {
+            String::new()
+        } else {
+            format!(
+                r#"```qsharp
 {sig}
-```
-"
+```"#
+            )
+        }
     );
 
     let content = if doc.is_empty() {

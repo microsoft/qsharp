@@ -181,8 +181,62 @@ fn instantiate_arrow_ty<'a>(
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "type"),
+            GenericParam::Ty { name, bounds } => {
+                write!(f, "type ({name}){bounds}")
+            }
             GenericParam::Functor(min) => write!(f, "functor ({min})"),
+        }
+    }
+}
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+
+impl std::fmt::Display for ClassConstraints {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            let bounds = self
+                .0
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(f, "{bounds}")
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub enum ClassConstraint {
+    #[default]
+    Eq,
+    Add,
+    Exp {
+        power: Ty,
+    },
+    Iterable {
+        item: Ty,
+    },
+
+    /// A class that is not built-in to the compiler.
+    NonNativeClass(Rc<str>),
+    Num,
+    Integral,
+    Show,
+}
+
+impl std::fmt::Display for ClassConstraint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ClassConstraint::Eq => write!(f, "Eq"),
+            ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
+            ClassConstraint::Exp { power } => write!(f, "Exp<{power}>"),
+            ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Add => write!(f, "Add"),
+            ClassConstraint::Num => write!(f, "Num"),
+            ClassConstraint::Integral => write!(f, "Integral"),
+            ClassConstraint::Show => write!(f, "Show"),
         }
     }
 }
@@ -191,7 +245,10 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty,
+    Ty {
+        name: Rc<str>,
+        bounds: ClassConstraints,
+    },
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }

@@ -81,7 +81,7 @@ impl<'a> Renamer<'a> {
             Res::Local(node) => format!("local{node}"),
             Res::PrimTy(prim) => format!("{prim:?}"),
             Res::UnitTy => "Unit".to_string(),
-            Res::Param(id) => format!("param{id}"),
+            Res::Param { id, .. } => format!("param{id}"),
             Res::ExportedItem(item, _) => match item.package {
                 None => format!("exported_item{}", item.item),
                 Some(package) => format!("reexport_from_{package}:{}", item.item),
@@ -5265,6 +5265,26 @@ fn export_of_item_with_same_name_as_namespace_resolves_to_item_even_when_before_
             namespace namespace3 {
                 export item1;
                 operation item1() : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_param_name_is_in_scope() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    operation Foo<'T: Eq>(a: 'T) : Unit {
+                        let x: 'T = a;
+                    }
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace3 {
+                operation item1<param0: Eq>(local10: param0) : Unit {
+                    let local19: param0 = local10;
+                }
             }
         "#]],
     );

@@ -48,9 +48,11 @@ bitflags! {
         const PathSegment = 1 << 5;
         /// A type parameter, without the leading `'`.
         const TyParam = 1 << 6;
+        /// A primitive class.
+        const PrimitiveClass = 1 << 7;
         /// A field name. Can follow a `.` or `::` in a field access expression,
         /// or can be in a field assignment.
-        const Field = 1 << 7;
+        const Field = 1 << 8;
 
         //
         // End names.
@@ -61,11 +63,11 @@ bitflags! {
         //
 
         /// An attribute, without the leading `@`.
-        const Attr = 1 << 8;
+        const Attr = 1 << 9;
         /// The word `Qubit`.
-        const Qubit = 1 << 9;
+        const Qubit = 1 << 10;
         /// The word `size`.
-        const Size = 1 << 10;
+        const Size = 1 << 11;
 
         //
         // End hardcoded identifiers.
@@ -132,7 +134,7 @@ bitflags! {
     }
 }
 
-const KEYWORDS_START: u8 = 11;
+const KEYWORDS_START: u8 = 12;
 const fn keyword_bit(k: Keyword) -> u128 {
     1 << (k as u8 + KEYWORDS_START)
 }
@@ -155,6 +157,7 @@ impl WordKinds {
             WordKinds::PathSegment => Some(NameKind::PathSegment),
             WordKinds::TyParam => Some(NameKind::TyParam),
             WordKinds::Field => Some(NameKind::Field),
+            WordKinds::PrimitiveClass => Some(NameKind::PrimitiveClass),
             _ => None,
         })
     }
@@ -202,6 +205,8 @@ pub enum NameKind {
     TyParam,
     /// A field name that follows a `.` or `::` in a field access expression.
     Field,
+    /// A primitive class, like Eq, Exp, or Add.
+    PrimitiveClass,
 }
 
 /// A path (see: [`Predictions`])

@@ -128,7 +128,7 @@ test("error with newlines", async () => {
   );
   assert.equal(
     diags[0].message,
-    "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations",
+    "type error: missing type in item signature\n\nhelp: a type must be provided for this item",
   );
 });
 

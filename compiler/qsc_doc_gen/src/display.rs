@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast::{self, Idents};
+use qsc_ast::ast::{self, Idents, TypeParameter};
 use qsc_frontend::resolve;
 use qsc_hir::{
     hir::{self, PackageId},
@@ -218,7 +218,7 @@ impl<'a> Display for AstCallableDecl<'a> {
                 .decl
                 .generics
                 .iter()
-                .map(|p| p.name.clone())
+                .map(|TypeParameter { ty, .. }| ty.name.clone())
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(f, "<{type_params}>")?;
@@ -517,7 +517,7 @@ impl<'a> Display for AstTy<'a> {
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
             ast::TyKind::Path(path) => write!(f, "{}", AstPathKind { path }),
-            ast::TyKind::Param(id) => write!(f, "{}", id.name),
+            ast::TyKind::Param(TypeParameter { ty, .. }) => write!(f, "{}", ty.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
         }
@@ -619,7 +619,7 @@ fn display_type_params(generics: &[GenericParam]) -> String {
     let type_params = generics
         .iter()
         .filter_map(|generic| match generic {
-            GenericParam::Ty(name) => Some(name.name.clone()),
+            GenericParam::Ty { name, .. } => Some(name.clone()),
             GenericParam::Functor(_) => None,
         })
         .collect::<Vec<_>>()
