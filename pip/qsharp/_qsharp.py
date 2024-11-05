@@ -42,14 +42,12 @@ except:
 
 # Reporting execution time during IPython cells requires that IPython
 # gets pinged to ensure it understands the cell is active. This is done by
-# requesting a display id without displaying any content, avoiding any UI changes
-# that would be visible to the user.
+# simply importing the display function, which it turns out is enough to begin timing
+# while avoiding any UI changes that would be visible to the user.
 def ipython_helper():
     try:
         if __IPYTHON__:  # type: ignore
             from IPython.display import display
-
-            display(display_id=True)
     except NameError:
         pass
 
