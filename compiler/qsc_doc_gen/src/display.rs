@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast;
+use qsc_ast::ast::{self, Idents};
 use qsc_frontend::resolve;
 use qsc_hir::{
     hir::{self, PackageId},
@@ -89,8 +89,18 @@ impl<'a> CodeDisplay<'a> {
     }
 
     #[must_use]
+    pub fn struct_decl(&self, decl: &'a ast::StructDecl) -> impl Display + 'a {
+        StructDecl { decl }
+    }
+
+    #[must_use]
+    pub fn hir_udt_field(&self, field: &'a ty::UdtField) -> impl Display + '_ {
+        HirUdtField { field }
+    }
+
+    #[must_use]
     pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
-        HirUdt { udt }
+        HirUdt::new(udt)
     }
 
     #[must_use]
@@ -335,25 +345,68 @@ struct IdentTyDef<'a> {
     def: &'a ast::TyDef,
 }
 
-impl<'a> Display for IdentTyDef<'a> {
+impl Display for IdentTyDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "newtype {} = {}",
-            self.ident.name,
-            TyDef { def: self.def }
-        )
+        if let Some(fields) = as_struct(self.def) {
+            write!(f, "struct {} ", self.ident.name)?;
+            fmt_brace_seq(f, &fields, |item| IdentTy {
+                ident: &item.name,
+                ty: &item.ty,
+            })
+        } else {
+            write!(
+                f,
+                "newtype {} = {}",
+                self.ident.name,
+                TyDef { def: self.def }
+            )
+        }
+    }
+}
+
+struct StructDecl<'a> {
+    decl: &'a ast::StructDecl,
+}
+
+impl Display for StructDecl<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "struct {} ", self.decl.name.name)?;
+        fmt_brace_seq(f, &self.decl.fields, |item| IdentTy {
+            ident: &item.name,
+            ty: &item.ty,
+        })
     }
 }
 
 struct HirUdt<'a> {
     udt: &'a ty::Udt,
+    is_struct: bool,
+}
+
+impl<'a> HirUdt<'a> {
+    fn new(udt: &'a ty::Udt) -> Self {
+        HirUdt {
+            udt,
+            is_struct: udt.is_struct(),
+        }
+    }
 }
 
 impl<'a> Display for HirUdt<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let udt_def = UdtDef::new(&self.udt.definition);
-        write!(f, "newtype {} = {}", self.udt.name, udt_def)
+        if self.is_struct {
+            match &self.udt.definition.kind {
+                ty::UdtDefKind::Tuple(fields) => {
+                    write!(f, "struct {} ", self.udt.name)?;
+                    fmt_brace_seq(f, fields, UdtDef::new)?;
+                }
+                ty::UdtDefKind::Field(_) => {}
+            }
+            Ok(())
+        } else {
+            let udt_def = UdtDef::new(&self.udt.definition);
+            write!(f, "newtype {} = {}", self.udt.name, udt_def)
+        }
     }
 }
 
@@ -385,7 +438,7 @@ impl<'a> UdtDef<'a> {
 impl Display for UdtDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(name) = &self.name {
-            write!(f, "{name}: ")?;
+            write!(f, "{name} : ")?;
         }
 
         match &self.kind {
@@ -397,17 +450,16 @@ impl Display for UdtDef<'_> {
     }
 }
 
-struct FunctorSet<'a> {
-    functor_set: &'a ty::FunctorSet,
+struct HirUdtField<'a> {
+    field: &'a ty::UdtField,
 }
 
-impl<'a> Display for FunctorSet<'a> {
+impl Display for HirUdtField<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if *self.functor_set == ty::FunctorSet::Value(ty::FunctorSetValue::Empty) {
-            Ok(())
-        } else {
-            write!(f, " is {}", self.functor_set)
+        if let Some(name) = &self.field.name {
+            write!(f, "{name} : ")?;
         }
+        write!(f, "{}", self.field.ty.display())
     }
 }
 
@@ -464,7 +516,7 @@ impl<'a> Display for AstTy<'a> {
             }
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", AstPath { path }),
+            ast::TyKind::Path(path) => write!(f, "{}", AstPathKind { path }),
             ast::TyKind::Param(id) => write!(f, "{}", id.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
@@ -488,15 +540,16 @@ impl<'a> Display for FunctorExpr<'a> {
     }
 }
 
-struct AstPath<'a> {
-    path: &'a ast::Path,
+struct AstPathKind<'a> {
+    path: &'a ast::PathKind,
 }
 
-impl<'a> Display for AstPath<'a> {
+impl<'a> Display for AstPathKind<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.path.namespace.as_ref() {
-            Some(ns) => write!(f, "{ns}.{}", self.path.name.name),
-            None => write!(f, "{}", self.path.name.name),
+        if let ast::PathKind::Ok(path) = self.path {
+            write!(f, "{}", path.full_name())
+        } else {
+            write!(f, "?")
         }
     }
 }
@@ -519,15 +572,15 @@ impl<'a> Display for TyDef<'a> {
     }
 }
 
-fn fmt_tuple<'a, 'b, D, I>(
-    formatter: &'a mut Formatter,
-    elements: &'b [I],
-    map: impl Fn(&'b I) -> D,
+fn fmt_tuple<'a, I, O>(
+    formatter: &mut Formatter,
+    items: &'a [I],
+    map: impl Fn(&'a I) -> O,
 ) -> Result
 where
-    D: Display,
+    O: Display,
 {
-    let mut elements = elements.iter();
+    let mut elements = items.iter();
     if let Some(elem) = elements.next() {
         write!(formatter, "({}", map(elem))?;
         if elements.len() == 0 {
@@ -542,6 +595,24 @@ where
         write!(formatter, "Unit")?;
     }
     Ok(())
+}
+
+fn fmt_brace_seq<'a, I, O>(
+    formatter: &mut Formatter<'_>,
+    items: &'a [I],
+    map: impl Fn(&'a I) -> O,
+) -> Result
+where
+    O: Display,
+{
+    write!(formatter, "{{ ")?;
+    if let Some((last, most)) = items.split_last() {
+        for item in most {
+            write!(formatter, "{}, ", map(item))?;
+        }
+        write!(formatter, "{} ", map(last))?;
+    }
+    write!(formatter, "}}")
 }
 
 fn display_type_params(generics: &[GenericParam]) -> String {
@@ -573,7 +644,7 @@ fn ast_callable_functors(callable: &ast::CallableDecl) -> ty::FunctorSetValue {
         });
 
     if let ast::CallableBody::Specs(specs) = callable.body.as_ref() {
-        for spec in specs.iter() {
+        for spec in specs {
             let spec_functors = match spec.spec {
                 ast::Spec::Body => ty::FunctorSetValue::Empty,
                 ast::Spec::Adj => ty::FunctorSetValue::Adj,
@@ -600,6 +671,38 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> ty::FunctorSetValue {
         ast::FunctorExprKind::Lit(ast::Functor::Adj) => ty::FunctorSetValue::Adj,
         ast::FunctorExprKind::Lit(ast::Functor::Ctl) => ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
+    }
+}
+
+fn as_struct(ty_def: &ast::TyDef) -> Option<Vec<ast::FieldDef>> {
+    match ty_def.kind.as_ref() {
+        ast::TyDefKind::Paren(inner) => as_struct(inner),
+        ast::TyDefKind::Tuple(fields) => {
+            let mut converted_fields = Vec::new();
+            for field in fields {
+                let field = remove_parens(field);
+                match field.kind.as_ref() {
+                    ast::TyDefKind::Field(Some(name), field_ty) => {
+                        converted_fields.push(ast::FieldDef {
+                            id: field.id,
+                            span: field.span,
+                            name: name.clone(),
+                            ty: field_ty.clone(),
+                        });
+                    }
+                    _ => return None,
+                }
+            }
+            Some(converted_fields)
+        }
+        ast::TyDefKind::Err | ast::TyDefKind::Field(..) => None,
+    }
+}
+
+fn remove_parens(ty_def: &ast::TyDef) -> &ast::TyDef {
+    match ty_def.kind.as_ref() {
+        ast::TyDefKind::Paren(inner) => remove_parens(inner.as_ref()),
+        _ => ty_def,
     }
 }
 

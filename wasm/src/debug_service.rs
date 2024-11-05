@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::str::FromStr;
-
+use crate::line_column::{Location, Range};
+use crate::project_system::{into_qsc_args, ProgramConfig};
+use crate::{serializable_type, CallbackReceiver};
 use qsc::fir::StmtId;
+use qsc::fmt_complex;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
-use qsc::{fmt_complex, target::Profile, LanguageFeatures};
-
-use crate::line_column::{Location, Range};
-use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
@@ -28,18 +26,8 @@ impl DebugService {
     }
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
-    pub fn load_source(
-        &mut self,
-        sources: Vec<js_sys::Array>,
-        target_profile: &str,
-        entry: Option<String>,
-        language_features: Vec<String>,
-    ) -> String {
-        let source_map = get_source_map(sources, &entry);
-        let target = Profile::from_str(target_profile)
-            .unwrap_or_else(|()| panic!("Invalid target : {target_profile}"));
-        let features = LanguageFeatures::from_iter(language_features);
-        match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
+    pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
+        match init_debugger(program, entry) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 String::new()
@@ -50,14 +38,18 @@ impl DebugService {
 
     pub fn capture_quantum_state(&mut self) -> IQuantumStateList {
         let state = self.debugger_mut().capture_quantum_state();
-        let entries = state
-            .0
-            .iter()
-            .map(|(id, value)| QuantumState {
-                name: qsc::format_state_id(id, state.1),
-                value: fmt_complex(value),
-            })
-            .collect::<Vec<_>>();
+        let entries = if state.1 > 0 {
+            state
+                .0
+                .iter()
+                .map(|(id, value)| QuantumState {
+                    name: qsc::format_state_id(id, state.1),
+                    value: fmt_complex(value),
+                })
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
 
         QuantumStateList { entries }.into()
     }
@@ -216,6 +208,24 @@ impl DebugService {
             .as_mut()
             .expect("debugger should be initialized")
     }
+}
+
+pub fn init_debugger(
+    program: ProgramConfig,
+    entry: Option<String>,
+) -> Result<Debugger, Vec<Error>> {
+    let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
+        into_qsc_args(program, entry)
+            .map_err(|e| e.into_iter().map(Into::into).collect::<Vec<_>>())?;
+
+    Debugger::new(
+        source_map,
+        capabilities,
+        Encoding::Utf16,
+        language_features,
+        package_store,
+        &user_code_dependencies[..],
+    )
 }
 
 fn render_errors(errors: Vec<Error>) -> String {

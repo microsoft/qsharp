@@ -3,7 +3,7 @@
 
 use core::str::FromStr;
 use qsc_ast::{
-    ast::{Attr, ExprKind, ItemKind, Namespace, Stmt, StmtKind},
+    ast::{Attr, ExprKind, Idents, ItemKind, Namespace, PathKind, Stmt, StmtKind, UnOp},
     mut_visit::MutVisitor,
 };
 use qsc_hir::hir;
@@ -54,12 +54,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.full_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.full_name(),
                         }),
                         _ => {}
                     }
@@ -69,12 +69,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.full_name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.full_name(),
                         }),
                         _ => {}
                     }
@@ -131,16 +131,41 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
         return true;
     }
     let mut found_capabilities = TargetCapabilityFlags::empty();
+    let mut disallowed_capabilities = TargetCapabilityFlags::empty();
+    let mut base = false;
+    let mut not_base = false;
 
+    // When checking attributes, anything we don't recognize (invalid form or invalid capability) gets
+    // left in the compilation by returning true. This ensures that later compilation steps, specifically lowering
+    // from AST to HIR, can check the attributes and return errors as appropriate.
     for attr in attrs {
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
             match inner.kind.as_ref() {
-                ExprKind::Path(path) => {
+                ExprKind::Path(PathKind::Ok(path)) => {
                     if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
                     {
+                        if capability.is_empty() {
+                            base = true;
+                        }
                         found_capabilities |= capability;
                     } else {
                         return true; // Unknown capability, so we assume it matches
+                    }
+                }
+                ExprKind::UnOp(UnOp::NotL, inner) => {
+                    if let ExprKind::Path(PathKind::Ok(path)) = inner.kind.as_ref() {
+                        if let Ok(capability) =
+                            TargetCapabilityFlags::from_str(path.name.name.as_ref())
+                        {
+                            if capability.is_empty() {
+                                not_base = true;
+                            }
+                            disallowed_capabilities |= capability;
+                        } else {
+                            return true; // Unknown capability, so we assume it matches
+                        }
+                    } else {
+                        return true; // Unknown config attribute, so we assume it matches
                     }
                 }
                 _ => return true, // Unknown config attribute, so we assume it matches
@@ -150,10 +175,21 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> b
             return true;
         }
     }
-    if found_capabilities == TargetCapabilityFlags::empty() {
-        // There was at least one config attribute, but it was None
-        // Therefore, we only match if there are no capabilities
-        return capabilities == TargetCapabilityFlags::empty();
+    if found_capabilities.is_empty() && disallowed_capabilities.is_empty() {
+        if not_base && !base {
+            // There was at least one config attribute, but it was "not Base" so
+            // ensure that the capabilities are not empty.
+            return capabilities != TargetCapabilityFlags::empty();
+        } else if base && !not_base {
+            // There was at least one config attribute, but it was Base
+            // Therefore, we only match if there are no capabilities
+            return capabilities == TargetCapabilityFlags::empty();
+        }
+
+        // The config specified both "Base" and "not Base" which is a contradiction, but we
+        // drop the item in this case.
+        return false;
     }
     capabilities.contains(found_capabilities)
+        && (disallowed_capabilities.is_empty() || !capabilities.contains(disallowed_capabilities))
 }

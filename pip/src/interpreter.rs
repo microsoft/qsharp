@@ -2,35 +2,70 @@
 // Licensed under the MIT License.
 
 use crate::{
-    displayable_output::{DisplayableOutput, DisplayableState},
+    displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
+    interop::{
+        compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
+        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+    },
+    noisy_simulator::register_noisy_simulator_submodule,
 };
-use miette::Report;
+use miette::{Diagnostic, Report};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::{
     create_exception,
-    exceptions::PyException,
+    exceptions::{PyException, PyValueError},
     prelude::*,
-    pyclass::CompareOp,
-    types::{PyComplex, PyDict, PyList, PyString, PyTuple},
+    types::{PyComplex, PyDict, PyList, PyTuple, PyType},
 };
 use qsc::{
     fir,
     interpret::{
         self,
         output::{Error, Receiver},
-        CircuitEntryPoint, Value,
+        CircuitEntryPoint, PauliNoise, Value,
     },
-    project::{FileSystem, Manifest, ManifestDescriptor},
+    packages::BuildableProgram,
+    project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
+
 use resource_estimator::{self as re, estimate_expr};
-use std::fmt::Write;
+use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
+
+/// If the classes are not Send, the Python interpreter
+/// will not be able to use them in a separate thread.
+///
+/// This function is used to verify that the classes are Send.
+/// The code will fail to compile if the classes are not Send.
+///
+/// ### Note
+/// `QSharpError`, and `QasmError` are not `Send`, *BUT*
+/// we return `QasmError::new_err` or `QSharpError::new_err` which
+/// actually returns a `PyErr` that is `Send` and the args passed
+/// into the `new_err` call must also impl `Send`.
+/// Because of this, we don't need to check the `Send`-ness of
+/// them. On the Python side, the `PyErr` is converted into the
+/// corresponding exception.
+fn verify_classes_are_sendable() {
+    fn is_send<T: Send>() {}
+    is_send::<OutputSemantics>();
+    is_send::<ProgramType>();
+    is_send::<TargetProfile>();
+    is_send::<Result>();
+    is_send::<Pauli>();
+    is_send::<Output>();
+    is_send::<StateDumpData>();
+    is_send::<Circuit>();
+}
 
 #[pymodule]
-fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
+    verify_classes_are_sendable();
+    m.add_class::<OutputSemantics>()?;
+    m.add_class::<ProgramType>()?;
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -39,14 +74,21 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
-    m.add("QSharpError", py.get_type::<QSharpError>())?;
-
+    m.add("QSharpError", py.get_type_bound::<QSharpError>())?;
+    register_noisy_simulator_submodule(py, m)?;
+    // QASM3 interop
+    m.add("QasmError", py.get_type_bound::<QasmError>())?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
     Ok(())
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy)]
-#[pyclass(unsendable)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
+#[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
 /// A target profile describes the capabilities of the hardware or simulator
@@ -56,16 +98,119 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
-    /// Target supports Quantinuum profile.
+    /// Target supports the Adaptive profile with integer computation and qubit reset capabilities.
     ///
     /// This profile includes all of the required Adaptive Profile
     /// capabilities, as well as the optional integer computation and qubit
     /// reset capabilities, as defined by the QIR specification.
-    Quantinuum,
+    Adaptive_RI,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
     Unrestricted,
+}
+
+#[pymethods]
+impl TargetProfile {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __str__(&self) -> String {
+        Into::<Profile>::into(*self).to_str().to_owned()
+    }
+
+    /// Creates a target profile from a string.
+    /// :param value: The string to parse.
+    /// :raises ValueError: If the string does not match any target profile.
+    #[classmethod]
+    #[allow(clippy::needless_pass_by_value)]
+    fn from_str(_cls: &Bound<'_, PyType>, key: String) -> pyo3::PyResult<Self> {
+        let profile = Profile::from_str(key.as_str())
+            .map_err(|()| PyValueError::new_err(format!("{key} is not a valid target profile")))?;
+        Ok(TargetProfile::from(profile))
+    }
+}
+
+impl From<Profile> for TargetProfile {
+    fn from(profile: Profile) -> Self {
+        match profile {
+            Profile::Base => TargetProfile::Base,
+            Profile::AdaptiveRI => TargetProfile::Adaptive_RI,
+            Profile::Unrestricted => TargetProfile::Unrestricted,
+        }
+    }
+}
+
+impl From<TargetProfile> for Profile {
+    fn from(profile: TargetProfile) -> Self {
+        match profile {
+            TargetProfile::Base => Profile::Base,
+            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
+        }
+    }
+}
+
+// This ordering must match the _native.pyi file.
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
+#[allow(non_camel_case_types)]
+/// Represents the output semantics for OpenQASM 3 compilation.
+/// Each has implications on the output of the compilation
+/// and the semantic checks that are performed.
+pub(crate) enum OutputSemantics {
+    /// The output is in Qiskit format meaning that the output
+    /// is all of the classical registers, in reverse order
+    /// in which they were added to the circuit with each
+    /// bit within each register in reverse order.
+    Qiskit,
+    /// [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
+    /// - If the programmer provides one or more `output` declarations, then
+    ///     variables described as outputs will be returned as output.
+    ///     The spec make no mention of endianness or order of the output.
+    /// - Otherwise, assume all of the declared variables are returned as output.
+    OpenQasm,
+    /// No output semantics are applied. The entry point returns `Unit`.
+    ResourceEstimation,
+}
+
+impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
+    fn from(output_semantics: OutputSemantics) -> Self {
+        match output_semantics {
+            OutputSemantics::Qiskit => qsc_qasm3::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc_qasm3::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc_qasm3::OutputSemantics::ResourceEstimation,
+        }
+    }
+}
+
+// This ordering must match the _native.pyi file.
+#[derive(Clone, PartialEq)]
+#[pyclass(eq)]
+#[allow(non_camel_case_types)]
+/// Represents the type of compilation output to create
+pub enum ProgramType {
+    /// Creates an operation in a namespace as if the program is a standalone
+    /// file. Inputs are lifted to the operation params. Output are lifted to
+    /// the operation return type. The operation is marked as `@EntryPoint`
+    /// as long as there are no input parameters.
+    File,
+    /// Programs are compiled to a standalone function. Inputs are lifted to
+    /// the operation params. Output are lifted to the operation return type.
+    Operation,
+    /// Creates a list of statements from the program. This is useful for
+    /// interactive environments where the program is a list of statements
+    /// imported into the current scope.
+    /// This is also useful for testing individual statements compilation.
+    Fragments,
+}
+
+impl From<ProgramType> for qsc_qasm3::ProgramType {
+    fn from(output_semantics: ProgramType) -> Self {
+        match output_semantics {
+            ProgramType::File => qsc_qasm3::ProgramType::File,
+            ProgramType::Operation => qsc_qasm3::ProgramType::Operation,
+            ProgramType::Fragments => qsc_qasm3::ProgramType::Fragments,
+        }
+    }
 }
 
 #[pyclass(unsendable)]
@@ -73,81 +218,65 @@ pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
 }
 
-pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
-
-impl FromPyObject<'_> for PyManifestDescriptor {
-    fn extract(ob: &PyAny) -> PyResult<Self> {
-        let dict = ob.downcast::<PyDict>()?;
-        let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
-            PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
-        )?;
-        let manifest = dict
-            .get_item("manifest")?
-            .ok_or(PyException::new_err(
-                "missing key `manifest` in manifest descriptor",
-            ))?
-            .downcast::<PyDict>()?;
-
-        let language_features = get_dict_opt_list_string(manifest, "features")?;
-
-        Ok(Self(ManifestDescriptor {
-            manifest: Manifest {
-                author: get_dict_opt_string(manifest, "author")?,
-                license: get_dict_opt_string(manifest, "license")?,
-                language_features,
-                lints: vec![],
-            },
-            manifest_dir: manifest_dir.into(),
-        }))
-    }
-}
+thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
 
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
         py: Python,
-        target: TargetProfile,
+        target_profile: TargetProfile,
         language_features: Option<Vec<String>>,
-        manifest_descriptor: Option<PyManifestDescriptor>,
+        project_root: Option<String>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
-        let target = match target {
-            TargetProfile::Quantinuum => Profile::Quantinuum,
-            TargetProfile::Base => Profile::Base,
-            TargetProfile::Unrestricted => Profile::Unrestricted,
-        };
-        let language_features = language_features.unwrap_or_default();
+        let target = Into::<Profile>::into(target_profile).into();
 
-        let sources = if let Some(manifest_descriptor) = manifest_descriptor {
-            let project = file_system(
-                py,
-                read_file.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-                list_directory.expect(
-                    "file system hooks should have been passed in with a manifest descriptor",
-                ),
-            )
-            .load_project(&manifest_descriptor.0)
-            .map_py_err()?;
-            SourceMap::new(project.sources, None)
+        let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
+
+        let package_cache = PACKAGE_CACHE.with(Clone::clone);
+
+        let buildable_program = if let Some(project_root) = project_root {
+            if let (Some(read_file), Some(list_directory), Some(resolve_path), Some(fetch_github)) =
+                (read_file, list_directory, resolve_path, fetch_github)
+            {
+                let project =
+                    file_system(py, read_file, list_directory, resolve_path, fetch_github)
+                        .load_project(&PathBuf::from(project_root), Some(&package_cache))
+                        .map_err(IntoPyErr::into_py_err)?;
+
+                if !project.errors.is_empty() {
+                    return Err(project.errors.into_py_err());
+                }
+
+                BuildableProgram::new(target, project.package_graph_sources)
+            } else {
+                panic!("file system hooks should have been passed in with a manifest descriptor")
+            }
         } else {
-            SourceMap::default()
+            let graph = PackageGraphSources::with_no_dependencies(
+                Vec::default(),
+                LanguageFeatures::from_iter(language_features),
+                None,
+            );
+            BuildableProgram::new(target, graph)
         };
-
-        let language_features = LanguageFeatures::from_iter(language_features);
 
         match interpret::Interpreter::new(
-            true,
-            sources,
+            SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
-            target.into(),
-            language_features,
+            target,
+            buildable_program.user_code.language_features,
+            buildable_program.store,
+            &buildable_program.user_code_dependencies,
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
@@ -162,6 +291,7 @@ impl Interpreter {
     /// :returns value: The value returned by the last statement in the input.
     ///
     /// :raises QSharpError: If there is an error interpreting the input.
+    #[pyo3(signature=(input, callback=None))]
     fn interpret(
         &mut self,
         py: Python,
@@ -176,11 +306,13 @@ impl Interpreter {
     }
 
     /// Sets the quantum seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_quantum_seed(seed);
     }
 
     /// Sets the classical seed for the interpreter.
+    #[pyo3(signature=(seed=None))]
     fn set_classical_seed(&mut self, seed: Option<u64>) {
         self.interpreter.set_classical_seed(seed);
     }
@@ -201,18 +333,26 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
     fn run(
         &mut self,
         py: Python,
-        entry_expr: &str,
+        entry_expr: Option<&str>,
         callback: Option<PyObject>,
+        noise: Option<(f64, f64, f64)>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run(&mut receiver, entry_expr) {
-            Ok(result) => match result {
-                Ok(v) => Ok(ValueWrapper(v).into_py(py)),
-                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+
+        let noise = match noise {
+            None => None,
+            Some((px, py, pz)) => match PauliNoise::from_probabilities(px, py, pz) {
+                Ok(noise_struct) => Some(noise_struct),
+                Err(error_message) => return Err(PyException::new_err(error_message)),
             },
+        };
+
+        match self.interpreter.run(&mut receiver, entry_expr, noise) {
+            Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -234,6 +374,7 @@ impl Interpreter {
     /// qubits or arrays of qubits as parameters.
     ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
+    #[pyo3(signature=(entry_expr=None, operation=None))]
     fn circuit(
         &mut self,
         py: Python,
@@ -250,7 +391,7 @@ impl Interpreter {
             }
         };
 
-        match self.interpreter.circuit(entrypoint) {
+        match self.interpreter.circuit(entrypoint, false) {
             Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -282,6 +423,75 @@ impl Interpreter {
             )),
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(
+        signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
+    )]
+    pub fn _run_qasm3(
+        &mut self,
+        py: Python,
+        source: &str,
+        callback: Option<PyObject>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+
+        let operation_name = crate::interop::get_operation_name(&kwargs)?;
+        let seed = crate::interop::get_seed(&kwargs);
+        let shots = crate::interop::get_shots(&kwargs)?;
+        let search_path = crate::interop::get_search_path(&kwargs)?;
+        let program_type = crate::interop::get_program_type(&kwargs)?;
+        let output_semantics = crate::interop::get_output_semantics(&kwargs)?;
+
+        let fs = crate::interop::create_filesystem_from_py(
+            py,
+            read_file,
+            list_directory,
+            resolve_path,
+            fetch_github,
+        );
+        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+
+        let (package, _source_map, signature) = compile_qasm_enriching_errors(
+            source,
+            &operation_name,
+            &resolver,
+            program_type.clone(),
+            output_semantics,
+            false,
+        )?;
+
+        let value = self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, source, package)
+            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
+
+        match program_type {
+            ProgramType::File => {
+                let entry_expr = signature.create_entry_expr_from_params(String::new());
+                self.interpreter
+                    .set_entry_expr(&entry_expr)
+                    .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
+
+                match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
+                    Ok(result) => Ok(PyList::new_bound(
+                        py,
+                        result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
+                    )
+                    .into_py(py)),
+                    Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+                }
+            }
+            _ => Ok(ValueWrapper(value).into_py(py)),
+        }
+    }
 }
 
 #[pyfunction]
@@ -299,23 +509,33 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<interpret::Error>) -> String {
+create_exception!(
+    module,
+    QasmError,
+    pyo3::exceptions::PyException,
+    "An error returned from the OpenQASM parser."
+);
+
+pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
-        .map(|e| {
-            let mut message = String::new();
-            if let Some(stack_trace) = e.stack_trace() {
-                write!(message, "{stack_trace}").unwrap();
-            }
-            let additional_help = python_help(&e);
-            let report = Report::new(e);
-            write!(message, "{report:?}").unwrap();
-            if let Some(additional_help) = additional_help {
-                writeln!(message, "{additional_help}").unwrap();
-            }
-            message
-        })
+        .map(|e| format_error(&e))
         .collect::<String>()
+}
+
+pub(crate) fn format_error(e: &interpret::Error) -> String {
+    let mut message = String::new();
+    if let Some(stack_trace) = e.stack_trace() {
+        write!(message, "{stack_trace}").unwrap();
+    }
+    let additional_help = python_help(e);
+    let report = Report::new(e.clone());
+    write!(message, "{report:?}")
+        .unwrap_or_else(|err| panic!("writing error failed: {err} error was: {e:?}"));
+    if let Some(additional_help) = additional_help {
+        writeln!(message, "{additional_help}").unwrap();
+    }
+    message
 }
 
 /// Additional help text for an error specific to the Python module
@@ -327,7 +547,7 @@ fn python_help(error: &interpret::Error) -> Option<String> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 pub(crate) struct Output(DisplayableOutput);
 
 #[pymethods]
@@ -337,6 +557,7 @@ impl Output {
     fn __repr__(&self) -> String {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_plain(),
+            DisplayableOutput::Matrix(matrix) => matrix.to_plain(),
             DisplayableOutput::Message(msg) => msg.clone(),
         }
     }
@@ -345,49 +566,52 @@ impl Output {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
+    fn _repr_markdown_(&self) -> Option<String> {
         match &self.0 {
-            DisplayableOutput::State(state) => state.to_html(),
-            DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
+            DisplayableOutput::State(state) => {
+                let latex = if let Some(latex) = state.to_latex() {
+                    format!("\n\n{latex}")
+                } else {
+                    String::default()
+                };
+                Some(format!("{}{latex}", state.to_html()))
+            }
+            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(matrix) => Some(matrix.to_latex()),
         }
     }
 
     fn state_dump(&self) -> Option<StateDumpData> {
         match &self.0 {
             DisplayableOutput::State(state) => Some(StateDumpData(state.clone())),
-            DisplayableOutput::Message(_) => None,
+            DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 /// Captured simlation state dump.
 pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
 #[pymethods]
 impl StateDumpData {
-    fn get_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
-        Ok(PyDict::from_sequence(
+    fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
+        PyDict::from_sequence_bound(&PyList::new_bound(
             py,
-            PyList::new(
-                py,
-                self.0
-                     .0
-                    .iter()
-                    .map(|(k, v)| {
-                        PyTuple::new(
-                            py,
-                            &[
-                                k.clone().into_py(py),
-                                PyComplex::from_doubles(py, v.re, v.im).into(),
-                            ],
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .into_py(py),
-        )?
-        .into_py(py))
+            self.0
+                 .0
+                .iter()
+                .map(|(k, v)| {
+                    PyTuple::new_bound(
+                        py,
+                        &[
+                            k.clone().into_py(py),
+                            PyComplex::from_doubles_bound(py, v.re, v.im).into(),
+                        ],
+                    )
+                })
+                .collect::<Vec<_>>(),
+        ))
     }
 
     #[getter]
@@ -407,13 +631,22 @@ impl StateDumpData {
         self.__repr__()
     }
 
-    fn _repr_html_(&self) -> String {
-        self.0.to_html()
+    fn _repr_markdown_(&self) -> String {
+        let latex = if let Some(latex) = self.0.to_latex() {
+            format!("\n\n{latex}")
+        } else {
+            String::default()
+        };
+        format!("{}{latex}", self.0.to_html())
+    }
+
+    fn _repr_latex_(&self) -> Option<String> {
+        self.0.to_latex()
     }
 }
 
-#[pyclass(unsendable)]
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[pyclass(eq, eq_int, ord)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
@@ -422,6 +655,7 @@ pub(crate) enum Result {
 
 #[pymethods]
 impl Result {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __repr__(&self) -> String {
         match self {
             Result::Zero => "Zero".to_owned(),
@@ -429,32 +663,22 @@ impl Result {
         }
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __str__(&self) -> String {
         self.__repr__()
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __hash__(&self) -> u32 {
         match self {
             Result::Zero => 0,
             Result::One => 1,
         }
     }
-
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
-        let this = i32::from(*self == Result::One);
-        let other = i32::from(*other == Result::One);
-        match op {
-            CompareOp::Lt => this < other,
-            CompareOp::Le => this <= other,
-            CompareOp::Eq => this == other,
-            CompareOp::Ne => this != other,
-            CompareOp::Gt => this > other,
-            CompareOp::Ge => this >= other,
-        }
-    }
 }
 
-#[pyclass(unsendable)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass(eq, eq_int)]
 /// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
@@ -464,7 +688,7 @@ pub(crate) enum Pauli {
 }
 
 // Mapping of Q# value types to Python value types.
-struct ValueWrapper(Value);
+pub(crate) struct ValueWrapper(pub(crate) Value);
 
 impl IntoPy<PyObject> for ValueWrapper {
     fn into_py(self, py: Python) -> PyObject {
@@ -491,21 +715,22 @@ impl IntoPy<PyObject> for ValueWrapper {
                     // Special case Value::unit as None
                     py.None()
                 } else {
-                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
                         .into_py(py)
                 }
             }
             Value::Array(val) => {
-                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)
+                PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    .into_py(py)
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
     }
 }
 
-struct OptionalCallbackReceiver<'a> {
-    callback: Option<PyObject>,
-    py: Python<'a>,
+pub(crate) struct OptionalCallbackReceiver<'a> {
+    pub(crate) callback: Option<PyObject>,
+    pub(crate) py: Python<'a>,
 }
 
 impl Receiver for OptionalCallbackReceiver<'_> {
@@ -519,7 +744,23 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
+                        self.py,
+                        &[Py::new(self.py, Output(out)).expect("should be able to create output")],
+                    ),
+                )
+                .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> std::result::Result<(), Error> {
+        if let Some(callback) = &self.callback {
+            let out = DisplayableOutput::Matrix(DisplayableMatrix(matrix));
+            callback
+                .call1(
+                    self.py,
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -535,7 +776,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new(
+                    PyTuple::new_bound(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -546,7 +787,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 struct Circuit(pub qsc::circuit::Circuit);
 
 #[pymethods]
@@ -564,22 +805,6 @@ impl Circuit {
     }
 }
 
-trait MapPyErr<T, E> {
-    fn map_py_err(self) -> core::result::Result<T, PyErr>;
-}
-
-impl<T, E> MapPyErr<T, E> for core::result::Result<T, E>
-where
-    E: IntoPyErr,
-{
-    fn map_py_err(self) -> core::result::Result<T, PyErr>
-    where
-        E: IntoPyErr,
-    {
-        self.map_err(IntoPyErr::into_py_err)
-    }
-}
-
 trait IntoPyErr {
     fn into_py_err(self) -> PyErr;
 }
@@ -590,38 +815,16 @@ impl IntoPyErr for Report {
     }
 }
 
-impl IntoPyErr for Vec<interpret::Error> {
+impl<E> IntoPyErr for Vec<E>
+where
+    E: Diagnostic + Send + Sync + 'static,
+{
     fn into_py_err(self) -> PyErr {
         let mut message = String::new();
-        for error in self {
-            writeln!(message, "{error}").expect("string should be writable");
+        for diag in self {
+            let report = Report::new(diag);
+            writeln!(message, "{report:?}").expect("string should be writable");
         }
         PyException::new_err(message)
-    }
-}
-
-fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
-    let value = dict.get_item(key)?;
-    Ok(match value {
-        Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
-        None => None,
-    })
-}
-fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
-    let value = dict.get_item(key)?;
-    let list: &PyList = match value {
-        Some(item) => item.downcast::<PyList>()?,
-        None => return Ok(vec![]),
-    };
-    match list
-        .iter()
-        .map(|item| {
-            item.downcast::<PyString>()
-                .map(|s| s.to_string_lossy().into())
-        })
-        .collect::<std::result::Result<Vec<String>, _>>()
-    {
-        Ok(list) => Ok(list),
-        Err(e) => Err(e.into()),
     }
 }

@@ -16,6 +16,11 @@ pub trait Receiver {
     /// This will return an error if handling the output fails.
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error>;
 
+    /// Receive matrix output
+    /// # Errors
+    /// This will return an error if handling the output fails.
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error>;
+
     /// Receive generic message output
     /// # Errors
     /// This will return an error if handling the output fails.
@@ -35,14 +40,27 @@ impl<'a> GenericReceiver<'a> {
 impl<'a> Receiver for GenericReceiver<'a> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.writer, "STATE:").map_err(|_| Error)?;
-        for (id, state) in state {
-            writeln!(
-                self.writer,
-                "{}: {}",
-                format_state_id(&id, qubit_count),
-                fmt_complex(&state),
-            )
-            .map_err(|_| Error)?;
+        if qubit_count > 0 {
+            for (id, state) in state {
+                writeln!(
+                    self.writer,
+                    "{}: {}",
+                    format_state_id(&id, qubit_count),
+                    fmt_complex(&state),
+                )
+                .map_err(|_| Error)?;
+            }
+        } else {
+            writeln!(self.writer, "No qubits allocated").map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.writer, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.writer, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }
@@ -74,14 +92,27 @@ impl<'a> CursorReceiver<'a> {
 impl<'a> Receiver for CursorReceiver<'a> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.cursor, "STATE:").map_err(|_| Error)?;
-        for (id, state) in state {
-            writeln!(
-                self.cursor,
-                "{}: {}",
-                format_state_id(&id, qubit_count),
-                state
-            )
-            .map_err(|_| Error)?;
+        if qubit_count > 0 {
+            for (id, state) in state {
+                writeln!(
+                    self.cursor,
+                    "{}: {}",
+                    format_state_id(&id, qubit_count),
+                    state
+                )
+                .map_err(|_| Error)?;
+            }
+        } else {
+            writeln!(self.cursor, "No qubits allocated").map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn matrix(&mut self, matrix: Vec<Vec<Complex64>>) -> Result<(), Error> {
+        writeln!(self.cursor, "MATRIX:").map_err(|_| Error)?;
+        for row in matrix {
+            let row_str = row.iter().map(fmt_complex).collect::<Vec<_>>().join(" ");
+            writeln!(self.cursor, "{row_str}").map_err(|_| Error)?;
         }
         Ok(())
     }

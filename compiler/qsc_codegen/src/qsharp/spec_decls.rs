@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::expect;
 use indoc::indoc;
@@ -70,7 +69,7 @@ fn comments_are_omitted() {
 }
 
 #[test]
-fn visibility() {
+fn strip_visibility() {
     check(
         indoc! {r#"
             // NS comment
@@ -84,7 +83,7 @@ fn visibility() {
         None,
         &expect![[r#"
             namespace A {
-                internal operation B() : Unit {}
+                operation B() : Unit {}
             }"#]],
     );
 }

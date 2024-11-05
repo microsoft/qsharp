@@ -1,12 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::get_hover;
-use crate::test_utils::{
-    compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-};
+use crate::test_utils::{compile_notebook_with_markers, compile_with_markers};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc::line_column::Encoding;
@@ -16,7 +12,7 @@ use qsc::line_column::Encoding;
 /// The expected hover span is indicated by two `◉` markers in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual = get_hover(&compilation, "<source>", cursor_position, Encoding::Utf8)
         .expect("Expected a hover.");
     assert_eq!(&actual.span, &target_spans[0]);
@@ -25,15 +21,14 @@ fn check(source_with_markers: &str, expect: &Expect) {
 
 /// Asserts that there is no hover for the given test case.
 fn check_none(source_with_markers: &str) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual = get_hover(&compilation, "<source>", cursor_position, Encoding::Utf8);
     assert!(actual.is_none());
 }
 
 fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
 
     let actual =
         get_hover(&compilation, &cell_uri, position, Encoding::Utf8).expect("Expected a hover.");
@@ -42,8 +37,7 @@ fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
 }
 
 fn check_notebook_none(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, position, _) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+    let (compilation, cell_uri, position, _) = compile_notebook_with_markers(cells_with_markers);
 
     let actual = get_hover(&compilation, &cell_uri, position, Encoding::Utf8);
     assert!(actual.is_none());
@@ -60,8 +54,8 @@ fn callable_unit_types() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit
             ```
             ---
@@ -81,8 +75,8 @@ fn callable_with_callable_types() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(x : (Int => Int)) : (Int => Int)
             ```
             ---
@@ -101,8 +95,8 @@ fn callable_with_type_params() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo<'A, 'B>(a : 'A, b : 'B) : 'B
             ```
             ---
@@ -122,8 +116,8 @@ fn callable_ref() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit
             ```
         "#]],
@@ -143,8 +137,8 @@ fn callable_with_type_params_ref() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar<'A, 'B>(a : 'A, b : 'B) : 'B
             ```
         "#]],
@@ -161,8 +155,8 @@ fn callable_unit_types_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit is Ctl
             ```
             ---
@@ -181,8 +175,8 @@ fn callable_with_callable_types_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(x : (Int => Int is Adj + Ctl)) : (Int => Int is Adj) is Adj
             ```
             ---
@@ -202,8 +196,8 @@ fn callable_ref_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Bar() : Unit is Adj
             ```
         "#]],
@@ -633,6 +627,7 @@ fn udt() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
             newtype Pair = (Int, snd : Int)
             ```
@@ -652,8 +647,9 @@ fn udt_ref() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
-            newtype Bar = (fst: Int, (snd: Int, Double, fourth: String), Double, sixth: Int)
+            newtype Bar = (fst : Int, (snd : Int, Double, fourth : String), Double, sixth : Int)
             ```
         "#]],
     );
@@ -672,8 +668,9 @@ fn udt_ref_nested_udt() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
-            newtype Bar = (fst: Int, (snd: Int, Double, fourth: Pair), Double, sixth: Int)
+            newtype Bar = (fst : Int, (snd : Int, Double, fourth : Pair), Double, sixth : Int)
             ```
         "#]],
     );
@@ -691,8 +688,9 @@ fn udt_anno_ref() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
-            newtype Pair = (Int, snd: Int)
+            newtype Pair = (Int, snd : Int)
             ```
         "#]],
     );
@@ -710,8 +708,9 @@ fn udt_constructor() {
         }
     "#},
         &expect![[r#"
+            user-defined type of `Test`
             ```qsharp
-            newtype Pair = (Int, snd: Int)
+            newtype Pair = (Int, snd : Int)
             ```
         "#]],
     );
@@ -726,6 +725,7 @@ fn udt_field() {
         }
     "#},
         &expect![[r#"
+            field of `Pair`
             ```qsharp
             snd : Int
             ```
@@ -746,8 +746,272 @@ fn udt_field_ref() {
         }
     "#},
         &expect![[r#"
+            field of `Pair`
             ```qsharp
             snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn identifier_struct() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, snd = 4 };
+                let b = ◉↘a◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            local
+            ```qsharp
+            a : Pair
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_def() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct ◉P↘air◉ { fst : Int, snd : Int }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : ◉Pa↘ir◉ {
+                new Pair { fst = 3, snd = 4 }
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_ref_nested_struct() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            struct Bar { fst: Int, snd : Pair }
+            operation Foo() : ◉B↘ar◉ {
+                new Bar { fst = 1, snd = new Pair { fst = 2, snd = 3 } }
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Bar { fst : Int, snd : Pair }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_anno_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a : ◉P↘air◉ = new Pair { fst = 3, snd = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_constructor() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new ◉P↘air◉ { fst = 3, snd = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_fn_constructor() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = ◉P↘air◉(3, 4);
+            }
+        }
+    "#},
+        &expect![[r#"
+            struct of `Test`
+            ```qsharp
+            struct Pair { fst : Int, snd : Int }
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, ◉s↘nd◉ : Int }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, snd = 4 };
+                let b = a::◉s↘nd◉;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_cons_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct Pair { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let a = new Pair { fst = 3, ◉s↘nd◉ = 4 };
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `Pair`
+            ```qsharp
+            snd : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = a.b.◉↘c◉.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `B`
+            ```qsharp
+            c : C
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_first_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = ◉↘a◉.b.c.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            parameter of `Foo`
+            ```qsharp
+            a : A
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_ref() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.◉↘b◉ }.c.i;
+            }
+        }
+    "#},
+        &expect![[r#"
+            field of `A`
+            ```qsharp
+            b : B
             ```
         "#]],
     );
@@ -778,8 +1042,8 @@ fn foreign_call() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation Fake() : Unit
             ```
         "#]],
@@ -798,8 +1062,8 @@ fn foreign_call_functors() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeCtlAdj() : Unit is Adj + Ctl
             ```
         "#]],
@@ -818,8 +1082,8 @@ fn foreign_call_with_param() {
         }
     "#},
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeWithParam(x : Int) : Unit
             ```
         "#]],
@@ -838,8 +1102,8 @@ fn callable_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -862,8 +1126,8 @@ fn callable_summary_stuff_before() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -887,8 +1151,8 @@ fn callable_summary_other_header_before() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -912,8 +1176,8 @@ fn callable_summary_other_header_after() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -939,8 +1203,8 @@ fn callable_summary_other_headers() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -963,8 +1227,8 @@ fn callable_headers_but_no_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -992,8 +1256,8 @@ fn callable_summary_only_header_matches() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -1016,8 +1280,8 @@ fn callable_summary_successive_headers() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
             ---
@@ -1039,8 +1303,8 @@ fn callable_empty_summary() {
         }
     "#},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Unit
             ```
         "#]],
@@ -1096,8 +1360,8 @@ fn callable_generic_functor_display() {
             }
         "},
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo(op : (Qubit => Unit is Adj)) : Unit
             ```
         "#]],
@@ -1128,8 +1392,8 @@ fn std_udt_return_type() {
     }
     "#,
         &expect![[r#"
+            callable of `Test`
             ```qsharp
-            Test
             operation Foo() : Udt
             ```
         "#]],
@@ -1148,9 +1412,60 @@ fn std_callable_with_udt() {
     }
     "#,
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             function TakesUdt(input : Udt) : Udt
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_incorrect() {
+    check_none(indoc! {r#"
+        namespace Test {
+            struct Foo { fst : Int, snd : Int }
+            operation Bar() : Unit {
+                let foo = new Foo { fst = 1, snd = 2 };
+                let x : Int = foo::◉n↘one◉;
+            }
+        }
+    "#});
+}
+
+#[test]
+fn std_struct_return_type() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation ◉Fo↘o◉() : FakeStruct {}
+    }
+    "#,
+        &expect![[r#"
+            callable of `Test`
+            ```qsharp
+            operation Foo() : FakeStruct
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_callable_with_struct() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : Unit {
+            ◉Takes↘Struct◉();
+        }
+    }
+    "#,
+        &expect![[r#"
+            callable of `FakeStdLib`
+            ```qsharp
+            function TakesStruct(input : FakeStruct) : FakeStruct
             ```
         "#]],
     );
@@ -1168,8 +1483,8 @@ fn std_callable_with_type_param() {
     }
     "#,
         &expect![[r#"
+            callable of `FakeStdLib`
             ```qsharp
-            FakeStdLib
             operation FakeWithTypeParam<'A>(a : 'A) : 'A
             ```
         "#]],
@@ -1189,9 +1504,31 @@ fn std_udt_udt_field() {
     }
     "#,
         &expect![[r#"
-        ```qsharp
-        x : Int
-        ```
+            field of `Udt`
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn std_struct_struct_field() {
+    check(
+        r#"
+    namespace Test {
+        open FakeStdLib;
+        operation Foo() : FakeStruct {
+            let f = new StructWrapper { inner = new FakeStruct { x = 1, y = 2 } };
+            f::inner::◉x◉↘
+        }
+    }
+    "#,
+        &expect![[r#"
+            field of `FakeStruct`
+            ```qsharp
+            x : Int
+            ```
         "#]],
     );
 }
@@ -1238,6 +1575,7 @@ fn notebook_callable_def_across_cells() {
             ("cell2", "◉C↘allee◉();"),
         ],
         &expect![[r#"
+            callable
             ```qsharp
             operation Callee() : Unit
             ```
@@ -1251,4 +1589,30 @@ fn notebook_callable_defined_in_later_cell() {
         ("cell1", "C↘allee();"),
         ("cell2", "operation Callee() : Unit {}"),
     ]);
+}
+
+#[test]
+fn notebook_local_definition() {
+    check_notebook(
+        &[("cell1", "let x = 3;"), ("cell2", "let ◉↘y◉ = x + 1;")],
+        &expect![[r#"
+            local
+            ```qsharp
+            y : Int
+            ```
+        "#]],
+    );
+}
+
+#[test]
+fn notebook_local_reference() {
+    check_notebook(
+        &[("cell1", "let x = 3;"), ("cell2", "let y = ◉↘x◉ + 1;")],
+        &expect![[r#"
+            local
+            ```qsharp
+            x : Int
+            ```
+        "#]],
+    );
 }

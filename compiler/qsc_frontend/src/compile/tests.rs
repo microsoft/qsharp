@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
+mod multiple_packages;
 
+use std::sync::Arc;
+
+use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
 
-use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -273,7 +275,7 @@ fn entry_error() {
 
     let unit = default_compile(sources);
     assert_eq!(
-        ("<entry>", Span { lo: 4, hi: 5 }),
+        ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
     );
 }
@@ -339,9 +341,13 @@ fn insert_core_call() {
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
+            let ns = self
+                .core
+                .find_namespace(["QIR", "Runtime"].iter().copied())
+                .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .resolve_term(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -400,7 +406,7 @@ fn insert_core_call() {
         Package:
             Item 0 [0-43] (Public):
                 Namespace (Ident 5 [10-11] "A"): Item 1
-            Item 1 [18-41] (Public):
+            Item 1 [18-41] (Internal):
                 Parent: 0
                 Callable 0 [18-41] (operation):
                     name: Ident 1 [28-31] "Foo"
@@ -430,6 +436,7 @@ fn package_dependency() {
                     function Foo() : Int {
                         1
                     }
+                    export Foo;
                 }
             "}
             .into(),
@@ -452,7 +459,7 @@ fn package_dependency() {
             indoc! {"
                 namespace Package2 {
                     function Bar() : Int {
-                        Package1.Foo()
+                        PackageAlias.Package1.Foo()
                     }
                 }
             "}
@@ -462,7 +469,7 @@ fn package_dependency() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -471,20 +478,20 @@ fn package_dependency() {
 
     expect![[r#"
         Package:
-            Item 0 [0-78] (Public):
+            Item 0 [0-91] (Public):
                 Namespace (Ident 9 [10-18] "Package2"): Item 1
-            Item 1 [25-76] (Public):
+            Item 1 [25-89] (Internal):
                 Parent: 0
-                Callable 0 [25-76] (function):
+                Callable 0 [25-89] (function):
                     name: Ident 1 [34-37] "Bar"
                     input: Pat 2 [37-39] [Type Unit]: Unit
                     output: Int
                     functors: empty set
-                    body: SpecDecl 3 [25-76]: Impl:
-                        Block 4 [46-76] [Type Int]:
-                            Stmt 5 [56-70]: Expr: Expr 6 [56-70] [Type Int]: Call:
-                                Expr 7 [56-68] [Type (Unit -> Int)]: Var: Item 1 (Package 1)
-                                Expr 8 [68-70] [Type Unit]: Unit
+                    body: SpecDecl 3 [25-89]: Impl:
+                        Block 4 [46-89] [Type Int]:
+                            Stmt 5 [56-83]: Expr: Expr 6 [56-83] [Type Int]: Call:
+                                Expr 7 [56-81] [Type (Unit -> Int)]: Var: Item 1 (Package 1)
+                                Expr 8 [81-83] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>
                     ctl-adj: <none>"#]]
@@ -535,7 +542,7 @@ fn package_dependency_internal_error() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -546,13 +553,13 @@ fn package_dependency_internal_error() {
         .iter()
         .map(|error| source_span(&unit2.sources, error))
         .collect();
-    assert_eq!(vec![("test", Span { lo: 65, hi: 68 }),], errors);
+    assert_eq!(vec![("test", Span { lo: 56, hi: 68 }),], errors);
 
     expect![[r#"
         Package:
             Item 0 [0-78] (Public):
                 Namespace (Ident 9 [10-18] "Package2"): Item 1
-            Item 1 [25-76] (Public):
+            Item 1 [25-76] (Internal):
                 Parent: 0
                 Callable 0 [25-76] (function):
                     name: Ident 1 [34-37] "Bar"
@@ -583,6 +590,7 @@ fn package_dependency_udt() {
                     function Foo(bar : Bar) : Int {
                         bar!
                     }
+                    export Foo, Bar;
                 }
             "}
             .into(),
@@ -605,7 +613,7 @@ fn package_dependency_udt() {
             indoc! {"
                 namespace Package2 {
                     function Baz() : Int {
-                        Package1.Foo(Package1.Bar(1))
+                        PackageAlias.Package1.Foo(PackageAlias.Package1.Bar(1))
                     }
                 }
             "}
@@ -615,7 +623,7 @@ fn package_dependency_udt() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -624,22 +632,22 @@ fn package_dependency_udt() {
 
     expect![[r#"
         Package:
-            Item 0 [0-93] (Public):
+            Item 0 [0-119] (Public):
                 Namespace (Ident 11 [10-18] "Package2"): Item 1
-            Item 1 [25-91] (Public):
+            Item 1 [25-117] (Internal):
                 Parent: 0
-                Callable 0 [25-91] (function):
+                Callable 0 [25-117] (function):
                     name: Ident 1 [34-37] "Baz"
                     input: Pat 2 [37-39] [Type Unit]: Unit
                     output: Int
                     functors: empty set
-                    body: SpecDecl 3 [25-91]: Impl:
-                        Block 4 [46-91] [Type Int]:
-                            Stmt 5 [56-85]: Expr: Expr 6 [56-85] [Type Int]: Call:
-                                Expr 7 [56-68] [Type (UDT<"Bar": Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
-                                Expr 8 [69-84] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
-                                    Expr 9 [69-81] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
-                                    Expr 10 [82-83] [Type Int]: Lit: Int(1)
+                    body: SpecDecl 3 [25-117]: Impl:
+                        Block 4 [46-117] [Type Int]:
+                            Stmt 5 [56-111]: Expr: Expr 6 [56-111] [Type Int]: Call:
+                                Expr 7 [56-81] [Type (UDT<"Bar": Item 1 (Package 1)> -> Int)]: Var: Item 2 (Package 1)
+                                Expr 8 [82-110] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
+                                    Expr 9 [82-107] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                    Expr 10 [108-109] [Type Int]: Lit: Int(1)
                     adj: <none>
                     ctl: <none>
                     ctl-adj: <none>"#]]
@@ -658,6 +666,7 @@ fn package_dependency_nested_udt() {
                     newtype Bar = Int;
                     newtype Baz = Int;
                     newtype Foo = (bar : Bar, Baz);
+                    export Bar, Baz, Foo;
                 }
             "}
             .into(),
@@ -679,6 +688,7 @@ fn package_dependency_nested_udt() {
             "test".into(),
             indoc! {"
                 namespace Package2 {
+                    import PackageAlias.*;
                     function Test() : Int {
                         let bar = Package1.Bar(1);
                         let baz = Package1.Baz(2);
@@ -695,7 +705,7 @@ fn package_dependency_nested_udt() {
     );
     let unit2 = compile(
         &store,
-        &[package1],
+        &[(package1, Some(Arc::from("PackageAlias")))],
         sources2,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -704,47 +714,47 @@ fn package_dependency_nested_udt() {
 
     expect![[r#"
         Package:
-            Item 0 [0-274] (Public):
+            Item 0 [0-301] (Public):
                 Namespace (Ident 40 [10-18] "Package2"): Item 1
-            Item 1 [25-272] (Public):
+            Item 1 [52-299] (Internal):
                 Parent: 0
-                Callable 0 [25-272] (function):
-                    name: Ident 1 [34-38] "Test"
-                    input: Pat 2 [38-40] [Type Unit]: Unit
+                Callable 0 [52-299] (function):
+                    name: Ident 1 [61-65] "Test"
+                    input: Pat 2 [65-67] [Type Unit]: Unit
                     output: Int
                     functors: empty set
-                    body: SpecDecl 3 [25-272]: Impl:
-                        Block 4 [47-272] [Type Int]:
-                            Stmt 5 [57-83]: Local (Immutable):
-                                Pat 6 [61-64] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 7 [61-64] "bar"
-                                Expr 8 [67-82] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
-                                    Expr 9 [67-79] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
-                                    Expr 10 [80-81] [Type Int]: Lit: Int(1)
-                            Stmt 11 [92-118]: Local (Immutable):
-                                Pat 12 [96-99] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 13 [96-99] "baz"
-                                Expr 14 [102-117] [Type UDT<"Baz": Item 2 (Package 1)>]: Call:
-                                    Expr 15 [102-114] [Type (Int -> UDT<"Baz": Item 2 (Package 1)>)]: Var: Item 2 (Package 1)
-                                    Expr 16 [115-116] [Type Int]: Lit: Int(2)
-                            Stmt 17 [127-160]: Local (Immutable):
-                                Pat 18 [131-134] [Type UDT<"Foo": Item 3 (Package 1)>]: Bind: Ident 19 [131-134] "foo"
-                                Expr 20 [137-159] [Type UDT<"Foo": Item 3 (Package 1)>]: Call:
-                                    Expr 21 [137-149] [Type ((UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>) -> UDT<"Foo": Item 3 (Package 1)>)]: Var: Item 3 (Package 1)
-                                    Expr 22 [149-159] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
-                                        Expr 23 [150-153] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 7
-                                        Expr 24 [155-158] [Type UDT<"Baz": Item 2 (Package 1)>]: Var: Local 13
-                            Stmt 25 [169-205]: Local (Immutable):
-                                Pat 26 [173-193] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 27 [173-178] "inner"
-                                Expr 28 [196-204] [Type UDT<"Bar": Item 1 (Package 1)>]: Field:
-                                    Expr 29 [196-199] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
+                    body: SpecDecl 3 [52-299]: Impl:
+                        Block 4 [74-299] [Type Int]:
+                            Stmt 5 [84-110]: Local (Immutable):
+                                Pat 6 [88-91] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 7 [88-91] "bar"
+                                Expr 8 [94-109] [Type UDT<"Bar": Item 1 (Package 1)>]: Call:
+                                    Expr 9 [94-106] [Type (Int -> UDT<"Bar": Item 1 (Package 1)>)]: Var: Item 1 (Package 1)
+                                    Expr 10 [107-108] [Type Int]: Lit: Int(1)
+                            Stmt 11 [119-145]: Local (Immutable):
+                                Pat 12 [123-126] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 13 [123-126] "baz"
+                                Expr 14 [129-144] [Type UDT<"Baz": Item 2 (Package 1)>]: Call:
+                                    Expr 15 [129-141] [Type (Int -> UDT<"Baz": Item 2 (Package 1)>)]: Var: Item 2 (Package 1)
+                                    Expr 16 [142-143] [Type Int]: Lit: Int(2)
+                            Stmt 17 [154-187]: Local (Immutable):
+                                Pat 18 [158-161] [Type UDT<"Foo": Item 3 (Package 1)>]: Bind: Ident 19 [158-161] "foo"
+                                Expr 20 [164-186] [Type UDT<"Foo": Item 3 (Package 1)>]: Call:
+                                    Expr 21 [164-176] [Type ((UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>) -> UDT<"Foo": Item 3 (Package 1)>)]: Var: Item 3 (Package 1)
+                                    Expr 22 [176-186] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
+                                        Expr 23 [177-180] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 7
+                                        Expr 24 [182-185] [Type UDT<"Baz": Item 2 (Package 1)>]: Var: Local 13
+                            Stmt 25 [196-232]: Local (Immutable):
+                                Pat 26 [200-220] [Type UDT<"Bar": Item 1 (Package 1)>]: Bind: Ident 27 [200-205] "inner"
+                                Expr 28 [223-231] [Type UDT<"Bar": Item 1 (Package 1)>]: Field:
+                                    Expr 29 [223-226] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
                                     Path(FieldPath { indices: [0] })
-                            Stmt 30 [214-251]: Local (Immutable):
-                                Pat 31 [218-243] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
-                                    Pat 32 [219-220] [Type UDT<"Bar": Item 1 (Package 1)>]: Discard
-                                    Pat 33 [222-242] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 34 [222-227] "other"
-                                Expr 35 [246-250] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: UnOp (Unwrap):
-                                    Expr 36 [246-249] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
-                            Stmt 37 [260-266]: Expr: Expr 38 [260-266] [Type Int]: UnOp (Unwrap):
-                                Expr 39 [260-265] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 27
+                            Stmt 30 [241-278]: Local (Immutable):
+                                Pat 31 [245-270] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: Tuple:
+                                    Pat 32 [246-247] [Type UDT<"Bar": Item 1 (Package 1)>]: Discard
+                                    Pat 33 [249-269] [Type UDT<"Baz": Item 2 (Package 1)>]: Bind: Ident 34 [249-254] "other"
+                                Expr 35 [273-277] [Type (UDT<"Bar": Item 1 (Package 1)>, UDT<"Baz": Item 2 (Package 1)>)]: UnOp (Unwrap):
+                                    Expr 36 [273-276] [Type UDT<"Foo": Item 3 (Package 1)>]: Var: Local 19
+                            Stmt 37 [287-293]: Expr: Expr 38 [287-293] [Type Int]: UnOp (Unwrap):
+                                Expr 39 [287-292] [Type UDT<"Bar": Item 1 (Package 1)>]: Var: Local 27
                     adj: <none>
                     ctl: <none>
                     ctl-adj: <none>"#]]
@@ -760,7 +770,7 @@ fn std_dependency() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
 
                     operation Main() : Unit {
                         use q = Qubit();
@@ -775,7 +785,7 @@ fn std_dependency() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -792,7 +802,7 @@ fn std_dependency_base_profile() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
 
                     operation Main() : Unit {
                         use q = Qubit();
@@ -807,7 +817,7 @@ fn std_dependency_base_profile() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
@@ -835,7 +845,7 @@ fn introduce_prelude_ambiguity() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -906,6 +916,11 @@ fn two_files_error_eof() {
     .assert_eq(&unit.package.to_string());
 }
 
+// this test is ignored for now -- see
+// https://github.com/microsoft/qsharp/pull/1698#discussion_r1664575343 for more information.
+// if we want to use `Unimplemented` more seriously (it is currently not used anywhere),
+// we should consider how it will interact with exports and other features.
+#[ignore]
 #[test]
 fn unimplemented_call_from_dependency_produces_error() {
     let lib_sources = SourceMap::new(
@@ -949,24 +964,24 @@ fn unimplemented_call_from_dependency_produces_error() {
     );
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     expect![[r#"
         [
-            Error(
-                Resolve(
-                    Unimplemented(
+           Error(
+               Resolve(
+                   Unimplemented(
                         "Bar",
                         Span {
-                            lo: 69,
-                            hi: 72,
+                           lo: 69,
+                           hi: 72,
                         },
-                    ),
-                ),
-            ),
+                   ),
+               ),
+           ),
         ]
     "#]]
     .assert_debug_eq(&unit.errors);
@@ -1090,7 +1105,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
     );
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1142,7 +1157,7 @@ fn duplicate_intrinsic_from_dependency() {
 
     let unit = compile(
         &store,
-        &[lib],
+        &[(lib, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
@@ -1174,7 +1189,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here
@@ -1193,7 +1208,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::V2PreviewSyntax,
@@ -1209,8 +1224,8 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                                 Brace,
                             ),
                             Span {
-                                lo: 119,
-                                hi: 120,
+                                lo: 109,
+                                hi: 110,
                             },
                         ),
                     ),
@@ -1230,7 +1245,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here
@@ -1248,10 +1263,229 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
 
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn hierarchical_namespace_basic() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo.Bar {
+                    operation Baz() : Unit {}
+                }
+                namespace Main {
+                    open Foo;
+                    operation Main() : Unit {
+                        Bar.Baz();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let store = PackageStore::new(super::core());
+    let lib = compile(
+        &store,
+        &[],
+        lib_sources,
+        TargetCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+}
+
+#[test]
+fn implicit_namespace_basic() {
+    let sources = SourceMap::new(
+        [
+            (
+                "Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            (
+                "Main.qs".into(),
+                indoc! {"
+                    @EntryPoint()
+                    operation Bar() : Unit {
+                        Test.Bar();
+                        open Foo.Bar;
+                        Baz.Quux();
+                    }
+            "}
+                .into(),
+            ),
+            (
+                "Foo/Bar/Baz.qs".into(),
+                indoc! {"
+                    operation Quux() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn bad_filename_implicit_namespace_best_effort_fixup() {
+    let sources = SourceMap::new(
+        [
+            // Rejected for starting with number
+            (
+                "123Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            // Cleaned up by replacing '-' with '_'
+            (
+                "Test-File.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {
+                    }
+            "}
+                .into(),
+            ),
+            // Rejected for containing '.'
+            (
+                "Namespace.Foo.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    expect![[r#"
+        [
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 0,
+                                hi: 25,
+                            },
+                            "123Test",
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 55,
+                                hi: 80,
+                            },
+                            "Namespace.Foo",
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn test_longest_common_prefix_1() {
+    assert_eq!(longest_common_prefix(&["/a/b/c", "/a/b/d"]), "/a/b/");
+}
+
+#[test]
+fn test_longest_common_prefix_2() {
+    assert_eq!(longest_common_prefix(&["foo", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_3() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_4() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_5() {
+    assert_eq!(
+        longest_common_prefix(&[
+            "code\\project\\src\\Main.qs",
+            "code\\project\\src\\Helper.qs"
+        ]),
+        "code\\project\\src\\"
+    );
+}
+
+#[test]
+fn test_longest_common_prefix_6() {
+    assert_eq!(
+        longest_common_prefix(&["code/project/src/Bar.qs", "code/project/src/Baz.qs"]),
+        "code/project/src/"
+    );
+}
+
+#[test]
+fn test_longest_common_prefix_two_relative_paths() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b", "a/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_relative_path() {
+    expect!["a/"].assert_eq(longest_common_prefix(&["a/b"]));
+}
+
+#[test]
+fn test_longest_common_prefix_one_file_name() {
+    expect![""].assert_eq(longest_common_prefix(&["a"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common() {
+    expect!["/"].assert_eq(longest_common_prefix(&["/a/b", "/b/c"]));
+}
+
+#[test]
+fn test_longest_common_prefix_only_root_common_no_leading() {
+    expect![""].assert_eq(longest_common_prefix(&["a/b", "b/c"]));
+}
+
+#[test]
+fn export_namespace_with_same_name_as_newtype_does_not_cause_panic() {
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace A {
+                    export A;
+                    newtype A = Int;
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let unit = default_compile(sources);
+    expect!["[]"].assert_eq(&format!("{:?}", unit.errors));
 }

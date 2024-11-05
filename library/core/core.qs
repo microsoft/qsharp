@@ -1,22 +1,34 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Core {
+namespace Std.Core {
     /// # Summary
-    /// Returns the number of elements in an array.
+    /// Returns the number of elements in the input array `a`.
     ///
     /// # Input
     /// ## a
     /// Input array.
     ///
     /// # Output
-    /// The total count of elements in an array.
+    /// The total number of elements in the input array `a`.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{ Length([0, 0, 0]) }"); // Prints 3
+    /// ```
     function Length<'T>(a : 'T[]) : Int {
         body intrinsic;
     }
 
     /// # Summary
-    /// Creates an array of given length with all elements equal to given value.
+    /// Creates an array of given `length` with all elements equal to given
+    /// `value`. `length` must be a non-negative integer.
+    ///
+    /// # Description
+    /// Use this function to create an array of length `length` where each
+    /// element is equal to `value`. This way of creating an array is preferred
+    /// over other methods if all elements of the array must be the same and
+    /// the length is known upfront.
     ///
     /// # Input
     /// ## value
@@ -28,8 +40,8 @@ namespace Microsoft.Quantum.Core {
     /// A new array of length `length`, such that every element is `value`.
     ///
     /// # Example
-    /// The following code creates an array of 3 Boolean values, each equal to `true`:
     /// ```qsharp
+    /// // Create an array of 3 Boolean values, each equal to `true`
     /// let array = Repeated(true, 3);
     /// ```
     function Repeated<'T>(value : 'T, length : Int) : 'T[] {
@@ -44,4 +56,6 @@ namespace Microsoft.Quantum.Core {
 
         output
     }
+
+    export Length, Repeated;
 }

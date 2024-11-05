@@ -11,12 +11,13 @@ use crate::{
     error::PackageSpan,
     output::Receiver,
     val::{self, Qubit, Value},
-    Error,
+    Error, Rc,
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::array;
+use std::convert::TryFrom;
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn call(
@@ -36,6 +37,22 @@ pub(crate) fn call(
         #[allow(clippy::cast_precision_loss)]
         "IntAsDouble" => Ok(Value::Double(arg.unwrap_int() as f64)),
         "IntAsBigInt" => Ok(Value::BigInt(BigInt::from(arg.unwrap_int()))),
+        "DoubleAsStringWithPrecision" => {
+            let [input, prec_val] = unwrap_tuple(arg);
+            let prec_int = prec_val.unwrap_int();
+            if prec_int < 0 {
+                Err(Error::InvalidNegativeInt(prec_int, arg_span))
+            } else {
+                let precision = usize::try_from(prec_int).expect("integer value");
+                let is_zero = if precision == 0 { "." } else { "" };
+                Ok(Value::String(Rc::from(format!(
+                    "{:.*}{}",
+                    precision,
+                    input.unwrap_double(),
+                    is_zero
+                ))))
+            }
+        }
         "DumpMachine" => {
             let (state, qubit_count) = sim.capture_quantum_state();
             match out.state(state, qubit_count) {
@@ -53,13 +70,32 @@ pub(crate) fn call(
                 return Err(Error::QubitUniqueness(arg_span));
             }
             let (state, qubit_count) = sim.capture_quantum_state();
-            let state = utils::split_state(&qubits, state, qubit_count)
+            let state = utils::split_state(&qubits, &state, qubit_count)
                 .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
             match out.state(state, qubits.len()) {
                 Ok(()) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
             }
         }
+        "DumpMatrix" => {
+            let qubits = arg.unwrap_array();
+            let qubits = qubits
+                .iter()
+                .map(|q| q.clone().unwrap_qubit().0)
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits.iter().collect::<FxHashSet<_>>().len() {
+                return Err(Error::QubitUniqueness(arg_span));
+            }
+            let (state, qubit_count) = sim.capture_quantum_state();
+            let state = utils::split_state(&qubits, &state, qubit_count)
+                .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
+            let matrix = utils::state_to_matrix(state, qubits.len() / 2);
+            match out.matrix(matrix) {
+                Ok(()) => Ok(Value::unit()),
+                Err(_) => Err(Error::OutputFail(name_span)),
+            }
+        }
+        "PermuteLabels" => qubit_relabel(arg, arg_span, |q0, q1| sim.qubit_swap_id(q0, q1)),
         "Message" => match out.message(&arg.unwrap_string()) {
             Ok(()) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
@@ -100,13 +136,16 @@ pub(crate) fn call(
                 Ok(Value::Double(rng.gen_range(lo..=hi)))
             }
         }
+        "DrawRandomBool" => {
+            let p = arg.unwrap_double();
+            Ok(Value::Bool(rng.gen_bool(p)))
+        }
         #[allow(clippy::cast_possible_truncation)]
         "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
         "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),
         "__quantum__rt__qubit_release" => {
             let qubit = arg.unwrap_qubit().0;
-            if sim.qubit_is_zero(qubit) {
-                sim.qubit_release(qubit);
+            if sim.qubit_release(qubit) {
                 Ok(Value::unit())
             } else {
                 Err(Error::ReleasedQubitNotZero(qubit, arg_span))
@@ -226,6 +265,83 @@ fn two_qubit_rotation(
         gate(angle, y.unwrap_qubit().0, z.unwrap_qubit().0);
         Ok(Value::unit())
     }
+}
+
+/// Performs relabeling of qubits from the a given left array to the corresponding right array.
+/// The function will swap qubits with the given function to match the new relabeling, returning an error
+/// if the qubits are not unique or if the relabeling is not a valid permutation.
+pub fn qubit_relabel(
+    arg: Value,
+    arg_span: PackageSpan,
+    mut swap: impl FnMut(usize, usize),
+) -> Result<Value, Error> {
+    let [left, right] = unwrap_tuple(arg);
+    let left = left
+        .unwrap_array()
+        .iter()
+        .map(|q| q.clone().unwrap_qubit().0)
+        .collect::<Vec<_>>();
+    let right = right
+        .unwrap_array()
+        .iter()
+        .map(|q| q.clone().unwrap_qubit().0)
+        .collect::<Vec<_>>();
+    let left_set = left.iter().collect::<FxHashSet<_>>();
+    let right_set = right.iter().collect::<FxHashSet<_>>();
+    if left.len() != left_set.len() || right.len() != right_set.len() {
+        return Err(Error::QubitUniqueness(arg_span));
+    }
+    if left_set != right_set {
+        return Err(Error::RelabelingMismatch(arg_span));
+    }
+
+    let mut map = FxHashMap::default();
+    map.reserve(left.len());
+    for (l, r) in left.into_iter().zip(right.into_iter()) {
+        if l == r {
+            continue;
+        }
+        match (map.contains_key(&l), map.contains_key(&r)) {
+            (false, false) => {
+                // Neither qubit has been relabeled yet.
+                swap(l, r);
+                map.insert(l, r);
+                map.insert(r, l);
+            }
+            (false, true) => {
+                // The right qubit has been relabeled, so we need to swap the left qubit with the
+                // qubit that the right qubit was relabeled to.
+                let mapped = *map
+                    .keys()
+                    .find(|k| map[*k] == r)
+                    .expect("mapped qubit should be present as both key and value");
+                swap(l, mapped);
+                map.insert(l, r);
+                map.insert(mapped, l);
+            }
+            (true, false) => {
+                // The left qubit has been relabeled, so we swap the qubits as normal but
+                // remember the new mapping of the right qubit.
+                let mapped = *map.get(&l).expect("mapped qubit should be present");
+                swap(l, r);
+                map.insert(l, r);
+                map.insert(r, mapped);
+            }
+            (true, true) => {
+                // Both qubits have been relabeled, so we need to swap the mapped right qubit with
+                // the left qubit and remember the new mapping of both qubits.
+                let mapped_l = *map.get(&l).expect("mapped qubit should be present");
+                let mapped_r = *map.get(&r).expect("mapped qubit should be present");
+                if mapped_l != r && mapped_r != l {
+                    swap(mapped_r, l);
+                    map.insert(mapped_r, mapped_l);
+                    map.insert(l, r);
+                }
+            }
+        }
+    }
+
+    Ok(Value::unit())
 }
 
 fn unwrap_tuple<const N: usize>(value: Value) -> [Value; N] {

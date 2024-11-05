@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::{
     compile::{self, Offsetter},
     resolve::{self, Resolver},
@@ -12,7 +10,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, NodeId, Package, Pat, QubitInit, TopLevelNode},
+    ast::{Block, Expr, Idents, NodeId, Package, Pat, Path, PathKind, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -38,6 +36,31 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
         visit::walk_expr(self, expr);
     }
 
+    fn visit_path_kind(&mut self, path_kind: &'a PathKind) {
+        visit::walk_path_kind(self, path_kind);
+        if let PathKind::Err(Some(incomplete_path)) = path_kind {
+            for part in incomplete_path.segments.iter() {
+                let ty = self.tys.get(part.id);
+                self.nodes.push((part.id, part.span, ty));
+            }
+        }
+    }
+
+    fn visit_path(&mut self, path: &'a Path) {
+        visit::walk_path(self, path);
+        let mut parts = path.iter().peekable();
+        if self
+            .tys
+            .get(parts.peek().expect("should contain at least one part").id)
+            .is_some()
+        {
+            for part in parts {
+                let ty = self.tys.get(part.id);
+                self.nodes.push((part.id, part.span, ty));
+            }
+        }
+    }
+
     fn visit_pat(&mut self, pat: &'a Pat) {
         let ty = self.tys.get(pat.id);
         self.nodes.push((pat.id, pat.span, ty));
@@ -52,7 +75,15 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 }
 
 fn check(input: &str, entry_expr: &str, expect: &Expect) {
-    let (package, tys, errors) = compile(input, entry_expr);
+    check_with_error_option(input, entry_expr, expect, false);
+}
+
+fn check_allow_parse_errors(input: &str, entry_expr: &str, expect: &Expect) {
+    check_with_error_option(input, entry_expr, expect, true);
+}
+
+fn check_with_error_option(input: &str, entry_expr: &str, expect: &Expect, allow_errors: bool) {
+    let (package, tys, errors) = compile(input, entry_expr, allow_errors);
     let mut collector = TyCollector {
         tys: &tys.terms,
         nodes: Vec::new(),
@@ -79,16 +110,22 @@ fn check(input: &str, entry_expr: &str, expect: &Expect) {
     expect.assert_eq(&actual);
 }
 
-fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile::Error>) {
-    let mut package = parse(input, entry_expr);
+fn compile(
+    input: &str,
+    entry_expr: &str,
+    allow_errors: bool,
+) -> (Package, super::Table, Vec<compile::Error>) {
+    let mut package = parse(input, entry_expr, allow_errors);
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
 
     let mut globals = resolve::GlobalTable::new();
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
+    resolver.bind_and_resolve_imports_and_exports(&package);
+
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, _, mut resolve_errors) = resolver.into_result();
+    let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
 
     let mut checker = Checker::new(super::GlobalTable::new());
@@ -105,9 +142,12 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     (package, tys, errors)
 }
 
-fn parse(input: &str, entry_expr: &str) -> Package {
-    let (namespaces, errors) = qsc_parse::namespaces(input, LanguageFeatures::default());
-    assert!(errors.is_empty(), "parsing input failed: {errors:#?}");
+fn parse(input: &str, entry_expr: &str, allow_errors: bool) -> Package {
+    let (namespaces, errors) = qsc_parse::namespaces(input, None, LanguageFeatures::default());
+    assert!(
+        allow_errors || errors.is_empty(),
+        "parsing input failed: {errors:#?}"
+    );
 
     let entry = if entry_expr.is_empty() {
         None
@@ -278,22 +318,81 @@ fn call_generic_identity() {
 fn call_generic_length() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length([true, false, true])",
-        &expect![[r#"
-            #7 58-69 "(xs : 'T[])" : ?
-            #8 59-68 "xs : 'T[]" : ?
-            #17 98-125 "Length([true, false, true])" : Int
-            #18 98-104 "Length" : (Bool[] -> Int)
-            #21 104-125 "([true, false, true])" : Bool[]
-            #22 105-124 "[true, false, true]" : Bool[]
-            #23 106-110 "true" : Bool
-            #24 112-117 "false" : Bool
-            #25 119-123 "true" : Bool
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-111 "Length([true, false, true])" : Int
+            #19 84-90 "Length" : (Bool[] -> Int)
+            #22 90-111 "([true, false, true])" : Bool[]
+            #23 91-110 "[true, false, true]" : Bool[]
+            #24 92-96 "true" : Bool
+            #25 98-103 "false" : Bool
+            #26 105-109 "true" : Bool
+        "##]],
+    );
+}
+
+#[test]
+fn nested_generic_with_lambda() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo<'I, 'O>(f : 'I -> 'O, x : 'I) : 'O { f(x) }
+                function Bar() : Unit {
+                    let r0 = Foo(Foo, (() -> (), ()));
+                    let r1 = Foo(Foo, (a -> (), ()));
+                    let r2 = Foo(Foo, (b -> b, ()));
+                }
+        }"
+        },
+        "",
+        &expect![[r##"
+            #8 46-68 "(f : 'I -> 'O, x : 'I)" : ((Param<"'I": 0> -> Param<"'O": 1>), Param<"'I": 0>)
+            #9 47-59 "f : 'I -> 'O" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #16 61-67 "x : 'I" : Param<"'I": 0>
+            #22 74-82 "{ f(x) }" : Param<"'O": 1>
+            #24 76-80 "f(x)" : Param<"'O": 1>
+            #25 76-77 "f" : (Param<"'I": 0> -> Param<"'O": 1>)
+            #28 77-80 "(x)" : Param<"'I": 0>
+            #29 78-79 "x" : Param<"'I": 0>
+            #35 103-105 "()" : Unit
+            #39 113-262 "{\n            let r0 = Foo(Foo, (() -> (), ()));\n            let r1 = Foo(Foo, (a -> (), ()));\n            let r2 = Foo(Foo, (b -> b, ()));\n        }" : Unit
+            #41 131-133 "r0" : Unit
+            #43 136-160 "Foo(Foo, (() -> (), ()))" : Unit
+            #44 136-139 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #47 139-160 "(Foo, (() -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #48 140-143 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #51 145-159 "(() -> (), ())" : ((Unit -> Unit), Unit)
+            #52 146-154 "() -> ()" : (Unit -> Unit)
+            #53 146-148 "()" : Unit
+            #54 152-154 "()" : Unit
+            #55 156-158 "()" : Unit
+            #57 178-180 "r1" : Unit
+            #59 183-206 "Foo(Foo, (a -> (), ()))" : Unit
+            #60 183-186 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #63 186-206 "(Foo, (a -> (), ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #64 187-190 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #67 192-205 "(a -> (), ())" : ((Unit -> Unit), Unit)
+            #68 193-200 "a -> ()" : (Unit -> Unit)
+            #69 193-194 "a" : Unit
+            #71 198-200 "()" : Unit
+            #72 202-204 "()" : Unit
+            #74 224-226 "r2" : Unit
+            #76 229-251 "Foo(Foo, (b -> b, ()))" : Unit
+            #77 229-232 "Foo" : (((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit)) -> Unit)
+            #80 232-251 "(Foo, (b -> b, ()))" : ((((Unit -> Unit), Unit) -> Unit), ((Unit -> Unit), Unit))
+            #81 233-236 "Foo" : (((Unit -> Unit), Unit) -> Unit)
+            #84 238-250 "(b -> b, ())" : ((Unit -> Unit), Unit)
+            #85 239-245 "b -> b" : (Unit -> Unit)
+            #86 239-240 "b" : Unit
+            #88 244-245 "b" : Unit
+            #91 247-249 "()" : Unit
+        "##]],
     );
 }
 
@@ -328,12 +427,12 @@ fn int_as_double_error() {
         "},
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
         &expect![[r#"
-            #6 62-71 "(a : Int)" : ?
-            #7 63-70 "a : Int" : ?
-            #16 103-147 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
-            #17 103-140 "Microsoft.Quantum.Convert.IntAsDouble" : (Int -> Double)
-            #21 140-147 "(false)" : Bool
-            #22 141-146 "false" : Bool
+            #8 62-71 "(a : Int)" : ?
+            #9 63-70 "a : Int" : ?
+            #18 103-147 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
+            #19 103-140 "Microsoft.Quantum.Convert.IntAsDouble" : (Int -> Double)
+            #25 140-147 "(false)" : Bool
+            #26 141-146 "false" : Bool
             Error(Type(Error(TyMismatch("Int", "Bool", Span { lo: 103, hi: 147 }))))
         "#]],
     );
@@ -343,24 +442,24 @@ fn int_as_double_error() {
 fn length_type_error() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length((1, 2, 3))",
-        &expect![[r#"
-            #7 58-69 "(xs : 'T[])" : ?
-            #8 59-68 "xs : 'T[]" : ?
-            #17 98-115 "Length((1, 2, 3))" : Int
-            #18 98-104 "Length" : (?0[] -> Int)
-            #21 104-115 "((1, 2, 3))" : (Int, Int, Int)
-            #22 105-114 "(1, 2, 3)" : (Int, Int, Int)
-            #23 106-107 "1" : Int
-            #24 109-110 "2" : Int
-            #25 112-113 "3" : Int
-            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
-            Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-101 "Length((1, 2, 3))" : Int
+            #19 84-90 "Length" : (?0[] -> Int)
+            #22 90-101 "((1, 2, 3))" : (Int, Int, Int)
+            #23 91-100 "(1, 2, 3)" : (Int, Int, Int)
+            #24 92-93 "1" : Int
+            #25 95-96 "2" : Int
+            #26 98-99 "3" : Int
+            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 84, hi: 101 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 84, hi: 90 }))))
+        "##]],
     );
 }
 
@@ -368,7 +467,7 @@ fn length_type_error() {
 fn single_arg_for_tuple() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Intrinsic {
+            namespace Std.Intrinsic {
                 operation Ry(theta : Double, qubit : Qubit) : () is Adj + Ctl {}
             }
         "},
@@ -376,21 +475,21 @@ fn single_arg_for_tuple() {
             use q = Qubit();
             Ry(q);
         }"},
-        &expect![[r#"
-            #6 56-87 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
-            #7 57-71 "theta : Double" : Double
-            #12 73-86 "qubit : Qubit" : Qubit
-            #21 106-108 "{}" : Unit
-            #22 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #23 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #25 121-122 "q" : Qubit
-            #27 125-132 "Qubit()" : Qubit
-            #29 138-143 "Ry(q)" : Unit
-            #30 138-140 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
-            #33 140-143 "(q)" : Qubit
-            #34 141-142 "q" : Qubit
-            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 138, hi: 143 }))))
-        "#]],
+        &expect![[r##"
+            #7 42-73 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
+            #8 43-57 "theta : Double" : Double
+            #13 59-72 "qubit : Qubit" : Qubit
+            #22 92-94 "{}" : Unit
+            #23 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #24 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #26 107-108 "q" : Qubit
+            #28 111-118 "Qubit()" : Qubit
+            #30 124-129 "Ry(q)" : Unit
+            #31 124-126 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
+            #34 126-129 "(q)" : Qubit
+            #35 127-128 "q" : Qubit
+            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 124, hi: 129 }))))
+        "##]],
     );
 }
 
@@ -808,6 +907,70 @@ fn for_loop_not_iterable() {
             Error(Type(Error(MissingClassIterable("(Int, Bool, Result)", Span { lo: 9, hi: 23 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 4, hi: 5 }))))
         "#]],
+    );
+}
+
+#[test]
+fn for_loop_body_should_be_unit_error() {
+    check(
+        "",
+        "for i in [1, 2, 3] { 4 }",
+        &expect![[r##"
+        #1 0-24 "for i in [1, 2, 3] { 4 }" : Unit
+        #2 4-5 "i" : Int
+        #4 9-18 "[1, 2, 3]" : Int[]
+        #5 10-11 "1" : Int
+        #6 13-14 "2" : Int
+        #7 16-17 "3" : Int
+        #8 19-24 "{ 4 }" : Int
+        #10 21-22 "4" : Int
+        Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 19, hi: 24 }))))
+    "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_non_bool_condition_error() {
+    check(
+        "",
+        "repeat { } until 1",
+        &expect![[r##"
+            #1 0-18 "repeat { } until 1" : Unit
+            #2 7-10 "{ }" : Unit
+            #3 17-18 "1" : Int
+            Error(Type(Error(TyMismatch("Bool", "Int", Span { lo: 17, hi: 18 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_body_should_be_unit_error() {
+    check(
+        "",
+        "repeat { 1 } until false",
+        &expect![[r##"
+            #1 0-24 "repeat { 1 } until false" : Unit
+            #2 7-12 "{ 1 }" : Int
+            #4 9-10 "1" : Int
+            #5 19-24 "false" : Bool
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn repeat_loop_fixup_should_be_unit_error() {
+    check(
+        "",
+        "repeat { } until false fixup { 1 }",
+        &expect![[r##"
+            #1 0-34 "repeat { } until false fixup { 1 }" : Unit
+            #2 7-10 "{ }" : Unit
+            #3 17-22 "false" : Bool
+            #4 29-34 "{ 1 }" : Int
+            #6 31-32 "1" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 29, hi: 34 }))))
+        "##]],
     );
 }
 
@@ -1314,6 +1477,21 @@ fn while_cond_error() {
 }
 
 #[test]
+fn while_body_should_be_unit_error() {
+    check(
+        "",
+        "while true { 1 }",
+        &expect![[r##"
+            #1 0-16 "while true { 1 }" : Unit
+            #2 6-10 "true" : Bool
+            #3 11-16 "{ 1 }" : Int
+            #5 13-14 "1" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 11, hi: 16 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn controlled_spec_impl() {
     check(
         indoc! {"
@@ -1700,7 +1878,7 @@ fn return_with_satisfying_specialization_succeeds() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 32-34 "()" : Unit
             #10 42-44 "{}" : Unit
             #14 60-62 "()" : Unit
@@ -1733,7 +1911,7 @@ fn return_with_satisfying_specialization_succeeds() {
             #166 592-594 "()" : Unit
             #175 612-617 "{ E }" : (Unit => Unit)
             #177 614-615 "E" : (Unit => Unit)
-        "##]],
+        "#]],
     );
 }
 
@@ -1759,7 +1937,7 @@ fn return_with_unsatisfying_specialization_fails() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 32-34 "()" : Unit
             #10 42-44 "{}" : Unit
             #14 60-62 "()" : Unit
@@ -1796,7 +1974,7 @@ fn return_with_unsatisfying_specialization_fails() {
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Empty), Span { lo: 463, hi: 464 }))))
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 530, hi: 531 }))))
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Ctl), Span { lo: 597, hi: 598 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -2192,6 +2370,329 @@ fn newtype_cons_wrong_input() {
 }
 
 #[test]
+fn struct_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-124 "{ new Pair { First = 5, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-122 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 119-120 "6" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_wrong_input() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5.0, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-126 "{ new Pair { First = 5.0, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-124 "new Pair { First = 5.0, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 107-110 "5.0" : Double
+            #33 121-122 "6" : Int
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 99, hi: 110 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_wrong_field() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, NotSecond = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-127 "{ new Pair { First = 5, NotSecond = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-125 "new Pair { First = 5, NotSecond = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 122-123 "6" : Int
+            Error(Type(Error(MissingClassHasField("Pair", "NotSecond", Span { lo: 110, hi: 123 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_dup_field() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, First = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-123 "{ new Pair { First = 5, First = 6 } }" : UDT<"Pair": Item 1>
+            #25 88-121 "new Pair { First = 5, First = 6 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 118-119 "6" : Int
+            Error(Type(Error(DuplicateField("Pair", "First", Span { lo: 110, hi: 119 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_too_few_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-112 "{ new Pair { First = 5 } }" : UDT<"Pair": Item 1>
+            #25 88-110 "new Pair { First = 5 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 88, hi: 110 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_too_many_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair { new Pair { First = 5, Second = 6, Third = 7 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-135 "{ new Pair { First = 5, Second = 6, Third = 7 } }" : UDT<"Pair": Item 1>
+            #25 88-133 "new Pair { First = 5, Second = 6, Third = 7 }" : UDT<"Pair": Item 1>
+            #30 107-108 "5" : Int
+            #33 119-120 "6" : Int
+            #36 130-131 "7" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 88, hi: 133 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 122, hi: 131 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-177 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-171 "new Pair { ...pair }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_with_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair, First = 7 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-188 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair, First = 7 }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-182 "new Pair { ...pair, First = 7 }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+            #45 179-180 "7" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_too_many_fields() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Foo() : Pair {
+                    let pair = new Pair { First = 5, Second = 6 };
+                    new Pair { ...pair, First = 7, Second = 8, Third = 9 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-211 "{\n        let pair = new Pair { First = 5, Second = 6 };\n        new Pair { ...pair, First = 7, Second = 8, Third = 9 }\n    }" : UDT<"Pair": Item 1>
+            #25 100-104 "pair" : UDT<"Pair": Item 1>
+            #27 107-141 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #32 126-127 "5" : Int
+            #35 138-139 "6" : Int
+            #37 151-205 "new Pair { ...pair, First = 7, Second = 8, Third = 9 }" : UDT<"Pair": Item 1>
+            #40 165-169 "pair" : UDT<"Pair": Item 1>
+            #45 179-180 "7" : Int
+            #48 191-192 "8" : Int
+            #51 202-203 "9" : Int
+            Error(Type(Error(MissingClassCorrectFieldCount("Pair", Span { lo: 151, hi: 205 }))))
+            Error(Type(Error(MissingClassHasField("Pair", "Third", Span { lo: 194, hi: 203 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_udt_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Triple = (Int, Int, Int);
+                function Foo() : Triple { new Triple { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 68-70 "()" : Unit
+            #23 80-120 "{ new Triple { First = 5, Second = 6 } }" : ?
+            #25 82-118 "new Triple { First = 5, Second = 6 }" : ?
+            #30 103-104 "5" : ?
+            #33 115-116 "6" : ?
+            Error(Type(Error(MissingClassStruct("Triple", Span { lo: 86, hi: 92 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_struct_like_udt() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+                function Foo() : Pair { new Pair { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #19 78-80 "()" : Unit
+            #23 88-126 "{ new Pair { First = 5, Second = 6 } }" : UDT<"Pair": Item 1>
+            #25 90-124 "new Pair { First = 5, Second = 6 }" : UDT<"Pair": Item 1>
+            #30 109-110 "5" : Int
+            #33 121-122 "6" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn struct_cons_ty_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int { new Int { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-76 "{ new Int { First = 5, Second = 6 } }" : ?
+            #12 41-74 "new Int { First = 5, Second = 6 }" : ?
+            #17 59-60 "5" : ?
+            #20 71-72 "6" : ?
+            Error(Type(Error(MissingClassStruct("Int", Span { lo: 45, hi: 48 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_ident_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    let q = 3;
+                    new q { First = 5, Second = 6 }
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #6 30-32 "()" : Unit
+            #10 39-105 "{\n        let q = 3;\n        new q { First = 5, Second = 6 }\n    }" : ?
+            #12 53-54 "q" : Int
+            #14 57-58 "3" : Int
+            #16 68-99 "new q { First = 5, Second = 6 }" : ?
+            #21 84-85 "5" : ?
+            #24 96-97 "6" : ?
+            Error(Resolve(NotFound("q", Span { lo: 72, hi: 73 })))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_cons_call_not_struct() {
+    check(
+        indoc! {"
+            namespace A {
+                struct Pair { First : Int, Second : Int }
+                function Bar() : Pair { new Pair { First = 1, Second = 2 } }
+                function Foo() : Pair { new Bar { First = 5, Second = 6 } }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #19 76-78 "()" : Unit
+            #23 86-124 "{ new Pair { First = 1, Second = 2 } }" : UDT<"Pair": Item 1>
+            #25 88-122 "new Pair { First = 1, Second = 2 }" : UDT<"Pair": Item 1>
+            #30 107-108 "1" : Int
+            #33 119-120 "2" : Int
+            #37 141-143 "()" : Unit
+            #41 151-188 "{ new Bar { First = 5, Second = 6 } }" : ?
+            #43 153-186 "new Bar { First = 5, Second = 6 }" : ?
+            #48 171-172 "5" : ?
+            #51 183-184 "6" : ?
+            Error(Resolve(NotFound("Bar", Span { lo: 157, hi: 160 })))
+        "#]],
+    );
+}
+
+#[test]
 fn newtype_does_not_match_base_ty() {
     check(
         indoc! {"
@@ -2303,6 +2804,127 @@ fn newtype_field_invalid() {
             #25 92-93 "x" : UDT<"Foo": Item 1>
             Error(Type(Error(MissingClassHasField("Foo", "Nope", Span { lo: 92, hi: 99 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 92, hi: 99 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = x.b.c.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 103-110 "(x : A)" : UDT<"A": Item 1>
+            #31 104-109 "x : A" : UDT<"A": Item 1>
+            #39 118-150 "{\n        let y = x.b.c.i;\n    }" : Unit
+            #41 132-133 "y" : Int
+            #43 136-143 "x.b.c.i" : Int
+            #45 136-137 "x" : UDT<"A": Item 1>
+            #46 138-139 "b" : UDT<"B": Item 2>
+            #47 140-141 "c" : UDT<"C": Item 3>
+            #48 142-143 "i" : Int
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_invalid() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = x.b.Nope.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 102-109 "(x : A)" : UDT<"A": Item 1>
+            #31 103-108 "x : A" : UDT<"A": Item 1>
+            #39 117-152 "{\n        let y = x.b.Nope.i;\n    }" : Unit
+            #41 131-132 "y" : ?3
+            #43 135-145 "x.b.Nope.i" : ?3
+            #45 135-136 "x" : UDT<"A": Item 1>
+            #46 137-138 "b" : UDT<"B": Item 2>
+            #47 139-143 "Nope" : ?2
+            #48 144-145 "i" : ?3
+            Error(Type(Error(MissingClassHasField("B", "Nope", Span { lo: 135, hi: 143 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 143 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 145 }))))
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C }
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = { x.b }.c.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 103-110 "(x : A)" : UDT<"A": Item 1>
+            #31 104-109 "x : A" : UDT<"A": Item 1>
+            #39 118-154 "{\n        let y = { x.b }.c.i;\n    }" : Unit
+            #41 132-133 "y" : Int
+            #43 136-147 "{ x.b }.c.i" : Int
+            #44 136-145 "{ x.b }.c" : UDT<"C": Item 3>
+            #45 136-143 "{ x.b }" : UDT<"B": Item 2>
+            #46 136-143 "{ x.b }" : UDT<"B": Item 2>
+            #48 138-141 "x.b" : UDT<"B": Item 2>
+            #50 138-139 "x" : UDT<"A": Item 1>
+            #51 140-141 "b" : UDT<"B": Item 2>
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_with_expr_invalid() {
+    check(
+        indoc! {"
+            namespace Foo {
+                struct A { b : B }
+                struct B { c : C}
+                struct C { i : Int }
+                function Bar(x : A) : Unit {
+                    let y = { x }.b.Nope.i;
+                }
+            }
+        "},
+        "",
+        &expect![[r#"
+            #30 102-109 "(x : A)" : UDT<"A": Item 1>
+            #31 103-108 "x : A" : UDT<"A": Item 1>
+            #39 117-156 "{\n        let y = { x }.b.Nope.i;\n    }" : Unit
+            #41 131-132 "y" : ?3
+            #43 135-149 "{ x }.b.Nope.i" : ?3
+            #44 135-147 "{ x }.b.Nope" : ?2
+            #45 135-142 "{ x }.b" : UDT<"B": Item 2>
+            #46 135-140 "{ x }" : UDT<"A": Item 1>
+            #47 135-140 "{ x }" : UDT<"A": Item 1>
+            #49 137-138 "x" : UDT<"A": Item 1>
+            Error(Type(Error(MissingClassHasField("B", "Nope", Span { lo: 135, hi: 147 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 147 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 135, hi: 149 }))))
         "#]],
     );
 }
@@ -2484,11 +3106,11 @@ fn local_open() {
         &expect![[r#"
             #6 26-28 "()" : Unit
             #8 34-52 "{ open B; Bar(); }" : Unit
-            #13 44-49 "Bar()" : Unit
-            #14 44-47 "Bar" : (Unit -> Unit)
-            #17 47-49 "()" : Unit
-            #23 81-83 "()" : Unit
-            #25 89-91 "{}" : Unit
+            #14 44-49 "Bar()" : Unit
+            #15 44-47 "Bar" : (Unit -> Unit)
+            #18 47-49 "()" : Unit
+            #24 81-83 "()" : Unit
+            #26 89-91 "{}" : Unit
         "#]],
     );
 }
@@ -3688,7 +4310,7 @@ fn inference_infinite_recursion_should_fail() {
             }
         "},
         "",
-        &expect![[r#"
+        &expect![[r##"
             #8 41-59 "(x : ('T1 -> 'U1))" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #9 42-58 "x : ('T1 -> 'U1)" : (Param<"'T1": 0> -> Param<"'U1": 1>)
             #20 68-75 "{\n    }" : Unit
@@ -3702,10 +4324,8 @@ fn inference_infinite_recursion_should_fail() {
             #54 186-187 "B" : (((?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?3) -> ?1[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?2[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])
             Error(Type(Error(TyMismatch("Unit", "'U1[]", Span { lo: 62, hi: 67 }))))
             Error(Type(Error(TyMismatch("Unit", "'T2", Span { lo: 129, hi: 132 }))))
-            Error(Type(Error(TyMismatch("Bool", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 181 }))))
-            Error(Type(Error(TyMismatch("Unit", "(((?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][], ?) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]) -> ?[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][])", Span { lo: 180, hi: 187 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 186, hi: 187 }))))
-        "#]],
+        "##]],
     );
 }
 
@@ -3763,7 +4383,7 @@ fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 28-30 "()" : Unit
             #10 38-77 "{\n        let f = qs => C(qs[0]);\n    }" : Unit
             #12 52-53 "f" : (Qubit[] => Unit)
@@ -3778,6 +4398,299 @@ fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
             #30 93-104 "(q : Qubit)" : Qubit
             #31 94-103 "q : Qubit" : Qubit
             #42 125-128 "{ }" : Unit
+        "#]],
+    );
+}
+
+#[test]
+fn within_apply_returns_type_from_apply_block() {
+    check(
+        "",
+        "{ let x = within { } apply { 4 }; let y = x + 1; }",
+        &expect![[r##"
+            #1 0-50 "{ let x = within { } apply { 4 }; let y = x + 1; }" : Unit
+            #2 0-50 "{ let x = within { } apply { 4 }; let y = x + 1; }" : Unit
+            #4 6-7 "x" : Int
+            #6 10-32 "within { } apply { 4 }" : Int
+            #7 17-20 "{ }" : Unit
+            #8 27-32 "{ 4 }" : Int
+            #10 29-30 "4" : Int
+            #12 38-39 "y" : Int
+            #14 42-47 "x + 1" : Int
+            #15 42-43 "x" : Int
+            #18 46-47 "1" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn within_block_should_be_unit_error() {
+    check(
+        "",
+        "within { 4 } apply { 0 }",
+        &expect![[r##"
+            #1 0-24 "within { 4 } apply { 0 }" : Int
+            #2 7-12 "{ 4 }" : Int
+            #4 9-10 "4" : Int
+            #5 19-24 "{ 0 }" : Int
+            #7 21-22 "0" : Int
+            Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn path_field_access() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-118 "{\n        let b = new B { C = 5 };\n        b.C;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-111 "b.C" : Int
+            #31 108-109 "b" : UDT<"B": Item 1>
+            #32 110-111 "C" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn field_access_chained() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    let d = new D { E = new B { C = 5 } };
+                    d.E.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-157 "{\n        let d = new D { E = new B { C = 5 } };\n        d.E.C;\n    }" : Unit
+            #28 102-103 "d" : UDT<"D": Item 2>
+            #30 106-135 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #35 118-133 "new B { C = 5 }" : UDT<"B": Item 1>
+            #40 130-131 "5" : Int
+            #42 145-150 "d.E.C" : Int
+            #44 145-146 "d" : UDT<"D": Item 2>
+            #45 147-148 "E" : UDT<"B": Item 1>
+            #46 149-150 "C" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_field_access() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-101 "{\n        (new B { C = 5 }).C;\n    }" : Unit
+            #20 75-94 "(new B { C = 5 }).C" : Int
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_incomplete_field_access() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-100 "{\n        (new B { C = 5 }).;\n    }" : Unit
+            #20 75-93 "(new B { C = 5 })." : ?
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_incomplete_field_access_no_semi() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-99 "{\n        (new B { C = 5 }).\n    }" : ?
+            #20 75-98 "(new B { C = 5 }).\n    " : ?
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn path_incomplete_field_access() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-117 "{\n        let b = new B { C = 5 };\n        b.;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-110 "b." : ?
+            #30 108-109 "b" : UDT<"B": Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn incomplete_field_access_chained() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    let d = new D { E = new B { C = 5 } };
+                    d.E.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-156 "{\n        let d = new D { E = new B { C = 5 } };\n        d.E.;\n    }" : Unit
+            #28 102-103 "d" : UDT<"D": Item 2>
+            #30 106-135 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #35 118-133 "new B { C = 5 }" : UDT<"B": Item 1>
+            #40 130-131 "5" : Int
+            #42 145-149 "d.E." : ?
+            #43 145-146 "d" : UDT<"D": Item 2>
+            #44 147-148 "E" : UDT<"B": Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn expr_field_access_chained() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    (new D { E = new B { C = 5 } }).E.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-140 "{\n        (new D { E = new B { C = 5 } }).E.C;\n    }" : Unit
+            #28 98-133 "(new D { E = new B { C = 5 } }).E.C" : Int
+            #29 98-131 "(new D { E = new B { C = 5 } }).E" : UDT<"B": Item 1>
+            #30 98-129 "(new D { E = new B { C = 5 } })" : UDT<"D": Item 2>
+            #31 99-128 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #36 111-126 "new B { C = 5 }" : UDT<"B": Item 1>
+            #41 123-124 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn incomplete_expr_field_access_chained() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    (new D { E = new B { C = 5 } }).E.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-139 "{\n        (new D { E = new B { C = 5 } }).E.;\n    }" : Unit
+            #28 98-132 "(new D { E = new B { C = 5 } }).E." : ?
+            #29 98-131 "(new D { E = new B { C = 5 } }).E" : UDT<"B": Item 1>
+            #30 98-129 "(new D { E = new B { C = 5 } })" : UDT<"D": Item 2>
+            #31 99-128 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #36 111-126 "new B { C = 5 }" : UDT<"B": Item 1>
+            #41 123-124 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn field_access_not_ident() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.
+                    123;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-129 "{\n        let b = new B { C = 5 };\n        b.\n        123;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-119 "b.\n        " : ?
+            #30 108-109 "b" : UDT<"B": Item 1>
+            #32 119-122 "123" : Int
         "##]],
     );
 }

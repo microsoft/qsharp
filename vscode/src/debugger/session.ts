@@ -31,7 +31,6 @@ import {
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
 import { basename, isQsharpDocument, toVscodeRange } from "../common";
-import { getTarget } from "../config";
 import {
   DebugEvent,
   EventType,
@@ -41,10 +40,14 @@ import {
 import { getRandomGuid } from "../utils";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import { escapeHtml } from "markdown-it/lib/common/utils";
+import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
+import { isPanelOpen } from "../webviewPanel";
+import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
-  "program contains compile errors(s): cannot run. See debug console for more details.";
+  "The Q# program contains one or more compile errors and cannot run. See debug console for more details.";
+const ErrorProgramMissingEntry =
+  "The Q# program does not contain an entry point and cannot run. See debug console for more details.";
 const SimulationCompleted = "Q# simulation completed.";
 const ConfigurationDelayMS = 1000;
 
@@ -72,14 +75,12 @@ export class QscDebugSession extends LoggingDebugSession {
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
-  private targetProfile = getTarget();
   private revealedCircuit = false;
 
   public constructor(
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
-    private sources: [string, string][],
-    private languageFeatures: string[],
+    private program: FullProgramConfig,
   ) {
     super();
 
@@ -93,7 +94,8 @@ export class QscDebugSession extends LoggingDebugSession {
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
 
-    for (const source of sources) {
+    const allKnownSources = getAllSources(program);
+    for (const source of allKnownSources) {
       const uri = vscode.Uri.parse(source[0], true);
 
       // In Debug Protocol requests, the VS Code debug adapter client
@@ -110,14 +112,14 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const failureMessage = await this.debugService.loadSource(
-      this.sources,
-      this.targetProfile,
+    const failureMessage = await this.debugService.loadProgram(
+      this.program,
       this.config.entry,
-      this.languageFeatures,
     );
-    for (const [path, _contents] of this.sources) {
-      if (failureMessage == "") {
+
+    if (failureMessage == "") {
+      for (const [path, _contents] of this.program.packageGraphSources.root
+        .sources) {
         const locations = await this.debugService.getBreakpoints(path);
         log.trace(`init breakpointLocations: %O`, locations);
         const mapped = locations.map((location) => {
@@ -138,10 +140,10 @@ export class QscDebugSession extends LoggingDebugSession {
           } as IBreakpointLocationData;
         });
         this.breakpointLocations.set(path, mapped);
-      } else {
-        log.warn(`compilation failed. ${failureMessage}`);
-        this.failureMessage = failureMessage;
       }
+    } else {
+      log.warn(`compilation failed. ${failureMessage}`);
+      this.failureMessage = failureMessage;
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
@@ -259,7 +261,9 @@ export class QscDebugSession extends LoggingDebugSession {
       this.writeToDebugConsole(this.failureMessage);
       this.sendErrorResponse(response, {
         id: -1,
-        format: ErrorProgramHasErrors,
+        format: this.failureMessage.includes("Qsc.EntryPoint.NotFound")
+          ? ErrorProgramMissingEntry
+          : ErrorProgramHasErrors,
         showUser: true,
       });
       return;
@@ -316,9 +320,7 @@ export class QscDebugSession extends LoggingDebugSession {
       error = e;
     }
 
-    if (this.config.showCircuit) {
-      await this.showCircuit(error);
-    }
+    await this.updateCircuit(error);
 
     if (!result) {
       // Can be a runtime failure in the program
@@ -389,17 +391,15 @@ export class QscDebugSession extends LoggingDebugSession {
           bps,
           this.eventTarget,
         );
-        if (this.config.showCircuit) {
-          this.showCircuit();
-        }
+
+        await this.updateCircuit();
+
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
           return;
         }
       } catch (error) {
-        if (this.config.showCircuit) {
-          await this.showCircuit(error);
-        }
+        await this.updateCircuit(error);
         await this.endSession(`ending session due to error: ${error}`, 1);
         return;
       }
@@ -795,6 +795,22 @@ export class QscDebugSession extends LoggingDebugSession {
             {},
           );
           const state = await this.debugService.captureQuantumState();
+
+          // When there is no quantum state, return a single variable with a message
+          // for the user.
+          if (state.length == 0) {
+            response.body = {
+              variables: [
+                {
+                  name: "None",
+                  value: "No qubits allocated",
+                  variablesReference: 0,
+                },
+              ],
+            };
+            break;
+          }
+
           const variables: DebugProtocol.Variable[] = state.map((entry) => {
             const variable: DebugProtocol.Variable = {
               name: entry.name,
@@ -819,13 +835,14 @@ export class QscDebugSession extends LoggingDebugSession {
           // This will get invoked when the "Quantum Circuit" scope is expanded
           // in the Variables view, but instead of showing any values in the variables
           // view, we can pop open the circuit diagram panel.
-          this.showCircuit();
-
-          // Keep updating the circuit for the rest of this session, even if
-          // the Variables scope gets collapsed by the user. If we don't do this,
-          // the diagram won't get updated with each step even though the circuit
-          // panel is still being shown, which is misleading.
-          this.config.showCircuit = true;
+          if (!this.config.showCircuit) {
+            // Keep updating the circuit for the rest of this session, even if
+            // the Variables scope gets collapsed by the user. If we don't do this,
+            // the diagram won't get updated with each step even though the circuit
+            // panel is still being shown, which is misleading.
+            this.config.showCircuit = true;
+            await this.updateCircuit();
+          }
           response.body = {
             variables: [
               {
@@ -934,31 +951,42 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private async showCircuit(error?: any) {
-    // Error returned from the debugger has a message and a stack (which also includes the message).
-    // We would ideally retrieve the original runtime error, and format it to be consistent
-    // with the other runtime errors that can be shown in the circuit panel, but that will require
-    // a bit of refactoring.
-    const stack =
-      error && typeof error === "object" && typeof error.stack === "string"
-        ? escapeHtml(error.stack)
-        : undefined;
+  /* Updates the circuit panel if `showCircuit` is true or if panel is already open */
+  private async updateCircuit(error?: any) {
+    if (this.config.showCircuit || isPanelOpen("circuit")) {
+      // Error returned from the debugger has a message and a stack (which also includes the message).
+      // We would ideally retrieve the original runtime error, and format it to be consistent
+      // with the other runtime errors that can be shown in the circuit panel, but that will require
+      // a bit of refactoring.
+      const stack =
+        error && typeof error === "object" && typeof error.stack === "string"
+          ? escapeHtml(error.stack)
+          : undefined;
 
-    const circuit = await this.debugService.getCircuit();
+      const circuit = await this.debugService.getCircuit();
 
-    updateCircuitPanel(
-      this.targetProfile,
-      vscode.Uri.parse(this.sources[0][0]).path,
-      !this.revealedCircuit,
-      {
-        circuit,
-        errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
-        simulating: true,
-      },
-    );
+      updateCircuitPanel(
+        this.program.profile,
+        this.program.projectName,
+        !this.revealedCircuit,
+        {
+          circuit,
+          errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
+          simulated: true,
+        },
+      );
 
-    // Only reveal the panel once per session, to keep it from
-    // moving around while stepping
-    this.revealedCircuit = true;
+      // Only reveal the panel once per session, to keep it from
+      // moving around while stepping
+      this.revealedCircuit = true;
+    }
   }
+}
+
+function getAllSources(program: FullProgramConfig) {
+  return program.packageGraphSources.root.sources.concat(
+    Object.values(program.packageGraphSources.packages).flatMap(
+      (p) => p.sources,
+    ),
+  );
 }

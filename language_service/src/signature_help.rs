@@ -7,13 +7,13 @@ mod tests;
 use crate::{
     compilation::Compilation,
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
-    qsc_utils::{span_contains, span_touches},
     Encoding,
 };
 use qsc::{
     ast::{
         self,
         visit::{walk_expr, walk_item, Visitor},
+        PathKind,
     },
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup},
     hir,
@@ -76,15 +76,15 @@ struct SignatureHelpFinder<'a> {
 
 impl<'a> Visitor<'a> for SignatureHelpFinder<'a> {
     fn visit_item(&mut self, item: &'a ast::Item) {
-        if span_contains(item.span, self.offset) {
+        if item.span.contains(self.offset) {
             walk_item(self, item);
         }
     }
 
     fn visit_expr(&mut self, expr: &'a ast::Expr) {
-        if span_touches(expr.span, self.offset) {
+        if expr.span.touches(self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Call(callee, args) if span_touches(args.span, self.offset) => {
+                ast::ExprKind::Call(callee, args) if args.span.touches(self.offset) => {
                     walk_expr(self, args);
                     if self.signature_help.is_none() {
                         let callee = unwrap_parens(callee);
@@ -322,7 +322,7 @@ fn try_get_direct_callee<'a>(
     compilation: &'a Compilation,
     callee: &ast::Expr,
 ) -> Option<(hir::PackageId, &'a hir::CallableDecl, &'a str)> {
-    if let ast::ExprKind::Path(path) = &*callee.kind {
+    if let ast::ExprKind::Path(PathKind::Ok(path)) = &*callee.kind {
         if let Some(resolve::Res::Item(item_id, _)) = compilation.get_res(path.id) {
             let (item, _, resolved_item_id) =
                 compilation.resolve_item_relative_to_user_package(item_id);

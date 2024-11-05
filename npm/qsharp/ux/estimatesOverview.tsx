@@ -183,6 +183,7 @@ export function EstimatesOverview(props: {
   isSimplifiedView: boolean;
   onRowDeleted: (rowId: string) => void;
   setEstimate: (estimate: SingleEstimateResult | null) => void;
+  allowSaveImage: boolean;
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
@@ -277,6 +278,7 @@ export function EstimatesOverview(props: {
         )}
         onPointSelected={onPointSelected}
         selectedPoint={selectedPoint}
+        allowSaveImage={props.allowSaveImage}
       />
     );
   }

@@ -8,7 +8,6 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { toVscodeRange } from "./common";
-import { getShowCircuitCodeLens } from "./config";
 
 export function createCodeLensProvider(languageService: ILanguageService) {
   return new QSharpCodeLensProvider(languageService);
@@ -32,13 +31,11 @@ class QSharpCodeLensProvider implements vscode.CodeLensProvider {
       document.uri.toString(),
     );
 
-    return codeLenses
-      .map((cl) => mapCodeLens(cl))
-      .filter((cl) => cl) as vscode.CodeLens[];
+    return codeLenses.map((cl) => mapCodeLens(cl));
   }
 }
 
-function mapCodeLens(cl: ICodeLens): vscode.CodeLens | undefined {
+function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
   let command;
   let title;
   let tooltip;
@@ -65,9 +62,6 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens | undefined {
       tooltip = "Run program";
       break;
     case "circuit":
-      if (!getShowCircuitCodeLens()) {
-        return undefined;
-      }
       title = "Circuit";
       command = "qsharp-vscode.showCircuit";
       tooltip = "Show circuit";

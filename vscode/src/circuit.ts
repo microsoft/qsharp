@@ -2,152 +2,302 @@
 // Licensed under the MIT License.
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
-import { escapeHtml } from "markdown-it/lib/common/utils";
+import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
+  ICompilerWorker,
   IOperationInfo,
+  IQSharpError,
   IRange,
-  VSDiagnostic,
   getCompilerWorker,
   log,
 } from "qsharp-lang";
-import { Uri, window } from "vscode";
-import { basename, isQsharpDocument } from "./common";
-import { getTarget, getTargetFriendlyName } from "./config";
-import { loadProject } from "./projectSystem";
+import { Uri } from "vscode";
+import { getTargetFriendlyName } from "./config";
+import { clearCommandDiagnostics } from "./diagnostics";
+import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
 
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
+/**
+ * Input parameters for generating a circuit.
+ */
+type CircuitParams = {
+  program: FullProgramConfig;
+  operation?: IOperationInfo;
+};
+
+/**
+ * Result of a circuit generation attempt.
+ */
+type CircuitOrError = {
+  simulated: boolean;
+} & (
+  | {
+      result: "success";
+      circuit: CircuitData;
+    }
+  | {
+      result: "error";
+      errors: IQSharpError[];
+      hasResultComparisonError: boolean;
+      timeout: boolean;
+    }
+);
+
 export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
 ) {
+  clearCommandDiagnostics();
+
   const associationId = getRandomGuid();
   sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
+
+  const program = await getActiveProgram();
+  if (!program.success) {
+    throw new Error(program.errorMsg);
+  }
+
+  sendTelemetryEvent(
+    EventType.CircuitStart,
+    {
+      associationId,
+      targetProfile: program.programConfig.profile,
+      isOperation: (!!operation).toString(),
+    },
+    {},
+  );
+
+  // Generate the circuit and update the panel.
+  // generateCircuits() takes care of handling timeouts and
+  // falling back to the simulator for dynamic circuits.
+  const result = await generateCircuit(extensionUri, {
+    program: program.programConfig,
+    operation,
+  });
+
+  if (result.result === "success") {
+    sendTelemetryEvent(EventType.CircuitEnd, {
+      simulated: result.simulated.toString(),
+      associationId,
+      flowStatus: UserFlowStatus.Succeeded,
+    });
+  } else {
+    if (result.timeout) {
+      sendTelemetryEvent(EventType.CircuitEnd, {
+        simulated: result.simulated.toString(),
+        associationId,
+        reason: "timeout",
+        flowStatus: UserFlowStatus.Aborted,
+      });
+    } else {
+      const reason =
+        result.errors.length > 0 ? result.errors[0].diagnostic.code : "unknown";
+
+      sendTelemetryEvent(EventType.CircuitEnd, {
+        simulated: result.simulated.toString(),
+        associationId,
+        reason,
+        flowStatus: UserFlowStatus.Failed,
+      });
+    }
+  }
+}
+
+/**
+ * Generate the circuit and update the panel with the results.
+ * We first attempt to generate a circuit without running the simulator,
+ * which should be fast.
+ *
+ * If that fails, specifically due to a result comparison error,
+ * that means this is a dynamic circuit. We fall back to using the
+ * simulator in this case ("trace" mode), which is slower.
+ */
+async function generateCircuit(
+  extensionUri: Uri,
+  params: CircuitParams,
+): Promise<CircuitOrError> {
+  // Before we start, reveal the panel with the "calculating" spinner
+  updateCircuitPanel(
+    params.program.profile,
+    params.program.projectName,
+    true, // reveal
+    { operation: params.operation, calculating: true },
+  );
+
+  // First, try without simulating
+  let result = await getCircuitOrErrorWithTimeout(
+    extensionUri,
+    params,
+    false, // simulate
+  );
+
+  if (result.result === "error" && result.hasResultComparisonError) {
+    // Retry with the simulator if circuit generation failed because
+    // there was a result comparison (i.e. if this is a dynamic circuit)
+
+    updateCircuitPanel(
+      params.program.profile,
+      params.program.projectName,
+      false, // reveal
+      {
+        operation: params.operation,
+        calculating: true,
+        simulated: true,
+      },
+    );
+
+    // try again with the simulator
+    result = await getCircuitOrErrorWithTimeout(
+      extensionUri,
+      params,
+      true, // simulate
+    );
+  }
+
+  // Update the panel with the results
+
+  if (result.result === "success") {
+    updateCircuitPanel(
+      params.program.profile,
+      params.program.projectName,
+      false, // reveal
+      {
+        circuit: result.circuit,
+        operation: params.operation,
+        simulated: result.simulated,
+      },
+    );
+  } else {
+    log.error("Circuit error. ", result);
+    let errorHtml = "There was an error generating the circuit.";
+    if (result.errors.length > 0) {
+      errorHtml = errorsToHtml(result.errors);
+    } else if (result.timeout) {
+      errorHtml = `The circuit generation exceeded the timeout of ${compilerRunTimeoutMs}ms.`;
+    }
+
+    updateCircuitPanel(
+      params.program.profile,
+      params.program.projectName,
+      false, // reveal
+      {
+        errorHtml,
+        operation: params.operation,
+        simulated: result.simulated,
+      },
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Wrapper around getCircuit() that enforces a timeout.
+ * Won't throw for known errors.
+ */
+async function getCircuitOrErrorWithTimeout(
+  extensionUri: Uri,
+  params: CircuitParams,
+  simulate: boolean,
+): Promise<CircuitOrError> {
+  let timeout = false;
 
   const compilerWorkerScriptPath = Uri.joinPath(
     extensionUri,
     "./out/compilerWorker.js",
   ).toString();
 
-  const editor = window.activeTextEditor;
-  if (!editor || !isQsharpDocument(editor.document)) {
-    throw new Error("The currently active window is not a Q# file");
-  }
-
-  sendMessageToPanel("circuit", true, undefined);
-
-  let timeout = false;
-
-  // Start the worker, run the code, and send the results to the webview
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const compilerTimeout = setTimeout(() => {
     timeout = true;
-    sendTelemetryEvent(EventType.CircuitEnd, {
-      associationId,
-      reason: "timeout",
-      flowStatus: UserFlowStatus.Aborted,
-    });
     log.info("terminating circuit worker due to timeout");
     worker.terminate();
   }, compilerRunTimeoutMs);
 
-  const docUri = editor.document.uri;
-  const sources = await loadProject(docUri);
-  const targetProfile = getTarget();
+  const result = await getCircuitOrError(worker, params, simulate);
+  clearTimeout(compilerTimeout);
 
-  try {
-    sendTelemetryEvent(EventType.CircuitStart, { associationId }, {});
-
-    const circuit = await worker.getCircuit(sources, targetProfile, operation);
-    clearTimeout(compilerTimeout);
-
-    updateCircuitPanel(
-      targetProfile,
-      docUri.path,
-      true, // reveal
-      { circuit, operation },
-    );
-
-    sendTelemetryEvent(EventType.CircuitEnd, {
-      associationId,
-      flowStatus: UserFlowStatus.Succeeded,
-    });
-  } catch (e: any) {
-    log.error("Circuit error. ", e.toString());
-    clearTimeout(compilerTimeout);
-
-    const errors: [string, VSDiagnostic, string][] =
-      typeof e === "string" ? JSON.parse(e) : undefined;
-    let errorHtml = "There was an error generating the circuit.";
-    if (errors) {
-      errorHtml = errorsToHtml(errors, docUri);
-    }
-
-    if (!timeout) {
-      sendTelemetryEvent(EventType.CircuitEnd, {
-        associationId,
-        reason: errors && errors[0] ? errors[0][1].code : undefined,
-        flowStatus: UserFlowStatus.Failed,
-      });
-    }
-
-    updateCircuitPanel(
-      targetProfile,
-      docUri.path,
-      false, // reveal
-      { errorHtml, operation },
-    );
-  } finally {
-    log.info("terminating circuit worker");
-    worker.terminate();
+  if (result.result === "error") {
+    return {
+      ...result,
+      timeout,
+    };
+  } else {
+    return result;
   }
+}
+
+/**
+ * Wrapper around compiler getCircuit() that handles exceptions
+ * and converts to strongly typed error object.
+ * Won't throw for known errors.
+ */
+async function getCircuitOrError(
+  worker: ICompilerWorker,
+  params: CircuitParams,
+  simulate: boolean,
+): Promise<CircuitOrError> {
+  try {
+    const circuit = await worker.getCircuit(
+      params.program,
+      simulate,
+      params.operation,
+    );
+    return { result: "success", simulated: simulate, circuit };
+  } catch (e: any) {
+    let errors: IQSharpError[] = [];
+    let resultCompError = false;
+    if (typeof e === "string") {
+      try {
+        errors = JSON.parse(e);
+        resultCompError = hasResultComparisonError(errors);
+      } catch {
+        // couldn't parse the error - would indicate a bug.
+        // will get reported up the stack as a generic error
+      }
+    }
+    return {
+      result: "error",
+      simulated: simulate,
+      errors,
+      hasResultComparisonError: resultCompError,
+      timeout: false,
+    };
+  }
+}
+
+function hasResultComparisonError(errors: IQSharpError[]) {
+  const hasResultComparisonError =
+    errors &&
+    errors.findIndex(
+      (item) =>
+        item?.diagnostic?.code === "Qsc.Eval.ResultComparisonUnsupported",
+    ) >= 0;
+  return hasResultComparisonError;
 }
 
 /**
  * Formats an array of compiler/runtime errors into HTML to be presented to the user.
  *
- * @param errors
- *  The first string is the document URI or "<project>" if the error isn't associated with a specific document.
- *  The VSDiagnostic is the error information.
- *  The last string is the stack trace.
- *
+ * @param errors The list of errors to format.
  * @returns The HTML formatted errors, to be set as the inner contents of a container element.
  */
-function errorsToHtml(
-  errors: [string, VSDiagnostic, string][],
-  programUri: Uri,
-) {
+function errorsToHtml(errors: IQSharpError[]) {
   let errorHtml = "";
   for (const error of errors) {
-    const [document, diag, rawStack] = error;
+    const { document, diagnostic: diag, stack: rawStack } = error;
 
-    if (diag.code === "Qsc.Eval.ResultComparisonUnsupported") {
-      const commandUri = Uri.parse(
-        `command:qsharp-vscode.runEditorContentsWithCircuit?${encodeURIComponent(JSON.stringify([programUri]))}`,
-        true,
-      );
-      const messageHtml =
-        `<p>Synthesizing circuits is unsupported for programs that ` +
-        `contain behavior that is conditional on a qubit measurement result, ` +
-        `since the resulting circuit may depend on the outcome of the measurement.</p>` +
-        `<p>If you would like to generate a circuit for this program, you can ` +
-        `<a href="${commandUri}">run the program in the simulator and show the resulting circuit</a>, ` +
-        `or edit your code to avoid the result comparison indicated by the call stack below.</p>`;
+    const location = documentHtml(document, diag.range);
+    const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
+      /\n/g,
+      "<br/><br/>",
+    );
 
-      errorHtml += messageHtml;
-    } else {
-      const location = documentHtml(document, diag.range);
-
-      const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
-        "\n",
-        "<br/><br/>",
-      );
-
-      errorHtml += `<p>${location}: ${message}<br/></p>`;
-    }
+    errorHtml += `<p>${location}: ${message}<br/></p>`;
 
     if (rawStack) {
       const stack = rawStack
@@ -172,18 +322,19 @@ function errorsToHtml(
 
 export function updateCircuitPanel(
   targetProfile: string,
-  docPath: string,
+  projectName: string,
   reveal: boolean,
   params: {
     circuit?: CircuitData;
     errorHtml?: string;
-    simulating?: boolean;
+    simulated?: boolean;
     operation?: IOperationInfo | undefined;
+    calculating?: boolean;
   },
 ) {
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
-    : basename(docPath) || "Circuit";
+    : projectName;
 
   // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
   const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
@@ -191,7 +342,8 @@ export function updateCircuitPanel(
   const props = {
     title,
     targetProfile: target,
-    simulating: params?.simulating || false,
+    simulated: params?.simulated || false,
+    calculating: params?.calculating || false,
     circuit: params?.circuit,
     errorHtml: params?.errorHtml,
   };
@@ -229,10 +381,10 @@ function documentHtml(maybeUri: string, range?: IRange) {
     );
     const fsPath = escapeHtml(uri.fsPath);
     const lineColumn = range
-      ? escapeHtml(`:${range.start.line}:${range.start.character}`)
+      ? escapeHtml(`:${range.start.line + 1}:${range.start.character + 1}`)
       : "";
     location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
-  } catch (e) {
+  } catch {
     // Likely could not parse document URI - it must be a project level error
     // or an error from stdlib, use the document name directly
     location = escapeHtml(maybeUri);

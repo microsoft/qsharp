@@ -1,26 +1,36 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::capabilitiesck::tests_common::USE_DYNAMIC_RANGE;
 
 use super::tests_common::{
-    check, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
+    check, check_for_exe, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
-    USE_DYNAMIC_QUBIT, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
+    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_LHS_EXP_BINOP, USE_DYNAMIC_OPERATION,
+    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RHS_EXP_BINOP, USE_DYNAMIC_STRING,
+    USE_DYNAMIC_UDT, USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE, USE_ENTRY_POINT_STATIC_BIG_INT,
+    USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE, USE_ENTRY_POINT_STATIC_INT,
+    USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
+    USE_ENTRY_POINT_STATIC_RANGE, USE_ENTRY_POINT_STATIC_STRING,
 };
 use expect_test::{expect, Expect};
-use qsc_frontend::compile::TargetCapabilityFlags;
+use qsc_data_structures::target::TargetCapabilityFlags;
 
 fn check_profile(source: &str, expect: &Expect) {
     check(
+        source,
+        expect,
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+}
+
+fn check_profile_for_exe(source: &str, expect: &Expect) {
+    check_for_exe(
         source,
         expect,
         TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
@@ -58,21 +68,35 @@ fn use_of_dynamic_int_yields_no_errors() {
 }
 
 #[test]
-fn use_of_dynamic_pauli_yields_no_errors() {
+fn use_of_dynamic_pauli_yields_error() {
     check_profile(
         USE_DYNAMIC_PAULI,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicPauli(
+                    Span {
+                        lo: 104,
+                        hi: 134,
+                    },
+                ),
+            ]
         "#]],
     );
 }
 
 #[test]
-fn use_of_dynamic_range_yields_no_errors() {
+fn use_of_dynamic_range_yields_error() {
     check_profile(
         USE_DYNAMIC_RANGE,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicRange(
+                    Span {
+                        lo: 108,
+                        hi: 137,
+                    },
+                ),
+            ]
         "#]],
     );
 }
@@ -85,8 +109,8 @@ fn use_of_dynamic_double_yields_error() {
             [
                 UseOfDynamicDouble(
                     Span {
-                        lo: 246,
-                        hi: 284,
+                        lo: 226,
+                        hi: 264,
                     },
                 ),
             ]
@@ -119,8 +143,8 @@ fn use_of_dynamic_big_int_yields_errors() {
             [
                 UseOfDynamicBigInt(
                     Span {
-                        lo: 247,
-                        hi: 285,
+                        lo: 227,
+                        hi: 265,
                     },
                 ),
             ]
@@ -170,14 +194,14 @@ fn use_of_dynamic_udt_yields_errors() {
             [
                 UseOfDynamicDouble(
                     Span {
-                        lo: 283,
-                        hi: 335,
+                        lo: 253,
+                        hi: 305,
                     },
                 ),
                 UseOfDynamicUdt(
                     Span {
-                        lo: 283,
-                        hi: 335,
+                        lo: 253,
+                        hi: 305,
                     },
                 ),
             ]
@@ -193,8 +217,8 @@ fn use_of_dynamic_function_yields_errors() {
             [
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 142,
-                        hi: 166,
+                        lo: 132,
+                        hi: 156,
                     },
                 ),
             ]
@@ -210,8 +234,8 @@ fn use_of_dynamic_operation_yields_errors() {
             [
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 142,
-                        hi: 162,
+                        lo: 132,
+                        hi: 152,
                     },
                 ),
             ]
@@ -300,26 +324,26 @@ fn call_to_dynamic_function_yields_errors() {
             [
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 142,
-                        hi: 166,
+                        lo: 132,
+                        hi: 156,
                     },
                 ),
                 UseOfDynamicDouble(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
                 UseOfDynamicArrowFunction(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
                 CallToDynamicCallee(
                     Span {
-                        lo: 180,
-                        hi: 188,
+                        lo: 170,
+                        hi: 178,
                     },
                 ),
             ]
@@ -335,20 +359,20 @@ fn call_to_dynamic_operation_yields_errors() {
             [
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 142,
-                        hi: 162,
+                        lo: 132,
+                        hi: 152,
                     },
                 ),
                 UseOfDynamicArrowOperation(
                     Span {
-                        lo: 176,
-                        hi: 181,
+                        lo: 166,
+                        hi: 171,
                     },
                 ),
                 CallToDynamicCallee(
                     Span {
-                        lo: 176,
-                        hi: 181,
+                        lo: 166,
+                        hi: 171,
                     },
                 ),
             ]
@@ -357,24 +381,11 @@ fn call_to_dynamic_operation_yields_errors() {
 }
 
 #[test]
-fn call_to_unresolved_yields_errors() {
+fn call_to_unresolved_allowed() {
     check_profile(
         CALL_UNRESOLVED_FUNCTION,
         &expect![[r#"
-            [
-                UseOfDynamicDouble(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-                CallToUnresolvedCallee(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }
@@ -390,6 +401,16 @@ fn measurement_within_dynamic_scope_yields_no_errors() {
 }
 
 #[test]
+fn custom_measurement_yields_no_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
 fn use_of_dynamic_index_yields_errors() {
     check_profile(
         USE_DYNAMIC_INDEX,
@@ -397,8 +418,35 @@ fn use_of_dynamic_index_yields_errors() {
             [
                 UseOfDynamicIndex(
                     Span {
-                        lo: 319,
-                        hi: 323,
+                        lo: 299,
+                        hi: 303,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_lhs_exp_binop_allowed() {
+    check_profile(
+        USE_DYNAMIC_LHS_EXP_BINOP,
+        &expect![[r#"
+        []
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_rhs_exp_binop_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_RHS_EXP_BINOP,
+        &expect![[r#"
+            [
+                UseOfDynamicExponent(
+                    Span {
+                        lo: 138,
+                        hi: 143,
                     },
                 ),
             ]
@@ -422,10 +470,22 @@ fn loop_with_dynamic_condition_yields_errors() {
         LOOP_WITH_DYNAMIC_CONDITION,
         &expect![[r#"
             [
+                UseOfDynamicRange(
+                    Span {
+                        lo: 141,
+                        hi: 159,
+                    },
+                ),
                 LoopWithDynamicCondition(
                     Span {
                         lo: 141,
                         hi: 159,
+                    },
+                ),
+                UseOfDynamicRange(
+                    Span {
+                        lo: 150,
+                        hi: 156,
                     },
                 ),
             ]
@@ -434,18 +494,136 @@ fn loop_with_dynamic_condition_yields_errors() {
 }
 
 #[test]
-fn use_closure_yields_errors() {
+fn use_closure_allowed() {
     check_profile(
         USE_CLOSURE_FUNCTION,
         &expect![[r#"
-            [
-                UseOfClosure(
-                    Span {
-                        lo: 149,
-                        hi: 168,
-                    },
-                ),
-            ]
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_static_int_return_from_entry_point_allowed() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_INT,
+        &expect![[r#"
+        []
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_double_return_from_entry_point_errors() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_DOUBLE,
+        &expect![[r#"
+        [
+            UseOfDoubleOutput(
+                Span {
+                    lo: 63,
+                    hi: 66,
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_string_return_from_entry_point_errors() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_STRING,
+        &expect![[r#"
+        [
+            UseOfAdvancedOutput(
+                Span {
+                    lo: 63,
+                    hi: 66,
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_bool_return_from_entry_point_supported() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_BOOL,
+        &expect![[r#"
+        []
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_big_int_return_from_entry_point_errors() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_BIG_INT,
+        &expect![[r#"
+        [
+            UseOfAdvancedOutput(
+                Span {
+                    lo: 63,
+                    hi: 66,
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_pauli_return_from_entry_point_errors() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_PAULI,
+        &expect![[r#"
+        [
+            UseOfAdvancedOutput(
+                Span {
+                    lo: 63,
+                    hi: 66,
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_range_return_from_entry_point_errors() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_RANGE,
+        &expect![[r#"
+        [
+            UseOfAdvancedOutput(
+                Span {
+                    lo: 63,
+                    hi: 66,
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn use_of_static_int_in_tuple_return_from_entry_point_allowed() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_STATIC_INT_IN_TUPLE,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_static_sized_array_in_tuple_allowed() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
+        &expect![[r#"
+            []
         "#]],
     );
 }

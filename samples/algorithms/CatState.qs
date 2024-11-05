@@ -7,8 +7,7 @@
 ///
 /// This Q# program implements a cat state of 5 qubits.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation Main() : Result[] {
@@ -21,18 +20,17 @@ namespace Sample {
         DumpMachine();
 
         // Measure and reset qubits before releasing them.
-        let results = MeasureEachZ(register);
-        ResetAll(register);
-        return results;
+        MResetEachZ(register)
     }
 
-    // Prepares a cat state 1/sqrt(2)(|0...0〉 + |1...1〉) using a qubit register
-    // in the zero state.
+    /// # Summary
+    /// Prepares state (|0...0〉 + |1...1〉) / √2 (a generalized GHZ state
+    /// or a cat state) across the `register` of qubits.
+    /// All qubits are assumed to be in |0〉 state on input.
     operation PrepareCatState(register : Qubit[]) : Unit {
         Fact(Length(register) > 0, "Qubit register must not be empty.");
-        Fact(CheckAllZero(register), "Qubits are not in the |0〉 state.");
 
-        // Set the first qubit in the register into a 1/sqrt(2)(|0〉 + |1〉) superposition.
+        // Set the first qubit in the register into a (|0〉 + |1〉) / √2 superposition.
         // Then apply a CNOT to the remaining qubits using the first qubit as control.
         H(register[0]);
         ApplyToEach(CNOT(register[0], _), register[1...]);

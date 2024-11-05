@@ -27,7 +27,8 @@ namespace Kata.Verification {
                 [$"|B⟩=(-i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩)", $"|A⟩=(cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩)"],
                 true);
             if not isCorrect {
-                Message($"Test fails for alpha={alpha}");
+                let precision = 3;
+                Message($"Test fails for alpha={DoubleAsStringWithPrecision(alpha, precision)}");
                 return false;
             }
         }

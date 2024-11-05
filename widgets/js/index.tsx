@@ -11,6 +11,7 @@ import {
   EstimatesPanel,
   ReData,
   Circuit,
+  setRenderer,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
@@ -20,6 +21,7 @@ import mk from "@vscode/markdown-it-katex";
 
 const md = markdownIt();
 md.use(mk);
+setRenderer((input: string) => md.render(input));
 
 export function mdRenderer(input: string) {
   // Note: Need to ensure this 'fix' is still needed with the latest data JSON.
@@ -122,6 +124,7 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
         isSimplifiedView={true}
         onRowDeleted={onRowDeleted}
         setEstimate={() => undefined}
+        allowSaveImage={true}
       ></EstimatesOverview>,
       el,
     );
@@ -161,6 +164,7 @@ function renderEstimatesPanel({ model, el }: RenderArgs) {
         renderer={mdRenderer}
         calculating={false}
         onRowDeleted={onRowDeleted}
+        allowSaveImage={true}
       ></EstimatesPanel>,
       el,
     );

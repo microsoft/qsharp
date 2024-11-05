@@ -14,9 +14,10 @@ namespace Kata.Verification {
             let angle = IntAsDouble(i) / 10.0;
             let solution = register => Kata.ControlledRotation(register, angle);
             let reference = register => ControlledRotation(register, angle);
-            if not CheckOperationsEquivalence(solution, reference, 2) {
+            if not CheckOperationsAreEqual(2, solution, reference) {
+                let precision = 3;
                 Message("Incorrect.");
-                Message($"The test case for theta={angle} did not pass");
+                Message($"The test case for theta={DoubleAsStringWithPrecision(angle, precision)} did not pass");
                 return false;
             }
         }

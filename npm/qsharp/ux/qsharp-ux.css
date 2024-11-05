@@ -46,6 +46,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   --border-color: #768f9c;
   --menu-box-fill: var(--main-background);
   --error-background-color: #ffe3e3;
+  --warning-background-color: #fff6d7;
   --bar-selected-outline: #587ddd;
 }
 
@@ -200,28 +201,35 @@ html {
   cursor: default;
 }
 
-.error-list {
+.diag-list {
   margin-top: 24px;
   margin-bottom: 24px;
   min-height: 48px;
 }
 
-.error-row {
+.diag-row {
   border: 1px solid var(--border-color);
-  background-color: var(--error-background-color);
   padding: 4px;
   border-bottom: 0.5px solid gray;
   font-size: 0.9rem;
   margin-bottom: -1px;
 }
 
-.error-row > span {
+.diag-row > span {
   font-weight: 200;
 }
 
-.error-help {
+.diag-help {
   font-weight: 200;
   font-style: italic;
+}
+
+.error-row {
+  background-color: var(--error-background-color);
+}
+
+.warning-row {
+  background-color: var(--warning-background-color);
 }
 
 /* Katas */
@@ -268,6 +276,14 @@ html {
 }
 
 .hir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
+.qir-output {
   height: 40vh;
   min-height: 400px;
   width: 100%;
@@ -708,4 +724,19 @@ html {
   margin-top: 8px;
   width: 50px;
   height: 25px;
+.qs-estimatesOverview-saveIcon {
+  cursor: pointer;
+  width: 3em;
+  height: 3em;
+  background-color: var(--main-background);
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  border: none;
+}
+
+.qs-estimatesOverview-saveIconSvgPath {
+  fill: var(--main-color) !important;
+  fill-rule: evenodd !important;
+  clip-rule: evenodd !important;
 }

@@ -2,12 +2,13 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, FieldAssign, Ident, Item,
+    ItemKind, Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
+    StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, _: &crate::fir::PackageStore) {
         walk_package(self, package);
     }
 
@@ -64,6 +65,9 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Export(name, _) => {
+            vis.visit_ident(name);
+        }
     };
 }
 
@@ -78,6 +82,9 @@ pub fn walk_callable_impl<'a>(vis: &mut impl Visitor<'a>, callable_impl: &'a Cal
         CallableImpl::Intrinsic => {}
         CallableImpl::Spec(spec_impl) => {
             vis.visit_spec_impl(spec_impl);
+        }
+        CallableImpl::SimulatableIntrinsic(spec_decl) => {
+            vis.visit_spec_decl(spec_decl);
         }
     };
 }
@@ -168,6 +175,12 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: ExprId) {
             start.iter().for_each(|s| vis.visit_expr(*s));
             step.iter().for_each(|s| vis.visit_expr(*s));
             end.iter().for_each(|e| vis.visit_expr(*e));
+        }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter().for_each(|c| vis.visit_expr(*c));
+            fields
+                .iter()
+                .for_each(|FieldAssign { value, .. }| vis.visit_expr(*value));
         }
         ExprKind::String(components) => {
             for component in components {

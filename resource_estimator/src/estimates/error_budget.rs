@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ErrorBudget {
     /// Probability of at least one logical error
     logical: f64,
@@ -21,10 +21,23 @@ impl ErrorBudget {
         }
     }
 
+    #[must_use]
+    pub fn from_uniform(total_error: f64) -> Self {
+        Self {
+            logical: total_error / 3.0,
+            magic_states: total_error / 3.0,
+            rotations: total_error / 3.0,
+        }
+    }
+
     /// Get the error budget's plogical.
     #[must_use]
     pub fn logical(&self) -> f64 {
         self.logical
+    }
+
+    pub fn set_logical(&mut self, logical: f64) {
+        self.logical = logical;
     }
 
     /// Get the error budget's tstates.
@@ -33,9 +46,24 @@ impl ErrorBudget {
         self.magic_states
     }
 
+    pub fn set_magic_states(&mut self, magic_states: f64) {
+        self.magic_states = magic_states;
+    }
+
     /// Get the error budget's rotations.
     #[must_use]
     pub fn rotations(&self) -> f64 {
         self.rotations
     }
+
+    pub fn set_rotations(&mut self, rotations: f64) {
+        self.rotations = rotations;
+    }
+}
+
+#[derive(Default, Copy, Clone)]
+pub enum ErrorBudgetStrategy {
+    #[default]
+    Static,
+    PruneLogicalAndRotations,
 }

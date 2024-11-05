@@ -19,11 +19,11 @@
 /// with one of the qubits being phase-flipped. It then identifies and corrects
 /// the flipped qubit.
 namespace Sample {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
+    import Std.Math.*;
+    import Std.Random.*;
+    import Std.Arrays.*;
+    import Std.Diagnostics.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result {

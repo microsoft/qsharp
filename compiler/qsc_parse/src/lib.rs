@@ -5,6 +5,7 @@
 //! The parser produces a tree with placeholder node identifiers that are expected to be replaced with
 //! unique identifiers by a later stage.
 
+pub mod completion;
 mod expr;
 mod item;
 pub mod keyword;
@@ -24,19 +25,81 @@ use scan::ParserContext;
 use std::result;
 use thiserror::Error;
 
-#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-#[error(transparent)]
-#[diagnostic(transparent)]
-pub struct Error(ErrorKind);
+#[derive(Clone, Eq, Error, PartialEq)]
+pub struct Error(ErrorKind, Option<String>);
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        ErrorKind::fmt(&self.0, f)
+    }
+}
+
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut formatter = f.debug_tuple("Error");
+        if self.1.is_some() {
+            formatter.field(&self.0).field(&self.1)
+        } else {
+            formatter.field(&self.0)
+        }
+        .finish()
+    }
+}
+
+impl Diagnostic for Error {
+    fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.code()
+    }
+
+    fn severity(&self) -> Option<miette::Severity> {
+        self.0.severity()
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.1
+            .clone()
+            .map(|help| Box::new(help) as Box<dyn std::fmt::Display>)
+    }
+
+    fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.0.url()
+    }
+
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        self.0.source_code()
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.0.labels()
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        self.0.related()
+    }
+
+    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        self.0.diagnostic_source()
+    }
+}
 
 impl Error {
     #[must_use]
     pub fn with_offset(self, offset: u32) -> Self {
-        Self(self.0.with_offset(offset))
+        Self(self.0.with_offset(offset), self.1)
+    }
+
+    #[must_use]
+    pub(crate) fn new(kind: ErrorKind) -> Self {
+        Self(kind, None)
+    }
+
+    #[must_use]
+    pub fn with_help(self, help_text: impl Into<String>) -> Self {
+        Self(self.0, Some(help_text.into()))
     }
 }
 
-#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
+#[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
@@ -74,6 +137,15 @@ enum ErrorKind {
     #[error("missing entry in sequence")]
     #[diagnostic(code("Qsc.Parse.MissingSeqEntry"))]
     MissingSeqEntry(#[label] Span),
+    #[error("dotted namespace aliases are not allowed")]
+    #[diagnostic(code("Qsc.Parse.DotIdentAlias"))]
+    DotIdentAlias(#[label] Span),
+    #[error("file name {1} could not be converted into valid namespace name")]
+    #[diagnostic(code("Qsc.Parse.InvalidFileName"))]
+    InvalidFileName(#[label] Span, String),
+    #[error("expected an item or closing brace, found {0}")]
+    #[diagnostic(code("Qsc.Parse.ExpectedItem"))]
+    ExpectedItem(TokenKind, #[label] Span),
 }
 
 impl ErrorKind {
@@ -91,6 +163,9 @@ impl ErrorKind {
             Self::FloatingAttr(span) => Self::FloatingAttr(span + offset),
             Self::FloatingVisibility(span) => Self::FloatingVisibility(span + offset),
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
+            Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
+            Self::InvalidFileName(span, name) => Self::InvalidFileName(span + offset, name),
+            Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
         }
     }
 }
@@ -104,10 +179,13 @@ impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 #[must_use]
 pub fn namespaces(
     input: &str,
+    source_name: Option<&str>,
     language_features: LanguageFeatures,
 ) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features);
-    match item::parse_namespaces(&mut scanner) {
+    let result = item::parse_namespaces_or_implicit(&mut scanner, source_name);
+
+    match result {
         Ok(namespaces) => (namespaces, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();

@@ -3,8 +3,10 @@
 
 use super::*;
 use expect_test::expect;
-use qsc_data_structures::{functors::FunctorApp, language_features::LanguageFeatures};
-use qsc_frontend::compile::{compile, core, std, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{
+    functors::FunctorApp, language_features::LanguageFeatures, target::TargetCapabilityFlags,
+};
+use qsc_frontend::compile::{compile, core, std, PackageStore, SourceMap};
 use qsc_hir::hir::{Item, ItemKind};
 
 fn compile_one_operation(code: &str) -> (Item, String) {
@@ -16,7 +18,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     let sources = SourceMap::new([("test".into(), code.into())], None);
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         sources,
         TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
@@ -30,7 +32,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     });
     let mut namespaces = unit.package.items.values().filter_map(|i| {
         if let ItemKind::Namespace(ident, _) = &i.kind {
-            Some(ident.name.clone())
+            Some(ident.clone())
         } else {
             None
         }
@@ -44,7 +46,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     );
     (
         only_callable.clone(),
-        format!("{only_namespace}.{callable_name}"),
+        format!("{}.{callable_name}", only_namespace.name()),
     )
 }
 

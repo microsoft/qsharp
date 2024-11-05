@@ -11,7 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.77"
+  RUST_TOOLCHAIN_VERSION: "1.82"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -50,7 +50,7 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py
+        run: python ./build.py --no-check --no-test --wasm --npm --play
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:

@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::{expect, Expect};
 use qsc::location::Location;
 
 use super::get_definition;
 use crate::{
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-    },
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
 };
 
@@ -19,7 +15,7 @@ use crate::{
 /// The expected definition range is indicated by `◉` markers in the source text.
 fn assert_definition(source_with_markers: &str) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual_definition =
         get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
@@ -35,7 +31,7 @@ fn assert_definition(source_with_markers: &str) {
 
 fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
     let actual_definition = get_definition(&compilation, &cell_uri, position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
         None
@@ -46,8 +42,7 @@ fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
 }
 
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual_definition =
         get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     expect.assert_debug_eq(&actual_definition);
@@ -242,6 +237,186 @@ fn udt_field_ref() {
 }
 
 #[test]
+fn struct_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉B↘ar◉ { a : Int, b : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : Unit {
+            let x = new B↘ar { a = 1, b = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_sig() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : B↘ar {
+            new Bar { a = 1, b = 2.3 }
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_param() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        operation Foo(x: B↘ar) : Unit {}
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_anno() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+
+        operation Foo() : Unit {
+            let x: B↘ar = new Bar { a = 1, b = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_ty_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        newtype Foo = (a: B↘ar, b: Double);
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_struct_def() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct ◉Bar◉ { a : Int, b : Double }
+        struct Foo { a : B↘ar, b : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { ◉f↘st◉ : Int, snd : Double }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { fst : Int, ◉snd◉ : Double }
+        operation Foo() : Unit {
+            let a = new Pair { fst = 1, snd = 2.3 };
+            let b = a::s↘nd;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_cons() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct Pair { fst : Int, ◉snd◉ : Double }
+        operation Foo() : Unit {
+            let a = new Pair { fst = 1, s↘nd = 2.3 };
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_path() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { b : B }
+        struct B { ◉c◉ : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = a.b.↘c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_path_with_expr() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { b : B }
+        struct B { ◉c◉ : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = { a.b }.↘c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_path_inside_expr() {
+    assert_definition(
+        r#"
+    namespace Test {
+        struct A { ◉b◉ : B }
+        struct B { c : C }
+        struct C { i : Int }
+        operation Foo(a : A) : Unit {
+            let x = { a.↘b }.c.i;
+        }
+    }
+    "#,
+    );
+}
+
+#[test]
 fn lambda_param() {
     assert_definition(
         r#"
@@ -301,12 +476,12 @@ fn std_call() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 1,
-                            column: 26,
+                            line: 2,
+                            column: 18,
                         },
                         end: Position {
-                            line: 1,
-                            column: 30,
+                            line: 2,
+                            column: 22,
                         },
                     },
                 },
@@ -409,12 +584,12 @@ fn std_udt() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 24,
+                            line: 5,
+                            column: 16,
                         },
                         end: Position {
-                            line: 4,
-                            column: 27,
+                            line: 5,
+                            column: 19,
                         },
                     },
                 },
@@ -441,12 +616,12 @@ fn std_udt_udt_field() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 31,
+                            line: 5,
+                            column: 23,
                         },
                         end: Position {
-                            line: 4,
-                            column: 32,
+                            line: 5,
+                            column: 24,
                         },
                     },
                 },
@@ -490,5 +665,18 @@ fn notebook_callable_defined_in_later_cell() {
     assert_definition_notebook(&[
         ("cell1", "C↘allee();"),
         ("cell2", "operation Callee() : Unit {}"),
+    ]);
+}
+
+#[test]
+fn notebook_local_from_same_cell() {
+    assert_definition_notebook(&[("cell1", "let ◉x◉ = 3; let y = ↘x + 1;")]);
+}
+
+#[test]
+fn notebook_local_from_later_cell() {
+    assert_definition_notebook(&[
+        ("cell1", "let ◉x◉ = 3; let y = x + 1;"),
+        ("cell2", "let z = ↘x + 2;"),
     ]);
 }

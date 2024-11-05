@@ -1,27 +1,30 @@
-/// # Sample
-/// Bool
-///
-/// # Description
-/// The `Bool` type represents Boolean values. Possible values are `true`
-/// or `false`.
-namespace MyQuantumApp {
+// # Sample
+// Bool
+//
+// # Description
+// The `Bool` type represents Boolean values. Possible values are `true`
+// or `false`.
 
-    @EntryPoint()
-    operation Main() : Bool {
-        // `Bool`s can be operated upon with boolean operators:
-        let andOp = true and true;
-        let orOp = false or true;
+function Main() : Bool {
+    // `Bool`s can be operated upon with boolean operators:
+    let andOp = true and true;
+    Message($"AND operation: {andOp}");
 
-        // Comparisons return booleans:
-        let eqComparison = 1 == 2;
+    let orOp = false or true;
+    Message($"OR operation: {orOp}");
 
-        // `if` expressions use boolean expressions as their conditions:
-        if (2 == 2) {
-            // do something
-        } else {
-            // do something else
-        }
+    // Comparisons return booleans:
+    let eqComparison = 1 == 2;
+    Message($"Equality comparison: {eqComparison}");
 
-        return true;
+    // `if` expressions use boolean expressions as their conditions:
+    if (2 == 2) {
+        Message("2 equals 2");
+        // do something
+    } else {
+        Message("2 does not equal 2");
+        // do something else
     }
+
+    return true;
 }

@@ -4,12 +4,8 @@
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
-import {
-  getEnableAdaptiveProfile,
-  getTarget,
-  getTargetFriendlyName,
-  setTarget,
-} from "./config";
+import { getTarget, getTargetFriendlyName, setTarget } from "./config";
+import { getActiveQSharpDocumentUri } from "./programConfig";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -44,19 +40,15 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   disposables.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (
-        vscode.window.activeTextEditor &&
-        isQsharpDocument(vscode.window.activeTextEditor.document) &&
-        event.affectsConfiguration("Q#.targetProfile")
+        getActiveQSharpDocumentUri() &&
+        event.affectsConfiguration("Q#.qir.targetProfile")
       ) {
         refreshStatusBarItemValue();
       }
     }),
   );
 
-  if (
-    vscode.window.activeTextEditor &&
-    isQsharpDocument(vscode.window.activeTextEditor.document)
-  ) {
+  if (getActiveQSharpDocumentUri()) {
     refreshStatusBarItemValue();
   }
 
@@ -86,7 +78,7 @@ function registerTargetProfileCommand() {
     "qsharp-vscode.setTargetProfile",
     async () => {
       const target = await vscode.window.showQuickPick(
-        getTargetProfiles().map((profile) => ({
+        targetProfiles.map((profile) => ({
           label: profile.uiText,
         })),
         { placeHolder: "Select the QIR target profile" },
@@ -101,30 +93,16 @@ function registerTargetProfileCommand() {
 
 const targetProfiles = [
   { configName: "base", uiText: "Q#: QIR base" },
-  { configName: "quantinuum", uiText: "Q#: QIR Quantinuum" },
+  { configName: "adaptive_ri", uiText: "Q#: QIR Adaptive RI" },
   { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
-
-function getTargetProfiles(): {
-  configName: string;
-  uiText: string;
-}[] {
-  const allow_quantinuum = getEnableAdaptiveProfile();
-  if (allow_quantinuum) {
-    return targetProfiles;
-  } else {
-    return targetProfiles.filter(
-      (profile) => profile.configName !== "quantinuum",
-    );
-  }
-}
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
     case "Q#: QIR base":
       return "base";
-    case "Q#: QIR Quantinuum":
-      return "quantinuum";
+    case "Q#: QIR Adaptive RI":
+      return "adaptive_ri";
     case "Q#: unrestricted":
       return "unrestricted";
     default:

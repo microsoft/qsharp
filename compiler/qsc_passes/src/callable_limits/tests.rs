@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::visit::Visitor;
 
 use crate::callable_limits::CallableLimits;

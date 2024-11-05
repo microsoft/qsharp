@@ -14,6 +14,23 @@ pub struct IndexMap<K, V> {
     values: Vec<Option<V>>,
 }
 
+impl<K, V> IndexMap<K, V>
+where
+    K: Into<usize>,
+    V: Default,
+{
+    pub fn get_mut_or_default(&mut self, key: K) -> &mut V {
+        let index: usize = key.into();
+        if index >= self.values.len() {
+            self.values.resize_with(index + 1, Option::default);
+        }
+        self.values
+            .get_mut(index)
+            .expect("IndexMap::get_mut_or_default: index out of bounds")
+            .get_or_insert_with(Default::default)
+    }
+}
+
 impl<K, V> IndexMap<K, V> {
     #[must_use]
     pub fn new() -> Self {
@@ -130,7 +147,15 @@ impl<K, V: Clone> Clone for IndexMap<K, V> {
 impl<K, V: Debug> Debug for IndexMap<K, V> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_struct("IndexMap")
-            .field("values", &self.values)
+            .field(
+                "values",
+                &self
+                    .values
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(k, v)| v.as_ref().map(|val| format!("{k:?}: {val:?}")))
+                    .collect::<Vec<_>>(),
+            )
             .finish()
     }
 }
@@ -200,6 +225,16 @@ impl<'a, K: From<usize>, V> Iterator for Iter<'a, K, V> {
 pub struct IterMut<'a, K, V> {
     _keys: PhantomData<K>,
     base: Enumerate<slice::IterMut<'a, Option<V>>>,
+}
+
+impl<K: From<usize>, V> DoubleEndedIterator for Iter<'_, K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if let (index, Some(value)) = self.base.next_back()? {
+                break Some((index.into(), value));
+            }
+        }
+    }
 }
 
 impl<'a, K: From<usize>, V> Iterator for IterMut<'a, K, V> {

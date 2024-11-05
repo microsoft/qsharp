@@ -7,8 +7,8 @@ use crate::common::{
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
-        LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId, PatKind, SpecDecl,
-        Stmt, StmtId, StmtKind,
+        LocalVarId, Mutability, Package, PackageId, PackageLookup, PackageStore, Pat, PatId,
+        PatKind, SpecDecl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
     visit::{walk_expr, Visitor},
@@ -22,21 +22,23 @@ pub struct CycleDetector<'a> {
     stack: CallStack,
     specializations_locals: FxHashMap<LocalSpecId, FxHashMap<LocalVarId, Local>>,
     specializations_with_cycles: FxHashSet<LocalSpecId>,
+    store: &'a PackageStore,
 }
 
 impl<'a> CycleDetector<'a> {
-    pub fn new(package_id: PackageId, package: &'a Package) -> Self {
+    pub fn new(package_id: PackageId, package: &'a Package, store: &'a PackageStore) -> Self {
         Self {
             package_id,
             package,
             stack: CallStack::default(),
             specializations_locals: FxHashMap::default(),
             specializations_with_cycles: FxHashSet::<LocalSpecId>::default(),
+            store,
         }
     }
 
     pub fn detect_specializations_with_cycles(mut self) -> Vec<LocalSpecId> {
-        self.visit_package(self.package);
+        self.visit_package(self.package, self.store);
         self.specializations_with_cycles.drain().collect()
     }
 
@@ -56,7 +58,6 @@ impl<'a> CycleDetector<'a> {
                 locals_map.insert(
                     ident.id,
                     Local {
-                        pat: pat_id,
                         var: ident.id,
                         ty: pat.ty.clone(),
                         kind,
@@ -109,24 +110,40 @@ impl<'a> CycleDetector<'a> {
             .specializations_locals
             .get_mut(local_spec_id)
             .expect("node map should exist");
-        let maybe_callee = try_resolve_callee(callee, self.package_id, self.package, locals_map);
+        let (maybe_callee, _) =
+            try_resolve_callee(callee, self.package_id, self.package, locals_map);
         if let Some(callee) = maybe_callee {
             // We are not interested in visiting callables outside this package.
             if callee.item.package != self.package_id {
                 return;
             }
             let item = self.package.get_item(callee.item.item);
-            match &item.kind {
-                ItemKind::Callable(callable_decl) => self.walk_callable_decl(
-                    (callee.item.item, callee.functor_app.functor_set_value()).into(),
-                    callable_decl,
-                ),
-                ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
-                ItemKind::Ty(_, _) => {
-                    // Ignore "calls" to types.
-                }
+            self.handle_item(item, &callee);
+        }
+    }
+
+    fn handle_item(&mut self, item: &'a Item, callee: &crate::common::Callee) {
+        match &item.kind {
+            ItemKind::Callable(callable_decl) => self.walk_callable_decl(
+                (callee.item.item, callee.functor_app.functor_set_value()).into(),
+                callable_decl,
+            ),
+            ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
+            ItemKind::Ty(_, _) => {
+                // Ignore "calls" to types.
+            }
+            ItemKind::Export(_, id) => {
+                // resolve the item, which may exist in another package
+                let item = self.resolve_item(*id);
+                self.handle_item(item, callee);
             }
         }
+    }
+
+    fn resolve_item(&self, item: qsc_fir::fir::ItemId) -> &'a Item {
+        let package_id = item.package.unwrap_or(self.package_id);
+        let package = self.store.get(package_id);
+        package.get_item(item.item)
     }
 
     fn walk_spec_decl(&mut self, local_spec_id: LocalSpecId, spec_decl: &'a SpecDecl) {
@@ -230,7 +247,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         }
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, _: &PackageStore) {
         // We are only interested in visiting items.
         package.items.values().for_each(|i| self.visit_item(i));
     }

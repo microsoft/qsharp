@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 mod given_interpreter {
-    use crate::interpret::{Error, InterpretResult, Interpreter};
+    use crate::interpret::{InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
-    use qsc_data_structures::language_features::LanguageFeatures;
+    use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+    use qsc_frontend::compile::SourceMap;
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -22,27 +20,35 @@ mod given_interpreter {
         )
     }
 
-    fn run(
-        interpreter: &mut Interpreter,
-        expr: &str,
-    ) -> (Result<InterpretResult, Vec<Error>>, String) {
+    fn run(interpreter: &mut Interpreter, expr: &str) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.run(&mut receiver, expr), receiver.dump())
+        (
+            interpreter.run(&mut receiver, Some(expr), None),
+            receiver.dump(),
+        )
     }
 
-    fn entry(
-        interpreter: &mut Interpreter,
-    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+    fn entry(interpreter: &mut Interpreter) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.eval_entry(&mut receiver), receiver.dump())
     }
 
+    fn fragment(
+        interpreter: &mut Interpreter,
+        fragments: &str,
+        package: crate::ast::Package,
+    ) -> (InterpretResult, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        let result = interpreter.eval_ast_fragments(&mut receiver, fragments, package);
+        (result, receiver.dump())
+    }
+
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -54,12 +60,14 @@ mod given_interpreter {
 
             #[test]
             fn stdlib_members_should_be_unavailable() {
+                let store = crate::PackageStore::new(crate::compile::core());
                 let mut interpreter = Interpreter::new(
-                    false,
                     SourceMap::default(),
                     PackageType::Lib,
                     TargetCapabilityFlags::all(),
                     LanguageFeatures::default(),
+                    store,
+                    &[],
                 )
                 .expect("interpreter should be created");
 
@@ -256,10 +264,10 @@ mod given_interpreter {
         #[test]
         fn open_namespace() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
         }
 
         #[test]
@@ -269,7 +277,7 @@ mod given_interpreter {
                 &mut interpreter,
                 "open Microsoft.Quantum.Diagnostics; DumpMachine()",
             );
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
         }
 
         #[test]
@@ -321,10 +329,10 @@ mod given_interpreter {
         #[test]
         fn global_qubits() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
             let (result, output) = line(&mut interpreter, "use (q0, qs) = (Qubit(), Qubit[3]);");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
@@ -446,7 +454,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "open Other;");
             is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine();");
             is_only_error(
@@ -456,7 +464,7 @@ mod given_interpreter {
                     name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
                       ambiguous name [line_3] [DumpMachine]
                       found in this namespace [line_1] [Other]
-                      and also in this namespace [line_2] [Microsoft.Quantum.Diagnostics]
+                      and also in this namespace [line_2] [Std.Diagnostics]
                     type error: insufficient type information to infer type
                        [line_3] [DumpMachine()]
                 "#]],
@@ -472,7 +480,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: qubits in invocation are not unique
-                       [intrinsic.qs] [(control, target)]
+                       [qsharp-library-source:Std/Intrinsic.qs] [(control, target)]
                 "#]],
             );
         }
@@ -507,61 +515,111 @@ mod given_interpreter {
         }
 
         #[test]
-        fn callables_failing_profile_validation_are_still_registered() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
-            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+        fn callables_failing_profile_validation_are_not_registered() {
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
-            // if the callable wasn't registered, this would panic instead of returning an error.
-            verify_same_error(&result, &output);
+            // since the callable wasn't registered, this will return an unbound name error.
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                runtime error: name is not bound
+                   [line_1] [Foo]
+            "#]],
+            );
         }
 
         #[test]
-        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
-            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
-            where
-                E: Diagnostic,
-            {
-                is_only_error(
-                    result,
-                    output,
-                    &expect![[r#"
-                    cannot use a dynamic integer value
-                       [line_0] [set x = 2]
-                    cannot use a dynamic integer value
-                       [line_0] [x]
-                "#]],
-                );
-            }
-            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+        fn callables_failing_profile_validation_also_fail_qir_generation() {
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
                     operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
+            let res = interpreter.qirgen("{Foo();}");
+            expect![[r#"
+                Err(
+                    [
+                        PartialEvaluation(
+                            WithSource {
+                                sources: [
+                                    Source {
+                                        name: "<entry>",
+                                        contents: "{Foo();}",
+                                        offset: 97,
+                                    },
+                                ],
+                                error: EvaluationFailed(
+                                    "name is not bound",
+                                    PackageSpan {
+                                        package: PackageId(
+                                            3,
+                                        ),
+                                        span: Span {
+                                            lo: 98,
+                                            hi: 101,
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    ],
+                )
+            "#]]
+            .assert_debug_eq(&res);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_do_not_fail() {
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                cannot use a dynamic integer value
+                   [line_0] [set x = 2]
+                cannot use a dynamic integer value
+                   [line_0] [x]
+            "#]],
+            );
             // do something innocuous
             let (result, output) = line(
                 &mut interpreter,
@@ -569,7 +627,7 @@ mod given_interpreter {
                     let y = 7;
                 "#},
             );
-            verify_same_error(&result, &output);
+            is_only_value(&result, &output, &Value::unit());
         }
 
         #[test]
@@ -614,14 +672,7 @@ mod given_interpreter {
 
         #[test]
         fn local_var_valid_after_item_definition() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(&mut interpreter, "let a = 1;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "a");
@@ -644,15 +695,8 @@ mod given_interpreter {
         }
 
         #[test]
-        fn normal_qirgen() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+        fn base_qirgen() {
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -664,37 +708,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -712,22 +741,19 @@ mod given_interpreter {
 
         #[test]
         fn adaptive_qirgen() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::QubitReset
+                    | TargetCapabilityFlags::IntegerComputations,
+            );
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
                 namespace Test {
-                    open Microsoft.Quantum.Math;
+                    import Std.Math.*;
                     open QIR.Intrinsic;
                     @EntryPoint()
-                    operation Main() : Unit {
+                    operation Main() : Result {
                         use q = Qubit();
                         let pi_over_2 = 4.0 / 2.0;
                         __quantum__qis__rz__body(pi_over_2, q);
@@ -735,6 +761,7 @@ mod given_interpreter {
                         __quantum__qis__rz__body(some_angle, q);
                         set some_angle = ArcCos(-1.0) / PI();
                         __quantum__qis__rz__body(some_angle, q);
+                        __quantum__qis__mresetz__body(q)
                     }
                 }"#
                 },
@@ -750,36 +777,114 @@ mod given_interpreter {
                   call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
                 declare void @__quantum__qis__rz__body(double, %Qubit*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="0" }
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
 
-                !llvm.module.flags = !{!0, !1, !2, !3}
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"classical_ints", i1 true}
+                !5 = !{i32 1, !"qubit_resetting", i1 true}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen_nested_output_types() {
+            let mut interpreter = get_interpreter_with_capabilities(
+                TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::QubitReset,
+            );
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : (Result, (Bool, Bool)) {
+                        use q = Qubit();
+                        let r = __quantum__qis__mresetz__body(q);
+                        (r, (r == One, r == Zero))
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_3 = icmp eq i1 %var_2, false
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_0, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_3, i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare i1 @__quantum__qis__read_result__body(%Result*)
+
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                declare void @__quantum__rt__bool_record_output(i1, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"qubit_resetting", i1 true}
+                !5 = !{i32 1, !"classical_ints", i1 false}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
             "#]]
             .assert_eq(&res);
         }
 
         #[test]
         fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter =
+                get_interpreter_with_capabilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -803,14 +908,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_in_block() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -822,37 +920,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -870,14 +953,8 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_defines_operation() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
+
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -891,37 +968,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -952,14 +1014,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_multiple_exprs_parse_fail() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -979,14 +1034,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_defines_operation_then_more_operations() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {"operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; } "},
@@ -1000,37 +1048,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1066,14 +1099,7 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_define_operation_use_it() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let res = interpreter
                 .qirgen("{ operation Foo() : Result { use q = Qubit(); let r = M(q); Reset(q); return r; }; Foo() }")
                 .expect("expected success");
@@ -1082,37 +1108,22 @@ mod given_interpreter {
                 %Qubit = type opaque
 
                 define void @ENTRYPOINT__main() #0 {
+                block_0:
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
                   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-                  call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+                  call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
                   call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
-                declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__rx__body(double, %Qubit*)
-                declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__ry__body(double, %Qubit*)
-                declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
-                declare void @__quantum__qis__rz__body(double, %Qubit*)
-                declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
                 declare void @__quantum__qis__h__body(%Qubit*)
-                declare void @__quantum__qis__s__body(%Qubit*)
-                declare void @__quantum__qis__s__adj(%Qubit*)
-                declare void @__quantum__qis__t__body(%Qubit*)
-                declare void @__quantum__qis__t__adj(%Qubit*)
-                declare void @__quantum__qis__x__body(%Qubit*)
-                declare void @__quantum__qis__y__body(%Qubit*)
-                declare void @__quantum__qis__z__body(%Qubit*)
-                declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
-                declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+
+                declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+
                 declare void @__quantum__rt__result_record_output(%Result*, i8*)
-                declare void @__quantum__rt__array_record_output(i64, i8*)
-                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
@@ -1130,23 +1141,16 @@ mod given_interpreter {
 
         #[test]
         fn qirgen_entry_expr_profile_incompatible() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let res = interpreter
                 .qirgen("1")
                 .expect_err("expected qirgen to fail");
             is_error(
                 &res,
                 &expect![[r#"
-                non-Result return type in entry expression
-                   [<entry>] [1]
-            "#]],
+                    cannot use an integer value as an output
+                       [<entry>] [1]
+                "#]],
             );
         }
 
@@ -1157,11 +1161,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (results, output) = run(&mut interpreter, "{use qs = Qubit[2]; Foo(qs)}");
-                is_unit_with_output(
-                    &results.expect("compilation should succeed"),
-                    &output,
-                    "STATE:\n|00⟩: 1+0i",
-                );
+                is_unit_with_output(&results, &output, "STATE:\n|00⟩: 1+0i");
             }
         }
 
@@ -1187,11 +1187,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = run(&mut interpreter, "{ Foo(); Bar() }");
-            is_only_value(
-                &result.expect("compilation should succeed"),
-                &output,
-                &Value::Int(2),
-            );
+            is_only_value(&result, &output, &Value::Int(2));
         }
 
         #[test]
@@ -1205,7 +1201,7 @@ mod given_interpreter {
             for _ in 0..1 {
                 let (result, output) = run(&mut interpreter, "Foo()");
                 is_only_error(
-                    &result.expect("compilation should succeed"),
+                    &result,
                     &output,
                     &expect![[r#"
                         runtime error: program failed: failed
@@ -1225,47 +1221,43 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (result, output) = run(&mut interpreter, "Foo()");
-                is_unit_with_output(
-                    &result.expect("compilation should succeed"),
-                    &output,
-                    "hello!",
-                );
+                is_unit_with_output(&result, &output, "hello!");
             }
         }
 
         #[test]
         fn base_prof_non_result_return() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                TargetCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
+            let mut interpreter = get_interpreter_with_capabilities(TargetCapabilityFlags::empty());
             let (result, output) = line(&mut interpreter, "123");
             is_only_value(&result, &output, &Value::Int(123));
         }
     }
 
     fn get_interpreter() -> Interpreter {
+        let (std_id, store) =
+            crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let dependencies = &[(std_id, None)];
         Interpreter::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            dependencies,
         )
         .expect("interpreter should be created")
     }
 
-    fn get_interpreter_with_capbilities(capabilities: TargetCapabilityFlags) -> Interpreter {
+    fn get_interpreter_with_capabilities(capabilities: TargetCapabilityFlags) -> Interpreter {
+        let (std_id, store) = crate::compile::package_store_with_stdlib(capabilities);
+        let dependencies = &[(std_id, None)];
         Interpreter::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             capabilities,
             LanguageFeatures::default(),
+            store,
+            dependencies,
         )
         .expect("interpreter should be created")
     }
@@ -1280,7 +1272,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::Error>>,
+        result: &InterpretResult,
         output: &str,
         expected_output: &str,
     ) {
@@ -1347,14 +1339,19 @@ mod given_interpreter {
 
     #[cfg(test)]
     mod with_sources {
-        use std::sync::Arc;
+        use std::{sync::Arc, vec};
 
         use super::*;
         use crate::interpret::Debugger;
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+
+        use qsc_ast::ast::{
+            Expr, ExprKind, NodeId, Package, Path, PathKind, Stmt, StmtKind, TopLevelNode,
+        };
+        use qsc_data_structures::span::Span;
+        use qsc_frontend::compile::SourceMap;
         use qsc_passes::PackageType;
 
         #[test]
@@ -1368,17 +1365,57 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Exe,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
             )
             .expect("interpreter should be created");
 
             let (result, output) = entry(&mut interpreter);
             is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn errors_returned_if_sources_do_not_match_profile() {
+            let source = indoc! { r#"
+            namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], Some("A.Test()".into()));
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let result = Interpreter::new(
+                sources,
+                PackageType::Exe,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::IntegerComputations
+                    | TargetCapabilityFlags::QubitReset,
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            );
+
+            match result {
+                Ok(_) => panic!("Expected error, got interpreter."),
+                Err(errors) => is_error(
+                    &errors,
+                    &expect![[r#"
+                        cannot use a dynamic double value
+                           [<entry>] [A.Test()]
+                        cannot use a double value as an output
+                           [<entry>] [A.Test()]
+                        cannot use a dynamic double value
+                           [test] [set x = 2.0]
+                        cannot use a dynamic double value
+                           [test] [x]
+                    "#]],
+                ),
+            }
         }
 
         #[test]
@@ -1391,12 +1428,16 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let dependencies = &[(std_id, None)];
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                dependencies,
             )
             .expect("interpreter should be created");
 
@@ -1418,12 +1459,14 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
 
@@ -1462,17 +1505,126 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let debugger = Debugger::new(
                 sources,
                 TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
             let bps = debugger.get_breakpoints("b.qs");
             assert_eq!(2, bps.len());
+        }
+
+        #[test]
+        fn debugger_simple_execution_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                function Hello() : Unit {
+                    Message("hello there...");
+                }
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    Hello()
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_unit_with_output_eval_entry(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn debugger_execution_with_call_to_library_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                import Std.Math.*;
+                @EntryPoint()
+                operation Main() : Int {
+                    Binom(31, 7)
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("debugger should be created");
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(&result, &output, &Value::Int(2_629_575));
+        }
+
+        #[test]
+        fn debugger_execution_with_early_return_succeeds() {
+            let source = indoc! { r#"
+            namespace Test {
+                import Std.Arrays.*;
+
+                operation Max20(i : Int) : Int {
+                    if (i > 20) {
+                        return 20;
+                    }
+                    return i;
+                }
+
+                @EntryPoint()
+                operation Main() : Int[] {
+                    ForEach(Max20, [10, 20, 30, 40, 50])
+                }
+            }"#};
+
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut debugger = Debugger::new(
+                sources,
+                TargetCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("debugger should be created");
+
+            let (result, output) = entry(&mut debugger.interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Array(
+                    vec![
+                        Value::Int(10),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                        Value::Int(20),
+                    ]
+                    .into(),
+                ),
+            );
         }
 
         #[test]
@@ -1491,12 +1643,14 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
@@ -1522,23 +1676,216 @@ mod given_interpreter {
                 Some("Foo.Bar()".into()),
             );
 
+            let store = crate::PackageStore::new(crate::compile::core());
             let mut interpreter = Interpreter::new(
-                true,
                 sources,
                 PackageType::Lib,
                 TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
+                store,
+                &[],
             )
             .expect("interpreter should be created");
+
             let (result, output) = entry(&mut interpreter);
             is_only_error(
                 &result,
                 &output,
                 &expect![[r#"
                     runtime error: program failed: Cannot allocate qubit array with a negative length
-                      explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
+                      explicit fail [qsharp-library-source:core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
+        }
+
+        #[test]
+        fn interpreter_can_be_created_from_ast() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("A.B()".into()),
+            );
+
+            let (package_type, capabilities, language_features) = (
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+
+            let mut store = crate::PackageStore::new(crate::compile::core());
+            let dependencies = vec![(
+                store.insert(crate::compile::std(&store, capabilities)),
+                None,
+            )];
+
+            let (mut unit, errors) = crate::compile::compile(
+                &store,
+                &dependencies,
+                sources,
+                package_type,
+                capabilities,
+                language_features,
+            );
+            unit.expose();
+            for e in &errors {
+                eprintln!("{e:?}");
+            }
+            assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
+            let package_id = store.insert(unit);
+
+            let mut interpreter = Interpreter::from(
+                store,
+                package_id,
+                capabilities,
+                language_features,
+                &dependencies,
+            )
+            .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_can_be_evaluated() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut interpreter = Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("interpreter should be created");
+
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_evaluation_returns_runtime_errors() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Int {
+                            42 / 0
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut interpreter = Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("interpreter should be created");
+
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: division by zero
+                      cannot divide by zero [test] [0]
+                "#]],
+            );
+        }
+
+        fn get_package_for_call(ns: &str, name: &str) -> crate::ast::Package {
+            let args = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Tuple(Box::new([]))),
+            };
+            let path = Path {
+                id: NodeId::default(),
+                span: Span::default(),
+                segments: Some(
+                    std::iter::once(qsc_ast::ast::Ident {
+                        id: NodeId::default(),
+                        span: Span::default(),
+                        name: ns.into(),
+                    })
+                    .collect(),
+                ),
+                name: Box::new(qsc_ast::ast::Ident {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    name: name.into(),
+                }),
+            };
+            let path_expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(path)))),
+            };
+            let expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Call(Box::new(path_expr), Box::new(args))),
+            };
+            let stmt = Stmt {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(StmtKind::Expr(Box::new(expr))),
+            };
+            let top_level = TopLevelNode::Stmt(Box::new(stmt));
+            Package {
+                id: NodeId::default(),
+                nodes: vec![top_level].into_boxed_slice(),
+                entry: None,
+            }
         }
     }
 }

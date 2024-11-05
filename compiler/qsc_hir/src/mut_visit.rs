@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, FieldAssign, Ident, Item, ItemKind, Package, Pat, PatKind,
+    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 use qsc_data_structures::span::Span;
 
@@ -36,6 +36,10 @@ pub trait MutVisitor: Sized {
         walk_expr(self, expr);
     }
 
+    fn visit_field_assign(&mut self, assign: &mut FieldAssign) {
+        walk_field_assign(self, assign);
+    }
+
     fn visit_pat(&mut self, pat: &mut Pat) {
         walk_pat(self, pat);
     }
@@ -46,6 +50,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_ident(&mut self, ident: &mut Ident) {
         walk_ident(self, ident);
+    }
+
+    fn visit_idents(&mut self, ident: &mut crate::hir::Idents) {
+        walk_idents(self, ident);
     }
 
     fn visit_span(&mut self, _: &mut Span) {}
@@ -62,7 +70,8 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
+        ItemKind::Ty(name, _) | ItemKind::Export(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -179,6 +188,10 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(until);
             fixup.iter_mut().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter_mut().for_each(|c| vis.visit_expr(c));
+            fields.iter_mut().for_each(|f| vis.visit_field_assign(f));
+        }
         ExprKind::String(components) => {
             for component in components {
                 match component {
@@ -205,6 +218,11 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
     }
 }
 
+pub fn walk_field_assign(vis: &mut impl MutVisitor, assign: &mut FieldAssign) {
+    vis.visit_span(&mut assign.span);
+    vis.visit_expr(&mut assign.value);
+}
+
 pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {
     vis.visit_span(&mut pat.span);
 
@@ -227,4 +245,10 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
+}
+
+pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
+    for ref mut ident in &mut *ident.0 {
+        vis.visit_ident(ident);
+    }
 }

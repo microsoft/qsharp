@@ -37,7 +37,7 @@ impl<'a> Overrider<'a> {
         package_store_compute_properties: InternalPackageStoreComputeProperties,
     ) -> Self {
         let callable_overrides_tuples: [(String, Vec<SpecOverride>); 1] = [(
-            "Microsoft.Quantum.Core.Length".into(),
+            "Std.Core.Length".into(),
             vec![SpecOverride {
                 functor_set_value: FunctorSetValue::Empty,
                 application_generator_set: ApplicationGeneratorSet {
@@ -48,10 +48,7 @@ impl<'a> Overrider<'a> {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
                             }),
-                            dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
-                                runtime_features: RuntimeFeatureFlags::empty(),
-                                value_kind: ValueKind::Element(RuntimeKind::Static),
-                            }),
+                            dynamic_content_static_size: ComputeKind::Classical,
                             dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
@@ -109,7 +106,7 @@ impl<'a> Overrider<'a> {
 
     fn populate_package_internal(&mut self, package_id: PackageId, package: &'a Package) {
         self.current_package = Some(package_id);
-        self.visit_package(package);
+        self.visit_package(package, self.package_store);
         self.current_package = None;
     }
 
@@ -200,7 +197,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
             .insert_expr((package_id, id).into(), application_generator_set);
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
+    fn visit_package(&mut self, package: &'a Package, _: &PackageStore) {
         // Go through each namespace, identifying the callables for which we have overrides.
         let namespaces = package
             .items

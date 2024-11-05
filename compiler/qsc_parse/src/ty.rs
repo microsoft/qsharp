@@ -6,13 +6,15 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{apos_ident, opt, path, seq, token},
+    prim::{apos_ident, opt, seq, token},
     scan::ParserContext,
     Error, Parser, Result,
 };
 use crate::{
+    completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
+    prim::{parse_or_else, recovering_path},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -20,9 +22,22 @@ use qsc_ast::ast::{
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
+    s.expect(WordKinds::PathTy);
     let lo = s.peek().span.lo;
     let lhs = base(s)?;
     array_or_arrow(s, lhs, lo)
+}
+
+pub(super) fn recovering_ty(s: &mut ParserContext) -> Result<Ty> {
+    parse_or_else(
+        s,
+        |span| Ty {
+            id: NodeId::default(),
+            span,
+            kind: Box::new(TyKind::Err),
+        },
+        ty,
+    )
 }
 
 pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) -> Result<Ty> {
@@ -34,7 +49,7 @@ pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) ->
                 kind: Box::new(TyKind::Array(Box::new(lhs))),
             }
         } else if let Some(kind) = opt(s, arrow)? {
-            let output = ty(s)?;
+            let output = recovering_ty(s)?;
             let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
                 Some(Box::new(functor_expr(s)?))
             } else {
@@ -74,7 +89,7 @@ fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
     } else if token(s, TokenKind::FatArrow).is_ok() {
         Ok(CallableKind::Operation)
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "arrow type",
             s.peek().kind,
             s.peek().span,
@@ -89,14 +104,18 @@ fn base(s: &mut ParserContext) -> Result<Ty> {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
         Ok(TyKind::Param(name))
-    } else if let Some(path) = opt(s, path)? {
+    } else if let Some(path) = opt(s, |s| recovering_path(s, WordKinds::PathTy))? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {
-        Err(Error(ErrorKind::Rule("type", s.peek().kind, s.peek().span)))
+        Err(Error::new(ErrorKind::Rule(
+            "type",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }?;
 
     Ok(Ty {
@@ -124,7 +143,7 @@ fn functor_base(s: &mut ParserContext) -> Result<FunctorExpr> {
     } else if token(s, TokenKind::Keyword(Keyword::Ctl)).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Ctl))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "functor literal",
             s.peek().kind,
             s.peek().span,

@@ -3,7 +3,11 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, LanguageFeatures, SourceMap};
+use qsc::{
+    interpret, LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags,
+};
+
+use crate::_get_qir;
 
 use super::run_internal_with_features;
 
@@ -11,7 +15,17 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
-    run_internal_with_features(sources, event_cb, shots, LanguageFeatures::default())
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    run_internal_with_features(
+        sources,
+        event_cb,
+        shots,
+        LanguageFeatures::default(),
+        TargetCapabilityFlags::all(),
+        store,
+        &[(std_id, None)],
+        &PauliNoise::default(),
+    )
 }
 
 #[test]
@@ -39,9 +53,14 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(
+    let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
+
+    let result = qsc::codegen::qir::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
+        TargetCapabilityFlags::empty(),
+        store,
+        &[(std_id, None)],
     );
     assert!(result.is_ok());
 }
@@ -96,7 +115,7 @@ fn fail_ry() {
 #[test]
 fn test_message() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi");
@@ -113,10 +132,46 @@ fn test_message() {
     );
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_matrix() {
+    let code = r"namespace Test {
+        import Microsoft.Quantum.Diagnostics.DumpOperation;
+        operation Main() : Unit {
+            DumpOperation(2, Bell);
+        }
+
+        operation Bell(q: Qubit[]) : Unit is Adj {
+            H(q[0]);
+            CX(q[0], q[1]);
+        }
+    }";
+    let expr = "Test.Main()";
+    let count = std::cell::Cell::new(0);
+    let result = run_internal(
+        SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
+        |msg| {
+            if msg.contains("Matrix") {
+                count.set(count.get() + 1);
+                // Check the start and end of the matrix LaTeX is formatted as expected
+                assert!(msg.contains(
+                    r"$ \\begin{bmatrix} \\frac{1}{\\sqrt{2}} & 0 & \\frac{1}{\\sqrt{2}} & 0 \\\\"
+                ));
+                assert!(msg.contains(
+                    r"\\frac{1}{\\sqrt{2}} & 0 & -\\frac{1}{\\sqrt{2}} & 0 \\\\ \\end{bmatrix} $"
+                ));
+            }
+        },
+        1,
+    );
+    assert!(result.is_ok());
+    assert!(count.get() == 1);
+}
+
 #[test]
 fn message_with_escape_sequences() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("\ta\n\t");
@@ -137,7 +192,7 @@ fn message_with_escape_sequences() {
 #[test]
 fn message_with_backslashes() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi \\World");
@@ -184,7 +239,7 @@ fn test_entrypoint() {
 #[test]
 fn test_missing_entrypoint() {
     let code = "namespace Sample {
-        operation main() : Result[] {
+        operation test() : Result[] {
             use q1 = Qubit();
             let m1 = M(q1);
             return [m1];
@@ -194,7 +249,7 @@ fn test_missing_entrypoint() {
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided and no callable named `Main` is present","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
         },
         1,
     );
@@ -381,7 +436,7 @@ fn test_compile_error_related_spans() {
             namespace Other { operation DumpMachine() : Unit { } }
             namespace Test {
                 open Other;
-                open Microsoft.Quantum.Diagnostics;
+                import Std.Diagnostics.*;
                 @EntryPoint()
                 operation Main() : Unit {
                     DumpMachine()
@@ -395,7 +450,7 @@ fn test_compile_error_related_spans() {
         1,
     )
     .expect_err("code should fail to compile");
-    expect![[r#"{"result":{"code":"Qsc.Resolve.Ambiguous","message":"name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`","range":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}},"related":[{"location":{"source":"test.qs","span":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}}},"message":"ambiguous name"},{"location":{"source":"test.qs","span":{"end":{"character":14,"line":2},"start":{"character":9,"line":2}}},"message":"found in this namespace"},{"location":{"source":"test.qs","span":{"end":{"character":38,"line":3},"start":{"character":9,"line":3}}},"message":"and also in this namespace"}],"severity":"error"},"success":false,"type":"Result"}"#]]
+    expect![[r#"{"result":{"code":"Qsc.Resolve.Ambiguous","message":"name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`","range":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}},"related":[{"location":{"source":"test.qs","span":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}}},"message":"ambiguous name"},{"location":{"source":"test.qs","span":{"end":{"character":14,"line":2},"start":{"character":9,"line":2}}},"message":"found in this namespace"},{"location":{"source":"test.qs","span":{"end":{"character":26,"line":3},"start":{"character":11,"line":3}}},"message":"and also in this namespace"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
@@ -440,13 +495,13 @@ fn test_runtime_error_default_span() {
         1,
     )
     .expect("code should compile and run");
-    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
+    expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"qsharp-library-source:core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
 #[test]
 fn test_doc_gen() {
-    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    let docs = qsc_doc_gen::generate_docs::generate_docs(None, None, None);
     assert!(docs.len() > 100);
     for (name, metadata, contents) in docs {
         // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
@@ -462,4 +517,27 @@ fn test_doc_gen() {
             assert!(text.starts_with("---\n"));
         }
     }
+}
+
+#[test]
+fn code_with_errors_returns_errors() {
+    let source = "namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit()
+                let pi_over_two = 4.0 / 2.0;
+            }
+        }";
+    let sources = SourceMap::new([("test.qs".into(), source.into())], None);
+    let language_features = LanguageFeatures::default();
+    let capabilities = TargetCapabilityFlags::empty();
+
+    let store = PackageStore::new(qsc::compile::core());
+
+    expect![[r#"
+        Err(
+            "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
+        )
+    "#]]
+    .assert_debug_eq(&_get_qir(sources, language_features, capabilities, store, &[]));
 }

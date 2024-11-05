@@ -3,23 +3,23 @@
 
 import { QscEventTarget } from "qsharp-lang";
 
+function formatComplex(real: number, imag: number) {
+  // Format -0 as 0
+  // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
+  // and Unicode Mathematical Italic Small I instead of ASCII i.
+  const r = `${real <= -0.00005 ? "−" : " "}${Math.abs(real).toFixed(4)}`;
+  const i = `${imag <= -0.00005 ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
+  return `${r}${i}`;
+}
+
 export function createDebugConsoleEventTarget(out: (message: string) => void) {
   const eventTarget = new QscEventTarget(false);
 
   eventTarget.addEventListener("Message", (evt) => {
-    out(evt.detail);
+    out(evt.detail + "\n");
   });
 
   eventTarget.addEventListener("DumpMachine", (evt) => {
-    function formatComplex(real: number, imag: number) {
-      // Format -0 as 0
-      // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
-      // and Unicode Mathematical Italic Small I instead of ASCII i.
-      const r = `${real <= -0.00005 ? "−" : ""}${Math.abs(real).toFixed(4)}`;
-      const i = `${imag <= -0.00005 ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
-      return `${r}${i}`;
-    }
-
     function formatProbabilityPercent(real: number, imag: number) {
       const probabilityPercent = (real * real + imag * imag) * 100;
       return `${probabilityPercent.toFixed(4)}%`;
@@ -31,6 +31,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
     }
 
     const stateTable = evt.detail.state;
+    const qubitCount = evt.detail.qubitCount;
     const basisStates = Object.keys(stateTable);
     const basisColumnWidth = Math.max(
       basisStates[0]?.length ?? 0,
@@ -38,29 +39,41 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
     );
     const basis = "Basis".padEnd(basisColumnWidth);
 
-    let out_str = "\n";
-    out_str += "DumpMachine:\n\n";
+    let out_str = "";
     out_str += ` ${basis} | Amplitude      | Probability | Phase\n`;
     out_str +=
       " ".padEnd(basisColumnWidth, "-") +
       "-------------------------------------------\n";
 
-    for (const row of basisStates) {
-      const [real, imag] = stateTable[row];
-      const basis = row.padStart(basisColumnWidth);
-      const amplitude = formatComplex(real, imag).padStart(16);
-      const probability = formatProbabilityPercent(real, imag).padStart(11);
-      const phase = formatPhase(real, imag).padStart(8);
+    if (qubitCount === 0) {
+      out_str += " No qubits allocated\n";
+    } else {
+      for (const row of basisStates) {
+        const [real, imag] = stateTable[row];
+        const basis = row.padStart(basisColumnWidth);
+        const amplitude = formatComplex(real, imag).padStart(16);
+        const probability = formatProbabilityPercent(real, imag).padStart(11);
+        const phase = formatPhase(real, imag).padStart(8);
 
-      out_str += ` ${basis} | ${amplitude} | ${probability} | ${phase}\n`;
+        out_str += ` ${basis} | ${amplitude} | ${probability} | ${phase}\n`;
+      }
     }
-
     out(out_str);
   });
 
-  eventTarget.addEventListener("Result", (evt) => {
-    const resultJson = JSON.stringify(evt.detail.value, null, 2);
-    out(`Result: ${resultJson}`);
+  eventTarget.addEventListener("Matrix", (evt) => {
+    const out_str = evt.detail.matrix
+      .map((row) =>
+        row.map((entry) => formatComplex(entry[0], entry[1])).join(", "),
+      )
+      .join("\n");
+
+    out(out_str + "\n");
   });
+
+  eventTarget.addEventListener("Result", (evt) => {
+    out(`${evt.detail.value}`);
+  });
+
   return eventTarget;
 }

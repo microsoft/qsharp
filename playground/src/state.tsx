@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useEffect, useRef } from "preact/hooks";
 import { Dump } from "qsharp-lang";
+import { Markdown } from "qsharp-lang/ux";
 
 function probability(real: number, imag: number) {
   return real * real + imag * imag;
@@ -17,25 +17,40 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function StateTable(props: { dump: Dump; latexDump: string }) {
-  const mjRender = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!mjRender.current) return;
-    MathJax.typesetClear([mjRender.current]);
-    mjRender.current.innerHTML = props.latexDump;
-    MathJax.typesetPromise([mjRender.current]);
-  }, [props.latexDump]);
+export function StateTable(props: {
+  dump: Dump;
+  latexDump: string | null;
+  count: number;
+}) {
+  if (props.count === 0) {
+    return (
+      <div>
+        <table class="state-table">
+          <thead>
+            <tr>
+              <th>Basis State</th>
+              <th>Amplitude</th>
+              <th>Measurement Probability</th>
+              <th colSpan={2}>Phase</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No qubits allocated</td>
+            </tr>
+          </tbody>
+        </table>
+        <br></br>
+      </div>
+    );
+  }
 
   return (
     <div>
       <table class="state-table">
         <thead>
           <tr>
-            <th>
-              Basis State
-              <br />
-              (|𝜓₁…𝜓ₙ⟩)
-            </th>
+            <th>Basis State</th>
             <th>Amplitude</th>
             <th>Measurement Probability</th>
             <th colSpan={2}>Phase</th>
@@ -67,7 +82,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           })}
         </tbody>
       </table>
-      <div ref={mjRender}></div>
+      <Markdown markdown={props.latexDump ?? ""} />
       <br></br>
     </div>
   );

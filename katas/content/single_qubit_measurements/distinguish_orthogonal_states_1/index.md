@@ -4,5 +4,5 @@
 
 <details>
 <summary><strong>Need a hint?</strong></summary>
-A suitable $R_y$ rotation can be used to go from the computational basis $\\{ \ket 0, \ket 1 \\}$ to the $\\{ \ket{\psi_+}, \ket{\psi_-} \\}$ basis and vice versa.
+A suitable $R_y$ rotation can be used to go from the computational basis $\{ \ket 0, \ket 1 \}$ to the $\{ \ket{\psi_+}, \ket{\psi_-} \}$ basis and vice versa.
 </details>

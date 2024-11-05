@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
-use super::{parse, parse_attr, parse_spec_decl};
+use super::{
+    parse, parse_attr, parse_implicit_namespace, parse_import_or_export, parse_open,
+    parse_spec_decl, parse_top_level_nodes,
+};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -38,6 +39,17 @@ fn adjoint_invert() {
         parse_spec_decl,
         "adjoint invert;",
         &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
+    );
+}
+
+// unit tests for file_name_to_namespace_name
+#[test]
+fn file_name_to_namespace_name() {
+    let raw = "foo/bar.qs";
+    check(
+        |s| parse_implicit_namespace(raw, s),
+        "",
+        &expect![[r#"Namespace _id_ [0-0] ([Ident _id_ [0-0] "foo", Ident _id_ [0-0] "bar"]):"#]],
     );
 }
 
@@ -108,7 +120,10 @@ fn open_no_alias() {
         "open Foo.Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-17]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz")"#]],
+                Open (Path _id_ [5-16]:
+                    Ident _id_ [5-8] "Foo"
+                    Ident _id_ [9-12] "Bar"
+                    Ident _id_ [13-16] "Baz")"#]],
     );
 }
 
@@ -119,18 +134,58 @@ fn open_alias() {
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
             Item _id_ [0-24]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-23] "Baz")"#]],
+                Open (Path _id_ [5-16]:
+                    Ident _id_ [5-8] "Foo"
+                    Ident _id_ [9-12] "Bar"
+                    Ident _id_ [13-16] "Baz") (Ident _id_ [20-23] "Baz")"#]],
     );
 }
 
 #[test]
-fn open_alias_dot() {
+fn struct_decl_empty() {
     check(
         parse,
-        "open Foo.Bar.Baz as Bar.Baz;",
+        "struct Foo { }",
         &expect![[r#"
-            Item _id_ [0-28]:
-                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-27] "Bar.Baz")"#]],
+            Item _id_ [0-14]:
+                Struct _id_ [0-14] (Ident _id_ [7-10] "Foo"): <empty>"#]],
+    );
+}
+
+#[test]
+fn struct_decl() {
+    check(
+        parse,
+        "struct Foo { field : Int }",
+        &expect![[r#"
+            Item _id_ [0-26]:
+                Struct _id_ [0-26] (Ident _id_ [7-10] "Foo"):
+                    FieldDef _id_ [13-24] (Ident _id_ [13-18] "field"): Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")"#]],
+    );
+}
+
+#[test]
+fn struct_decl_no_fields() {
+    check(
+        parse,
+        "struct Foo { }",
+        &expect![[r#"
+            Item _id_ [0-14]:
+                Struct _id_ [0-14] (Ident _id_ [7-10] "Foo"): <empty>"#]],
+    );
+}
+
+#[test]
+fn struct_decl_multiple_fields() {
+    check(
+        parse,
+        "struct Foo { x : Int, y : Double, z : String }",
+        &expect![[r#"
+            Item _id_ [0-46]:
+                Struct _id_ [0-46] (Ident _id_ [7-10] "Foo"):
+                    FieldDef _id_ [13-20] (Ident _id_ [13-14] "x"): Type _id_ [17-20]: Path: Path _id_ [17-20] (Ident _id_ [17-20] "Int")
+                    FieldDef _id_ [22-32] (Ident _id_ [22-23] "y"): Type _id_ [26-32]: Path: Path _id_ [26-32] (Ident _id_ [26-32] "Double")
+                    FieldDef _id_ [34-44] (Ident _id_ [34-35] "z"): Type _id_ [38-44]: Path: Path _id_ [38-44] (Ident _id_ [38-44] "String")"#]],
     );
 }
 
@@ -197,6 +252,7 @@ fn udt_item_doc() {
                         Type _id_ [115-118]: Path: Path _id_ [115-118] (Ident _id_ [115-118] "Int")"#]],
     );
 }
+
 #[test]
 fn callable_param_doc() {
     check(
@@ -218,6 +274,7 @@ fn callable_param_doc() {
                     body: Block: Block _id_ [74-76]: <empty>"#]],
     );
 }
+
 #[test]
 fn callable_return_doc() {
     check(
@@ -870,19 +927,28 @@ fn function_missing_output_ty() {
         parse,
         "function Foo() { body intrinsic; }",
         &expect![[r#"
-            Error(
-                Token(
-                    Colon,
-                    Open(
-                        Brace,
+            Item _id_ [0-34]:
+                Callable _id_ [0-34] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [15-15]: Err
+                    body: Specializations:
+                        SpecDecl _id_ [17-32] (Body): Gen: Intrinsic
+
+            [
+                Error(
+                    Token(
+                        Colon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 15,
+                            hi: 16,
+                        },
                     ),
-                    Span {
-                        lo: 15,
-                        hi: 16,
-                    },
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -893,7 +959,6 @@ fn internal_ty() {
         "internal newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-28]:
-                Visibility _id_ [0-8] (Internal)
                 New Type (Ident _id_ [17-20] "Foo"): TyDef _id_ [23-27]: Field:
                     Type _id_ [23-27]: Path: Path _id_ [23-27] (Ident _id_ [23-27] "Unit")"#]],
     );
@@ -906,7 +971,6 @@ fn internal_function() {
         "internal function Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-33]:
-                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-33] (Function):
                     name: Ident _id_ [18-21] "Foo"
                     input: Pat _id_ [21-23]: Unit
@@ -927,7 +991,6 @@ fn internal_function_doc() {
                 doc:
                     This is a
                     doc comment.
-                Visibility _id_ [47-55] (Internal)
                 Callable _id_ [56-78] (Function):
                     name: Ident _id_ [65-68] "Foo"
                     input: Pat _id_ [68-70]: Unit
@@ -943,7 +1006,6 @@ fn internal_operation() {
         "internal operation Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-34]:
-                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-34] (Operation):
                     name: Ident _id_ [19-22] "Foo"
                     input: Pat _id_ [22-24]: Unit
@@ -996,7 +1058,7 @@ fn open_attr() {
             Item _id_ [0-16]:
                 Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                     Expr _id_ [4-6]: Unit
-                Open (Ident _id_ [12-15] "Bar")"#]],
+                Open (Path _id_ [12-15] (Ident _id_ [12-15] "Bar"))"#]],
     );
 }
 
@@ -1233,9 +1295,9 @@ fn two_open_items() {
         &expect![[r#"
             Namespace _id_ [0-31] (Ident _id_ [10-11] "A"):
                 Item _id_ [14-21]:
-                    Open (Ident _id_ [19-20] "B")
+                    Open (Path _id_ [19-20] (Ident _id_ [19-20] "B"))
                 Item _id_ [22-29]:
-                    Open (Ident _id_ [27-28] "C")"#]],
+                    Open (Path _id_ [27-28] (Ident _id_ [27-28] "C"))"#]],
     );
 }
 
@@ -1352,7 +1414,12 @@ fn recover_callable_item() {
                         body: Block: Block _id_ [47-52]:
                             Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(5)
                 Item _id_ [65-86]:
-                    Err
+                    Callable _id_ [65-86] (Function):
+                        name: Ident _id_ [74-77] "Bar"
+                        input: Pat _id_ [77-79]: Unit
+                        output: Type _id_ [80-80]: Err
+                        body: Block: Block _id_ [80-86]:
+                            Stmt _id_ [82-84]: Expr: Expr _id_ [82-84]: Lit: Int(10)
                 Item _id_ [99-131]:
                     Callable _id_ [99-131] (Operation):
                         name: Ident _id_ [109-112] "Baz"
@@ -1691,5 +1758,623 @@ fn namespace_with_conflicting_names() {
                 Item _id_ [72-91]:
                     New Type (Ident _id_ [80-84] "Item"): TyDef _id_ [87-90]: Field:
                         Type _id_ [87-90]: Path: Path _id_ [87-90] (Ident _id_ [87-90] "Int")"#]],
+    );
+}
+
+// We technically broke this syntax as of May 2024. Although we don't think anybody was using it,
+// we want to make sure we provide a helpful error message.
+#[test]
+fn helpful_error_on_dotted_alias() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            open Microsoft.Quantum.Math as Foo.Bar.Baz;
+            operation Main() : Unit {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-118] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-69]:
+                    Err
+                Item _id_ [82-108]:
+                    Callable _id_ [82-108] (Operation):
+                        name: Ident _id_ [92-96] "Main"
+                        input: Pat _id_ [96-98]: Unit
+                        output: Type _id_ [101-105]: Path: Path _id_ [101-105] (Ident _id_ [101-105] "Unit")
+                        body: Block: Block _id_ [106-108]: <empty>
+
+            [
+                Error(
+                    DotIdentAlias(
+                        Span {
+                            lo: 60,
+                            hi: 61,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn parse_export_basic() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-93] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-83]:
+                    Export (ImportOrExportDecl [72-83]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar")])"#]],
+    );
+}
+
+#[test]
+fn parse_export_list() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-161] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-151]:
+                    Export (ImportOrExportDecl [72-151]: [Path _id_ [79-82] (Ident _id_ [79-82] "Bar"), Path _id_ [84-92]:
+                        Ident _id_ [84-87] "Baz"
+                        Ident _id_ [88-92] "Quux", Path _id_ [94-118]:
+                        Ident _id_ [94-98] "Math"
+                        Ident _id_ [99-106] "Quantum"
+                        Ident _id_ [107-111] "Some"
+                        Ident _id_ [112-118] "Nested", Path _id_ [120-150]:
+                        Ident _id_ [120-124] "Math"
+                        Ident _id_ [125-132] "Quantum"
+                        Ident _id_ [133-137] "Some"
+                        Ident _id_ [138-143] "Other"
+                        Ident _id_ [144-150] "Nested"])"#]],
+    );
+}
+
+#[test]
+fn parse_single_import() {
+    check(
+        parse_import_or_export,
+        "import Foo;",
+        &expect![[r#"ImportOrExportDecl [0-11]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo")]"#]],
+    );
+}
+
+#[test]
+fn parse_multiple_imports() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz;",
+        &expect![[r#"
+            ImportOrExportDecl [0-24]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
+                Ident _id_ [16-19] "Foo"
+                Ident _id_ [20-23] "Baz"]"#]],
+    );
+}
+
+#[test]
+fn parse_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo as Bar;",
+        &expect![[
+            r#"ImportOrExportDecl [0-18]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo") as Ident _id_ [14-17] "Bar"]"#
+        ]],
+    );
+}
+
+#[test]
+fn multi_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar as Baz, Foo.Quux;",
+        &expect![[r#"
+            ImportOrExportDecl [0-32]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar" as Ident _id_ [18-21] "Baz", Path _id_ [23-31]:
+                Ident _id_ [23-26] "Foo"
+                Ident _id_ [27-31] "Quux"]"#]],
+    );
+}
+
+#[test]
+fn empty_import_statement() {
+    check(
+        parse_import_or_export,
+        "import;",
+        &expect!["ImportOrExportDecl [0-7]: []"],
+    );
+}
+
+#[test]
+fn parse_export_empty() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-89] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-79]:
+                    Export (ImportOrExportDecl [72-79]: [])"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import() {
+    check(
+        parse_import_or_export,
+        "import Foo.*;",
+        &expect![[r#"ImportOrExportDecl [0-13]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.*;",
+        &expect![[r#"
+            ImportOrExportDecl [0-26]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
+                Ident _id_ [16-19] "Foo"
+                Ident _id_ [20-23] "Baz".*]"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import_of_parent_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz, Foo.*;",
+        &expect![[r#"
+            ImportOrExportDecl [0-31]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
+                Ident _id_ [16-19] "Foo"
+                Ident _id_ [20-23] "Baz", Path _id_ [25-28] (Ident _id_ [25-28] "Foo").*]"#]],
+    );
+}
+
+#[test]
+fn parse_glob_import_with_alias() {
+    check(
+        parse_import_or_export,
+        "import Foo.* as Foo;",
+        &expect![[
+            r#"ImportOrExportDecl [0-20]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").* as Ident _id_ [16-19] "Foo"]"#
+        ]],
+    );
+}
+
+#[test]
+fn parse_aliased_glob_import_in_list() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar, Foo.Baz.* as Quux;",
+        &expect![[r#"
+            ImportOrExportDecl [0-34]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar", Path _id_ [16-23]:
+                Ident _id_ [16-19] "Foo"
+                Ident _id_ [20-23] "Baz".* as Ident _id_ [29-33] "Quux"]"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_extra_asterisk() {
+    check(
+        parse_import_or_export,
+        "import Foo.**;",
+        &expect![[r#"
+            ImportOrExportDecl [0-12]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        ClosedBinOp(
+                            Star,
+                        ),
+                        Span {
+                            lo: 12,
+                            hi: 13,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_missing_dot() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar**;",
+        &expect![[r#"
+            ImportOrExportDecl [0-14]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar"]
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        ClosedBinOp(
+                            Star,
+                        ),
+                        Span {
+                            lo: 14,
+                            hi: 15,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_multiple_asterisks_in_path() {
+    check(
+        parse_import_or_export,
+        "import Foo.Bar.*.*;",
+        &expect![[r#"
+            ImportOrExportDecl [0-16]: [Path _id_ [7-14]:
+                Ident _id_ [7-10] "Foo"
+                Ident _id_ [11-14] "Bar".*]
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Dot,
+                        Span {
+                            lo: 16,
+                            hi: 17,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_with_following_ident() {
+    check(
+        parse_import_or_export,
+        "import Foo.*.Bar;",
+        &expect![[r#"
+            ImportOrExportDecl [0-12]: [Path _id_ [7-10] (Ident _id_ [7-10] "Foo").*]
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Dot,
+                        Span {
+                            lo: 12,
+                            hi: 13,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn invalid_glob_syntax_follows_keyword() {
+    check(
+        parse_import_or_export,
+        "import Foo.in*;",
+        &expect![[r#"
+            ImportOrExportDecl [0-13]: [Err IncompletePath [7-13]:
+                Ident _id_ [7-10] "Foo"]
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Keyword(
+                            In,
+                        ),
+                        Span {
+                            lo: 11,
+                            hi: 13,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Semi,
+                        ClosedBinOp(
+                            Star,
+                        ),
+                        Span {
+                            lo: 13,
+                            hi: 14,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn disallow_top_level_recursive_glob() {
+    check(
+        parse_import_or_export,
+        "import *;",
+        &expect![[r#"
+            ImportOrExportDecl [0-6]: []
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        ClosedBinOp(
+                            Star,
+                        ),
+                        Span {
+                            lo: 7,
+                            hi: 8,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn incomplete_open_with_semi() {
+    check(
+        parse_open,
+        "open Foo.  ;",
+        &expect![[r#"
+            Open (Err IncompletePath [5-11]:
+                Ident _id_ [5-8] "Foo")
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Semi,
+                        Span {
+                            lo: 11,
+                            hi: 12,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn incomplete_open_no_semi() {
+    check(
+        parse_open,
+        "open Foo. ",
+        &expect![[r#"
+            Open (Err IncompletePath [5-10]:
+                Ident _id_ [5-8] "Foo")
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Eof,
+                        Span {
+                            lo: 10,
+                            hi: 10,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn missing_semi_between_items() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo { open Foo open Bar. open Baz }",
+        &expect![[r#"
+            Namespace _id_ [0-45] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [16-24]:
+                    Open (Path _id_ [21-24] (Ident _id_ [21-24] "Foo"))
+                Item _id_ [25-35]:
+                    Open (Err IncompletePath [30-35]:
+                        Ident _id_ [30-33] "Bar")
+                Item _id_ [35-43]:
+                    Open (Path _id_ [40-43] (Ident _id_ [40-43] "Baz"))
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Keyword(
+                            Open,
+                        ),
+                        Span {
+                            lo: 25,
+                            hi: 29,
+                        },
+                    ),
+                ),
+                Error(
+                    Rule(
+                        "identifier",
+                        Keyword(
+                            Open,
+                        ),
+                        Span {
+                            lo: 35,
+                            hi: 39,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Semi,
+                        Keyword(
+                            Open,
+                        ),
+                        Span {
+                            lo: 35,
+                            hi: 39,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Semi,
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 44,
+                            hi: 45,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn callable_decl_no_return_type_or_body_recovery() {
+    check(
+        parse,
+        "operation Foo<'T>() : ",
+        &expect![[r#"
+            Item _id_ [0-22]:
+                Callable _id_ [0-22] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    generics:
+                        Ident _id_ [14-16] "'T"
+                    input: Pat _id_ [17-19]: Unit
+                    output: Type _id_ [22-22]: Err
+                    body: Block: Block _id_ [22-22]: <empty>
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 22,
+                            hi: 22,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn callable_decl_broken_return_type_no_body_recovery() {
+    check(
+        parse,
+        "operation Foo<'T>() : () => ",
+        &expect![[r#"
+            Item _id_ [0-28]:
+                Callable _id_ [0-28] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    generics:
+                        Ident _id_ [14-16] "'T"
+                    input: Pat _id_ [17-19]: Unit
+                    output: Type _id_ [22-28]: Arrow (Operation):
+                        param: Type _id_ [22-24]: Unit
+                        return: Type _id_ [28-28]: Err
+                    body: Block: Block _id_ [28-28]: <empty>
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 28,
+                            hi: 28,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn top_level_nodes() {
+    check_vec(
+        parse_top_level_nodes,
+        "function Foo() : Unit { body intrinsic; } let x = 5;",
+        &expect![[r#"
+            Stmt _id_ [0-41]: Item: Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Path: Path _id_ [17-21] (Ident _id_ [17-21] "Unit")
+                    body: Specializations:
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic,
+            Stmt _id_ [42-52]: Local (Immutable):
+                Pat _id_ [46-47]: Bind:
+                    Ident _id_ [46-47] "x"
+                Expr _id_ [50-51]: Lit: Int(5)"#]],
+    );
+}
+
+#[test]
+fn top_level_nodes_error_recovery() {
+    check_vec(
+        parse_top_level_nodes,
+        "function Foo() : Unit { body intrinsic; } 3 + ",
+        &expect![[r#"
+            Stmt _id_ [0-41]: Item: Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Path: Path _id_ [17-21] (Ident _id_ [17-21] "Unit")
+                    body: Specializations:
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic,
+            Stmt _id_ [42-45]: Err
+
+            [
+                Error(
+                    Rule(
+                        "expression",
+                        Eof,
+                        Span {
+                            lo: 46,
+                            hi: 46,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

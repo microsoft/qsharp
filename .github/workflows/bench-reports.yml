@@ -1,0 +1,41 @@
+name: Benchmark Reports
+
+on:
+  schedule:
+    - cron: "0 0 * * MON"
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: "18.17.1"
+  PYTHON_VERSION: "3.11"
+  RUST_TOOLCHAIN_VERSION: "1.82"
+
+jobs:
+  runBenchmark:
+    runs-on: ubuntu-latest
+    name: run benchmark
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: setup rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+      - name: setup cargo criterion
+        run: cargo install cargo-criterion
+      - name: run benching script
+        run: ./build.py --ci-bench --no-check-prereqs
+      - name: preserve bench artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: |
+            *.json

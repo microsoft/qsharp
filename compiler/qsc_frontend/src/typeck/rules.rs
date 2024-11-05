@@ -8,8 +8,9 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
-    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
+    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
+    TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -105,7 +106,7 @@ impl<'a> Context<'a> {
             })),
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => match self.names.get(path.id) {
+            TyKind::Path(PathKind::Ok(path)) => match self.names.get(path.id) {
                 Some(&Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
@@ -114,7 +115,13 @@ impl<'a> Context<'a> {
                 // as there is a syntactic difference between
                 // paths and parameters.
                 // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
+                // A path can also never resolve to an export, because in typeck/check,
+                // we resolve exports to their original definition.
+                Some(
+                    resolve::Res::Local(_)
+                    | resolve::Res::Param(_)
+                    | resolve::Res::ExportedItem(_, _),
+                ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
@@ -130,14 +137,14 @@ impl<'a> Context<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
-            TyKind::Err => Ty::Err,
+            TyKind::Err | TyKind::Path(PathKind::Err { .. }) => Ty::Err,
         }
     }
 
     fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
-        for stmt in &*block.stmts {
+        for stmt in &block.stmts {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);
@@ -248,7 +255,9 @@ impl<'a> Context<'a> {
                 self.diverge_if(callee.diverges || input.diverges, converge(output_ty))
             }
             ExprKind::Conjugate(within, apply) => {
+                let within_span = within.span;
                 let within = self.infer_block(within);
+                self.inferrer.eq(within_span, Ty::UNIT, within.ty);
                 let apply = self.infer_block(apply);
                 self.diverge_if(within.diverges, apply)
             }
@@ -260,16 +269,20 @@ impl<'a> Context<'a> {
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
-                let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
-                self.inferrer.class(
-                    expr.span,
-                    Class::HasField {
-                        record: record.ty,
-                        name: name.name.to_string(),
-                        item: item_ty.clone(),
-                    },
-                );
-                self.diverge_if(record.diverges, converge(item_ty))
+                if let FieldAccess::Ok(name) = name {
+                    let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
+                    self.inferrer.class(
+                        expr.span,
+                        Class::HasField {
+                            record: record.ty,
+                            name: name.name.to_string(),
+                            item: item_ty.clone(),
+                        },
+                    );
+                    self.diverge_if(record.diverges, converge(item_ty))
+                } else {
+                    converge(Ty::Err)
+                }
             }
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
@@ -282,7 +295,9 @@ impl<'a> Context<'a> {
                         item: item_ty,
                     },
                 );
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 self.diverge_if(container.diverges || body.diverges, converge(Ty::UNIT))
             }
             ExprKind::If(cond, if_true, if_false) => {
@@ -336,7 +351,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Interpolate(components) => {
                 let mut diverges = false;
-                for component in components.iter() {
+                for component in components {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
@@ -384,25 +399,7 @@ impl<'a> Context<'a> {
                 Lit::String(_) => converge(Ty::Prim(Prim::String)),
             },
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(path) => match self.names.get(path.id) {
-                None => converge(Ty::Err),
-                Some(Res::Item(item, _)) => {
-                    let scheme = self.globals.get(item).expect("item should have scheme");
-                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
-                    self.table.generics.insert(expr.id, args);
-                    converge(Ty::Arrow(Box::new(ty)))
-                }
-                Some(&Res::Local(node)) => converge(
-                    self.table
-                        .terms
-                        .get(node)
-                        .expect("local should have type")
-                        .clone(),
-                ),
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
-                    panic!("expression resolves to type")
-                }
-            },
+            ExprKind::Path(path) => self.infer_path_kind(expr, path),
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;
                 for expr in start.iter().chain(step).chain(end) {
@@ -425,13 +422,21 @@ impl<'a> Context<'a> {
                 self.diverge_if(diverges, converge(Ty::Prim(ty)))
             }
             ExprKind::Repeat(body, until, fixup) => {
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 let until_span = until.span;
                 let until = self.infer_expr(until);
                 self.inferrer.eq(until_span, Ty::Prim(Prim::Bool), until.ty);
-                let fixup_diverges = fixup
-                    .as_ref()
-                    .map_or(false, |f| self.infer_block(f).diverges);
+                let fixup_diverges = match fixup {
+                    None => false,
+                    Some(f) => {
+                        let f_span = f.span;
+                        let f = self.infer_block(f);
+                        self.inferrer.eq(f_span, Ty::UNIT, f.ty);
+                        f.diverges
+                    }
+                };
                 self.diverge_if(
                     body.diverges || until.diverges || fixup_diverges,
                     converge(Ty::UNIT),
@@ -443,6 +448,50 @@ impl<'a> Context<'a> {
                     self.inferrer.eq(expr.span, (*return_ty).clone(), ty);
                 }
                 self.diverge()
+            }
+            ExprKind::Struct(PathKind::Ok(name), copy, fields) => {
+                let container = convert::ty_from_path(self.names, name);
+
+                self.inferrer
+                    .class(name.span, Class::Struct(container.clone()));
+
+                // If the container is not a struct type, assign type Err and don't continue to process the fields.
+                match &container {
+                    Ty::Udt(_, hir::Res::Item(item_id)) => match self.table.udts.get(item_id) {
+                        Some(udt) if udt.is_struct() => {}
+                        _ => return converge(Ty::Err),
+                    },
+                    _ => return converge(Ty::Err),
+                }
+
+                self.inferrer.class(
+                    expr.span,
+                    Class::HasStructShape {
+                        record: container.clone(),
+                        is_copy: copy.is_some(),
+                        fields: fields
+                            .iter()
+                            .map(|field| (field.field.name.to_string(), field.span))
+                            .collect(),
+                    },
+                );
+
+                // Ensure that the copy expression has the same type as the given struct.
+                if let Some(copy) = copy {
+                    let copy_ty = self.infer_expr(copy);
+                    self.inferrer.eq(copy.span, container.clone(), copy_ty.ty);
+                }
+
+                for field in fields {
+                    self.infer_field_assign(
+                        field.span,
+                        container.clone(),
+                        &field.field,
+                        &field.value,
+                    );
+                }
+
+                converge(container)
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
@@ -467,7 +516,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_expr(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -479,18 +528,123 @@ impl<'a> Context<'a> {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
                 self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
+                let body_span = body.span;
                 let body = self.infer_block(body);
+                self.inferrer.eq(body_span, Ty::UNIT, body.ty);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
             ExprKind::Hole => {
                 self.typed_holes.push((expr.id, expr.span));
                 converge(self.inferrer.fresh_ty(TySource::not_divergent(expr.span)))
             }
-            ExprKind::Err => converge(Ty::Err),
+            ExprKind::Err | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
         ty
+    }
+
+    fn infer_path_parts(
+        &mut self,
+        init_record: Partial<Ty>,
+        rest: &[&Ident],
+        lo: u32,
+    ) -> Partial<Ty> {
+        let mut record = init_record;
+        for part in rest {
+            let span = Span {
+                lo,
+                hi: part.span.hi,
+            };
+            let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(span));
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: record.ty.clone(),
+                    name: part.name.to_string(),
+                    item: item_ty.clone(),
+                },
+            );
+            // The ids of the segments are mapped specially because they will become the
+            // types of the field expressions that these Ident segments will be lowered into.
+            self.record(part.id, item_ty.clone());
+            record = self.diverge_if(record.diverges, converge(item_ty));
+        }
+        record
+    }
+
+    fn infer_path_kind(&mut self, expr: &Expr, path: &PathKind) -> Partial<Ty> {
+        match path {
+            PathKind::Ok(path) => self.infer_path(expr, path),
+            PathKind::Err(incomplete_path) => {
+                if let Some(incomplete_path) = incomplete_path {
+                    // If this is a field access, infer the fields,
+                    // but leave the whole expression as `Err`.
+                    let _ = self.infer_path_as_field_access(&incomplete_path.segments, expr);
+                }
+                converge(Ty::Err)
+            }
+        }
+    }
+
+    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
+        match self.infer_path_as_field_access(path, expr) {
+            Some(record) => record,
+            // Otherwise we infer the path as a namespace path.
+            None => match self.names.get(path.id) {
+                None => converge(Ty::Err),
+                Some(Res::Item(item, _)) => {
+                    let Some(scheme) = self.globals.get(item) else {
+                        return converge(Ty::Err);
+                    };
+                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
+                }
+                Some(&Res::Local(node)) => converge(
+                    self.table
+                        .terms
+                        .get(node)
+                        .expect("local should have type")
+                        .clone(),
+                ),
+                Some(Res::ExportedItem(item, _)) => {
+                    // get the underlying item this refers to
+                    let item_scheme = self.globals.get(item).expect("item should have scheme");
+                    let (ty, args) = self.inferrer.instantiate(item_scheme, expr.span);
+                    self.table.generics.insert(expr.id, args);
+                    converge(Ty::Arrow(Box::new(ty)))
+                }
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                    panic!("expression should not resolve to type reference")
+                }
+            },
+        }
+    }
+
+    fn infer_path_as_field_access(
+        &mut self,
+        path: &impl Idents,
+        expr: &Expr,
+    ) -> Option<Partial<Ty>> {
+        // If the path is a field accessor, we infer the type of first segment
+        // as an expr, and the rest as subsequent fields.
+        if let Some((first_id, parts)) = resolve::path_as_field_accessor(self.names, path) {
+            let record = converge(
+                self.table
+                    .terms
+                    .get(first_id)
+                    .expect("local should have type")
+                    .clone(),
+            );
+            let (first, rest) = parts
+                .split_first()
+                .expect("path should have at least one part");
+            self.record(first.id, record.ty.clone());
+            Some(self.infer_path_parts(record, rest, expr.span.lo))
+        } else {
+            None
+        }
     }
 
     fn infer_hole_tuple<T>(
@@ -515,7 +669,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_hole_tuple(hole, given, tuple, to_ty, item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -671,6 +825,27 @@ impl<'a> Context<'a> {
         }
     }
 
+    fn infer_field_assign(
+        &mut self,
+        span: Span,
+        container_ty: Ty,
+        field_name: &Ident,
+        value: &Expr,
+    ) -> Partial<Ty> {
+        let value = self.infer_expr(value);
+        let field = field_name.name.to_string();
+        self.inferrer.class(
+            span,
+            Class::HasField {
+                record: container_ty.clone(),
+                name: field,
+                item: value.ty.clone(),
+            },
+        );
+
+        self.diverge_if(value.diverges, converge(container_ty))
+    }
+
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
         let ty = match &*pat.kind {
             PatKind::Bind(name, None) => {
@@ -715,7 +890,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();
-                for item in items.iter() {
+                for item in items {
                     let item = self.infer_qubit_init(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);

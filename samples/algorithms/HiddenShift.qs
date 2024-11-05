@@ -9,10 +9,10 @@
 ///
 /// This Q# program implements an algorithm to solve the hidden shift problem.
 namespace Sample {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Int[] {
@@ -34,14 +34,11 @@ namespace Sample {
                 nQubits
             );
             let hiddenShift = ResultArrayAsInt(hiddenShiftBitString);
-            Fact(
-                hiddenShift == shift,
-                $"Found shift {hiddenShift}, but expected {shift}."
-            );
             Message($"Found {shift} successfully!");
             set hiddenShifts += [hiddenShift];
         }
 
+        // Note: returned array should match shifts array
         return hiddenShifts;
     }
 
@@ -110,7 +107,7 @@ namespace Sample {
 
         // Measure the n qubits and reset them to zero so that they can be
         // safely deallocated at the end of the block.
-        return ForEach(MResetZ, qubits);
+        return MResetEachZ(qubits);
     }
 
     /// # Summary

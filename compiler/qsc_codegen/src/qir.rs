@@ -7,12 +7,12 @@ mod instruction_tests;
 #[cfg(test)]
 mod tests;
 
-use qsc_frontend::compile::TargetCapabilityFlags;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
-    passes::{check_and_transform, defer_quantum_measurements},
+    passes::check_and_transform,
     rir::{self, ConditionCode},
     utils::get_all_block_successors,
 };
@@ -20,7 +20,7 @@ use qsc_rir::{
 fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::fir::PackageStore {
     let mut fir_store = qsc_fir::fir::PackageStore::new();
     for (id, unit) in package_store {
-        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
         fir_store.insert(map_hir_package_to_fir(id), package);
     }
     fir_store
@@ -43,11 +43,8 @@ pub fn fir_to_qir(
     compute_properties: Option<PackageStoreComputeProperties>,
     entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
-    let mut program = get_rir_from_compilation(fir_store, compute_properties, entry)?;
+    let mut program = get_rir_from_compilation(fir_store, compute_properties, entry, capabilities)?;
     check_and_transform(&mut program);
-    if capabilities.is_empty() {
-        defer_quantum_measurements(&mut program);
-    }
     Ok(ToQir::<String>::to_qir(&program, &program))
 }
 
@@ -55,13 +52,14 @@ fn get_rir_from_compilation(
     fir_store: &qsc_fir::fir::PackageStore,
     compute_properties: Option<PackageStoreComputeProperties>,
     entry: &ProgramEntry,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<rir::Program, qsc_partial_eval::Error> {
     let compute_properties = compute_properties.unwrap_or_else(|| {
         let analyzer = qsc_rca::Analyzer::init(fir_store);
         analyzer.analyze_all()
     });
 
-    partially_evaluate(fir_store, &compute_properties, entry)
+    partially_evaluate(fir_store, &compute_properties, entry, capabilities)
 }
 
 /// A trait for converting a type into QIR of type `T`.
@@ -506,8 +504,11 @@ impl ToQir<String> for rir::Callable {
             return format!(
                 "declare {output_type} @{}({input_type}){}",
                 self.name,
-                if self.call_type == rir::CallableType::Measurement {
-                    // Measurement callables are a special case that needs the irreversable attribute.
+                if matches!(
+                    self.call_type,
+                    rir::CallableType::Measurement | rir::CallableType::Reset
+                ) {
+                    // These callables are a special case that need the irreversable attribute.
                     " #1"
                 } else {
                     ""
@@ -546,9 +547,92 @@ impl ToQir<String> for rir::Program {
         } else {
             "adaptive_profile"
         };
-        format!(
+        let body = format!(
             include_str!("./qir/template.ll"),
             callables, profile, self.num_qubits, self.num_results
-        )
+        );
+        let flags = get_module_metadata(self);
+        body + "\n" + &flags
     }
+}
+
+/// Create the module metadata for the given program.
+/// creating the `llvm.module.flags` and its associated values.
+fn get_module_metadata(program: &rir::Program) -> String {
+    let mut flags = String::new();
+
+    // push the default attrs, we don't have any config values
+    // for now that would change any of them.
+    flags.push_str(
+        r#"
+!0 = !{i32 1, !"qir_major_version", i32 1}
+!1 = !{i32 7, !"qir_minor_version", i32 0}
+!2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+!3 = !{i32 1, !"dynamic_result_management", i1 false}
+"#,
+    );
+
+    let mut index = 4;
+
+    // If we are not in the base profile, we need to add the capabilities
+    // associated with the adaptive profile.
+    if !program.config.is_base() {
+        // loop through the capabilities and add them to the metadata
+        // for values that we can generate.
+        for cap in program.config.capabilities.iter() {
+            let name = match cap {
+                TargetCapabilityFlags::QubitReset => "qubit_resetting",
+                TargetCapabilityFlags::IntegerComputations => "classical_ints",
+                TargetCapabilityFlags::FloatingPointComputations => "classical_floats",
+                TargetCapabilityFlags::BackwardsBranching => "backwards_branching",
+                _ => continue,
+            };
+            flags.push_str(&format!(
+                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
+                index, 1, name, true
+            ));
+            index += 1;
+        }
+
+        // loop through the capabilities that are missing and add them to the metadata
+        // as not supported.
+        let missing = TargetCapabilityFlags::all().difference(program.config.capabilities);
+        for cap in missing.iter() {
+            let name = match cap {
+                TargetCapabilityFlags::QubitReset => "qubit_resetting",
+                TargetCapabilityFlags::IntegerComputations => "classical_ints",
+                TargetCapabilityFlags::FloatingPointComputations => "classical_floats",
+                TargetCapabilityFlags::BackwardsBranching => "backwards_branching",
+                _ => continue,
+            };
+            flags.push_str(&format!(
+                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
+                index, 1, name, false
+            ));
+            index += 1;
+        }
+
+        // Add the remaining extension capabilities as not supported.
+        // We can't generate these values yet so we just add them as false.
+        let unmapped_capabilities = [
+            "classical_fixed_points",
+            "user_functions",
+            "multiple_target_branching",
+        ];
+        for capability in unmapped_capabilities {
+            flags.push_str(&format!(
+                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
+                index, 1, capability, false
+            ));
+            index += 1;
+        }
+    }
+
+    let mut metadata_def = String::new();
+    metadata_def.push_str("!llvm.module.flags = !{");
+    for i in 0..index - 1 {
+        metadata_def.push_str(&format!("!{i}, "));
+    }
+    metadata_def.push_str(&format!("!{}}}\n", index - 1));
+    metadata_def + &flags
 }

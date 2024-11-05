@@ -9,13 +9,7 @@ use num_complex::Complex;
 use qsc::{interpret::Value, Backend};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::FxHashMap;
-use std::{
-    array,
-    cell::RefCell,
-    f64::{consts::PI, EPSILON},
-    fmt::Debug,
-    iter::Sum,
-};
+use std::{array, cell::RefCell, f64::consts::PI, fmt::Debug, iter::Sum};
 
 use crate::system::LogicalResourceCounts;
 
@@ -456,7 +450,7 @@ impl Backend for LogicalCounter {
 
     fn rz(&mut self, theta: f64, q: usize) {
         let multiple = (theta / (PI / 4.0)).round();
-        if ((multiple * (PI / 4.0)) - theta).abs() <= EPSILON {
+        if ((multiple * (PI / 4.0)) - theta).abs() <= f64::EPSILON {
             let multiple = (multiple as i64).rem_euclid(8) as u64;
             if multiple & 1 == 1 {
                 self.t(q);
@@ -508,8 +502,14 @@ impl Backend for LogicalCounter {
         }
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.free_list.push(q);
+        true
+    }
+
+    fn qubit_swap_id(&mut self, _q0: usize, _q1: usize) {
+        // This can safely be treated as a no-op, because counts don't care which qubit is operated on,
+        // just how many operations are performed, and relabeling is non-physical.
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
@@ -522,6 +522,7 @@ impl Backend for LogicalCounter {
 
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
+            "GlobalPhase" => Some(Ok(Value::unit())),
             "BeginEstimateCaching" => {
                 let values = arg.unwrap_tuple();
                 let [cache_name, cache_variant] = array::from_fn(|i| values[i].clone());

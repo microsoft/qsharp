@@ -10,36 +10,36 @@
 ///
 /// This Q# program implements quantum teleportation.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Result[] {
-        // Allocate the message and target qubits.
-        use (message, target) = (Qubit(), Qubit());
-
         // Use the `Teleport` operation to send different quantum states.
         let stateInitializerBasisTuples = [
-            ("|0〉", I, PauliZ),
-            ("|1〉", X, PauliZ),
-            ("|+〉", SetToPlus, PauliX),
-            ("|-〉", SetToMinus, PauliX)
+            ("|0〉", I, PauliZ),
+            ("|1〉", X, PauliZ),
+            ("|+〉", SetToPlus, PauliX),
+            ("|-〉", SetToMinus, PauliX)
         ];
 
         mutable results = [];
         for (state, initializer, basis) in stateInitializerBasisTuples {
+            // Allocate the message and target qubits.
+            use (message, target) = (Qubit(), Qubit());
+
             // Initialize the message and show its state using the `DumpMachine`
             // function.
             initializer(message);
             Message($"Teleporting state {state}");
-            DumpMachine();
+            DumpRegister([message]);
 
             // Teleport the message and show the quantum state after
             // teleportation.
             Teleport(message, target);
             Message($"Received state {state}");
-            DumpMachine();
+            DumpRegister([target]);
 
             // Measure target in the corresponding basis and reset the qubits to
             // continue teleporting more messages.
@@ -60,7 +60,7 @@ namespace Sample {
     /// ## message
     /// A qubit whose state we wish to send.
     /// ## target
-    /// A qubit initially in the |0〉 state that we want to send
+    /// A qubit initially in the |0〉 state that we want to send
     /// the state of message to.
     operation Teleport(message : Qubit, target : Qubit) : Unit {
         // Allocate an auxiliary qubit.
@@ -77,11 +77,12 @@ namespace Sample {
         // Measure the qubits to extract the classical data we need to decode
         // the message by applying the corrections on the target qubit
         // accordingly.
-        if M(message) == One {
-            Z(target);
-        }
         if M(auxiliary) == One {
             X(target);
+        }
+
+        if M(message) == One {
+            Z(target);
         }
 
         // Reset auxiliary qubit before releasing.

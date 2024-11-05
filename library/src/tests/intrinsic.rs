@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes, clippy::too_many_lines)]
+
 use expect_test::expect;
 use indoc::indoc;
 use qsc::{interpret::Value, target::Profile, SparseSim};
 
-use super::test_expression_with_lib_and_profile_and_sim;
+use super::{test_expression, test_expression_with_lib_and_profile_and_sim};
 
 // These tests verify multi-controlled decomposition logic for gate operations. Each test
 // manually allocates 2N qubits, performs the decomposed operation from the library on the first N,
@@ -25,7 +27,7 @@ fn test_mch_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -64,7 +66,7 @@ fn test_mch_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -107,7 +109,7 @@ fn test_unrestricted_mch_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -158,7 +160,7 @@ fn test_base_mch_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -211,7 +213,7 @@ fn test_unrestricted_mch_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -278,7 +280,7 @@ fn test_base_mch_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -346,8 +348,8 @@ fn test_mcrz_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -383,8 +385,8 @@ fn test_unrestricted_mcrz_2_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..1], (Microsoft.Quantum.Math.PI() / 7.0, qs[2]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..1], (Std.Math.PI() / 7.0, qs[2]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -424,8 +426,8 @@ fn test_base_mcrz_2_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..1], (Microsoft.Quantum.Math.PI() / 7.0, qs[2]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..1], (Std.Math.PI() / 7.0, qs[2]));
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -467,8 +469,8 @@ fn test_unrestricted_mcrz_3_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..2], (Microsoft.Quantum.Math.PI() / 7.0, qs[3]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..2], (Std.Math.PI() / 7.0, qs[3]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -516,8 +518,8 @@ fn test_base_mcrz_3_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..2], (Microsoft.Quantum.Math.PI() / 7.0, qs[3]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..2], (Std.Math.PI() / 7.0, qs[3]));
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -567,8 +569,8 @@ fn test_mcrx_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rx(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rx(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -606,8 +608,8 @@ fn test_mcry_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Ry(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Ry(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -646,7 +648,7 @@ fn test_mcs_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -683,7 +685,7 @@ fn test_mcs_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -724,7 +726,7 @@ fn test_unrestricted_mcs_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -773,7 +775,7 @@ fn test_base_mcs_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -824,7 +826,7 @@ fn test_unrestricted_mcs_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -889,7 +891,7 @@ fn test_base_mcs_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -956,7 +958,7 @@ fn test_mcsadj_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -993,7 +995,7 @@ fn test_mcsadj_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1034,7 +1036,7 @@ fn test_unrestricted_mcsadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1083,7 +1085,7 @@ fn test_base_mcsadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1134,7 +1136,7 @@ fn test_unrestricted_mcsadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1199,7 +1201,7 @@ fn test_base_mcsadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1266,7 +1268,7 @@ fn test_mct_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1303,7 +1305,7 @@ fn test_mct_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1344,7 +1346,7 @@ fn test_unrestricted_mct_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1393,7 +1395,7 @@ fn test_base_mct_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1444,7 +1446,7 @@ fn test_unrestricted_mct_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1509,7 +1511,7 @@ fn test_base_mct_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1576,7 +1578,7 @@ fn test_mctadj_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1613,7 +1615,7 @@ fn test_mctadj_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1654,7 +1656,7 @@ fn test_unrestricted_mctadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1703,7 +1705,7 @@ fn test_base_mctadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1754,7 +1756,7 @@ fn test_unrestricted_mctadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1819,7 +1821,7 @@ fn test_base_mctadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1886,7 +1888,7 @@ fn test_unrestricted_mcx_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1935,7 +1937,7 @@ fn test_base_mcx_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1986,7 +1988,7 @@ fn test_unrestricted_mcx_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2051,7 +2053,7 @@ fn test_base_mcx_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2118,7 +2120,7 @@ fn test_unrestricted_mcy_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2167,7 +2169,7 @@ fn test_base_mcy_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2218,7 +2220,7 @@ fn test_unrestricted_mcy_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2283,7 +2285,7 @@ fn test_base_mcy_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2350,7 +2352,7 @@ fn test_unrestricted_mcz_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2399,7 +2401,7 @@ fn test_base_mcz_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2450,7 +2452,7 @@ fn test_unrestricted_mcz_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2515,7 +2517,7 @@ fn test_base_mcz_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2568,4 +2570,441 @@ fn test_base_mcz_4_control() {
         assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
         assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
     }
+}
+
+#[test]
+fn global_phase_correct_for_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            H(q);
+            R1(PI() / 2.0, q);
+            Adjoint S(q);
+            H(q);
+            DumpMachine();
+            Reset(q);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            H(q);
+            Adjoint R1(PI() / 2.0, q);
+            S(q);
+            H(q);
+            DumpMachine();
+            Reset(q);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_singly_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[1];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_singly_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[1];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_doubly_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[2];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_doubly_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[2];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_triply_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[3];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_triply_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use ctls = Qubit[3];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn test_exp() {
+    let dump = test_expression(
+        indoc! {r#"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            for p in [PauliX, PauliY, PauliZ, PauliI] {
+                for i in 1 .. 4 {
+                    Message($"Exp with {p} on {i} qubits:");
+                    use qs = Qubit[i];
+                    for q in qs {
+                        H(q);
+                    }
+                    Exp(Repeated(p, i), PI() / 7.0, qs);
+                    DumpMachine();
+                    ResetAll(qs);
+                }
+            }
+        }
+        "#},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        Exp with PauliX on 1 qubits:
+        STATE:
+        |0⟩: 0.6371+0.3068𝑖
+        |1⟩: 0.6371+0.3068𝑖
+        Exp with PauliX on 2 qubits:
+        STATE:
+        |00⟩: 0.4505+0.2169𝑖
+        |01⟩: 0.4505+0.2169𝑖
+        |10⟩: 0.4505+0.2169𝑖
+        |11⟩: 0.4505+0.2169𝑖
+        Exp with PauliX on 3 qubits:
+        STATE:
+        |000⟩: 0.3185+0.1534𝑖
+        |001⟩: 0.3185+0.1534𝑖
+        |010⟩: 0.3185+0.1534𝑖
+        |011⟩: 0.3185+0.1534𝑖
+        |100⟩: 0.3185+0.1534𝑖
+        |101⟩: 0.3185+0.1534𝑖
+        |110⟩: 0.3185+0.1534𝑖
+        |111⟩: 0.3185+0.1534𝑖
+        Exp with PauliX on 4 qubits:
+        STATE:
+        |0000⟩: 0.2252+0.1085𝑖
+        |0001⟩: 0.2252+0.1085𝑖
+        |0010⟩: 0.2252+0.1085𝑖
+        |0011⟩: 0.2252+0.1085𝑖
+        |0100⟩: 0.2252+0.1085𝑖
+        |0101⟩: 0.2252+0.1085𝑖
+        |0110⟩: 0.2252+0.1085𝑖
+        |0111⟩: 0.2252+0.1085𝑖
+        |1000⟩: 0.2252+0.1085𝑖
+        |1001⟩: 0.2252+0.1085𝑖
+        |1010⟩: 0.2252+0.1085𝑖
+        |1011⟩: 0.2252+0.1085𝑖
+        |1100⟩: 0.2252+0.1085𝑖
+        |1101⟩: 0.2252+0.1085𝑖
+        |1110⟩: 0.2252+0.1085𝑖
+        |1111⟩: 0.2252+0.1085𝑖
+        Exp with PauliY on 1 qubits:
+        STATE:
+        |0⟩: 0.9439+0.0000𝑖
+        |1⟩: 0.3303+0.0000𝑖
+        Exp with PauliY on 2 qubits:
+        STATE:
+        |00⟩: 0.4505−0.2169𝑖
+        |01⟩: 0.4505+0.2169𝑖
+        |10⟩: 0.4505+0.2169𝑖
+        |11⟩: 0.4505−0.2169𝑖
+        Exp with PauliY on 3 qubits:
+        STATE:
+        |000⟩: 0.1651+0.0000𝑖
+        |001⟩: 0.4719+0.0000𝑖
+        |010⟩: 0.4719+0.0000𝑖
+        |011⟩: 0.1651+0.0000𝑖
+        |100⟩: 0.4719+0.0000𝑖
+        |101⟩: 0.1651+0.0000𝑖
+        |110⟩: 0.1651+0.0000𝑖
+        |111⟩: 0.4719+0.0000𝑖
+        Exp with PauliY on 4 qubits:
+        STATE:
+        |0000⟩: 0.2252+0.1085𝑖
+        |0001⟩: 0.2252−0.1085𝑖
+        |0010⟩: 0.2252−0.1085𝑖
+        |0011⟩: 0.2252+0.1085𝑖
+        |0100⟩: 0.2252−0.1085𝑖
+        |0101⟩: 0.2252+0.1085𝑖
+        |0110⟩: 0.2252+0.1085𝑖
+        |0111⟩: 0.2252−0.1085𝑖
+        |1000⟩: 0.2252−0.1085𝑖
+        |1001⟩: 0.2252+0.1085𝑖
+        |1010⟩: 0.2252+0.1085𝑖
+        |1011⟩: 0.2252−0.1085𝑖
+        |1100⟩: 0.2252+0.1085𝑖
+        |1101⟩: 0.2252−0.1085𝑖
+        |1110⟩: 0.2252−0.1085𝑖
+        |1111⟩: 0.2252+0.1085𝑖
+        Exp with PauliZ on 1 qubits:
+        STATE:
+        |0⟩: 0.6371+0.3068𝑖
+        |1⟩: 0.6371−0.3068𝑖
+        Exp with PauliZ on 2 qubits:
+        STATE:
+        |00⟩: 0.4505+0.2169𝑖
+        |01⟩: 0.4505−0.2169𝑖
+        |10⟩: 0.4505−0.2169𝑖
+        |11⟩: 0.4505+0.2169𝑖
+        Exp with PauliZ on 3 qubits:
+        STATE:
+        |000⟩: 0.3185+0.1534𝑖
+        |001⟩: 0.3185−0.1534𝑖
+        |010⟩: 0.3185−0.1534𝑖
+        |011⟩: 0.3185+0.1534𝑖
+        |100⟩: 0.3185−0.1534𝑖
+        |101⟩: 0.3185+0.1534𝑖
+        |110⟩: 0.3185+0.1534𝑖
+        |111⟩: 0.3185−0.1534𝑖
+        Exp with PauliZ on 4 qubits:
+        STATE:
+        |0000⟩: 0.2252+0.1085𝑖
+        |0001⟩: 0.2252−0.1085𝑖
+        |0010⟩: 0.2252−0.1085𝑖
+        |0011⟩: 0.2252+0.1085𝑖
+        |0100⟩: 0.2252−0.1085𝑖
+        |0101⟩: 0.2252+0.1085𝑖
+        |0110⟩: 0.2252+0.1085𝑖
+        |0111⟩: 0.2252−0.1085𝑖
+        |1000⟩: 0.2252−0.1085𝑖
+        |1001⟩: 0.2252+0.1085𝑖
+        |1010⟩: 0.2252+0.1085𝑖
+        |1011⟩: 0.2252−0.1085𝑖
+        |1100⟩: 0.2252+0.1085𝑖
+        |1101⟩: 0.2252−0.1085𝑖
+        |1110⟩: 0.2252−0.1085𝑖
+        |1111⟩: 0.2252+0.1085𝑖
+        Exp with PauliI on 1 qubits:
+        STATE:
+        |0⟩: 0.6371+0.3068𝑖
+        |1⟩: 0.6371+0.3068𝑖
+        Exp with PauliI on 2 qubits:
+        STATE:
+        |00⟩: 0.4505+0.2169𝑖
+        |01⟩: 0.4505+0.2169𝑖
+        |10⟩: 0.4505+0.2169𝑖
+        |11⟩: 0.4505+0.2169𝑖
+        Exp with PauliI on 3 qubits:
+        STATE:
+        |000⟩: 0.3185+0.1534𝑖
+        |001⟩: 0.3185+0.1534𝑖
+        |010⟩: 0.3185+0.1534𝑖
+        |011⟩: 0.3185+0.1534𝑖
+        |100⟩: 0.3185+0.1534𝑖
+        |101⟩: 0.3185+0.1534𝑖
+        |110⟩: 0.3185+0.1534𝑖
+        |111⟩: 0.3185+0.1534𝑖
+        Exp with PauliI on 4 qubits:
+        STATE:
+        |0000⟩: 0.2252+0.1085𝑖
+        |0001⟩: 0.2252+0.1085𝑖
+        |0010⟩: 0.2252+0.1085𝑖
+        |0011⟩: 0.2252+0.1085𝑖
+        |0100⟩: 0.2252+0.1085𝑖
+        |0101⟩: 0.2252+0.1085𝑖
+        |0110⟩: 0.2252+0.1085𝑖
+        |0111⟩: 0.2252+0.1085𝑖
+        |1000⟩: 0.2252+0.1085𝑖
+        |1001⟩: 0.2252+0.1085𝑖
+        |1010⟩: 0.2252+0.1085𝑖
+        |1011⟩: 0.2252+0.1085𝑖
+        |1100⟩: 0.2252+0.1085𝑖
+        |1101⟩: 0.2252+0.1085𝑖
+        |1110⟩: 0.2252+0.1085𝑖
+        |1111⟩: 0.2252+0.1085𝑖
+    "#]]
+    .assert_eq(&dump);
 }

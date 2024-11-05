@@ -73,7 +73,7 @@
           {
             "id": "qsharp-vscode.welcome.starters",
             "title": "Starting points",
-            "description": "Expore Q# safely by opening files in the [Q# playground](command:qsharp-vscode.openPlayground), or work in Python by [creating a Jupyter Notebook](command:qsharp-vscode.createNotebook) from a template",
+            "description": "Explore Q# safely by opening files in the [Q# playground](command:qsharp-vscode.openPlayground), or work in Python by [creating a Jupyter Notebook](command:qsharp-vscode.createNotebook) from a template",
             "media": {
               "image": "resources/notebook.png",
               "altText": "Jupyter Notebooks"
@@ -96,40 +96,48 @@
     "configuration": {
       "title": "Q#",
       "properties": {
-        "Q#.targetProfile": {
+        "Q#.qir.targetProfile": {
           "type": "string",
           "default": "unrestricted",
           "enum": [
             "unrestricted",
             "base",
-            "quantinuum"
+            "adaptive_ri"
           ],
           "enumDescriptions": [
             "The set of all capabilities required to run any Q# program.",
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification.",
-            "The Quantinuum target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification."
+            "The Adaptive_RI target profile includes all of the required Adaptive Profile capabilities, as well as the optional integer computation and qubit reset capabilities, as defined by the QIR specification."
           ],
-          "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
+          "markdownDescription": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. [Learn more](https://aka.ms/qdk.qir)"
         },
-        "Q#.enableFormatting": {
-          "type": "boolean",
-          "default": "true",
-          "description": "Enables the Q# formatter."
-        },
-        "Q#.showCircuitCodeLens": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
-        },
-        "Q#.enablePreviewQirGen": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enables the preview QIR code generation functionality."
-        },
-        "Q#.enableAdaptiveProfile": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enables Adaptive as a target profile."
+        "Q#.simulation.pauliNoise": {
+          "markdownDescription": "The Pauli noise to apply when running multiple shots via the Histogram command. This is applied for every gate or measurement on all qubits referenced.\n\nProbability values are in the range [0, 1].",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "X": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a bit flip error occurring"
+            },
+            "Y": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a bit-and-phase flip error occurring"
+            },
+            "Z": {
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "The probability of a phase flip error occurring"
+            }
+          }
         }
       }
     },
@@ -204,12 +212,24 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showDocumentation",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
         {
           "command": "qsharp-vscode.webOpener",
           "when": "false"
+        },
+        {
+          "command": "qsharp-vscode.populateFilesList",
+          "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.addProjectReference",
+          "when": "resourceFilename == qsharp.json"
         }
       ],
       "view/title": [
@@ -253,6 +273,14 @@
         {
           "command": "qsharp-vscode.createProject",
           "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "qsharp-vscode.populateFilesList",
+          "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.addProjectReference",
+          "when": "resourceFilename == qsharp.json"
         }
       ]
     },
@@ -326,6 +354,11 @@
         "category": "Q#"
       },
       {
+        "command": "qsharp-vscode.showDocumentation",
+        "title": "Show API documentation",
+        "category": "Q#"
+      },
+      {
         "command": "qsharp-vscode.workspacesRefresh",
         "category": "Q#",
         "title": "Refresh Azure Quantum workspaces",
@@ -385,6 +418,16 @@
         "command": "qsharp-vscode.openPlayground",
         "category": "Q#",
         "title": "Open Q# playground"
+      },
+      {
+        "command": "qsharp-vscode.populateFilesList",
+        "category": "Q#",
+        "title": "Populate qsharp.json files list"
+      },
+      {
+        "command": "qsharp-vscode.addProjectReference",
+        "category": "Q#",
+        "title": "Add Q# project reference"
       }
     ],
     "breakpoints": [
@@ -402,6 +445,10 @@
         "extensions": [
           ".qs"
         ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        },
         "configuration": "./language-configuration.json"
       }
     ],

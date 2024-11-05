@@ -3,4 +3,3 @@ namespace Kata {
         R1(alpha, q); 
     }
 }
-

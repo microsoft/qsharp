@@ -22,8 +22,12 @@ mod serialization;
 use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
-pub use self::modeling::{GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol};
-use self::optimization::TFactoryBuilder;
+pub use self::modeling::{
+    floquet_code, load_protocol_from_specification, surface_code_gate_based,
+    surface_code_measurement_based, GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol,
+    ProtocolEvaluator, ProtocolSpecification, TFactory,
+};
+pub use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
@@ -75,7 +79,7 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
 ) -> Result<data::Success<L>> {
     let qubit = job_params.qubit_params().clone();
 
-    let ftp = Protocol::load_from_specification(job_params.qec_scheme_mut(), &qubit)?;
+    let ftp = load_protocol_from_specification(job_params.qec_scheme_mut(), &qubit)?;
     let distillation_unit_templates = job_params
         .distillation_unit_specifications()
         .as_templates()?;
@@ -84,12 +88,16 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
         .error_budget()
         .partitioning(logical_resources.as_ref())?;
 
+    // The clone on the logical resources is on an Rc and therefore inexpensive,
+    // the value is later used in creating the result object
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
         qubit,
-        TFactoryBuilder::default(),
-        logical_resources,
-        partitioning,
+        TFactoryBuilder::new(
+            distillation_unit_templates,
+            job_params.constraints().max_distillation_rounds,
+        ),
+        logical_resources.clone(),
     );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
         estimation.set_logical_depth_factor(logical_depth_factor);
@@ -103,9 +111,6 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
     if let Some(max_physical_qubits) = job_params.constraints().max_physical_qubits {
         estimation.set_max_physical_qubits(max_physical_qubits);
     }
-    estimation
-        .factory_builder_mut()
-        .set_distillation_unit_templates(distillation_unit_templates);
 
     match job_params.estimate_type() {
         EstimateType::Frontier => {
@@ -120,13 +125,18 @@ fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Seria
             }
 
             let estimation_result = estimation
-                .build_frontier()
+                .build_frontier(&partitioning)
                 .map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new_from_multiple(job_params, result))
+            estimation_result.map(|result| {
+                data::Success::new_from_multiple(job_params, logical_resources, result)
+            })
         }
         EstimateType::SinglePoint => {
-            let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
-            estimation_result.map(|result| data::Success::new(job_params, result))
+            let estimation_result = estimation
+                .estimate(&partitioning)
+                .map_err(std::convert::Into::into);
+            estimation_result
+                .map(|result| data::Success::new(job_params, logical_resources, result))
         }
     }
 }

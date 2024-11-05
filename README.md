@@ -27,6 +27,15 @@ To build this repository there are dependencies that need to be installed. These
 
 - Python (<https://python.org>)
 - Rust (<https://www.rust-lang.org/tools/install>)
+  - On all platforms, the `wasm32-unknown-unknown` must be installed to build the WASM based components
+    ```shell
+    rustup target add wasm32-unknown-unknown
+    ```
+  - On MacOS, ensure that both `aarch64` and `x86_64` targets are installed or you will encounter linking errors.
+    ```shell
+    rustup target add x86_64-apple-darwin
+    rustup target add aarch64-apple-darwin
+    ```
 - Node.js (<https://nodejs.org/>)
 - wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
 - A [C compiler](https://docs.rs/cc/latest/cc/#compile-time-requirements)
@@ -40,9 +49,9 @@ build of each project, including running tests and checks such as linting. Run w
 
 ### Playground
 
-To run the "playground" locally, build the repository, then `cd` into the `playground` directory, and run `npm start`.
-This will launch a local web server and output the URL to the console; copy that URL and open it in a browser to use the playground.
-If you only want to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
+The `playground` is a small website that loads the Q# editor, compiler, samples, katas, and documentation for the standard library. It's a way to manually validate any changes you make to these components.
+
+To see instructions for building the playground, refer to [Building the Playground Locally](./playground/README.md#building-the-playground-locally).
 
 ### Python
 

@@ -8,14 +8,32 @@ import { type ExtensionApi } from "../../src/extension";
 const extensionLogLevel = "warn";
 
 export async function activateExtension() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
+  // Check for pre-release or stable builds of the extension, as could be in release pipeline
+  const ext =
+    vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev") ??
+    vscode.extensions.getExtension("quantum.qsharp-lang-vscode");
+
+  if (!ext) {
+    throw new Error("qsharp extension not found");
+  }
+
   if (ext.isActive) {
     return;
   }
 
   const start = performance.now();
   const extensionApi: ExtensionApi = await ext.activate();
+
+  // http://localhost:3000/static/mount is set up by the @vscode/test-web
+  // test infrastructure. This local webserver is normally set up to serve
+  // files for the test workspace. We're taking advantage of it here to
+  // also act as a a fake github endpoint.
+  //
+  // /web/github is a folder in the test workspace.
+  extensionApi.setGithubEndpoint(
+    "http://localhost:3000/static/mount/web/github",
+  );
+
   const logForwarder = extensionApi.logging;
   if (!logForwarder) {
     throw new Error(`qsharp-tests: extension did not return a log forwarder`);
@@ -90,7 +108,7 @@ export async function delay(timeoutMs: number) {
       timeoutMs,
       "hit the expected timeout",
     );
-  } catch (e) {
+  } catch {
     // expected
   }
 }

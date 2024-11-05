@@ -7,12 +7,12 @@
 ///
 /// This Q# program implements Shor's algorithm.
 namespace Sample {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Arrays;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Random.*;
+    import Std.Math.*;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Std.Arrays.*;
 
     @EntryPoint()
     operation Main() : (Int, Int) {
@@ -23,7 +23,7 @@ namespace Sample {
 
         // Use Shor's algorithm to factor a semiprime integer.
         let (a, b) = FactorSemiprimeInteger(n);
-        Message($"Found factorization {n} = {a} * {b} ");
+        Message($"Found factorization {n} = {a} * {b}");
         return (a, b);
     }
 

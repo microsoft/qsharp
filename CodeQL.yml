@@ -1,0 +1,11 @@
+path_classifiers:
+  library:
+    - allocator/mimalloc-sys/mimalloc
+    - "**/node_modules/**"
+  test:
+    - test
+    - "**/*.test.ts"
+  generated:
+    - target
+    - "**/out/**"
+    - "**/libs/**"

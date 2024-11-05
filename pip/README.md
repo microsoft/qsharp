@@ -25,7 +25,7 @@ Then, use the `%%qsharp` cell magic to run Q# directly in Jupyter notebook cells
 ```qsharp
 %%qsharp
 
-open Microsoft.Quantum.Diagnostics;
+import Std.Diagnostics.*;
 
 @EntryPoint()
 operation BellState() : Unit {
@@ -38,6 +38,13 @@ operation BellState() : Unit {
 
 BellState()
 ```
+
+## Telemetry
+
+This library sends telemetry. Minimal anonymous data is collected to help measure feature usage and performance.
+All telemetry events can be seen in the source file [telemetry_events.py](https://github.com/microsoft/qsharp/tree/main/pip/qsharp/telemetry_events.py).
+
+To disable sending telemetry from this package, set the environment variable `QSHARP_PYTHON_TELEMETRY=none`
 
 ## Support
 

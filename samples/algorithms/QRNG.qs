@@ -5,14 +5,14 @@
 /// This program implements a quantum random number generator by setting qubits
 /// in superposition and then using the measurement results as random bits.
 namespace Sample {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation Main() : Int {
         let max = 100;
-        Message($"Sampling a random number between 0 and {max}: ");
+        Message($"Sampling a random number between 0 and {max}:");
 
         // Generate random number in the 0..max range.
         return GenerateRandomNumberInRange(max);

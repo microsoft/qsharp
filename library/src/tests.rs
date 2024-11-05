@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 mod arithmetic;
 mod arrays;
 mod canon;
@@ -58,14 +56,18 @@ pub fn test_expression_with_lib_and_profile_and_sim(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
+    let (std_id, store) = qsc::compile::package_store_with_stdlib(profile.into());
+
     let mut interpreter = Interpreter::new(
-        true,
         sources,
         PackageType::Exe,
         profile.into(),
         LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
     )
     .expect("test should compile");
+
     let result = interpreter
         .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");
@@ -133,8 +135,8 @@ fn check_exp_with_cnot() {
     // sign convention between Rx, Rz, and Exp is consistent.
     test_expression(
         indoc! {r#"{
-            open Microsoft.Quantum.Diagnostics;
-            open Microsoft.Quantum.Math;
+            import Std.Diagnostics.*;
+            import Std.Math.*;
 
             use (aux, control, target) = (Qubit(), Qubit(), Qubit());
             within {
@@ -162,8 +164,8 @@ fn check_exp_with_swap() {
     // This decomposition only holds if the magnitude of the angle used in Exp is correct.
     test_expression(
         indoc! {r#"{
-            open Microsoft.Quantum.Diagnostics;
-            open Microsoft.Quantum.Math;
+            import Std.Diagnostics.*;
+            import Std.Math.*;
 
             use (aux, qs) = (Qubit(), Qubit[2]);
             within {
@@ -199,5 +201,17 @@ fn check_base_profile_measure_resets_aux_qubits() {
         "",
         Profile::Base,
         &Value::RESULT_ONE,
+    );
+}
+
+// just tests a single case of the stdlib reexports for the modern api,
+// to ensure that reexporting functionality doesn't break
+#[test]
+fn stdlib_reexport_single_case() {
+    test_expression(
+        r#" {
+    import Std.Arrays.Count;
+    }"#,
+        &Value::Tuple(vec![].into()),
     );
 }

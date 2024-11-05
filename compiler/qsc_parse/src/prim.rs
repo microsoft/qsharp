@@ -4,13 +4,14 @@
 #[cfg(test)]
 mod tests;
 
-use super::{keyword::Keyword, scan::ParserContext, ty::ty, Error, Parser, Result};
+use super::{keyword::Keyword, scan::ParserContext, ty::recovering_ty, Error, Parser, Result};
 use crate::{
+    completion::WordKinds,
     item::throw_away_doc,
     lex::{Delim, TokenKind},
     ErrorKind,
 };
-use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
+use qsc_ast::ast::{Ident, IncompletePath, NodeId, Pat, PatKind, Path, PathKind};
 use qsc_data_structures::span::{Span, WithSpan};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -35,15 +36,24 @@ impl FinalSep {
 }
 
 pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
+    if let TokenKind::Keyword(k) = t {
+        s.expect(k.into());
+    }
+
     if s.peek().kind == t {
         s.advance();
         Ok(())
     } else {
-        Err(Error(ErrorKind::Token(t, s.peek().kind, s.peek().span)))
+        Err(Error::new(ErrorKind::Token(
+            t,
+            s.peek().kind,
+            s.peek().span,
+        )))
     }
 }
 
 pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
+    s.expect(WordKinds::TyParam);
     let peek = s.peek();
     if peek.kind == TokenKind::AposIdent {
         let name = s.read().into();
@@ -54,7 +64,7 @@ pub(super) fn apos_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
             name,
         }))
     } else {
-        Err(Error(ErrorKind::Rule(
+        Err(Error::new(ErrorKind::Rule(
             "generic parameter",
             peek.kind,
             peek.span,
@@ -73,58 +83,85 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
             name,
         }))
     } else {
-        Err(Error(ErrorKind::Rule("identifier", peek.kind, peek.span)))
+        Err(Error::new(ErrorKind::Rule(
+            "identifier",
+            peek.kind,
+            peek.span,
+        )))
     }
-}
-
-/// This function parses a [Path] from the given context
-/// and converts it into a single ident, which contains dots (`.`)
-pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
-    let p = path(s)?;
-    let mut name = String::new();
-    if let Some(namespace) = p.namespace {
-        name.push_str(&namespace.name);
-        name.push('.');
-    }
-    name.push_str(&p.name.name);
-
-    Ok(Box::new(Ident {
-        id: p.id,
-        span: p.span,
-        name: name.into(),
-    }))
 }
 
 /// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
-/// this can be either a namespace name (in an open statement or namespace declaration) or
-/// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
-pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
+/// this can be a namespace name (in an open statement or namespace declaration),
+/// a reference to an item, like `Microsoft.Quantum.Diagnostics.DumpMachine`,
+/// or a field access.
+///
+/// Path parser. If parsing fails, also returns any valid segments
+/// that were parsed up to the final `.` token.
+pub(super) fn path(
+    s: &mut ParserContext,
+    kind: WordKinds,
+) -> std::result::Result<Box<Path>, (Error, Option<Box<IncompletePath>>)> {
+    s.expect(kind);
+
     let lo = s.peek().span.lo;
-    let mut parts = vec![ident(s)?];
+    let i = ident(s).map_err(|e| (e, None))?;
+
+    let mut parts = vec![*i];
     while token(s, TokenKind::Dot).is_ok() {
-        parts.push(ident(s)?);
+        s.expect(WordKinds::PathSegment);
+        match ident(s) {
+            Ok(ident) => parts.push(*ident),
+            Err(error) => {
+                let trivia_span = s.skip_trivia();
+                let keyword = trivia_span.hi == trivia_span.lo
+                    && matches!(s.peek().kind, TokenKind::Keyword(_));
+                if keyword {
+                    // Consume any keyword that comes immediately after the final
+                    // dot, assuming it was intended to be part of the path.
+                    s.advance();
+                }
+
+                return Err((
+                    error,
+                    Some(Box::new(IncompletePath {
+                        span: s.span(lo),
+                        segments: parts.into(),
+                        keyword,
+                    })),
+                ));
+            }
+        }
     }
 
     let name = parts.pop().expect("path should have at least one part");
-    let namespace = match (parts.first(), parts.last()) {
-        (Some(first), Some(last)) => {
-            let lo = first.span.lo;
-            let hi = last.span.hi;
-            Some(Box::new(Ident {
-                id: NodeId::default(),
-                span: Span { lo, hi },
-                name: join(parts.iter().map(|i| &i.name), ".").into(),
-            }))
-        }
-        _ => None,
+    let namespace = if parts.is_empty() {
+        None
+    } else {
+        Some(parts.into())
     };
 
     Ok(Box::new(Path {
         id: NodeId::default(),
         span: s.span(lo),
-        namespace,
-        name,
+        segments: namespace,
+        name: name.into(),
     }))
+}
+
+/// Recovering [`Path`] parser. Parsing only fails if no segments
+/// were successfully parsed. If any segments were successfully parsed,
+/// returns a [`PathKind::Err`] containing the segments that were
+/// successfully parsed up to the final `.` token.
+pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathKind> {
+    match path(s, kind) {
+        Ok(path) => Ok(PathKind::Ok(path)),
+        Err((error, Some(incomplete_path))) => {
+            s.push_error(error);
+            Ok(PathKind::Err(Some(incomplete_path)))
+        }
+        Err((error, None)) => Err(error),
+    }
 }
 
 pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
@@ -132,7 +169,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(Box::new(ty(s)?))
+            Some(Box::new(recovering_ty(s)?))
         } else {
             None
         };
@@ -146,7 +183,7 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     } else {
         let name = ident(s).map_err(|e| map_rule_name("pattern", e))?;
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(Box::new(ty(s)?))
+            Some(Box::new(recovering_ty(s)?))
         } else {
             None
         };
@@ -160,6 +197,10 @@ pub(super) fn pat(s: &mut ParserContext) -> Result<Box<Pat>> {
     }))
 }
 
+/// Optionally parse with the given parser.
+/// Returns Ok(Some(value)) if the parser succeeded,
+/// Ok(None) if the parser failed on the first token,
+/// Err(error) if the parser failed after consuming some tokens.
 pub(super) fn opt<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Option<T>> {
     let offset = s.peek().span.lo;
     match p(s) {
@@ -177,6 +218,8 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
     Ok(xs)
 }
 
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
     T: Default + WithSpan,
@@ -186,7 +229,7 @@ where
     while s.peek().kind == TokenKind::Comma {
         let mut span = s.peek().span;
         span.hi = span.lo;
-        s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+        s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
         xs.push(T::default().with_span(span));
         s.advance();
     }
@@ -196,7 +239,7 @@ where
             while s.peek().kind == TokenKind::Comma {
                 let mut span = s.peek().span;
                 span.hi = span.lo;
-                s.push_error(Error(ErrorKind::MissingSeqEntry(span)));
+                s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
                 xs.push(T::default().with_span(span));
                 s.advance();
             }
@@ -209,6 +252,36 @@ where
     Ok((xs, final_sep))
 }
 
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, returns the default value.
+///
+/// If the parser fails after consuming some tokens, propagates the error.
+pub(super) fn parse_or_else<T>(
+    s: &mut ParserContext,
+    default: impl FnOnce(Span) -> T,
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    let lo = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => Ok(value),
+        Err(error) if advanced(s, lo) => Err(error),
+        Err(error) => {
+            s.push_error(error);
+            // The whitespace will become part of the error span
+            s.skip_trivia();
+            Ok(default(s.span(lo)))
+        }
+    }
+}
+
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, propagates the error.
+///
+/// If the parser fails after consuming some tokens, performs
+/// recovery by advancing until the next token in `tokens` is found.
+/// The recovery token is consumed.
 pub(super) fn recovering<T>(
     s: &mut ParserContext,
     default: impl FnOnce(Span) -> T,
@@ -224,6 +297,39 @@ pub(super) fn recovering<T>(
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),
+    }
+}
+
+/// Try to parse with the given parser.
+///
+/// If the parser fails on the first token, returns the default value.
+///
+/// If the parser fails after consuming some tokens, performs
+/// recovery by advancing until the next token in `tokens` is found.
+/// The recovery token is consumed.
+///
+/// This behavior is a combination of [`recovering`] and [`parse_or_else`],
+/// and provides the most aggressive error recovery.
+pub(super) fn recovering_parse_or_else<T>(
+    s: &mut ParserContext,
+    default: impl FnOnce(Span) -> T,
+    tokens: &[TokenKind],
+    mut p: impl Parser<T>,
+) -> T {
+    let lo = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => value,
+        Err(error) => {
+            s.push_error(error);
+
+            if advanced(s, lo) {
+                s.recover(tokens);
+            } else {
+                // The whitespace will become part of the error node span
+                s.skip_trivia();
+            }
+            default(s.span(lo))
+        }
     }
 }
 
@@ -260,20 +366,8 @@ fn advanced(s: &ParserContext, from: u32) -> bool {
     s.peek().span.lo > from
 }
 
-fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
-    let mut string = String::new();
-    if let Some(s) = strings.next() {
-        string.push_str(s.as_ref());
-    }
-    for s in strings {
-        string.push_str(sep);
-        string.push_str(s.as_ref());
-    }
-    string
-}
-
 fn map_rule_name(name: &'static str, error: Error) -> Error {
-    Error(match error.0 {
+    Error::new(match error.0 {
         ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
         ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
         kind => kind,

@@ -37,25 +37,60 @@ impl GlobalTable {
         }
     }
 
-    pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
+    pub(crate) fn add_external_package(
+        &mut self,
+        package_id: PackageId,
+        package: &hir::Package,
+        store: &crate::compile::PackageStore,
+    ) {
         for item in package.items.values() {
-            let item_id = ItemId {
-                package: Some(id),
-                item: item.id,
-            };
-
-            match &item.kind {
-                hir::ItemKind::Callable(decl) => {
-                    self.terms.insert(item_id, decl.scheme().with_package(id))
-                }
-                hir::ItemKind::Namespace(..) => None,
-                hir::ItemKind::Ty(_, udt) => {
-                    self.udts.insert(item_id, udt.clone());
-                    self.terms
-                        .insert(item_id, udt.cons_scheme(item_id).with_package(id))
-                }
-            };
+            self.handle_item(item, package_id, store);
         }
+    }
+
+    fn handle_item(
+        &mut self,
+        item: &hir::Item,
+        package_id: PackageId,
+        store: &crate::compile::PackageStore,
+    ) {
+        let item_id = ItemId {
+            package: Some(package_id),
+            item: item.id,
+        };
+        match &item.kind {
+            hir::ItemKind::Callable(decl) => {
+                self.terms
+                    .insert(item_id, decl.scheme().with_package(package_id));
+            }
+            hir::ItemKind::Namespace(..) => (),
+            hir::ItemKind::Ty(_, udt) => {
+                self.udts.insert(item_id, udt.clone());
+                self.terms
+                    .insert(item_id, udt.cons_scheme(item_id).with_package(package_id));
+            }
+            hir::ItemKind::Export(
+                _,
+                ItemId {
+                    package: other_package,
+                    item: exported_item,
+                },
+            ) => {
+                // If this item is an export, then we need to grab the ID that it references.
+                // It could be from the same package, or it could be from another package.
+                let package_id = other_package.unwrap_or(package_id);
+                // So, we get the correct package first,
+                let package = store.get(package_id).expect("package should exist");
+                // find the actual item
+                let resolved_export = package
+                    .package
+                    .items
+                    .get(*exported_item)
+                    .expect("exported item should exist");
+                // and recursively resolve it (it could be another export, i.e. a chain of exports.
+                self.handle_item(resolved_export, package_id, store);
+            }
+        };
     }
 }
 
@@ -107,7 +142,7 @@ impl Checker {
             ));
         }
 
-        for top_level_node in &*package.nodes {
+        for top_level_node in &package.nodes {
             if let TopLevelNode::Stmt(stmt) = top_level_node {
                 self.new.append(&mut rules::stmt(
                     names,
@@ -136,7 +171,7 @@ impl Checker {
                 },
             ),
             ast::CallableBody::Specs(specs) => {
-                for spec in specs.iter() {
+                for spec in specs {
                     if let ast::SpecBody::Impl(input, block) = &spec.body {
                         self.check_spec(
                             names,
@@ -237,6 +272,34 @@ impl Visitor<'_> for ItemCollector<'_> {
                     item,
                     Udt {
                         name: name.name.clone(),
+                        span,
+                        definition: udt_def,
+                    },
+                );
+                self.checker.globals.insert(item, cons);
+            }
+            ast::ItemKind::Struct(decl) => {
+                let span = item.span;
+                let Some(&Res::Item(item, _)) = self.names.get(decl.name.id) else {
+                    panic!("type should have item ID");
+                };
+
+                let def = convert::ast_struct_decl_as_ty_def(decl);
+
+                let (cons, cons_errors) =
+                    convert::ast_ty_def_cons(self.names, &decl.name.name, item, &def);
+                let (udt_def, def_errors) = convert::ast_ty_def(self.names, &def);
+                self.checker.errors.extend(
+                    cons_errors
+                        .into_iter()
+                        .chain(def_errors)
+                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
+                );
+
+                self.checker.table.udts.insert(
+                    item,
+                    Udt {
+                        name: decl.name.name.clone(),
                         span,
                         definition: udt_def,
                     },

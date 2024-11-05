@@ -1,13 +1,9 @@
-/// # Sample
-/// Getting started
-///
-/// # Description
-/// This is a minimal Q# program that can be used to start writing Q# code.
-namespace MyQuantumProgram {
+// # Sample
+// Getting started
+//
+// # Description
+// This is a minimal Q# program that can be used to start writing Q# code.
 
-    @EntryPoint()
-    operation Main() : Result[] {
-        // TODO: Write your Q# code here.
-        return [];
-    }
+operation Main() : Unit {
+    // TODO: Write your Q# code here.
 }

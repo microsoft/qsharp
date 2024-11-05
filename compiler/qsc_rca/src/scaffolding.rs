@@ -35,6 +35,10 @@ impl From<PackageStoreComputeProperties> for InternalPackageStoreComputeProperti
                 blocks: package_compute_properties.blocks,
                 stmts: package_compute_properties.stmts,
                 exprs: package_compute_properties.exprs,
+                unresolved_callee_exprs: package_compute_properties
+                    .unresolved_callee_exprs
+                    .into_iter()
+                    .collect(),
             };
             scaffolding.insert(package_id, package_compute_properties);
         }
@@ -59,6 +63,10 @@ impl From<InternalPackageStoreComputeProperties> for PackageStoreComputeProperti
                 blocks: package_scaffolding.blocks,
                 stmts: package_scaffolding.stmts,
                 exprs: package_scaffolding.exprs,
+                unresolved_callee_exprs: package_scaffolding
+                    .unresolved_callee_exprs
+                    .into_iter()
+                    .collect(),
             };
             package_store_compute_properties.insert(package_id, package_compute_properties);
         }
@@ -194,6 +202,8 @@ pub struct InternalPackageComputeProperties {
     pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
     /// The application generator sets of the package expressions.
     pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
+    /// The expressions that were unresolved callees at analysis time.
+    pub unresolved_callee_exprs: Vec<ExprId>,
 }
 
 /// Scaffolding used to build the compute properties of an item.

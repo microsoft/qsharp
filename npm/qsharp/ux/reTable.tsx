@@ -4,11 +4,9 @@
 import { useState } from "preact/hooks";
 import { SingleEstimateResult } from "./data.js";
 import { CreateReport } from "./report.js";
+import { Markdown } from "./renderers.js";
 
-export function ReTable(props: {
-  mdRenderer: (input: string) => string;
-  estimatesData: SingleEstimateResult;
-}) {
+export function ReTable(props: { estimatesData: SingleEstimateResult }) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = () => {
     setShowDetail(!showDetail);
@@ -45,9 +43,6 @@ export function ReTable(props: {
                 if (typeof value === "object") {
                   value = JSON.stringify(value);
                 }
-                const renderedExplanation = {
-                  __html: props.mdRenderer(entry.explanation),
-                };
                 return (
                   <tr>
                     <td className="estimate-cell title-cell">{entry.label}</td>
@@ -57,9 +52,9 @@ export function ReTable(props: {
                         <>
                           <strong>{entry.description}</strong>
                           <hr />
-                          <div
+                          <Markdown
                             className="estimate-explanation"
-                            dangerouslySetInnerHTML={renderedExplanation}
+                            markdown={entry.explanation}
                           />
                         </>
                       ) : (
@@ -81,9 +76,10 @@ export function ReTable(props: {
         </summary>
         <ul className="estimate-table">
           {reportData.assumptions.map((assumption) => (
-            <li
+            <Markdown
               className="estimate-assumption"
-              dangerouslySetInnerHTML={{ __html: props.mdRenderer(assumption) }}
+              markdown={assumption}
+              tagName="li"
             />
           ))}
         </ul>

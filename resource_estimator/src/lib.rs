@@ -57,9 +57,8 @@ pub fn estimate_expr(
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
     interpreter
-        .run_with_sim(&mut counter, &mut out, expr)
-        .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?
-        .map_err(|e| vec![Error::Interpreter(e[0].clone())])?;
+        .run_with_sim(&mut counter, &mut out, Some(expr))
+        .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?;
     estimate_physical_resources(counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])
 }

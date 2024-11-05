@@ -1,11 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, core, std};
+use crate::compile::{self, compile};
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+
+use qsc_ast::ast;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, SourceMap, TargetCapabilityFlags},
+    compile::{Dependencies, OpenPackageStore, PackageStore, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -34,24 +37,16 @@ impl Compiler {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        include_std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        mut store: PackageStore,
+        dependencies: &Dependencies,
     ) -> Result<Self, Errors> {
-        let core = core();
-        let mut store = PackageStore::new(core);
-        let mut dependencies = Vec::new();
-        if include_std {
-            let std = std(&store, capabilities);
-            let id = store.insert(std);
-            dependencies.push(id);
-        }
-
-        let (unit, errors) = compile(
+        let (mut unit, errors) = compile(
             &store,
-            &dependencies,
+            dependencies,
             sources,
             package_type,
             capabilities,
@@ -61,12 +56,17 @@ impl Compiler {
             return Err(errors);
         }
 
+        // make the user code fully public, so increments on top of this can access them
+        unit.expose();
+
+        let mut dependencies = dependencies.iter().map(Clone::clone).collect::<Vec<_>>();
+
         let source_package_id = store.insert(unit);
-        dependencies.push(source_package_id);
+        dependencies.push((source_package_id, None));
 
         let frontend = qsc_frontend::incremental::Compiler::new(
             &store,
-            dependencies,
+            &dependencies[..],
             capabilities,
             language_features,
         );
@@ -76,7 +76,34 @@ impl Compiler {
             store,
             source_package_id,
             frontend,
-            passes: PassContext::new(capabilities),
+            passes: PassContext::default(),
+        })
+    }
+
+    pub fn from(
+        store: PackageStore,
+        source_package_id: PackageId,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+        dependencies: &Dependencies,
+    ) -> Result<Self, Errors> {
+        let mut dependencies = dependencies.iter().map(Clone::clone).collect::<Vec<_>>();
+
+        dependencies.push((source_package_id, None));
+
+        let frontend = qsc_frontend::incremental::Compiler::new(
+            &store,
+            &dependencies[..],
+            capabilities,
+            language_features,
+        );
+        let store = store.open();
+
+        Ok(Self {
+            store,
+            source_package_id,
+            frontend,
+            passes: PassContext::default(),
         })
     }
 
@@ -97,6 +124,26 @@ impl Compiler {
         source_contents: &str,
     ) -> Result<Increment, Errors> {
         self.compile_fragments(source_name, source_contents, fail_on_error)
+    }
+
+    /// Compiles Q# ast fragments. Fragments are Q# code that can contain
+    /// top-level statements as well as namespaces. A notebook cell
+    /// or an interpreter entry is an example of fragments.
+    ///
+    /// This method returns the AST and HIR packages that were created as a result of
+    /// the compilation, however it does *not* update the current compilation.
+    ///
+    /// The caller can use the returned packages to perform passes,
+    /// get information about the newly added items, or do other modifications.
+    /// It is then the caller's responsibility to merge
+    /// these packages into the current `CompileUnit` using the `update()` method.
+    pub fn compile_ast_fragments_fail_fast(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+        package: ast::Package,
+    ) -> Result<Increment, Errors> {
+        self.compile_ast_fragments(source_name, source_contents, package, fail_on_error)
     }
 
     /// Compiles Q# fragments. See [`compile_fragments_fail_fast`] for more details.
@@ -124,6 +171,52 @@ impl Compiler {
                     errors = errors || !e.is_empty();
                     accumulate_errors(into_errors(e))
                 })?;
+
+        // Even if we don't fail fast, skip passes if there were compilation errors.
+        if !errors {
+            let pass_errors = self.passes.run_default_passes(
+                &mut increment.hir,
+                &mut unit.assigner,
+                core,
+                PackageType::Lib,
+            );
+
+            accumulate_errors(into_errors_with_source(pass_errors, &unit.sources))?;
+        }
+
+        Ok(increment)
+    }
+
+    /// Compiles Q# ast fragments. See [`compile_ast_fragments_fail_fast`] for more details.
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages (parsing, lowering).
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
+    pub fn compile_ast_fragments<F>(
+        &mut self,
+        source_name: &str,
+        source_contents: &str,
+        package: ast::Package,
+        mut accumulate_errors: F,
+    ) -> Result<Increment, Errors>
+    where
+        F: FnMut(Errors) -> Result<(), Errors>,
+    {
+        let (core, unit) = self.store.get_open_mut();
+
+        let mut errors = false;
+        let mut increment = self.frontend.compile_ast_fragments(
+            unit,
+            source_name,
+            source_contents,
+            package,
+            |e| {
+                errors = errors || !e.is_empty();
+                accumulate_errors(into_errors(e))
+            },
+        )?;
 
         // Even if we don't fail fast, skip passes if there were compilation errors.
         if !errors {

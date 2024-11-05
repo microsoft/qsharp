@@ -2,11 +2,12 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::{expect, Expect};
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{
+    language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
+};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
     visit::{walk_stmt, Visitor},
@@ -31,7 +32,7 @@ fn check(block_str: &str, expect: &Expect) {
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let unit = compile(
         &store,
-        &[std],
+        &[(std, None)],
         SourceMap::new([], Some(block_str.into())),
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),

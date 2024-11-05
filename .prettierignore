@@ -17,7 +17,7 @@ __pycache__/
 /npm/qsharp/dist/
 /npm/qsharp/docs/
 /npm/qsharp/lib/
-/npm/qsharp/src/*.generated.ts
+/npm/qsharp/src/*.generated.*
 /pip/src/**/*.html
 /playground/public/libs/
 /playground/public/fonts/
@@ -25,4 +25,6 @@ __pycache__/
 /target/
 /vscode/out/
 /vscode/test/out/
+/vscode/test/**/test-workspace/
 /wasm/
+/pip/

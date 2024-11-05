@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useEffect, useRef } from "preact/hooks";
-import markdownit from "markdown-it";
 import { IDocFile } from "qsharp-lang";
+import { Markdown } from "qsharp-lang/ux";
 
 export function getNamespaces(
   documentation: Map<string, string> | undefined,
@@ -20,7 +19,6 @@ export function getNamespaces(
 export function processDocumentFiles(
   docFiles: IDocFile[],
 ): Map<string, string> {
-  const md = markdownit();
   const contentByNamespace = new Map<string, string>();
   const regex = new RegExp("^qsharp.namespace: Microsoft.Quantum.(.+)$", "m");
 
@@ -32,16 +30,15 @@ export function processDocumentFiles(
     // The next line contains "Zero-width space" unicode character
     // to allow line breaks before the period.
     const newNamespace = "… " + match[1].replace(".", "​.");
-    const newContent = md.render(doc.contents);
 
     if (contentByNamespace.has(newNamespace)) {
       const existingContent = contentByNamespace.get(newNamespace)!;
       contentByNamespace.set(
         newNamespace,
-        existingContent + "\n<br>\n<br>\n" + newContent,
+        existingContent + "\n<br>\n<br>\n\n" + doc.contents,
       );
     } else {
-      contentByNamespace.set(newNamespace, newContent);
+      contentByNamespace.set(newNamespace, doc.contents);
     }
   }
   return contentByNamespace;
@@ -51,15 +48,7 @@ export function DocumentationDisplay(props: {
   currentNamespace: string;
   documentation: Map<string, string> | undefined;
 }) {
-  const docsDiv = useRef<HTMLDivElement>(null);
+  const docsMd = props.documentation?.get(props.currentNamespace) ?? "";
 
-  useEffect(() => {
-    if (!docsDiv.current || !props.documentation) return;
-    docsDiv.current.innerHTML = props.documentation.get(
-      props.currentNamespace,
-    )!;
-    MathJax.typeset();
-  }, [props.currentNamespace]);
-
-  return <div ref={docsDiv}></div>;
+  return <Markdown markdown={docsMd} />;
 }

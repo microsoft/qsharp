@@ -6,23 +6,28 @@ import "modern-normalize/modern-normalize.css";
 import "./main.css";
 
 import { render } from "preact";
-import {
+
+import type {
   CompilerState,
-  QscEventTarget,
-  getCompilerWorker,
-  loadWasmModule,
-  getAllKatas,
-  Kata,
   VSDiagnostic,
-  log,
   LogLevel,
-  samples,
-  getLanguageServiceWorker,
   ILanguageService,
 } from "qsharp-lang";
 
+import {
+  QscEventTarget,
+  getCompilerWorker,
+  loadWasmModule,
+  log,
+  samples,
+  getLanguageServiceWorker,
+} from "qsharp-lang";
+
+// The playground Katas viewer uses the Markdown version of the katas
+import { Kata, getAllKatas } from "qsharp-lang/katas-md";
+
 import { Nav } from "./nav.js";
-import { Editor } from "./editor.js";
+import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
@@ -34,25 +39,31 @@ import {
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
+  lsToMonacoWorkspaceEdit,
   monacoPositionToLsPosition,
+  monacoRangetoLsRange,
 } from "./utils.js";
 import { BlochSphere } from "qsharp-lang/ux";
 
-export type ActiveTab = "results-tab" | "hir-tab" | "ast-tab" | "logs-tab";
+// Set up the Markdown renderer with KaTeX support
+import mk from "@vscode/markdown-it-katex";
+import markdownIt from "markdown-it";
+import { setRenderer } from "qsharp-lang/ux";
+
+const md = markdownIt("commonmark");
+md.use((mk as any).default, {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+}); // Not sure why it's not using the default export automatically :-/
+setRenderer((input: string) => md.render(input));
+
+export type ActiveTab = "results-tab" | "ast-tab" | "hir-tab" | "qir-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
 const compilerWorkerPath = basePath + "libs/compiler-worker.js";
 const languageServiceWorkerPath = basePath + "libs/language-service-worker.js";
-
-declare global {
-  const MathJax: {
-    typeset: () => void;
-    typesetPromise: (nodes: HTMLElement[]) => Promise<any>;
-    typesetClear: (nodes: HTMLElement[]) => void;
-  };
-}
 
 function telemetryHandler({ id, data }: { id: string; data?: any }) {
   // NOTE: This is for demo purposes. Wire up to the real telemetry library.
@@ -71,6 +82,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState),
   );
+
+  const [compiler_worker_factory] = useState(() => {
+    const compiler_worker_factory = () => getCompilerWorker(compilerWorkerPath);
+    return compiler_worker_factory;
+  });
+
   const [evtTarget] = useState(() => new QscEventTarget(true));
 
   const [languageService] = useState(() => {
@@ -92,6 +109,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const [ast, setAst] = useState<string>("");
   const [hir, setHir] = useState<string>("");
+  const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
   const onRestartCompiler = () => {
@@ -128,11 +146,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   function onNavItemSelected(name: string) {
     // If there was a ?code link on the URL before, clear it out
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("code")) {
-      // Get current URL without query parameters to use as the URL
-      const newUrl = `${window.location.href.split("?")[0]}`;
-      window.history.pushState({}, "", newUrl);
+    const newURL = new URL(window.location.href);
+    if (newURL.searchParams.get("code")) {
+      newURL.searchParams.delete("code");
+      newURL.searchParams.delete("profile");
+      window.history.pushState({}, "", newURL.toString());
+      props.linkedCode = undefined;
     }
     setCurrentNavItem(name);
   }
@@ -157,6 +176,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           <Editor
             code={sampleCode}
             compiler={compiler}
+            compiler_worker_factory={compiler_worker_factory}
             compilerState={compilerState}
             onRestartCompiler={onRestartCompiler}
             evtTarget={evtTarget}
@@ -164,8 +184,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
+            profile={getProfile()}
             setAst={setAst}
             setHir={setHir}
+            setQir={setQir}
             activeTab={activeTab}
             languageService={languageService}
           ></Editor>
@@ -175,15 +197,16 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
             ast={ast}
             hir={hir}
+            qir={qir}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
       ) : activeKata ? (
         <Katas
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
           compiler={compiler}
+          compiler_worker_factory={compiler_worker_factory}
           compilerState={compilerState}
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
@@ -217,7 +240,7 @@ async function loaded() {
 
   await loadWasmModule(modulePath);
 
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
@@ -238,12 +261,6 @@ async function loaded() {
 function registerMonacoLanguageServiceProviders(
   languageService: ILanguageService,
 ) {
-  monaco.languages.setLanguageConfiguration("qsharp", {
-    // This pattern is duplicated in /vscode/language-configuration.json . Please keep them in sync.
-    wordPattern: new RegExp(
-      "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\<\\>\\/\\?\\s]+)",
-    ),
-  });
   monaco.languages.registerCompletionItemProvider("qsharp", {
     // @ts-expect-error - Monaco's types expect range to be defined,
     // but it's actually optional and the default behavior is better
@@ -280,6 +297,9 @@ function registerMonacoLanguageServiceProviders(
             case "property":
               kind = monaco.languages.CompletionItemKind.Property;
               break;
+            case "field":
+              kind = monaco.languages.CompletionItemKind.Field;
+              break;
           }
           return {
             label: i.label,
@@ -300,7 +320,8 @@ function registerMonacoLanguageServiceProviders(
         }),
       };
     },
-    triggerCharacters: ["@"], // for attribute completions
+    // Trigger characters should be kept in sync with the ones in `vscode/src/extension.ts`
+    triggerCharacters: ["@", "."],
   });
 
   monaco.languages.registerHoverProvider("qsharp", {
@@ -381,7 +402,6 @@ function registerMonacoLanguageServiceProviders(
       );
       if (!sigHelpLs) return null;
       return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         dispose: () => {},
         value: {
           activeParameter: sigHelpLs.activeParameter,
@@ -419,20 +439,7 @@ function registerMonacoLanguageServiceProviders(
         newName,
       );
       if (!rename) return null;
-
-      const edits = rename.changes.flatMap(([uri, edits]) => {
-        return edits.map((edit) => {
-          const textEdit: monaco.languages.TextEdit = {
-            range: lsRangeToMonacoRange(edit.range),
-            text: edit.newText,
-          };
-          return {
-            resource: monaco.Uri.parse(uri),
-            textEdit: textEdit,
-          } as monaco.languages.IWorkspaceTextEdit;
-        });
-      });
-      return { edits: edits } as monaco.languages.WorkspaceEdit;
+      return lsToMonacoWorkspaceEdit(rename);
     },
     resolveRenameLocation: async (
       model: monaco.editor.ITextModel,
@@ -489,6 +496,37 @@ function registerMonacoLanguageServiceProviders(
       range: monaco.Range,
     ) => {
       return getFormatChanges(model, range);
+    },
+  });
+
+  monaco.languages.registerCodeActionProvider("qsharp", {
+    provideCodeActions: async (
+      model: monaco.editor.ITextModel,
+      range: monaco.Range,
+    ) => {
+      const lsCodeActions = await languageService.getCodeActions(
+        model.uri.toString(),
+        monacoRangetoLsRange(range),
+      );
+
+      const codeActions = lsCodeActions.map((lsCodeAction) => {
+        let edit;
+        if (lsCodeAction.edit) {
+          edit = lsToMonacoWorkspaceEdit(lsCodeAction.edit);
+        }
+
+        return {
+          title: lsCodeAction.title,
+          edit: edit,
+          kind: lsCodeAction.kind,
+          isPreferred: lsCodeAction.isPreferred,
+        } as monaco.languages.CodeAction;
+      });
+
+      return {
+        actions: codeActions,
+        dispose: () => {},
+      } as monaco.languages.CodeActionList;
     },
   });
 }

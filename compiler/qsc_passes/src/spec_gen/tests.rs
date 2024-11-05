@@ -2,12 +2,11 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::spec_gen::generate_specs;
@@ -286,7 +285,7 @@ fn generate_ctl() {
             Package:
                 Item 0 [0-184] (Public):
                     Namespace (Ident 20 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-119] (Public):
+                Item 1 [21-119] (Internal):
                     Parent: 0
                     Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
@@ -300,7 +299,7 @@ fn generate_ctl() {
                             Pat 7 [100-104] [Type Qubit[]]: Bind: Ident 8 [100-104] "ctls"
                             Block 9 [111-113]: <empty>
                         ctl-adj: <none>
-                Item 2 [124-182] (Public):
+                Item 2 [124-182] (Internal):
                     Parent: 0
                     Callable 10 [124-182] (operation):
                         name: Ident 11 [134-135] "B"
@@ -347,7 +346,7 @@ fn generate_ctl_auto() {
             Package:
                 Item 0 [0-242] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-119] (Public):
+                Item 1 [21-119] (Internal):
                     Parent: 0
                     Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
@@ -361,7 +360,7 @@ fn generate_ctl_auto() {
                             Pat 7 [100-104] [Type Qubit[]]: Bind: Ident 8 [100-104] "ctls"
                             Block 9 [111-113]: <empty>
                         ctl-adj: <none>
-                Item 2 [124-240] (Public):
+                Item 2 [124-240] (Internal):
                     Parent: 0
                     Callable 10 [124-240] (operation):
                         name: Ident 11 [134-135] "B"
@@ -411,7 +410,7 @@ fn generate_ctladj_distrib() {
             Package:
                 Item 0 [0-310] (Public):
                     Namespace (Ident 29 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-148] (Public):
+                Item 1 [21-148] (Internal):
                     Parent: 0
                     Callable 0 [21-148] (operation):
                         name: Ident 1 [31-32] "A"
@@ -428,7 +427,7 @@ fn generate_ctladj_distrib() {
                         ctl-adj: SpecDecl 34 [21-148]: Impl:
                             Pat 35 [21-148] [Type Qubit[]]: Bind: Ident 36 [21-148] "ctls"
                             Block 37 [106-108]: <empty>
-                Item 2 [153-308] (Public):
+                Item 2 [153-308] (Internal):
                     Parent: 0
                     Callable 12 [153-308] (operation):
                         name: Ident 13 [163-164] "B"
@@ -491,7 +490,7 @@ fn generate_ctl_skip_conjugate_apply_block() {
             Package:
                 Item 0 [0-259] (Public):
                     Namespace (Ident 28 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-119] (Public):
+                Item 1 [21-119] (Internal):
                     Parent: 0
                     Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
@@ -505,7 +504,7 @@ fn generate_ctl_skip_conjugate_apply_block() {
                             Pat 7 [100-104] [Type Qubit[]]: Bind: Ident 8 [100-104] "ctls"
                             Block 9 [111-113]: <empty>
                         ctl-adj: <none>
-                Item 2 [124-257] (Public):
+                Item 2 [124-257] (Internal):
                     Parent: 0
                     Callable 10 [124-257] (operation):
                         name: Ident 11 [134-135] "B"
@@ -587,7 +586,7 @@ fn generate_ctl_with_function_calls() {
             Package:
                 Item 0 [0-150] (Public):
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2, Item 3
-                Item 1 [21-45] (Public):
+                Item 1 [21-45] (Internal):
                     Parent: 0
                     Callable 0 [21-45] (function):
                         name: Ident 1 [30-33] "Foo"
@@ -599,7 +598,7 @@ fn generate_ctl_with_function_calls() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [50-80] (Public):
+                Item 2 [50-80] (Internal):
                     Parent: 0
                     Callable 5 [50-80] (operation):
                         name: Ident 6 [60-61] "A"
@@ -613,7 +612,7 @@ fn generate_ctl_with_function_calls() {
                             Pat 28 [50-80] [Type Qubit[]]: Bind: Ident 29 [50-80] "ctls"
                             Block 30 [78-80]: <empty>
                         ctl-adj: <none>
-                Item 3 [85-148] (Public):
+                Item 3 [85-148] (Internal):
                     Parent: 0
                     Callable 10 [85-148] (operation):
                         name: Ident 11 [95-96] "B"
@@ -661,7 +660,7 @@ fn generate_adj_self() {
             Package:
                 Item 0 [0-168] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -674,7 +673,7 @@ fn generate_adj_self() {
                             Block 24 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-166] (Public):
+                Item 2 [67-166] (Internal):
                     Parent: 0
                     Callable 6 [67-166] (operation):
                         name: Ident 7 [77-78] "A"
@@ -718,7 +717,7 @@ fn generate_ctladj_self() {
             Package:
                 Item 0 [0-180] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-68] (Public):
+                Item 1 [21-68] (Internal):
                     Parent: 0
                     Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
@@ -735,7 +734,7 @@ fn generate_ctladj_self() {
                         ctl-adj: SpecDecl 35 [21-68]: Impl:
                             Pat 36 [21-68] [Type Qubit[]]: Bind: Ident 37 [21-68] "ctls"
                             Block 38 [66-68]: <empty>
-                Item 2 [73-178] (Public):
+                Item 2 [73-178] (Internal):
                     Parent: 0
                     Callable 6 [73-178] (operation):
                         name: Ident 7 [83-84] "A"
@@ -807,7 +806,7 @@ fn generate_adj_invert() {
             Package:
                 Item 0 [0-141] (Public):
                     Namespace (Ident 20 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -820,7 +819,7 @@ fn generate_adj_invert() {
                             Block 24 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-139] (Public):
+                Item 2 [67-139] (Internal):
                     Parent: 0
                     Callable 6 [67-139] (operation):
                         name: Ident 7 [77-78] "A"
@@ -869,7 +868,7 @@ fn generate_adj_auto() {
             Package:
                 Item 0 [0-200] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -882,7 +881,7 @@ fn generate_adj_auto() {
                             Block 24 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-198] (Public):
+                Item 2 [67-198] (Internal):
                     Parent: 0
                     Callable 6 [67-198] (operation):
                         name: Ident 7 [77-78] "A"
@@ -934,7 +933,7 @@ fn generate_adj_invert_skips_within_block() {
             Package:
                 Item 0 [0-238] (Public):
                     Namespace (Ident 32 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -947,7 +946,7 @@ fn generate_adj_invert_skips_within_block() {
                             Block 36 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-236] (Public):
+                Item 2 [67-236] (Internal):
                     Parent: 0
                     Callable 6 [67-236] (operation):
                         name: Ident 7 [77-78] "A"
@@ -1014,7 +1013,7 @@ fn generate_adj_invert_with_if_exprs() {
             Package:
                 Item 0 [0-268] (Public):
                     Namespace (Ident 64 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1027,7 +1026,7 @@ fn generate_adj_invert_with_if_exprs() {
                             Block 68 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-266] (Public):
+                Item 2 [67-266] (Internal):
                     Parent: 0
                     Callable 6 [67-266] (operation):
                         name: Ident 7 [77-78] "A"
@@ -1140,7 +1139,7 @@ fn generate_adj_invert_with_range_loop() {
             Package:
                 Item 0 [0-183] (Public):
                     Namespace (Ident 28 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1153,7 +1152,7 @@ fn generate_adj_invert_with_range_loop() {
                             Block 32 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-181] (Public):
+                Item 2 [67-181] (Internal):
                     Parent: 0
                     Callable 6 [67-181] (operation):
                         name: Ident 7 [77-78] "A"
@@ -1245,7 +1244,7 @@ fn generate_adj_invert_with_array_loop() {
             Package:
                 Item 0 [0-190] (Public):
                     Namespace (Ident 29 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1258,7 +1257,7 @@ fn generate_adj_invert_with_array_loop() {
                             Block 33 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-188] (Public):
+                Item 2 [67-188] (Internal):
                     Parent: 0
                     Callable 6 [67-188] (operation):
                         name: Ident 7 [77-78] "A"
@@ -1344,7 +1343,7 @@ fn generate_adj_invert_with_nested_loops() {
             Package:
                 Item 0 [0-320] (Public):
                     Namespace (Ident 50 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-62] (Public):
+                Item 1 [21-62] (Internal):
                     Parent: 0
                     Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1357,7 +1356,7 @@ fn generate_adj_invert_with_nested_loops() {
                             Block 54 [60-62]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [67-318] (Public):
+                Item 2 [67-318] (Internal):
                     Parent: 0
                     Callable 6 [67-318] (operation):
                         name: Ident 7 [77-78] "A"
@@ -1488,7 +1487,7 @@ fn generate_ctladj_distribute() {
             Package:
                 Item 0 [0-158] (Public):
                     Namespace (Ident 20 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-68] (Public):
+                Item 1 [21-68] (Internal):
                     Parent: 0
                     Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1505,7 +1504,7 @@ fn generate_ctladj_distribute() {
                         ctl-adj: SpecDecl 35 [21-68]: Impl:
                             Pat 36 [21-68] [Type Qubit[]]: Bind: Ident 37 [21-68] "ctls"
                             Block 38 [66-68]: <empty>
-                Item 2 [73-156] (Public):
+                Item 2 [73-156] (Internal):
                     Parent: 0
                     Callable 6 [73-156] (operation):
                         name: Ident 7 [83-84] "A"
@@ -1581,7 +1580,7 @@ fn generate_ctladj_auto_to_distribute() {
             Package:
                 Item 0 [0-191] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-68] (Public):
+                Item 1 [21-68] (Internal):
                     Parent: 0
                     Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1598,7 +1597,7 @@ fn generate_ctladj_auto_to_distribute() {
                         ctl-adj: SpecDecl 36 [21-68]: Impl:
                             Pat 37 [21-68] [Type Qubit[]]: Bind: Ident 38 [21-68] "ctls"
                             Block 39 [66-68]: <empty>
-                Item 2 [73-189] (Public):
+                Item 2 [73-189] (Internal):
                     Parent: 0
                     Callable 6 [73-189] (operation):
                         name: Ident 7 [83-84] "A"
@@ -1675,7 +1674,7 @@ fn generate_ctladj_auto_to_invert() {
             Package:
                 Item 0 [0-272] (Public):
                     Namespace (Ident 39 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-68] (Public):
+                Item 1 [21-68] (Internal):
                     Parent: 0
                     Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1692,7 +1691,7 @@ fn generate_ctladj_auto_to_invert() {
                         ctl-adj: SpecDecl 53 [21-68]: Impl:
                             Pat 54 [21-68] [Type Qubit[]]: Bind: Ident 55 [21-68] "ctls"
                             Block 56 [66-68]: <empty>
-                Item 2 [73-270] (Public):
+                Item 2 [73-270] (Internal):
                     Parent: 0
                     Callable 6 [73-270] (operation):
                         name: Ident 7 [83-84] "A"
@@ -1768,7 +1767,7 @@ fn generate_ctladj_invert() {
             Package:
                 Item 0 [0-193] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
-                Item 1 [21-68] (Public):
+                Item 1 [21-68] (Internal):
                     Parent: 0
                     Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
@@ -1785,7 +1784,7 @@ fn generate_ctladj_invert() {
                         ctl-adj: SpecDecl 35 [21-68]: Impl:
                             Pat 36 [21-68] [Type Qubit[]]: Bind: Ident 37 [21-68] "ctls"
                             Block 38 [66-68]: <empty>
-                Item 2 [73-191] (Public):
+                Item 2 [73-191] (Internal):
                     Parent: 0
                     Callable 6 [73-191] (operation):
                         name: Ident 7 [83-84] "A"
@@ -1859,7 +1858,7 @@ fn lambda_adj_calls_adj() {
             Package:
                 Item 0 [0-153] (Public):
                     Namespace (Ident 32 [10-11] "A"): Item 1, Item 2, Item 3
-                Item 1 [18-55] (Public):
+                Item 1 [18-55] (Internal):
                     Parent: 0
                     Callable 0 [18-55] (operation):
                         name: Ident 1 [28-29] "X"
@@ -1872,7 +1871,7 @@ fn lambda_adj_calls_adj() {
                             Block 36 [53-55]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [60-106] (Public):
+                Item 2 [60-106] (Internal):
                     Parent: 0
                     Callable 6 [60-106] (operation):
                         name: Ident 7 [70-73] "Foo"
@@ -1886,7 +1885,7 @@ fn lambda_adj_calls_adj() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 3 [111-151] (Public):
+                Item 3 [111-151] (Internal):
                     Parent: 0
                     Callable 12 [111-151] (operation):
                         name: Ident 13 [121-124] "Bar"
@@ -1907,7 +1906,7 @@ fn lambda_adj_calls_adj() {
                 Item 4 [138-147] (Internal):
                     Parent: 3
                     Callable 27 [138-147] (operation):
-                        name: Ident 28 [0-0] "lambda"
+                        name: Ident 28 [138-147] "lambda"
                         input: Pat 26 [138-147] [Type (Qubit,)]: Tuple:
                             Pat 21 [138-139] [Type Qubit]: Bind: Ident 22 [138-139] "q"
                         output: Unit
@@ -1968,9 +1967,9 @@ fn op_array_forget_functors_with_lambdas() {
         ",
         &expect![[r#"
             Package:
-                Item 0 [13-328] (Public):
+                Item 0 [0-328] (Public):
                     Namespace (Ident 52 [23-24] "A"): Item 1, Item 2, Item 3, Item 4
-                Item 1 [43-75] (Public):
+                Item 1 [43-75] (Internal):
                     Parent: 0
                     Callable 0 [43-75] (operation):
                         name: Ident 1 [53-56] "Foo"
@@ -1982,7 +1981,7 @@ fn op_array_forget_functors_with_lambdas() {
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 2 [92-131] (Public):
+                Item 2 [92-131] (Internal):
                     Parent: 0
                     Callable 6 [92-131] (operation):
                         name: Ident 7 [102-105] "Bar"
@@ -1995,7 +1994,7 @@ fn op_array_forget_functors_with_lambdas() {
                             Block 58 [129-131]: <empty>
                         ctl: <none>
                         ctl-adj: <none>
-                Item 3 [148-193] (Public):
+                Item 3 [148-193] (Internal):
                     Parent: 0
                     Callable 12 [148-193] (operation):
                         name: Ident 13 [158-161] "Baz"
@@ -2012,7 +2011,7 @@ fn op_array_forget_functors_with_lambdas() {
                         ctl-adj: SpecDecl 67 [148-193]: Impl:
                             Pat 68 [148-193] [Type Qubit[]]: Bind: Ident 69 [148-193] "ctls"
                             Block 70 [191-193]: <empty>
-                Item 4 [210-314] (Public):
+                Item 4 [210-314] (Internal):
                     Parent: 0
                     Callable 18 [210-314] (operation):
                         name: Ident 19 [220-224] "Main"
@@ -2033,7 +2032,7 @@ fn op_array_forget_functors_with_lambdas() {
                 Item 5 [270-281] (Internal):
                     Parent: 4
                     Callable 35 [270-281] (operation):
-                        name: Ident 36 [0-0] "lambda"
+                        name: Ident 36 [270-281] "lambda"
                         input: Pat 34 [270-281] [Type (Qubit,)]: Tuple:
                             Pat 29 [270-271] [Type Qubit]: Bind: Ident 30 [270-271] "q"
                         output: Unit
@@ -2049,7 +2048,7 @@ fn op_array_forget_functors_with_lambdas() {
                 Item 6 [283-294] (Internal):
                     Parent: 4
                     Callable 47 [283-294] (operation):
-                        name: Ident 48 [0-0] "lambda"
+                        name: Ident 48 [283-294] "lambda"
                         input: Pat 46 [283-294] [Type (Qubit,)]: Tuple:
                             Pat 41 [283-284] [Type Qubit]: Bind: Ident 42 [283-284] "q"
                         output: Unit
@@ -2119,6 +2118,103 @@ fn op_array_unsupported_functors_with_lambdas() {
                             hi: 286,
                         },
                     ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn codegen_intrinsic_succeeds_with_no_specializations() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @SimulatableIntrinsic()
+                operation Foo(q : Qubit) : Unit {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-143] (Public):
+                    Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-101] (Internal):
+                    Parent: 0
+                    SimulatableIntrinsic
+                    Callable 0 [46-101] (operation):
+                        name: Ident 1 [56-59] "Foo"
+                        input: Pat 2 [60-69] [Type Qubit]: Bind: Ident 3 [60-61] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [46-101]: Impl:
+                            Block 5 [78-101] [Type Unit]:
+                                Stmt 6 [88-95]: Semi: Expr 7 [88-94] [Type Unit]: Call:
+                                    Expr 8 [88-91] [Type (Qubit => Unit)]: Var: Item 2
+                                    Expr 9 [92-93] [Type Qubit]: Var: Local 3
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [106-141] (Internal):
+                    Parent: 0
+                    Callable 10 [106-141] (operation):
+                        name: Ident 11 [116-119] "Bar"
+                        input: Pat 12 [120-129] [Type Qubit]: Bind: Ident 13 [120-121] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 14 [106-141]: Impl:
+                            Block 15 [138-141]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn codegen_intrinsic_fails_with_adj_specialization() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @SimulatableIntrinsic()
+                operation Foo(q : Qubit) : Unit is Adj {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            [
+                SimulatableIntrinsic(
+                    Span {
+                        lo: 46,
+                        hi: 108,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn codegen_intrinsic_fails_with_ctl_specialization() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @SimulatableIntrinsic()
+                operation Foo(q : Qubit) : Unit is Ctl {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            [
+                SimulatableIntrinsic(
+                    Span {
+                        lo: 46,
+                        hi: 108,
+                    },
                 ),
             ]
         "#]],

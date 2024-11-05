@@ -11,8 +11,7 @@ export type Example = {
 
 export type TextContent = {
   type: "text-content";
-  asHtml: string;
-  asMarkdown: string;
+  content: string;
 };
 
 export type ContentItem = Example | TextContent;
@@ -66,14 +65,19 @@ export type Kata = {
   id: string;
   title: string;
   sections: KataSection[];
+  published: boolean;
 };
 
-export async function getAllKatas(): Promise<Kata[]> {
-  return katasContent.katas as Kata[];
+export async function getAllKatas(
+  options: { includeUnpublished?: boolean } = { includeUnpublished: false },
+): Promise<Kata[]> {
+  return katasContent.katas.filter(
+    (k) => options.includeUnpublished || k.published,
+  ) as Kata[];
 }
 
 export async function getKata(id: string): Promise<Kata> {
-  const katas = await getAllKatas();
+  const katas = await getAllKatas({ includeUnpublished: true });
   return (
     katas.find((k) => k.id === id) ||
     Promise.reject(`Failed to get kata with id: ${id}`)

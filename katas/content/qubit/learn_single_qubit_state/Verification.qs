@@ -1,5 +1,4 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
 
     @EntryPoint()

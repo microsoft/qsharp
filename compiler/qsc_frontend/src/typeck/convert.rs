@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::resolve::{self, Names};
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Ident, Pat,
-    PatKind, SetOp, Spec, TyDef, TyDefKind, TyKind,
+    PatKind, Path, PathKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -42,25 +42,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         TyKind::Paren(inner) => ty_from_ast(names, inner),
-        TyKind::Path(path) => {
-            let ty = match names.get(path.id) {
-                Some(&resolve::Res::Item(item, _)) => {
-                    Ty::Udt(path.name.name.clone(), hir::Res::Item(item))
-                }
-                Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
-                Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
-                // a path should never resolve to a parameter,
-                // as there is a syntactic difference between
-                // paths and parameters.
-                // So realistically, by construction, `Param` here is unreachable.
-                Some(resolve::Res::Local(_) | resolve::Res::Param(_)) => unreachable!(
-                    "A path should never resolve \
-                    to a local or a parameter, as there is syntactic differentiation."
-                ),
-                None => Ty::Err,
-            };
-            (ty, Vec::new())
-        }
+        TyKind::Path(PathKind::Ok(path)) => (ty_from_path(names, path), Vec::new()),
         TyKind::Param(name) => match names.get(name.id) {
             Some(resolve::Res::Param(id)) => (Ty::Param(name.name.clone(), *id), Vec::new()),
             Some(_) => unreachable!(
@@ -72,14 +54,57 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ty_from_ast(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
             (Ty::Tuple(tys), errors)
         }
-        TyKind::Err => (Ty::Err, Vec::new()),
+        TyKind::Err | TyKind::Path(PathKind::Err { .. }) => (Ty::Err, Vec::new()),
+    }
+}
+
+pub(super) fn ty_from_path(names: &Names, path: &Path) -> Ty {
+    match names.get(path.id) {
+        Some(&resolve::Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
+        Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
+        Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
+        // a path should never resolve to a parameter,
+        // as there is a syntactic difference between
+        // paths and parameters.
+        // So realistically, by construction, `Param` here is unreachable.
+        // A path can also never resolve to an export, because in typeck/check,
+        // we resolve exports to their original definition.
+        Some(
+            resolve::Res::Local(_) | resolve::Res::Param(_) | resolve::Res::ExportedItem(_, _),
+        ) => {
+            unreachable!(
+                "A path should never resolve \
+            to a local or a parameter, as there is syntactic differentiation."
+            )
+        }
+        None => Ty::Err,
+    }
+}
+
+/// Convert a struct declaration into a UDT type definition.
+pub(super) fn ast_struct_decl_as_ty_def(decl: &StructDecl) -> TyDef {
+    TyDef {
+        id: decl.id,
+        span: decl.span,
+        kind: Box::new(TyDefKind::Tuple(
+            decl.fields
+                .iter()
+                .map(|f| {
+                    Box::new(TyDef {
+                        id: f.id,
+                        span: f.span,
+                        kind: Box::new(TyDefKind::Field(Some(f.name.clone()), f.ty.clone())),
+                    })
+                })
+                .collect(),
+        )),
     }
 }
 
@@ -107,7 +132,7 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
         TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ast_ty_def_base(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -260,7 +285,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
         PatKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items.iter() {
+            for item in items {
                 let (item_ty, item_errors) = ast_pat_ty(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -278,7 +303,7 @@ pub(crate) fn ast_callable_functors(callable: &CallableDecl) -> FunctorSetValue 
         .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
 
     if let CallableBody::Specs(specs) = callable.body.as_ref() {
-        for spec in specs.iter() {
+        for spec in specs {
             let spec_functors = match spec.spec {
                 Spec::Body => FunctorSetValue::Empty,
                 Spec::Adj => FunctorSetValue::Adj,

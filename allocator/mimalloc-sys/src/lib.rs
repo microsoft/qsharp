@@ -8,7 +8,7 @@ pub static MI_ALIGNMENT_MAX: usize = 1024 * 1024; // 1 MiB
 extern "C" {
     /// Allocate size bytes aligned by alignment.
     /// size: the number of bytes to allocate
-    /// alignment: the minimal alignment of the allocated memory. Must be less than MI_ALIGNMENT_MAX
+    /// alignment: the minimal alignment of the allocated memory. Must be less than `MI_ALIGNMENT_MAX`
     /// returns: a pointer to the allocated memory, or null if out of memory. The returned pointer is aligned by alignment
     pub fn mi_malloc_aligned(size: usize, alignment: usize) -> *mut c_void;
     pub fn mi_zalloc_aligned(size: usize, alignment: usize) -> *mut c_void;

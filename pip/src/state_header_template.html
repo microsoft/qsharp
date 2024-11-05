@@ -1,10 +1,38 @@
-<table>
+<table class="qs-stateTable">
+  <style>
+    .qs-stateTable thead tr {{
+      background-color: var(
+        --vscode-list-hoverBackground,
+        var(--jp-layout-color1, inherit)
+      );
+    }}
+    .qs-stateTable th {{
+      text-align: left;
+      border: none;
+    }}
+    .qs-stateTable tbody {{
+      pointer-events: none;
+    }}
+    .qs-stateTable tbody td {{
+      text-align: left;
+      border: none;
+    }}
+    .qs-stateTable tbody td span {{
+      display: inline-block;
+    }}
+    .qs-stateTable tbody tr:nth-child(even) {{
+      background-color: var(
+        --vscode-list-hoverBackground,
+        var(--jp-layout-color1, inherit)
+      );
+    }}
+  </style>
   <thead>
     <tr>
-      <th style="text-align: left">Basis State<br />(|𝜓₁…𝜓ₙ⟩)</th>
-      <th style="text-align: left">Amplitude</th>
-      <th style="text-align: left">Measurement Probability</th>
-      <th style="text-align: left" colspan="2">Phase</th>
+      <th>Basis State<br />(|𝜓₁…𝜓ₙ⟩)</th>
+      <th>Amplitude</th>
+      <th>Measurement Probability</th>
+      <th colspan="2">Phase</th>
     </tr>
   </thead>
   <tbody>

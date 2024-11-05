@@ -20,7 +20,7 @@ import {
 } from "./workspaceActions";
 import { QuantumUris } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
-import { targetSupportQir } from "./providerProperties";
+import { supportsAdaptive, targetSupportQir } from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
 import { getTokenForWorkspace } from "./auth";
 
@@ -109,9 +109,11 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
         const providerId = target.id.split(".")?.[0];
 
+        const supports_adaptive = supportsAdaptive(target.id);
+
         let qir = "";
         try {
-          qir = await getQirForActiveWindow();
+          qir = await getQirForActiveWindow(supports_adaptive);
         } catch (e: any) {
           if (e?.name === "QirGenerationError") {
             vscode.window.showErrorMessage(e.message);
@@ -172,7 +174,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
     const savedWorkspaces: WorkspaceConnection[] = [];
     const workspaces = workspaceTreeProvider
       .getWorkspaceIds()
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .map((id) => workspaceTreeProvider.getWorkspace(id)!);
 
     for (const elem of workspaces) {

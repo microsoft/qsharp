@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, FieldAssign, Ident, Idents, Item, ItemKind, Package, Pat,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -35,6 +35,10 @@ pub trait Visitor<'a>: Sized {
         walk_expr(self, expr);
     }
 
+    fn visit_field_assign(&mut self, assign: &'a FieldAssign) {
+        walk_field_assign(self, assign);
+    }
+
     fn visit_pat(&mut self, pat: &'a Pat) {
         walk_pat(self, pat);
     }
@@ -44,6 +48,10 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
+
+    fn visit_idents(&mut self, idents: &'a Idents) {
+        walk_idents(self, idents);
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -55,7 +63,8 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
+        ItemKind::Ty(name, _) | ItemKind::Export(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -160,6 +169,10 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(_, copy, fields) => {
+            copy.iter().for_each(|c| vis.visit_expr(c));
+            fields.iter().for_each(|f| vis.visit_field_assign(f));
+        }
         ExprKind::String(components) => {
             for component in components {
                 match component {
@@ -186,6 +199,10 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
     }
 }
 
+pub fn walk_field_assign<'a>(vis: &mut impl Visitor<'a>, assign: &'a FieldAssign) {
+    vis.visit_expr(&assign.value);
+}
+
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name) => vis.visit_ident(name),
@@ -200,4 +217,8 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
         QubitInitKind::Single | QubitInitKind::Err => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }

@@ -9,7 +9,7 @@ use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
-use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
+use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
@@ -71,24 +71,15 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_callable_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        item: &'a hir::Item,
-        package: &'a hir::Package,
+        item_id: &hir::ItemId,
         decl: &'a hir::CallableDecl,
     ) {
-        let ns = item
-            .parent
-            .and_then(|parent_id| package.items.get(parent_id))
-            .map_or_else(
-                || Rc::from(""),
-                |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
-                    _ => Rc::from(""),
-                },
-            );
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
 
+        let ns = get_namespace_name(item, package);
         let contents = display_callable(&item.doc, &ns, self.display.hir_callable_decl(decl));
-
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -102,16 +93,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: hir::ty::ParamId,
     ) {
         let code = markdown_fenced_block(def_name.name.clone());
-        let callable_name = &context
-            .current_callable
-            .expect("type params should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
             &def_name.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -128,16 +115,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         _: &'a ast::Ident,
     ) {
         let code = markdown_fenced_block(reference.name.clone());
-        let callable_name = &context
-            .current_callable
-            .expect("type params should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &LocalKind::TypeParam,
             &code,
             &reference.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -146,8 +129,38 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         });
     }
 
-    fn at_new_type_def(&mut self, type_name: &'a ast::Ident, def: &'a ast::TyDef) {
-        let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
+    fn at_new_type_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::TyDef,
+    ) {
+        let code = self.display.ident_ty_def(type_name, def);
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            def.is_struct(),
+        );
+        self.hover = Some(Hover {
+            contents,
+            span: self.range(type_name.span),
+        });
+    }
+
+    fn at_struct_def(
+        &mut self,
+        context: &LocatorContext<'a>,
+        type_name: &'a ast::Ident,
+        def: &'a ast::StructDecl,
+    ) {
+        let code = self.display.struct_decl(def);
+        let contents = display_udt(
+            &context.current_item_doc,
+            &context.current_namespace,
+            code,
+            true,
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(type_name.span),
@@ -157,13 +170,17 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_new_type_ref(
         &mut self,
         path: &'a ast::Path,
-        _: &'_ hir::ItemId,
-        _: &'a hir::Package,
+        item_id: &hir::ItemId,
         _: &'a hir::Ident,
         udt: &'a hir::ty::Udt,
     ) {
-        let contents = markdown_fenced_block(self.display.hir_udt(udt));
+        let (item, package, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
 
+        let ns = get_namespace_name(item, package);
+        let code = self.display.hir_udt(udt);
+        let contents = display_udt(&item.doc, &ns, code, udt.is_struct());
         self.hover = Some(Hover {
             contents,
             span: self.range(path.span),
@@ -172,11 +189,14 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
     fn at_field_def(
         &mut self,
-        _: &LocatorContext<'a>,
-        field_name: &'a ast::Ident,
+        context: &LocatorContext<'a>,
+        field_name: &ast::Ident,
         ty: &'a ast::Ty,
     ) {
-        let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
+        let contents = display_udt_field(
+            &context.current_item_name,
+            self.display.ident_ty(field_name, ty),
+        );
         self.hover = Some(Hover {
             contents,
             span: self.range(field_name.span),
@@ -185,16 +205,22 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
     fn at_field_ref(
         &mut self,
-        field_ref: &'a ast::Ident,
-        expr_id: &'a ast::NodeId,
-        _: &'_ hir::ItemId,
-        _: &'a hir::ty::UdtField,
+        field_ref: &ast::Ident,
+        item_id: &hir::ItemId,
+        field_definition: &'a hir::ty::UdtField,
     ) {
-        let contents = markdown_fenced_block(self.display.name_ty_id(&field_ref.name, *expr_id));
-        self.hover = Some(Hover {
-            contents,
-            span: self.range(field_ref.span),
-        });
+        let (item, _, _) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+
+        if let hir::ItemKind::Ty(name, _) = &item.kind {
+            let contents =
+                display_udt_field(&name.name, self.display.hir_udt_field(field_definition));
+            self.hover = Some(Hover {
+                contents,
+                span: self.range(field_ref.span),
+            });
+        }
     }
 
     fn at_local_def(
@@ -211,16 +237,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         } else {
             LocalKind::Local
         };
-        let callable_name = &context
-            .current_callable
-            .expect("locals should only exist in callables")
-            .name
-            .name;
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
         let contents = display_local(
             &kind,
             &code,
             &ident.name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -232,20 +254,16 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_local_ref(
         &mut self,
         context: &LocatorContext<'a>,
-        path: &'a ast::Path,
-        node_id: &'a ast::NodeId,
+        name: &ast::Ident,
+        node_id: ast::NodeId,
         definition: &'a ast::Ident,
     ) {
         let local_name = &definition.name;
-        let callable_name = &context
-            .current_callable
-            .expect("locals should only exist in callables")
-            .name
-            .name;
-        let code = markdown_fenced_block(self.display.name_ty_id(local_name, *node_id));
-        let kind = if is_param(&curr_callable_to_params(context.current_callable), *node_id) {
+        let callable_name = context.current_callable.map(|c| c.name.name.clone());
+        let code = markdown_fenced_block(self.display.name_ty_id(local_name, node_id));
+        let kind = if is_param(&curr_callable_to_params(context.current_callable), node_id) {
             LocalKind::Param
-        } else if is_param(&context.lambda_params, *node_id) {
+        } else if is_param(&context.lambda_params, node_id) {
             LocalKind::LambdaParam
         } else {
             LocalKind::Local
@@ -254,12 +272,12 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             local_name,
-            callable_name,
+            &callable_name,
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
             contents,
-            span: self.range(path.span),
+            span: self.range(name.span),
         });
     }
 }
@@ -272,6 +290,18 @@ impl HoverGenerator<'_> {
             &self.compilation.user_unit().sources,
         )
     }
+}
+
+fn get_namespace_name(item: &hir::Item, package: &hir::Package) -> Rc<str> {
+    item.parent
+        .and_then(|parent_id| package.items.get(parent_id))
+        .map_or_else(
+            || Rc::from(""),
+            |parent| match &parent.kind {
+                hir::ItemKind::Namespace(namespace, _) => namespace.name(),
+                _ => Rc::from(""),
+            },
+        )
 }
 
 fn curr_callable_to_params(curr_callable: Option<&ast::CallableDecl>) -> Vec<&ast::Pat> {
@@ -311,12 +341,15 @@ fn display_local(
     param_kind: &LocalKind,
     markdown: &String,
     local_name: &str,
-    callable_name: &str,
+    callable_name: &Option<Rc<str>>,
     callable_doc: &str,
 ) -> String {
     match param_kind {
         LocalKind::Param => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
+            let callable_name = callable_name
+                .as_ref()
+                .expect("param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
@@ -324,6 +357,9 @@ fn display_local(
         }
         LocalKind::TypeParam => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
+            let callable_name = callable_name
+                .as_ref()
+                .expect("type param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("type parameter of `{callable_name}`\n{markdown}",),
@@ -336,14 +372,32 @@ fn display_local(
 
 fn display_callable(doc: &str, namespace: &str, code: impl Display) -> String {
     let summary = parse_doc_for_summary(doc);
-
-    let mut code = if namespace.is_empty() {
-        code.to_string()
+    let markdown = markdown_fenced_block(code);
+    if namespace.is_empty() {
+        with_doc(&summary, format!("callable\n{markdown}"))
     } else {
-        format!("{namespace}\n{code}")
+        with_doc(&summary, format!("callable of `{namespace}`\n{markdown}"))
+    }
+}
+
+fn display_udt(doc: &str, namespace: &str, code: impl Display, is_struct: bool) -> String {
+    let summary = parse_doc_for_summary(doc);
+    let markdown = markdown_fenced_block(code);
+    let kind = if is_struct {
+        "struct"
+    } else {
+        "user-defined type"
     };
-    code = markdown_fenced_block(code);
-    with_doc(&summary, code)
+    if namespace.is_empty() {
+        with_doc(&summary, format!("{kind}\n{markdown}"))
+    } else {
+        with_doc(&summary, format!("{kind} of `{namespace}`\n{markdown}"))
+    }
+}
+
+fn display_udt_field(udt_name: &str, code: impl Display) -> String {
+    let markdown = markdown_fenced_block(code);
+    format!("field of `{udt_name}`\n{markdown}")
 }
 
 fn with_doc(doc: &String, code: impl Display) -> String {

@@ -31,7 +31,6 @@ parser.add_argument("--widgets", action="store_true", help="Build the Python wid
 parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly files")
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
-parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -69,6 +68,13 @@ parser.add_argument(
     help="Build and run the integration tests (default is --no-integration-tests)",
 )
 
+parser.add_argument(
+        "--ci-bench",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
+)
+
 args = parser.parse_args()
 
 if args.check_prereqs:
@@ -80,21 +86,21 @@ build_all = (
     and not args.pip
     and not args.widgets
     and not args.wasm
-    and not args.samples
     and not args.npm
     and not args.play
     and not args.vscode
     and not args.jupyterlab
+    and not args.ci_bench
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
-build_samples = build_all or args.samples
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
 build_jupyterlab = build_all or args.jupyterlab
+ci_bench = args.ci_bench
 
 # JavaScript projects and eslint, prettier depend on npm_install
 # However the JupyterLab extension uses yarn in a separate workspace
@@ -194,7 +200,7 @@ if args.check:
             cwd=root_dir,
         )
 
-    if build_cli or build_samples:
+    if build_cli:
         print("Running Q# format check")
         subprocess.run(
             [
@@ -214,19 +220,107 @@ if args.check:
     step_end()
 
 if build_cli:
-    step_start("Building the command line compiler")
-    cargo_build_args = ["cargo", "build"]
-    if build_type == "release":
-        cargo_build_args.append("--release")
-    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
-
     if run_tests:
-        print("Running tests for the command line compiler")
+        step_start("Running Rust unit tests")
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
+            # Disable LTO for release tests to speed up compilation
+            cargo_test_args.append("--config")
+            cargo_test_args.append('profile.release.lto="off"')
         subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
-    step_end()
+        step_end()
+
+
+def install_qsharp_python_package(cwd, wheelhouse, interpreter):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheelhouse,
+        "qsharp",
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+# If any package fails to install when using a requirements file, the entire
+# process will fail with unpredicatable state of installed packages. To avoid
+# this, we install each package individually from the requirements file.
+#
+# The reason we allow failures is that tooling for integration tests may not
+# be available on all platforms, so we don't want to fail the build if we can't
+# run the tests. The CI will run the tests on the platforms where the tooling
+# is available giving us the confidence that the tests pass on those platforms.
+def install_python_test_requirements(cwd, interpreter, check: bool = True):
+    requirements_file_path = os.path.join(cwd, "test_requirements.txt")
+    with open(requirements_file_path, "r", encoding="utf-8") as f:
+        # Skip empty lines
+        requirements = [line for line in f if line.strip()]
+    for requirement in requirements:
+        command_args = [
+            interpreter,
+            "-m",
+            "pip",
+            "install",
+            requirement,
+            "--only-binary",
+            "qirrunner",
+            "--only-binary",
+            "pyqir",
+        ]
+        subprocess.run(command_args, check=check, text=True, cwd=cwd)
+
+
+def build_qsharp_wheel(cwd, out_dir, interpreter, pip_env_dir):
+    command_args = [
+        interpreter,
+        "-m",
+        "pip",
+        "wheel",
+        "--wheel-dir",
+        out_dir,
+        "-v",
+        cwd,
+    ]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd, env=pip_env_dir)
+
+
+def run_python_tests(cwd, interpreter):
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def run_python_integration_tests(cwd, interpreter):
+    # don't check to see if pip succeeds. We'll see if the import works later.
+    # If it doesn't, we'll skip the tests.
+    command_args = [interpreter, "-m", "pytest"]
+    subprocess.run(command_args, check=True, text=True, cwd=cwd)
+
+
+def run_ci_historic_benchmark():
+    branch = "main"
+    output = subprocess.check_output(
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+    ).decode("utf-8")
+    print('\n'.join([line for i, line in enumerate(output.split('\n')) if i % 2 == 1]))
+
+    output = subprocess.check_output(
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
+    ).decode("utf-8")
+    date_and_commits = [line for i, line in enumerate(output.split('\n')) if i % 2 == 1]
+
+    for date_and_commit in date_and_commits:
+        print("benching commit", date_and_commit)
+        result = subprocess.run(
+            ["cargo", "criterion", "--message-format=json", "--history-id", date_and_commit],
+            capture_output=True,
+            text=True
+        )
+        with open(f"{date_and_commit}.json", "w") as f:
+            f.write(result.stdout)
 
 if build_pip:
     step_start("Building the pip package")
@@ -239,70 +333,29 @@ if build_pip:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
-    pip_build_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "wheel",
-        "--wheel-dir",
-        wheels_dir,
-        "-v",
-        pip_src,
-    ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
+    build_qsharp_wheel(pip_src, wheels_dir, python_bin, pip_env)
+    step_end()
 
     if run_tests:
-        print("Running tests for the pip package")
+        step_start("Running tests for the pip package")
 
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pip_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "--force-reinstall",
-            "--no-index",
-            "--find-links=" + wheels_dir,
-            f"qsharp",
-        ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
-        pytest_args = [python_bin, "-m", "pytest"]
-        subprocess.run(
-            pytest_args, check=True, text=True, cwd=os.path.join(pip_src, "tests")
-        )
+        install_python_test_requirements(pip_src, python_bin)
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+        run_python_tests(os.path.join(pip_src, "tests"), python_bin)
 
-        qir_test_dir = os.path.join(pip_src, "tests-qir")
-        # Try to install PyQIR and if successful, run additional tests.
-        qir_install_args = [
-            python_bin,
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            "test_requirements.txt",
-        ]
-        subprocess.run(qir_install_args, check=True, text=True, cwd=qir_test_dir)
-        pyqir_check_args = [python_bin, "-c", "import pyqir"]
-        if (
-            subprocess.run(
-                pyqir_check_args, check=False, text=True, cwd=qir_test_dir
-            ).returncode
-            == 0
-        ):
-            print("Running tests for the pip package with PyQIR")
-            pytest_args = [python_bin, "-m", "pytest"]
-            subprocess.run(pytest_args, check=True, text=True, cwd=qir_test_dir)
-        else:
-            print("Could not import PyQIR, skipping tests")
-    step_end()
+        step_end()
+
+    if args.integration_tests:
+        step_start("Running integration tests for the pip package")
+        test_dir = os.path.join(pip_src, "tests-integration")
+
+        install_python_test_requirements(test_dir, python_bin, check=False)
+        install_qsharp_python_package(pip_src, wheels_dir, python_bin)
+
+        run_python_integration_tests(test_dir, python_bin)
+
+        step_end()
+
 
 if build_widgets:
     step_start("Building the Python widgets")
@@ -339,43 +392,6 @@ if build_wasm:
     subprocess.run(
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
-    step_end()
-
-if build_samples:
-    step_start("Building qsharp samples")
-    project_directories = [
-        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
-    ]
-    single_file_directories = [
-        candidate
-        for candidate in os.walk(samples_src)
-        if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])
-    ]
-
-    files = [
-        os.path.join(dp, f)
-        for dp, _, filenames in single_file_directories
-        for f in filenames
-        if os.path.splitext(f)[1] == ".qs"
-    ]
-    projects = [
-        os.path.join(dp, f)
-        for dp, _, filenames in project_directories
-        for f in filenames
-        if f == "qsharp.json"
-    ]
-    cargo_args = ["cargo", "run", "--bin", "qsc"]
-    if build_type == "release":
-        cargo_args.append("--release")
-    for file in files:
-        subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
-    for project in projects:
-        subprocess.run(
-            (cargo_args + ["--", "--qsharp-json", project]),
-            check=True,
-            text=True,
-            cwd=root_dir,
-        )
     step_end()
 
 if build_npm:
@@ -454,6 +470,9 @@ if build_pip and build_widgets and args.integration_tests:
             f.startswith("sample.")
             or f.startswith("azure_submission.")
             or f.startswith("circuits.")
+            or f.startswith("iterative_phase_estimation.")
+            or f.startswith("repeat_until_success.")
+            or f.startswith("python-deps.")
         )
     ]
     python_bin = use_python_env(samples_src)
@@ -495,6 +514,7 @@ if build_pip and build_widgets and args.integration_tests:
         "ipykernel",
         "nbconvert",
         "pandas",
+        "qiskit>=1.2.2,<2.0.0",
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
 
@@ -526,4 +546,23 @@ if build_pip and build_widgets and args.integration_tests:
             print(result.stdout)
             raise Exception(f"Error running {notebook}")
 
+    step_end()
+
+    step_start("Running qsharp testing samples")
+    project_directories = [
+        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
+    ]
+
+    test_projects_directories = [
+        dir for dir, _, _ in project_directories if dir.find("testing") != -1
+    ]
+
+    install_python_test_requirements(pip_src, python_bin)
+    for test_project_dir in test_projects_directories:
+        run_python_tests(test_project_dir, python_bin)
+    step_end()
+
+if ci_bench:
+    step_start("Running CI benchmarking script")
+    run_ci_historic_benchmark()
     step_end()

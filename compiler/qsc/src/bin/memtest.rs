@@ -4,7 +4,8 @@
 //! Records the memory usage of the compiler.
 
 use qsc::{compile, CompileUnit};
-use qsc_frontend::compile::{PackageStore, TargetCapabilityFlags};
+use qsc_data_structures::target::TargetCapabilityFlags;
+use qsc_frontend::compile::PackageStore;
 use std::{
     alloc::{GlobalAlloc, Layout, System},
     sync::atomic::{AtomicU64, Ordering},

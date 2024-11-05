@@ -1,21 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod circuit_tests;
 mod debug;
-
+#[cfg(test)]
+mod debugger_tests;
+#[cfg(test)]
+mod package_tests;
 #[cfg(test)]
 mod tests;
 
-#[cfg(test)]
-mod debugger_tests;
-
-#[cfg(test)]
-mod circuit_tests;
-
-use std::rc::Rc;
-
 pub use qsc_eval::{
     debug::Frame,
+    noise::PauliNoise,
     output::{self, GenericReceiver},
     val::Closure,
     val::Range as ValueRange,
@@ -23,6 +21,7 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
@@ -40,26 +39,28 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::{qir::fir_to_qir, qir_base::BaseProfSim};
+use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
     output::Receiver,
     val, Env, State, VariableInfo,
 };
-use qsc_fir::fir::{self, ExecGraphNode, Global, PackageStoreLookup};
+use qsc_fir::fir::{self, ExecGraph, Global, PackageStoreLookup};
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
+    compile::{CompileUnit, Dependencies, PackageStore, Source, SourceMap},
     error::WithSource,
+    incremental::Increment,
 };
 use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
@@ -118,6 +119,8 @@ pub struct Interpreter {
     fir_store: fir::PackageStore,
     /// FIR lowerer
     lowerer: qsc_lowerer::Lowerer,
+    /// The execution graph for the last expression evaluated.
+    expr_graph: Option<ExecGraph>,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -144,19 +147,21 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             false,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
@@ -164,68 +169,148 @@ impl Interpreter {
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
     pub fn new_with_debug(
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
             true,
-            std,
             sources,
             package_type,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )
     }
 
     fn new_internal(
         dbg: bool,
-        std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
-            .map_err(into_errors)?;
+        let compiler = Compiler::new(
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+            store,
+            dependencies,
+        )
+        .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
-            fir_store.insert(
-                map_hir_package_to_fir(id),
-                qsc_lowerer::Lowerer::new()
-                    .with_debug(dbg)
-                    .lower_package(&unit.package),
-            );
+            let pkg = qsc_lowerer::Lowerer::new()
+                .with_debug(dbg)
+                .lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
 
         let source_package_id = compiler.source_package_id();
         let package_id = compiler.package_id();
+
+        let package = map_hir_package_to_fir(package_id);
+        if capabilities != TargetCapabilityFlags::all() {
+            let _ = PassContext::run_fir_passes_on_fir(
+                &fir_store,
+                map_hir_package_to_fir(source_package_id),
+                capabilities,
+            )
+            .map_err(|caps_errors| {
+                let source_package = compiler
+                    .package_store()
+                    .get(source_package_id)
+                    .expect("package should exist in the package store");
+
+                caps_errors
+                    .into_iter()
+                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                    .collect::<Vec<_>>()
+            })?;
+        }
+
         Ok(Self {
             compiler,
             lines: 0,
             capabilities,
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
+            expr_graph: None,
             env: Env::default(),
-            sim: BackendChain::new(
-                SparseSim::new(),
-                CircuitBuilder::new(CircuitConfig {
-                    // When using in conjunction with the simulator,
-                    // the circuit builder should *not* perform base profile
-                    // decompositions, in order to match the simulator's behavior.
-                    //
-                    // Note that conditional compilation (e.g. @Config(Base) attributes)
-                    // will still respect the selected profile. This also
-                    // matches the behavior of the simulator.
-                    base_profile: false,
-                }),
-            ),
+            sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
-            package: map_hir_package_to_fir(package_id),
+            package,
+            source_package: map_hir_package_to_fir(source_package_id),
+        })
+    }
+
+    pub fn from(
+        store: PackageStore,
+        source_package_id: qsc_hir::hir::PackageId,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+        dependencies: &Dependencies,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        let compiler = Compiler::from(
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+            dependencies,
+        )
+        .map_err(into_errors)?;
+
+        let mut fir_store = fir::PackageStore::new();
+        for (id, unit) in compiler.package_store() {
+            let mut lowerer = qsc_lowerer::Lowerer::new();
+            let pkg = lowerer.lower_package(&unit.package, &fir_store);
+            fir_store.insert(map_hir_package_to_fir(id), pkg);
+        }
+
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
+
+        let package = map_hir_package_to_fir(package_id);
+        if capabilities != TargetCapabilityFlags::all() {
+            let _ = PassContext::run_fir_passes_on_fir(
+                &fir_store,
+                map_hir_package_to_fir(source_package_id),
+                capabilities,
+            )
+            .map_err(|caps_errors| {
+                let source_package = compiler
+                    .package_store()
+                    .get(source_package_id)
+                    .expect("package should exist in the package store");
+
+                caps_errors
+                    .into_iter()
+                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                    .collect::<Vec<_>>()
+            })?;
+        }
+
+        Ok(Self {
+            compiler,
+            lines: 0,
+            capabilities,
+            fir_store,
+            lowerer: qsc_lowerer::Lowerer::new(),
+            expr_graph: None,
+            env: Env::default(),
+            sim: sim_circuit_backend(),
+            quantum_seed: None,
+            classical_seed: None,
+            package,
             source_package: map_hir_package_to_fir(source_package_id),
         })
     }
@@ -238,14 +323,34 @@ impl Interpreter {
     pub fn set_classical_seed(&mut self, seed: Option<u64>) {
         self.classical_seed = seed;
     }
+
+    pub fn check_source_lints(&self) -> Vec<Lint> {
+        if let Some(compile_unit) = self
+            .compiler
+            .package_store()
+            .get(self.compiler.source_package_id())
+        {
+            qsc_linter::run_lints(
+                self.compiler.package_store(),
+                compile_unit,
+                // see https://github.com/microsoft/qsharp/pull/1627 for context
+                // on why we override this config
+                Some(&[qsc_linter::LintConfig {
+                    kind: LintKind::Hir(HirLint::NeedlessOperation),
+                    level: LintLevel::Warn,
+                }]),
+            )
+        } else {
+            Vec::new()
+        }
+    }
+
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_entry(
-        &mut self,
-        receiver: &mut impl Receiver,
-    ) -> std::result::Result<Value, Vec<Error>> {
+    pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> InterpretResult {
         let graph = self.get_entry_exec_graph()?;
+        self.expr_graph = Some(graph.clone());
         eval(
             self.source_package,
             self.classical_seed,
@@ -264,8 +369,9 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-    ) -> std::result::Result<Value, Vec<Error>> {
+    ) -> InterpretResult {
         let graph = self.get_entry_exec_graph()?;
+        self.expr_graph = Some(graph.clone());
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
@@ -281,7 +387,7 @@ impl Interpreter {
         )
     }
 
-    fn get_entry_exec_graph(&self) -> std::result::Result<Rc<[ExecGraphNode]>, Vec<Error>> {
+    fn get_entry_exec_graph(&self) -> std::result::Result<ExecGraph, Vec<Error>> {
         let unit = self.fir_store.get(self.source_package);
         if unit.entry.is_some() {
             return Ok(unit.entry_exec_graph.clone());
@@ -300,12 +406,46 @@ impl Interpreter {
     ) -> InterpretResult {
         let label = self.next_line_label();
 
-        let increment = self
+        let mut increment = self
             .compiler
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
+        // Clear the entry expression, as we are evaluating fragments and a fragment with a `@EntryPoint` attribute
+        // should not change what gets executed.
+        increment.clear_entry();
 
+        self.eval_increment(receiver, increment)
+    }
+
+    /// It is assumed that if there were any parse errors on the fragments, the caller would have
+    /// already handled them. This function is intended to be used in cases where the caller wants
+    /// to handle the parse errors themselves.
+    ///  # Errors
+    /// If the compilation of the fragments fails, an error is returned.
+    /// If there is a runtime error when interpreting the fragments, an error is returned.
+    pub fn eval_ast_fragments(
+        &mut self,
+        receiver: &mut impl Receiver,
+        fragments: &str,
+        package: qsc_ast::ast::Package,
+    ) -> InterpretResult {
+        let label = self.next_line_label();
+
+        let increment = self
+            .compiler
+            .compile_ast_fragments_fail_fast(&label, fragments, package)
+            .map_err(into_errors)?;
+
+        self.eval_increment(receiver, increment)
+    }
+
+    fn eval_increment(
+        &mut self,
+        receiver: &mut impl Receiver,
+        increment: Increment,
+    ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
+        self.expr_graph = Some(graph.clone());
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -318,7 +458,7 @@ impl Interpreter {
         eval(
             self.package,
             self.classical_seed,
-            graph.into(),
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut self.env,
@@ -332,9 +472,14 @@ impl Interpreter {
     pub fn run(
         &mut self,
         receiver: &mut impl Receiver,
-        expr: &str,
-    ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        self.run_with_sim(&mut SparseSim::new(), receiver, expr)
+        expr: Option<&str>,
+        noise: Option<PauliNoise>,
+    ) -> InterpretResult {
+        let mut sim = match noise {
+            Some(noise) => SparseSim::new_with_noise(&noise),
+            None => SparseSim::new(),
+        };
+        self.run_with_sim(&mut sim, receiver, expr)
     }
 
     /// Gets the current quantum state of the simulator.
@@ -353,56 +498,49 @@ impl Interpreter {
         if self.capabilities == TargetCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
-        if self.capabilities == TargetCapabilityFlags::empty() {
-            let mut sim = BaseProfSim::new();
-            let mut stdout = std::io::sink();
-            let mut out = GenericReceiver::new(&mut stdout);
 
-            let val = self.run_with_sim(&mut sim, &mut out, expr)??;
+        // Compile the expression. This operation will set the expression as
+        // the entry-point in the FIR store.
+        let (graph, compute_properties) = self.compile_entry_expr(expr)?;
 
-            Ok(sim.finish(&val))
-        } else {
-            // Compile the expression. This operation will set the expression as
-            // the entry-point in the FIR store.
-            let (graph, compute_properties) = self.compile_entry_expr(expr)?;
-
-            let Some(compute_properties) = compute_properties else {
-                // This can only happen if capability analysis was not run. This would be a bug
-                // and we are in a bad state and can't proceed.
-                panic!(
-                    "internal error: compute properties not set after lowering entry expression"
-                );
-            };
-            let package = self.fir_store.get(self.package);
-            let entry = ProgramEntry {
-                exec_graph: graph.into(),
-                expr: (
-                    self.package,
-                    package
-                        .entry
-                        .expect("package must have an entry expression"),
-                )
-                    .into(),
-            };
-            // Generate QIR
-            fir_to_qir(
-                &self.fir_store,
-                self.capabilities,
-                Some(compute_properties),
-                &entry,
+        let Some(compute_properties) = compute_properties else {
+            // This can only happen if capability analysis was not run. This would be a bug
+            // and we are in a bad state and can't proceed.
+            panic!("internal error: compute properties not set after lowering entry expression");
+        };
+        let package = self.fir_store.get(self.package);
+        let entry = ProgramEntry {
+            exec_graph: graph,
+            expr: (
+                self.package,
+                package
+                    .entry
+                    .expect("package must have an entry expression"),
             )
-            .map_err(|e| {
-                let source_package = self
-                    .compiler
-                    .package_store()
-                    .get(map_fir_package_to_hir(self.package))
-                    .expect("package should exist in the package store");
-                vec![Error::PartialEvaluation(WithSource::from_map(
-                    &source_package.sources,
-                    e,
-                ))]
-            })
-        }
+                .into(),
+        };
+        // Generate QIR
+        fir_to_qir(
+            &self.fir_store,
+            self.capabilities,
+            Some(compute_properties),
+            &entry,
+        )
+        .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(hir_package_id)
+                .expect("package should exist in the package store");
+            vec![Error::PartialEvaluation(WithSource::from_map(
+                &source_package.sources,
+                e,
+            ))]
+        })
     }
 
     /// Generates a circuit representation for the program.
@@ -412,16 +550,16 @@ impl Interpreter {
     ///
     /// An operation can be specified by its name or a lambda expression that only takes qubits.
     /// e.g. `Sample.Main` , `qs => H(qs[0])`
+    ///
+    /// If `simulate` is specified, the program is simulated and the resulting
+    /// circuit is returned (a.k.a. trace mode). Otherwise, the circuit is generated without
+    /// simulation. In this case circuit generation may fail if the program contains dynamic
+    /// behavior (quantum operations that are dependent on measurement results).
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
+        simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let mut sink = std::io::sink();
-        let mut out = GenericReceiver::new(&mut sink);
-        let mut sim = CircuitBuilder::new(CircuitConfig {
-            base_profile: self.capabilities.is_empty(),
-        });
-
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
                 let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
@@ -433,13 +571,30 @@ impl Interpreter {
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        if let Some(entry_expr) = entry_expr {
-            self.run_with_sim(&mut sim, &mut out, &entry_expr)?
-        } else {
-            self.eval_entry_with_sim(&mut sim, &mut out)
-        }?;
+        let circuit = if simulate {
+            let mut sim = sim_circuit_backend();
 
-        Ok(sim.finish())
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.chained.finish()
+        } else {
+            let mut sim = CircuitBuilder::new(CircuitConfig {
+                base_profile: self.capabilities.is_empty(),
+            });
+
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.finish()
+        };
+
+        Ok(circuit)
+    }
+
+    /// Sets the entry expression for the interpreter.
+    pub fn set_entry_expr(&mut self, entry_expr: &str) -> std::result::Result<(), Vec<Error>> {
+        let (graph, _) = self.compile_entry_expr(entry_expr)?;
+        self.expr_graph = Some(graph);
+        Ok(())
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -448,31 +603,69 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-        expr: &str,
-    ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let (graph, _) = self.compile_entry_expr(expr)?;
+        expr: Option<&str>,
+    ) -> InterpretResult {
+        let graph = if let Some(expr) = expr {
+            let (graph, _) = self.compile_entry_expr(expr)?;
+            self.expr_graph = Some(graph.clone());
+            graph
+        } else {
+            self.expr_graph.clone().ok_or(vec![Error::NoEntryPoint])?
+        };
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
 
-        Ok(eval(
+        eval(
             self.package,
             self.classical_seed,
-            graph.into(),
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
             sim,
             receiver,
-        ))
+        )
+    }
+
+    fn run_with_sim_no_output(
+        &mut self,
+        entry_expr: Option<String>,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    ) -> InterpretResult {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+
+        let (package_id, graph) = if let Some(entry_expr) = entry_expr {
+            // entry expression is provided
+            (self.package, self.compile_entry_expr(&entry_expr)?.0)
+        } else {
+            // no entry expression, use the entrypoint in the package
+            (self.source_package, self.get_entry_exec_graph()?)
+        };
+        self.expr_graph = Some(graph.clone());
+
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
+
+        eval(
+            package_id,
+            self.classical_seed,
+            graph,
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            &mut out,
+        )
     }
 
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -502,32 +695,40 @@ impl Interpreter {
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
+    ) -> core::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
         if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit_addition.hir);
-        Ok((self.lowerer.take_exec_graph(), None))
+
+        self.lower_and_update_package(unit_addition);
+        Ok((self.lowerer.take_exec_graph().into(), None))
+    }
+
+    fn lower_and_update_package(&mut self, unit: &qsc_frontend::incremental::Increment) {
+        {
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer
+                .lower_and_update_package(fir_package, &unit.hir);
+        }
+        let fir_package: &Package = self.fir_store.get(self.package);
+        qsc_fir::validate::validate(fir_package, &self.fir_store);
     }
 
     fn run_fir_passes(
         &mut self,
         unit: &qsc_frontend::incremental::Increment,
-    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
-    {
-        let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit.hir);
+    ) -> std::result::Result<(ExecGraph, Option<PackageStoreComputeProperties>), Vec<Error>> {
+        self.lower_and_update_package(unit);
 
         let cap_results =
             PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
 
         let compute_properties = cap_results.map_err(|caps_errors| {
             // if there are errors, convert them to interpreter errors
-            // and don't update the lowerer or FIR store.
+            // and revert the update to the lowerer/FIR store.
+            let fir_package = self.fir_store.get_mut(self.package);
+            self.lowerer.revert_last_increment(fir_package);
+
             let source_package = self
                 .compiler
                 .package_store()
@@ -541,7 +742,7 @@ impl Interpreter {
         })?;
 
         let graph = self.lowerer.take_exec_graph();
-        Ok((graph, Some(compute_properties)))
+        Ok((graph.into(), Some(compute_properties)))
     }
 
     fn next_line_label(&mut self) -> String {
@@ -581,6 +782,22 @@ impl Interpreter {
     }
 }
 
+fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
+    BackendChain::new(
+        SparseSim::new(),
+        CircuitBuilder::new(CircuitConfig {
+            // When using in conjunction with the simulator,
+            // the circuit builder should *not* perform base profile
+            // decompositions, in order to match the simulator's behavior.
+            //
+            // Note that conditional compilation (e.g. @Config(Base) attributes)
+            // will still respect the selected profile. This also
+            // matches the behavior of the simulator.
+            base_profile: false,
+        }),
+    )
+}
+
 /// Describes the entry point for circuit generation.
 pub enum CircuitEntryPoint {
     /// An operation. This must be a callable name or a lambda
@@ -610,13 +827,16 @@ impl Debugger {
         capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
+        store: PackageStore,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new_with_debug(
-            true,
             sources,
             PackageType::Exe,
             capabilities,
             language_features,
+            store,
+            dependencies,
         )?;
         let source_package_id = interpreter.source_package;
         let unit = interpreter.fir_store.get(source_package_id);
@@ -680,7 +900,6 @@ impl Debugger {
                         frame.span,
                         map_fir_package_to_hir(frame.id.package),
                         self.interpreter.compiler.package_store(),
-                        map_fir_package_to_hir(self.interpreter.source_package),
                         self.position_encoding,
                     ),
                 }
@@ -712,7 +931,7 @@ impl Debugger {
                 package,
                 self.position_encoding,
             );
-            collector.visit_package(package);
+            collector.visit_package(package, &self.interpreter.fir_store);
             let mut spans: Vec<_> = collector.statements.into_iter().collect();
 
             // Sort by start position (line first, column next)
@@ -747,7 +966,7 @@ impl Debugger {
 fn eval(
     package: PackageId,
     classical_seed: Option<u64>,
-    exec_graph: Rc<[ExecGraphNode]>,
+    exec_graph: ExecGraph,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,
@@ -833,11 +1052,11 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
     fn visit_stmt(&mut self, stmt: StmtId) {
         let stmt_res = self.get_stmt(stmt);
         match stmt_res.kind {
-            qsc_fir::fir::StmtKind::Expr(expr) | qsc_fir::fir::StmtKind::Local(_, _, expr) => {
+            fir::StmtKind::Expr(expr) | fir::StmtKind::Local(_, _, expr) => {
                 self.add_stmt(stmt_res);
                 visit::walk_expr(self, expr);
             }
-            qsc_fir::fir::StmtKind::Item(_) | qsc_fir::fir::StmtKind::Semi(_) => {
+            fir::StmtKind::Item(_) | fir::StmtKind::Semi(_) => {
                 self.add_stmt(stmt_res);
             }
         };
@@ -889,7 +1108,8 @@ fn eval_error(
     vec![error::from_eval(error, package_store, stack_trace).into()]
 }
 
-fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
+#[must_use]
+pub fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
     errors
         .into_iter()
         .map(|error| Error::Compile(error.into_with_source()))

@@ -17,8 +17,9 @@ namespace Kata.Verification {
             let reference = register => PrepareRotatedState(alpha, beta, register[0]);
             let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(solution, reference, 1);
             if not isCorrect {
+                let precision = 3;
                 Message("Incorrect.");
-                Message($"The solution was incorrect for the test case alpha = {alpha}, beta = {beta}.");
+                Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}, beta = {DoubleAsStringWithPrecision(beta, precision)}.");
                 Message("Hint: examine the state prepared by your solution and compare it with the state it " +
                     "is expected to prepare.");
                 ShowQuantumStateComparison(1, qs => (), solution, reference);

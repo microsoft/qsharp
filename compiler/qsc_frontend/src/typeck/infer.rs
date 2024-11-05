@@ -10,7 +10,7 @@ use qsc_hir::{
         Prim, Scheme, Ty, Udt,
     },
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
     collections::{hash_map::Entry, VecDeque},
     fmt::Debug,
@@ -47,6 +47,12 @@ pub(super) enum Class {
         name: String,
         item: Ty,
     },
+    Struct(Ty),
+    HasStructShape {
+        record: Ty,
+        is_copy: bool,
+        fields: Vec<(String, Span)>,
+    },
     HasIndex {
         container: Ty,
         index: Ty,
@@ -73,13 +79,14 @@ impl Class {
             | Self::Eq(ty)
             | Self::Integral(ty)
             | Self::Num(ty)
-            | Self::Show(ty) => {
+            | Self::Show(ty)
+            | Self::Struct(ty) => {
                 vec![ty]
             }
             Self::Call { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
             Self::Exp { base, .. } => vec![base],
-            Self::HasField { record, .. } => vec![record],
+            Self::HasField { record, .. } | Self::HasStructShape { record, .. } => vec![record],
             Self::HasIndex {
                 container, index, ..
             } => vec![container, index],
@@ -114,6 +121,16 @@ impl Class {
                 record: f(record),
                 name,
                 item: f(item),
+            },
+            Self::Struct(ty) => Self::Struct(f(ty)),
+            Self::HasStructShape {
+                record,
+                is_copy,
+                fields,
+            } => Self::HasStructShape {
+                record: f(record),
+                is_copy,
+                fields,
             },
             Self::HasIndex {
                 container,
@@ -157,6 +174,12 @@ impl Class {
             Class::HasField { record, name, item } => {
                 check_has_field(udts, &record, name, item, span)
             }
+            Class::Struct(ty) => check_struct(udts, &ty, span),
+            Class::HasStructShape {
+                record,
+                is_copy,
+                fields,
+            } => check_has_struct_shape(udts, &record, is_copy, &fields, span),
             Class::HasIndex {
                 container,
                 index,
@@ -521,9 +544,16 @@ impl Solver {
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
-        substitute_ty(&self.solution, &mut expected);
-        substitute_ty(&self.solution, &mut actual);
-        self.unify(&expected, &actual, span)
+        // Only attempt to unify the types if they are fully substituted. If they are not,
+        // this usually indicates an infinite recursion in the type inference, so further
+        // unification would get stuck in a loop by creating recursive constraints.
+        if substitute_ty(&self.solution, &mut expected)
+            && substitute_ty(&self.solution, &mut actual)
+        {
+            self.unify(&expected, &actual, span)
+        } else {
+            Vec::new()
+        }
     }
 
     fn superset(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
@@ -621,15 +651,24 @@ impl Solver {
     }
 
     fn bind_ty(&mut self, infer: InferTyId, ty: Ty, span: Span) -> Vec<Constraint> {
-        self.solution.tys.insert(infer, ty);
-        self.pending_tys
-            .remove(&infer)
-            .map_or(Vec::new(), |pending| {
-                pending
-                    .into_iter()
-                    .map(|class| Constraint::Class(class, span))
-                    .collect()
-            })
+        self.solution.tys.insert(infer, ty.clone());
+        let mut constraint = vec![Constraint::Eq {
+            expected: ty,
+            actual: Ty::Infer(infer),
+            span,
+        }];
+        constraint.append(
+            &mut self
+                .pending_tys
+                .remove(&infer)
+                .map_or(Vec::new(), |pending| {
+                    pending
+                        .into_iter()
+                        .map(|class| Constraint::Class(class, span))
+                        .collect()
+                }),
+        );
+        constraint
     }
 
     fn bind_functor(
@@ -665,36 +704,43 @@ impl Solver {
     }
 }
 
-fn substitute_ty(solution: &Solution, ty: &mut Ty) {
-    fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) {
+fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
+    fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) -> bool {
         if limit == 0 {
             // We've hit the recursion limit. Give up and leave the inferred types
             // as is. This should trigger an ambiguous type error later.
-            return;
+            // Return false only when recursion limit is hit so the caller can know
+            // types have not been fully substituted.
+            return false;
         }
         match ty {
-            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => {}
+            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => true,
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
-                substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
-                substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
+                let a = substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
+                let b = substitute_ty_recursive(solution, &mut arrow.output, limit - 1);
                 substitute_functor(solution, &mut arrow.functors);
+                a && b
             }
             Ty::Tuple(items) => {
+                let mut all_known = true;
                 for item in items {
-                    substitute_ty_recursive(solution, item, limit - 1);
+                    all_known = substitute_ty_recursive(solution, item, limit - 1) && all_known;
                 }
+                all_known
             }
             &mut Ty::Infer(infer) => {
                 if let Some(new_ty) = solution.tys.get(infer) {
                     *ty = new_ty.clone();
-                    substitute_ty_recursive(solution, ty, limit - 1);
+                    substitute_ty_recursive(solution, ty, limit - 1)
+                } else {
+                    true
                 }
             }
         }
     }
 
-    substitute_ty_recursive(solution, ty, MAX_TY_RECURSION_DEPTH);
+    substitute_ty_recursive(solution, ty, MAX_TY_RECURSION_DEPTH)
 }
 
 fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {
@@ -902,10 +948,10 @@ fn check_has_field(
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
                     vec![Constraint::Eq {
-                        expected: item,
-                        actual: id
+                        expected: id
                             .package
                             .map_or_else(|| ty.clone(), |package_id| ty.with_package(package_id)),
+                        actual: item,
                         span,
                     }],
                     Vec::new(),
@@ -928,6 +974,74 @@ fn check_has_field(
                 span,
             ))],
         ),
+    }
+}
+
+fn ty_to_udt<'a>(udts: &'a FxHashMap<ItemId, Udt>, record: &Ty) -> Option<&'a Udt> {
+    match record {
+        Ty::Udt(_, Res::Item(id)) => udts.get(id),
+        _ => None,
+    }
+}
+
+fn check_struct(
+    udts: &FxHashMap<ItemId, Udt>,
+    record: &Ty,
+    span: Span,
+) -> (Vec<Constraint>, Vec<Error>) {
+    match ty_to_udt(udts, record) {
+        Some(udt) if udt.is_struct() => (Vec::new(), Vec::new()),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClassStruct(record.display(), span))],
+        ),
+    }
+}
+
+fn check_has_struct_shape(
+    udts: &FxHashMap<ItemId, Udt>,
+    record: &Ty,
+    is_copy: bool,
+    fields: &[(String, Span)],
+    span: Span,
+) -> (Vec<Constraint>, Vec<Error>) {
+    let mut errors = Vec::new();
+
+    // Check for duplicate fields.
+    let mut seen = FxHashSet::default();
+    for (field_name, field_span) in fields {
+        if !seen.insert(field_name) {
+            errors.push(Error(ErrorKind::DuplicateField(
+                record.display(),
+                field_name.clone(),
+                *field_span,
+            )));
+        }
+    }
+
+    match ty_to_udt(udts, record) {
+        Some(udt) => {
+            // We could compare the actual field names, but the HasField constraint already
+            // ensures all the listed fields are valid, and we just checked against duplicates,
+            // so we can just check the count.
+
+            let definition_field_count = match &udt.definition.kind {
+                qsc_hir::ty::UdtDefKind::Field(_) => 0,
+                qsc_hir::ty::UdtDefKind::Tuple(fields) => fields.len(),
+            };
+
+            if (is_copy && fields.len() > definition_field_count)
+                || (!is_copy && fields.len() != definition_field_count)
+            {
+                errors.push(Error(ErrorKind::MissingClassCorrectFieldCount(
+                    record.display(),
+                    span,
+                )));
+            }
+
+            (Vec::new(), errors)
+        }
+        None => (Vec::new(), errors),
     }
 }
 

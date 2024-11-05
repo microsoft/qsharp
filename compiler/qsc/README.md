@@ -49,6 +49,12 @@ Options:
           Disable automatic inclusion of the standard library
       --exec
           Exit after loading the files or running the given file(s)/entry on the command line
+  -q, --qsharp-json <QSHARP_JSON>
+          Path to a Q# manifest for a project
+  -f, --features <FEATURES>
+          Language features to compile with
+      --debug
+          Compile the given files and interactive snippets in debug mode
   -h, --help
           Print help
   -V, --version

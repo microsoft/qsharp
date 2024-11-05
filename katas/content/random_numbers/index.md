@@ -16,16 +16,18 @@ The quantum algorithm for random number generation is one of the simplest applic
 
 **What you should know to start working on this kata:**
 
-- The concept of qubit and measurement
-- Single-qubit gates
+- Quantum measurements
+- Basic single-qubit gates
+
+If you need a refresher on these topics, you can check out the previous katas.
 
 @[section]({"id": "random_numbers__introduction", "title": "Introduction"})
 
-Recall from the Qubit kata that a qubit state $|\psi\rangle$ is defined via the basis states $|0\rangle$ and $|1\rangle$ as $|\psi\rangle = \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$, where $|\alpha|^2 + |\beta|^2 = 1$.
+Recall from the Qubit kata that a qubit state $\ket{\psi}$ is defined via the basis states $\ket{0}$ and $\ket{1}$ as $\ket{\psi} = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha\ket{0} + \beta\ket{1}$, where $|\alpha|^2 + |\beta|^2 = 1$.
 
-We call $\alpha$ and $\beta$ the probability amplitudes of states $|0\rangle$ and $|1\rangle$, respectively. When $|\psi\rangle$ is measured in the $\\{|0\rangle, |1\rangle\\}$ basis (the computational basis), the probabilities of the outcomes are defined based on the state amplitudes: there is a $|\alpha|^2$ probability that the measurement result will be $0$, and a $|\beta|^2$ probability that the measurement result will be $1$.
+$\alpha$ and $\beta$ are the probability amplitudes of states $\ket{0}$ and $\ket{1}$, respectively. When $\ket{\psi}$ is measured in the $\{\ket{0}, \ket{1}\}$ basis (the computational basis), the probabilities of the outcomes are defined based on the state amplitudes: there is a $|\alpha|^2$ probability that the measurement result will be $0$, and a $|\beta|^2$ probability that the measurement result will be $1$.
 
-> For example, a qubit in state $\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix}$ will yield measurement results $0$ or $1$ with equal probability, while a qubit in state $\begin{bmatrix} \frac{1}{2} \\\ \frac{\sqrt3}{2} \end{bmatrix}$ will yield measurement result $0$ only 25% of the time, and $1$ 75% of the time.
+> For example, a qubit in state $\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix}$ will yield measurement results $0$ or $1$ with equal probability, while a qubit in state $\begin{bmatrix} \frac{1}{2} \\ \frac{\sqrt3}{2} \end{bmatrix}$ will yield measurement result $0$ only 25% of the time, and $1$ 75% of the time.
 
 This knowledge is sufficient to implement a simple random number generator!
 
@@ -34,51 +36,31 @@ This knowledge is sufficient to implement a simple random number generator!
 @[exercise]({
     "id": "random_numbers__random_bit",
     "title": "Generate a Single Random Bit",
-    "path": "./random_bit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_bit/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_two_bits",
     "title": "Generate a Random Two-Bit Number",
-    "path": "./random_two_bits/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_two_bits/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_n_bits",
     "title": "Generate a Number of Arbitrary Size",
-    "path": "./random_n_bits/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_n_bits/"
 })
 
 @[exercise]({
     "id": "random_numbers__weighted_random_bit",
     "title": "Generate a Weighted Bit",
-    "path": "./weighted_random_bit/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./weighted_random_bit/"
 })
 
 @[exercise]({
     "id": "random_numbers__random_number",
     "title": "Generate a Random Number Between Min and Max",
-    "path": "./random_number/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
+    "path": "./random_number/"
 })
 
 @[section]({"id": "random_numbers__whats_next", "title": "What's Next?"})

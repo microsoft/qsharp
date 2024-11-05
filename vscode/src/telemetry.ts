@@ -39,10 +39,12 @@ export enum EventType {
   ResourceEstimationEnd = "Qsharp.ResourceEstimationEnd",
   TriggerHistogram = "Qsharp.TriggerHistogram",
   HistogramStart = "Qsharp.HistogramStart",
+  NoisySimulation = "Qsharp.NoisySimulation",
   HistogramEnd = "Qsharp.HistogramEnd",
   FormatStart = "Qsharp.FormatStart",
   FormatEnd = "Qsharp.FormatEnd",
   CreateProject = "Qsharp.CreateProject",
+  FetchGitHub = "Qsharp.FetchGitHub",
   TriggerCircuit = "Qsharp.TriggerCircuit",
   CircuitStart = "Qsharp.CircuitStart",
   CircuitEnd = "Qsharp.CircuitEnd",
@@ -66,7 +68,7 @@ type EventTypes = {
     measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: { associationId: string };
+    properties: { associationId: string; targetProfile: string };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
@@ -208,6 +210,10 @@ type EventTypes = {
     properties: { associationId: string };
     measurements: Empty;
   };
+  [EventType.NoisySimulation]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
   [EventType.HistogramEnd]: {
     properties: { associationId: string };
     measurements: { timeToCompleteMs: number };
@@ -224,16 +230,27 @@ type EventTypes = {
     properties: Empty;
     measurements: Empty;
   };
+  [EventType.FetchGitHub]: {
+    properties: { status: string };
+    measurements: Empty;
+  };
   [EventType.TriggerCircuit]: {
-    properties: { associationId: string };
+    properties: {
+      associationId: string;
+    };
     measurements: Empty;
   };
   [EventType.CircuitStart]: {
-    properties: { associationId: string };
+    properties: {
+      associationId: string;
+      isOperation: string;
+      targetProfile: string;
+    };
     measurements: Empty;
   };
   [EventType.CircuitEnd]: {
     properties: {
+      simulated: string;
       associationId: string;
       reason?: string;
       flowStatus: UserFlowStatus;
@@ -292,6 +309,10 @@ export function sendTelemetryEvent<E extends keyof EventTypes>(
     log.trace(`No telemetry reporter. Omitting telemetry event ${event}`);
     return;
   }
+
+  // If you get a type error here, it's likely because you defined a
+  // non-string property or non-number measurement in `EventTypes`.
+  // For booleans, use `.toString()` to convert to string and store in `properties`.
   reporter.sendTelemetryEvent(event, properties, measurements);
   log.debug(
     `Sent telemetry: ${event} ${JSON.stringify(properties)} ${JSON.stringify(

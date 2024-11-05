@@ -7,6 +7,7 @@
 /compiler/qsc_doc_gen @billti @DmitryVasilevsky @ScottCarda-MS
 /compiler/qsc_formatter @billti @ScottCarda-MS @minestarks
 /compiler/qsc_project @minestarks @sezna @swernli
+/compiler/qsc_partial_eval @cesarzc @idavis @swernli
 /compiler/qsc_rca @cesarzc @idavis @swernli
 /compiler/qsc_rir @cesarzc @idavis @swernli
 /fuzz  @billti @idavis @swernli

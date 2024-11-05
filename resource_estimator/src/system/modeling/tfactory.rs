@@ -5,7 +5,7 @@
 mod tests;
 
 use core::fmt;
-use std::{collections::BTreeMap, vec};
+use std::{collections::BTreeMap, fmt::Display, vec};
 
 use serde::{ser::SerializeMap, Serialize};
 
@@ -37,7 +37,7 @@ impl<'a> TFactoryQubit<'a> {
     pub fn cycle_time(&self) -> u64 {
         match self {
             Self::Logical(qubit) => qubit.logical_cycle_time(),
-            Self::Physical(qubit) => qubit.one_qubit_measurement_time(),
+            Self::Physical(qubit) => qubit.t_gate_time(),
         }
     }
 
@@ -80,12 +80,12 @@ impl<'a> TFactoryQubit<'a> {
     }
 }
 
-impl ToString for TFactoryDistillationUnitType {
-    fn to_string(&self) -> String {
+impl Display for TFactoryDistillationUnitType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TFactoryDistillationUnitType::Logical => String::from("Logical"),
-            TFactoryDistillationUnitType::Physical => String::from("Physical"),
-            TFactoryDistillationUnitType::Combined => String::from("Combined"),
+            TFactoryDistillationUnitType::Logical => f.write_str("Logical"),
+            TFactoryDistillationUnitType::Physical => f.write_str("Physical"),
+            TFactoryDistillationUnitType::Combined => f.write_str("Combined"),
         }
     }
 }

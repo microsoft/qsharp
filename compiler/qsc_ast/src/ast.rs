@@ -12,6 +12,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Display, Formatter, Write},
     hash::{Hash, Hasher},
+    iter::once,
     rc::Rc,
 };
 
@@ -23,7 +24,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+        _ => unimplemented!("indentation level not supported"),
     }
 }
 
@@ -129,7 +130,7 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for node in &*self.nodes {
+        for node in &self.nodes {
             write!(indent, "\n{node}")?;
         }
         Ok(())
@@ -164,19 +165,39 @@ pub struct Namespace {
     /// The documentation.
     pub doc: Rc<str>,
     /// The namespace name.
-    pub name: Box<Ident>,
+    pub name: Box<[Ident]>,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
+}
+
+impl Namespace {
+    /// Returns an iterator over the items in the namespace that are exported.
+    pub fn exports(&self) -> impl Iterator<Item = &ImportOrExportItem> {
+        self.items.iter().flat_map(|i| match i.kind.as_ref() {
+            ItemKind::ImportOrExport(decl) if decl.is_export() => &decl.items[..],
+            _ => &[],
+        })
+    }
 }
 
 impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "Namespace {} {} ({}):",
-            self.id, self.span, self.name
-        )?;
+        write!(indent, "Namespace {} {} (", self.id, self.span)?;
+
+        let mut buf = Vec::with_capacity(self.name.len());
+
+        for ident in &self.name {
+            buf.push(format!("{ident}"));
+        }
+        if buf.len() > 1 {
+            // use square brackets only if there are more than one ident
+            write!(indent, "[{}]", buf.join(", "))?;
+        } else {
+            write!(indent, "{}", buf[0])?;
+        }
+
+        write!(indent, "):",)?;
         indent = set_indentation(indent, 1);
 
         if !self.doc.is_empty() {
@@ -186,7 +207,7 @@ impl Display for Namespace {
             indent = set_indentation(indent, 1);
         }
 
-        for i in &*self.items {
+        for i in &self.items {
             write!(indent, "\n{i}")?;
         }
 
@@ -205,8 +226,6 @@ pub struct Item {
     pub doc: Rc<str>,
     /// The attributes.
     pub attrs: Box<[Box<Attr>]>,
-    /// The visibility.
-    pub visibility: Option<Visibility>,
     /// The item kind.
     pub kind: Box<ItemKind>,
 }
@@ -218,7 +237,6 @@ impl Default for Item {
             span: Span::default(),
             doc: "".into(),
             attrs: Box::default(),
-            visibility: None,
             kind: Box::default(),
         }
     }
@@ -237,12 +255,8 @@ impl Display for Item {
             indent = set_indentation(indent, 1);
         }
 
-        for attr in &*self.attrs {
+        for attr in &self.attrs {
             write!(indent, "\n{attr}")?;
-        }
-
-        if let Some(visibility) = &self.visibility {
-            write!(indent, "\n{visibility}")?;
         }
 
         write!(indent, "\n{}", self.kind)?;
@@ -259,9 +273,13 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(Box<Ident>, Option<Box<Ident>>),
+    Open(PathKind, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// A `struct` declaration.
+    Struct(Box<StructDecl>),
+    /// An export declaration
+    ImportOrExport(ImportOrExportDecl),
 }
 
 impl Display for ItemKind {
@@ -274,25 +292,11 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Struct(s) => write!(f, "{s}")?,
+            ItemKind::ImportOrExport(item) if item.is_export => write!(f, "Export ({item})")?,
+            ItemKind::ImportOrExport(item) => write!(f, "Import ({item})")?,
         }
         Ok(())
-    }
-}
-
-/// A visibility modifier.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Visibility {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The visibility kind.
-    pub kind: VisibilityKind,
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
     }
 }
 
@@ -328,6 +332,22 @@ pub struct TyDef {
     pub span: Span,
     /// The type definition kind.
     pub kind: Box<TyDefKind>,
+}
+
+impl TyDef {
+    /// Returns true if the tye definition satisfies the conditions for a struct.
+    /// Conditions for a struct are that the `TyDef` is a tuple with all its top-level fields named.
+    /// Otherwise, returns false.
+    #[must_use]
+    pub fn is_struct(&self) -> bool {
+        match self.kind.as_ref() {
+            TyDefKind::Paren(inner) => inner.is_struct(),
+            TyDefKind::Tuple(fields) => fields
+                .iter()
+                .all(|field| matches!(field.kind.as_ref(), TyDefKind::Field(Some(_), _))),
+            TyDefKind::Err | TyDefKind::Field(..) => false,
+        }
+    }
 }
 
 impl Display for TyDef {
@@ -379,7 +399,7 @@ impl Display for TyDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts.iter() {
+                    for t in ts {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -387,6 +407,70 @@ impl Display for TyDefKind {
             TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
+    }
+}
+
+/// A struct definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct StructDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the struct.
+    pub name: Box<Ident>,
+    /// The type definition kind.
+    pub fields: Box<[Box<FieldDef>]>,
+}
+
+impl Display for StructDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Struct {} {} ({}):", self.id, self.span, self.name)?;
+        if self.fields.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 1);
+            for field in &self.fields {
+                write!(indent, "\n{field}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl WithSpan for StructDecl {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+/// A struct field definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct FieldDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the field.
+    pub name: Box<Ident>,
+    /// The type of the field.
+    pub ty: Box<Ty>,
+}
+
+impl Display for FieldDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldDef {} {} ({}): {}",
+            self.id, self.span, self.name, self.ty
+        )
+    }
+}
+
+impl WithSpan for FieldDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 
@@ -426,7 +510,7 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for param in &*self.generics {
+            for param in &self.generics {
                 write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
@@ -458,7 +542,7 @@ impl Display for CallableBody {
                 let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Specializations:")?;
                 indent = set_indentation(indent, 1);
-                for spec in specs.iter() {
+                for spec in specs {
                     write!(indent, "\n{spec}")?;
                 }
             }
@@ -588,7 +672,7 @@ pub enum TyKind {
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
     /// A named type.
-    Path(Box<Path>),
+    Path(PathKind),
     /// A type parameter.
     Param(Box<Ident>),
     /// A tuple type.
@@ -624,7 +708,7 @@ impl Display for TyKind {
                     indent = indent.with_format(Format::Uniform {
                         indentation: "    ",
                     });
-                    for t in ts.iter() {
+                    for t in ts {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -654,7 +738,7 @@ impl Display for Block {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-            for s in &*self.stmts {
+            for s in &self.stmts {
                 write!(indent, "\n{s}")?;
             }
         }
@@ -751,6 +835,16 @@ impl WithSpan for Expr {
     }
 }
 
+/// The identifier in a field access expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum FieldAccess {
+    /// The field name.
+    Ok(Box<Ident>),
+    /// The field access was missing a field name.
+    #[default]
+    Err,
+}
+
 /// An expression kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
@@ -777,8 +871,8 @@ pub enum ExprKind {
     Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
-    /// A field accessor: `a::F`.
-    Field(Box<Expr>, Box<Ident>),
+    /// A field accessor: `a::F` or `a.F`.
+    Field(Box<Expr>, FieldAccess),
     /// A for loop: `for a in b { ... }`.
     For(Box<Pat>, Box<Expr>, Box<Block>),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -800,13 +894,15 @@ pub enum ExprKind {
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
-    Path(Box<Path>),
+    Path(PathKind),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(PathKind, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -847,6 +943,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -943,11 +1040,14 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &FieldAccess) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\n{id}")?;
+    match field {
+        FieldAccess::Ok(i) => write!(indent, "\n{i}")?,
+        FieldAccess::Err => write!(indent, "\nErr")?,
+    }
     Ok(())
 }
 
@@ -1058,6 +1158,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &PathKind,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -1099,6 +1220,35 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A field assignment in a struct constructor expression.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldAssign {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The field to assign.
+    pub field: Box<Ident>,
+    /// The value to assign to the field.
+    pub value: Box<Expr>,
+}
+
+impl WithSpan for FieldAssign {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// An interpolated string component.
@@ -1183,7 +1333,7 @@ impl Display for PatKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for p in ps.iter() {
+                    for p in ps {
                         write!(indent, "\n{p}")?;
                     }
                 }
@@ -1254,7 +1404,7 @@ impl Display for QubitInitKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for qi in qis.iter() {
+                    for qi in qis {
                         write!(indent, "\n{qi}")?;
                     }
                 }
@@ -1265,25 +1415,83 @@ impl Display for QubitInitKind {
     }
 }
 
-/// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+/// A path that may or may not have been successfully parsed.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum PathKind {
+    /// A successfully parsed path.
+    Ok(Box<Path>),
+
+    /// An invalid path.
+    Err(Option<Box<IncompletePath>>),
+}
+
+impl Default for PathKind {
+    fn default() -> Self {
+        PathKind::Err(None)
+    }
+}
+
+/// A path that was successfully parsed up to a certain `.`,
+/// but is missing its final identifier.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct IncompletePath {
+    /// The whole span of the incomplete path,
+    /// including the final `.` and any whitespace or keyword
+    /// that follows it.
+    pub span: Span,
+    /// Any segments that were successfully parsed before the final `.`.
+    pub segments: Box<[Ident]>,
+    /// Whether a keyword exists after the final `.`.
+    /// This keyword can be presumed to be a partially typed identifier.
+    pub keyword: bool,
+}
+
+impl Display for PathKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            PathKind::Ok(path) => write!(f, "{path}")?,
+            PathKind::Err(Some(incomplete_path)) => {
+                let mut indent = set_indentation(indented(f), 0);
+                write!(indent, "Err IncompletePath {}:", incomplete_path.span)?;
+                indent = set_indentation(indent, 1);
+                for part in &incomplete_path.segments {
+                    write!(indent, "\n{part}")?;
+                }
+            }
+            PathKind::Err(None) => write!(f, "Err",)?,
+        }
+        Ok(())
+    }
+}
+
+/// A path to a declaration or a field access expression,
+/// to be disambiguated during name resolution.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Path {
     /// The node ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Box<Ident>>,
-    /// The declaration name.
+    /// The segments that make up the front of the path before the final `.`.
+    pub segments: Option<Box<[Ident]>>,
+    /// The declaration or field name.
     pub name: Box<Ident>,
 }
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
+        if self.segments.is_none() {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
+        } else {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "Path {} {}:", self.id, self.span)?;
+            indent = set_indentation(indent, 1);
+            if let Some(parts) = &self.segments {
+                for part in parts {
+                    write!(indent, "\n{part}")?;
+                }
+            }
+            write!(indent, "\n{}", self.name)?;
         }
         Ok(())
     }
@@ -1328,13 +1536,101 @@ impl Display for Ident {
     }
 }
 
-/// A declaration visibility kind.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VisibilityKind {
-    /// Visible everywhere.
-    Public,
-    /// Visible within a package.
-    Internal,
+/// Trait for working with dot-separated sequences of identifiers,
+/// intended to unify the different representations that can appear
+/// in the AST (`Path`s and `Ident` slices).
+pub trait Idents {
+    /// Iterates over the [`Ident`]s in this sequence.
+    fn iter(&self) -> impl Iterator<Item = &Ident>;
+
+    /// The full dot-separated name represented by this [`Ident`] sequence.
+    /// E.g. `a.b.c`
+    fn full_name(&self) -> Rc<str> {
+        let mut strs = self.rc_str_iter();
+        let first = strs.next();
+        let Some(first) = first else {
+            // No parts, empty string
+            return "".into();
+        };
+
+        let next = strs.next();
+        let Some(mut part) = next else {
+            // Only one ident, return it directly
+            return first.clone();
+        };
+
+        // More than one ident, build up a dotted string
+        let mut buf = String::new();
+        buf.push_str(first);
+        loop {
+            buf.push('.');
+            buf.push_str(part);
+            part = match strs.next() {
+                Some(part) => part,
+                None => {
+                    break;
+                }
+            };
+        }
+        buf.into()
+    }
+
+    /// Iterates over the identifier names as string slices.
+    fn str_iter(&self) -> impl Iterator<Item = &str> {
+        self.iter().map(|ident| ident.name.as_ref())
+    }
+
+    /// Iterates over the identifier names as `Rc<str>`s.
+    fn rc_str_iter(&self) -> impl Iterator<Item = &Rc<str>> {
+        self.iter().map(|ident| &ident.name)
+    }
+
+    /// Returns the conjoined span of all [`Ident`]s in this collection.
+    #[must_use]
+    fn full_span(&self) -> Span {
+        let mut idents = self.iter().peekable();
+        Span {
+            lo: idents.peek().map(|i| i.span.lo).unwrap_or_default(),
+            hi: idents.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
+    }
+}
+
+impl Idents for Box<[Ident]> {
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        self.as_ref().iter() // invokes the slice iterator
+    }
+}
+
+impl Idents for &[Ident] {
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        (*self).iter() // invokes the slice iterator
+    }
+}
+
+impl<T, U> Idents for (&T, &U)
+where
+    T: Idents,
+    U: Idents,
+{
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        self.0.iter().chain(self.1.iter())
+    }
+}
+
+impl Idents for Ident {
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        once(self)
+    }
+}
+
+impl Idents for Path {
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        self.segments
+            .iter()
+            .flat_map(Idents::iter)
+            .chain(once(self.name.as_ref()))
+    }
 }
 
 /// A callable kind.
@@ -1406,6 +1702,16 @@ pub enum Result {
     Zero,
     /// The one eigenvalue.
     One,
+}
+
+impl From<bool> for Result {
+    fn from(b: bool) -> Self {
+        if b {
+            Result::One
+        } else {
+            Result::Zero
+        }
+    }
 }
 
 /// A Pauli operator.
@@ -1556,4 +1862,109 @@ pub enum SetOp {
     Union,
     /// The set intersection.
     Intersect,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+/// Represents an export declaration.
+pub struct ImportOrExportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Box<[ImportOrExportItem]>,
+    /// Whether this is an export declaration or not. If `false`, then this is an `Import`.
+    is_export: bool,
+}
+
+impl Display for ImportOrExportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self
+            .items
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "ImportOrExportDecl {}: [{items_str}]", self.span)
+    }
+}
+
+impl ImportOrExportDecl {
+    /// Creates a new `ImportOrExportDecl` with the given span, items, and export flag.
+    #[must_use]
+    pub fn new(span: Span, items: Box<[ImportOrExportItem]>, is_export: bool) -> Self {
+        Self {
+            span,
+            items,
+            is_export,
+        }
+    }
+
+    /// Returns true if this is an export declaration.
+    #[must_use]
+    pub fn is_export(&self) -> bool {
+        self.is_export
+    }
+
+    /// Returns true if this is an import declaration.
+    #[must_use]
+    pub fn is_import(&self) -> bool {
+        !self.is_export
+    }
+
+    /// Returns an iterator over the items being exported from this namespace.
+    pub fn items(&self) -> impl Iterator<Item = &ImportOrExportItem> {
+        self.items.iter()
+    }
+}
+
+/// An individual item within an [`ImportOrExportDecl`]. This can be a path or a path with an alias.
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct ImportOrExportItem {
+    /// The span of the import path including the glob and alias, if any.
+    pub span: Span,
+    /// The path to the item being exported.
+    pub path: PathKind,
+    /// An optional alias for the item being exported.
+    pub alias: Option<Ident>,
+    /// Whether this is a glob import/export.
+    pub is_glob: bool,
+}
+
+impl Display for ImportOrExportItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let ImportOrExportItem {
+            span: _,
+            ref path,
+            ref alias,
+            is_glob,
+        } = self;
+        let is_glob = if *is_glob { ".*" } else { "" };
+        match alias {
+            Some(alias) => write!(f, "{path}{is_glob} as {alias}",),
+            None => write!(f, "{path}{is_glob}"),
+        }
+    }
+}
+
+impl WithSpan for ImportOrExportItem {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl ImportOrExportItem {
+    /// Returns the alias ident, if any, or the name from the path if no alias is present.
+    /// Returns `None` if the path has an error.
+    #[must_use]
+    pub fn name(&self) -> Option<&Ident> {
+        match &self.alias {
+            Some(_) => self.alias.as_ref(),
+            None => {
+                if let PathKind::Ok(path) = &self.path {
+                    Some(&path.name)
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }

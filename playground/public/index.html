@@ -16,26 +16,12 @@
       rel="icon"
       href="data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAACDvAxdbn9YZSTVntx1qcAADs="
     />
-    <link rel="stylesheet" href="libs/github-markdown.css" />
+    <link rel="stylesheet" href="libs/katex/github-markdown-light.css" />
+    <link rel="stylesheet" href="libs/katex/katex.min.css" />
     <link rel="stylesheet" href="libs/main.css" />
     <title>Q# playground</title>
-    <script>
-      // Need the physics extension for certain constructs
-      // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
-      window.MathJax = {
-        loader: { load: ["[tex]/physics"] },
-        tex: {
-          packages: { "[+]": ["physics"] },
-          inlineMath: [
-            ["$", "$"],
-            ["\\(", "\\)"],
-          ],
-        },
-      };
-    </script>
-    <script src="libs/mathjax/tex-chtml.js"></script>
     <script src="libs/monaco/vs/loader.js"></script>
     <script src="libs/main.js"></script>
   </head>
-  <body class="qs-play-body"></body>
+  <body data-theme="light" class="qs-play-body"></body>
 </html>

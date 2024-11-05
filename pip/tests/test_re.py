@@ -34,7 +34,7 @@ def test_qsharp_estimation_from_precalculated_counts() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     res = qsharp.estimate(
         """{{
-        open Microsoft.Quantum.ResourceEstimation;
+        import Std.ResourceEstimation.*;
         use qubits = Qubit[12581];
         AccountForEstimates(
             [TCount(12), RotationCount(12), RotationDepth(12),

@@ -29,8 +29,8 @@ fn single_qubit_rotation_decl_works() {
 
 #[test]
 fn measurement_decl_works() {
-    let decl = builder::mz_decl();
-    expect!["declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1"]
+    let decl = builder::m_decl();
+    expect!["declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
@@ -135,7 +135,7 @@ fn bell_program() {
 
         declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
 
-        declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
 
         declare void @__quantum__rt__array_record_output(i64, i8*)
 
@@ -145,8 +145,8 @@ fn bell_program() {
         block_0:
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
           call void @__quantum__rt__array_record_output(i64 2, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
@@ -219,11 +219,18 @@ fn teleport_program() {
 
         ; module flags
 
-        !llvm.module.flags = !{!0, !1, !2, !3}
+        !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
         !0 = !{i32 1, !"qir_major_version", i32 1}
         !1 = !{i32 7, !"qir_minor_version", i32 0}
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        !4 = !{i32 1, !"classical_ints", i1 false}
+        !5 = !{i32 1, !"classical_floats", i1 false}
+        !6 = !{i32 1, !"backwards_branching", i1 false}
+        !7 = !{i32 1, !"qubit_resetting", i1 false}
+        !8 = !{i32 1, !"classical_fixed_points", i1 false}
+        !9 = !{i32 1, !"user_functions", i1 false}
+        !10 = !{i32 1, !"multiple_target_branching", i1 false}
     "#]].assert_eq(&program.to_qir(&program));
 }

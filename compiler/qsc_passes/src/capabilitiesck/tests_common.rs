@@ -1,22 +1,37 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::Expect;
 
 use crate::capabilitiesck::check_supported_capabilities;
 use qsc::{incremental::Compiler, PackageType};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{Package, PackageId, PackageStore};
-use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
 
 pub fn check(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
     let compilation_context = CompilationContext::new(source);
     let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
-    let errors = check_supported_capabilities(package, compute_properties, capabilities);
+    let errors = check_supported_capabilities(
+        package,
+        compute_properties,
+        capabilities,
+        &compilation_context.fir_store,
+    );
+    expect.assert_debug_eq(&errors);
+}
+
+pub fn check_for_exe(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
+    let compilation_context = CompilationContext::new_for_exe(source);
+    let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
+    let errors = check_supported_capabilities(
+        package,
+        compute_properties,
+        capabilities,
+        &compilation_context.fir_store,
+    );
     expect.assert_debug_eq(&errors);
 }
 
@@ -26,10 +41,8 @@ fn lower_hir_package_store(
 ) -> PackageStore {
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
-        fir_store.insert(
-            map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
-        );
+        let pkg = lowerer.lower_package(&unit.package, &fir_store);
+        fir_store.insert(map_hir_package_to_fir(id), pkg);
     }
     fir_store
 }
@@ -42,12 +55,15 @@ struct CompilationContext {
 
 impl CompilationContext {
     fn new(source: &str) -> Self {
+        let mut store = qsc::PackageStore::new(qsc::compile::core());
+        let std_id = store.insert(qsc::compile::std(&store, TargetCapabilityFlags::all()));
         let mut compiler = Compiler::new(
-            true,
             SourceMap::default(),
             PackageType::Lib,
             TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
         )
         .expect("should be able to create a new compiler");
         let package_id = map_hir_package_to_fir(compiler.package_id());
@@ -55,6 +71,29 @@ impl CompilationContext {
             .compile_fragments_fail_fast("test", source)
             .expect("code should compile");
         compiler.update(increment);
+        let mut lowerer = Lowerer::new();
+        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
+        let analyzer = Analyzer::init(&fir_store);
+        let compute_properties = analyzer.analyze_all();
+        Self {
+            fir_store,
+            compute_properties,
+            package_id,
+        }
+    }
+
+    fn new_for_exe(source: &str) -> Self {
+        let (std_id, store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+        let compiler = Compiler::new(
+            SourceMap::new([("test".into(), source.into())], Some("".into())),
+            PackageType::Exe,
+            TargetCapabilityFlags::all(),
+            LanguageFeatures::default(),
+            store,
+            &[(std_id, None)],
+        )
+        .expect("should be able to create a new compiler");
+        let package_id = map_hir_package_to_fir(compiler.source_package_id());
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
@@ -92,8 +131,8 @@ pub const USE_DYNAMIC_BOOLEAN: &str = r#"
 
 pub const USE_DYNAMIC_INT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -119,8 +158,8 @@ pub const USE_DYNAMIC_RANGE: &str = r#"
 
 pub const USE_DYNAMIC_DOUBLE: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -140,8 +179,8 @@ pub const USE_DYNAMIC_QUBIT: &str = r#"
 
 pub const USE_DYNAMIC_BIG_INT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -168,9 +207,9 @@ pub const USE_DYNAMICALLY_SIZED_ARRAY: &str = r#"
 
 pub const USE_DYNAMIC_UDT: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Math.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[4];
             let results = MeasureEachZ(register);
@@ -180,7 +219,7 @@ pub const USE_DYNAMIC_UDT: &str = r#"
 
 pub const USE_DYNAMIC_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = M(q) == Zero ? Cos | Sin;
@@ -189,7 +228,7 @@ pub const USE_DYNAMIC_FUNCTION: &str = r#"
 
 pub const USE_DYNAMIC_OPERATION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let op = M(q) == Zero ? X | Y;
@@ -248,7 +287,7 @@ pub const CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
 
 pub const CALL_DYNAMIC_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = M(q) == Zero ? Cos | Sin;
@@ -258,7 +297,7 @@ pub const CALL_DYNAMIC_FUNCTION: &str = r#"
 
 pub const CALL_DYNAMIC_OPERATION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let op = M(q) == Zero ? X | Y;
@@ -268,7 +307,7 @@ pub const CALL_DYNAMIC_OPERATION: &str = r#"
 
 pub const CALL_UNRESOLVED_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             use q = Qubit();
             let fn = true ? Cos | Sin;
@@ -286,16 +325,95 @@ pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
         }
     }"#;
 
+pub const CUSTOM_MEASUREMENT: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            Foo(q)
+        }
+
+        @Measurement()
+        operation Foo(q: Qubit) : Result {
+            body intrinsic;
+        }
+    }"#;
+
+pub const CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            Foo(q)
+        }
+
+        @Measurement()
+        @SimulatableIntrinsic()
+        operation Foo(q: Qubit) : Result {
+            H(q);
+            M(q)
+        }
+    }"#;
+
+pub const CUSTOM_RESET: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        operation Foo(q: Qubit) : Unit {
+            body intrinsic;
+        }
+    }"#;
+
+pub const CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR: &str = r#"
+    namespace Test {
+        operation Main() : Result {
+            use q = Qubit();
+            H(q);
+            let res = M(q);
+            Foo(q);
+            res
+        }
+
+        @Reset()
+        @SimulatableIntrinsic()
+        operation Foo(q: Qubit) : Unit {
+            Reset(q);
+        }
+    }"#;
+
 pub const USE_DYNAMIC_INDEX: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
+        import Std.Convert.*;
+        import Std.Measurement.*;
         operation Foo() : Unit {
             use register = Qubit[2];
             let results = MeasureEachZ(register);
             let i = ResultArrayAsInt(results);
             let a = [1, 2, 3, 4];
             a[i];
+        }
+    }"#;
+
+pub const USE_DYNAMIC_LHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            i ^ 1;
+        }
+    }"#;
+
+pub const USE_DYNAMIC_RHS_EXP_BINOP: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let i = M(q) == Zero ? 0 | 1;
+            1 ^ i;
         }
     }"#;
 
@@ -321,9 +439,83 @@ pub const LOOP_WITH_DYNAMIC_CONDITION: &str = r#"
 
 pub const USE_CLOSURE_FUNCTION: &str = r#"
     namespace Test {
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         operation Foo() : Unit {
             let theta = PI();
             let lambdaFn = theta -> Sin(theta);
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_INT: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Int {
+            42
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_DOUBLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Double {
+            42.0
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_STRING: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : String {
+            "Hello, World!"
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_BOOL: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Bool {
+            true
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_BIG_INT: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : BigInt {
+            42L
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_PAULI: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Pauli {
+            PauliX
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_RANGE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : Range {
+            1..10
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_STATIC_INT_IN_TUPLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : (Result, Int) {
+            use q = Qubit();
+            (M(q), 42)
+        }
+    }"#;
+
+pub const USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : (Result, Int[]) {
+            use q = Qubit();
+            (M(q), [1, 2, 3])
         }
     }"#;

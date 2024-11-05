@@ -1,0 +1,6 @@
+{
+  "author": "Microsoft",
+  "files" : [
+    "src/Dependency.qs"
+  ]
+}

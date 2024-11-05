@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IPosition, IRange } from "qsharp-lang";
+import { IPosition, IRange, IWorkspaceEdit } from "qsharp-lang";
 
 // Utility functions to convert source code to and from base64.
 //
@@ -97,4 +97,32 @@ export function lsRangeToMonacoRange(range: IRange): monaco.IRange {
     range.end.line + 1,
     range.end.character + 1,
   );
+}
+
+export function monacoRangetoLsRange(range: monaco.Range): IRange {
+  return {
+    start: {
+      line: range.startLineNumber - 1,
+      character: range.startColumn - 1,
+    },
+    end: { line: range.endLineNumber - 1, character: range.endColumn - 1 },
+  };
+}
+
+export function lsToMonacoWorkspaceEdit(
+  iWorkspaceEdit: IWorkspaceEdit,
+): monaco.languages.WorkspaceEdit {
+  const edits = iWorkspaceEdit.changes.flatMap(([uri, edits]) => {
+    return edits.map((edit) => {
+      const textEdit: monaco.languages.TextEdit = {
+        range: lsRangeToMonacoRange(edit.range),
+        text: edit.newText,
+      };
+      return {
+        resource: monaco.Uri.parse(uri),
+        textEdit: textEdit,
+      } as monaco.languages.IWorkspaceTextEdit;
+    });
+  });
+  return { edits: edits } as monaco.languages.WorkspaceEdit;
 }

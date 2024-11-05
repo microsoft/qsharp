@@ -1,13 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::get_references;
 use crate::{
-    test_utils::{
-        compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
-    },
+    test_utils::{compile_notebook_with_markers, compile_with_markers},
     Encoding,
 };
 use expect_test::{expect, Expect};
@@ -16,8 +12,7 @@ use indoc::indoc;
 /// Asserts that the reference locations given at the cursor position matches the expected reference locations.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check_with_std(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_position, _) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_markers, true);
     let actual = get_references(
         &compilation,
         "<source>",
@@ -33,7 +28,7 @@ fn check_with_std(source_with_markers: &str, expect: &Expect) {
 /// The expected reference location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str, include_declaration: bool) {
     let (compilation, cursor_position, target_spans) =
-        compile_with_fake_stdlib_and_markers(source_with_markers);
+        compile_with_markers(source_with_markers, true);
     let actual = get_references(
         &compilation,
         "<source>",
@@ -63,7 +58,7 @@ fn check_exclude_decl(source_with_markers: &str) {
 
 fn check_notebook_exclude_decl(cells_with_markers: &[(&str, &str)]) {
     let (compilation, cell_uri, position, target_spans) =
-        compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
+        compile_notebook_with_markers(cells_with_markers);
 
     let actual = get_references(&compilation, &cell_uri, position, Encoding::Utf8, false)
         .into_iter()
@@ -96,12 +91,12 @@ fn std_callable_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 1,
-                            column: 26,
+                            line: 2,
+                            column: 18,
                         },
                         end: Position {
-                            line: 1,
-                            column: 30,
+                            line: 2,
+                            column: 22,
                         },
                     },
                 },
@@ -253,12 +248,12 @@ fn std_udt_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 24,
+                            line: 5,
+                            column: 16,
                         },
                         end: Position {
-                            line: 4,
-                            column: 27,
+                            line: 5,
+                            column: 19,
                         },
                     },
                 },
@@ -343,12 +338,12 @@ fn std_field_ref() {
                     source: "qsharp-library-source:<std>",
                     range: Range {
                         start: Position {
-                            line: 4,
-                            column: 31,
+                            line: 5,
+                            column: 23,
                         },
                         end: Position {
-                            line: 4,
-                            column: 32,
+                            line: 5,
+                            column: 24,
                         },
                     },
                 },
@@ -362,6 +357,397 @@ fn std_field_ref() {
                         end: Position {
                             line: 4,
                             column: 24,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn struct_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉B↘ar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉Bar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_ref_fn_constructor() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct ◉Bar◉ { fst : Int, snd : Int }
+            operation Foo(x : ◉Bar◉) : Unit {
+                let bar = ◉B↘ar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct Bar { fst : Int, snd : Int }
+            operation Foo(x : ◉B↘ar◉) : Unit {
+                let bar = ◉Bar◉(1, 2);
+                let bar = new ◉Bar◉ { fst = 1, snd = 2 };
+                let baz = bar::fst;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo(x : Fak↘eStruct) : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 17,
+                            column: 15,
+                        },
+                        end: Position {
+                            line: 17,
+                            column: 25,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 2,
+                            column: 22,
+                        },
+                        end: Position {
+                            line: 2,
+                            column: 32,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉f↘st◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉fst◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉fst◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉f↘st◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_ref_cons() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct Bar { ◉fst◉ : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉f↘st◉ = 1, snd = 2 };
+                let baz = bar::◉fst◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct Bar { fst : Int, snd : Int }
+            operation Foo() : Unit {
+                let bar = new Bar { ◉fst◉ = 1, snd = 2 };
+                let baz = bar::◉f↘st◉;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_field_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = bar::↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 17,
+                            column: 28,
+                        },
+                        end: Position {
+                            line: 17,
+                            column: 29,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 23,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 24,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn struct_field_path_def() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref() {
+    check_include_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { ◉c◉ : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn struct_field_path_ref_exclude_def() {
+    check_exclude_decl(
+        r#"
+        namespace Test {
+            struct A { b : B }
+            struct B { c : C }
+            struct C { i : Int }
+            operation Foo(a : A) : Unit {
+                let x = { a.b.◉c◉ }.i;
+                let y = a.b.◉↘c◉.i;
+            }
+        }
+    "#,
+    );
+}
+
+#[test]
+fn std_struct_field_path_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = bar.↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 17,
+                            column: 28,
+                        },
+                        end: Position {
+                            line: 17,
+                            column: 29,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 22,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 23,
+                        },
+                    },
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn std_struct_field_path_with_expr_ref() {
+    check_with_std(
+        indoc! {r#"
+        namespace Test {
+            open FakeStdLib;
+            operation Foo() : Unit {
+                let bar = new FakeStruct { x = 1, y = 2 };
+                let baz = { bar }.↘x;
+            }
+        }
+    "#},
+        &expect![[r#"
+            [
+                Location {
+                    source: "qsharp-library-source:<std>",
+                    range: Range {
+                        start: Position {
+                            line: 17,
+                            column: 28,
+                        },
+                        end: Position {
+                            line: 17,
+                            column: 29,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 35,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 36,
+                        },
+                    },
+                },
+                Location {
+                    source: "<source>",
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 26,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 27,
                         },
                     },
                 },
@@ -524,5 +910,21 @@ fn notebook_defined_in_later_cell() {
     check_notebook_exclude_decl(&[
         ("cell1", "C↘allee();"),
         ("cell2", "operation Callee() : Unit {}"),
+    ]);
+}
+
+#[test]
+fn notebook_local_definition() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "let ↘x = 3; let y = ◉x◉ + 1;"),
+        ("cell2", "let z = ◉x◉ + 2;"),
+    ]);
+}
+
+#[test]
+fn notebook_local_reference() {
+    check_notebook_exclude_decl(&[
+        ("cell1", "let x = 3; let y = ◉x◉ + 1;"),
+        ("cell2", "let z = ◉↘x◉ + 2;"),
     ]);
 }

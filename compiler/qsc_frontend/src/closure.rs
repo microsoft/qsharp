@@ -124,7 +124,7 @@ pub(super) fn lift(
         kind: lambda.kind,
         name: Ident {
             id: assigner.next_node(),
-            span: Span::default(),
+            span,
             name: "lambda".into(),
         },
         generics: Vec::new(),
@@ -151,6 +151,7 @@ pub(super) fn lift(
         adj: None,
         ctl: None,
         ctl_adj: None,
+        attrs: Vec::default(),
     };
 
     (free_vars, callable)

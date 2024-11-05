@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::expect;
 use indoc::indoc;
@@ -40,10 +39,10 @@ fn open() {
     check(
         indoc! {r#"
             namespace Sample {
-                open Microsoft.Quantum.Intrinsic as sics;
+                import Std.Intrinsic as sics;
 
-                open Microsoft.Quantum.Diagnostics;
-                open Microsoft.Quantum.Intrinsic as intrin;
+                import Std.Diagnostics.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {
                 }
@@ -51,9 +50,9 @@ fn open() {
         None,
         &expect![[r#"
             namespace Sample {
-                open Microsoft.Quantum.Intrinsic as sics;
-                open Microsoft.Quantum.Diagnostics;
-                open Microsoft.Quantum.Intrinsic as intrin;
+                import Std.Intrinsic as sics;
+                import Std.Diagnostics.*;
+                import Std.Intrinsic as intrin;
                 @EntryPoint()
                 operation Entry() : Unit {}
             }"#]],
@@ -86,6 +85,134 @@ fn newtype() {
                 newtype F = (Real : Double, Imaginary : Double, Bool);
                 @EntryPoint()
                 operation Entry() : Unit {}
+            }"#]],
+    );
+}
+
+#[test]
+fn struct_decl() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A {}
+            struct B { Only : Int }
+            struct C { First : Int, Second : Double, Third : Bool }
+            struct D { First : Int, Second: B }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {}
+                struct B {
+                    Only : Int
+                }
+                struct C {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                struct D {
+                    First : Int,
+                    Second : B
+                }
+            }"#]],
+    );
+}
+
+#[test]
+fn struct_cons() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A {}
+            struct B { Only : Int }
+            struct C { First : Int, Second : Double, Third : Bool }
+            struct D { First : Int, Second: B }
+            function Foo() : Unit {
+                let a = new A {};
+                let b = new B { Only = 1 };
+                let c = new C { Third = true, First = 1, Second = 2.0 };
+                let d = new D { First = 1, Second = new B { Only = 2 } };
+            }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {}
+                struct B {
+                    Only : Int
+                }
+                struct C {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                struct D {
+                    First : Int,
+                    Second : B
+                }
+                function Foo() : Unit {
+                    let a = new A {};
+                    let b = new B {
+                        Only = 1
+                    };
+                    let c = new C {
+                        Third = true,
+                        First = 1,
+                        Second = 2.
+                    };
+                    let d = new D {
+                        First = 1,
+                        Second = new B {
+                            Only = 2
+                        }
+
+                    };
+                }
+            }"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        indoc! {r#"
+        namespace Sample {
+            struct A { First : Int, Second : Double, Third : Bool }
+            function Foo() : Unit {
+                let a = new A { First = 1, Second = 2.0, Third = true };
+                let b = new A { ...a };
+                let c = new A { ...a, Second = 3.0 };
+                let d = new A { ...a, Second = 3.0, Third = false };
+            }
+        }"#},
+        None,
+        &expect![[r#"
+            namespace Sample {
+                struct A {
+                    First : Int,
+                    Second : Double,
+                    Third : Bool
+                }
+                function Foo() : Unit {
+                    let a = new A {
+                        First = 1,
+                        Second = 2.,
+                        Third = true
+                    };
+                    let b = new A {
+                        ...a
+                    };
+                    let c = new A {
+                        ...a,
+                        Second = 3.
+                    };
+                    let d = new A {
+                        ...a,
+                        Second = 3.,
+                        Third = false
+                    };
+                }
             }"#]],
     );
 }
@@ -344,7 +471,7 @@ fn lambda_fns() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let add = (x, y) -> x + y;
                     let intArray = [1, 2, 3, 4, 5];
@@ -373,7 +500,7 @@ fn lambda_fns() {
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let add = (x, y) -> x + y;
                     let intArray = [1, 2, 3, 4, 5];
@@ -406,7 +533,7 @@ fn ranges() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let range = 1..3;
                     let range = 2..2..5;
@@ -430,7 +557,7 @@ fn ranges() {
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
                 operation B() : Unit {
                     let range = 1..3;
                     let range = 2..2..5;
@@ -492,24 +619,24 @@ fn field_access_and_string_interning() {
     check(
         indoc! {r#"
             namespace A {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0.0 {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0.0 {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#},
         None,
         &expect![[r#"
             namespace A {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 function ComplexAsString(x : Complex) : String {
-                    if x::Imag < 0. {
-                        $"{x::Real} - {AbsD(x::Imag)}i"
+                    if x.Imag < 0. {
+                        $"{x.Real} - {AbsD(x.Imag)}i"
                     } else {
-                        $"{x::Real} + {x::Imag}i"
+                        $"{x.Real} + {x.Imag}i"
                     }
                 }
             }"#]],
@@ -815,7 +942,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1.0, 2.0, 3.0);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }
@@ -828,7 +955,7 @@ fn type_decls() {
                     newtype DoubleInt = (Double, ItemName : Int);
                     newtype Nested = (Double, (ItemName : Int, String));
                     let point = Point3d(1., 2., 3.);
-                    let x : Double = point::X;
+                    let x : Double = point.X;
                     let (x, _, _) = point!;
                     let unwrappedTuple = point!;
                 }

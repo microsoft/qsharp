@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::expr;
 use crate::tests::check;
 use expect_test::expect;
@@ -344,7 +342,29 @@ fn lit_double_trailing_exp_dot() {
 
 #[test]
 fn lit_int_hexadecimal_dot() {
-    check(expr, "0x123.45", &expect!["Expr _id_ [0-5]: Lit: Int(291)"]);
+    check(
+        expr,
+        "0x123.45",
+        &expect![[r#"
+            Expr _id_ [0-6]: Field:
+                Expr _id_ [0-5]: Lit: Int(291)
+                Err
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Int(
+                            Decimal,
+                        ),
+                        Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
 }
 
 #[test]
@@ -520,9 +540,24 @@ fn double_path() {
     check(
         expr,
         "foo.bar",
-        &expect![[
-            r#"Expr _id_ [0-7]: Path: Path _id_ [0-7] (Ident _id_ [0-3] "foo") (Ident _id_ [4-7] "bar")"#
-        ]],
+        &expect![[r#"
+            Expr _id_ [0-7]: Path: Path _id_ [0-7]:
+                Ident _id_ [0-3] "foo"
+                Ident _id_ [4-7] "bar""#]],
+    );
+}
+
+#[test]
+fn leading_expr_path() {
+    check(
+        expr,
+        "foo().bar",
+        &expect![[r#"
+            Expr _id_ [0-9]: Field:
+                Expr _id_ [0-5]: Call:
+                    Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "foo")
+                    Expr _id_ [3-5]: Unit
+                Ident _id_ [6-9] "bar""#]],
     );
 }
 
@@ -1678,6 +1713,60 @@ fn call_op_unit() {
 }
 
 #[test]
+fn struct_cons_empty() {
+    check(
+        expr,
+        "new Foo { }",
+        &expect![[
+            r#"Expr _id_ [0-11]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")): <empty>"#
+        ]],
+    );
+}
+
+#[test]
+fn struct_cons() {
+    check(
+        expr,
+        "new Foo { field1 = 3, field2 = 6, field3 = { 2 + 15 } }",
+        &expect![[r#"
+            Expr _id_ [0-55]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                FieldsAssign _id_ [10-20]: (Ident _id_ [10-16] "field1") Expr _id_ [19-20]: Lit: Int(3)
+                FieldsAssign _id_ [22-32]: (Ident _id_ [22-28] "field2") Expr _id_ [31-32]: Lit: Int(6)
+                FieldsAssign _id_ [34-53]: (Ident _id_ [34-40] "field3") Expr _id_ [43-53]: Expr Block: Block _id_ [43-53]:
+                    Stmt _id_ [45-51]: Expr: Expr _id_ [45-51]: BinOp (Add):
+                        Expr _id_ [45-46]: Lit: Int(2)
+                        Expr _id_ [49-51]: Lit: Int(15)"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons() {
+    check(
+        expr,
+        "new Foo { ...foo, field1 = 3, field3 = { 2 + 15 } }",
+        &expect![[r#"
+            Expr _id_ [0-51]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")
+                FieldsAssign _id_ [18-28]: (Ident _id_ [18-24] "field1") Expr _id_ [27-28]: Lit: Int(3)
+                FieldsAssign _id_ [30-49]: (Ident _id_ [30-36] "field3") Expr _id_ [39-49]: Expr Block: Block _id_ [39-49]:
+                    Stmt _id_ [41-47]: Expr: Expr _id_ [41-47]: BinOp (Add):
+                        Expr _id_ [41-42]: Lit: Int(2)
+                        Expr _id_ [45-47]: Lit: Int(15)"#]],
+    );
+}
+
+#[test]
+fn struct_copy_cons_empty() {
+    check(
+        expr,
+        "new Foo { ...foo }",
+        &expect![[r#"
+            Expr _id_ [0-18]: Struct (Path _id_ [4-7] (Ident _id_ [4-7] "Foo")):
+                Copy: Expr _id_ [13-16]: Path: Path _id_ [13-16] (Ident _id_ [13-16] "foo")"#]],
+    );
+}
+
+#[test]
 fn call_op_one() {
     check(
         expr,
@@ -2433,5 +2522,85 @@ fn invalid_initial_commas_in_pattern() {
                     ),
                 ),
             ]"#]],
+    );
+}
+
+#[test]
+fn friendly_error_on_parenthesized_for() {
+    check(
+        expr,
+        "for (x in xs) { () }",
+        &expect![[r#"
+            Error(
+                Token(
+                    Close(
+                        Paren,
+                    ),
+                    Keyword(
+                        In,
+                    ),
+                    Span {
+                        lo: 7,
+                        hi: 9,
+                    },
+                ),
+                Some(
+                    "parenthesis are not permitted around for-loop iterations",
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn no_help_text_on_non_parenthesized_for() {
+    check(
+        expr,
+        "for x in invalid syntax { () }",
+        &expect![[r#"
+            Error(
+                Token(
+                    Open(
+                        Brace,
+                    ),
+                    Ident,
+                    Span {
+                        lo: 17,
+                        hi: 23,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn parenthesized_pat_in_for_is_valid() {
+    check(
+        expr,
+        "for (x) in xs { () }",
+        &expect![[r#"
+            Expr _id_ [0-20]: For:
+                Pat _id_ [4-7]: Paren:
+                    Pat _id_ [5-6]: Bind:
+                        Ident _id_ [5-6] "x"
+                Expr _id_ [11-13]: Path: Path _id_ [11-13] (Ident _id_ [11-13] "xs")
+                Block _id_ [14-20]:
+                    Stmt _id_ [16-18]: Expr: Expr _id_ [16-18]: Unit"#]],
+    );
+}
+
+#[test]
+fn parenthesized_expr_in_for_is_valid() {
+    check(
+        expr,
+        "for x in (xs) { () }",
+        &expect![[r#"
+            Expr _id_ [0-20]: For:
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "x"
+                Expr _id_ [9-13]: Paren: Expr _id_ [10-12]: Path: Path _id_ [10-12] (Ident _id_ [10-12] "xs")
+                Block _id_ [14-20]:
+                    Stmt _id_ [16-18]: Expr: Expr _id_ [16-18]: Unit"#]],
     );
 }

@@ -9,20 +9,22 @@ import {
   log,
 } from "qsharp-lang";
 import {
-  commands,
   ExtensionContext,
   Uri,
   ViewColumn,
   Webview,
   WebviewPanel,
   WebviewPanelSerializer,
+  commands,
   window,
 } from "vscode";
-import { isQsharpDocument } from "./common";
-import { loadProject } from "./projectSystem";
+import { showCircuitCommand } from "./circuit";
+import { clearCommandDiagnostics } from "./diagnostics";
+import { showDocumentationCommand } from "./documentation";
+import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { showCircuitCommand } from "./circuit";
+import { getPauliNoiseModel } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -42,15 +44,16 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showRe", async () => {
+      clearCommandDiagnostics();
       const associationId = getRandomGuid();
       sendTelemetryEvent(
         EventType.TriggerResourceEstimation,
         { associationId },
         {},
       );
-      const editor = window.activeTextEditor;
-      if (!editor || !isQsharpDocument(editor.document)) {
-        throw new Error("The currently active window is not a Q# file");
+      const program = await getActiveProgram();
+      if (!program.success) {
+        throw new Error(program.errorMsg);
       }
 
       const qubitType = await window.showQuickPick(
@@ -152,15 +155,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return;
       }
 
-      // use document uri path to get the project name, since it is normalized to `/` separators
-      // see https://code.visualstudio.com/api/references/vscode-api#Uri for difference between
-      // path and fsPath
-      const projectName =
-        editor.document.uri.path.split("/").pop()?.split(".")[0] || "program";
-
       let runName = await window.showInputBox({
         title: "Friendly name for run",
-        value: `${projectName}`,
+        value: `${program.programConfig.projectName}`,
       });
       if (!runName) {
         return;
@@ -205,10 +202,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       }, compilerRunTimeoutMs);
 
       try {
-        const { sources, languageFeatures } = await loadProject(
-          editor.document.uri,
-        );
-
         const start = performance.now();
         sendTelemetryEvent(
           EventType.ResourceEstimationStart,
@@ -216,9 +209,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
           {},
         );
         const estimatesStr = await worker.getEstimates(
-          sources,
+          program.programConfig,
           JSON.stringify(params),
-          languageFeatures,
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -298,6 +290,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHistogram", async () => {
+      clearCommandDiagnostics();
+
       const associationId = getRandomGuid();
       sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
       function resultToLabel(result: string | VSDiagnostic): string {
@@ -305,9 +299,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return result;
       }
 
-      const editor = window.activeTextEditor;
-      if (!editor || !isQsharpDocument(editor.document)) {
-        throw new Error("The currently active window is not a Q# file");
+      const program = await getActiveProgram();
+      if (!program.success) {
+        throw new Error(program.errorMsg);
       }
 
       // Start the worker, run the code, and send the results to the webview
@@ -315,6 +309,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       const compilerTimeout = setTimeout(() => {
         worker.terminate();
       }, compilerRunTimeoutMs);
+
       try {
         const validateShotsInput = (input: string) => {
           const result = parseFloat(input);
@@ -355,16 +350,20 @@ export function registerWebViewCommands(context: ExtensionContext) {
           };
           sendMessageToPanel("histogram", false, message);
         });
-        const { sources, languageFeatures } = await loadProject(
-          editor.document.uri,
-        );
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
-        const config = {
-          sources,
-          languageFeatures,
-        };
-        await worker.run(config, "", parseInt(numberOfShots), evtTarget);
+
+        const noise = getPauliNoiseModel();
+        if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+          sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
+        }
+        await worker.runWithPauliNoise(
+          program.programConfig,
+          "",
+          parseInt(numberOfShots),
+          noise,
+          evtTarget,
+        );
         sendTelemetryEvent(
           EventType.HistogramEnd,
           { associationId },
@@ -373,7 +372,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         clearTimeout(compilerTimeout);
       } catch (e: any) {
         log.error("Histogram error. ", e.toString());
-        throw new Error("Run failed");
+        throw new Error("Run failed. " + e.toString());
       } finally {
         worker.terminate();
       }
@@ -388,9 +387,21 @@ export function registerWebViewCommands(context: ExtensionContext) {
       },
     ),
   );
+
+  context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.showDocumentation", async () => {
+      await showDocumentationCommand(context.extensionUri);
+    }),
+  );
 }
 
-type PanelType = "histogram" | "estimates" | "help" | "circuit" | "bloch";
+type PanelType =
+  | "histogram"
+  | "estimates"
+  | "help"
+  | "circuit"
+  | "bloch"
+  | "documentation";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -401,6 +412,11 @@ const panelTypeToPanel: Record<
   circuit: { title: "Q# Circuit", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
   bloch: { title: "Bloch Sphere", panel: undefined, state: {} },
+  documentation: {
+    title: "Q# Documentation",
+    panel: undefined,
+    state: {},
+  },
 };
 
 export function sendMessageToPanel(
@@ -420,6 +436,7 @@ export function sendMessageToPanel(
       {
         enableCommandUris: true,
         enableScripts: true,
+        enableFindWidget: true,
         retainContextWhenHidden: true,
         // Note: If retainContextWhenHidden is false, the webview gets reloaded
         // every time you hide it by switching to another tab and then switch
@@ -434,6 +451,10 @@ export function sendMessageToPanel(
 
   if (reveal) panelRecord.panel.reveal(ViewColumn.Beside);
   if (message) panelRecord.panel.sendMessage(message);
+}
+
+export function isPanelOpen(panelType: PanelType) {
+  return panelTypeToPanel[panelType].panel !== undefined;
 }
 
 export class QSharpWebViewPanel {
@@ -464,7 +485,7 @@ export class QSharpWebViewPanel {
     }
 
     const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown.css"]);
+    const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
     const webviewCss = getUri(["out", "webview", "webview.css"]);
     const webviewJs = getUri(["out", "webview", "webview.js"]);
     const resourcesUri = getUri(["resources"]);
@@ -535,7 +556,8 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "bloch" &&
       panelType !== "circuit" &&
-      panelType !== "help"
+      panelType !== "help" &&
+      panelType != "documentation"
     ) {
       // If it was loading when closed, that's fine
       if (panelType === "loading") {

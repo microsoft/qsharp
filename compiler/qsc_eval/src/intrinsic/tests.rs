@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use std::f64::consts;
 
 use crate::backend::{Backend, SparseSim};
@@ -17,8 +15,9 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -122,8 +121,12 @@ impl Backend for CustomSim {
         self.sim.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
-        self.sim.qubit_release(q);
+    fn qubit_release(&mut self, q: usize) -> bool {
+        self.sim.qubit_release(q)
+    }
+
+    fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
+        self.sim.qubit_swap_id(q0, q1);
     }
 
     fn capture_quantum_state(
@@ -148,38 +151,27 @@ impl Backend for CustomSim {
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
+    let fir_store = fir::PackageStore::new();
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package, &fir_store);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut std,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
-    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
+    assert!(run_default_passes(store.core(), &mut std, PackageType::Lib).is_empty());
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package, &fir_store);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(
         &store,
-        &[std_id],
+        &[(std_id, None)],
         sources,
         TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty());
-    assert!(run_default_passes(
-        store.core(),
-        &mut unit,
-        PackageType::Lib,
-        TargetCapabilityFlags::all()
-    )
-    .is_empty());
-    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+    assert!(run_default_passes(store.core(), &mut unit, PackageType::Lib).is_empty());
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package, &fir_store);
     let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);
@@ -251,13 +243,58 @@ fn int_as_double_precision_loss() {
 }
 
 #[test]
+fn double_as_string_with_precision() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8414709848078965, 4)",
+        &expect!["0.8415"],
+    );
+}
+
+#[test]
+fn double_as_string_with_precision_extend() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, 5)",
+        &expect!["0.80000"],
+    );
+}
+
+#[test]
+fn double_as_string_with_precision_negative_error() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.8, -5)",
+        &expect!["negative integers cannot be used here: -5"],
+    );
+}
+
+#[test]
+fn double_as_string_with_zero_precision() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.47, 0)",
+        &expect!["0."],
+    );
+}
+
+#[test]
+fn double_as_string_with_zero_precision_rounding() {
+    check_intrinsic_result(
+        "",
+        "Microsoft.Quantum.Convert.DoubleAsStringWithPrecision(0.913, 0)",
+        &expect!["1."],
+    );
+}
+
+#[test]
 fn dump_machine() {
     check_intrinsic_output(
         "",
         "Microsoft.Quantum.Diagnostics.DumpMachine()",
         &expect![[r#"
             STATE:
-            |0⟩: 1.0000+0.0000𝑖
+            No qubits allocated
         "#]],
     );
 }
@@ -402,6 +439,26 @@ fn dump_register_other_qubits_one_state_is_separable() {
 }
 
 #[test]
+fn dump_register_other_qubits_phase_reflected_in_subset() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[3];
+            H(qs[0]);
+            X(qs[2]);
+            Z(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[...1]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: −0.7071+0.0000𝑖
+            |10⟩: −0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
 fn dump_register_qubits_reorder_output() {
     check_intrinsic_output(
         "",
@@ -461,6 +518,85 @@ fn dump_register_qubits_not_unique_fails() {
             Microsoft.Quantum.Diagnostics.DumpRegister([qs[0], qs[0]]);
         }"},
         &expect!["qubits in invocation are not unique"],
+    );
+}
+
+#[test]
+fn dump_register_target_in_minus_with_other_in_zero() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[2];
+            X(qs[0]);
+            H(qs[0]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[0]]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: −0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_target_in_minus_with_other_in_one() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[2];
+            X(qs[1]);
+            X(qs[0]);
+            H(qs[0]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[0]]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: −0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_all_qubits_normalized_is_same_as_dump_machine() {
+    check_intrinsic_output(
+        "",
+        indoc! {
+        "{
+            import Std.Diagnostics.*;
+            use qs = Qubit[2];
+
+            let alpha = -4.20025;
+            let beta = 2.04776;
+            let gamma = -5.47097;
+
+            within{
+                Ry(alpha, qs[0]);
+                Ry(beta, qs[1]);
+                CNOT(qs[0], qs[1]);
+                Ry(gamma, qs[1]);
+            }
+            apply{
+                DumpRegister(qs);
+                DumpMachine();
+            }
+        }"
+        },
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+            STATE:
+            |00⟩: 0.0709+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.7036+0.0000𝑖
+        "#]],
     );
 }
 
@@ -609,6 +745,20 @@ fn draw_random_double() {
         "",
         "Microsoft.Quantum.Random.DrawRandomDouble(5.0,5.0)",
         &Value::Double(5.0),
+    );
+}
+
+#[test]
+fn draw_random_bool() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomBool(0.0)",
+        &Value::Bool(false),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomBool(1.0)",
+        &Value::Bool(true),
     );
 }
 
@@ -1372,5 +1522,76 @@ fn two_qubit_rotation_neg_inf_error() {
             Rxx(Microsoft.Quantum.Math.Log(0.0), q1, q2);
         }"},
         &expect!["invalid rotation angle: -inf"],
+    );
+}
+
+#[test]
+fn stop_counting_operation_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StopCountingOperation(I);
+        }"},
+        &expect!["callable not counted"],
+    );
+}
+
+#[test]
+fn stop_counting_function_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            function Foo() : Unit {}
+            Std.Diagnostics.StopCountingFunction(Foo);
+        }"},
+        &expect!["callable not counted"],
+    );
+}
+
+#[test]
+fn start_counting_operation_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StartCountingOperation(I);
+            Std.Diagnostics.StartCountingOperation(I);
+        }"},
+        &expect!["callable already counted"],
+    );
+}
+
+#[test]
+fn start_counting_function_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            function Foo() : Unit {}
+            Std.Diagnostics.StartCountingFunction(Foo);
+            Std.Diagnostics.StartCountingFunction(Foo);
+        }"},
+        &expect!["callable already counted"],
+    );
+}
+
+#[test]
+fn stop_counting_qubits_before_start_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StopCountingQubits();
+        }"},
+        &expect!["qubits not counted"],
+    );
+}
+
+#[test]
+fn start_counting_qubits_called_twice_before_stop_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            Std.Diagnostics.StartCountingQubits();
+            Std.Diagnostics.StartCountingQubits();
+        }"},
+        &expect!["qubits already counted"],
     );
 }

@@ -37,13 +37,28 @@ pub fn remap_block_ids(program: &mut Program) {
         // This effectively remaps all the blocks in the list and updates the mapped id of the current block.
         // This is only safe without cycles, so on a cyclic graph the node is skipped and not remapped.
         if is_acyclic {
-            block_id_map.retain_mut(|id| *id != block_id);
+            block_id_map.retain(|id| *id != block_id);
         } else if block_id_map.contains(&block_id) {
             continue;
         }
         block_id_map.push(block_id);
 
-        blocks_to_visit.extend(get_block_successors(program.get_block(block_id)));
+        let successors = get_block_successors(program.get_block(block_id));
+        if blocks_to_visit.len() >= successors.len()
+            && blocks_to_visit
+                .iter()
+                .skip(blocks_to_visit.len() - successors.len())
+                .eq(successors.iter())
+        {
+            // All successors are already at the end of the queue in same order, so avoid adding them and reprocessing
+            // the same blocks back-to-back.
+            continue;
+        }
+        // Since we are going to extend the blocks to visit using the successors of the current block, we can remove them from
+        // anywhere else in the list to visit so we avoid visiting them multiple times (only the last visit to a block is
+        // significant, so others can be skipped).
+        blocks_to_visit.retain(|id| !successors.contains(id));
+        blocks_to_visit.extend(successors);
     }
 
     let block_id_map = block_id_map

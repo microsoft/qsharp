@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
     operation RandomBit() : Int {
         // Allocate single qubit.
         use q = Qubit();

@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+import json
 import math
 import numpy as np
 import numpy.typing as npt
@@ -434,7 +435,6 @@ def ndarray2d_to_string(arr):
         str_arr.append(np.array2string(elem, separator=","))
     return f"[{','.join(str_arr)}]"
 
-
 # The script takes one required positional argument, URI of the FCIDUMP file
 parser = ArgumentParser(description="Double-factorized chemistry sample")
 # Use n2-10e-8o as the default sample.
@@ -444,6 +444,12 @@ parser.add_argument(
     "--fcidumpfile",
     default="https://aka.ms/fcidump/n2-10e-8o",
     help="Path to the FCIDUMP file describing the Hamiltonian",
+)
+parser.add_argument(
+    "-p",
+    "--paramsfile",
+    nargs="*",
+    help="Optional parameter files to use for estimation",
 )
 args = parser.parse_args()
 
@@ -479,23 +485,93 @@ qsharp_string = (
     "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryParameters(0.001,))"
 )
 
+# Collect resource estimation parameters
+if args.paramsfile is None:
+    params = [
+        {
+            "errorBudget": 0.01,
+            "qubitParams": {"name": "qubit_maj_ns_e6"},
+            "qecScheme": {"name": "floquet_code"},
+        },
+        {
+            "qubitParams": { "name": "qubit_gate_us_e3" },
+            "estimateType": "frontier",
+        }
+    ]
+else:
+    params = []
+    for paramsfile in args.paramsfile:
+        with open(paramsfile) as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                params.append(data)
+            else:
+                params += data
+
 # Get resource estimates
 res = qsharp.estimate(
     qsharp_string,
-    params={
-        "errorBudget": 0.01,
-        "qubitParams": {"name": "qubit_maj_ns_e6"},
-        "qecScheme": {"name": "floquet_code"},
-    },
+    params=params,
 )
 
 # Store estimates in json file
 with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
-# Print high-level resource estimation results
-print(f"Algorithm runtime: {res['physicalCountsFormatted']['runtime']}")
-print(
-    f"Number of physical qubits required: {res['physicalCountsFormatted']['physicalQubits']}"
-)
+result_obj = json.loads(res.json)
+if isinstance(result_obj,dict):
+    result_obj = [ result_obj ]
+
+data = []
+for item in result_obj:
+    data_item = []
+    
+    # Run name
+    data_item.append(item["jobParams"]["qubitParams"]["name"])
+    
+    # T factory fraction and Runtime
+    if "physicalCountsFormatted" in item:
+        data_item.append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["physicalCountsFormatted"]["runtime"])
+    elif "frontierEntries" in item:
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+    else:
+        data_item.append("-")
+        data_item.append("-")
+    
+    # Physical qubits and rQOPS
+    if "physicalCounts" in item:
+        data_item.append(item["physicalCounts"]["physicalQubits"])
+        data_item.append(item["physicalCounts"]["rqops"])
+    elif "frontierEntries" in item:
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["physicalQubits"])
+        data_item.append(item["frontierEntries"][0]["physicalCounts"]["rqops"])
+    else:
+        data_item.append("-")
+        data_item.append("-")
+        
+    data.append(data_item)
+    
+# Define the table headers
+headers = ["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"]
+
+# Determine the width of each column
+col_widths = [max(len(str(item)) for item in column) for column in zip(headers, *data)]
+
+# Function to format a row
+def format_row(row):
+    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, col_widths))
+
+# Create the table
+header_row = format_row(headers)
+separator_row = "-+-".join("-" * width for width in col_widths)
+data_rows = [format_row(row) for row in data]
+
+# Print the table
+print(header_row)
+print(separator_row)
+for row in data_rows:
+    print(row)
+
 print("For more detailed resource counts, see file resource_estimate.json")
