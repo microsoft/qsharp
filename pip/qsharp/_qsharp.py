@@ -42,14 +42,12 @@ except:
 
 # Reporting execution time during IPython cells requires that IPython
 # gets pinged to ensure it understands the cell is active. This is done by
-# requesting a display id without displaying any content, avoiding any UI changes
-# that would be visible to the user.
+# simply importing the display function, which it turns out is enough to begin timing
+# while avoiding any UI changes that would be visible to the user.
 def ipython_helper():
     try:
         if __IPYTHON__:  # type: ignore
             from IPython.display import display
-
-            display(display_id=True)
     except NameError:
         pass
 
@@ -205,7 +203,7 @@ def init(
     _config = Config(target_profile, language_features, manifest_contents, project_root)
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return _config 
+    return _config
 
 
 def get_interpreter() -> Interpreter:
@@ -386,6 +384,7 @@ def compile(entry_expr: str) -> QirInputData:
     durationMs = (monotonic() - start) * 1000
     telemetry_events.on_compile_end(durationMs, target_profile)
     return res
+
 
 def circuit(
     entry_expr: Optional[str] = None, *, operation: Optional[str] = None
