@@ -8,10 +8,12 @@ This module provides IPython magic functions for integrating Q# code
 execution within Jupyter notebooks.
 """
 
+from time import monotonic
 from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
 from ._native import QSharpError
 from ._qsharp import get_interpreter
+from . import telemetry_events
 import pathlib
 
 
@@ -30,8 +32,16 @@ def register_magic():
             # is finished executing.
             display(display_id=True)
 
+        telemetry_events.on_run_cell()
+        start_time = monotonic()
+
         try:
-            return get_interpreter().interpret(cell, callback)
+            results = get_interpreter().interpret(cell, callback)
+
+            durationMs = (monotonic() - start_time) * 1000
+            telemetry_events.on_run_cell_end(durationMs)
+
+            return results
         except QSharpError as e:
             # pylint: disable=raise-missing-from
             raise QSharpCellError(str(e))
