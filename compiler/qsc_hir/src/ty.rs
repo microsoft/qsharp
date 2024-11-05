@@ -36,7 +36,7 @@ pub enum Ty {
     Param {
         name: Rc<str>,
         id: ParamId,
-        bounds: TyBounds,
+        bounds: ClassConstraints,
     },
     /// A primitive type.
     Prim(Prim),
@@ -50,8 +50,8 @@ pub enum Ty {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct TyBounds(pub Box<[ClassConstraint]>);
-impl TyBounds {
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+impl ClassConstraints {
     #[must_use]
     pub fn contains_iterable_bound(&self) -> bool {
         self.0
@@ -60,7 +60,7 @@ impl TyBounds {
     }
 }
 
-impl std::fmt::Display for TyBounds {
+impl std::fmt::Display for ClassConstraints {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.0.is_empty() {
             Ok(())
@@ -343,7 +343,10 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty { name: Rc<str>, bounds: TyBounds },
+    Ty {
+        name: Rc<str>,
+        bounds: ClassConstraints,
+    },
     /// A functor parameter with a minimal set (lower bound) of functors.
     /// if `'T is Adj` then `functor ('T)` is the minimal set of functors.
     /// This can currently only occur on lambda expressions.

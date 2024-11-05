@@ -24,7 +24,7 @@ fn set_indentation<'a, 'b>(
 }
 
 /// A type.
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
@@ -189,9 +189,9 @@ impl Display for GenericParam {
     }
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct TyBounds(pub Box<[ClassConstraint]>);
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
 
-impl std::fmt::Display for TyBounds {
+impl std::fmt::Display for ClassConstraints {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.0.is_empty() {
             Ok(())
@@ -207,7 +207,7 @@ impl std::fmt::Display for TyBounds {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum ClassConstraint {
     #[default]
     Eq,
@@ -245,13 +245,16 @@ impl std::fmt::Display for ClassConstraint {
 #[derive(Clone, Debug, PartialEq)]
 pub enum GenericParam {
     /// A type parameter.
-    Ty { name: Rc<str>, bounds: TyBounds },
+    Ty {
+        name: Rc<str>,
+        bounds: ClassConstraints,
+    },
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }
 
 /// A generic parameter ID.
-#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
 pub struct ParamId(u32);
 
 impl ParamId {
@@ -297,7 +300,7 @@ impl Display for GenericArg {
 }
 
 /// An arrow type: `->` for a function or `=>` for an operation.
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Arrow {
     /// Whether the callable is a function or an operation.
     pub kind: CallableKind,
@@ -325,7 +328,7 @@ impl Display for Arrow {
 }
 
 /// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Prim {
     /// The big integer type.
     BigInt,
@@ -354,7 +357,7 @@ pub enum Prim {
 }
 
 /// A set of functors.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
@@ -390,7 +393,7 @@ impl Display for FunctorSet {
 }
 
 /// The value of a functor set.
-#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq)]
 pub enum FunctorSetValue {
     /// The empty set.
     #[default]
@@ -634,7 +637,7 @@ impl Display for UdtField {
 }
 
 /// A placeholder type variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct InferTyId(usize);
 
 impl InferTyId {

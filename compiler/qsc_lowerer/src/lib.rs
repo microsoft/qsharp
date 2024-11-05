@@ -893,7 +893,7 @@ impl Lowerer {
         match g {
             qsc_hir::ty::GenericParam::Ty { name, bounds } => qsc_fir::ty::GenericParam::Ty {
                 name: name.clone(),
-                bounds: self.lower_ty_bounds(bounds),
+                bounds: self.lower_class_constraints(bounds),
             },
             qsc_hir::ty::GenericParam::Functor(value) => {
                 qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
@@ -901,8 +901,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_ty_bounds(&mut self, bounds: &qsc_hir::ty::TyBounds) -> qsc_fir::ty::TyBounds {
-        qsc_fir::ty::TyBounds(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
+    fn lower_class_constraints(
+        &mut self,
+        bounds: &qsc_hir::ty::ClassConstraints,
+    ) -> qsc_fir::ty::ClassConstraints {
+        qsc_fir::ty::ClassConstraints(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
     }
 
     fn lower_ty_bound(&mut self, b: &qsc_hir::ty::ClassConstraint) -> qsc_fir::ty::ClassConstraint {

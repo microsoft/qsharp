@@ -78,7 +78,7 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
     let lo = s.peek().span.lo;
     let generic = apos_ident(s)?;
     let bounds = if token(s, TokenKind::Colon).is_ok() {
-        Some(ty_bounds(s)?)
+        Some(class_constraints(s)?)
     } else {
         None
     };
@@ -94,7 +94,7 @@ pub(super) fn param(s: &mut ParserContext) -> Result<TypeParameter> {
 /// This occurs after a `:` in a generic type:
 /// `T: Eq + Iterator[Bool] + Class3`
 ///     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ bounds
-fn ty_bounds(s: &mut ParserContext) -> Result<ClassConstraints> {
+fn class_constraints(s: &mut ParserContext) -> Result<ClassConstraints> {
     let mut bounds: Vec<ClassConstraint> = Vec::new();
     loop {
         s.expect(WordKinds::PrimitiveClass);
