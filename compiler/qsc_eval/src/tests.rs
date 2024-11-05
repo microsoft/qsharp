@@ -3722,7 +3722,7 @@ fn controlled_operation_with_duplicate_controls_fails() {
                                 1,
                             ),
                             item: LocalItemId(
-                                136,
+                                140,
                             ),
                         },
                         caller: PackageId(
@@ -3772,7 +3772,7 @@ fn controlled_operation_with_target_in_controls_fails() {
                                 1,
                             ),
                             item: LocalItemId(
-                                136,
+                                140,
                             ),
                         },
                         caller: PackageId(
