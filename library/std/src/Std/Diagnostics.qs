@@ -408,19 +408,19 @@ operation ApplyIdleNoise(qubit : Qubit) : Unit {
 
 /// # Summary
 ///  The bit flip noise with probability `p`.
-function BitFlipNoise(p: Double) : (Double, Double, Double) {
+function BitFlipNoise(p : Double) : (Double, Double, Double) {
     (p, 0.0, 0.0)
 }
 
 /// # Summary
 ///  The phase flip noise with probability `p`.
-function PhaseFlipNoise(p: Double) : (Double, Double, Double) {
+function PhaseFlipNoise(p : Double) : (Double, Double, Double) {
     (0.0, 0.0, p)
 }
 
 /// # Summary
 ///  The depolarizing noise with probability `p`.
-function DepolarizingNoise(p: Double) : (Double, Double, Double) {
+function DepolarizingNoise(p : Double) : (Double, Double, Double) {
     (p / 3.0, p / 3.0, p / 3.0)
 }
 
