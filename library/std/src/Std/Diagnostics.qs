@@ -385,7 +385,6 @@ operation StopCountingQubits() : Int {
 /// Probability of applying Y gate.
 /// ## pz
 /// Probability of applying Z gate.
-@Config(Unrestricted)
 function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
     body intrinsic;
 }
@@ -403,9 +402,32 @@ function ConfigurePauliNoise(px : Double, py : Double, pz : Double) : Unit {
 /// # Input
 /// ## qubit
 /// The qubit to which noise is applied.
-@Config(Unrestricted)
 operation ApplyIdleNoise(qubit : Qubit) : Unit {
     body intrinsic;
+}
+
+/// # Summary
+///  The bit flip noise with probability `p`.
+function BitFlipNoise(p: Double) : (Double, Double, Double) {
+    (p, 0.0, 0.0)
+}
+
+/// # Summary
+///  The phase flip noise with probability `p`.
+function PhaseFlipNoise(p: Double) : (Double, Double, Double) {
+    (0.0, 0.0, p)
+}
+
+/// # Summary
+///  The depolarizing noise with probability `p`.
+function DepolarizingNoise(p: Double) : (Double, Double, Double) {
+    (p / 3.0, p / 3.0, p / 3.0)
+}
+
+/// # Summary
+///  No noise for noiseless operation.
+function NoNoise() : (Double, Double, Double) {
+    (0.0, 0.0, 0.0)
 }
 
 export
@@ -423,4 +445,8 @@ export
     StartCountingQubits,
     StopCountingQubits,
     ConfigurePauliNoise,
-    ApplyIdleNoise;
+    ApplyIdleNoise,
+    BitFlipNoise,
+    PhaseFlipNoise,
+    DepolarizingNoise,
+    NoNoise;

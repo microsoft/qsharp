@@ -101,6 +101,9 @@ pub trait Backend {
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
         unimplemented!("qubit_is_zero operation");
     }
+    /// Executes custom intrinsic specified by `_name`.
+    /// Returns None if this intrinsic is unknown.
+    /// Otherwise returns Some(Result), with the Result from intrinsic.
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
     }

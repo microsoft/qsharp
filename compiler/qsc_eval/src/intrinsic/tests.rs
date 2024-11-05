@@ -1603,9 +1603,9 @@ fn check_pauli_noise() {
         indoc! {"{
             import Std.Diagnostics.*;
             use q = Qubit();
-            ConfigurePauliNoise(1.0,0.0,0.0);
+            ConfigurePauliNoise(BitFlipNoise(1.0));
             ApplyIdleNoise(q);
-            ConfigurePauliNoise(0.0,0.0,0.0);
+            ConfigurePauliNoise(NoNoise());
             DumpMachine();
             Reset(q);
         }"},
