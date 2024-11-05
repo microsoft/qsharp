@@ -1156,7 +1156,7 @@ impl<'a> Analyzer<'a> {
             CallableKind::Function => {
                 derive_intrinsic_function_application_generator_set(callable_context)
             }
-            CallableKind::Operation | CallableKind::Measurement => {
+            CallableKind::Operation => {
                 derive_instrinsic_operation_application_generator_set(callable_context)
             }
         };
@@ -2248,10 +2248,7 @@ fn array_param_application_from_runtime_features(
 fn derive_instrinsic_operation_application_generator_set(
     callable_context: &CallableContext,
 ) -> ApplicationGeneratorSet {
-    assert!(matches!(
-        callable_context.kind,
-        CallableKind::Operation | CallableKind::Measurement
-    ));
+    assert!(matches!(callable_context.kind, CallableKind::Operation));
 
     // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
     let value_kind = if callable_context.output_type == Ty::UNIT
@@ -2398,9 +2395,6 @@ fn derive_runtime_features_for_value_kind_associated_to_type(
         match arrow.kind {
             CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
             CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
-            CallableKind::Measurement => {
-                panic!("measurements are intrinsics, and arrow kinds cannot be intrinsics");
-            }
         }
     }
 

@@ -294,7 +294,7 @@ fn dump_machine() {
         "Microsoft.Quantum.Diagnostics.DumpMachine()",
         &expect![[r#"
             STATE:
-            |0⟩: 1.0000+0.0000𝑖
+            No qubits allocated
         "#]],
     );
 }

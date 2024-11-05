@@ -18,42 +18,53 @@ pub struct DisplayableMatrix(pub Vec<Vec<Complex64>>);
 
 impl DisplayableState {
     pub fn to_plain(&self) -> String {
-        format!(
-            "STATE:{}",
-            self.0
-                .iter()
-                .fold(String::new(), |mut output, (id, state)| {
-                    let _ = write!(
-                        output,
-                        "\n{}: {}",
-                        format_state_id(id, self.1),
-                        fmt_complex(state)
-                    );
-                    output
-                })
-        )
+        if self.1 > 0 {
+            format!(
+                "STATE:{}",
+                self.0
+                    .iter()
+                    .fold(String::new(), |mut output, (id, state)| {
+                        let _ = write!(
+                            output,
+                            "\n{}: {}",
+                            format_state_id(id, self.1),
+                            fmt_complex(state)
+                        );
+                        output
+                    })
+            )
+        } else {
+            "STATE:\nNo qubits allocated".to_string()
+        }
     }
 
     pub fn to_html(&self) -> String {
-        format!(
-            include_str!("state_header_template.html"),
-            self.0
-                .iter()
-                .fold(String::new(), |mut output, (id, state)| {
-                    let amplitude = state.abs().powi(2) * 100.0;
-                    let _ = write!(
-                        output,
-                        include_str!("state_row_template.html"),
-                        fmt_basis_state_label(id, self.1),
-                        fmt_complex(state),
-                        amplitude,
-                        amplitude,
-                        get_phase(state),
-                        get_phase(state)
-                    );
-                    output
-                })
-        )
+        if self.1 > 0 {
+            format!(
+                include_str!("state_header_template.html"),
+                self.0
+                    .iter()
+                    .fold(String::new(), |mut output, (id, state)| {
+                        let amplitude = state.abs().powi(2) * 100.0;
+                        let _ = write!(
+                            output,
+                            include_str!("state_row_template.html"),
+                            fmt_basis_state_label(id, self.1),
+                            fmt_complex(state),
+                            amplitude,
+                            amplitude,
+                            get_phase(state),
+                            get_phase(state)
+                        );
+                        output
+                    })
+            )
+        } else {
+            format!(
+                include_str!("state_header_template.html"),
+                "<tr><td>No qubits allocated</td></tr>".to_string()
+            )
+        }
     }
 
     pub fn to_latex(&self) -> Option<String> {

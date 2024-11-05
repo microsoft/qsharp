@@ -245,6 +245,7 @@ export function ResultsTab(props: {
                   <StateTable
                     dump={evt.state}
                     latexDump={evt.stateLatex}
+                    count={evt.qubitCount}
                   ></StateTable>
                 </div>
               ) : (

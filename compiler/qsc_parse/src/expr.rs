@@ -14,7 +14,10 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, recovering_path, recovering_token, seq, shorten, token},
+    prim::{
+        ident, opt, parse_or_else, pat, recovering_parse_or_else, recovering_path, seq, shorten,
+        token,
+    },
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
@@ -247,22 +250,23 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
 fn recovering_struct(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let name = recovering_path(s, WordKinds::PathStruct)?;
 
-    if let Err(e) = token(s, TokenKind::Open(Delim::Brace)) {
-        s.push_error(e);
-        return Ok(Box::new(ExprKind::Struct(name, None, Box::new([]))));
-    }
+    let (copy, fields) = recovering_parse_or_else(
+        s,
+        |_| (None, Box::new([])),
+        &[TokenKind::Close(Delim::Brace)],
+        struct_fields,
+    );
 
-    let (copy, fields) = struct_fields(s)?;
-    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Box::new(ExprKind::Struct(name, copy, fields)))
 }
 
 /// A sequence of field assignments and an optional base expression,
-/// e.g. `...a, b = c, d = e`
+/// e.g. `{ ...a, b = c, d = e }`
 #[allow(clippy::type_complexity)]
 fn struct_fields(
     s: &mut ParserContext<'_>,
 ) -> Result<(Option<Box<Expr>>, Box<[Box<FieldAssign>]>)> {
+    token(s, TokenKind::Open(Delim::Brace))?;
     let copy: Option<Box<Expr>> = opt(s, |s| {
         token(s, TokenKind::DotDotDot)?;
         expr(s)
@@ -271,6 +275,7 @@ fn struct_fields(
     if copy.is_none() || copy.is_some() && token(s, TokenKind::Comma).is_ok() {
         (fields, _) = seq(s, parse_field_assign)?;
     }
+    token(s, TokenKind::Close(Delim::Brace))?;
     Ok((copy, fields.into_boxed_slice()))
 }
 
@@ -714,17 +719,8 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
 #[allow(clippy::unnecessary_wraps)]
 fn recovering_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     s.expect(WordKinds::Field);
-    let expr = ExprKind::Field(
-        lhs,
-        match ident(s) {
-            Ok(i) => FieldAccess::Ok(i),
-            Err(e) => {
-                s.push_error(e);
-                FieldAccess::Err
-            }
-        },
-    );
-    Ok(Box::new(expr))
+    let field_access = parse_or_else(s, |_| FieldAccess::Err, |s| Ok(FieldAccess::Ok(ident(s)?)))?;
+    Ok(Box::new(ExprKind::Field(lhs, field_access)))
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {

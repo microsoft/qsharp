@@ -4,7 +4,7 @@
 from abc import ABC, abstractmethod
 import datetime
 import logging
-import time
+from time import monotonic
 from typing import Dict, Any, List, Optional, Union
 from warnings import warn
 
@@ -258,7 +258,7 @@ class BackendBase(BackendV2, ABC):
     def run_job(
         self, run_input: List[QuantumCircuit], job_id: str, **options
     ) -> Result:
-        start = time.time()
+        start = monotonic()
 
         compilations = self._compile(run_input, **options)
 
@@ -277,7 +277,9 @@ class BackendBase(BackendV2, ABC):
         output["status"] = "COMPLETED"
         output["backend_name"] = self.name
         output["backend_version"] = self.backend_version
-        output["time_taken"] = str(time.time() - start)
+
+        duration = monotonic() - start
+        output["time_taken"] = str(duration)
         output["config"] = {
             "qasm_export_options": str(self._build_qasm_export_options(**options)),
             "qiskit_pass_options": str(self._build_qiskit_pass_options(**options)),
@@ -298,10 +300,11 @@ class BackendBase(BackendV2, ABC):
             assert isinstance(
                 circuit, QuantumCircuit
             ), "Input must be a QuantumCircuit."
-            start = time.time()
+            start = monotonic()
             qasm = self._qasm3(circuit, **args)
-            end = time.time()
-            time_taken = str(end - start)
+            end = monotonic()
+
+            time_taken = end - start
             compilation = Compilation(circuit, qasm, time_taken)
             compilations.append(compilation)
         return compilations

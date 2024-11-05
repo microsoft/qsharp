@@ -31,6 +31,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
     }
 
     const stateTable = evt.detail.state;
+    const qubitCount = evt.detail.qubitCount;
     const basisStates = Object.keys(stateTable);
     const basisColumnWidth = Math.max(
       basisStates[0]?.length ?? 0,
@@ -44,16 +45,19 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       " ".padEnd(basisColumnWidth, "-") +
       "-------------------------------------------\n";
 
-    for (const row of basisStates) {
-      const [real, imag] = stateTable[row];
-      const basis = row.padStart(basisColumnWidth);
-      const amplitude = formatComplex(real, imag).padStart(16);
-      const probability = formatProbabilityPercent(real, imag).padStart(11);
-      const phase = formatPhase(real, imag).padStart(8);
+    if (qubitCount === 0) {
+      out_str += " No qubits allocated\n";
+    } else {
+      for (const row of basisStates) {
+        const [real, imag] = stateTable[row];
+        const basis = row.padStart(basisColumnWidth);
+        const amplitude = formatComplex(real, imag).padStart(16);
+        const probability = formatProbabilityPercent(real, imag).padStart(11);
+        const phase = formatPhase(real, imag).padStart(8);
 
-      out_str += ` ${basis} | ${amplitude} | ${probability} | ${phase}\n`;
+        out_str += ` ${basis} | ${amplitude} | ${probability} | ${phase}\n`;
+      }
     }
-
     out(out_str);
   });
 
