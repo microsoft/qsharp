@@ -205,7 +205,7 @@ def init(
     _config = Config(target_profile, language_features, manifest_contents, project_root)
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return _config 
+    return _config
 
 
 def get_interpreter() -> Interpreter:
@@ -243,7 +243,15 @@ def eval(source: str) -> Any:
                 pass
         print(output, flush=True)
 
-    return get_interpreter().interpret(source, callback)
+    telemetry_events.on_eval()
+    start_time = monotonic()
+
+    results = get_interpreter().interpret(source, callback)
+
+    durationMs = (monotonic() - start_time) * 1000
+    telemetry_events.on_eval_end(durationMs)
+
+    return results
 
 
 class ShotResult(TypedDict):
@@ -386,6 +394,7 @@ def compile(entry_expr: str) -> QirInputData:
     durationMs = (monotonic() - start) * 1000
     telemetry_events.on_compile_end(durationMs, target_profile)
     return res
+
 
 def circuit(
     entry_expr: Optional[str] = None, *, operation: Optional[str] = None
