@@ -2535,7 +2535,7 @@ fn map_input_pattern_to_input_expressions(
                 input_param_exprs
             } else {
                 // All elements in the pattern map to the same expression.
-                // This is one of the boundaries where we can loose specific information since we are "unpacking" the
+                // This is one of the boundaries where we can lose specific information since we are "unpacking" the
                 // tuple represented by a single expression.
                 vec![expr_id.expr; pats.len()]
             }
