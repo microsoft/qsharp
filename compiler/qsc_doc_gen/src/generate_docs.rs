@@ -190,7 +190,7 @@ pub fn generate_docs(
         let package = &unit.package;
         for (_, item) in &package.items {
             if let Some((ns, line)) = generate_doc_for_item(
-                &package_id,
+                package_id,
                 package,
                 package_kind.clone(),
                 is_current_package,
@@ -229,7 +229,7 @@ pub fn generate_docs(
 }
 
 fn get_item_info<'a>(
-    package_id: &PackageId,
+    default_package_id: PackageId,
     package: &'a Package,
     include_internals: bool,
     item: &'a Item,
@@ -243,10 +243,11 @@ fn get_item_info<'a>(
         return None;
     }
     if let ItemKind::Export(_, id) = item.kind {
-        let (exported_item, _, _) = display.compilation.resolve_item(*package_id, &id);
+        let (exported_item, exported_package, _) =
+            display.compilation.resolve_item(default_package_id, &id);
         return get_item_info(
-            package_id,
-            package,
+            default_package_id,
+            exported_package,
             include_internals,
             exported_item,
             display,
@@ -257,7 +258,7 @@ fn get_item_info<'a>(
 }
 
 fn generate_doc_for_item<'a>(
-    package_id: &PackageId,
+    default_package_id: PackageId,
     package: &'a Package,
     package_kind: PackageKind,
     include_internals: bool,
@@ -265,11 +266,16 @@ fn generate_doc_for_item<'a>(
     display: &'a CodeDisplay,
     files: &mut FilesWithMetadata,
 ) -> Option<(Rc<str>, String)> {
-    let (true_package, true_item) =
-        get_item_info(package_id, package, include_internals, item, display)?;
+    let (true_package, true_item) = get_item_info(
+        default_package_id,
+        package,
+        include_internals,
+        item,
+        display,
+    )?;
 
     // Get namespace for item
-    let ns = get_namespace(package, item)?;
+    let ns = get_namespace(true_package, true_item)?;
 
     // Add file
     let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
