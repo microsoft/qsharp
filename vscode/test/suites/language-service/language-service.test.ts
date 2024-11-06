@@ -16,6 +16,7 @@ suite("Q# Language Service Tests", function suite() {
 
   const testQs = joinPath(workspaceFolderUri, "test.qs");
   const noErrorsQs = joinPath(workspaceFolderUri, "no-errors.qs");
+  const emptyQs = joinPath(workspaceFolderUri, "empty.qs");
   const mainPackageMainQs = joinPath(packages, "MainPackage", "src", "Main.qs");
   const depPackageMainQs = joinPath(packages, "DepPackage", "src", "Main.qs");
   const missingDepMainQs = joinPath(packages, "MissingDep", "src", "Main.qs");
@@ -45,6 +46,7 @@ suite("Q# Language Service Tests", function suite() {
     // before we start testing.
     await vscode.workspace.openTextDocument(testQs);
     await vscode.workspace.openTextDocument(noErrorsQs);
+    await vscode.workspace.openTextDocument(emptyQs);
     await vscode.workspace.openTextDocument(mainPackageMainQs);
     await vscode.workspace.openTextDocument(depPackageMainQs);
     await vscode.workspace.openTextDocument(missingDepMainQs);
@@ -78,6 +80,24 @@ suite("Q# Language Service Tests", function suite() {
     assert.include(
       actualCompletionList.items.map((i) => i.label),
       "operation",
+    );
+
+    assert.notInclude(
+      actualCompletionList.items.map((i) => i.label),
+      "Shor sample",
+    );
+  });
+
+  test("Completions - include samples in empty document", async () => {
+    const actualCompletionList = (await vscode.commands.executeCommand(
+      "vscode.executeCompletionItemProvider",
+      emptyQs,
+      new vscode.Position(1, 0),
+    )) as vscode.CompletionList;
+
+    assert.include(
+      actualCompletionList.items.map((i) => i.label),
+      "Shor sample",
     );
   });
 

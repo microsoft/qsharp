@@ -86,7 +86,15 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       return item;
     });
 
+    let isEmptyOrWhitespace = true;
+    for (let i = 0; i < document.lineCount; i++) {
+      if (!document.lineAt(i).isEmptyOrWhitespace) {
+        isEmptyOrWhitespace = false;
+        break;
+      }
+    }
+
     // Include the samples list for empty documents
-    return document.lineCount > 0 ? results : results.concat(this.samples);
+    return !isEmptyOrWhitespace ? results : results.concat(this.samples);
   }
 }
