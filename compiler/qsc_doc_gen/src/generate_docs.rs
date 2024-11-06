@@ -275,10 +275,11 @@ fn generate_doc_for_item<'a>(
     )?;
 
     // Get namespace for item
-    let ns = get_namespace(true_package, true_item)?;
+    let ns = get_namespace(package, item)?;
 
     // Add file
     let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
+        let ns = get_namespace(true_package, true_item)?;
         generate_exported_file(package_kind.clone(), &ns, item, display, true_item)?
     } else {
         generate_file(package_kind, &ns, item, display)?
