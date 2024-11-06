@@ -2515,6 +2515,7 @@ fn map_input_pattern_to_input_expressions(
     match &pat.kind {
         PatKind::Bind(_) | PatKind::Discard => vec![expr_id.expr],
         PatKind::Tuple(pats) => {
+            // Map each one of the elements in the pattern to an expression in the tuple.
             let pats = &pats[skip_ahead..];
             let expr = package_store.get_expr(expr_id);
             if let ExprKind::Tuple(exprs) = &expr.kind {
@@ -2533,8 +2534,10 @@ fn map_input_pattern_to_input_expressions(
                 }
                 input_param_exprs
             } else {
-                assert!(pats.len() == 1);
-                vec![expr_id.expr]
+                // All elements in the pattern map to the same expression.
+                // This is one of the boundaries where we can loose specific information since we are "unpacking" the
+                // tuple represented by a single expression.
+                vec![expr_id.expr; pats.len()]
             }
         }
     }

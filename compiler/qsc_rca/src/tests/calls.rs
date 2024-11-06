@@ -282,3 +282,46 @@ fn check_rca_for_call_to_operation_with_codegen_intrinsic_override_treated_as_in
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_call_to_function_that_receives_tuple_with_a_non_tuple_classical_argument() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Foo() : (Result, Result) { (Zero, Zero) }
+        function Bar(a : Result, b : Result) : Bool { a == b }
+        Bar(Foo())"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_call_to_function_that_receives_tuple_with_a_non_tuple_dynamic_argument() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo() : (Result, Result) {
+            use q = Qubit();
+            (MResetZ(q), Zero)
+        }
+        function Bar(a : Result, b : Result) : Bool { a == b }
+        Bar(Foo())"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
