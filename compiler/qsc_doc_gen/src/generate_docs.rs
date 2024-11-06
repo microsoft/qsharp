@@ -279,8 +279,15 @@ fn generate_doc_for_item<'a>(
 
     // Add file
     let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
-        let ns = get_namespace(true_package, true_item)?;
-        generate_exported_file(package_kind.clone(), &ns, item, display, true_item)?
+        let true_ns = get_namespace(true_package, true_item)?;
+        generate_exported_file(
+            package_kind.clone(),
+            &ns,
+            item,
+            display,
+            &true_ns,
+            true_item,
+        )?
     } else {
         generate_file(package_kind, &ns, item, display)?
     };
@@ -357,6 +364,7 @@ fn generate_exported_file(
     ns: &Rc<str>,
     item: &Item,
     display: &CodeDisplay,
+    true_ns: &Rc<str>,
     true_item: &Item,
 ) -> Option<(Metadata, String)> {
     let metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
@@ -366,7 +374,7 @@ fn generate_exported_file(
     let fqn = &metadata.fully_qualified_name();
 
     // Note: we are assuming the package kind does not change
-    let true_metadata = get_metadata(package_kind, ns.clone(), true_item, display)?;
+    let true_metadata = get_metadata(package_kind, true_ns.clone(), true_item, display)?;
     let true_fqn = true_metadata.fully_qualified_name();
     let name = true_metadata.name;
 
