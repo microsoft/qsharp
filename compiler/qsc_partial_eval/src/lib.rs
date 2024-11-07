@@ -1344,6 +1344,7 @@ impl<'a> PartialEvaluator<'a> {
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal"
+            | "ApplyIdleNoise"
             | "GlobalPhase" => Ok(Value::unit()),
             // The following intrinsic functions and operations should never make it past conditional compilation and
             // the capabilities check pass.

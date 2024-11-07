@@ -133,7 +133,9 @@ impl Backend for QuantumIntrinsicsChecker {
     ) -> Option<std::result::Result<Value, String>> {
         match name {
             "BeginEstimateCaching" => Some(Ok(Value::Bool(true))),
-            "EndEstimateCaching" | "GlobalPhase" | "ConfigurePauliNoise" => Some(Ok(Value::unit())),
+            "EndEstimateCaching" | "GlobalPhase" | "ConfigurePauliNoise" | "ApplyIdleNoise" => {
+                Some(Ok(Value::unit()))
+            }
             _ => None,
         }
     }
