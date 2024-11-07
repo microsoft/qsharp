@@ -28,7 +28,6 @@ fn eq() {
     );
 }
 
-// TODO(sezna) figure out why the error message is duplicated in these tests
 #[test]
 fn exp() {
     check(
@@ -83,6 +82,9 @@ fn extra_arg_to_exp() {
             function Foo<'E, 'T: Exp['E, Int]>(a: 'E, b: Int) : 'T {
                 a ^ b
             }
+            function Foo2<'E, 'T: Exp>(a: 'E, b: Int) : 'T {
+                a ^ b
+            }
         }
         "#,
         "",
@@ -94,10 +96,21 @@ fn extra_arg_to_exp() {
             #28 108-113 "a ^ b" : Param<"'E": 0>
             #29 108-109 "a" : Param<"'E": 0>
             #32 112-113 "b" : Int
+            #41 166-181 "(a: 'E, b: Int)" : (Param<"'E": 0>, Int)
+            #42 167-172 "a: 'E" : Param<"'E": 0>
+            #46 174-180 "b: Int" : Int
+            #53 187-224 "{\n                a ^ b\n            }" : Param<"'E": 0>
+            #55 205-210 "a ^ b" : Param<"'E": 0>
+            #56 205-206 "a" : Param<"'E": 0>
+            #59 209-210 "b" : Int
             Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } })))
             Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 2, span: Span { lo: 56, hi: 59 } })))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 0, span: Span { lo: 162, hi: 165 } })))
+            Error(Type(Error(IncorrectNumberOfConstraintParameters { expected: 1, found: 0, span: Span { lo: 162, hi: 165 } })))
             Error(Type(Error(MissingClassExp("'E", Span { lo: 108, hi: 113 }))))
             Error(Type(Error(TyMismatch("'T", "'E", Span { lo: 108, hi: 113 }))))
+            Error(Type(Error(MissingClassExp("'E", Span { lo: 205, hi: 210 }))))
+            Error(Type(Error(TyMismatch("'T", "'E", Span { lo: 205, hi: 210 }))))
         "##]],
     );
 }

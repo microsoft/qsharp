@@ -390,6 +390,7 @@ pub(crate) fn class_constraints_from_ast(
             continue;
         }
         stack.insert(ast_bound.clone());
+        if check_param_length(ast_bound, &mut errors) { continue ; };
         let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
@@ -414,12 +415,6 @@ pub(crate) fn class_constraints_from_ast(
 
         match bound_result {
             Ok(hir_bound) => {
-                check_param_length(
-                    &hir_bound,
-                    &mut errors,
-                    ast_bound.parameters.len(),
-                    ast_bound.span(),
-                );
                 bounds_buf.push(hir_bound);
             }
             Err(e) => {
@@ -434,22 +429,23 @@ pub(crate) fn class_constraints_from_ast(
     )
 }
 
+/// returns `true` if the param length is incorrect
 fn check_param_length(
-    bound: &qsc_hir::ty::ClassConstraint,
+    bound: &ast::ClassConstraint,
     errors: &mut FxHashSet<TyConversionError>,
-    num_given_parameters: usize,
-    span: Span,
-) {
-    use qsc_hir::ty::ClassConstraint::*;
-    let num_parameters = match bound {
-        Eq | Add | Integral | Num | Show | NonNativeClass(_) => 0,
-        Iterable { .. } | Exp { .. } => 1,
+) -> bool {
+    let num_given_parameters = bound.parameters.len();
+    let num_parameters = match &*bound.name.name {
+        "Eq" | "Add" | "Integral" | "Num" | "Show"  => 0,
+        "Iterable" | "Exp" => 1,
+        _ => return false,
     };
-    if num_parameters != num_given_parameters {
+    if num_parameters == num_given_parameters { false } else {
         errors.insert(TyConversionError::IncorrectNumberOfConstraintParameters {
             expected: num_parameters,
             found: num_given_parameters,
-            span,
+            span: bound.span(),
         });
+        true
     }
 }
