@@ -58,6 +58,36 @@ def on_run_end(durationMs: float, shots: int) -> None:
     )
 
 
+def on_eval() -> None:
+    log_telemetry(
+        "qsharp.eval",
+        1,
+    )
+
+
+def on_eval_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.eval.durationMs",
+        durationMs,
+        type="histogram",
+    )
+
+
+def on_run_cell() -> None:
+    log_telemetry(
+        "qsharp.run.cell",
+        1,
+    )
+
+
+def on_run_cell_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.run.cell.durationMs",
+        durationMs,
+        type="histogram",
+    )
+
+
 def on_compile(profile: str) -> None:
     log_telemetry("qsharp.compile", 1, properties={"profile": profile})
 
