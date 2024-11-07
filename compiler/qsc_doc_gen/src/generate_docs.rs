@@ -627,7 +627,8 @@ fn get_metadata(
 
     let summary = parse_doc_for_summary(&item.doc)
         .replace("\r\n", " ")
-        .replace('\n', " ");
+        .replace('\n', " ")
+        .replace('|', "\\|");
 
     Some(Metadata {
         uid: format!("Qdk.{ns}.{name}"),
