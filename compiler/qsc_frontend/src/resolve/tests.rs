@@ -5269,3 +5269,23 @@ fn export_of_item_with_same_name_as_namespace_resolves_to_item_even_when_before_
         "#]],
     );
 }
+
+#[test]
+fn ty_param_name_is_in_scope() {
+    check(
+        indoc! {r#"
+                namespace Foo {
+                    operation Foo<'T: Eq>(a: 'T) : Unit {
+                        let x: 'T = a;
+                    }
+                }
+                "#},
+        &expect![[r#"
+            namespace namespace3 {
+                operation item1<param0: Eq>(local10: param0) : Unit {
+                    let local19: param0 = local10;
+                }
+            }
+        "#]],
+    );
+}

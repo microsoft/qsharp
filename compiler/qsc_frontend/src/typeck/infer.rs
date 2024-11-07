@@ -696,7 +696,7 @@ impl Solver {
                 let merged_ty = Ty::Param {
                     name: name1.clone(),
                     id: *id1,
-                    bounds: qsc_hir::ty::TyBounds(bounds.clone().into_iter().collect()),
+                    bounds: qsc_hir::ty::ClassConstraints(bounds.clone().into_iter().collect()),
                 };
                 bounds
                     .into_iter()

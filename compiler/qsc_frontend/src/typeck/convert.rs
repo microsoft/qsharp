@@ -73,7 +73,7 @@ pub(crate) fn ty_from_ast(
         TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
         TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
             Some(resolve::Res::Param { id, bounds }) => {
-                let (bounds, errors) = ty_bound_from_ast(names, bounds, stack);
+                let (bounds, errors) = class_constraints_from_ast(names, bounds, stack);
                 (
                     Ty::Param {
                         name: ty.name.clone(),
@@ -237,7 +237,7 @@ pub(crate) fn ast_callable_generics(
     let mut generics_buf = Vec::with_capacity(generics.len());
     for param in generics {
         let (bounds, new_errors) =
-            ty_bound_from_ast(names, &param.constraints, &mut Default::default());
+            class_constraints_from_ast(names, &param.constraints, &mut Default::default());
         errors.extend(new_errors);
         generics_buf.push(GenericParam::Ty {
             name: param.ty.name.clone(),
@@ -307,7 +307,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<TyConversionError
     match &*pat.kind {
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => (
             Ty::Err,
-            vec![TyConversionError::MissingTy { span: pat.span }.into()],
+            vec![TyConversionError::MissingTy { span: pat.span }],
         ),
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => {
             ty_from_ast(names, ty, &mut Default::default())
@@ -372,12 +372,12 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
 }
 
 /// Convert an AST type bound to an HIR type bound.
-pub(crate) fn ty_bound_from_ast(
+pub(crate) fn class_constraints_from_ast(
     names: &Names,
     bounds: &qsc_ast::ast::ClassConstraints,
     // used to check for recursive types
     stack: &mut FxHashSet<qsc_ast::ast::ClassConstraint>,
-) -> (qsc_hir::ty::TyBounds, Vec<TyConversionError>) {
+) -> (qsc_hir::ty::ClassConstraints, Vec<TyConversionError>) {
     let mut bounds_buf = Vec::new();
     let mut errors = FxHashSet::default();
 
@@ -429,7 +429,7 @@ pub(crate) fn ty_bound_from_ast(
     }
 
     (
-        qsc_hir::ty::TyBounds(bounds_buf.into_boxed_slice()),
+        qsc_hir::ty::ClassConstraints(bounds_buf.into_boxed_slice()),
         errors.into_iter().collect(),
     )
 }
