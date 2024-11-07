@@ -94,6 +94,9 @@ impl GlobalTable {
     }
 }
 
+/// This struct is the entry point of the type checker. Constructed with [`Checker::new`], it
+/// exposes a method [`Checker::check_package`] that will type check a given [`ast::Package`] and
+/// populate its own fields with the results.
 pub(crate) struct Checker {
     globals: FxHashMap<ItemId, Scheme>,
     table: Table,
@@ -202,6 +205,9 @@ impl Checker {
         }
     }
 
+    /// Used to check all callable bodies
+    /// Note that a regular function block callable body is still checked by
+    /// this function
     fn check_spec(&mut self, names: &Names, spec: SpecImpl) {
         self.errors.append(&mut rules::spec(
             names,

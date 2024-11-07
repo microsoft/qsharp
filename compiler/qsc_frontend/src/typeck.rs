@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Type checks a Q# AST and produces a typed HIR.
+//! `check`ing references `rules` within contexts to produce context-aware constraints. The inferrer is used
+//! within `rules` to assist in the production of constraints from rules.
+//! For example, a rule might say that if a statement is an expression, it must
+//! return `Unit`. The inferrer would then be used to get the inferred type out of
+//! the expression, giving us a type id, which we can then constrain to `Unit`.
 mod check;
 pub(super) mod convert;
 mod infer;
@@ -22,6 +28,8 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
+/// This [`Table`] builds up mappings from items to typed HIR UDTs  _and_ nodes to
+/// their term HIR type and generic arguments, if any exist.
 #[derive(Debug, Default, Clone)]
 pub struct Table {
     pub udts: FxHashMap<ItemId, Udt>,

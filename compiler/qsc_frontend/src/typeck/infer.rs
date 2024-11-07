@@ -219,6 +219,7 @@ impl Class {
 /// so we need to track where types came from. This `TySource`
 /// struct allows us to know if a type originates from a divergent
 /// source, and if it doesn't, we generate an ambiguous type error.
+#[derive(Debug)]
 pub(super) enum TySource {
     Divergent,
     NotDivergent { span: Span },
@@ -359,7 +360,7 @@ struct App {
 }
 
 #[derive(Debug)]
-enum Constraint {
+pub(super) enum Constraint {
     // Constraint that says a type must satisfy a class
     Class(Class, Span),
     // Constraint that says two types must be the same
@@ -375,6 +376,7 @@ enum Constraint {
     },
 }
 
+#[derive(Debug)]
 pub(super) struct Inferrer {
     solver: Solver,
     constraints: VecDeque<Constraint>,
@@ -541,6 +543,9 @@ impl Solver {
         }
     }
 
+    /// Given a constraint, attempts to narrow the constraint by either
+    /// generating more specific constraints, or, if it cannot be narrowed further,
+    /// returns an empty vector.
     fn constrain(
         &mut self,
         udts: &FxHashMap<ItemId, Udt>,
@@ -564,15 +569,20 @@ impl Solver {
         }
     }
 
+    /// Attempts to narrow a class constraint, returning more specific constraints if any.
     fn class(
         &mut self,
         udts: &FxHashMap<ItemId, Udt>,
         class: Class,
         span: Span,
     ) -> Vec<Constraint> {
+        // true if a dependency of this class constraint is currently unknown, meaning we
+        // have to come back to it later.
+        // false if we know everything we need to know and this is solved
         let unknown_dependency = class.dependencies().into_iter().any(|ty| {
             if ty == &Ty::Err {
                 true
+                // if this needs to be inferred further, `unknown_ty` returns `Some(ty_id)`
             } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
                 self.pending_tys
                     .entry(infer)
@@ -785,6 +795,8 @@ impl Solver {
     }
 }
 
+/// Replaces inferred tys with the underlying type that they refer to, if it has been solved
+/// already.
 fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
     fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) -> bool {
         if limit == 0 {
@@ -838,12 +850,18 @@ fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     }
 }
 
-fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
-    match ty {
-        &Ty::Infer(infer) => match tys.get(infer) {
+// `Some(ty)` if `given_type` has not been solved for yet, `None` if it is fully known/non-inferred
+fn unknown_ty(solved_types: &IndexMap<InferTyId, Ty>, given_type: &Ty) -> Option<InferTyId> {
+    match given_type {
+        // if the given type is an inference type, check if we have solved for it
+        &Ty::Infer(infer) => match solved_types.get(infer) {
+            // if we have not solved for it, then indeed this is an unknown type
             None => Some(infer),
-            Some(ty) => unknown_ty(tys, ty),
+            // if we have solved for it, then we check if that solved type is itself
+            // solved. It could have been solved to another inference type
+            Some(solved_type) => unknown_ty(solved_types, solved_type),
         },
+        // the given type is not an inference type so it is not unknown
         _ => None,
     }
 }
@@ -994,8 +1012,6 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                     vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
                 ),
             }
-
-            // todo!("check for {name} {bounds:?}"),
         }
         _ => (
             Vec::new(),
@@ -1004,12 +1020,12 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     }
 }
 
-fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+fn check_exp(base: Ty, given_power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match base {
         Ty::Prim(Prim::BigInt) => (
             vec![Constraint::Eq {
                 expected: Ty::Prim(Prim::Int),
-                actual: power,
+                actual: given_power,
                 span,
             }],
             Vec::new(),
@@ -1017,11 +1033,35 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         Ty::Prim(Prim::Double | Prim::Int) => (
             vec![Constraint::Eq {
                 expected: base,
-                actual: power,
+                actual: given_power,
                 span,
             }],
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Exp
+
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Exp { .. }))
+            {
+                Some(ClassConstraint::Exp {
+                    power: power_from_param,
+                }) => (
+                    vec![Constraint::Eq {
+                        actual: given_power,
+                        expected: power_from_param.clone(),
+                        span,
+                    }],
+                    Vec::new(),
+                ),
+                _ => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassExp(base.display(), span))],
+                ),
+            }
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassExp(base.display(), span))],

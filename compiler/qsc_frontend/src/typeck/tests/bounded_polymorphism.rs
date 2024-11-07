@@ -1,4 +1,6 @@
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 use expect_test::expect;
 
 use super::check;
@@ -46,14 +48,35 @@ fn exp() {
             #25 100-105 "a ^ b" : Param<"'T": 0>
             #26 100-101 "a" : Param<"'T": 0>
             #29 104-105 "b" : Int
-            Error(Type(Error(MissingClassExp("'T", Span { lo: 100, hi: 105 }))))
-            Error(Type(Error(MissingClassExp("'T", Span { lo: 100, hi: 105 }))))
         "##]],
     );
 }
 
 #[test]
-fn exp_extra_arg() {
+fn exp_fail() {
+    check(
+        r#"
+        namespace A {
+            function Foo<'T: Exp[Int]>(a: 'T, b: Bool) : 'T {
+                a ^ b
+            }
+        }
+        "#,
+        "",
+        &expect![[r##"
+            #11 61-77 "(a: 'T, b: Bool)" : (Param<"'T": 0>, Bool)
+            #12 62-67 "a: 'T" : Param<"'T": 0>
+            #16 69-76 "b: Bool" : Bool
+            #23 83-120 "{\n                a ^ b\n            }" : Param<"'T": 0>
+            #25 101-106 "a ^ b" : Param<"'T": 0>
+            #26 101-102 "a" : Param<"'T": 0>
+            #29 105-106 "b" : Bool
+            Error(Type(Error(TyMismatch("Int", "Bool", Span { lo: 101, hi: 106 }))))
+        "##]],
+    );
+}
+#[test]
+fn extra_arg_to_exp() {
     check(
         r#"
         namespace A {
@@ -456,7 +479,7 @@ fn show_fail() {
         r#"
         namespace A {
             function Foo<'T>(a: 'T) : String {
-                Message($"Value: {a}")
+               $"Value: {a}"
             }
 
             function Main() : Unit {
@@ -470,31 +493,27 @@ fn show_fail() {
         &expect![[r##"
             #7 51-58 "(a: 'T)" : Param<"'T": 0>
             #8 52-57 "a: 'T" : Param<"'T": 0>
-            #15 68-122 "{\n                Message($\"Value: {a}\")\n            }" : String
-            #17 86-108 "Message($\"Value: {a}\")" : String
-            #18 86-93 "Message" : ?
-            #21 93-108 "($\"Value: {a}\")" : String
-            #22 94-107 "$\"Value: {a}\"" : String
-            #23 104-105 "a" : Param<"'T": 0>
-            #29 149-151 "()" : Unit
-            #33 159-275 "{\n                let x = Foo(1);\n                let y = Foo(1.0);\n                let z = Foo(true);\n            }" : Unit
-            #35 181-182 "x" : String
-            #37 185-191 "Foo(1)" : String
-            #38 185-188 "Foo" : (Int -> String)
-            #41 188-191 "(1)" : Int
-            #42 189-190 "1" : Int
-            #44 213-214 "y" : String
-            #46 217-225 "Foo(1.0)" : String
-            #47 217-220 "Foo" : (Double -> String)
-            #50 220-225 "(1.0)" : Double
-            #51 221-224 "1.0" : Double
-            #53 247-248 "z" : String
-            #55 251-260 "Foo(true)" : String
-            #56 251-254 "Foo" : (Bool -> String)
-            #59 254-260 "(true)" : Bool
-            #60 255-259 "true" : Bool
-            Error(Resolve(NotFound("Message", Span { lo: 86, hi: 93 })))
-            Error(Type(Error(MissingClassShow("'T", Span { lo: 104, hi: 105 }))))
+            #15 68-112 "{\n               $\"Value: {a}\"\n            }" : String
+            #17 85-98 "$\"Value: {a}\"" : String
+            #18 95-96 "a" : Param<"'T": 0>
+            #24 139-141 "()" : Unit
+            #28 149-265 "{\n                let x = Foo(1);\n                let y = Foo(1.0);\n                let z = Foo(true);\n            }" : Unit
+            #30 171-172 "x" : String
+            #32 175-181 "Foo(1)" : String
+            #33 175-178 "Foo" : (Int -> String)
+            #36 178-181 "(1)" : Int
+            #37 179-180 "1" : Int
+            #39 203-204 "y" : String
+            #41 207-215 "Foo(1.0)" : String
+            #42 207-210 "Foo" : (Double -> String)
+            #45 210-215 "(1.0)" : Double
+            #46 211-214 "1.0" : Double
+            #48 237-238 "z" : String
+            #50 241-250 "Foo(true)" : String
+            #51 241-244 "Foo" : (Bool -> String)
+            #54 244-250 "(true)" : Bool
+            #55 245-249 "true" : Bool
+            Error(Type(Error(MissingClassShow("'T", Span { lo: 95, hi: 96 }))))
         "##]],
     );
 }

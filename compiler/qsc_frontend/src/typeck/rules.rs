@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Defines type system rules for Q#. The checker calls these rules on the AST.
+//! These rules use the inferrer to know what types to apply constraints to.
+
 use super::{
     convert,
     infer::{ArgTy, Class, Inferrer, TySource},
@@ -36,12 +39,16 @@ impl<T> Partial<T> {
     }
 }
 
+/// Contexts are currently only generated for exprs, stmts, and specs,
+/// They provide a context within which types are solved for.
+#[derive(Debug)]
 struct Context<'a> {
     names: &'a Names,
     globals: &'a FxHashMap<ItemId, Scheme>,
     table: &'a mut Table,
     return_ty: Option<Ty>,
     typed_holes: Vec<(NodeId, Span)>,
+    /// New nodes that will be introduced into the parent `Context` after this context terminates
     new: Vec<NodeId>,
     inferrer: &'a mut Inferrer,
 }
@@ -66,6 +73,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_spec(&mut self, spec: SpecImpl<'a>) {
+        // it could happen in infer_pat
         let callable_input = self.infer_pat(spec.callable_input);
         if let Some(input) = spec.spec_input {
             let expected = match spec.spec {
@@ -952,6 +960,7 @@ impl<'a> Context<'a> {
     pub(crate) fn solve(self) -> Vec<Error> {
         let mut errs = self.inferrer.solve(&self.table.udts);
 
+        // it seems self.new has too many  instances of the ty param
         for id in self.new {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
             self.inferrer.substitute_ty(ty);
