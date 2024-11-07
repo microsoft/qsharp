@@ -247,10 +247,13 @@ fn generate_index_file(
         return;
     }
 
-    let last_name = ns
-        .split('.')
-        .last()
-        .expect("Namespaces should have at least one part.");
+    let short_name = if ns.starts_with("Microsoft.Quantum") {
+        ns.as_ref()
+    } else {
+        ns.split('.')
+            .last()
+            .expect("Namespaces should have at least one part.")
+    };
 
     let package_kind = items[0].package.clone();
     let metadata = Metadata {
@@ -261,7 +264,7 @@ fn generate_index_file(
         package: package_kind,
         namespace: ns.clone(),
         name: "Overview".into(),
-        summary: format!("Table of contents for the Q# {last_name} namespace"),
+        summary: format!("Table of contents for the Q# {short_name} namespace"),
         signature: String::new(),
     };
 
@@ -493,8 +496,8 @@ impl Metadata {
 uid: {}
 title: {}
 description: {}
-author: Microsoft
-ms.author: Microsoft
+author: bradben
+ms.author: brbenefield
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 ---",
