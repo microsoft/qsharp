@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-=======
-// Licensed under the MIT License.
->>>>>>> 986210b6a2a07923aa5442ad2b1ffdc7e54b7049
 use expect_test::expect;
 
 use super::check;
