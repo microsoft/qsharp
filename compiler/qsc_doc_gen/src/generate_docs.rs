@@ -524,6 +524,7 @@ ms.topic: {}
             "---
 uid: {}
 title: {}
+description: \"Q# {}: {}\"
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
@@ -534,6 +535,8 @@ qsharp.summary: \"{}\"
 ---",
             self.uid,
             self.title,
+            self.title,
+            self.summary,
             self.topic,
             kind,
             self.package,

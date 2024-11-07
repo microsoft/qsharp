@@ -17,6 +17,7 @@ fn docs_generation() {
         ---
         uid: Qdk.Std.Core.Length
         title: Length function
+        description: "Q# Length function: Returns the number of elements in the input array `a`."
         ms.date: {TIMESTAMP}
         ms.topic: managed-reference
         qsharp.kind: function
@@ -65,6 +66,7 @@ fn redirect_generation() {
         ---
         uid: Qdk.Microsoft.Quantum.Core.Length
         title: Length exported item
+        description: "Q# Length exported item: This is an exported item. The actual definition is found here: [Length](xref:Qdk.Std.Core.Length)"
         ms.date: {TIMESTAMP}
         ms.topic: managed-reference
         qsharp.kind: export
