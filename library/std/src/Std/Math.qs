@@ -160,6 +160,8 @@ function AbsD(a : Double) : Double {
     a < 0.0 ? -a | a
 }
 
+/// # Summary
+/// Returns the absolute value of a big integer.
 function AbsL(a : BigInt) : BigInt {
     a < 0L ? -a | a
 }

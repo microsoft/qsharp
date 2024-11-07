@@ -273,7 +273,7 @@ fn generate_index_file(
         .iter()
         .map(|item| {
             format!(
-                "| [{}](xref:{}) | {} |",
+                "| [{}](xref:Qdk.{}) | {} |",
                 item.name,
                 item.fully_qualified_name(),
                 item.summary
@@ -428,6 +428,7 @@ Fully qualified name: {fqn}
     Some((metadata, content))
 }
 
+#[allow(clippy::assigning_clones)]
 fn generate_exported_file(
     package_kind: PackageKind,
     ns: &Rc<str>,
@@ -436,7 +437,7 @@ fn generate_exported_file(
     true_ns: &Rc<str>,
     true_item: &Item,
 ) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
+    let mut metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -447,12 +448,18 @@ fn generate_exported_file(
     let true_fqn = true_metadata.fully_qualified_name();
     let name = true_metadata.name;
 
+    let summary = format!(
+        "This is an exported item. The actual definition is found here: [{name}](xref:Qdk.{true_fqn})"
+    );
+
+    metadata.summary = summary.clone();
+
     let content = format!(
         "# {title}
 
 Fully qualified name: {fqn}
 
-This is an exported item. The actual definition is found here: [{name}](xref:{true_fqn})
+{summary}
 "
     );
 
