@@ -206,8 +206,8 @@ pub fn generate_docs(
     }
 
     // Generate Overview files for each namespace
-    for (ns, items) in toc.iter_mut() {
-        generate_overview_file(&mut files, ns, items);
+    for (ns, items) in &mut toc {
+        generate_index_file(&mut files, ns, items);
     }
 
     // We want to sort documentation files in a meaningful way.
@@ -215,10 +215,10 @@ pub fn generate_docs(
     // Then we want to put explicit dependencies of the current project, if they exist.
     // Then we want to add built-in std package. And finally built-in core package.
     // Namespaces within packages should be sorted alphabetically and
-    // items with a namespace should be also sorted alphabetically with Overview appearing first.
+    // items with a namespace should be also sorted alphabetically with the index file appearing first.
     // Also, items without any metadata (table of content) should come last.
     files.sort_by_key(|file| {
-        let prefix = if file.1.name.ends_with("Overview") {
+        let prefix = if file.0.ends_with("index.md") {
             "0"
         } else {
             "1"
@@ -237,7 +237,7 @@ pub fn generate_docs(
     result
 }
 
-fn generate_overview_file(
+fn generate_index_file(
     files: &mut FilesWithMetadata,
     ns: &Rc<str>,
     items: &mut Vec<Arc<Metadata>>,
@@ -246,17 +246,22 @@ fn generate_overview_file(
         return;
     }
 
+    let last_name = ns
+        .split('.')
+        .last()
+        .expect("Namespaces should have at least one part.");
+
     let package_kind = items[0].package.clone();
     let metadata = Metadata {
-        uid: format!("Qdk.{ns}.Overview"),
-        title: format!("{ns}"),
-        topic: "managed-reference".to_string(),
-        kind: MetadataKind::Overview,
+        uid: format!("Qdk.{ns}-toc"),
+        title: format!("{ns} namespace"),
+        topic: "landing-page".to_string(),
+        kind: MetadataKind::TableOfContents,
         package: package_kind,
         namespace: ns.clone(),
         name: "Overview".into(),
-        summary: "".into(),
-        signature: "".into(),
+        summary: format!("Table of contents for the Q# {last_name} namespace"),
+        signature: String::new(),
     };
 
     items.sort_by_key(|item| item.name.clone());
@@ -286,9 +291,9 @@ The {ns} namespace contains the following functions and operations:
 
     // ToDo: add this to the front instead of the back
     let arc_met = Arc::from(metadata);
-    items.push(arc_met.clone());
+    items.insert(0, arc_met.clone());
 
-    let file_name: Arc<str> = Arc::from(format!("{ns}/Overview.md").as_str());
+    let file_name: Arc<str> = Arc::from(format!("{ns}/index.md").as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
     files.push((file_name, arc_met, file_content));
 }
@@ -481,39 +486,31 @@ impl Metadata {
         buf.push(self.name.to_string());
         buf.join(".")
     }
-}
 
-#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
-enum PackageKind {
-    UserCode,
-    AliasedPackage(String),
-    StandardLibrary,
-    Core,
-}
-
-impl Display for PackageKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let s = match &self {
-            PackageKind::UserCode => "__Main__",
-            PackageKind::AliasedPackage(alias) => alias,
-            PackageKind::StandardLibrary => "__Std__",
-            PackageKind::Core => "__Core__",
-        };
-        write!(f, "{s}")
+    fn display_for_toc(&self) -> String {
+        format!(
+            "---
+uid: {}
+title: {}
+description: {}
+author: Microsoft
+ms.author: Microsoft
+ms.date: {{TIMESTAMP}}
+ms.topic: {}
+---",
+            self.uid, self.title, self.summary, self.topic,
+        )
     }
-}
 
-impl Display for Metadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn display_for_item(&self) -> String {
         let kind = match &self.kind {
             MetadataKind::Function => "function",
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "udt",
             MetadataKind::Export => "export",
-            MetadataKind::Overview => "overview",
+            MetadataKind::TableOfContents => "table of contents",
         };
-        write!(
-            f,
+        format!(
             "---
 uid: {}
 title: {}
@@ -537,12 +534,43 @@ qsharp.summary: \"{}\"
     }
 }
 
+impl Display for Metadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if self.kind == MetadataKind::TableOfContents {
+            write!(f, "{}", self.display_for_toc())
+        } else {
+            write!(f, "{}", self.display_for_item())
+        }
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
+enum PackageKind {
+    UserCode,
+    AliasedPackage(String),
+    StandardLibrary,
+    Core,
+}
+
+impl Display for PackageKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            PackageKind::UserCode => "__Main__",
+            PackageKind::AliasedPackage(alias) => alias,
+            PackageKind::StandardLibrary => "__Std__",
+            PackageKind::Core => "__Core__",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
 enum MetadataKind {
     Function,
     Operation,
     Udt,
     Export,
-    Overview,
+    TableOfContents,
 }
 
 impl Display for MetadataKind {
@@ -552,7 +580,7 @@ impl Display for MetadataKind {
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "user defined type",
             MetadataKind::Export => "exported item",
-            MetadataKind::Overview => "overview",
+            MetadataKind::TableOfContents => "table of contents",
         };
         write!(f, "{s}")
     }
