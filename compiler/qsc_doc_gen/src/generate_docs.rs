@@ -22,6 +22,8 @@ use std::sync::Arc;
 type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
 type FilesWithMetadata = Vec<(Arc<str>, Arc<Metadata>, Arc<str>)>;
 
+type ToC = FxHashMap<Rc<str>, Vec<Arc<Metadata>>>;
+
 /// Represents an immutable compilation state.
 #[derive(Debug)]
 struct Compilation {
@@ -165,7 +167,7 @@ pub fn generate_docs(
         compilation: &compilation,
     };
 
-    let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
+    let mut toc: ToC = FxHashMap::default();
 
     for (package_id, unit) in &compilation.package_store {
         let is_current_package = compilation.current_package_id == Some(package_id);
@@ -189,7 +191,7 @@ pub fn generate_docs(
 
         let package = &unit.package;
         for (_, item) in &package.items {
-            if let Some((ns, line)) = generate_doc_for_item(
+            if let Some((ns, metadata)) = generate_doc_for_item(
                 package_id,
                 package,
                 package_kind.clone(),
@@ -198,9 +200,14 @@ pub fn generate_docs(
                 display,
                 &mut files,
             ) {
-                toc.entry(ns).or_default().push(line);
+                toc.entry(ns).or_default().push(metadata);
             }
         }
+    }
+
+    // Generate Overview files for each namespace
+    for (ns, items) in toc.iter_mut() {
+        generate_overview_file(&mut files, ns, items);
     }
 
     // We want to sort documentation files in a meaningful way.
@@ -208,14 +215,16 @@ pub fn generate_docs(
     // Then we want to put explicit dependencies of the current project, if they exist.
     // Then we want to add built-in std package. And finally built-in core package.
     // Namespaces within packages should be sorted alphabetically and
-    // items with a namespace should be also sorted alphabetically.
+    // items with a namespace should be also sorted alphabetically with Overview appearing first.
     // Also, items without any metadata (table of content) should come last.
     files.sort_by_key(|file| {
-        (
-            file.1.package.clone(),
-            file.1.namespace.clone(),
-            file.1.name.clone(),
-        )
+        let prefix = if file.1.name.ends_with("Overview") {
+            "0"
+        } else {
+            "1"
+        };
+        let name_key = format!("{}{}", prefix, file.1.name);
+        (file.1.package.clone(), file.1.namespace.clone(), name_key)
     });
 
     let mut result: Files = files
@@ -226,6 +235,62 @@ pub fn generate_docs(
     generate_toc(&mut toc, &mut result);
 
     result
+}
+
+fn generate_overview_file(
+    files: &mut FilesWithMetadata,
+    ns: &Rc<str>,
+    items: &mut Vec<Arc<Metadata>>,
+) {
+    if items.is_empty() {
+        return;
+    }
+
+    let package_kind = items[0].package.clone();
+    let metadata = Metadata {
+        uid: format!("Qdk.{ns}.Overview"),
+        title: format!("{ns}"),
+        topic: "managed-reference".to_string(),
+        kind: MetadataKind::Overview,
+        package: package_kind,
+        namespace: ns.clone(),
+        name: "Overview".into(),
+        summary: "".into(),
+        signature: "".into(),
+    };
+
+    items.sort_by_key(|item| item.name.clone());
+    let content = items
+        .iter()
+        .map(|item| {
+            format!(
+                "| [{}](xref:{}) | {} |",
+                item.name,
+                item.fully_qualified_name(),
+                item.summary
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let content = format!(
+        "# {ns}
+
+The {ns} namespace contains the following functions and operations:
+
+| Name | Description |
+|------|-------------|
+{content}
+",
+    );
+
+    // ToDo: add this to the front instead of the back
+    let arc_met = Arc::from(metadata);
+    items.push(arc_met.clone());
+
+    let file_name: Arc<str> = Arc::from(format!("{ns}/Overview.md").as_str());
+    let file_content: Arc<str> = Arc::from(content.as_str());
+    files.push((file_name, arc_met, file_content));
 }
 
 fn get_item_info<'a>(
@@ -265,7 +330,7 @@ fn generate_doc_for_item<'a>(
     item: &'a Item,
     display: &'a CodeDisplay,
     files: &mut FilesWithMetadata,
-) -> Option<(Rc<str>, String)> {
+) -> Option<(Rc<str>, Arc<Metadata>)> {
     let (true_package, true_item) = get_item_info(
         default_package_id,
         package,
@@ -293,15 +358,11 @@ fn generate_doc_for_item<'a>(
     };
     let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
-
-    // Create toc line
-    let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
-
     let met: Arc<Metadata> = Arc::from(metadata);
-    files.push((file_name, met, file_content));
+    files.push((file_name, met.clone(), file_content));
 
-    // Return (ns, line)
-    Some((ns.clone(), line))
+    // Return (ns, metadata)
+    Some((ns.clone(), met))
 }
 
 fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
@@ -449,6 +510,7 @@ impl Display for Metadata {
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "udt",
             MetadataKind::Export => "export",
+            MetadataKind::Overview => "overview",
         };
         write!(
             f,
@@ -480,6 +542,7 @@ enum MetadataKind {
     Operation,
     Udt,
     Export,
+    Overview,
 }
 
 impl Display for MetadataKind {
@@ -489,6 +552,7 @@ impl Display for MetadataKind {
             MetadataKind::Operation => "operation",
             MetadataKind::Udt => "user defined type",
             MetadataKind::Export => "exported item",
+            MetadataKind::Overview => "overview",
         };
         write!(f, "{s}")
     }
@@ -541,16 +605,19 @@ fn get_metadata(
 }
 
 /// Generates the Table of Contents file, toc.yml
-fn generate_toc(map: &mut FxHashMap<Rc<str>, Vec<String>>, files: &mut Files) {
+fn generate_toc(map: &mut ToC, files: &mut Files) {
     let header = "
 # This file is automatically generated.
 # Please do not modify this file manually, or your changes will be lost when
 # documentation is rebuilt.";
     let mut table = map
         .iter_mut()
-        .map(|(namespace, lines)| {
-            lines.sort_unstable();
-            let items_str = lines.join("\n");
+        .map(|(namespace, items)| {
+            let items_str = items
+                .iter()
+                .map(|item| format!("  - {{name: {}, uid: {}}}", item.name, item.uid))
+                .collect::<Vec<String>>()
+                .join("\n");
             let content =
                 format!("- items:\n{items_str}\n  name: {namespace}\n  uid: Qdk.{namespace}");
             (namespace, content)
