@@ -3,7 +3,7 @@
 
 // @ts-check
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39,7 +39,7 @@ docs.forEach((doc) => {
   let fullPath = "";
   switch (parts.length) {
     case 1:
-      if (doc.filename !== "toc.yml") {
+      if (doc.filename !== "toc.yml" && doc.filename !== "index.md") {
         throw new Error(`Invalid filename: ${doc.filename}`);
       } else {
         fullPath = join(docsDirPath, doc.filename);
@@ -57,10 +57,18 @@ docs.forEach((doc) => {
     default:
       throw new Error(`Invalid file path: ${doc.filename}`);
   }
-  var contents =
-    doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
-    "\n\n" +
-    doc.contents;
+  var contents = "";
+  if (doc.filename === "index.md") {
+    contents = readFileSync("./index.md", "utf-8").replace(
+      "ms.date: { TIMESTAMP }",
+      `ms.date: ${today_str}`,
+    );
+  } else {
+    contents =
+      doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
+      "\n\n" +
+      doc.contents;
+  }
   writeFileSync(fullPath, contents);
 });
 
