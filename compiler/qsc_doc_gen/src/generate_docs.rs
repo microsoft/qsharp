@@ -24,6 +24,133 @@ type FilesWithMetadata = Vec<(Arc<str>, Arc<Metadata>, Arc<str>)>;
 
 type ToC = FxHashMap<Rc<str>, Vec<Arc<Metadata>>>;
 
+struct Metadata {
+    uid: String,
+    title: String,
+    topic: String,
+    kind: MetadataKind,
+    package: PackageKind,
+    namespace: Rc<str>,
+    name: Rc<str>,
+    summary: String,
+    signature: String,
+}
+
+impl Metadata {
+    fn fully_qualified_name(&self) -> String {
+        let mut buf = if let PackageKind::AliasedPackage(ref package_alias) = self.package {
+            vec![format!("{package_alias}")]
+        } else {
+            vec![]
+        };
+
+        buf.push(self.namespace.to_string());
+        buf.push(self.name.to_string());
+        buf.join(".")
+    }
+
+    fn display_for_toc(&self) -> String {
+        format!(
+            "---
+uid: {}
+title: {}
+description: {}
+author: bradben
+ms.author: brbenefield
+ms.date: {{TIMESTAMP}}
+ms.topic: {}
+---",
+            self.uid, self.title, self.summary, self.topic,
+        )
+    }
+
+    fn display_for_item(&self) -> String {
+        let kind = match &self.kind {
+            MetadataKind::Function => "function",
+            MetadataKind::Operation => "operation",
+            MetadataKind::Udt => "udt",
+            MetadataKind::Export => "export",
+            MetadataKind::TableOfContents => "table of contents",
+        };
+        format!(
+            "---
+uid: {}
+title: {}
+description: \"Q# {}: {}\"
+ms.date: {{TIMESTAMP}}
+ms.topic: {}
+qsharp.kind: {}
+qsharp.package: {}
+qsharp.namespace: {}
+qsharp.name: {}
+qsharp.summary: \"{}\"
+---",
+            self.uid,
+            self.title,
+            self.title,
+            self.summary,
+            self.topic,
+            kind,
+            self.package,
+            self.namespace,
+            self.name,
+            self.summary
+        )
+    }
+}
+
+impl Display for Metadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if self.kind == MetadataKind::TableOfContents {
+            write!(f, "{}", self.display_for_toc())
+        } else {
+            write!(f, "{}", self.display_for_item())
+        }
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
+enum MetadataKind {
+    Function,
+    Operation,
+    Udt,
+    Export,
+    TableOfContents,
+}
+
+impl Display for MetadataKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            MetadataKind::Function => "function",
+            MetadataKind::Operation => "operation",
+            MetadataKind::Udt => "user defined type",
+            MetadataKind::Export => "exported item",
+            MetadataKind::TableOfContents => "table of contents",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
+enum PackageKind {
+    UserCode,
+    AliasedPackage(String),
+    StandardLibrary,
+    Core,
+}
+
+impl Display for PackageKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let s = match &self {
+            PackageKind::UserCode => "__Main__",
+            PackageKind::AliasedPackage(alias) => alias,
+            PackageKind::StandardLibrary => "__Std__",
+            PackageKind::Core => "__Core__",
+        };
+        write!(f, "{s}")
+    }
+}
+
 /// Represents an immutable compilation state.
 #[derive(Debug)]
 struct Compilation {
@@ -234,10 +361,136 @@ pub fn generate_docs(
         .map(|(name, metadata, content)| (name, Arc::from(metadata.to_string().as_str()), content))
         .collect();
 
-    generate_top_index(&mut result);
+    // Insert file info for the top index file, index.md.
+    // This file's contents get replaced in the npm/generate_docs.js file.
+    let file_name: Arc<str> = Arc::from("index.md");
+    let file_metadata: Arc<str> = Arc::from("");
+    let file_content: Arc<str> = Arc::from("");
+    result.push((file_name, file_metadata, file_content));
+
     generate_toc(&mut toc, &mut result);
 
     result
+}
+
+fn generate_doc_for_item<'a>(
+    default_package_id: PackageId,
+    package: &'a Package,
+    package_kind: PackageKind,
+    include_internals: bool,
+    item: &'a Item,
+    display: &'a CodeDisplay,
+    files: &mut FilesWithMetadata,
+) -> Option<(Rc<str>, Arc<Metadata>)> {
+    let (true_package, true_item) = resolve_export(
+        default_package_id,
+        package,
+        include_internals,
+        item,
+        display,
+    )?;
+
+    // Get namespace for item
+    let ns = get_namespace(package, item)?;
+
+    // Add file
+    let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
+        let true_ns = get_namespace(true_package, true_item)?;
+        generate_exported_file_content(
+            package_kind.clone(),
+            &ns,
+            item,
+            display,
+            &true_ns,
+            true_item,
+        )?
+    } else {
+        generate_file_content(package_kind, &ns, item, display)?
+    };
+    let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
+    let file_content: Arc<str> = Arc::from(content.as_str());
+    let met: Arc<Metadata> = Arc::from(metadata);
+    files.push((file_name, met.clone(), file_content));
+
+    // Return (ns, metadata)
+    Some((ns.clone(), met))
+}
+
+fn generate_file_content(
+    package_kind: PackageKind,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(Metadata, String)> {
+    let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
+
+    let doc = increase_header_level(&item.doc);
+    let title = &metadata.title;
+    let fqn = &metadata.fully_qualified_name();
+    let sig = &metadata.signature;
+
+    let content = format!(
+        "# {title}
+
+Fully qualified name: {fqn}
+
+```qsharp
+{sig}
+```
+"
+    );
+
+    let content = if doc.is_empty() {
+        content
+    } else {
+        format!("{content}\n{doc}\n")
+    };
+
+    Some((metadata, content))
+}
+
+#[allow(clippy::assigning_clones)]
+fn generate_exported_file_content(
+    package_kind: PackageKind,
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+    true_ns: &Rc<str>,
+    true_item: &Item,
+) -> Option<(Metadata, String)> {
+    let mut metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
+
+    let doc = increase_header_level(&item.doc);
+    let title = &metadata.title;
+    let fqn = &metadata.fully_qualified_name();
+
+    // Note: we are assuming the package kind does not change
+    let true_metadata = get_metadata(package_kind, true_ns.clone(), true_item, display)?;
+    let true_fqn = true_metadata.fully_qualified_name();
+    let name = true_metadata.name;
+
+    let summary = format!(
+        "This is an exported item. The actual definition is found here: [{name}](xref:Qdk.{true_fqn})"
+    );
+
+    metadata.summary = summary.clone();
+
+    let content = format!(
+        "# {title}
+
+Fully qualified name: {fqn}
+
+{summary}
+"
+    );
+
+    let content = if doc.is_empty() {
+        content
+    } else {
+        format!("{content}\n{doc}\n")
+    };
+
+    Some((metadata, content))
 }
 
 fn generate_index_file(
@@ -303,76 +556,52 @@ The {ns} namespace contains the following items:
     files.push((file_name, arc_met, file_content));
 }
 
-fn get_item_info<'a>(
-    default_package_id: PackageId,
-    package: &'a Package,
-    include_internals: bool,
-    item: &'a Item,
-    display: &'a CodeDisplay,
-) -> Option<(&'a Package, &'a Item)> {
-    // Filter items
-    if !include_internals && (item.visibility == Visibility::Internal) {
-        return None;
-    }
-    if matches!(item.kind, ItemKind::Namespace(_, _)) {
-        return None;
-    }
-    if let ItemKind::Export(_, id) = item.kind {
-        let (exported_item, exported_package, _) =
-            display.compilation.resolve_item(default_package_id, &id);
-        return get_item_info(
-            default_package_id,
-            exported_package,
-            include_internals,
-            exported_item,
-            display,
-        );
-    }
+/// Generates the Table of Contents file, toc.yml
+fn generate_toc(map: &mut ToC, files: &mut Files) {
+    let header = "
+# This file is automatically generated.
+# Please do not modify this file manually, or your changes will be lost when
+# documentation is rebuilt.";
 
-    Some((package, item))
-}
+    // This inserts the top index into the table of contents.
+    // The file itself is inserted in the npm/generate_docs.js file.
+    let top_index = "- items:
+  name: Overview
+  uid: Microsoft.Quantum.apiref-toc";
 
-fn generate_doc_for_item<'a>(
-    default_package_id: PackageId,
-    package: &'a Package,
-    package_kind: PackageKind,
-    include_internals: bool,
-    item: &'a Item,
-    display: &'a CodeDisplay,
-    files: &mut FilesWithMetadata,
-) -> Option<(Rc<str>, Arc<Metadata>)> {
-    let (true_package, true_item) = get_item_info(
-        default_package_id,
-        package,
-        include_internals,
-        item,
-        display,
-    )?;
+    let mut table = map
+        .iter_mut()
+        .map(|(namespace, items)| {
+            let items_str = items
+                .iter()
+                .map(|item| format!("  - {{name: {}, uid: {}}}", item.name, item.uid))
+                .collect::<Vec<String>>()
+                .join("\n");
+            let content =
+                format!("- items:\n{items_str}\n  name: {namespace}\n  uid: Qdk.{namespace}");
+            (namespace, content)
+        })
+        .collect::<Vec<_>>();
 
-    // Get namespace for item
-    let ns = get_namespace(package, item)?;
+    table.sort_unstable_by_key(|(n, _)| {
+        // Ensures that the Microsoft.Quantum.Unstable namespaces are listed last.
+        if n.starts_with("Microsoft.Quantum.Unstable") {
+            format!("1{n}")
+        } else {
+            format!("0{n}")
+        }
+    });
+    let table = table
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let content = format!("{header}\n{top_index}\n{table}");
 
-    // Add file
-    let (metadata, content) = if matches!(item.kind, ItemKind::Export(_, _)) {
-        let true_ns = get_namespace(true_package, true_item)?;
-        generate_exported_file(
-            package_kind.clone(),
-            &ns,
-            item,
-            display,
-            &true_ns,
-            true_item,
-        )?
-    } else {
-        generate_file(package_kind, &ns, item, display)?
-    };
-    let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
+    let file_name: Arc<str> = Arc::from("toc.yml");
+    let file_metadata: Arc<str> = Arc::from("");
     let file_content: Arc<str> = Arc::from(content.as_str());
-    let met: Arc<Metadata> = Arc::from(metadata);
-    files.push((file_name, met.clone(), file_content));
-
-    // Return (ns, metadata)
-    Some((ns.clone(), met))
+    files.push((file_name, file_metadata, file_content));
 }
 
 fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
@@ -397,208 +626,36 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(
-    package_kind: PackageKind,
-    ns: &Rc<str>,
-    item: &Item,
-    display: &CodeDisplay,
-) -> Option<(Metadata, String)> {
-    let metadata = get_metadata(package_kind, ns.clone(), item, display)?;
-
-    let doc = increase_header_level(&item.doc);
-    let title = &metadata.title;
-    let fqn = &metadata.fully_qualified_name();
-    let sig = &metadata.signature;
-
-    let content = format!(
-        "# {title}
-
-Fully qualified name: {fqn}
-
-```qsharp
-{sig}
-```
-"
-    );
-
-    let content = if doc.is_empty() {
-        content
-    } else {
-        format!("{content}\n{doc}\n")
-    };
-
-    Some((metadata, content))
-}
-
-#[allow(clippy::assigning_clones)]
-fn generate_exported_file(
-    package_kind: PackageKind,
-    ns: &Rc<str>,
-    item: &Item,
-    display: &CodeDisplay,
-    true_ns: &Rc<str>,
-    true_item: &Item,
-) -> Option<(Metadata, String)> {
-    let mut metadata = get_metadata(package_kind.clone(), ns.clone(), item, display)?;
-
-    let doc = increase_header_level(&item.doc);
-    let title = &metadata.title;
-    let fqn = &metadata.fully_qualified_name();
-
-    // Note: we are assuming the package kind does not change
-    let true_metadata = get_metadata(package_kind, true_ns.clone(), true_item, display)?;
-    let true_fqn = true_metadata.fully_qualified_name();
-    let name = true_metadata.name;
-
-    let summary = format!(
-        "This is an exported item. The actual definition is found here: [{name}](xref:Qdk.{true_fqn})"
-    );
-
-    metadata.summary = summary.clone();
-
-    let content = format!(
-        "# {title}
-
-Fully qualified name: {fqn}
-
-{summary}
-"
-    );
-
-    let content = if doc.is_empty() {
-        content
-    } else {
-        format!("{content}\n{doc}\n")
-    };
-
-    Some((metadata, content))
-}
-
-struct Metadata {
-    uid: String,
-    title: String,
-    topic: String,
-    kind: MetadataKind,
-    package: PackageKind,
-    namespace: Rc<str>,
-    name: Rc<str>,
-    summary: String,
-    signature: String,
-}
-
-impl Metadata {
-    fn fully_qualified_name(&self) -> String {
-        let mut buf = if let PackageKind::AliasedPackage(ref package_alias) = self.package {
-            vec![format!("{package_alias}")]
-        } else {
-            vec![]
-        };
-
-        buf.push(self.namespace.to_string());
-        buf.push(self.name.to_string());
-        buf.join(".")
+// Recursively resolves export items until it can find the root definition.
+// Returns the package and item of the root definition for an item.
+// If given the root definition, it will return the same item.
+fn resolve_export<'a>(
+    default_package_id: PackageId,
+    package: &'a Package,
+    include_internals: bool,
+    item: &'a Item,
+    display: &'a CodeDisplay,
+) -> Option<(&'a Package, &'a Item)> {
+    // Filter items
+    if !include_internals && (item.visibility == Visibility::Internal) {
+        return None;
+    }
+    if matches!(item.kind, ItemKind::Namespace(_, _)) {
+        return None;
+    }
+    if let ItemKind::Export(_, id) = item.kind {
+        let (exported_item, exported_package, _) =
+            display.compilation.resolve_item(default_package_id, &id);
+        return resolve_export(
+            default_package_id,
+            exported_package,
+            include_internals,
+            exported_item,
+            display,
+        );
     }
 
-    fn display_for_toc(&self) -> String {
-        format!(
-            "---
-uid: {}
-title: {}
-description: {}
-author: bradben
-ms.author: brbenefield
-ms.date: {{TIMESTAMP}}
-ms.topic: {}
----",
-            self.uid, self.title, self.summary, self.topic,
-        )
-    }
-
-    fn display_for_item(&self) -> String {
-        let kind = match &self.kind {
-            MetadataKind::Function => "function",
-            MetadataKind::Operation => "operation",
-            MetadataKind::Udt => "udt",
-            MetadataKind::Export => "export",
-            MetadataKind::TableOfContents => "table of contents",
-        };
-        format!(
-            "---
-uid: {}
-title: {}
-description: \"Q# {}: {}\"
-ms.date: {{TIMESTAMP}}
-ms.topic: {}
-qsharp.kind: {}
-qsharp.package: {}
-qsharp.namespace: {}
-qsharp.name: {}
-qsharp.summary: \"{}\"
----",
-            self.uid,
-            self.title,
-            self.title,
-            self.summary,
-            self.topic,
-            kind,
-            self.package,
-            self.namespace,
-            self.name,
-            self.summary
-        )
-    }
-}
-
-impl Display for Metadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if self.kind == MetadataKind::TableOfContents {
-            write!(f, "{}", self.display_for_toc())
-        } else {
-            write!(f, "{}", self.display_for_item())
-        }
-    }
-}
-
-#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
-enum PackageKind {
-    UserCode,
-    AliasedPackage(String),
-    StandardLibrary,
-    Core,
-}
-
-impl Display for PackageKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let s = match &self {
-            PackageKind::UserCode => "__Main__",
-            PackageKind::AliasedPackage(alias) => alias,
-            PackageKind::StandardLibrary => "__Std__",
-            PackageKind::Core => "__Core__",
-        };
-        write!(f, "{s}")
-    }
-}
-
-#[derive(PartialOrd, Ord, Eq, PartialEq, Clone)]
-enum MetadataKind {
-    Function,
-    Operation,
-    Udt,
-    Export,
-    TableOfContents,
-}
-
-impl Display for MetadataKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let s = match &self {
-            MetadataKind::Function => "function",
-            MetadataKind::Operation => "operation",
-            MetadataKind::Udt => "user defined type",
-            MetadataKind::Export => "exported item",
-            MetadataKind::TableOfContents => "table of contents",
-        };
-        write!(f, "{s}")
-    }
+    Some((package, item))
 }
 
 fn get_metadata(
@@ -646,61 +703,4 @@ fn get_metadata(
         summary,
         signature,
     })
-}
-
-// Generates the top index file, index.md
-fn generate_top_index(files: &mut Files) {
-    // This file's contents get replaced in the npm/generate_docs.js file.
-    let file_name: Arc<str> = Arc::from("index.md");
-    let file_metadata: Arc<str> = Arc::from("");
-    let file_content: Arc<str> = Arc::from("");
-    files.push((file_name, file_metadata, file_content));
-}
-
-/// Generates the Table of Contents file, toc.yml
-fn generate_toc(map: &mut ToC, files: &mut Files) {
-    let header = "
-# This file is automatically generated.
-# Please do not modify this file manually, or your changes will be lost when
-# documentation is rebuilt.";
-
-    // This inserts the top index into the table of contents.
-    // The file itself is inserted in the npm/generate_docs.js file.
-    let top_index = "- items:
-  name: Overview
-  uid: Microsoft.Quantum.apiref-toc";
-
-    let mut table = map
-        .iter_mut()
-        .map(|(namespace, items)| {
-            let items_str = items
-                .iter()
-                .map(|item| format!("  - {{name: {}, uid: {}}}", item.name, item.uid))
-                .collect::<Vec<String>>()
-                .join("\n");
-            let content =
-                format!("- items:\n{items_str}\n  name: {namespace}\n  uid: Qdk.{namespace}");
-            (namespace, content)
-        })
-        .collect::<Vec<_>>();
-
-    table.sort_unstable_by_key(|(n, _)| {
-        // Ensures that the Microsoft.Quantum.Unstable namespaces are listed last.
-        if n.starts_with("Microsoft.Quantum.Unstable") {
-            format!("1{n}")
-        } else {
-            format!("0{n}")
-        }
-    });
-    let table = table
-        .into_iter()
-        .map(|(_, c)| c)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let content = format!("{header}\n{top_index}\n{table}");
-
-    let file_name: Arc<str> = Arc::from("toc.yml");
-    let file_metadata: Arc<str> = Arc::from("");
-    let file_content: Arc<str> = Arc::from(content.as_str());
-    files.push((file_name, file_metadata, file_content));
 }
