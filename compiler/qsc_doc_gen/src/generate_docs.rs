@@ -160,6 +160,8 @@ pub fn generate_docs(
     capabilities: Option<TargetCapabilityFlags>,
     language_features: Option<LanguageFeatures>,
 ) -> Files {
+    // Capabilities should default to all capabilities for documentation generation.
+    let capabilities = Some(capabilities.unwrap_or(TargetCapabilityFlags::all()));
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
     let mut files: FilesWithMetadata = vec![];
 
@@ -682,7 +684,14 @@ fn generate_toc(map: &mut ToC, files: &mut Files) {
         })
         .collect::<Vec<_>>();
 
-    table.sort_unstable_by_key(|(n, _)| *n);
+    table.sort_unstable_by_key(|(n, _)| {
+        // Ensures that the Microsoft.Quantum.Unstable namespaces are listed last.
+        if n.starts_with("Microsoft.Quantum.Unstable") {
+            format!("1{n}")
+        } else {
+            format!("0{n}")
+        }
+    });
     let table = table
         .into_iter()
         .map(|(_, c)| c)

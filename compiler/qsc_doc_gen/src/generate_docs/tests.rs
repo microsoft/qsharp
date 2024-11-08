@@ -5,7 +5,7 @@ use super::generate_docs;
 use expect_test::expect;
 
 #[test]
-fn docs_generation() {
+fn generates_standard_item() {
     let files = generate_docs(None, None, None);
     let (_, metadata, contents) = files
         .iter()
@@ -49,6 +49,58 @@ fn docs_generation() {
         ```qsharp
         Message($"{ Length([0, 0, 0]) }"); // Prints 3
         ```
+    "#]]
+    .assert_eq(full_contents.as_str());
+}
+
+#[test]
+fn generates_unrestricted_item() {
+    let files = generate_docs(None, None, None);
+    let (_, metadata, contents) = files
+        .iter()
+        .find(|(file_name, _, _)| &**file_name == "Std.Diagnostics/CheckZero.md")
+        .expect("Could not file doc file for CheckZero");
+    let full_contents = format!("{metadata}\n\n{contents}");
+
+    expect![[r#"
+        ---
+        uid: Qdk.Std.Diagnostics.CheckZero
+        title: CheckZero operation
+        description: "Q# CheckZero operation: Checks whether a qubit is in the \|0⟩ state, returning true if it is."
+        ms.date: {TIMESTAMP}
+        ms.topic: managed-reference
+        qsharp.kind: operation
+        qsharp.package: __Std__
+        qsharp.namespace: Std.Diagnostics
+        qsharp.name: CheckZero
+        qsharp.summary: "Checks whether a qubit is in the \|0⟩ state, returning true if it is."
+        ---
+
+        # CheckZero operation
+
+        Fully qualified name: Std.Diagnostics.CheckZero
+
+        ```qsharp
+        operation CheckZero(qubit : Qubit) : Bool
+        ```
+
+        ## Summary
+        Checks whether a qubit is in the |0⟩ state, returning true if it is.
+
+        ## Description
+        This operation checks whether a qubit is in the |0⟩ state. It will return true only
+        if the qubit is deterministically in the |0⟩ state, and will return false otherwise. This operation
+        does not change the state of the qubit.
+
+        ## Input
+        ### qubit
+        The qubit to check.
+        ## Output
+        True if the qubit is in the |0⟩ state, false otherwise.
+
+        ## Remarks
+        This operation is useful for checking whether a qubit is in the |0⟩ state during simulation. It is not possible to check
+        this on hardware without measuring the qubit, which could change the state.
     "#]]
     .assert_eq(full_contents.as_str());
 }
@@ -143,45 +195,6 @@ fn toc_generation() {
           - {name: Repeated, uid: Qdk.Microsoft.Quantum.Core.Repeated}
           name: Microsoft.Quantum.Core
           uid: Qdk.Microsoft.Quantum.Core
-        - items:
-          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic-toc}
-          - {name: AddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.AddLE}
-          - {name: ApplyIfEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualL}
-          - {name: ApplyIfEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualLE}
-          - {name: ApplyIfGreaterL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterL}
-          - {name: ApplyIfGreaterLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterLE}
-          - {name: ApplyIfGreaterOrEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualL}
-          - {name: ApplyIfGreaterOrEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualLE}
-          - {name: ApplyIfLessL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessL}
-          - {name: ApplyIfLessLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessLE}
-          - {name: ApplyIfLessOrEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualL}
-          - {name: ApplyIfLessOrEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualLE}
-          - {name: FourierTDIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE}
-          - {name: IncByI, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByI}
-          - {name: IncByIUsingIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByIUsingIncByLE}
-          - {name: IncByL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByL}
-          - {name: IncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLE}
-          - {name: IncByLEUsingAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLEUsingAddLE}
-          - {name: IncByLUsingIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLUsingIncByLE}
-          - {name: LookAheadDKRSAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE}
-          - {name: MAJ, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.MAJ}
-          - {name: ReflectAboutInteger, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ReflectAboutInteger}
-          - {name: RippleCarryCGAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE}
-          - {name: RippleCarryCGIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE}
-          - {name: RippleCarryTTKIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE}
-          name: Microsoft.Quantum.Unstable.Arithmetic
-          uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic
-        - items:
-          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation-toc}
-          - {name: ApproximatelyPreparePureStateCP, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation.ApproximatelyPreparePureStateCP}
-          - {name: PreparePureStateD, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD}
-          name: Microsoft.Quantum.Unstable.StatePreparation
-          uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation
-        - items:
-          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.TableLookup-toc}
-          - {name: Select, uid: Qdk.Microsoft.Quantum.Unstable.TableLookup.Select}
-          name: Microsoft.Quantum.Unstable.TableLookup
-          uid: Qdk.Microsoft.Quantum.Unstable.TableLookup
         - items:
           - {name: Overview, uid: Qdk.Std.Arrays-toc}
           - {name: All, uid: Qdk.Std.Arrays.All}
@@ -281,10 +294,19 @@ fn toc_generation() {
           uid: Qdk.Std.Core
         - items:
           - {name: Overview, uid: Qdk.Std.Diagnostics-toc}
+          - {name: CheckAllZero, uid: Qdk.Std.Diagnostics.CheckAllZero}
+          - {name: CheckOperationsAreEqual, uid: Qdk.Std.Diagnostics.CheckOperationsAreEqual}
+          - {name: CheckZero, uid: Qdk.Std.Diagnostics.CheckZero}
           - {name: DumpMachine, uid: Qdk.Std.Diagnostics.DumpMachine}
           - {name: DumpOperation, uid: Qdk.Std.Diagnostics.DumpOperation}
           - {name: DumpRegister, uid: Qdk.Std.Diagnostics.DumpRegister}
           - {name: Fact, uid: Qdk.Std.Diagnostics.Fact}
+          - {name: StartCountingFunction, uid: Qdk.Std.Diagnostics.StartCountingFunction}
+          - {name: StartCountingOperation, uid: Qdk.Std.Diagnostics.StartCountingOperation}
+          - {name: StartCountingQubits, uid: Qdk.Std.Diagnostics.StartCountingQubits}
+          - {name: StopCountingFunction, uid: Qdk.Std.Diagnostics.StopCountingFunction}
+          - {name: StopCountingOperation, uid: Qdk.Std.Diagnostics.StopCountingOperation}
+          - {name: StopCountingQubits, uid: Qdk.Std.Diagnostics.StopCountingQubits}
           name: Std.Diagnostics
           uid: Qdk.Std.Diagnostics
         - items:
@@ -432,6 +454,13 @@ fn toc_generation() {
           name: Std.Measurement
           uid: Qdk.Std.Measurement
         - items:
+          - {name: Overview, uid: Qdk.Std.Random-toc}
+          - {name: DrawRandomBool, uid: Qdk.Std.Random.DrawRandomBool}
+          - {name: DrawRandomDouble, uid: Qdk.Std.Random.DrawRandomDouble}
+          - {name: DrawRandomInt, uid: Qdk.Std.Random.DrawRandomInt}
+          name: Std.Random
+          uid: Qdk.Std.Random
+        - items:
           - {name: Overview, uid: Qdk.Std.Range-toc}
           - {name: IsRangeEmpty, uid: Qdk.Std.Range.IsRangeEmpty}
           - {name: RangeEnd, uid: Qdk.Std.Range.RangeEnd}
@@ -457,7 +486,46 @@ fn toc_generation() {
           - {name: SingleVariant, uid: Qdk.Std.ResourceEstimation.SingleVariant}
           - {name: TCount, uid: Qdk.Std.ResourceEstimation.TCount}
           name: Std.ResourceEstimation
-          uid: Qdk.Std.ResourceEstimation"#]]
+          uid: Qdk.Std.ResourceEstimation
+        - items:
+          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic-toc}
+          - {name: AddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.AddLE}
+          - {name: ApplyIfEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualL}
+          - {name: ApplyIfEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfEqualLE}
+          - {name: ApplyIfGreaterL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterL}
+          - {name: ApplyIfGreaterLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterLE}
+          - {name: ApplyIfGreaterOrEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualL}
+          - {name: ApplyIfGreaterOrEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfGreaterOrEqualLE}
+          - {name: ApplyIfLessL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessL}
+          - {name: ApplyIfLessLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessLE}
+          - {name: ApplyIfLessOrEqualL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualL}
+          - {name: ApplyIfLessOrEqualLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ApplyIfLessOrEqualLE}
+          - {name: FourierTDIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE}
+          - {name: IncByI, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByI}
+          - {name: IncByIUsingIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByIUsingIncByLE}
+          - {name: IncByL, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByL}
+          - {name: IncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLE}
+          - {name: IncByLEUsingAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLEUsingAddLE}
+          - {name: IncByLUsingIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.IncByLUsingIncByLE}
+          - {name: LookAheadDKRSAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.LookAheadDKRSAddLE}
+          - {name: MAJ, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.MAJ}
+          - {name: ReflectAboutInteger, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.ReflectAboutInteger}
+          - {name: RippleCarryCGAddLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGAddLE}
+          - {name: RippleCarryCGIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryCGIncByLE}
+          - {name: RippleCarryTTKIncByLE, uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic.RippleCarryTTKIncByLE}
+          name: Microsoft.Quantum.Unstable.Arithmetic
+          uid: Qdk.Microsoft.Quantum.Unstable.Arithmetic
+        - items:
+          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation-toc}
+          - {name: ApproximatelyPreparePureStateCP, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation.ApproximatelyPreparePureStateCP}
+          - {name: PreparePureStateD, uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD}
+          name: Microsoft.Quantum.Unstable.StatePreparation
+          uid: Qdk.Microsoft.Quantum.Unstable.StatePreparation
+        - items:
+          - {name: Overview, uid: Qdk.Microsoft.Quantum.Unstable.TableLookup-toc}
+          - {name: Select, uid: Qdk.Microsoft.Quantum.Unstable.TableLookup.Select}
+          name: Microsoft.Quantum.Unstable.TableLookup
+          uid: Qdk.Microsoft.Quantum.Unstable.TableLookup"#]]
     .assert_eq(full_contents.as_str());
 }
 
@@ -588,10 +656,19 @@ fn docs_file_list() {
         Std.Convert/ResultArrayAsInt.md
         Std.Convert/ResultAsBool.md
         Std.Diagnostics/index.md
+        Std.Diagnostics/CheckAllZero.md
+        Std.Diagnostics/CheckOperationsAreEqual.md
+        Std.Diagnostics/CheckZero.md
         Std.Diagnostics/DumpMachine.md
         Std.Diagnostics/DumpOperation.md
         Std.Diagnostics/DumpRegister.md
         Std.Diagnostics/Fact.md
+        Std.Diagnostics/StartCountingFunction.md
+        Std.Diagnostics/StartCountingOperation.md
+        Std.Diagnostics/StartCountingQubits.md
+        Std.Diagnostics/StopCountingFunction.md
+        Std.Diagnostics/StopCountingOperation.md
+        Std.Diagnostics/StopCountingQubits.md
         Std.Intrinsic/index.md
         Std.Intrinsic/AND.md
         Std.Intrinsic/CCNOT.md
@@ -724,6 +801,10 @@ fn docs_file_list() {
         Std.Measurement/MeasureAllZ.md
         Std.Measurement/MeasureEachZ.md
         Std.Measurement/MeasureInteger.md
+        Std.Random/index.md
+        Std.Random/DrawRandomBool.md
+        Std.Random/DrawRandomDouble.md
+        Std.Random/DrawRandomInt.md
         Std.Range/index.md
         Std.Range/IsRangeEmpty.md
         Std.Range/RangeEnd.md
