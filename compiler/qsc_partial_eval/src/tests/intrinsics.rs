@@ -922,6 +922,31 @@ fn call_to_dump_register_does_not_generate_instructions() {
 }
 
 #[test]
+fn use_of_noise_does_not_generate_instructions() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            import Std.Diagnostics.*;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                ConfigurePauliNoise(0.2, 0.2, 0.2);
+                ApplyIdleNoise(q);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
 #[should_panic(expected = "`CheckZero` is not a supported by partial evaluation")]
 fn call_to_check_zero_panics() {
     _ = get_rir_program(indoc! {
