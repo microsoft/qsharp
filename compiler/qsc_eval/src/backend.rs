@@ -401,7 +401,7 @@ impl Backend for SparseSim {
             | "EndRepeatEstimatesInternal" => Some(Ok(Value::unit())),
             "ConfigurePauliNoise" => {
                 let [xv, yv, zv] = &*arg.unwrap_tuple() else {
-                    panic!("tuple arity for SetPauliNoise intrinsic should be 3");
+                    panic!("tuple arity for ConfigurePauliNoise intrinsic should be 3");
                 };
                 let px = xv.get_double();
                 let py = yv.get_double();
