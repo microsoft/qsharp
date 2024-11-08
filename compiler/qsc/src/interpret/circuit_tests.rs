@@ -533,7 +533,7 @@ fn custom_intrinsic_apply_idle_noise() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // ConfigurePauliNoise has no qubit qrguments so it shouldn't show up.
+    // ConfigurePauliNoise has no qubit arguments so it shouldn't show up.
     // ApplyIdleNoise is a quantum operation so it shows up.
     expect![[r#"
         q_0     ApplyIdleNoise
