@@ -156,11 +156,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     setCurrentNavItem(name);
   }
 
-  function onRenderLaTeX(nodes: HTMLElement[]) {
-    MathJax.typesetClear(nodes);
-    MathJax.typesetPromise(nodes);
-  }
-
   return (
     <>
       <header class="page-header">Q# playground</header>
@@ -213,7 +208,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         ></Katas>
       ) : (
         <>
-          <BlochSphere renderLaTeX={onRenderLaTeX} />
+          <BlochSphere />
           <DocumentationDisplay
             currentNamespace={currentNavItem}
             documentation={documentation}

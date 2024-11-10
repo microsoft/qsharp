@@ -6,12 +6,12 @@ import { Quaternion, Vector3 } from "three";
 // Basic classes for complex numbers and 2x2 matrices/vectors
 
 const epsilon = 0.000001; // Tolerance when comparing numbers
-export function compare(a: number, b: number): boolean {
-  return Math.abs(a - b) < epsilon;
+export function compare(a: number, b: number, eps = epsilon): boolean {
+  return Math.abs(a - b) < eps;
 }
 
 const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
-const numToStr = (n: number) => fmt.format(n);
+export const numToStr = (n: number) => fmt.format(n);
 
 // Some common numbers after various gates to display in LaTeX
 // - 1 / sqrt(2) = 0.7071067811865476 = sqrt(2) / 2
@@ -116,14 +116,19 @@ export class Cplx {
     return new Cplx(this.re, -this.im);
   }
 
-  compare(c: Cplx): boolean {
-    return compare(this.re, c.re) && compare(this.im, c.im);
+  compare(c: Cplx, eps = epsilon): boolean {
+    return compare(this.re, c.re, eps) && compare(this.im, c.im, eps);
   }
 
   toPolar() {
     const magnitude = Math.sqrt(this.re * this.re + this.im * this.im);
     const phase = Math.atan2(this.im, this.re);
     return { magnitude, phase };
+  }
+
+  static fromPolar(magnitude: number, phase: number) {
+    const result = new Cplx(Math.cos(phase), Math.sin(phase)).mul(magnitude);
+    return result;
   }
 
   static parse(input: string): Cplx | null {
@@ -261,12 +266,26 @@ export class Vec2 {
     );
   }
 
+  remove0Phase(): Vec2 {
+    const p0 = this.x.toPolar();
+    const p1 = this.y.toPolar();
+
+    return new Vec2(
+      Cplx.fromPolar(p0.magnitude, 0),
+      Cplx.fromPolar(p1.magnitude, p1.phase - p0.phase),
+    );
+  }
+
   compare(v: Vec2): boolean {
     return this.x.compare(v.x) && this.y.compare(v.y);
   }
 
   toLaTeX() {
     return `\\begin{bmatrix} ${this.x.toLaTeX()} \\\\ ${this.y.toLaTeX()} \\end{bmatrix}`;
+  }
+
+  toString() {
+    return `[${this.x},${this.y}]`;
   }
 }
 
@@ -356,6 +375,29 @@ export class M2x2 {
 
   adjoint(): M2x2 {
     return new M2x2(this.a.conj(), this.c.conj(), this.b.conj(), this.d.conj());
+  }
+
+  isDiagonal(eps = epsilon): boolean {
+    return this.b.compare(Cplx.zero, eps) && this.c.compare(Cplx.zero, eps);
+  }
+
+  phase(): number {
+    const pa = this.a.toPolar();
+    const pd = this.d.toPolar();
+    let phase = pd.phase - pa.phase;
+    if (phase < 0) phase += Math.PI * 2;
+    return phase;
+  }
+
+  toString() {
+    return `[
+  ${this.a.toString()}, ${this.b.toString()}
+  ${this.c.toString()}, ${this.d.toString()}
+]`;
+  }
+
+  toShortString() {
+    return `[[${this.a.toString()},${this.b.toString()}],[${this.c.toString()},${this.d.toString()}]]`;
   }
 }
 

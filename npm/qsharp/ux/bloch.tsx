@@ -5,10 +5,17 @@
 
 /* TODO:
 
+- Draw the equator (z plane line)
+- VS Code doesn't show the fonts/axis labelsk
+- VS Code doesn't render property in dark theme
 - Show the equations from state vector to bloch angles
 - Calculate the T / H gates for an arbitrary point
+  - For an arbitrary precision, e.g. 1e-4, 1e-6, etc.
+  - Maybe allow distance from the z-axis to be a separate precision
 - Show the matrix to be applied when hovering over a gate
 - Add the trailing dots with a slider for history and fade out speed
+- Add a slider for rotation speed
+- Add a slider to drag back and forth to replay the gates
 
 To convert basis state coeffeicients a & b into a point on the Bloch sphere:
  - Calculate the angle theta = 2 * acos(magnitute(a))
@@ -52,6 +59,9 @@ import {
   TGate,
   Hadamard,
 } from "../src/cplx.js";
+import { Markdown } from "./renderers.js";
+
+import rzOps from "../src/rzOps.js";
 
 const colors = {
   sphereColor: 0x404080,
@@ -81,6 +91,7 @@ const gateLaTeX = {
   Z: "\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}",
   S: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 2}} \\end{bmatrix}",
   T: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 4}} \\end{bmatrix}",
+  TA: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{-i {\\pi \\over 4}} \\end{bmatrix}",
   H: "{1 \\over \\sqrt{2}} \\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}",
 };
 
@@ -167,7 +178,7 @@ function createText(scene: Scene, done: () => void) {
   });
 }
 
-const rotationTimeMs = 750;
+const rotationTimeMs = 100;
 
 class BlochRenderer {
   scene: Scene;
@@ -447,12 +458,9 @@ class BlochRenderer {
   }
 }
 
-export function BlochSphere(props: {
-  renderLaTeX: (nodes: HTMLElement[]) => void;
-}) {
+export function BlochSphere() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<BlochRenderer | null>(null);
-  const latexDiv = useRef<HTMLDivElement>(null);
 
   const [gateArray, setGateArray] = useState<string[]>([]);
   const [state, setState] = useState(Ket0);
@@ -463,18 +471,12 @@ export function BlochSphere(props: {
     }
   }, []);
 
-  useEffect(() => {
-    if (latexDiv.current) {
-      props.renderLaTeX([latexDiv.current]);
-    }
-  }, [gateArray]);
-
   const getLaTeX = (
     gateName: string,
     gateMatrix: string,
     oldState: string,
     newState: string,
-  ) => `$$ ${gateName} | \\psi \\rangle_${gateArray.length} =
+  ) => `$$ ${gateName} | \\psi \\rangle_{${gateArray.length}} =
   ${gateMatrix}
   \\cdot ${oldState}
   = ${newState}
@@ -535,6 +537,16 @@ export function BlochSphere(props: {
             newState.toLaTeX(),
           );
           break;
+        case "A":
+          renderer.current.rotateZ(-Math.PI / 4);
+          newState = TGate.adjoint().mulVec2(state);
+          newLaTeX = getLaTeX(
+            "TA",
+            gateLaTeX.TA,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
+          break;
         case "H":
           renderer.current.rotateH(Math.PI);
           newState = Hadamard.mulVec2(state);
@@ -550,7 +562,8 @@ export function BlochSphere(props: {
       }
     }
     setState(newState);
-    setGateArray([...gateArray, newLaTeX]);
+    gateArray.push(newLaTeX);
+    setGateArray([...gateArray]);
   }
 
   function reset() {
@@ -561,16 +574,31 @@ export function BlochSphere(props: {
     }
   }
 
+  function applyGates(e: Event) {
+    const input = document.getElementById("run_gates") as HTMLInputElement;
+    const text = input.value;
+    for (const gate of text) {
+      rotate(gate);
+    }
+  }
+
+  function sliderChange(e: Event) {
+    const slider = e.target as HTMLInputElement;
+    const angleIdx = Math.round(parseFloat(slider.value) * 100);
+    const button = document.getElementById("rz_button") as HTMLSpanElement;
+    button.textContent = `Rz(${slider.value})`;
+
+    const input = document.getElementById("run_gates") as HTMLInputElement;
+    input.value = rzOps[angleIdx].gates;
+  }
+
   return (
     <div style="position: relative;">
       <canvas ref={canvasRef} width="600" height="600"></canvas>
-      <div
-        ref={latexDiv}
-        style="position: absolute; left: 600px; top: 50px; height: 700px; min-width: 200px; background: #eee; overflow-y: scroll; display: flex; flex-direction: column; align-items: flex-start;"
-      >
+      <div style="font-size: 0.8em; position: absolute; left: 600px; top: 50px; height: 700px; min-width: 200px; background: #eee; overflow-y: scroll; display: flex; flex-direction: column; align-items: flex-start;">
         {gateArray.map((str) => (
           <div style="border-bottom: 1px dotted gray; text-align: left">
-            {str}
+            <Markdown markdown={str}></Markdown>
           </div>
         ))}
       </div>
@@ -590,12 +618,47 @@ export function BlochSphere(props: {
         <button type="button" onClick={() => rotate("T")}>
           T
         </button>
+        <button type="button" onClick={() => rotate("A")}>
+          T†
+        </button>
         <button type="button" onClick={() => rotate("H")}>
           H
         </button>
         <button type="button" onClick={reset}>
           Reset
         </button>
+      </div>
+      <div style="margin-top: 12px">
+        <input
+          id="run_gates"
+          type="text"
+          size={60}
+          placeholder="Enter gates then tab away"
+        />
+        <button
+          style="margin-left: 8px; padding: 0 4px"
+          type="button"
+          onClick={applyGates}
+        >
+          Run
+        </button>
+      </div>
+      <div style="margin-top: 8px">
+        <input
+          label="Rz"
+          type="range"
+          min="0"
+          max="6.28"
+          step="0.01"
+          value="0"
+          onInput={sliderChange}
+        />
+        <span
+          style="margin: 0 12px; font-style: italic; font-size: 1.2em;"
+          id="rz_button"
+        >
+          Rz(0)
+        </span>
       </div>
     </div>
   );

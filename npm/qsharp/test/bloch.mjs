@@ -108,6 +108,13 @@ describe("Math tests", () => {
     assert(!mx.compare(Ident));
   });
 
+  it("Accurately converts to and from polar", () => {
+    const c1 = new Cplx(3.14, 2);
+    const pol = c1.toPolar();
+    const c2 = Cplx.fromPolar(pol.magnitude, pol.phase);
+    assert(c1.compare(c2));
+  });
+
   it("Checks the string representation of a complex number", () => {
     let a = new Cplx(1, 1);
     assert(a.toString() === "1+i");

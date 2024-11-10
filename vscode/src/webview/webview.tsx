@@ -264,7 +264,7 @@ function App({ state }: { state: State }) {
     case "help":
       return <HelpPage />;
     case "bloch":
-      return <BlochSphere renderLaTeX={() => undefined} />;
+      return <BlochSphere />;
     case "documentation":
       // Ideally we'd have this on all web views, but it makes the font a little
       // too large in the others right now. Something to unify later.
