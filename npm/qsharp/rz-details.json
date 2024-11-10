@@ -6,16 +6,16 @@
     "offset": 0
   },
   {
-    "phase": 3.9336255070872554,
-    "gates": "HTHTHtHTHtHTHtHtHtHtHtHTHtHTHtHtHTHTHTHTHTHTHtHTHtHTHTHTHTHX",
-    "matrix": "[[-0.0033-1i,-0.0006-0.0004i],[0.0007+0.0001i,-0.7094+0.7048i]]",
-    "offset": 0.0007430319095135171
+    "phase": 0.006797366324771015,
+    "gates": "HtHtHTHTHTHTHtHtHTHTHtHtHTHtHTHTHTHtHTHtHTHTHtHtHTHTHtHtHtHtHtHtHX",
+    "matrix": "[[0.7047-0.7095i,0+0.0001i],[0.0001+0i,0.7095-0.7047i]]",
+    "offset": 0.0000778670871819516
   },
   {
-    "phase": 3.1524527589345746,
-    "gates": "HTHtHtHTHTHtHTHtHtHTHTHTHTHTHTHtHtHTHtHTHtHTHTHTHTHTHTH",
-    "matrix": "[[-0.3777+0.9259i,0.0001+0.0002i],[-0.0002+0i,0.3877-0.9218i]]",
-    "offset": 0.00021557716860683178
+    "phase": 3.9370117484448643,
+    "gates": "HtHTHTHTHTHtHtHtHtHtHtHTHTHtHTHtHtHTHTHtHtHTHtHtHtHTHtHtHtHtHtHtHX",
+    "matrix": "[[0.9258+0.378i,0.0001-0i],[-0+0.0001i,-0.378-0.9258i]]",
+    "offset": 0.00006879341188349906
   },
   {
     "phase": 4.724912789000288,
@@ -24,10 +24,10 @@
     "offset": 0.0004970758555279916
   },
   {
-    "phase": 1.5910357104986328,
-    "gates": "HtHtHTHtHTHTHtHtHTHTHTHTHTHtHtHtHtHTHTHtHtHTHTHTHtHTHTH",
-    "matrix": "[[0.9277+0.3733i,0.0002-0i],[0.0001-0.0001i,-0.392+0.92i]]",
-    "offset": 0.00018340979047280293
+    "phase": 3.9494891283931364,
+    "gates": "HTHTHTHTHTHtHTHTHTHTHTHtHtHTHtHTHTHTHTHtHtHTHtHTHtHtHtHTHtHTHtH",
+    "matrix": "[[-0.715-0.6991i,-0.0001+0i],[0.0001-0i,-0.0112+0.9999i]]",
+    "offset": 0.0000622479028673667
   },
   {
     "phase": 3.9533793468878455,
@@ -36,34 +36,34 @@
     "offset": 0.0003004867581136003
   },
   {
-    "phase": 5.526234419804517,
-    "gates": "HtHtHtHtHtHTHTHtHtHtHtHtHtHtHtHtHtHtHtHTHTHtHtHtHtHtH",
-    "matrix": "[[-0.3958-0.9183i,0.0013-0.0013i],[0.0013-0.0013i,-0.9183-0.3958i]]",
-    "offset": 0.0018003837950188583
+    "phase": 1.6009221525507646,
+    "gates": "HtHTHTHTHTHtHTHTHTHTHtHTHtHTHtHTHTHTHTHTHTHTHtHtHtHtHTHtHtH",
+    "matrix": "[[-0.3687+0.9295i,0.0001-0.0001i],[-0.0001+0i,-0.918-0.3966i]]",
+    "offset": 0.00012968740202717738
   },
   {
-    "phase": 5.530609010668732,
-    "gates": "HtHtHTHTHtHtHTHTHtHtHTHtHtHTHTHtHtHTHTHtHtH",
-    "matrix": "[[0.6954-0.7186i,0.0003+0.0001i],[0.0003+0.0001i,0.0164-0.9999i]]",
-    "offset": 0.00035203588913025835
+    "phase": 1.6062863314202884,
+    "gates": "HTHTHtHtHtHtHtHTHtHtHtHTHtHTHTHtHtHtHTHtHtHtHTHtHtHTHtHtHtHTHtH",
+    "matrix": "[[-0.399-0.9169i,0-0.0002i],[-0.0001+0.0002i,0.9305-0.3662i]]",
+    "offset": 0.00019367357111501623
   },
   {
-    "phase": 0.8241657480128655,
-    "gates": "HTHTHtHTHTHtHtHTHTHTHtHTHtHTHtHTHTHtHtHtHTHTHtHTHtHTHTHTHTHX",
-    "matrix": "[[-0.7207-0.6933i,-0.0004-0.0006i],[0.0002+0.0007i,0.0194-0.9998i]]",
-    "offset": 0.0007307679130888774
+    "phase": 0.8246060624793068,
+    "gates": "HTHTHTHTHtHtHTHtHTHtHTHtHTHtHTHtHtHTHtHTHtHtHtHTHtHtHtHTHtHtHtH",
+    "matrix": "[[-0.7208-0.6931i,-0.0003+0i],[-0.0003+0.0002i,0.0196-0.9998i]]",
+    "offset": 0.0003510793138919119
   },
   {
-    "phase": 3.1880118688949937,
-    "gates": "HtHtHtHtHTHTHtHtHTHTHTHTHTHTHtHtHTHTHtHtHtHtH",
-    "matrix": "[[0.6905-0.7233i,0.0003-0.0003i],[0.0003-0.0003i,-0.7233+0.6905i]]",
-    "offset": 0.00045995705504462537
+    "phase": 3.184228900499537,
+    "gates": "HTHTHtHtHTHTHTHTHtHTHTHTHtHTHTHTHtHtHTHtHTHtHTHTHTHtHtHTHtH",
+    "matrix": "[[0.4023+0.9155i,-0-0.0002i],[-0.0001-0.0001i,-0.3629-0.9318i]]",
+    "offset": 0.00017977048264604067
   },
   {
-    "phase": 5.548830301199442,
-    "gates": "HtHtHTHtHTHTHTHtHTHtHTHtHtHtHTHTHtHTHtHtHtHtHtHtHtHTHTHTHX",
-    "matrix": "[[0.359-0.9333i,0.0001+0.0007i],[0.0001-0.0007i,-0.359-0.9333i]]",
-    "offset": 0.0007303740291523043
+    "phase": 2.40580148083754,
+    "gates": "HtHTHTHTHTHtHtHtHtHTHTHTHTHtHtHtHtHTHtHTHtHtHTHtHTHtHtHTHtHtHX",
+    "matrix": "[[-0.9331-0.3597i,-0-0.0005i],[-0+0.0005i,0.9331-0.3597i]]",
+    "offset": 0.00046241614374407664
   },
   {
     "phase": 0.053044119174433524,
@@ -72,16 +72,16 @@
     "offset": 0.00016089850040265497
   },
   {
-    "phase": 5.557092272966142,
-    "gates": "HtHtHTHTHTHTHTHtHTHtHTHTHtHTHtHTHTHTHTHTHtHtH",
-    "matrix": "[[0.4099+0.9121i,-0.0003+0.0003i],[-0.0003+0.0003i,0.9121+0.4099i]]",
-    "offset": 0.0004599570550445861
+    "phase": 3.9851048842843015,
+    "gates": "HtHtHTHTHtHtHTHTHTHTHTHtHtHTHtHtHtHTHtHtHTHTHTHTHtHTHTHTHTHTHTHX",
+    "matrix": "[[0.6863-0.7274i,-0.0002+0.0003i],[-0.0004-0.0001i,-0.9996-0.0291i]]",
+    "offset": 0.00036194391950827886
   },
   {
-    "phase": 1.6345127985727856,
-    "gates": "HtHtHTHtHTHTHTHtHtHtHTHtHTHtHTHtHTHTHtHTHTHTHTHTHtHTHTHTH",
-    "matrix": "[[-0.9995+0.0319i,-0.0003+0.0004i],[-0.0004+0.0003i,0.0319-0.9995i]]",
-    "offset": 0.0005592867048366305
+    "phase": 0.8488647765485232,
+    "gates": "HtHtHTHTHTHtHtHtHtHTHTHTHTHTHTHtHtHTHtHTHtHtHtHTHtHTHtHTHTHtHtHX",
+    "matrix": "[[0.7292+0.6843i,0.0002-0.0002i],[0.0003-0i,-0.0317+0.9995i]]",
+    "offset": 0.0002884701977161536
   },
   {
     "phase": 1.6415898723269784,
@@ -96,10 +96,10 @@
     "offset": 0.00006737107437143244
   },
   {
-    "phase": 4.791645165494787,
-    "gates": "HtHTHtHtHTHTHtHtHTHTHtHTHtHtHTHTHtHtHTHTHtHTHX",
-    "matrix": "[[-0.7346-0.6785i,0.0005],[-0.0005,-0.7346+0.6785i]]",
-    "offset": 0.00045995705504414675
+    "phase": 0.8661388226553006,
+    "gates": "HtHTHtHTHtHtHTHtHTHTHTHTHTHtHTHTHtHtHtHTHTHTHtHTHtHtHTHtHtHtHtH",
+    "matrix": "[[0.678-0.7351i,-0-0.0002i],[-0.0001-0.0002i,0.9992+0.0404i]]",
+    "offset": 0.00019020979380808613
   },
   {
     "phase": 3.224182852290718,
@@ -108,16 +108,16 @@
     "offset": 0.00025788197788424575
   },
   {
-    "phase": 3.230470200853463,
-    "gates": "HtHtHtHTHtHtHTHTHtHtHTHTHTHTHtHtHtHtHTHTHtHtHTHTHtHTHTHTHX",
-    "matrix": "[[-0.0444-0.999i,-0.0003],[0.0003,-0.0444+0.999i]]",
-    "offset": 0.0002578731925634125
+    "phase": 4.802771075685884,
+    "gates": "HtHTHtHtHTHTHTHTHTHTHTHTHtHTHTHTHtHtHtHTHtHTHTHTHTHTHTHtHtHTHX",
+    "matrix": "[[0.0452+0.999i,0.0001+0i],[-0-0.0001i,0.999+0.0452i]]",
+    "offset": 0.0001493210196068204
   },
   {
-    "phase": 2.451674017857333,
-    "gates": "HTHTHTHtHtHTHTHtHtHtHtHTHtHtHTHTHtHTHTHTHTHtHtHTHTHtHtHtHX",
-    "matrix": "[[0.3382-0.9411i,-0.0003],[0.0003,0.3382+0.9411i]]",
-    "offset": 0.00025787709231903295
+    "phase": 2.453103528045708,
+    "gates": "HTHtHtHTHTHtHtHtHTHTHtHTHTHtHTHtHtHtHtHtHTHTHtHTHtHTHtHTHtHtHtH",
+    "matrix": "[[-0.9988+0.0484i,0.0001+0.0002i],[-0-0.0002i,0.7405-0.672i]]",
+    "offset": 0.0001936690541284997
   },
   {
     "phase": 1.6705999047745534,
@@ -126,16 +126,16 @@
     "offset": 0.000796668988636733
   },
   {
-    "phase": 1.6757486406503972,
-    "gates": "HtHtHTHTHTHtHTHtHtHtHtHtHTHtHTHtHTHtHtHtHTHTHTHTHtHtHtH",
-    "matrix": "[[0.9427+0.3337i,-0.0006-0.0013i],[0.0005+0.0014i,-0.4306+0.9025i]]",
-    "offset": 0.0014517529681768598
+    "phase": 1.6747414250880717,
+    "gates": "HtHtHTHTHTHTHTHtHTHTHTHtHtHtHTHTHtHTHtHTHTHtHtHTHTHtHtHtHtHtHtHtH",
+    "matrix": "[[0.9986-0.0519i,0-0.0001i],[0.0001-0i,-0.0519+0.9986i]]",
+    "offset": 0.00012143194023799926
   },
   {
-    "phase": 3.252533030947035,
-    "gates": "HTHtHtHtHtHTHtHTHtHTHtHtHTHTHtHTHTHtHtHTHTHTHtHtHtH",
-    "matrix": "[[-0.9437-0.3309i,0.0006+0.0007i],[0.0009-0.0001i,0.9012+0.4333i]]",
-    "offset": 0.0009501914064913351
+    "phase": 3.251226017246133,
+    "gates": "HTHtHtHTHTHtHTHtHTHTHtHtHtHTHTHtHtHtHtHtHtHTHtHtHtHTHtHtHtH",
+    "matrix": "[[0.4327+0.9015i,0+0.0002i],[0.0001+0.0001i,-0.3315-0.9435i]]",
+    "offset": 0.00017975817069720796
   },
   {
     "phase": 1.6859613247588514,
@@ -144,16 +144,16 @@
     "offset": 0.00036364631627993634
   },
   {
-    "phase": 1.6888051857291009,
-    "gates": "HTHtHtHtHtHtHTHtHTHtHtHtHtHtHtHtHTHTHtHtHtHTHTHtHtHTHTHTHTH",
-    "matrix": "[[0.8997-0.4365i,0.0004-0.0001i],[-0.0002-0.0003i,0.3275+0.9448i]]",
-    "offset": 0.0003680058713246373
+    "phase": 0.11888156868631689,
+    "gates": "HTHtHtHTHTHtHTHtHTHtHTHtHtHTHtHTHtHTHtHTHtHTHTHtHTHTHtHtHtH",
+    "matrix": "[[0.8995-0.4369i,0.0001+0.0001i],[0+0.0002i,0.945-0.3271i]]",
+    "offset": 0.00017974019190128608
   },
   {
-    "phase": 0.9113618564325218,
-    "gates": "HTHTHTHTHtHTHTHTHTHTHtHtHTHTHTHtHtHtHtHtHTHtHTHtHTHTHTHX",
-    "matrix": "[[0.7502+0.6612i,0+0.0002i],[-0.0001-0.0001i,-0.0629+0.998i]]",
-    "offset": 0.00018342123210016967
+    "phase": 2.478772749056702,
+    "gates": "HtHTHTHtHtHtHtHtHTHTHtHTHtHtHTHTHtHtHtHTHTHtHtHtHTHtHTHTHtHtHtHX",
+    "matrix": "[[-0.7491-0.6625i,-0-0.0001i],[-0.0001+0i,0.9981+0.0613i]]",
+    "offset": 0.00008079919060435989
   },
   {
     "phase": 5.62671955134298,
@@ -162,40 +162,40 @@
     "offset": 0.00025785207825477287
   },
   {
-    "phase": 0.13647968103040065,
-    "gates": "HtHTHTHtHtHTHTHtHtHTHtHtHTHTHtHTHTHtHtHtHTHtHTHtHtHtHtHtH",
-    "matrix": "[[0.6572-0.7537i,-0.0006+0.0004i],[0.0004-0.0006i,0.7537-0.6572i]]",
-    "offset": 0.0007088339314555926
+    "phase": 0.920385392247465,
+    "gates": "HTHtHtHtHTHTHtHtHtHTHtHtHtHtHtHtHtHtHTHtHtHTHtHTHtHtHtHtHtHtHtHtH",
+    "matrix": "[[-0.9476-0.3195i,0.0002+0.0001i],[-0.0001-0.0002i,-0.3195-0.9476i]]",
+    "offset": 0.0001631981015671402
   },
   {
-    "phase": 1.7101875635780768,
-    "gates": "HTHtHTHTHtHtHtHTHtHtHtHTHtHTHTHTHtHtHtHTHTHTHtHtHTHTHTHTHTHX",
-    "matrix": "[[0.3174-0.9483i,0.0017+0.0004i],[-0.001+0.0015i,0.895+0.4461i]]",
-    "offset": 0.0017561631984833286
+    "phase": 0.13981893170147042,
+    "gates": "HTHTHTHTHtHtHTHTHtHTHTHTHTHTHTHTHtHtHTHTHTHTHtHTHtHtHtHtHtHTH",
+    "matrix": "[[0.0699+0.9976i,-0+0.0001i],[-0-0.0001i,-0.0699+0.9976i]]",
+    "offset": 0.00008251047507953408
   },
   {
-    "phase": 1.7170086585884432,
-    "gates": "HtHtHtHTHTHtHtHTHTHTHTHtHTHtHTHtHTHtHtHtHTHTHTHTHTHTHTHTH",
-    "matrix": "[[-0.9973+0.073i,-0.0018+0.0001i],[-0.0001+0.0018i,0.073-0.9973i]]",
-    "offset": 0.0017843627071448388
+    "phase": 5.6439883758881635,
+    "gates": "HTHTHtHtHTHTHTHtHTHtHTHTHtHtHtHTHTHtHtHTHtHTHtHtHTHtHTHtHtHtHX",
+    "matrix": "[[0.8935-0.4491i,0-0.0001i],[-0.0001+0i,0.4491-0.8935i]]",
+    "offset": 0.0001493157179971004
   },
   {
-    "phase": 0.9334954372022555,
-    "gates": "HtHTHtHTHtHTHtHTHtHtHTHtHTHTHtHTHtHTHtHTHtHTHX",
-    "matrix": "[[-0.893+0.45i,-0.0005],[0.0005,-0.893-0.45i]]",
-    "offset": 0.0004599570550453125
+    "phase": 1.71959072079745,
+    "gates": "HTHTHTHTHTHTHtHTHtHtHTHtHTHtHTHtHTHtHTHtHtHTHtHTHTHTHTHTHTH",
+    "matrix": "[[0.8929-0.4503i,0.0001-0.0002i],[0.0001-0.0002i,0.313+0.9498i]]",
+    "offset": 0.0002640271995224015
   },
   {
-    "phase": 5.65511428986868,
-    "gates": "HtHTHtHtHtHtHTHtHtHtHTHtHTHTHTHtHTHTHTHTHtHTHX",
-    "matrix": "[[-0.9511-0.3089i,-0.0005],[0.0005,-0.9511+0.3089i]]",
-    "offset": 0.00045995705504525697
+    "phase": 3.297214397596548,
+    "gates": "HtHTHtHtHTHTHTHtHTHTHtHTHTHTHTHtHtHtHTHTHtHTHTHtHtHtHtHTHtHTHX",
+    "matrix": "[[0.65-0.7599i,0.0002-0.0002i],[0.0002-0.0002i,-0.7599+0.65i]]",
+    "offset": 0.0003258466849760435
   },
   {
-    "phase": 0.946768906322929,
-    "gates": "HtHtHtHtHtHtHTHtHTHtHtHTHtHTHtHtHTHTHTHtHTHTHtHtHtHTH",
-    "matrix": "[[0.307-0.9517i,0.0004+0.0003i],[0.0003+0.0004i,0.9517-0.307i]]",
-    "offset": 0.0004697151147974057
+    "phase": 1.729240875964991,
+    "gates": "HTHtHTHtHtHtHtHtHTHtHtHtHtHTHtHtHtHTHtHTHTHTHtHTHTHTHtHtHtHtHtHX",
+    "matrix": "[[0.9513+0.3084i,-0.0003-0.0001i],[-0.0001+0.0003i,-0.4546+0.8907i]]",
+    "offset": 0.00031921732251623865
   },
   {
     "phase": 4.090794752815733,
@@ -204,16 +204,16 @@
     "offset": 0.0000673398957722982
   },
   {
-    "phase": 2.52546870823814,
-    "gates": "HTHTHtHtHtHTHTHTHTHtHTHTHtHTHTHtHtHTHTHtHtHTHtHtHtHtHtHtH",
-    "matrix": "[[0.8882-0.4594i,-0.0003-0.0002i],[0.0002+0.0003i,-0.4594+0.8882i]]",
-    "offset": 0.0004040085077711297
+    "phase": 0.9537570322066369,
+    "gates": "HTHTHtHTHtHTHtHTHtHTHtHTHtHTHtHTHTHtHTHtHtHTHTHTHtHtHtHtHtHtHtHtH",
+    "matrix": "[[-0.8884+0.459i,-0.0001-0i],[0.0001-0i,-0.8884-0.459i]]",
+    "offset": 0.00007783586832078935
   },
   {
-    "phase": 0.9598726967776804,
-    "gates": "HtHtHtHtHtHTHtHTHTHTHtHtHTHTHTHtHTHtHTHTHtHTHtHTHtHTHX",
-    "matrix": "[[0.887-0.4617i,0.0001-0.0003i],[-0.0001-0.0003i,0.887+0.4617i]]",
-    "offset": 0.0003388776777723143
+    "phase": 4.103508737720375,
+    "gates": "HtHtHTHTHtHTHtHTHTHTHtHTHTHTHtHTHtHtHTHTHtHtHTHtHTHtHTHtHtHX",
+    "matrix": "[[-0.9961+0.0881i,0.0001-0i],[0.0001+0.0001i,0.642+0.7667i]]",
+    "offset": 0.0001019889629230744
   },
   {
     "phase": 4.105344187621654,
@@ -222,16 +222,16 @@
     "offset": 0.000051567699239651094
   },
   {
-    "phase": 4.113421340599405,
-    "gates": "HtHTHTHTHtHtHTHTHTHtHtHtHTHTHtHTHtHtHTHtHTHtHTHtHTHTHtHtHX",
-    "matrix": "[[0.467+0.8842i,-0.0005+0.0003i],[0.0005+0.0003i,0.467-0.8842i]]",
-    "offset": 0.0005476872325438431
+    "phase": 3.327471373174413,
+    "gates": "HtHTHTHTHTHTHTHTHtHtHTHtHTHtHTHtHTHTHtHTHtHtHTHTHTHtHtHtHtHX",
+    "matrix": "[[-0.4668-0.8844i,0.0001-0.0001i],[-0.0002+0i,0.2953+0.9554i]]",
+    "offset": 0.00017977212934506352
   },
   {
-    "phase": 2.544509036397661,
-    "gates": "HTHtHtHtHtHtHtHtHtHTHtHtHtHtHtHtHtHtHTHtHtHtHtHtHtHtHtHTH",
-    "matrix": "[[0.2941-0.9558i,0.0003i],[0.0003i,0.2941+0.9558i]]",
-    "offset": 0.0002578701779098009
+    "phase": 2.5445081376823837,
+    "gates": "HTHTHTHtHtHTHTHTHTHtHTHtHTHTHtHTHTHTHtHtHtHtHtHTHtHTHTHtHtHTHtH",
+    "matrix": "[[0.9956-0.094i,0+0.0001i],[-0-0.0001i,-0.7705+0.6375i]]",
+    "offset": 0.00006225245462643032
   },
   {
     "phase": 5.692389043078397,
@@ -246,10 +246,10 @@
     "offset": 0.0002578548154108116
   },
   {
-    "phase": 0.20347591001748896,
-    "gates": "HtHTHtHtHtHTHtHtHtHTHTHTHTHtHTHTHtHtHtHtHtHTHTHtHtHTH",
-    "matrix": "[[0.9948-0.1016i,0.0007+0.0003i],[-0.0007+0.0003i,0.9948+0.1016i]]",
-    "offset": 0.0007627539615376255
+    "phase": 5.703870368656178,
+    "gates": "HTHtHTHTHTHtHtHTHtHtHtHTHtHtHtHTHTHtHTHTHTHtHTHTHTHtHtHTHtHtHtH",
+    "matrix": "[[0.9947-0.1029i,-0.0003+0.0001i],[0.0003-0.0001i,0.7761-0.6306i]]",
+    "offset": 0.0003627025281841022
   },
   {
     "phase": 0.21019480503801002,
@@ -270,58 +270,58 @@
     "offset": 0.00011667364945193624
   },
   {
-    "phase": 5.721846722397096,
-    "gates": "HtHTHTHtHTHtHtHTHtHtHTHTHtHtHTHTHTHTHTHTHTHTHTHtHtHTHtHtH",
-    "matrix": "[[0.9609+0.277i,0.0001+0.0005i],[-0.0001+0.0005i,0.9609-0.277i]]",
-    "offset": 0.0004970325859559407
+    "phase": 0.2226729752237646,
+    "gates": "HTHTHtHtHTHtHtHtHTHtHtHTHTHtHTHTHtHtHTHtHTHtHTHtHTHTHTHTHtHtHtH",
+    "matrix": "[[-0.8756+0.483i,0.0003+0.0001i],[-0.0002+0.0003i,-0.9607+0.2777i]]",
+    "offset": 0.00034727025256318803
   },
   {
-    "phase": 1.0158518149689593,
-    "gates": "HtHTHtHTHTHTHtHTHTHtHtHTHtHTHTHtHTHtHTHtHTHTHTHtHtHTHX",
-    "matrix": "[[0.4864+0.8738i,-0.0005-0.0007i],[-0.0005+0.0007i,-0.4864+0.8738i]]",
-    "offset": 0.0008292231113864594
+    "phase": 4.943927317674555,
+    "gates": "HtHTHTHtHtHtHtHTHtHtHtHTHtHtHtHtHtHTHTHtHtHtHTHTHTHTHTHTHTHX",
+    "matrix": "[[0.4868+0.8735i,0.0003+0.0002i],[-0.0004-0.0001i,0.9619-0.2734i]]",
+    "offset": 0.0003918923454938493
   },
   {
-    "phase": 1.8083710232216574,
-    "gates": "HTHtHtHTHTHTHTHtHtHTHTHtHTHtHTHtHtHTHTHtHtHTHTHtHtHtHtHTH",
-    "matrix": "[[-0.7859-0.6183i,-0.0001-0.0005i],[-0.0001+0.0005i,0.7859-0.6183i]]",
-    "offset": 0.0004648134925234028
+    "phase": 1.018412491234184,
+    "gates": "HtHTHTHtHtHTHtHTHtHtHtHtHtHTHTHtHtHTHtHtHTHtHTHtHTHTHTHtHTHtHtH",
+    "matrix": "[[-0.7845-0.6201i,-0.0001-0i],[-0+0.0001i,0.1162-0.9932i]]",
+    "offset": 0.00007214598561368627
   },
   {
-    "phase": 2.5960188743514663,
-    "gates": "HtHtHtHtHtHtHtHTHTHTHTHtHTHTHTHtHtHtHTHtHtHtHTHtHtHTHX",
-    "matrix": "[[0.8715-0.4905i,-0.0003-0.0005i],[0.0005+0.0003i,-0.4905+0.8715i]]",
-    "offset": 0.0005713310292288753
+    "phase": 3.3793290321250997,
+    "gates": "HTHTHtHtHTHTHTHTHTHTHTHTHtHTHtHtHtHTHTHtHtHtHtHTHtHTHTHTHTHTHTH",
+    "matrix": "[[-0.2704+0.9627i,-0.0002-0.0002i],[0.0003+0i,0.4895-0.872i]]",
+    "offset": 0.0003162570238222237
   },
   {
-    "phase": 4.169738164367343,
-    "gates": "HTHtHTHtHtHTHtHtHtHTHTHTHtHtHtHtHTHtHTHtHTHtHtHtHtHTHX",
-    "matrix": "[[0.268-0.9634i,-0.0003+0.0007i],[-0.0007+0.0003i,-0.9634+0.268i]]",
-    "offset": 0.0007627445966332894
+    "phase": 1.816017468912723,
+    "gates": "HtHTHTHTHtHtHtHTHTHTHtHtHtHTHtHTHtHTHTHtHTHTHtHtHTHtHtHtHtHX",
+    "matrix": "[[0.8701-0.4928i,-0.0001-0.0001i],[0.0002+0i,0.2668+0.9637i]]",
+    "offset": 0.0001797321752625048
   },
   {
-    "phase": 1.8232763585597427,
-    "gates": "HtHTHtHtHtHTHTHTHtHtHTHtHtHtHtHtHTHtHtHtHTHTHtHtHTHTHTHX",
-    "matrix": "[[0.2633-0.9647i,-0.0002-0.0008i],[-0.0004-0.0007i,0.8683+0.496i]]",
-    "offset": 0.0007868917504209702
+    "phase": 1.0338039381464226,
+    "gates": "HTHtHTHtHTHTHTHTHtHtHTHTHtHtHTHTHtHtHTHTHtHtHTHtHTHTHTHTHTHX",
+    "matrix": "[[-0.7893-0.6141i,-0.0002+0.0001i],[-0.0002+0.0001i,0.1239-0.9923i]]",
+    "offset": 0.0002124657562602609
   },
   {
-    "phase": 0.2538216182940125,
-    "gates": "HtHtHTHTHtHtHTHtHtHtHTHTHtHtHtHTHtHtHTHTHtHtH",
-    "matrix": "[[0.6119-0.7909i,-0.0003-0.0003i],[-0.0003-0.0003i,0.7909-0.6119i]]",
-    "offset": 0.0004599570550443898
+    "phase": 2.6109355255154845,
+    "gates": "HTHtHtHTHTHTHtHTHtHTHTHtHtHtHTHTHtHtHTHTHtHTHtHTHTHtHTHtHtHtH",
+    "matrix": "[[0.965+0.2622i,-0.0002-0i],[-0.0002+0i,-0.965+0.2622i]]",
+    "offset": 0.00023487804939671312
   },
   {
-    "phase": 1.0474176994567301,
-    "gates": "HTHTHtHtHtHTHtHTHtHtHtHTHTHtHtHtHTHTHtHtHtHtHtHTHtHTHTHTH",
-    "matrix": "[[0.866-0.5001i,0.0003-0.0004i],[-0.0003-0.0004i,0.866+0.5001i]]",
-    "offset": 0.0005097932013971432
+    "phase": 1.831268095125588,
+    "gates": "HtHTHTHtHTHTHTHTHtHtHTHTHtHTHTHTHTHtHtHtHtHtHTHTHtHtHtHTHtHtH",
+    "matrix": "[[0.7929+0.6093i,0+0.0003i],[0-0.0003i,-0.7929+0.6093i]]",
+    "offset": 0.0003011344147437865
   },
   {
-    "phase": 1.8337681906625447,
-    "gates": "HTHTHtHTHTHtHTHTHtHTHTHtHtHtHtHtHTHTHtHTHTHtHTHTHtHTHTH",
-    "matrix": "[[0.5005+0.8657i,0.0003+0.0001i],[0.0003+0.0001i,-0.9661+0.2583i]]",
-    "offset": 0.0003004879599991553
+    "phase": 4.978857639444061,
+    "gates": "HTHTHTHtHtHtHtHtHTHTHTHTHtHtHTHtHtHtHTHTHtHTHtHtHTHtHTHtHtHTHtH",
+    "matrix": "[[0.8649-0.502i,-0+0.0001i],[0-0.0001i,-0.2566-0.9665i]]",
+    "offset": 0.00006224206134816504
   },
   {
     "phase": 4.982532856232487,
@@ -330,40 +330,40 @@
     "offset": 0.00018341653940881505
   },
   {
-    "phase": 2.633462259094534,
-    "gates": "HTHTHTHtHtHtHtHtHtHTHtHTHTHtHtHTHtHTHTHtHtHTHtHtHTHtHtHtHX",
-    "matrix": "[[-0.8621+0.5067i,-0.0009+0.0013i],[-0.0013+0.0009i,0.5067-0.8621i]]",
-    "offset": 0.0015914260148018552
+    "phase": 5.774085396971339,
+    "gates": "HtHTHtHtHTHTHtHTHtHtHtHtHtHTHtHTHtHTHtHtHtHtHTHTHtHTHTHtHtHtHtH",
+    "matrix": "[[0.9905-0.1377i,-0.0003-0.0001i],[0.0001-0.0003i,0.7977-0.603i]]",
+    "offset": 0.0003192600625435521
   },
   {
-    "phase": 5.7763418862246425,
-    "gates": "HTHTHTHTHTHtHTHtHTHtHTHTHTHtHTHtHtHtHTHtHTHtHTHtHtHtHtHtHX",
-    "matrix": "[[-0.9681-0.2507i,-0.0005],[0.0005,-0.9681+0.2507i]]",
-    "offset": 0.0005273206571436616
+    "phase": 3.4238741756323448,
+    "gates": "HtHtHTHtHTHTHTHTHTHtHTHTHTHTHtHTHtHTHTHtHtHtHTHTHtHTHTHTHTHTHTHTHX",
+    "matrix": "[[-0.9901+0.1407i,-0.0003-0.0001i],[-0.0003+0.0001i,0.9901+0.1407i]]",
+    "offset": 0.00032410165723333745
   },
   {
-    "phase": 4.20999336348908,
-    "gates": "HtHTHtHTHtHtHtHTHtHTHtHTHtHTHtHTHTHTHtHTHtHTHX",
-    "matrix": "[[0.5092+0.8607i,0.0005],[-0.0005,0.5092-0.8607i]]",
-    "offset": 0.00045995705504509043
+    "phase": 1.072227504013627,
+    "gates": "HTHTHTHtHTHTHtHtHTHtHtHTHtHtHtHtHtHtHTHTHTHtHTHTHtHTHtHtHtHtH",
+    "matrix": "[[0.8597-0.5108i,0.0002-0.0001i],[-0.0002-0.0001i,0.8597+0.5108i]]",
+    "offset": 0.00022078582428444808
   },
   {
-    "phase": 1.859106913703408,
-    "gates": "HtHTHtHtHtHtHtHtHtHtHTHtHtHtHTHTHTHTHtHtHtHTHTHtHtHTHTHTHTHX",
-    "matrix": "[[0.246-0.9693i,-0.0004-0.0004i],[0-0.0005i,0.8593+0.5114i]]",
-    "offset": 0.0005217211608434717
+    "phase": 4.218047128630147,
+    "gates": "HtHtHTHTHTHtHtHtHTHtHTHTHTHtHtHtHtHTHTHtHtHTHtHtHtHtHtHtHtHTHtHX",
+    "matrix": "[[0.5971-0.8022i,-0+0.0001i],[-0.0001-0i,-0.9894-0.145i]]",
+    "offset": 0.00008082316983637322
   },
   {
-    "phase": 1.8657895407016931,
-    "gates": "HtHtHTHTHtHTHTHtHtHtHTHTHtHtHtHTHTHtHTHTHtHtH",
-    "matrix": "[[0.9891-0.147i,0.0003-0.0003i],[0.0003-0.0003i,-0.147+0.9891i]]",
-    "offset": 0.000459957055044753
+    "phase": 1.8642607124527955,
+    "gates": "HtHTHtHtHTHtHtHTHTHtHTHTHTHTHtHTHTHTHTHtHTHTHtHtHTHtHtHTHtH",
+    "matrix": "[[0.9699+0.2435i,-0.0003+0.0001i],[-0.0003+0.0001i,-0.5136+0.858i]]",
+    "offset": 0.00033693177310920686
   },
   {
-    "phase": 5.7981872950679545,
-    "gates": "HTHTHTHtHTHTHTHtHTHtHTHtHTHTHtHtHTHtHTHtHTHtHtHtHTHtHtHtHX",
-    "matrix": "[[-0.9707-0.2401i,0.0003],[-0.0003,-0.9707+0.2401i]]",
-    "offset": 0.0002578642697867885
+    "phase": 5.799742119738522,
+    "gates": "HtHTHTHTHtHTHtHtHTHtHtHtHTHTHTHtHTHtHtHTHtHtHTHTHTHTHtHtHtHtHtH",
+    "matrix": "[[0.5927-0.8054i,-0.0001+0.0001i],[-0-0.0001i,0.1504-0.9886i]]",
+    "offset": 0.00010777519688616777
   },
   {
     "phase": 5.01939110344904,
@@ -372,52 +372,52 @@
     "offset": 0.0002578914903068519
   },
   {
-    "phase": 1.8799097631717516,
-    "gates": "HTHTHtHtHTHtHTHtHTHtHtHTHtHTHtHTHtHTHTHTHTHtHtHtHtHtHtHtH",
-    "matrix": "[[0.5898-0.8075i,0.001+0.0006i],[-0.001+0.0006i,0.5898+0.8075i]]",
-    "offset": 0.0011816382435890036
+    "phase": 1.0935157424897066,
+    "gates": "HTHTHTHtHtHtHtHTHtHtHtHTHtHtHTHtHtHtHTHTHTHtHTHTHTHtHTHtHtHTHtH",
+    "matrix": "[[-0.1535-0.9882i,-0+0.0001i],[0-0.0001i,0.8072-0.5902i]]",
+    "offset": 0.00006224795005712051
   },
   {
-    "phase": 5.81226084445657,
-    "gates": "HTHtHtHTHTHTHtHTHtHTHTHtHTHtHTHtHTHTHtHtHtHTHTHTHTHtHtHtHX",
-    "matrix": "[[0.5226+0.8526i,-0.0004-0i],[0+0.0004i,0.8526+0.5226i]]",
-    "offset": 0.00037586435583417496
+    "phase": 2.672813320312269,
+    "gates": "HTHTHTHTHtHtHtHTHTHTHTHtHTHtHTHTHTHTHtHtHTHTHtHTHtHTHtHTHtHtH",
+    "matrix": "[[-0.852+0.5235i,-0.0002+0i],[-0+0.0002i,0.5235-0.852i]]",
+    "offset": 0.00019917302668380425
   },
   {
-    "phase": 1.8925907607216936,
-    "gates": "HTHTHTHtHtHtHtHTHTHTHtHTHTHTHTHTHtHTHTHTHTHTHtHTHtHTHX",
-    "matrix": "[[0.9871-0.1602i,0.0005+0.0004i],[-0.0004-0.0005i,-0.1602+0.9871i]]",
-    "offset": 0.0006574113736721432
+    "phase": 1.8917560450760698,
+    "gates": "HTHtHtHtHTHtHtHtHtHtHTHtHtHtHTHtHTHtHTHTHtHtHTHtHtHTHTHtHtHX",
+    "matrix": "[[-0.9732-0.2301i,-0.0001+0.0001i],[-0.0001+0i,0.5254-0.8509i]]",
+    "offset": 0.0001297051543322817
   },
   {
-    "phase": 1.1112271864211596,
-    "gates": "HTHtHtHtHtHtHTHtHtHtHtHtHTHtHTHTHTHtHTHTHTHTHtHtHtHX",
-    "matrix": "[[0.5831-0.8124i,-0.0002+0.0007i],[0.0006+0.0004i,0.9868+0.1622i]]",
-    "offset": 0.000736029739801321
+    "phase": 2.6798412261383193,
+    "gates": "HtHtHtHTHTHTHTHtHtHtHTHTHTHtHtHtHtHtHTHTHtHtHTHtHTHtHtHtHtH",
+    "matrix": "[[0.5839-0.8118i,-0.0001-0.0004i],[0.0004-0.0002i,-0.1611+0.9869i]]",
+    "offset": 0.00041891182434749294
   },
   {
-    "phase": 5.0413610418361054,
-    "gates": "HTHtHTHTHtHTHTHtHtHtHTHTHtHtHTHtHtHTHTHTHtHtHtH",
-    "matrix": "[[0.9741+0.2262i,0.0002-0.0001i],[-0.0002+0.0001i,0.5288-0.8487i]]",
-    "offset": 0.0002489269644242478
+    "phase": 2.6848005148383782,
+    "gates": "HtHTHTHtHTHtHtHtHTHTHtHTHTHtHTHtHTHtHTHTHtHTHTHtHtHtHTHtHTHTHtH",
+    "matrix": "[[-0.5819+0.8132i,-0+0i],[-0+0i,0.1636-0.9865i]]",
+    "offset": 0.00002577235682046646
   },
   {
-    "phase": 1.9067410255347477,
-    "gates": "HTHtHTHTHTHtHTHtHtHtHTHtHtHtHtHtHTHTHtHTHtHTHTHtHtHTHTHTH",
-    "matrix": "[[-0.8154-0.5789i,-0.0005+0.0001i],[-0.0005-0.0001i,0.8154-0.5789i]]",
-    "offset": 0.0004970626721848941
+    "phase": 2.690139996029986,
+    "gates": "HtHtHtHTHtHtHtHtHtHtHtHtHtHTHtHtHtHTHtHtHtHtHtHtHtHtHtHTHtHtHtH",
+    "matrix": "[[-0.5798+0.8148i,0.0001-0.0003i],[0.0001-0.0003i,0.1662-0.9861i]]",
+    "offset": 0.0002747215555262731
   },
   {
-    "phase": 2.695422507293732,
-    "gates": "HtHtHtHTHTHtHTHtHTHTHTHtHTHTHTHTHtHTHtHtHtHTHtHtHtH",
-    "matrix": "[[0.1688+0.9856i,-0.0012+0.0016i],[0.002+0.0003i,-0.5776-0.8163i]]",
-    "offset": 0.001985387207509442
+    "phase": 5.839813597163463,
+    "gates": "HTHtHtHTHtHtHTHTHtHTHtHTHTHTHtHTHTHTHTHtHtHtHtHTHtHTHtHtHtHtHtHtH",
+    "matrix": "[[-0.9755-0.2199i,0.001-0.0005i],[-0.001-0.0005i,-0.9755+0.2199i]]",
+    "offset": 0.0010784505852097926
   },
   {
-    "phase": 4.270532136892859,
-    "gates": "HtHtHTHtHTHtHtHtHTHtHtHtHtHTHtHTHTHTHtHTHTHTHTHTHtHX",
-    "matrix": "[[0.5758-0.8176i,0.0007-0.0003i],[0.0007-0.0003i,-0.9853-0.1709i]]",
-    "offset": 0.0007769890460576812
+    "phase": 2.7019133294363376,
+    "gates": "HTHTHtHTHtHtHTHtHtHTHtHtHtHTHTHTHtHtHtHTHtHtHtHtHtHtHtHTHtHTHtH",
+    "matrix": "[[-0.172-0.9851i,-0.0002-0.0002i],[-0-0.0003i,0.5749+0.8182i]]",
+    "offset": 0.00032129943555189407
   },
   {
     "phase": 0.35184363519655015,
@@ -426,10 +426,10 @@
     "offset": 0.0004599570550449239
   },
   {
-    "phase": 1.1390874082519178,
-    "gates": "HtHTHTHTHTHTHTHTHtHTHtHTHTHtHtHtHtHtHTHtHTHtHTHtHtHX",
-    "matrix": "[[-0.1759-0.9844i,-0.0012-0.0005i],[-0.0012-0.0005i,0.8205-0.5717i]]",
-    "offset": 0.0012748357011312117
+    "phase": 4.281565907428632,
+    "gates": "HTHtHtHTHTHtHTHtHtHtHtHTHtHtHTHtHTHTHTHTHtHTHTHtHTHtHtHtHtHtHtHX",
+    "matrix": "[[0.8207+0.5713i,0-0.0001i],[-0.0001-0.0001i,0.1764-0.9843i]]",
+    "offset": 0.0001078028603312531
   },
   {
     "phase": 1.9287078815144763,
@@ -456,40 +456,40 @@
     "offset": 0.00018342195908008807
   },
   {
-    "phase": 4.3062644538542205,
-    "gates": "HTHTHtHTHTHtHtHtHtHTHTHTHtHTHtHTHtHtHtHTHTHTHTHtHtHTHtHtHX",
-    "matrix": "[[-0.55-0.8352i,0.0003],[-0.0003,-0.55+0.8352i]]",
-    "offset": 0.0002579040924560573
+    "phase": 1.9523976282627624,
+    "gates": "HTHTHtHTHTHtHTHtHTHTHTHtHtHtHTHTHtHtHtHTHtHTHtHtHTHTHTHtHtHTHtH",
+    "matrix": "[[0.8345-0.5509i,-0.0001+0.0001i],[0+0.0001i,0.2005+0.9797i]]",
+    "offset": 0.00013912458922238902
   },
   {
-    "phase": 1.9554769317963436,
-    "gates": "HtHtHtHTHtHtHtHtHTHTHTHTHTHTHtHtHtHtHTHtHtHtH",
-    "matrix": "[[-0.1912-0.9816i,-0.0003-0.0003i],[-0.0003-0.0003i,0.9816+0.1912i]]",
-    "offset": 0.0004599570550448707
+    "phase": 0.3868949175035912,
+    "gates": "HtHtHtHtHTHTHtHtHtHTHtHTHTHTHtHtHtHtHTHtHTHTHtHtHTHTHtHTHTHtHtHX",
+    "matrix": "[[0.8331-0.5532i,-0.0002+0.0001i],[0.0002-0.0001i,0.9802-0.1979i]]",
+    "offset": 0.0002140173778844243
   },
   {
-    "phase": 5.885697099943082,
-    "gates": "HTHTHTHTHTHTHTHTHtHtHtHtHTHTHTHTHtHtHtHtHtHtHtHtHX",
-    "matrix": "[[0.9803+0.1974i,0.0014],[-0.0014,0.9803-0.1974i]]",
-    "offset": 0.0014356733130739818
+    "phase": 5.100807237806366,
+    "gates": "HTHTHtHtHTHTHTHTHTHtHTHTHtHtHTHtHTHtHTHTHTHtHTHTHtHTHtHTHtHtHX",
+    "matrix": "[[-0.9812+0.193i,-0.0001+0.0003i],[0.0003-0.0001i,-0.193+0.9812i]]",
+    "offset": 0.00037035209778622574
   },
   {
-    "phase": 3.5390808608262985,
-    "gates": "HTHtHTHtHTHtHTHtHtHTHtHTHTHtHTHtHtHTHtHTHtHTHtHTH",
-    "matrix": "[[0.9803-0.1974i,-0.0014],[-0.0014,-0.9803-0.1974i]]",
-    "offset": 0.0014356733130744814
+    "phase": 4.32397071011278,
+    "gates": "HTHtHtHTHTHtHTHtHTHTHTHtHtHTHTHTHTHTHTHtHTHTHTHtHtHtHtHtHtHTH",
+    "matrix": "[[0.5573+0.8303i,0.0001-0.0003i],[-0.0001-0.0003i,0.5573-0.8303i]]",
+    "offset": 0.0003703795652718583
   },
   {
-    "phase": 1.186115721793449,
-    "gates": "HtHTHtHtHtHTHtHTHTHtHTHtHTHtHtHTHtHTHTHTHtHTHX",
-    "matrix": "[[0.8292-0.5589i,-0.0005],[0.0005,0.8292+0.5589i]]",
-    "offset": 0.0004599570550448684
+    "phase": 5.8962903911231646,
+    "gates": "HtHtHTHTHtHTHTHtHtHTHTHtHTHtHtHtHtHTHTHTHtHTHtHtHtHTHTHtHtHtHtHX",
+    "matrix": "[[0.9802-0.1979i,-0.0002+0.0001i],[0.0002-0.0001i,0.8331-0.5532i]]",
+    "offset": 0.0002140745866025612
   },
   {
-    "phase": 5.118513506915159,
-    "gates": "HTHtHtHtHTHTHtHTHtHtHTHtHtHtHtHtHtHTHtHtHTHtHTHTHtHtHtHTH",
-    "matrix": "[[0.55-0.8352i,0.0003],[0.0003,-0.55-0.8352i]]",
-    "offset": 0.0002579040924560573
+    "phase": 4.330787678916824,
+    "gates": "HTHtHtHtHTHTHTHTHTHtHTHTHtHTHTHtHtHTHtHtHtHtHtHTHTHtHTHTHtHtHtH",
+    "matrix": "[[0.8345+0.5509i,0.0001+0.0001i],[-0+0.0001i,0.2005-0.9797i]]",
+    "offset": 0.00013912458922238902
   },
   {
     "phase": 1.980326236231007,
@@ -516,10 +516,10 @@
     "offset": 0.0003758930843753156
   },
   {
-    "phase": 2.788856243462983,
-    "gates": "HtHTHTHTHtHtHtHtHTHTHTHTHtHTHTHTHTHtHTHtHTHtHtHTHtHTHTHTHTHX",
-    "matrix": "[[0.9767-0.2146i,-0.0005-0.0003i],[-0.0001+0.0005i,-0.8424+0.5388i]]",
-    "offset": 0.0005506194530973782
+    "phase": 2.0016193997509535,
+    "gates": "HtHTHTHtHtHTHtHTHTHTHTHtHTHTHtHTHtHtHtHtHTHtHtHTHtHTHTHTHTHTHTHX",
+    "matrix": "[[0.8207-0.5713i,0+0.0001i],[-0.0001+0.0001i,0.1764+0.9843i]]",
+    "offset": 0.0001078028603312531
   },
   {
     "phase": 2.7897490183932425,
@@ -528,28 +528,28 @@
     "offset": 0.00045995705504505715
   },
   {
-    "phase": 2.012653170286727,
-    "gates": "HtHTHTHTHTHTHtHTHTHTHtHTHtHtHtHtHTHtHtHtHTHtHTHtHtHX",
-    "matrix": "[[-0.9853-0.1709i,0.0007-0.0003i],[0.0007-0.0003i,0.5758-0.8176i]]",
-    "offset": 0.0007769745866757522
+    "phase": 3.5812719777432487,
+    "gates": "HTHtHtHtHtHTHTHTHtHtHtHTHtHtHTHtHtHTHtHtHtHTHtHTHtHTHtHtHtHtHtH",
+    "matrix": "[[0.9851+0.172i,-0.0002-0.0002i],[-0.0003-0i,-0.8182-0.5749i]]",
+    "offset": 0.00032129943555189407
   },
   {
-    "phase": 2.0180931238368696,
-    "gates": "HtHtHTHtHtHtHtHTHtHTHTHTHtHTHTHTHTHTHtHtHTHtHTHtHtHX",
-    "matrix": "[[-0.9857-0.1682i,-0.0009-0.0016i],[0.0005+0.0017i,0.5781-0.816i]]",
-    "offset": 0.001811461235055703
+    "phase": 0.4475352650410329,
+    "gates": "HTHtHtHtHtHTHTHTHtHtHtHtHTHtHTHTHtHTHTHTHTHtHtHTHtHtHTHtHtHtHtHtH",
+    "matrix": "[[0.5326-0.8464i,-0.0008-0.0008i],[-0.0008-0.0008i,0.8464-0.5326i]]",
+    "offset": 0.0011778860763035923
   },
   {
-    "phase": 1.2348516371569038,
-    "gates": "HTHtHTHTHtHtHTHTHTHTHTHtHtHTHtHTHtHtHtHTHtHtHtHtHTHtHtHtHX",
-    "matrix": "[[0.5789+0.8154i,-0.0001-0.0005i],[-0.0001+0.0005i,-0.5789+0.8154i]]",
-    "offset": 0.0004970551690925083
+    "phase": 3.5930453111496004,
+    "gates": "HtHTHtHtHtHTHtHTHtHTHtHTHtHtHtHTHtHtHtHTHtHTHtHTHtHTHtHtHtHTHtH",
+    "matrix": "[[-0.5798-0.8148i,-0.0001-0.0003i],[-0.0001-0.0003i,0.1662+0.9861i]]",
+    "offset": 0.0002747215555262731
   },
   {
-    "phase": 1.2418242653434812,
-    "gates": "HTHTHTHtHtHtHTHTHtHTHTHtHtHTHTHTHtHtHTHtHtHTHtH",
-    "matrix": "[[0.9741-0.2262i,-0.0002-0.0001i],[0.0002+0.0001i,0.5288+0.8487i]]",
-    "offset": 0.0002489269644257885
+    "phase": 3.598384792341208,
+    "gates": "HtHtHTHTHTHTHtHTHTHtHtHtHTHTHTHTHTHTHTHtHtHtHTHTHtHTHTHTHTHtHtH",
+    "matrix": "[[0.5819+0.8132i,-0-0i],[-0-0i,-0.1636-0.9865i]]",
+    "offset": 0.000025772356820493007
   },
   {
     "phase": 3.603344081041267,
@@ -558,64 +558,64 @@
     "offset": 0.00041891182434749294
   },
   {
-    "phase": 1.2490018984396716,
-    "gates": "HtHtHtHtHtHTHtHTHtHtHtHTHtHTHtHtHtHTHtHtHTHtHTHTHtHTH",
-    "matrix": "[[0.5847+0.8113i,-0.0007+0.0001i],[-0.0007-0.0001i,-0.5847+0.8113i]]",
-    "offset": 0.0006574241646556406
+    "phase": 4.3914292466231295,
+    "gates": "HTHtHtHTHTHtHtHtHTHTHtHtHtHtHtHtHTHtHtHtHTHtHTHtHtHtHTHtHtHX",
+    "matrix": "[[0.2301+0.9732i,-0+0.0001i],[-0.0001+0.0001i,0.8509-0.5254i]]",
+    "offset": 0.00012969096484849582
   },
   {
-    "phase": 0.47092446272301647,
-    "gates": "HtHTHTHtHtHtHTHtHTHtHtHTHtHTHtHTHtHtHTHTHTHtHtHtHtHTHTHTHX",
-    "matrix": "[[0.5226-0.8526i,-0.0004+0i],[0-0.0004i,0.8526-0.5226i]]",
-    "offset": 0.00037586435583417496
+    "phase": 3.6103720516177233,
+    "gates": "HTHTHtHTHtHTHtHTHtHtHTHTHtHtHtHtHTHtHTHtHtHtHtHTHTHTHtHtHtHtH",
+    "matrix": "[[-0.852-0.5235i,-0-0.0002i],[-0.0002-0i,0.5235+0.852i]]",
+    "offset": 0.00019918088107595333
   },
   {
-    "phase": 1.2616828378093823,
-    "gates": "HTHTHtHTHTHtHTHTHtHTHTHTHTHtHTHtHTHTHtHtHtHtHtHtHtHTHTHTHX",
-    "matrix": "[[0.5898+0.8075i,0.0012+0.0001i],[0.0012-0.0001i,-0.5898+0.8075i]]",
-    "offset": 0.001181653061845235
+    "phase": 5.189669564689879,
+    "gates": "HTHtHTHTHtHTHtHtHtHTHtHtHtHTHTHTHtHTHTHtHTHTHTHtHTHTHTHTHtHtHtH",
+    "matrix": "[[-0.1535+0.9882i,0+0.0001i],[-0-0.0001i,0.8072+0.5902i]]",
+    "offset": 0.00006224795005712051
   },
   {
-    "phase": 1.263794203730546,
-    "gates": "HTHTHTHTHTHtHTHtHtHTHTHTHtHtHTHTHtHtHtHTHTHtHTHtHtHtHtHtHX",
-    "matrix": "[[0.8069-0.5907i,-0.0003],[0.0003,0.8069+0.5907i]]",
-    "offset": 0.0002578914903068519
+    "phase": 5.190200140239329,
+    "gates": "HtHTHtHTHTHTHTHTHTHtHTHtHtHtHtHTHTHtHtHTHTHtHTHtHTHTHtHtHtHtHtHtHX",
+    "matrix": "[[-0.9716+0.2366i,0.0002-0i],[-0+0.0002i,-0.2366+0.9716i]]",
+    "offset": 0.00015734503839920288
   },
   {
-    "phase": 0.48499801211163174,
-    "gates": "HtHtHtHTHtHtHtHTHtHTHtHTHtHtHTHTHtHTHtHTHtHTHTHTHtHTHTHTHX",
-    "matrix": "[[-0.9707+0.2401i,0.0003],[-0.0003,-0.9707-0.2401i]]",
-    "offset": 0.0002578642697867885
+    "phase": 0.483443196806152,
+    "gates": "HtHTHtHTHtHtHTHtHTHTHtHtHtHTHTHTHTHtHTHTHtHTHTHTHtHtHtHtHTHtHtH",
+    "matrix": "[[0.8054-0.5927i,-0.0001-0i],[0.0001-0.0001i,0.9886-0.1504i]]",
+    "offset": 0.00010780263398794807
   },
   {
-    "phase": 1.2758031128880996,
-    "gates": "HtHTHTHtHtHtHTHTHtHTHTHtHtHTHtHtHTHTHTHtHtHTHX",
-    "matrix": "[[0.8033-0.5955i,-0.0005],[0.0005,0.8033+0.5955i]]",
-    "offset": 0.0004599570550454235
+    "phase": 4.418924594726791,
+    "gates": "HtHtHtHTHTHTHtHtHTHTHTHtHTHtHtHtHTHtHTHTHTHtHtHTHTHTHtHtHtH",
+    "matrix": "[[0.858+0.5136i,0.0001+0.0003i],[0.0001+0.0003i,0.2435-0.9699i]]",
+    "offset": 0.00033693264542966817
   },
   {
-    "phase": 3.6381770561264317,
-    "gates": "HTHTHtHTHTHTHtHtHTHtHtHtHtHtHtHtHTHTHTHTHTHTHtHtHTHTHtHtH",
-    "matrix": "[[0.9693-0.2457i,-0.0009-0.0003i],[-0.0009+0.0003i,-0.9693-0.2457i]]",
-    "offset": 0.0009174263682403639
+    "phase": 2.065138178549439,
+    "gates": "HtHTHTHtHTHTHtHTHTHTHTHtHTHTHtHTHtHtHTHTHtHtHtHTHtHTHtHTHtHtHtHX",
+    "matrix": "[[0.5971+0.8022i,0+0.0001i],[0.0001-0i,-0.9894+0.145i]]",
+    "offset": 0.00008082316983637322
   },
   {
-    "phase": 5.214784597280299,
-    "gates": "HtHtHtHtHtHTHtHtHtHtHtHtHtHtHtHtHTHtHtHtHtHtH",
-    "matrix": "[[-0.2486-0.9686i,-0.0003+0.0003i],[-0.0003+0.0003i,-0.9686-0.2486i]]",
-    "offset": 0.0004599570550445959
+    "phase": 5.210957838250015,
+    "gates": "HTHTHTHTHtHTHtHtHTHtHtHtHTHTHTHTHTHTHtHTHTHtHTHTHtHtHTHtHtHtH",
+    "matrix": "[[0.8597+0.5108i,-0.0002+0.0001i],[0.0002+0.0001i,0.8597-0.5108i]]",
+    "offset": 0.00022076143782847333
   },
   {
-    "phase": 3.6484361437019723,
-    "gates": "HTHTHTHTHtHtHTHtHtHtHTHTHTHtHTHtHTHTHtHTHTHTHtHTHtHTHTHTH",
-    "matrix": "[[-0.9681+0.2507i,0.0003-0.0005i],[0.0003+0.0005i,0.9681+0.2507i]]",
-    "offset": 0.0005273170005024671
+    "phase": 2.8593111315472415,
+    "gates": "HTHTHtHTHtHtHtHtHtHTHtHtHtHtHTHtHTHtHtHTHTHTHtHtHTHtHtHtHtHtHtHtHX",
+    "matrix": "[[-0.9901-0.1407i,-0.0003+0.0001i],[-0.0003-0.0001i,0.9901-0.1407i]]",
+    "offset": 0.00032410165723333745
   },
   {
-    "phase": 3.649723043620308,
-    "gates": "HtHtHtHTHtHtHTHtHtHTHTHtHTHtHtHTHTHtHTHtHtHtHtHtHtHTHTHTHX",
-    "matrix": "[[0.5067-0.8621i,-0.0009+0.0013i],[-0.0013+0.0009i,-0.8621+0.5067i]]",
-    "offset": 0.0015914230972316039
+    "phase": 0.5090999035362176,
+    "gates": "HtHTHtHTHTHtHtHtHTHTHtHTHtHtHtHtHtHtHtHTHtHTHtHtHtHtHTHTHtHtHtH",
+    "matrix": "[[0.1377-0.9905i,-0.0003+0.0001i],[-0.0001-0.0003i,0.603-0.7977i]]",
+    "offset": 0.00031924275370701717
   },
   {
     "phase": 1.3006523900898121,
@@ -624,28 +624,28 @@
     "offset": 0.00018343591918503253
   },
   {
-    "phase": 4.449417116517042,
-    "gates": "HtHtHTHtHtHTHtHtHTHtHtHTHTHTHTHTHtHtHTHtHtHTHtHtHTHtHtH",
-    "matrix": "[[0.5005-0.8657i,0.0003-0.0001i],[0.0003-0.0001i,-0.9661-0.2583i]]",
-    "offset": 0.0003004879599991553
+    "phase": 1.304327667735525,
+    "gates": "HTHtHTHTHtHTHtHTHTHtHTHtHtHTHTHTHtHTHTHtHtHtHtHTHTHTHTHTHtHtHtH",
+    "matrix": "[[0.8649+0.502i,0+0.0001i],[-0-0.0001i,-0.2566+0.9665i]]",
+    "offset": 0.00006224206134816504
   },
   {
-    "phase": 5.235767607722856,
-    "gates": "HtHtHTHTHTHtHTHtHTHTHTHtHtHTHTHTHtHtHTHTHTHTHTHtHTHtHtHtH",
-    "matrix": "[[0.866+0.5001i,0.0003+0.0004i],[-0.0003+0.0004i,0.866-0.5001i]]",
-    "offset": 0.0005097932013971432
+    "phase": 2.0981297085330395,
+    "gates": "HtHTHtHtHTHtHTHTHtHtHtHtHTHTHTHTHtHTHtHTHTHTHtHtHTHtHTHtHtHtH",
+    "matrix": "[[0.9654-0.2606i,-0.0002+0i],[-0+0.0002i,-0.2606+0.9654i]]",
+    "offset": 0.00024432727625112107
   },
   {
-    "phase": 2.88777103529578,
-    "gates": "HtHTHTHtHtHTHTHTHtHTHTHtHtHTHtHtHtHTHTHtHtHTHX",
-    "matrix": "[[0.1266-0.992i,-0.0005],[0.0005,0.1266+0.992i]]",
-    "offset": 0.00045995705504545126
+    "phase": 1.3175063701609497,
+    "gates": "HTHTHtHTHTHtHTHTHTHtHTHTHtHtHTHtHtHtHTHTHtHtHtHTHtHTHTHtHtHtHX",
+    "matrix": "[[0.7908-0.6121i,0.0001-0.0002i],[-0.0001-0.0002i,0.7908+0.6121i]]",
+    "offset": 0.00025710889136413385
   },
   {
-    "phase": 4.459908929665051,
-    "gates": "HtHTHtHtHTHTHtHtHTHtHtHtHTHtHTHtHtHtHTHTHtHTHTHtHTHTHTHX",
-    "matrix": "[[0.496-0.8683i,0.0008-0.0002i],[0.0007-0.0004i,-0.9647-0.2633i]]",
-    "offset": 0.000786878987700815
+    "phase": 5.249381369033164,
+    "gates": "HtHTHtHTHtHtHtHtHTHTHtHtHTHTHtHtHTHTHtHtHTHTHtHTHtHtHtHtHtHX",
+    "matrix": "[[-0.7893+0.6141i,-0.0002-0.0001i],[-0.0002-0.0001i,0.1239+0.9923i]]",
+    "offset": 0.0002124657562602609
   },
   {
     "phase": 4.467167838266863,
@@ -654,28 +654,28 @@
     "offset": 0.0001797321752625048
   },
   {
-    "phase": 3.6871664136051354,
-    "gates": "HTHtHtHTHtHtHtHTHtHtHtHTHTHTHtHTHTHTHTHtHtHtHtHtHtHtHX",
-    "matrix": "[[-0.4905+0.8715i,-0.0003-0.0005i],[0.0005+0.0003i,0.8715-0.4905i]]",
-    "offset": 0.0005713256473864105
+    "phase": 2.9038562750544865,
+    "gates": "HtHtHTHTHtHtHtHtHtHtHtHtHTHtHTHTHTHtHtHTHTHTHTHtHTHtHtHtHtHtHtH",
+    "matrix": "[[-0.2704-0.9627i,-0.0002+0.0002i],[0.0003-0i,0.4895+0.872i]]",
+    "offset": 0.0003162570238222237
   },
   {
-    "phase": 1.333221630368136,
-    "gates": "HTHTHtHtHTHtHTHTHtHtHTHTHTHTHTHTHtHtHTHTHtHtHTHTHtHTHtHtHX",
-    "matrix": "[[-0.6183-0.7859i,0.0005+0.0001i],[0.0005-0.0001i,0.6183-0.7859i]]",
-    "offset": 0.0004648134925234028
+    "phase": 5.2647728028789125,
+    "gates": "HtHTHTHTHTHtHTHTHTHTHTHTHtHtHtHTHTHtHtHTHtHTHtHtHtHtHtHTHTHtHtH",
+    "matrix": "[[0.6201+0.7845i,0.0001-0i],[-0-0.0001i,0.9932-0.1162i]]",
+    "offset": 0.00007208873298033892
   },
   {
-    "phase": 5.269184661044536,
-    "gates": "HTHtHtHtHTHTHTHTHTHtHtHtHTHtHTHTHTHtHtHtHtHTHtHtHTHTHTHTHTHX",
-    "matrix": "[[0.9935+0.1141i,0.0004+0.0005i],[0.0001+0.0007i,0.6218-0.7831i]]",
-    "offset": 0.0006612755945381447
+    "phase": 1.3392579895050316,
+    "gates": "HTHtHtHTHTHTHTHtHTHTHTHtHTHTHTHTHTHtHtHTHTHTHtHtHtHtHtHtHtHX",
+    "matrix": "[[0.4868-0.8735i,0.0003-0.0002i],[-0.0004+0.0001i,0.9619+0.2734i]]",
+    "offset": 0.0003918923454938493
   },
   {
-    "phase": 3.702931238372283,
-    "gates": "HtHtHTHTHTHTHtHtHtHTHTHtHtHTHTHtHTHtHTHtHTHtHTHTHtHtHtHTHX",
-    "matrix": "[[0.277+0.9609i,-0.0005-0.0001i],[0.0005-0.0001i,0.277-0.9609i]]",
-    "offset": 0.0004970325859559407
+    "phase": 6.060512261113363,
+    "gates": "HTHTHTHtHtHtHtHTHtHTHtHTHtHTHTHtHtHTHtHtHTHTHtHTHTHTHtHTHTHtHtH",
+    "matrix": "[[-0.8756-0.483i,-0.0002-0.0003i],[0.0003-0.0001i,-0.9607-0.2777i]]",
+    "offset": 0.0003472757254054363
   },
   {
     "phase": 2.9231940174878908,
@@ -696,10 +696,10 @@
     "offset": 0.0003004870645264724
   },
   {
-    "phase": 6.079709455367256,
-    "gates": "HtHTHTHtHtHTHTHTHTHTHtHtHTHtHtHtHtHTHTHTHtHTHTHTHtHTH",
-    "matrix": "[[0.9948+0.1016i,-0.0007-0.0003i],[0.0007-0.0003i,0.9948-0.1016i]]",
-    "offset": 0.0007627419360231092
+    "phase": 0.5793149385234083,
+    "gates": "HTHTHTHtHTHTHtHtHtHTHtHtHtHTHtHtHTHTHTHtHTHTHTHtHTHTHtHtHtHTHtH",
+    "matrix": "[[0.9947+0.1029i,0.0003+0.0001i],[-0.0003-0.0001i,0.7761+0.6306i]]",
+    "offset": 0.0003627025281841022
   },
   {
     "phase": 1.3695924238770978,
@@ -714,10 +714,10 @@
     "offset": 0.0002579004484009042
   },
   {
-    "phase": 0.5970836171921324,
-    "gates": "HTHTHtHTHtHTHtHTHtHtHtHTHtHTHtHTHtHTHTHTHtHTHtHTHtHTHtHtHX",
-    "matrix": "[[0.9558-0.2941i,0.0003],[-0.0003,0.9558+0.2941i]]",
-    "offset": 0.0002578701779098009
+    "phase": 3.7386771694972025,
+    "gates": "HTHtHTHTHtHtHTHtHTHTHTHTHTHtHtHtHTHtHtHTHtHTHtHtHtHtHTHTHtHtHtH",
+    "matrix": "[[0.9956+0.094i,-0+0.0001i],[0-0.0001i,-0.7705-0.6375i]]",
+    "offset": 0.00006225245462643032
   },
   {
     "phase": 2.955713934005173,
@@ -732,16 +732,16 @@
     "offset": 0.000051567699239651094
   },
   {
-    "phase": 2.1817199202737356,
-    "gates": "HtHTHtHTHtHtHtHtHTHtHtHTHTHtHTHTHTHTHTHtHtHtHtHtHtHtH",
-    "matrix": "[[-0.3007-0.9537i,-0.0002+0.0003i],[0.0003-0.0002i,0.9537+0.3007i]]",
-    "offset": 0.00033890189371447467
+    "phase": 2.1796765500287423,
+    "gates": "HtHtHTHtHTHtHTHtHtHTHTHtHtHTHtHTHTHTHtHTHTHTHtHTHtHTHTHtHtHX",
+    "matrix": "[[0.642+0.7667i,0.0001-0i],[0.0001+0.0001i,-0.9961+0.0881i]]",
+    "offset": 0.00010201997074209408
   },
   {
-    "phase": 3.757716598941446,
-    "gates": "HtHtHTHTHTHtHtHtHtHTHtHtHTHtHtHTHTHtHtHTHTHtHTHTHTHTHTHTH",
-    "matrix": "[[0.8882+0.4594i,-0.0003+0.0002i],[0.0002-0.0003i,-0.4594-0.8882i]]",
-    "offset": 0.0004040085077711297
+    "phase": 5.329428274972949,
+    "gates": "HtHtHTHtHTHtHTHtHTHtHTHtHTHtHTHtHtHTHtHTHTHtHtHtHTHTHTHTHTHTHTHTH",
+    "matrix": "[[-0.8884-0.459i,-0.0001+0i],[0.0001+0i,-0.8884+0.459i]]",
+    "offset": 0.00007783586832078935
   },
   {
     "phase": 5.333983207953646,
@@ -750,40 +750,40 @@
     "offset": 0.0000673398957722982
   },
   {
-    "phase": 2.194823762064968,
-    "gates": "HTHTHtHTHTHtHtHtHTHtHtHTHTHTHTHTHtHtHtHtHtHTHtHTHtHTHX",
-    "matrix": "[[0.4559-0.89i,0.0005-0.0001i],[-0.0005-0.0001i,0.4559+0.89i]]",
-    "offset": 0.000469709498470852
+    "phase": 5.337296063756592,
+    "gates": "HTHTHTHtHTHtHTHTHTHtHTHtHtHtHTHtHtHTHTHTHTHtHTHTHtHtHTHtHtHtHtH",
+    "matrix": "[[-0.6482-0.7615i,-0.0002+0.0003i],[-0+0.0003i,-0.9968+0.0802i]]",
+    "offset": 0.00035108727849328695
   },
   {
-    "phase": 3.7696636709007,
-    "gates": "HtHtHtHTHtHTHTHTHtHTHTHTHTHtHTHTHTHtHTHtHtHtH",
-    "matrix": "[[-0.891-0.4541i,0.0003+0.0003i],[0.0003+0.0003i,0.4541+0.891i]]",
-    "offset": 0.00045995705504476273
+    "phase": 6.127563574504543,
+    "gates": "HtHtHtHTHTHtHTHTHTHtHtHtHTHtHTHTHtHTHTHtHtHtHTHTHtHTHtHtHtHtH",
+    "matrix": "[[0.997+0.0777i,-0.0003-0i],[0.0003-0i,0.997-0.0777i]]",
+    "offset": 0.0003258457111841655
   },
   {
-    "phase": 2.2080972163875368,
-    "gates": "HtHtHtHtHtHtHtHtHtHTHTHTHTHtHtHtHtHtHtHtHtHtH",
-    "matrix": "[[-0.3133-0.9497i,0.0003+0.0003i],[0.0003+0.0003i,0.9497+0.3133i]]",
-    "offset": 0.0004599570550445665
+    "phase": 4.563594586382136,
+    "gates": "HtHtHtHtHtHtHTHtHTHTHtHTHtHTHtHTHtHTHtHTHTHtHTHtHtHtHtHtHtH",
+    "matrix": "[[0.8929+0.4503i,0.0001+0.0002i],[0.0001+0.0002i,0.313-0.9498i]]",
+    "offset": 0.0002640271995224015
   },
   {
-    "phase": 1.4254105976402673,
-    "gates": "HTHtHTHTHtHTHTHTHTHTHtHTHtHtHtHTHtHTHTHtHTHtHtHTHtHTHTHTHTH",
-    "matrix": "[[-0.4488+0.8936i,0.0012+0.0004i],[-0.0006+0.0011i,-0.9492-0.3146i]]",
-    "offset": 0.0012692551718335302
+    "phase": 3.7807895719801685,
+    "gates": "HTHtHTHTHTHTHTHtHtHtHtHtHTHTHtHtHTHtHtHTHTHTHTHTHtHTHTHtHtHTH",
+    "matrix": "[[0.3142+0.9494i,-0.0001-0.0001i],[0.0001-0.0001i,0.3142-0.9494i]]",
+    "offset": 0.00014932094101439324
   },
   {
-    "phase": 4.573423764735297,
-    "gates": "HtHtHTHtHTHTHtHTHTHTHtHTHtHTHtHtHTHTHtHTHTHtHTHTHtHTHTHTHTHX",
-    "matrix": "[[0.4459-0.8951i,-0.0008+0.0014i],[-0.0015-0.0004i,-0.9482-0.3176i]]",
-    "offset": 0.001582681221316272
+    "phase": 6.143366373306217,
+    "gates": "HtHTHTHTHTHTHtHTHtHtHtHtHTHTHtHtHtHtHtHtHtHTHtHtHTHTHtHtHtHtH",
+    "matrix": "[[0.0699-0.9976i,-0+0.0001i],[-0-0.0001i,-0.0699-0.9976i]]",
+    "offset": 0.0000825065236582256
   },
   {
-    "phase": 6.146705626149186,
-    "gates": "HTHtHtHTHTHtHtHTHTHtHTHTHtHtHTHtHtHTHTHTHtHTHtHTHTHTHTHTH",
-    "matrix": "[[0.6572+0.7537i,-0.0006-0.0004i],[0.0004+0.0006i,0.7537+0.6572i]]",
-    "offset": 0.0007088339314555926
+    "phase": 5.362799914932121,
+    "gates": "HtHTHTHTHtHtHTHTHTHtHTHTHTHTHTHTHTHTHtHTHTHtHTHtHTHTHTHTHTHTHTHTH",
+    "matrix": "[[-0.9476+0.3195i,0.0002-0.0001i],[-0.0001+0.0002i,-0.3195+0.9476i]]",
+    "offset": 0.0001631981015671402
   },
   {
     "phase": 0.6564657558366065,
@@ -792,16 +792,16 @@
     "offset": 0.00025785207825477287
   },
   {
-    "phase": 5.371823397432022,
-    "gates": "HTHTHTHtHTHtHTHtHtHtHtHtHTHTHTHtHtHTHTHTHTHTHtHTHTHTHTHX",
-    "matrix": "[[-0.0629+0.998i,0+0.0002i],[-0.0001-0.0001i,0.7502+0.6612i]]",
-    "offset": 0.00018341975197750561
+    "phase": 3.804412558122884,
+    "gates": "HtHtHTHTHtHTHtHTHTHtHtHtHtHTHTHtHtHTHtHtHTHTHtHTHTHTHTHtHtHTHtHX",
+    "matrix": "[[-0.7491+0.6625i,0-0.0001i],[0.0001+0i,0.9981-0.0613i]]",
+    "offset": 0.00008079919060435989
   },
   {
-    "phase": 3.8069050600651466,
-    "gates": "HtHtHtHtHtHTHTHTHTHtHTHtHtHtHTHTHTHtHtHtHtHTHTHtHtHTHX",
-    "matrix": "[[0.9452-0.3266i,-0.0001-0.001i],[-0.0001+0.001i,-0.9452-0.3266i]]",
-    "offset": 0.0010240900472545888
+    "phase": 6.1643037384932695,
+    "gates": "HTHTHtHtHTHTHTHTHTHTHTHTHtHtHtHtHtHtHtHtHtHtHTHTHTHtHtHTHtH",
+    "matrix": "[[0.945-0.3271i,0+0.0002i],[0.0001+0.0001i,0.8995-0.4369i]]",
+    "offset": 0.00017974186232668
   },
   {
     "phase": 4.597223982420735,
@@ -810,16 +810,16 @@
     "offset": 0.00036364631627993634
   },
   {
-    "phase": 3.0306522762325514,
-    "gates": "HTHTHtHTHtHtHtHtHtHtHtHTHTHtHtHtHTHTHtHtHTHtHtHTHtH",
-    "matrix": "[[0.4333-0.9012i,-0.0001-0.0009i],[0.0007-0.0006i,-0.3309+0.9437i]]",
-    "offset": 0.0009502071146507072
+    "phase": 3.031959289933453,
+    "gates": "HTHTHtHtHTHTHTHTHTHtHtHTHtHtHTHTHtHTHtHTHtHtHtHTHtHtHtHTHtH",
+    "matrix": "[[0.3315+0.9435i,-0.0001-0.0001i],[-0-0.0002i,-0.4327-0.9015i]]",
+    "offset": 0.00017978728985155998
   },
   {
-    "phase": 4.607436679846697,
-    "gates": "HTHTHTHtHtHtHtHTHTHTHtHTHtHTHtHTHTHTHTHTHtHTHtHtHtHTHTH",
-    "matrix": "[[0.9427-0.3337i,0.0005-0.0014i],[-0.0006+0.0013i,-0.4306-0.9025i]]",
-    "offset": 0.001451769340194521
+    "phase": 4.608443882091515,
+    "gates": "HTHTHtHtHtHtHtHTHtHtHtHTHTHTHtHtHTHtHTHtHtHTHTHtHtHTHTHTHTHTHTHTH",
+    "matrix": "[[0.9986+0.0519i,0+0.0001i],[0.0001+0i,-0.0519-0.9986i]]",
+    "offset": 0.00012143194023799926
   },
   {
     "phase": 4.612585402405033,
@@ -828,16 +828,16 @@
     "offset": 0.0007966689886370347
   },
   {
-    "phase": 3.831511289322253,
-    "gates": "HtHtHtHTHTHtHtHTHTHTHTHtHTHTHtHtHTHtHtHtHtHTHTHtHtHTHTHTHX",
-    "matrix": "[[0.3382+0.9411i,-0.0003],[0.0003,0.3382-0.9411i]]",
-    "offset": 0.00025787709231903295
+    "phase": 3.830081779133878,
+    "gates": "HTHTHtHtHTHTHtHTHTHtHtHtHTHTHTHTHtHTHtHTHTHtHtHtHtHtHtHtHtHTHtH",
+    "matrix": "[[0.9988+0.0484i,0.0001-0.0002i],[-0+0.0002i,-0.7405-0.672i]]",
+    "offset": 0.0001936690541284997
   },
   {
-    "phase": 3.052715106326123,
-    "gates": "HTHTHTHtHTHTHtHtHTHTHtHtHtHtHTHTHTHTHtHtHTHTHtHtHTHtHtHtHX",
-    "matrix": "[[-0.0444+0.999i,-0.0003],[0.0003,-0.0444-0.999i]]",
-    "offset": 0.0002578731925634125
+    "phase": 4.622006836560892,
+    "gates": "HtHtHTHTHtHTHtHTHtHtHtHtHTHtHtHTHtHtHtHTHtHTHtHTHtHTHTHtHtHtH",
+    "matrix": "[[0.7383-0.6744i,-0.0001+0.0001i],[-0.0001-0.0001i,-0.7383-0.6744i]]",
+    "offset": 0.0001493254637478075
   },
   {
     "phase": 3.0590024548888683,
@@ -846,10 +846,10 @@
     "offset": 0.00025788197788424575
   },
   {
-    "phase": 4.633132795274593,
-    "gates": "HtHtHtHTHTHtHtHTHTHtHtHtHtHTHTHtHtHTHTHtHtHtH",
-    "matrix": "[[0.9992+0.0396i,0.0003+0.0003i],[0.0003+0.0003i,-0.0396-0.9992i]]",
-    "offset": 0.0004599570550449026
+    "phase": 5.417046441963183,
+    "gates": "HtHTHtHTHTHTHtHtHtHtHTHtHtHTHtHtHTHTHTHtHTHtHTHTHTHTHtHtHtHtHtH",
+    "matrix": "[[0.7351-0.678i,-0.0002-0.0001i],[-0.0002-0i,-0.0404-0.9992i]]",
+    "offset": 0.00019022037761155574
   },
   {
     "phase": 3.0688132358722204,
@@ -864,52 +864,52 @@
     "offset": 0.00010200231523946558
   },
   {
-    "phase": 3.863631681701773,
-    "gates": "HtHtHTHtHTHtHtHTHtHtHtHtHtHTHTHTHTHTHtHTHtHtHTHtHTHTHTHTH",
-    "matrix": "[[0.9355-0.3532i,-0.0006-0.0003i],[-0.0006+0.0003i,-0.9355-0.3532i]]",
-    "offset": 0.0006121899595198932
+    "phase": 0.7216912723172444,
+    "gates": "HtHtHTHtHTHTHTHtHTHTHTHtHTHtHtHtHtHtHTHTHTHTHTHtHtHtHTHtHtHtHtHtHX",
+    "matrix": "[[-0.3531-0.9356i,0.0001-0i],[0.0001+0i,0.3531-0.9356i]]",
+    "offset": 0.00007784561433668027
   },
   {
-    "phase": 3.8676856878032364,
-    "gates": "HtHTHTHtHTHtHTHTHTHTHTHtHtHtHtHtHTHtHTHtHtHTHX",
-    "matrix": "[[0.3551+0.9348i,-0.0005],[0.0005,0.3551-0.9348i]]",
-    "offset": 0.00045995705504539575
+    "phase": 2.2980804228952847,
+    "gates": "HTHTHtHtHTHTHtHtHtHtHtHTHTHtHTHTHTHtHTHTHtHtHtHtHTHtHtHtHtHtHtHX",
+    "matrix": "[[0.6863+0.7274i,-0.0002-0.0003i],[-0.0004+0.0001i,-0.9996+0.0291i]]",
+    "offset": 0.00036194391950827886
   },
   {
-    "phase": 6.229181168425267,
-    "gates": "HtHTHTHTHtHtHtHtHtHtHTHtHTHTHtHtHtHTHtHTHtHTHTHtHtHtH",
-    "matrix": "[[0.7259-0.6878i,-0.0005-0.0003i],[-0.0003-0.0005i,0.6878-0.7259i]]",
-    "offset": 0.000571320584647218
+    "phase": 6.2301411880051525,
+    "gates": "HtHtHtHtHTHTHTHtHtHtHTHtHtHtHtHtHtHtHTHtHtHtHTHTHTHtHtHtHtH",
+    "matrix": "[[-0.358-0.9337i,0.0001-0.0001i],[0.0001-0.0001i,-0.407-0.9134i]]",
+    "offset": 0.00016089850040265497
   },
   {
-    "phase": 0.7343550059801445,
-    "gates": "HTHTHtHTHtHtHtHTHtHTHtHTHTHTHtHtHTHtHTHTHTHTHTHTHTHtHtHtHX",
-    "matrix": "[[0.359+0.9333i,0.0001-0.0007i],[0.0001+0.0007i,-0.359+0.9333i]]",
-    "offset": 0.0007303740291523043
+    "phase": 0.7357912101026716,
+    "gates": "HTHtHtHtHTHTHTHTHTHtHtHtHtHtHTHtHTHTHtHTHtHtHTHtHTHTHtHTHtHtH",
+    "matrix": "[[0.9141+0.4055i,-0.0003+0.0004i],[-0.0004+0.0003i,0.4055+0.9141i]]",
+    "offset": 0.0004624081231701203
   },
   {
-    "phase": 6.236766091874386,
-    "gates": "HtHTHtHTHTHtHtHTHTHtHTHtHTHtHtHTHTHtHtHTHtHTHX",
-    "matrix": "[[0.9997+0.0232i,-0.0005],[0.0005,0.9997-0.0232i]]",
-    "offset": 0.0004599570550449794
+    "phase": 3.098956406680048,
+    "gates": "HTHtHtHTHTHtHTHtHtHtHTHtHtHtHTHtHtHTHTHTHTHTHTHtHTHTHtHtHtH",
+    "matrix": "[[0.3629+0.9318i,0.0001+0.0001i],[0+0.0002i,-0.4023-0.9155i]]",
+    "offset": 0.00017977220895511628
   },
   {
-    "phase": 3.888845892562676,
-    "gates": "HtHTHtHtHTHtHTHtHtHtHtHTHtHtHTHTHTHtHTHtHtHtHtHtHTHTHTH",
-    "matrix": "[[0.7205-0.6935i,0.0004+0.0009i],[-0.0004-0.0009i,-0.9998+0.0191i]]",
-    "offset": 0.0009743186395185786
+    "phase": 5.45857924084102,
+    "gates": "HTHTHTHtHTHTHTHtHTHTHTHtHTHtHTHTHtHTHtHTHtHTHtHTHtHTHTHtHtHtHtH",
+    "matrix": "[[-0.7208+0.6931i,-0.0003-0.0002i],[-0.0003-0i,0.0196+0.9998i]]",
+    "offset": 0.0003510990602884475
   },
   {
-    "phase": 0.7525762965108536,
-    "gates": "HtHTHTHtHtHTHTHtHtHTHTHTHtHtHTHTHtHtHTHTHtH",
-    "matrix": "[[0.9999+0.0164i,-0.0001+0.0003i],[-0.0001+0.0003i,0.7186+0.6954i]]",
-    "offset": 0.00035203588913002926
+    "phase": 4.676898975759298,
+    "gates": "HTHtHtHTHtHTHtHtHtHTHtHtHtHtHTHTHtHTHTHTHtHTHTHTHtHtHtHTHtHtHtH",
+    "matrix": "[[-0.399+0.9169i,-0-0.0002i],[0.0001+0.0002i,0.9305+0.3662i]]",
+    "offset": 0.00019367357111501623
   },
   {
-    "phase": 3.898583281705326,
-    "gates": "HtHTHtHTHtHtHtHTHtHTHTHtHtHTHTHtHTHTHtHtHTHTHTHTHtHTHTHTHTHX",
-    "matrix": "[[0.0142-0.9999i,0.0006+0.0001i],[-0.0005-0.0003i,-0.697+0.7171i]]",
-    "offset": 0.0005780389226091504
+    "phase": 4.682263123367977,
+    "gates": "HtHTHTHTHtHTHtHtHTHtHTHtHTHtHtHtHtHtHtHtHTHtHTHTHTHtHTHtHtH",
+    "matrix": "[[0.3966-0.918i,0.0001+0.0001i],[-0-0.0001i,-0.9295-0.3687i]]",
+    "offset": 0.00012969782044684015
   },
   {
     "phase": 2.3298059602917407,
@@ -918,10 +918,10 @@
     "offset": 0.0003004867581136003
   },
   {
-    "phase": 4.692149605558305,
-    "gates": "HtHtHTHtHtHtHTHTHtHtHTHTHTHTHtHtHtHtHtHTHTHtHtHTHtHTHTH",
-    "matrix": "[[0.9277-0.3733i,0.0001+0.0001i],[0.0002+0i,-0.392-0.92i]]",
-    "offset": 0.0001834087831221481
+    "phase": 2.33369617878645,
+    "gates": "HTHtHTHtHTHTHTHtHTHtHTHTHtHtHtHtHTHtHTHTHtHtHtHtHtHTHtHtHtHtHtH",
+    "matrix": "[[-0.715+0.6991i,0.0001+0i],[-0.0001-0i,-0.0112-0.9999i]]",
+    "offset": 0.0000622479028673667
   },
   {
     "phase": 4.699865171769091,
@@ -930,15 +930,15 @@
     "offset": 0.0004970758555279916
   },
   {
-    "phase": 3.1307325579361773,
-    "gates": "HTHtHTHtHTHtHtHtHtHtHtHTHTHtHTHtHTHtHtHTHTHTHTHtHtHTHTH",
-    "matrix": "[[0.3777+0.9259i,-0.0002-0i],[0.0001-0.0002i,-0.3877-0.9218i]]",
-    "offset": 0.00021556019735096828
+    "phase": 1.5632051087086962,
+    "gates": "HTHTHtHTHTHtHtHTHTHtHtHtHTHtHTHtHtHTHTHtHTHtHTHtHtHTHTHtHtHtHtHX",
+    "matrix": "[[-0.9253+0.3792i,-0.0001+0.0001i],[0+0.0002i,-0.3862-0.9224i]]",
+    "offset": 0.00015883899015687483
   },
   {
-    "phase": 2.3500196899006127,
-    "gates": "HtHtHtHTHtHtHtHtHtHtHtHTHtHTHTHTHtHTHTHTHtHTHtHTHtHTHTHTHTHX",
-    "matrix": "[[-1-0.0031i,0.001+0.001i],[0.0001-0.0014i,0.7049-0.7093i]]",
-    "offset": 0.0014230487514966738
+    "phase": 0.7815327751182338,
+    "gates": "HtHtHtHTHtHTHTHtHtHTHTHtHTHtHtHtHtHtHtHtHtHtHtHTHTHTHtHtHtHtHtHtH",
+    "matrix": "[[0.3845-0.9231i,0+0.0001i],[0.0001+0i,0.9231-0.3845i]]",
+    "offset": 0.00013886290022106196
   }
 ]
