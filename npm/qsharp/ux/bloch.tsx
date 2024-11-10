@@ -90,6 +90,7 @@ const gateLaTeX = {
   Y: "\\begin{bmatrix} 0 & -i \\\\ i & 0 \\end{bmatrix}",
   Z: "\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}",
   S: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 2}} \\end{bmatrix}",
+  SA: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{-i {\\pi \\over 2}} \\end{bmatrix}",
   T: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 4}} \\end{bmatrix}",
   TA: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{-i {\\pi \\over 4}} \\end{bmatrix}",
   H: "{1 \\over \\sqrt{2}} \\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}",
@@ -464,6 +465,7 @@ export function BlochSphere() {
 
   const [gateArray, setGateArray] = useState<string[]>([]);
   const [state, setState] = useState(Ket0);
+  const [rzAngle, setRzAngle] = useState(0);
   let newState = state;
 
   useEffect(() => {
@@ -535,6 +537,18 @@ export function BlochSphere() {
             ),
           );
           break;
+        case "s":
+          renderer.current.rotateZ(-Math.PI / 2);
+          newState = SGate.adjoint().mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "S†",
+              gateLaTeX.SA,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
+          );
+          break;
         case "T":
           renderer.current.rotateZ(Math.PI / 4);
           newState = TGate.mulVec2(newState);
@@ -547,7 +561,7 @@ export function BlochSphere() {
             ),
           );
           break;
-        case "A":
+        case "t":
           renderer.current.rotateZ(-Math.PI / 4);
           newState = TGate.adjoint().mulVec2(newState);
           gateArray.push(
@@ -597,12 +611,13 @@ export function BlochSphere() {
 
   function sliderChange(e: Event) {
     const slider = e.target as HTMLInputElement;
-    const angleIdx = Math.round(parseFloat(slider.value) * 100);
+    const angleIdx = Math.round(parseFloat(slider.value) * 200) % 1256;
     const button = document.getElementById("rz_button") as HTMLSpanElement;
     button.textContent = `Rz(${slider.value})`;
 
     const input = document.getElementById("run_gates") as HTMLInputElement;
-    input.value = rzOps[angleIdx].gates;
+    input.value = rzOps[angleIdx];
+    setRzAngle(parseFloat(slider.value));
   }
 
   return (
@@ -625,19 +640,23 @@ export function BlochSphere() {
         <button type="button" onClick={() => rotate("Z")}>
           Z
         </button>
+        <button type="button" onClick={() => rotate("H")}>
+          H
+        </button>
         <button type="button" onClick={() => rotate("S")}>
           S
+        </button>
+        <button type="button" onClick={() => rotate("s")}>
+          S†
         </button>
         <button type="button" onClick={() => rotate("T")}>
           T
         </button>
-        <button type="button" onClick={() => rotate("A")}>
+        <button type="button" onClick={() => rotate("t")}>
           T†
         </button>
-        <button type="button" onClick={() => rotate("H")}>
-          H
-        </button>
-        <button type="button" onClick={reset}>
+
+        <button style="margin: 0 8px;" type="button" onClick={reset}>
           Reset
         </button>
       </div>
@@ -662,8 +681,8 @@ export function BlochSphere() {
           type="range"
           min="0"
           max="6.28"
-          step="0.01"
-          value="0"
+          step="0.005"
+          value={rzAngle}
           onInput={sliderChange}
         />
         <span
