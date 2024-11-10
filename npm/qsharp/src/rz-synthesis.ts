@@ -23,7 +23,7 @@ if (points % 8 !== 0) throw "Points must be a multiple of 8";
 const phaseCount = points / 8;
 let phaseCountFound = 0;
 
-// We store the the calculated matrices in a buffer for all permutations up to 2^24 operations operations.
+// We store the the calculated matrices in a buffer for all permutations up to 2^24 operations.
 // That way once the buffer is full, we can check beyond 2^24 operations by multiplying the pre-calculated matrices.
 //
 // i.e. If A is a matrix after multiplying "HTHTHT...", and B is a matrix after multiplying "HtHtHt...",
@@ -65,7 +65,7 @@ function opSequenceToGateSequence(seq: string[]): string {
     .replace(/HH/g, "");
 }
 
-// Pre-calculate the sequences for the Hadamard and T / T_adjoint gates
+// Pre-calculate the matrix for the Hadamard and T / T_adjoint sequences
 const Aseq = TGate.mul(Hadamard);
 const Bseq = TGate.adjoint().mul(Hadamard);
 
@@ -76,6 +76,7 @@ console.log(`Matrix entries to pre-calculate: ${EntryCount}`);
 console.log(`Using an espilon of ${epsilon}`);
 console.log(`Phases to find: ${phaseCount}`);
 
+// Buffer (and view) for the pre-calcuated matrices
 const entryBuffer = new ArrayBuffer(EntryCount * MatrixLenBytes);
 const bufferView = new DataView(entryBuffer);
 
@@ -86,6 +87,7 @@ const phaseEntries: Array<{
   offset: number;
 }> = [];
 
+// This is called once we find what looks like a valid Rz to see if we should save it.
 function onPhaseFound(phase: number, ops: string[], matrix: M2x2) {
   const phaseIdx = Math.round((phase * points) / (2 * Math.PI));
   const segment = phaseIdx % phaseCount;
@@ -141,8 +143,8 @@ function writeMatrixToBuffer(idx: number, matrix: M2x2) {
 }
 
 // Rather than return a new matrix, which means allocating a new object, we'll just update
-// an existing one. This is a bit faster and saves on memory allocation if the caller passes
-// in the same working matrix every time.
+// an existing one passed as a parameter. This is a bit faster and saves on memory allocation
+// if the caller passes in the same working matrix every time.
 function setMatrixFromBuffer(idx: number, matrix: M2x2) {
   const offset = idx * MatrixLenBytes;
   matrix.a.re = bufferView.getFloat32(offset + 0);
@@ -157,7 +159,7 @@ function setMatrixFromBuffer(idx: number, matrix: M2x2) {
 
 // This turns an array of gates into an array of gates, expanding any buffer indices in the array
 // into the gate sequence. The ability to pass in a buffer index is an optimization to not have to
-// allocate the list of gates as a string array if it may not be needed.
+// allocate the list of gates as a string array on every iteration if it may not be needed.
 function gatesList(gates: Array<string | number>): string[] {
   return gates
     .map((entry) => {
@@ -188,7 +190,7 @@ function checkMatrix(matrix: M2x2, gates: Array<string | number>) {
   }
 
   // It may well be that applying an X turns it into a valid Rz. So we check that too.
-  // Note that due to the matrix math, Y will only find a hit if X did, so we don't need to check Y.
+  // Note that due to the matrix math, Y will only find a hit if X did, so no point in checking Y.
   // (And obviously Z is already just a phase shift, so no need to check that either)
   const plusXEnd = PauliX.mul(matrix);
   if (plusXEnd.isDiagonal(epsilon)) {
