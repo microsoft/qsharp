@@ -22,7 +22,8 @@
     "./debug-service-worker": "./dist/debug-service/worker-browser.js",
     "./katas": "./dist/katas.js",
     "./katas-md": "./dist/katas-md.js",
-    "./ux": "./ux/index.ts"
+    "./ux": "./ux/index.ts",
+    "./rz-array.json": "./rz-array.json"
   },
   "scripts": {
     "build": "npm run docs && npm run generate && npm run build:tsc",
@@ -30,7 +31,8 @@
     "docs": "node generate_docs.js",
     "build:tsc": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
     "tsc:watch": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch --preserveWatchOutput",
-    "test": "node --test"
+    "test": "node --test",
+    "rz": "node ./dist/rz-synthesis.js"
   },
   "type": "module",
   "files": [

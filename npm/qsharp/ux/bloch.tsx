@@ -61,7 +61,7 @@ import {
 } from "../src/cplx.js";
 import { Markdown } from "./renderers.js";
 
-import rzOps from "../src/rzOps.js";
+import rzOps from "../rz-array.json";
 
 const colors = {
   sphereColor: 0x404080,

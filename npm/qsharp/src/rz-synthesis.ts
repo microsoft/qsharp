@@ -1,3 +1,12 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/*
+This file generates the rz-array.json file that contains the gates for Rz rotation synthesis.
+
+Run with: npm run rz
+*/
+
 import { compare, Hadamard, Ident, M2x2, PauliX, TGate } from "./cplx.js";
 import { writeFileSync } from "node:fs";
 
@@ -241,7 +250,8 @@ const result = phaseEntries.map((entry) =>
     : null,
 );
 
-writeFileSync("./rzs.json", JSON.stringify(result, null, 2), "utf8");
+// Write a file with the details of each found rotation for manual inspection if needed
+writeFileSync("./rz-details.json", JSON.stringify(result, null, 2), "utf8");
 
 // Create the array with the index being the phase points, and the value being the gates
 const phaseGates: string[] = new Array(points).fill("****");
