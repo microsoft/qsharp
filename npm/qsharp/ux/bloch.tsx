@@ -464,6 +464,7 @@ export function BlochSphere() {
 
   const [gateArray, setGateArray] = useState<string[]>([]);
   const [state, setState] = useState(Ket0);
+  let newState = state;
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -483,78 +484,91 @@ export function BlochSphere() {
   $$`;
 
   function rotate(gate: string): void {
-    let newState = vec2(state);
-    let newLaTeX = "";
+    const priorState = vec2(newState);
     if (renderer.current) {
       switch (gate) {
         case "X":
           renderer.current.rotateX(Math.PI);
-          newState = PauliX.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "X",
-            gateLaTeX.X,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = PauliX.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "X",
+              gateLaTeX.X,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "Y":
           renderer.current.rotateY(Math.PI);
-          newState = PauliY.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "Y",
-            gateLaTeX.Y,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = PauliY.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "Y",
+              gateLaTeX.Y,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "Z":
           renderer.current.rotateZ(Math.PI);
-          newState = PauliZ.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "Z",
-            gateLaTeX.Z,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = PauliZ.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "Z",
+              gateLaTeX.Z,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "S":
           renderer.current.rotateZ(Math.PI / 2);
-          newState = SGate.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "S",
-            gateLaTeX.S,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = SGate.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "S",
+              gateLaTeX.S,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "T":
           renderer.current.rotateZ(Math.PI / 4);
-          newState = TGate.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "T",
-            gateLaTeX.T,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = TGate.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "T",
+              gateLaTeX.T,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "A":
           renderer.current.rotateZ(-Math.PI / 4);
-          newState = TGate.adjoint().mulVec2(state);
-          newLaTeX = getLaTeX(
-            "TA",
-            gateLaTeX.TA,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = TGate.adjoint().mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "T†",
+              gateLaTeX.TA,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         case "H":
           renderer.current.rotateH(Math.PI);
-          newState = Hadamard.mulVec2(state);
-          newLaTeX = getLaTeX(
-            "H",
-            gateLaTeX.H,
-            state.toLaTeX(),
-            newState.toLaTeX(),
+          newState = Hadamard.mulVec2(newState);
+          gateArray.push(
+            getLaTeX(
+              "H",
+              gateLaTeX.H,
+              priorState.toLaTeX(),
+              newState.toLaTeX(),
+            ),
           );
           break;
         default:
@@ -562,7 +576,6 @@ export function BlochSphere() {
       }
     }
     setState(newState);
-    gateArray.push(newLaTeX);
     setGateArray([...gateArray]);
   }
 
