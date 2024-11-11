@@ -7,15 +7,15 @@ import {
   Target,
   WorkspaceConnection,
   WorkspaceTreeProvider,
-} from "./azure/treeView.js";
-import { QuantumUris } from "./azure/networkRequests.js";
-import { getTokenForWorkspace } from "./azure/auth.js";
+} from "../azure/treeView.js";
+import { QuantumUris } from "../azure/networkRequests.js";
+import { getTokenForWorkspace } from "../azure/auth.js";
 import {
   getJobFiles,
   submitJobWithNameAndShots,
-} from "./azure/workspaceActions.js";
-import { supportsAdaptive } from "./azure/providerProperties.js";
-import { getQirForVisibleQs } from "./qirGeneration.js";
+} from "../azure/workspaceActions.js";
+import { supportsAdaptive } from "../azure/providerProperties.js";
+import { getQirForVisibleQs } from "../qirGeneration.js";
 
 export type CopilotStreamCallback = (
   msgPayload: object,

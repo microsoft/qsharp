@@ -28,9 +28,9 @@ import {
   CopilotConversation,
   CopilotWebviewViewProvider,
   // makeChatRequest,
-} from "./copilot";
+} from "./copilot/copilot";
 // import { Copilot } from "./copilot2";
-import { CopilotStreamCallback } from "./copilotTools";
+import { CopilotStreamCallback } from "./copilot/copilotTools";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes

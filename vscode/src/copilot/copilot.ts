@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getRandomGuid } from "./utils";
+import { getRandomGuid } from "../utils";
 import { log } from "qsharp-lang";
-import { getAuthSession, scopes } from "./azure/auth";
-import { EventSourceMessage, fetchEventSource } from "./fetch";
+import { getAuthSession, scopes } from "../azure/auth";
+import { EventSourceMessage, fetchEventSource } from "../fetch";
 import {
   AuthenticationSession,
   CancellationToken,
