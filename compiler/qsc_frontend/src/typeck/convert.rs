@@ -53,8 +53,10 @@ pub(crate) fn ty_from_ast(
             (Ty::Array(Box::new(item)), errors)
         }
         TyKind::Arrow(kind, input, output, functors) => {
-            let (input, mut errors) = ty_from_ast(names, input, stack);
-            let (output, output_errors) = ty_from_ast(names, output, stack);
+            // shadow the stack as a new empty one, since we are in a new arrow type
+            let mut stack = Default::default();
+            let (input, mut errors) = ty_from_ast(names, input, &mut stack);
+            let (output, output_errors) = ty_from_ast(names, output, &mut stack);
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
