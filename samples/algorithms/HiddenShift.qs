@@ -14,7 +14,6 @@ namespace Sample {
     import Std.Diagnostics.*;
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : Int[] {
         let nQubits = 10;
 

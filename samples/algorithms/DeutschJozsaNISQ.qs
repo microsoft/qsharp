@@ -10,7 +10,6 @@
 namespace Sample {
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : (Result[], Result[]) {
         // A Boolean function is a function that maps bitstrings to a bit:
         //     𝑓 : {0, 1}^n → {0, 1}.

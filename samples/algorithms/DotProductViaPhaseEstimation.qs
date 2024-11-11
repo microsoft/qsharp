@@ -24,7 +24,6 @@ namespace IterativePhaseEstimation {
     import Std.Math.*;
     import Std.Convert.*;
 
-    @EntryPoint()
     operation Main() : (Int, Int) {
         // The angles for inner product. Inner product is meeasured for vectors
         // (cos(Θ₁/2), sin(Θ₁/2)) and (cos(Θ₂/2), sin(Θ₂/2)).

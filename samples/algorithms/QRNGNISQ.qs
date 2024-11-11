@@ -8,7 +8,6 @@ namespace Sample {
     import Std.Measurement.*;
     import Std.Intrinsic.*;
 
-    @EntryPoint()
     operation Main() : Result[] {
         // Generate 5-bit random number.
         let nBits = 5;

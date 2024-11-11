@@ -14,7 +14,6 @@ namespace Sample {
     import Std.Intrinsic.*;
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : Result[] {
         // Use the `Teleport` operation to send different quantum states.
         let stateInitializerBasisTuples = [
