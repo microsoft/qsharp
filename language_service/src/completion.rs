@@ -246,7 +246,11 @@ fn collect_names(
                 groups.push(vec![
                     Completion::new("Add".to_string(), CompletionItemKind::Class),
                     Completion::new("Eq".to_string(), CompletionItemKind::Class),
-                    Completion::new("Exp".to_string(), CompletionItemKind::Class),
+                    Completion::with_detail(
+                        "Exp".to_string(),
+                        CompletionItemKind::Class,
+                        Some("Exp['Power]".into()),
+                    ),
                     Completion::new("Num".to_string(), CompletionItemKind::Class),
                     Completion::new("Integral".to_string(), CompletionItemKind::Class),
                     Completion::new("Show".to_string(), CompletionItemKind::Class),

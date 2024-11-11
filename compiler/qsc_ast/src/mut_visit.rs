@@ -168,15 +168,11 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
         vis.visit_ident(&mut p.ty);
         p.constraints.0.iter_mut().for_each(|b| {
             vis.visit_ident(&mut b.name);
-            let items_to_skip =
-                    // if this is a HasField constraint, then we skip name resolution on the first
-                    // item, which is the field name
-                    usize::from(&*b.name.name == "HasField");
-            b.parameters.iter_mut().skip(items_to_skip).for_each(
-                |crate::ast::ConstraintParameter { ty, .. }| {
+            b.parameters
+                .iter_mut()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
                     vis.visit_ty(ty);
-                },
-            );
+                });
         });
     });
     vis.visit_pat(&mut decl.input);

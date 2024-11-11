@@ -85,20 +85,20 @@ impl Display for Ty {
 
 /// A type scheme.
 pub struct Scheme {
-    params: Vec<GenericParam>,
+    params: Vec<TypeParameter>,
     ty: Box<Arrow>,
 }
 
 impl Scheme {
     /// Creates a new type scheme.
     #[must_use]
-    pub fn new(params: Vec<GenericParam>, ty: Box<Arrow>) -> Self {
+    pub fn new(params: Vec<TypeParameter>, ty: Box<Arrow>) -> Self {
         Self { params, ty }
     }
 
     /// The generic parameters to the type.
     #[must_use]
-    pub fn params(&self) -> &[GenericParam] {
+    pub fn params(&self) -> &[TypeParameter] {
         &self.params
     }
 
@@ -178,13 +178,13 @@ fn instantiate_arrow_ty<'a>(
     })
 }
 
-impl Display for GenericParam {
+impl Display for TypeParameter {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty { name, bounds } => {
+            TypeParameter::Ty { name, bounds } => {
                 write!(f, "type ({name}){bounds}")
             }
-            GenericParam::Functor(min) => write!(f, "functor ({min})"),
+            TypeParameter::Functor(min) => write!(f, "functor ({min})"),
         }
     }
 }
@@ -243,7 +243,7 @@ impl std::fmt::Display for ClassConstraint {
 
 /// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
-pub enum GenericParam {
+pub enum TypeParameter {
     /// A type parameter.
     Ty {
         name: Rc<str>,

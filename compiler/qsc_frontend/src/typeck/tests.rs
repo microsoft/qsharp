@@ -4441,6 +4441,32 @@ fn within_block_should_be_unit_error() {
 }
 
 #[test]
+fn path_field_access() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-118 "{\n        let b = new B { C = 5 };\n        b.C;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-111 "b.C" : Int
+            #31 108-109 "b" : UDT<"B": Item 1>
+            #32 110-111 "C" : Int
+        "##]],
+    );
+}
+
+#[test]
 fn field_access_chained() {
     check(
         indoc! {"

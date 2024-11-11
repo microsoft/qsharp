@@ -1167,6 +1167,9 @@ impl Resolver {
         }
     }
 
+    /// For a given callable declaration, bind the names of the type parameters
+    /// into the current scope. Tracks the constraints defined on the type parameters
+    /// as well, for later use in type checking.
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
         decl.generics
             .iter()

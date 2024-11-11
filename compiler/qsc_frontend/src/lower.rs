@@ -19,7 +19,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, GenericArg, GenericParam, ParamId, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, ParamId, Ty, TypeParameter},
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
@@ -448,6 +448,7 @@ impl With<'_> {
             }
         }
     }
+
     /// Generates generic parameters for the functors, if there were generics on the original callable.
     /// Basically just creates new generic params for the purpose of being used in functor callable
     /// decls.
@@ -455,8 +456,8 @@ impl With<'_> {
         &mut self,
         generics: &[ast::TypeParameter],
         input: &mut hir::Pat,
-    ) -> (Vec<qsc_hir::ty::GenericParam>, Vec<TyConversionError>) {
-        let (mut params, errs) = convert::ast_callable_generics(self.names, generics);
+    ) -> (Vec<qsc_hir::ty::TypeParameter>, Vec<TyConversionError>) {
+        let (mut params, errs) = convert::type_parameters_for_ast_callable(self.names, generics);
         let mut functor_params =
             Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
         params.append(&mut functor_params);
@@ -466,7 +467,7 @@ impl With<'_> {
     fn synthesize_functor_params_in_pat(
         next_param: &mut ParamId,
         pat: &mut hir::Pat,
-    ) -> Vec<GenericParam> {
+    ) -> Vec<TypeParameter> {
         match &mut pat.kind {
             hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
                 synthesize_functor_params(next_param, &mut pat.ty)
@@ -919,16 +920,16 @@ impl With<'_> {
 
     fn lower_field(&mut self, record_ty: &Ty, name: &str) -> hir::Field {
         if let Ty::Udt(_, hir::Res::Item(id)) = record_ty {
-            return self
-                .tys
+            self.tys
                 .udts
                 .get(id)
                 .and_then(|udt| udt.field_path(name))
-                .map_or(hir::Field::Err, hir::Field::Path);
+                .map_or(hir::Field::Err, hir::Field::Path)
         } else if let Ok(prim) = name.parse() {
-            return hir::Field::Prim(prim);
+            hir::Field::Prim(prim)
+        } else {
+            hir::Field::Err
         }
-        hir::Field::Err
     }
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {

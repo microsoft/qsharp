@@ -49,8 +49,10 @@ pub enum Ty {
     Err,
 }
 
+/// Container type for a collection of class constraints, so we can define methods on it.
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+
 impl ClassConstraints {
     #[must_use]
     pub fn contains_iterable_bound(&self) -> bool {
@@ -214,14 +216,14 @@ impl Display for Ty {
 #[derive(Debug)]
 /// A type scheme.
 pub struct Scheme {
-    params: Vec<GenericParam>,
+    params: Vec<TypeParameter>,
     ty: Box<Arrow>,
 }
 
 impl Scheme {
     /// Creates a new type scheme.
     #[must_use]
-    pub fn new(params: Vec<GenericParam>, ty: Box<Arrow>) -> Self {
+    pub fn new(params: Vec<TypeParameter>, ty: Box<Arrow>) -> Self {
         Self { params, ty }
     }
 
@@ -240,7 +242,7 @@ impl Scheme {
 
     /// The generic parameters to the type.
     #[must_use]
-    pub fn params(&self) -> &[GenericParam] {
+    pub fn params(&self) -> &[TypeParameter] {
         &self.params
     }
 
@@ -322,10 +324,10 @@ fn instantiate_arrow_ty<'a>(
     })
 }
 
-impl Display for GenericParam {
+impl Display for TypeParameter {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty { name, bounds, .. } => write!(
+            TypeParameter::Ty { name, bounds, .. } => write!(
                 f,
                 "type {name}{}",
                 if bounds.0.is_empty() {
@@ -334,14 +336,14 @@ impl Display for GenericParam {
                     format!(" bounds: {bounds}",)
                 }
             ),
-            GenericParam::Functor(min) => write!(f, "functor ({min})"),
+            TypeParameter::Functor(min) => write!(f, "functor ({min})"),
         }
     }
 }
 
 /// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
-pub enum GenericParam {
+pub enum TypeParameter {
     /// A type parameter.
     Ty {
         name: Rc<str>,

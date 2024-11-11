@@ -960,7 +960,6 @@ impl<'a> Context<'a> {
     pub(crate) fn solve(self) -> Vec<Error> {
         let mut errs = self.inferrer.solve(&self.table.udts);
 
-        // it seems self.new has too many  instances of the ty param
         for id in self.new {
             let ty = self.table.terms.get_mut(id).expect("node should have type");
             self.inferrer.substitute_ty(ty);

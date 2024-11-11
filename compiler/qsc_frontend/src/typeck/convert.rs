@@ -8,14 +8,15 @@ use crate::resolve::{self, Names};
 
 use qsc_ast::ast::{
     self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
-    Path, PathKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind, TypeParameter,
+    Path, PathKind, SetOp, Spec, StructDecl, TyDef, TyDefKind, TyKind,
+    TypeParameter as AstTypeParameter,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{self},
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, Scheme, Ty, UdtDef, UdtDefKind,
-        UdtField,
+        Arrow, FunctorSet, FunctorSetValue, ParamId, Scheme, Ty, TypeParameter as HirTypeParameter,
+        UdtDef, UdtDefKind, UdtField,
     },
 };
 use rustc_hash::FxHashSet;
@@ -71,7 +72,7 @@ pub(crate) fn ty_from_ast(
             vec![TyConversionError::MissingTy { span: ty.span }],
         ),
         TyKind::Paren(inner) => ty_from_ast(names, inner, stack),
-        TyKind::Param(TypeParameter { ty, .. }) => match names.get(ty.id) {
+        TyKind::Param(AstTypeParameter { ty, .. }) => match names.get(ty.id) {
             Some(resolve::Res::Param { id, bounds }) => {
                 let (bounds, errors) = class_constraints_from_ast(names, bounds, stack);
                 (
@@ -182,6 +183,8 @@ fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<TyConversionError>) {
     }
 }
 
+/// Given a type definition from the AST ([`TyDef`]), convert it to a HIR type definition ([`UdtDef`]).
+/// Relies on `names` having been correctly populated to resolve any pending names referred to in the definition.
 pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversionError>) {
     if let TyDefKind::Paren(inner) = &*def.kind {
         return ast_ty_def(names, inner);
@@ -229,17 +232,17 @@ pub(super) fn ast_ty_def(names: &Names, def: &TyDef) -> (UdtDef, Vec<TyConversio
 
 /// Given a list of ast type parameters, convert them to HIR type parameters and generate errors if
 /// there are any type errors resulting from this.
-pub(crate) fn ast_callable_generics(
+pub(crate) fn type_parameters_for_ast_callable(
     names: &Names,
-    generics: &[ast::TypeParameter],
-) -> (Vec<qsc_hir::ty::GenericParam>, Vec<TyConversionError>) {
+    generics: &[AstTypeParameter],
+) -> (Vec<HirTypeParameter>, Vec<TyConversionError>) {
     let mut errors = Vec::new();
     let mut generics_buf = Vec::with_capacity(generics.len());
     for param in generics {
         let (bounds, new_errors) =
             class_constraints_from_ast(names, &param.constraints, &mut Default::default());
         errors.extend(new_errors);
-        generics_buf.push(GenericParam::Ty {
+        generics_buf.push(HirTypeParameter::Ty {
             name: param.ty.name.clone(),
             bounds,
         });
@@ -247,11 +250,12 @@ pub(crate) fn ast_callable_generics(
     (generics_buf, errors)
 }
 
-pub(super) fn ast_callable_scheme(
+/// Given an AST callable, convert it to a HIR callable scheme (type scheme).
+pub(super) fn scheme_for_ast_callable(
     names: &Names,
     callable: &CallableDecl,
 ) -> (Scheme, Vec<TyConversionError>) {
-    let (mut type_parameters, errors) = ast_callable_generics(names, &callable.generics);
+    let (mut type_parameters, errors) = type_parameters_for_ast_callable(names, &callable.generics);
     let mut errors = errors
         .into_iter()
         .map(TyConversionError::from)
@@ -280,15 +284,17 @@ pub(super) fn ast_callable_scheme(
     (Scheme::new(type_parameters, Box::new(ty)), errors)
 }
 
+/// Given a [`Ty`], find all arrow types and create type parameters, if necessary, for them.
+/// Recurses into container types to find all arrow types contained within the type.
 pub(crate) fn synthesize_functor_params(
     next_param: &mut ParamId,
     ty: &mut Ty,
-) -> Vec<GenericParam> {
+) -> Vec<HirTypeParameter> {
     match ty {
         Ty::Array(item) => synthesize_functor_params(next_param, item),
         Ty::Arrow(arrow) => match arrow.functors {
             FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
-                let param = GenericParam::Functor(functors);
+                let param = HirTypeParameter::Functor(functors);
                 arrow.functors = FunctorSet::Param(*next_param, functors);
                 *next_param = next_param.successor();
                 vec![param]
@@ -390,7 +396,9 @@ pub(crate) fn class_constraints_from_ast(
             continue;
         }
         stack.insert(ast_bound.clone());
-        if check_param_length(ast_bound, &mut errors) { continue ; };
+        if check_param_length(ast_bound, &mut errors) {
+            continue;
+        };
         let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
@@ -436,11 +444,13 @@ fn check_param_length(
 ) -> bool {
     let num_given_parameters = bound.parameters.len();
     let num_parameters = match &*bound.name.name {
-        "Eq" | "Add" | "Integral" | "Num" | "Show"  => 0,
+        "Eq" | "Add" | "Integral" | "Num" | "Show" => 0,
         "Iterable" | "Exp" => 1,
         _ => return false,
     };
-    if num_parameters == num_given_parameters { false } else {
+    if num_parameters == num_given_parameters {
+        false
+    } else {
         errors.insert(TyConversionError::IncorrectNumberOfConstraintParameters {
             expected: num_parameters,
             found: num_given_parameters,

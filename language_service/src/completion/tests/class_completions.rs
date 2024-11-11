@@ -55,7 +55,9 @@ fn all_prim_classes_in_completions() {
                         sort_text: Some(
                             "0100Exp",
                         ),
-                        detail: None,
+                        detail: Some(
+                            "Exp['Power]",
+                        ),
                         additional_text_edits: None,
                     },
                 ),
@@ -135,7 +137,9 @@ fn classes_appear_after_plus_too() {
                         sort_text: Some(
                             "0100Exp",
                         ),
-                        detail: None,
+                        detail: Some(
+                            "Exp['Power]",
+                        ),
                         additional_text_edits: None,
                     },
                 ),

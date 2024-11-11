@@ -257,7 +257,7 @@ impl Lowerer {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-        let generics = self.lower_generics(&decl.generics);
+        let generics = self.lower_type_parameters(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
         let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
@@ -879,24 +879,27 @@ impl Lowerer {
         }
     }
 
-    fn lower_generics(
+    fn lower_type_parameters(
         &mut self,
-        generics: &[qsc_hir::ty::GenericParam],
-    ) -> Vec<qsc_fir::ty::GenericParam> {
+        generics: &[qsc_hir::ty::TypeParameter],
+    ) -> Vec<qsc_fir::ty::TypeParameter> {
         generics
             .iter()
             .map(|x| self.lower_generic_param(x))
             .collect()
     }
 
-    fn lower_generic_param(&mut self, g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
+    fn lower_generic_param(
+        &mut self,
+        g: &qsc_hir::ty::TypeParameter,
+    ) -> qsc_fir::ty::TypeParameter {
         match g {
-            qsc_hir::ty::GenericParam::Ty { name, bounds } => qsc_fir::ty::GenericParam::Ty {
+            qsc_hir::ty::TypeParameter::Ty { name, bounds } => qsc_fir::ty::TypeParameter::Ty {
                 name: name.clone(),
                 bounds: self.lower_class_constraints(bounds),
             },
-            qsc_hir::ty::GenericParam::Functor(value) => {
-                qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
+            qsc_hir::ty::TypeParameter::Functor(value) => {
+                qsc_fir::ty::TypeParameter::Functor(lower_functor_set_value(*value))
             }
         }
     }

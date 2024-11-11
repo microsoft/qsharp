@@ -135,6 +135,7 @@ impl Checker {
     pub(crate) fn check_package(&mut self, names: &Names, package: &ast::Package) {
         ItemCollector::new(self, names).visit_package(package);
         ItemChecker::new(self, names).visit_package(package);
+
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 names,
@@ -143,6 +144,7 @@ impl Checker {
                 entry,
             ));
         }
+
         for top_level_node in &package.nodes {
             if let TopLevelNode::Stmt(stmt) = top_level_node {
                 self.new.append(&mut rules::stmt(
@@ -249,7 +251,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("callable should have item ID");
                 };
 
-                let (scheme, errors) = convert::ast_callable_scheme(self.names, decl);
+                let (scheme, errors) = convert::scheme_for_ast_callable(self.names, decl);
                 for err in errors {
                     self.checker.errors.push(err.into());
                 }

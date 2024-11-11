@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     hir::{ItemId, PrimField, Res},
     ty::{
-        Arrow, ClassConstraint, FunctorSet, FunctorSetValue, GenericArg, GenericParam,
-        InferFunctorId, InferTyId, Prim, Scheme, Ty, Udt,
+        Arrow, ClassConstraint, FunctorSet, FunctorSetValue, GenericArg, InferFunctorId, InferTyId,
+        Prim, Scheme, Ty, TypeParameter, Udt,
     },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -446,7 +446,7 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty { bounds, .. } => {
+                TypeParameter::Ty { bounds, .. } => {
                     GenericArg::Ty(self.constrained_ty(TySource::not_divergent(span), |ty| {
                         bounds
                             .0
@@ -455,7 +455,7 @@ impl Inferrer {
                             .collect()
                     }))
                 }
-                GenericParam::Functor(expected) => {
+                TypeParameter::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
                         expected: *expected,
@@ -1356,6 +1356,7 @@ fn check_unwrap(
     )
 }
 
+/// Given an HIR class constraint, produce an actual type system constraint.
 fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
     match bound {
         ClassConstraint::Eq => Constraint::Class(Class::Eq(ty), span),
