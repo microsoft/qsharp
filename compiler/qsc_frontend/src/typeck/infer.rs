@@ -415,7 +415,7 @@ impl Inferrer {
     fn constrained_ty(
         &mut self,
         meta: TySource,
-        with_constraints: impl Fn(Ty) -> Vec<Constraint>,
+        with_constraints: impl Fn(Ty) -> Box<[Constraint]>,
     ) -> Ty {
         let fresh = self.next_ty;
         self.next_ty = fresh.successor();
