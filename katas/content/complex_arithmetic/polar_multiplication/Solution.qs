@@ -6,7 +6,7 @@ namespace Kata {
         if theta > PI() {
             set theta -= 2.0 * PI();
         }
-        if theta < -PI() {
+        if theta <= -PI() {
             set theta += 2.0 * PI();
         }
         return ComplexPolar(x.Magnitude * y.Magnitude, theta);
