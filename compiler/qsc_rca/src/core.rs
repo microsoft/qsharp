@@ -2402,12 +2402,13 @@ fn derive_runtime_features_for_value_kind_associated_to_type(
         value_kind: ValueKind,
         prim: Prim,
     ) -> RuntimeFeatureFlags {
-        let ValueKind::Element(runtime_kind) = value_kind else {
-            panic!("expected element variant of value kind");
-        };
-
-        if matches!(runtime_kind, RuntimeKind::Static) {
-            return RuntimeFeatureFlags::empty();
+        match value_kind {
+            ValueKind::Array(RuntimeKind::Static, _)
+            | ValueKind::Array(_, RuntimeKind::Static)
+            | ValueKind::Element(RuntimeKind::Static) => {
+                return RuntimeFeatureFlags::empty();
+            }
+            _ => (),
         }
 
         match prim {
