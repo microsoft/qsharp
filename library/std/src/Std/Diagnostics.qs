@@ -78,7 +78,7 @@ function DumpRegister(register : Qubit[]) : Unit {
 /// # Remarks
 /// When run on the sparse-state simulator, the following snippet
 /// will output the matrix
-/// $\left(\begin{matrix} 0.0 & 0.707 \\\\ 0.707 & 0.0\end{matrix}\right)$:
+/// $\left(\begin{matrix} 0.707 & 0.707 \\\\ 0.707 & -0.707\end{matrix}\right)$:
 ///
 /// ```qsharp
 /// operation DumpH() : Unit {
