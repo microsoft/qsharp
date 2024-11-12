@@ -60,7 +60,7 @@ docs.forEach((doc) => {
   var contents = "";
   if (doc.filename === "index.md") {
     contents = readFileSync("./index.md", "utf-8").replace(
-      "ms.date: { TIMESTAMP }",
+      "ms.date: {TIMESTAMP}",
       `ms.date: ${today_str}`,
     );
   } else {

@@ -20,7 +20,10 @@ export function processDocumentFiles(
   docFiles: IDocFile[],
 ): Map<string, string> {
   const contentByNamespace = new Map<string, string>();
-  const regex = new RegExp("^qsharp.namespace: Microsoft.Quantum.(.+)$", "m");
+  const regex = new RegExp(
+    "^qsharp\\.namespace: (Microsoft\\.Quantum|Std)\\.(.+)$",
+    "m",
+  );
 
   for (const doc of docFiles) {
     const match = regex.exec(doc.metadata); // Parse namespace out of metadata

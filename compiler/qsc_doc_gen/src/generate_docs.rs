@@ -55,8 +55,8 @@ impl Metadata {
 uid: {}
 title: {}
 description: {}
-author: bradben
-ms.author: brbenefield
+author: {{AUTHOR}}
+ms.author: {{MS_AUTHOR}}
 ms.date: {{TIMESTAMP}}
 ms.topic: {}
 ---",
@@ -412,7 +412,6 @@ fn generate_doc_for_item<'a>(
     let met: Arc<Metadata> = Arc::from(metadata);
     files.push((file_name, met.clone(), file_content));
 
-    // Return (ns, metadata)
     Some((ns.clone(), met))
 }
 
@@ -605,24 +604,18 @@ fn generate_toc(map: &mut ToC, files: &mut Files) {
 }
 
 fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
-    match item.parent {
-        Some(local_id) => {
-            let parent = package
-                .items
-                .get(local_id)
-                .expect("Could not resolve parent item id");
-            match &parent.kind {
-                ItemKind::Namespace(name, _) => {
-                    if name.starts_with("QIR") {
-                        None // We ignore "QIR" namespaces
-                    } else {
-                        Some(name.name())
-                    }
-                }
-                _ => None,
-            }
-        }
-        None => None,
+    let local_id = item.parent?;
+    let parent = package
+        .items
+        .get(local_id)
+        .expect("Could not resolve parent item id");
+    let ItemKind::Namespace(name, _) = &parent.kind else {
+        return None;
+    };
+    if name.starts_with("QIR") {
+        None // We ignore "QIR" namespaces
+    } else {
+        Some(name.name())
     }
 }
 
@@ -636,7 +629,7 @@ fn resolve_export<'a>(
     item: &'a Item,
     display: &'a CodeDisplay,
 ) -> Option<(&'a Package, &'a Item)> {
-    // Filter items
+    // Filter out items that are not visible or are namespaces
     if !include_internals && (item.visibility == Visibility::Internal) {
         return None;
     }

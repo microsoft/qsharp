@@ -151,8 +151,8 @@ fn index_file_generation() {
         uid: Qdk.Std.Core-toc
         title: Std.Core namespace
         description: Table of contents for the Q# Core namespace
-        author: bradben
-        ms.author: brbenefield
+        author: {AUTHOR}
+        ms.author: {MS_AUTHOR}
         ms.date: {TIMESTAMP}
         ms.topic: landing-page
         ---
