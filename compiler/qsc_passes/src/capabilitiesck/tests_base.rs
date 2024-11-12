@@ -967,11 +967,18 @@ fn use_of_static_sized_array_in_tuple_error() {
 }
 
 #[test]
-fn binary_op_with_dynamic_array_succeeds() {
+fn binary_op_with_dynamic_array_error() {
     check_profile(
         DYNAMIC_ARRAY_BINARY_OP,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 66,
+                        hi: 97,
+                    },
+                ),
+            ]
         "#]],
     );
 }
