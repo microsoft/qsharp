@@ -6,14 +6,14 @@ use qsc_data_structures::{display::join, functors::FunctorApp};
 use qsc_fir::fir::{Functor, Pauli, StoreItemId};
 use std::{
     fmt::{self, Display, Formatter},
-    rc::Rc,
+    rc::{Rc, Weak},
 };
 
 use crate::{error::PackageSpan, AsIndex, Error, Range as EvalRange};
 
 pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Array(Rc<Vec<Value>>),
     BigInt(BigInt),
@@ -23,7 +23,7 @@ pub enum Value {
     Global(StoreItemId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
-    Qubit(Qubit),
+    Qubit(Weak<Qubit>),
     Range(Box<Range>),
     Result(Result),
     String(Rc<str>),
@@ -125,7 +125,12 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "Qubit{}", (v.0)),
+            Value::Qubit(v) => write!(
+                f,
+                "Qubit{}",
+                (v.upgrade()
+                    .map_or_else(|| "<released>".to_string(), |v| v.0.to_string()))
+            ),
             Value::Range(inner) => match (inner.start, inner.step, inner.end) {
                 (Some(start), DEFAULT_RANGE_STEP, Some(end)) => write!(f, "{start}..{end}"),
                 (Some(start), DEFAULT_RANGE_STEP, None) => write!(f, "{start}..."),
@@ -179,6 +184,31 @@ impl Display for VarTy {
 
 thread_local! {
     static UNIT: Rc<[Value; 0]> = Rc::new([]);
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Array(a), Value::Array(b)) => a == b,
+            (Value::BigInt(a), Value::BigInt(b)) => a == b,
+            (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::Closure(a), Value::Closure(b)) => a == b,
+            (Value::Double(a), Value::Double(b)) => a == b,
+            (Value::Global(a, b), Value::Global(c, d)) => a == c && b == d,
+            (Value::Int(a), Value::Int(b)) => a == b,
+            (Value::Pauli(a), Value::Pauli(b)) => a == b,
+            (Value::Qubit(a), Value::Qubit(b)) => match (a.upgrade(), b.upgrade()) {
+                (Some(a), Some(b)) => a == b,
+                _ => false,
+            },
+            (Value::Range(a), Value::Range(b)) => a == b,
+            (Value::Result(a), Value::Result(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::Tuple(a), Value::Tuple(b)) => a == b,
+            (Value::Var(a), Value::Var(b)) => a == b,
+            _ => false,
+        }
+    }
 }
 
 impl Value {
@@ -308,7 +338,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Qubit`].
     #[must_use]
-    pub fn unwrap_qubit(self) -> Qubit {
+    pub fn unwrap_qubit(self) -> Weak<Qubit> {
         let Value::Qubit(v) = self else {
             panic!("value should be Qubit, got {}", self.type_name());
         };
@@ -393,11 +423,11 @@ impl Value {
     /// Returns any qubits contained in the value as a vector. This does not
     /// consume the value, and will recursively search through any nested values.
     #[must_use]
-    pub fn qubits(&self) -> Vec<Qubit> {
+    pub fn qubits(&self) -> Vec<Weak<Qubit>> {
         match self {
             Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
             Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
-            Value::Qubit(q) => vec![*q],
+            Value::Qubit(q) => vec![q.clone()],
             Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
 
             Value::BigInt(_)

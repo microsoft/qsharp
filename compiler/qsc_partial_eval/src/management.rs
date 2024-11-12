@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::{Rc, Weak};
+
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_data_structures::index_map::IndexMap;
@@ -9,12 +11,14 @@ use qsc_eval::{
     val::{Qubit, Result, Value},
 };
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
+use rustc_hash::FxHashSet;
 
 /// Manages IDs for resources needed while performing partial evaluation.
 #[derive(Default)]
 pub struct ResourceManager {
     qubits_in_use: Vec<bool>,
     qubit_id_map: IndexMap<usize, usize>,
+    qubit_tracker: FxHashSet<Rc<Qubit>>,
     next_callable: CallableId,
     next_block: BlockId,
     next_result_register: usize,
@@ -22,7 +26,8 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
-    pub fn map_qubit(&self, q: Qubit) -> usize {
+    pub fn map_qubit(&self, q: &Weak<Qubit>) -> usize {
+        let q = q.upgrade().expect("qubit should still be alive");
         *self
             .qubit_id_map
             .get(q.0)
@@ -40,7 +45,7 @@ impl ResourceManager {
     }
 
     /// Allocates a qubit by favoring available qubit IDs before using new ones.
-    pub fn allocate_qubit(&mut self) -> Qubit {
+    pub fn allocate_qubit(&mut self) -> Weak<Qubit> {
         let qubit = if let Some(qubit) = self.qubits_in_use.iter().position(|in_use| !in_use) {
             self.qubits_in_use[qubit] = true;
             qubit
@@ -58,14 +63,19 @@ impl ResourceManager {
             }
             next_id += 1;
         }
-        Qubit(next_id)
+        let q = Rc::new(Qubit(next_id));
+        self.qubit_tracker.insert(Rc::clone(&q));
+        Rc::downgrade(&q)
     }
 
     /// Releases a qubit ID for future use.
-    pub fn release_qubit(&mut self, q: Qubit) {
+    pub fn release_qubit(&mut self, q: &Weak<Qubit>) {
         let qubit = self.map_qubit(q);
-        self.qubit_id_map.remove(q.0);
         self.qubits_in_use[qubit] = false;
+
+        let q = q.upgrade().expect("qubit should still be alive");
+        self.qubit_id_map.remove(q.0);
+        self.qubit_tracker.remove(&q);
     }
 
     /// Gets the next block ID.
@@ -96,11 +106,17 @@ impl ResourceManager {
         var_id.into()
     }
 
-    pub fn swap_qubit_ids(&mut self, q0: Qubit, q1: Qubit) {
-        let id0 = self.map_qubit(q0);
-        let id1 = self.map_qubit(q1);
-        self.qubit_id_map.insert(q0.0, id1);
-        self.qubit_id_map.insert(q1.0, id0);
+    pub fn swap_qubit_ids(&mut self, q0: usize, q1: usize) {
+        let id0 = *self
+            .qubit_id_map
+            .get(q0)
+            .expect("qubit id should be in map");
+        let id1 = *self
+            .qubit_id_map
+            .get(q1)
+            .expect("qubit id should be in map");
+        self.qubit_id_map.insert(q0, id1);
+        self.qubit_id_map.insert(q1, id0);
     }
 }
 

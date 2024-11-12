@@ -25,7 +25,7 @@ use qsc_eval::{
     resolve_closure,
     val::{
         self, index_array, slice_array, update_functor_app, update_index_range,
-        update_index_single, Qubit, Value, Var, VarTy,
+        update_index_single, Value, Var, VarTy,
     },
     Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
 };
@@ -1311,6 +1311,23 @@ impl<'a> PartialEvaluator<'a> {
         args_span: PackageSpan,        // For diagnostic purposes only.
         callee_expr_span: PackageSpan, // For diagnostic puprposes only.
     ) -> Result<Value, Error> {
+        // check qubits here!
+        let qubits = args_value.qubits();
+        let qubits_len = qubits.len();
+        if qubits_len > 0 {
+            let qubits = qubits
+                .iter()
+                .filter_map(|q| q.upgrade().map(|q| q.0))
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits_len {
+                return if callable_decl.name.name.as_ref() == "__quantum__rt__qubit_release" {
+                    Err(EvalError::QubitDoubleRelease(args_span).into())
+                } else {
+                    Err(EvalError::QubitUsedAfterRelease(args_span).into())
+                };
+            }
+        }
+
         if callable_decl.attrs.contains(&fir::Attr::Measurement) {
             return Ok(self.measure_qubits(callable_decl, args_value));
         }
@@ -1330,7 +1347,7 @@ impl<'a> PartialEvaluator<'a> {
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
             "PermuteLabels" => qubit_relabel(args_value, args_span, |q0, q1| {
-                self.resource_manager.swap_qubit_ids(Qubit(q0), Qubit(q1));
+                self.resource_manager.swap_qubit_ids(q0, q1);
             })
             .map_err(std::convert::Into::into),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
@@ -1924,8 +1941,7 @@ impl<'a> PartialEvaluator<'a> {
             BinOp::Div => {
                 // Validate that the RHS is not a zero.
                 if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
-                    let error =
-                        Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
+                    let error = EvalError::DivZero(bin_op_expr_span).into();
                     return Err(error);
                 }
                 let bin_op_variable_id = self.resource_manager.next_var();
@@ -1953,10 +1969,7 @@ impl<'a> PartialEvaluator<'a> {
                     return Err(error);
                 };
                 if exponent < 0 {
-                    let error = Error::EvaluationFailed(
-                        "exponent must be non-negative".to_string(),
-                        bin_op_expr_span,
-                    );
+                    let error = EvalError::InvalidNegativeInt(exponent, bin_op_expr_span).into();
                     return Err(error);
                 }
 
@@ -2293,7 +2306,7 @@ impl<'a> PartialEvaluator<'a> {
                         panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
                     };
                     input_type.push(qsc_rir::rir::Ty::Qubit);
-                    operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(*qubit)));
+                    operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit.clone())));
                 }
             }
             _ => {
@@ -2370,7 +2383,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn release_qubit(&mut self, args_value: Value) -> Value {
         let qubit = args_value.unwrap_qubit();
-        self.resource_manager.release_qubit(qubit);
+        self.resource_manager.release_qubit(&qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
@@ -2889,7 +2902,7 @@ impl<'a> PartialEvaluator<'a> {
             Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
             Value::Qubit(q) => Operand::Literal(Literal::Qubit(
                 self.resource_manager
-                    .map_qubit(*q)
+                    .map_qubit(q)
                     .try_into()
                     .expect("could not convert qubit ID to u32"),
             )),
@@ -2972,30 +2985,21 @@ fn eval_bin_op_with_integer_literals(
 ) -> Result<Value, Error> {
     fn eval_integer_div(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         match (lhs_int, rhs_int) {
-            (_, 0) => Err(Error::EvaluationFailed(
-                "division by zero".to_string(),
-                span,
-            )),
+            (_, 0) => Err(EvalError::DivZero(span).into()),
             (lhs, rhs) => Ok(Value::Int(lhs / rhs)),
         }
     }
 
     fn eval_integer_mod(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         match (lhs_int, rhs_int) {
-            (_, 0) => Err(Error::EvaluationFailed(
-                "division by zero".to_string(),
-                span,
-            )),
+            (_, 0) => Err(EvalError::DivZero(span).into()),
             (lhs, rhs) => Ok(Value::Int(lhs % rhs)),
         }
     }
 
     fn eval_integer_exp(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         let Ok(rhs_int_as_u32) = u32::try_from(rhs_int) else {
-            return Err(Error::EvaluationFailed(
-                "invalid exponent".to_string(),
-                span,
-            ));
+            return Err(EvalError::IntTooLarge(rhs_int, span).into());
         };
 
         Ok(Value::Int(lhs_int.pow(rhs_int_as_u32)))
