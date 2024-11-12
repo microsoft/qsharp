@@ -2403,8 +2403,7 @@ fn derive_runtime_features_for_value_kind_associated_to_type(
         prim: Prim,
     ) -> RuntimeFeatureFlags {
         match value_kind {
-            ValueKind::Array(RuntimeKind::Static, _)
-            | ValueKind::Array(_, RuntimeKind::Static)
+            ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static)
             | ValueKind::Element(RuntimeKind::Static) => {
                 return RuntimeFeatureFlags::empty();
             }
