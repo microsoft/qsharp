@@ -73,7 +73,6 @@ impl<'a> Context<'a> {
     }
 
     fn infer_spec(&mut self, spec: SpecImpl<'a>) {
-        // it could happen in infer_pat
         let callable_input = self.infer_pat(spec.callable_input);
         if let Some(input) = spec.spec_input {
             let expected = match spec.spec {

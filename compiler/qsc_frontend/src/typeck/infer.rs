@@ -1264,7 +1264,10 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         ),
         Ty::Param { .. } => (
             Vec::default(),
-            vec![Error(ErrorKind::UnsupportedParametricClassBound(span))],
+            vec![Error(ErrorKind::UnrecognizedClass {
+                span,
+                name: "Iterable".into(),
+            })],
         ),
         _ => (
             Vec::new(),

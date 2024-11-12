@@ -99,7 +99,7 @@ fn class_constraints(s: &mut ParserContext) -> Result<ClassConstraints> {
     loop {
         s.expect(WordKinds::PrimitiveClass);
         let bound_name = ident(s)?;
-        // if there's a less-than sign, or "open angle bracket", try to parse type parameters for
+        // if there's a less-than sign, or "open square bracket", try to parse type parameters for
         // the class
         // e.g. `Iterator[Bool]`
         let mut ty_parameters = Vec::new();

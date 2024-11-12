@@ -405,12 +405,12 @@ pub(crate) fn class_constraints_from_ast(
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
             "Iterable" => {
-                let (item, item_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
+                let (item, item_errors) = ty_from_ast(names, &ast_bound.parameters[0].ty, stack);
                 errors.extend(item_errors.into_iter());
                 Ok(qsc_hir::ty::ClassConstraint::Iterable { item })
             }
             "Exp" => {
-                let (power, power_errors) = ty_from_ast(names, ast_bound.parameters[0].ty(), stack);
+                let (power, power_errors) = ty_from_ast(names, &ast_bound.parameters[0].ty, stack);
                 errors.extend(power_errors.into_iter());
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }

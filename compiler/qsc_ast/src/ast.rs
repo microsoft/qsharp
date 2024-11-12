@@ -512,7 +512,7 @@ impl Display for CallableDecl {
             indent = set_indentation(indent, 2);
             let mut buf = Vec::with_capacity(self.generics.len());
             for param in &self.generics {
-                buf.push(format!("{param:?}"));
+                buf.push(format!("{param}"));
             }
 
             let buf = buf.join(",\n");
@@ -703,7 +703,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Param(name) => write!(indent, "Type Param: {name:?}")?,
+            TyKind::Param(name) => write!(indent, "Type Param: {name}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -1435,28 +1435,6 @@ impl Default for PathKind {
     }
 }
 
-impl PathKind {
-    /// Returns the segments of the path, whether parsed successfully or not.
-    #[must_use]
-    pub fn segments(&self) -> &[Ident] {
-        match self {
-            PathKind::Ok(path) => path.segments.as_deref().unwrap_or_default(),
-            PathKind::Err(Some(incomplete_path)) => &incomplete_path.segments,
-            PathKind::Err(None) => &[],
-        }
-    }
-
-    /// Returns the name of the path, whether parsed successfully or not.
-    #[must_use]
-    pub fn name(&self) -> Option<&Ident> {
-        match self {
-            PathKind::Ok(path) => Some(&path.name),
-            PathKind::Err(Some(incomplete_path)) => incomplete_path.segments.last(),
-            PathKind::Err(None) => None,
-        }
-    }
-}
-
 /// A path that was successfully parsed up to a certain `.`,
 /// but is missing its final identifier.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1996,7 +1974,7 @@ impl ImportOrExportItem {
 }
 
 /// A [`TypeParameter`] is a generic type variable with optional bounds (constraints).
-#[derive(Default, PartialEq, Eq, Clone, Hash)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct TypeParameter {
     /// Class constraints specified for this type parameter -- any type variable passed in
     /// as an argument to these parameters must satisfy these constraints.
@@ -2029,32 +2007,31 @@ impl TypeParameter {
     }
 }
 
-impl std::fmt::Debug for TypeParameter {
+impl std::fmt::Display for TypeParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // 'A: Eq + Ord + Clone
         write!(
             f,
-            "{}{}{:?}",
-            self.ty,
+            "{}{}",
+            self.ty.name,
             if self.constraints.0.is_empty() {
-                ""
+                Default::default()
             } else {
-                ": "
-            },
-            self.constraints
+                format!(": {}", self.constraints)
+            }
         )
     }
 }
 
 /// A list of class constraints, used when constraining a type parameter.
-#[derive(Default, PartialEq, Eq, Clone, Hash)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ClassConstraints(pub Box<[ClassConstraint]>);
 
 /// An individual class constraint, used when constraining a type parameter.
 /// To understand this concept, think of parameters in a function signature -- the potential arguments that can
 /// be passed to them are constrained by what type is specified. Type-level parameters are no different, and
 /// the type variables that are passed to a type parameter must satisfy the constraints specified in the type parameter.
-#[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct ClassConstraint {
     /// The name of the constraint.
     pub name: Ident,
@@ -2063,10 +2040,32 @@ pub struct ClassConstraint {
     pub parameters: Box<[ConstraintParameter]>,
 }
 
+impl std::fmt::Display for ClassConstraint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Iterator<T>
+        write!(
+            f,
+            "{}{}",
+            self.name.name,
+            if self.parameters.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "[{}]",
+                    self.parameters
+                        .iter()
+                        .map(|x| x.ty.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        )
+    }
+}
+
 /// An individual constraint parameter is a type that is passed to a constraint, such as `T` in `Iterator<T>`.
 /// #[derive(Default, `PartialEq`, Eq, Clone, Hash, Debug)]
 #[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
-
 pub struct ConstraintParameter {
     /// The type variable being passed as a constraint parameter.
     pub ty: Ty,
@@ -2077,14 +2076,6 @@ impl WithSpan for ConstraintParameter {
         Self {
             ty: self.ty.with_span(span),
         }
-    }
-}
-
-impl ConstraintParameter {
-    /// Getter for the `ty` field.
-    #[must_use]
-    pub fn ty(&self) -> &Ty {
-        &self.ty
     }
 }
 
@@ -2106,17 +2097,32 @@ impl ClassConstraints {
         }
     }
 }
-impl std::fmt::Debug for ClassConstraints {
+impl std::fmt::Display for ClassConstraints {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // A + B + C + D
+        // A + B + C[Int] + D
         write!(
             f,
             "{}",
             self.0
                 .iter()
-                .map(|x| x.name.to_string())
+                .map(|x| format!(
+                    "{}{}",
+                    x.name.name,
+                    if x.parameters.is_empty() {
+                        String::new()
+                    } else {
+                        format!(
+                            "[{}]",
+                            x.parameters
+                                .iter()
+                                .map(|x| x.ty.display())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                ))
                 .collect::<Vec<_>>()
-                .join(" + ")
+                .join(" + "),
         )
     }
 }

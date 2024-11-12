@@ -60,6 +60,11 @@ impl ClassConstraints {
             .iter()
             .any(|bound| matches!(bound, ClassConstraint::Iterable { .. }))
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl std::fmt::Display for ClassConstraints {
@@ -70,9 +75,9 @@ impl std::fmt::Display for ClassConstraints {
             let bounds = self
                 .0
                 .iter()
-                .map(std::string::ToString::to_string)
+                .map(|bound| format!("{bound}"))
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(" + ");
             write!(f, "{bounds}")
         }
     }
@@ -102,7 +107,7 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Eq => write!(f, "Eq"),
             ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
             ClassConstraint::Add => write!(f, "Add"),
-            ClassConstraint::Exp { power } => write!(f, "Exp(^{power})"),
+            ClassConstraint::Exp { power } => write!(f, "Exp[{power}]"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
             ClassConstraint::Num => write!(f, "Num"),
             ClassConstraint::Integral => write!(f, "Integral"),

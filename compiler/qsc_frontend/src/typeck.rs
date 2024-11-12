@@ -124,9 +124,6 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
-    #[error("unsupported parametric class bound")]
-    #[diagnostic(code("Qsc.TypeCk.UnsupportedParametricClassBound"))]
-    UnsupportedParametricClassBound(#[label] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("a type must be provided for this item"))]
     #[diagnostic(code("Qsc.TypeCk.MissingTy"))]

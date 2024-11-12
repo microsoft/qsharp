@@ -218,7 +218,7 @@ impl<'a> Display for AstCallableDecl<'a> {
                 .decl
                 .generics
                 .iter()
-                .map(|AstTypeParameter { ty, .. }| ty.name.clone())
+                .map(|param| format!("{param}"))
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(f, "<{type_params}>")?;
@@ -619,7 +619,15 @@ fn display_type_params(generics: &[HirTypeParameter]) -> String {
     let type_params = generics
         .iter()
         .filter_map(|generic| match generic {
-            HirTypeParameter::Ty { name, .. } => Some(name.clone()),
+            HirTypeParameter::Ty { name, bounds } => Some(format!(
+                "{}{}",
+                name,
+                if bounds.is_empty() {
+                    Default::default()
+                } else {
+                    format!(": {bounds}")
+                }
+            )),
             HirTypeParameter::Functor(_) => None,
         })
         .collect::<Vec<_>>()

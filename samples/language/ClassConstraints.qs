@@ -31,14 +31,23 @@ function AllEqual<'T : Eq > (items : 'T[]) : Bool {
 }
 
 function Main() : Unit {
-    Message($"{AllEqual([1, 1, 1])}");
-    Message($"{AllEqual([1, 2, 3])}");
+    let is_equal = AllEqual([1, 1, 1]);
+    Message($"{is_equal}");
+
+    let is_equal = AllEqual([1, 2, 3]);
+    Message($"{is_equal}");
 
     // Because we wrote this function generically, we are able to pass in different types, as
     // long as they can be compared via the class `Eq`.
-    Message($"{AllEqual([true, true, false])}");
-    Message($"{AllEqual(["a", "b"])}");
+    let is_equal = AllEqual([true, true, false]);
+    Message($"{is_equal}");
 
-    Message($"{AllEqual([[], [1]])}");
-    Message($"{AllEqual([[1], [1]])}");
+    let is_equal = AllEqual(["a", "b"]);
+    Message($"{is_equal}");
+
+    let is_equal = AllEqual([[], [1]]); 
+    Message($"{is_equal}");
+
+    let is_equal = AllEqual([[1], [1]]);
+    Message($"{is_equal}");
 }
