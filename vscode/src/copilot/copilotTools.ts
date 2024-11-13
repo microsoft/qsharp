@@ -16,6 +16,8 @@ import {
 } from "../azure/workspaceActions.js";
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
+import { CopilotConversation } from "./copilot.js";
+import { get } from "http";
 
 export type CopilotStreamCallback = (
   msgPayload: object,
@@ -74,6 +76,45 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
         type: "object",
         properties: {},
         required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "GetActiveWorkspace",
+      description:
+        "Get the id of the active workspace for this conversation. " +
+        "Call this when you need to know what workspace is the active workspace being used in the context of the current conversation, " +
+        "for example when a customer asks 'What is the workspace that's being used?'",
+      strict: true,
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "SetActiveWorkspaces",
+      description:
+        "Set the active workspace for this conversation by id. " +
+        "Call this when you need to set what workspace is the active workspace being used in the context of the current conversation, " +
+        "for example when a customer says 'Please use this workspace for my requests.'",
+      strict: true,
+      parameters: {
+        type: "object",
+        properties: {
+          workspace_id: {
+            type: "string",
+            description: "The id of the workspace to set as active.",
+          },
+        },
+        required: ["workspace_id"],
         additionalProperties: false,
       },
     },
@@ -168,8 +209,10 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
 
 const job_limit = 10;
 
-export const GetJobs = async (): Promise<Job[]> => {
-  const workspace = await getPrimaryWorkspace();
+export const GetJobs = async (
+  conversation: CopilotConversation,
+): Promise<Job[]> => {
+  const workspace = await getConversationWorkspace(conversation);
   if (workspace) {
     const jobs = workspace.jobs;
 
@@ -182,8 +225,8 @@ export const GetJobs = async (): Promise<Job[]> => {
   }
 };
 
-// ToDo: For now, let's just grab the first workspace
-const getPrimaryWorkspace = async (): Promise<
+// Gets the first workspace in the tree, if there is one
+const getInitialWorkspace = async (): Promise<
   WorkspaceConnection | undefined
 > => {
   const tree = WorkspaceTreeProvider.instance;
@@ -196,13 +239,53 @@ const getPrimaryWorkspace = async (): Promise<
   }
 };
 
+// Gets the workspace for the conversation, or the first workspace if none is active
+const getConversationWorkspace = async (
+  conversation: CopilotConversation,
+): Promise<WorkspaceConnection | undefined> => {
+  if (conversation.active_workspace) {
+    return conversation.active_workspace;
+  } else {
+    const init_workspace = await getInitialWorkspace();
+    conversation.active_workspace = init_workspace;
+    return init_workspace;
+  }
+};
+
 export const GetWorkspaces = async (): Promise<string[]> => {
   const tree = WorkspaceTreeProvider.instance;
   return tree.getWorkspaceIds();
 };
 
-const GetJob = async (jobId: string): Promise<Job | undefined> => {
-  const jobs = await GetJobs();
+export const GetActiveWorkspace = async (
+  conversation: CopilotConversation,
+): Promise<string> => {
+  const workspace = await getConversationWorkspace(conversation);
+  if (!workspace) {
+    return "No active workspace found.";
+  }
+  return workspace.id;
+};
+
+export const SetActiveWorkspace = async (
+  workspaceId: string,
+  conversation: CopilotConversation,
+): Promise<string> => {
+  const tree = WorkspaceTreeProvider.instance;
+  const workspace = tree.getWorkspace(workspaceId);
+  if (!workspace) {
+    return "Workspace not found.";
+  } else {
+    conversation.active_workspace = workspace;
+    return "Workspace " + workspaceId + " set as active.";
+  }
+};
+
+const GetJob = async (
+  jobId: string,
+  conversation: CopilotConversation,
+): Promise<Job | undefined> => {
+  const jobs = await GetJobs(conversation);
   return jobs.find((job) => job.id === jobId);
 };
 
@@ -243,9 +326,9 @@ const tryRenderResults = (
 
 export const DownloadJobResults = async (
   jobId: string,
-  streamCallback: CopilotStreamCallback,
+  conversation: CopilotConversation,
 ): Promise<string> => {
-  const job = await GetJob(jobId);
+  const job = await GetJob(jobId, conversation);
 
   if (!job) {
     log.error("Failed to find the job.");
@@ -256,7 +339,7 @@ export const DownloadJobResults = async (
     return "Job has not completed successfully.";
   }
 
-  const workspace = await getPrimaryWorkspace(); // Note that we are getting the primary workspace again here
+  const workspace = await getConversationWorkspace(conversation);
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -284,7 +367,7 @@ export const DownloadJobResults = async (
     if (file) {
       // log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file, job.shots, streamCallback)) {
+      if (!tryRenderResults(file, job.shots, conversation.streamCallback)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -306,15 +389,18 @@ export const DownloadJobResults = async (
   }
 };
 
-export const GetProviders = async (): Promise<Provider[]> => {
-  const workspace = await getPrimaryWorkspace();
+export const GetProviders = async (
+  conversation: CopilotConversation,
+): Promise<Provider[]> => {
+  const workspace = await getConversationWorkspace(conversation);
   return workspace?.providers ?? [];
 };
 
 export const GetTarget = async (
   targetId: string,
+  conversation: CopilotConversation,
 ): Promise<Target | undefined> => {
-  const providers = await GetProviders();
+  const providers = await GetProviders(conversation);
   for (const provider of providers) {
     const target = provider.targets.find((target) => target.id === targetId);
     if (target) {
@@ -327,12 +413,13 @@ export const SubmitToTarget = async (
   jobName: string,
   targetId: string,
   numberOfShots: number,
+  conversation: CopilotConversation,
 ): Promise<string> => {
-  const target = await GetTarget(targetId);
+  const target = await GetTarget(targetId, conversation);
   if (!target || target.currentAvailability !== "Available")
     return "Target not available.";
 
-  const workspace = await getPrimaryWorkspace(); // Note that we are getting the primary workspace again here
+  const workspace = await getConversationWorkspace(conversation);
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -388,7 +475,7 @@ export const SubmitToTarget = async (
 export const ToolCallSwitch = async (
   tool_name: string,
   args: any,
-  streamCallback: CopilotStreamCallback,
+  copilotConversation: CopilotConversation,
 ): Promise<any> => {
   const content: any = {};
 
@@ -396,24 +483,34 @@ export const ToolCallSwitch = async (
   log.info("Tool call args: ", args);
   if (tool_name === "GetJob") {
     const job_id = args.job_id;
-    const job = await GetJob(job_id);
+    const job = await GetJob(job_id, copilotConversation);
     content.job = job;
   } else if (tool_name === "GetJobs") {
-    const recent_jobs = await GetJobs();
+    const recent_jobs = await GetJobs(copilotConversation);
     content.recent_jobs = recent_jobs;
   } else if (tool_name === "GetWorkspaces") {
     const workspace_ids = await GetWorkspaces();
     content.workspace_ids = workspace_ids;
+  } else if (tool_name === "GetActiveWorkspace") {
+    const active_workspace = await GetActiveWorkspace(copilotConversation);
+    content.active_workspace = active_workspace;
+  } else if (tool_name === "SetActiveWorkspace") {
+    const workspace_id = args.workspace_id;
+    const result = await SetActiveWorkspace(workspace_id, copilotConversation);
+    content.result = result;
   } else if (tool_name === "DownloadJobResults") {
     const job_id = args.job_id;
-    const download_result = await DownloadJobResults(job_id, streamCallback);
+    const download_result = await DownloadJobResults(
+      job_id,
+      copilotConversation,
+    );
     content.download_result = download_result;
   } else if (tool_name === "GetProviders") {
-    const providers = await GetProviders();
+    const providers = await GetProviders(copilotConversation);
     content.providers = providers;
   } else if (tool_name === "GetTarget") {
     const target_id = args.target_id;
-    const target = await GetTarget(target_id);
+    const target = await GetTarget(target_id, copilotConversation);
     content.target = target;
   } else if (tool_name === "SubmitToTarget") {
     const job_name = args.job_name;
@@ -423,6 +520,7 @@ export const ToolCallSwitch = async (
       job_name,
       target_id,
       number_of_shots,
+      copilotConversation,
     );
     content.submit_result = submit_result;
   }

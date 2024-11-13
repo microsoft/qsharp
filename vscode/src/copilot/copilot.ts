@@ -14,6 +14,7 @@ import {
   WebviewViewResolveContext,
 } from "vscode";
 import { CopilotStreamCallback, ToolCallSwitch } from "./copilotTools";
+import { WorkspaceConnection } from "../azure/treeView";
 
 // const chatUrl = "https://canary.api.quantum.microsoft.com/api/chat/streaming";
 const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming"; // new API
@@ -73,6 +74,7 @@ type QuantumChatRequest = {
 export class CopilotConversation {
   conversationId: string;
   messages: QuantumChatMessage[] = [];
+  active_workspace?: WorkspaceConnection;
   streamCallback: CopilotStreamCallback;
   _msaChatSession?: AuthenticationSession;
 
@@ -154,7 +156,7 @@ export class CopilotConversation {
 
   handleSingleToolCall = async (toolCall: ToolCall) => {
     const args = JSON.parse(toolCall.arguments);
-    return ToolCallSwitch(toolCall.name, args, this.streamCallback);
+    return ToolCallSwitch(toolCall.name, args, this);
   };
 
   converseWithCopilot = async () => {
