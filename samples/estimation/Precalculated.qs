@@ -12,8 +12,7 @@
 namespace PrecalculatedEstimates {
     import Std.ResourceEstimation.*;
 
-    @EntryPoint()
-    operation FactoringFromLogicalCounts() : Unit {
+    operation Main() : Unit {
         use qubits = Qubit[12581];
 
         AccountForEstimates(

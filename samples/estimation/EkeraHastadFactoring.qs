@@ -20,8 +20,7 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     // When computing resource estimtes from the VS Code plugin directly on this
     // file, make sure that you set the error budget to 0.333.
 
-    @EntryPoint()
-    operation EstimateEkeraHastad() : Unit {
+    operation Main() : Unit {
         // Try different instances of the algorithm by commenting in and out
         // the following lines.  You can find more RSA numbers at
         // https://en.wikipedia.org/wiki/RSA_numbers

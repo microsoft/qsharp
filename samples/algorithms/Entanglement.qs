@@ -9,8 +9,7 @@
 namespace Sample {
     import Std.Diagnostics.*;
 
-    @EntryPoint()
-    operation EntangleQubits() : (Result, Result) {
+    operation Main() : (Result, Result) {
         // Allocate the two qubits that will be entangled.
         use (q1, q2) = (Qubit(), Qubit());
 

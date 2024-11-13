@@ -4,8 +4,7 @@
 /// the computational basis states |0〉 and |1〉, and returning the measurement result.
 namespace QuantumHelloWorld {
 
-    @EntryPoint()
-    operation RandomBit() : Result {
+    operation Main() : Result {
         Message("Hello world!");
         use qubit = Qubit();
 

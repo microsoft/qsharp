@@ -8,10 +8,8 @@
 /// This Q# program implements the four different Bell states.
 namespace Sample {
     import Std.Diagnostics.*;
-    import Std.Measurement.*;
 
-    @EntryPoint()
-    operation BellStates() : (Result, Result)[] {
+    operation Main() : (Result, Result)[] {
         // This array contains a label and a preparation operation for each one
         // of the four Bell states.
         let bellStateTuples = [

@@ -1,9 +1,7 @@
 namespace RunTeleport {
-
     open TeleportLib;   // references the TeleportLib namespace in Teleport.qs
 
-    @EntryPoint()       // @EntryPoint() not necessary for Python or Jupyter Notebook programs
-    operation RunTeleportationExample() : Unit {
+    operation Main() : Unit {
         use msg = Qubit();
         use target = Qubit();
 

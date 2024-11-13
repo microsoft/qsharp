@@ -6,8 +6,7 @@
 /// states |0〉 and |1〉 by applying a Hadamard transformation.
 namespace Sample {
 
-    @EntryPoint()
-    operation Superposition() : Result {
+    operation Main() : Result {
         // Qubits are only accessible for the duration of the scope where they
         // are allocated and are automatically released at the end of the scope.
         use qubit = Qubit();

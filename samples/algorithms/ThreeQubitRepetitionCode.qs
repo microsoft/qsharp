@@ -5,8 +5,7 @@ namespace Microsoft.Quantum.Samples {
     import Std.Math.*;
     import Std.Diagnostics.*;
 
-    @EntryPoint()
-    operation ThreeQubitRepetitionCode() : (Bool, Int) {
+    operation Main() : (Bool, Int) {
         // A qubit register that will be used for encoding.
         use encodedRegister = Qubit[3];
 

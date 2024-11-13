@@ -17,8 +17,7 @@ namespace Shors {
     import Microsoft.Quantum.Unstable.Arithmetic.*;
     import Std.ResourceEstimation.*;
 
-    @EntryPoint()
-    operation RunProgram() : Unit {
+    operation Main() : Unit {
         let bitsize = 31;
 
         // When chooseing parameters for `EstimateFrequency`, make sure that
