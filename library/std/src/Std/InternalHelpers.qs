@@ -122,7 +122,7 @@ internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Q
     }
 }
 
-    /// Collects the given list of control qubits into one or two of the given auxiliary qubits, using
+/// Collects the given list of control qubits into one or two of the given auxiliary qubits, using
 /// all but the last qubits in the auxiliary list as scratch qubits. The auxiliary list must be
 /// big enough to accommodate the data, so it is usually smaller than controls list by number of
 /// qubits needed for the eventual controlled unitary application. The passed adjustment value is
@@ -143,7 +143,7 @@ internal operation CollectControls(ctls : Qubit[], aux : Qubit[], adjustment : I
     }
 }
 
-    /// When collecting controls, if there is an uneven number of original control qubits then the
+/// When collecting controls, if there is an uneven number of original control qubits then the
 /// last control and the second to last auxiliary will be collected into the last auxiliary.
 internal operation AdjustForSingleControl(ctls : Qubit[], aux : Qubit[]) : Unit is Adj {
     if Length(ctls) % 2 != 0 {

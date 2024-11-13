@@ -167,7 +167,7 @@ operation WriteMemoryContents(
     ApplyPauliFromBitString(PauliX, true, value, target);
 }
 
-    /// # References
+/// # References
 /// - [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
 ///   "Windowed arithmetic"
 operation Unlookup(
