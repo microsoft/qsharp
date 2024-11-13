@@ -97,11 +97,7 @@ fn ty_unit() {
 
 #[test]
 fn ty_param() {
-    check(
-        ty,
-        "'T",
-        &expect!["Type _id_ [0-2]: Type Param: 'T"],
-    );
+    check(ty, "'T", &expect!["Type _id_ [0-2]: Type Param: 'T"]);
 }
 
 #[test]
