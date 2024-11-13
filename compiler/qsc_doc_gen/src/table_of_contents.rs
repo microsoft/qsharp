@@ -1,14 +1,9 @@
----
-uid: Microsoft.Quantum.apiref-toc
-title: Q# standard libraries for the Microsoft Quantum Development Kit
-description: Table of contents for the Q# standard libraries for Microsoft Quantum Development Kit
-author: {AUTHOR}
-ms.author: {MS_AUTHOR}
-ms.date: {TIMESTAMP}
-ms.topic: landing-page
----
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-# Q# standard library
+/// Returns the string of the contents of the generated top-level index.md file.
+pub(super) fn table_of_contents() -> String {
+    "# Q# standard library
 
 The Q# standard library contains the following namespaces:
 
@@ -30,3 +25,5 @@ The Q# standard library contains the following namespaces:
 | [`Microsoft.Quantum.Unstable.Arithmetic`](xref:Qdk.Microsoft.Quantum.Unstable.Arithmetic-toc)             | Items for working with quantum arithmetic operations.        |
 | [`Microsoft.Quantum.Unstable.StatePreparation`](xref:Qdk.Microsoft.Quantum.Unstable.StatePreparation-toc) | Items for preparing a quantum state.                         |
 | [`Microsoft.Quantum.Unstable.TableLookup`](xref:Qdk.Microsoft.Quantum.Unstable.TableLookup-toc)           | Items for performing quantum table lookups.                  |
+".to_string()
+}
