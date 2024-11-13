@@ -20,11 +20,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 // Name, Metadata, Content
-type Files = Vec<(Arc<str>, Arc<str>, Arc<str>)>;
-type FilesWithMetadata = Vec<(Arc<str>, Arc<Metadata>, Arc<str>)>;
+type Files = Vec<(Rc<str>, Rc<str>, Rc<str>)>;
+type FilesWithMetadata = Vec<(Rc<str>, Rc<Metadata>, Rc<str>)>;
 
 // Namespace -> metadata for items
-type ToC = FxHashMap<Rc<str>, Vec<Arc<Metadata>>>;
+type ToC = FxHashMap<Rc<str>, Vec<Rc<Metadata>>>;
 
 struct Metadata {
     uid: String,
@@ -362,7 +362,7 @@ pub fn generate_docs(
 
     let mut result: Files = files
         .into_iter()
-        .map(|(name, metadata, content)| (name, Arc::from(metadata.to_string().as_str()), content))
+        .map(|(name, metadata, content)| (name, Rc::from(metadata.to_string().as_str()), content))
         .collect();
 
     generate_toc(&mut toc, &mut result);
@@ -378,7 +378,7 @@ fn generate_doc_for_item<'a>(
     item: &'a Item,
     display: &'a CodeDisplay,
     files: &mut FilesWithMetadata,
-) -> Option<(Rc<str>, Arc<Metadata>)> {
+) -> Option<(Rc<str>, Rc<Metadata>)> {
     let (true_package, true_item) = resolve_export(
         default_package_id,
         package,
@@ -404,9 +404,9 @@ fn generate_doc_for_item<'a>(
     } else {
         generate_file_content(package_kind, &ns, item, display)?
     };
-    let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
-    let file_content: Arc<str> = Arc::from(content.as_str());
-    let met: Arc<Metadata> = Arc::from(metadata);
+    let file_name = Rc::from(format!("{ns}/{}.md", metadata.name).as_str());
+    let file_content = Rc::from(content.as_str());
+    let met = Rc::from(metadata);
     files.push((file_name, met.clone(), file_content));
 
     Some((ns.clone(), met))
@@ -489,11 +489,7 @@ Fully qualified name: {fqn}
     Some((metadata, content))
 }
 
-fn generate_index_file(
-    files: &mut FilesWithMetadata,
-    ns: &Rc<str>,
-    items: &mut Vec<Arc<Metadata>>,
-) {
+fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut Vec<Rc<Metadata>>) {
     if items.is_empty() {
         return;
     }
@@ -544,12 +540,12 @@ The {ns} namespace contains the following items:
 ",
     );
 
-    let arc_met = Arc::from(metadata);
-    items.insert(0, arc_met.clone());
+    let rc_met = Rc::from(metadata);
+    items.insert(0, rc_met.clone());
 
-    let file_name: Arc<str> = Arc::from(format!("{ns}/index.md").as_str());
-    let file_content: Arc<str> = Arc::from(content.as_str());
-    files.push((file_name, arc_met, file_content));
+    let file_name = Rc::from(format!("{ns}/index.md").as_str());
+    let file_content = Rc::from(content.as_str());
+    files.push((file_name, rc_met, file_content));
 }
 
 fn generate_top_index(files: &mut FilesWithMetadata, toc: &mut ToC) {
@@ -570,11 +566,7 @@ fn generate_top_index(files: &mut FilesWithMetadata, toc: &mut ToC) {
 
     let contents = table_of_contents();
 
-    files.push((
-        Arc::from("index.md"),
-        Arc::from(metadata),
-        Arc::from(contents),
-    ));
+    files.push((Rc::from("index.md"), Rc::from(metadata), Rc::from(contents)));
 
     toc.insert(empty_ns, vec![]);
 }
@@ -622,9 +614,9 @@ fn generate_toc(map: &mut ToC, files: &mut Files) {
     let content = format!("{header}\n{table}");
     let content = content.as_str();
 
-    let file_name: Arc<str> = Arc::from("toc.yml");
-    let file_metadata: Arc<str> = Arc::from("");
-    let file_content: Arc<str> = Arc::from(content);
+    let file_name = Rc::from("toc.yml");
+    let file_metadata = Rc::from("");
+    let file_content = Rc::from(content);
     files.push((file_name, file_metadata, file_content));
 }
 
