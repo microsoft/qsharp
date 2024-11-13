@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import
-    ArithmeticUtils.*,
+    Std.ArithmeticUtils.*,
     Std.Arrays.Most,
     Std.Arrays.Tail,
     Std.Arrays.Head,

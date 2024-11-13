@@ -74,23 +74,23 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/src/Std/ResourceEstimation.qs"),
     ),
     (
-        "qsharp-library-source:unstable_arithmetic_internal.qs",
-        include_str!("../std/src/unstable_arithmetic_internal.qs"),
+        "qsharp-library-source:Std/Arithmetic.qs",
+        include_str!("../std/src/Std/Arithmetic.qs"),
     ),
     (
-        "qsharp-library-source:unstable_arithmetic.qs",
-        include_str!("../std/src/unstable_arithmetic.qs"),
+        "qsharp-library-source:Std/ArithmeticUtils.qs",
+        include_str!("../std/src/Std/ArithmeticUtils.qs"),
     ),
     (
-        "qsharp-library-source:unstable_state_preparation.qs",
-        include_str!("../std/src/unstable_state_preparation.qs"),
+        "qsharp-library-source:Std/StatePreparation.qs",
+        include_str!("../std/src/Std/StatePreparation.qs"),
     ),
     (
-        "qsharp-library-source:unstable_table_lookup.qs",
-        include_str!("../std/src/unstable_table_lookup.qs"),
+        "qsharp-library-source:Std/TableLookup.qs",
+        include_str!("../std/src/Std/TableLookup.qs"),
     ),
     (
-        "qsharp-library-source:legacy_api.qs",
+        "qsharp-library-source:Std/legacy_api.qs",
         include_str!("../std/src/legacy_api.qs"),
     ),
 ];
