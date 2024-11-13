@@ -25,7 +25,6 @@ namespace Sample {
     import Std.Diagnostics.*;
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : Result {
         use logicalQubit = Qubit[3];
 

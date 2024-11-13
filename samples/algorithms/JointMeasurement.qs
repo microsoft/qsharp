@@ -7,7 +7,6 @@
 namespace Sample {
     import Std.Diagnostics.*;
 
-    @EntryPoint()
     operation Main() : (Result, Result[]) {
         // Prepare an entangled state.
         use qs = Qubit[2];  // |00〉

@@ -18,7 +18,6 @@
 namespace Sample {
     import Std.Diagnostics.*;
 
-    @EntryPoint()
     operation Main() : Result[] {
         use qs = Qubit[3];
 

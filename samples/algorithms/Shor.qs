@@ -14,7 +14,6 @@ namespace Sample {
     import Microsoft.Quantum.Unstable.Arithmetic.*;
     import Std.Arrays.*;
 
-    @EntryPoint()
     operation Main() : (Int, Int) {
         let n = 143; // 11*13;
         // You can try these other examples for a lengthier computation.

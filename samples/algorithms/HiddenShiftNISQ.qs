@@ -14,7 +14,6 @@ namespace Sample {
     import Std.Diagnostics.*;
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : Result[] {
         // Consider the case of finding a hidden shift 𝑠 between two Boolean
         // functions 𝑓(𝑥) and 𝑔(𝑥) = 𝑓(𝑥 ⊕ 𝑠).
