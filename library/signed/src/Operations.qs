@@ -285,7 +285,7 @@ operation DivideI(xs : Qubit[], ys : Qubit[], result : Qubit[]) : Unit is Adj + 
             (Controlled Adjoint RippleCarryTTKIncByLE)([result[i]], (ys, xtrunc));
         }
     }
-}   
+}
 
 /// # Summary
 /// Computes the reciprocal 1/x for an unsigned integer x
