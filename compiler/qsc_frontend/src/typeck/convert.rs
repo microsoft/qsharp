@@ -415,7 +415,11 @@ pub(crate) fn class_constraints_from_ast(
                 Ok(qsc_hir::ty::ClassConstraint::Exp { power })
             }
             "Integral" => Ok(qsc_hir::ty::ClassConstraint::Integral),
-            "Num" => Ok(qsc_hir::ty::ClassConstraint::Num),
+            "Mul" => Ok(qsc_hir::ty::ClassConstraint::Mul),
+            "Sub" => Ok(qsc_hir::ty::ClassConstraint::Sub),
+            "Mod" => Ok(qsc_hir::ty::ClassConstraint::Mod),
+            "Div" => Ok(qsc_hir::ty::ClassConstraint::Div),
+            "Signed" => Ok(qsc_hir::ty::ClassConstraint::Signed),
             "Show" => Ok(qsc_hir::ty::ClassConstraint::Show),
             otherwise => Err(TyConversionError::UnrecognizedClass {
                 span: ast_bound.span(),

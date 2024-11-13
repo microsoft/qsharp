@@ -1441,11 +1441,11 @@ fn unop_neg_bool() {
     check(
         "",
         "-false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 
@@ -1454,11 +1454,11 @@ fn unop_pos_bool() {
     check(
         "",
         "+false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 

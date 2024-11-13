@@ -96,7 +96,13 @@ pub enum ClassConstraint {
     Iterable {
         item: Ty,
     },
-    Num,
+    Div,
+    Sub,
+    Mul,
+    Mod,
+    Ord,
+    Signed,
+
     Integral,
     Show,
     /// A class that is not built-in to the compiler.
@@ -111,9 +117,14 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Add => write!(f, "Add"),
             ClassConstraint::Exp { power } => write!(f, "Exp[{power}]"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
-            ClassConstraint::Num => write!(f, "Num"),
             ClassConstraint::Integral => write!(f, "Integral"),
             ClassConstraint::Show => write!(f, "Show"),
+            ClassConstraint::Div => write!(f, "Div"),
+            ClassConstraint::Sub => write!(f, "Sub"),
+            ClassConstraint::Mul => write!(f, "Mul"),
+            ClassConstraint::Mod => write!(f, "Mod"),
+            ClassConstraint::Ord => write!(f, "Ord"),
+            ClassConstraint::Signed => write!(f, "Signed"),
         }
     }
 }
