@@ -181,8 +181,8 @@ fn top_index_file_generation() {
     expect![[r#"
         ---
         uid: Microsoft.Quantum.apiref-toc
-        title: Q# standard libraries for the Microsoft Quantum Development Kit
-        description: Table of contents for the Q# standard libraries for Microsoft Quantum Development Kit
+        title: Q# standard libraries for the Azure Quantum Development Kit
+        description: Table of contents for the Q# standard libraries for Azure Quantum Development Kit
         author: {AUTHOR}
         ms.author: {MS_AUTHOR}
         ms.date: {TIMESTAMP}
