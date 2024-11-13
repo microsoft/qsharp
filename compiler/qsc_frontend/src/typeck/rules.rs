@@ -725,7 +725,7 @@ impl<'a> Context<'a> {
                 converge(with_ctls)
             }
             UnOp::Neg | UnOp::Pos => {
-                self.inferrer.class(span, Class::Num(operand.ty.clone()));
+                self.inferrer.class(span, Class::Signed(operand.ty.clone()));
                 operand
             }
             UnOp::NotB => {
@@ -780,7 +780,7 @@ impl<'a> Context<'a> {
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty));
+                self.inferrer.class(lhs_span, Class::Ord(lhs.ty));
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::AndB | BinOp::OrB | BinOp::XorB => {
@@ -789,9 +789,24 @@ impl<'a> Context<'a> {
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
                 lhs
             }
-            BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
+            BinOp::Div => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
+                self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mul => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Sub => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mod => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mod(lhs.ty.clone()));
                 lhs
             }
             BinOp::Exp => {

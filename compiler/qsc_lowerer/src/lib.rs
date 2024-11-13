@@ -912,24 +912,26 @@ impl Lowerer {
     }
 
     fn lower_ty_bound(&mut self, b: &qsc_hir::ty::ClassConstraint) -> qsc_fir::ty::ClassConstraint {
+        use qsc_fir::ty::ClassConstraint as FirClass;
+        use qsc_hir::ty::ClassConstraint as HirClass;
         match b {
-            qsc_hir::ty::ClassConstraint::Eq => qsc_fir::ty::ClassConstraint::Eq,
-            qsc_hir::ty::ClassConstraint::Exp { power } => qsc_fir::ty::ClassConstraint::Exp {
+            HirClass::Eq => FirClass::Eq,
+            HirClass::Exp { power } => FirClass::Exp {
                 power: self.lower_ty(power),
             },
-            qsc_hir::ty::ClassConstraint::Add => qsc_fir::ty::ClassConstraint::Add,
-
-            qsc_hir::ty::ClassConstraint::NonNativeClass(name) => {
-                qsc_fir::ty::ClassConstraint::NonNativeClass(name.clone())
-            }
-            qsc_hir::ty::ClassConstraint::Iterable { item } => {
-                qsc_fir::ty::ClassConstraint::Iterable {
-                    item: self.lower_ty(item),
-                }
-            }
-            qsc_hir::ty::ClassConstraint::Num => qsc_fir::ty::ClassConstraint::Num,
-            qsc_hir::ty::ClassConstraint::Integral => qsc_fir::ty::ClassConstraint::Integral,
-            qsc_hir::ty::ClassConstraint::Show => qsc_fir::ty::ClassConstraint::Show,
+            HirClass::Add => FirClass::Add,
+            HirClass::NonNativeClass(name) => FirClass::NonNativeClass(name.clone()),
+            HirClass::Iterable { item } => FirClass::Iterable {
+                item: self.lower_ty(item),
+            },
+            HirClass::Integral => FirClass::Integral,
+            HirClass::Show => FirClass::Show,
+            HirClass::Mul => FirClass::Mul,
+            HirClass::Div => FirClass::Div,
+            HirClass::Sub => FirClass::Sub,
+            HirClass::Mod => FirClass::Mod,
+            HirClass::Signed => FirClass::Signed,
+            HirClass::Ord => FirClass::Ord,
         }
     }
 }

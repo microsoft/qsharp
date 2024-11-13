@@ -183,11 +183,11 @@ fn iter() {
 }
 
 #[test]
-fn num() {
+fn signed() {
     check(
         r#"
         namespace A {
-            function Foo<'T: Num>(a: 'T) : 'T {
+            function Foo<'T: Signed>(a: 'T) : 'T {
                 -a
             }
 
@@ -200,34 +200,34 @@ fn num() {
         "#,
         "",
         &expect![[r##"
-            #8 56-63 "(a: 'T)" : Param<"'T": 0>
-            #9 57-62 "a: 'T" : Param<"'T": 0>
-            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
-            #17 87-89 "-a" : Param<"'T": 0>
-            #18 88-89 "a" : Param<"'T": 0>
-            #24 130-132 "()" : Unit
-            #28 140-276 "{\n                let x: Int = Foo(1);\n                let y: Double = Foo(1.0);\n                let z: BigInt = Foo(10L);\n            }" : Unit
-            #30 162-168 "x: Int" : Int
-            #35 171-177 "Foo(1)" : Int
-            #36 171-174 "Foo" : (Int -> Int)
-            #39 174-177 "(1)" : Int
-            #40 175-176 "1" : Int
-            #42 199-208 "y: Double" : Double
-            #47 211-219 "Foo(1.0)" : Double
-            #48 211-214 "Foo" : (Double -> Double)
-            #51 214-219 "(1.0)" : Double
-            #52 215-218 "1.0" : Double
-            #54 241-250 "z: BigInt" : BigInt
-            #59 253-261 "Foo(10L)" : BigInt
-            #60 253-256 "Foo" : (BigInt -> BigInt)
-            #63 256-261 "(10L)" : BigInt
-            #64 257-260 "10L" : BigInt
+            #8 59-66 "(a: 'T)" : Param<"'T": 0>
+            #9 60-65 "a: 'T" : Param<"'T": 0>
+            #15 72-106 "{\n                -a\n            }" : Param<"'T": 0>
+            #17 90-92 "-a" : Param<"'T": 0>
+            #18 91-92 "a" : Param<"'T": 0>
+            #24 133-135 "()" : Unit
+            #28 143-279 "{\n                let x: Int = Foo(1);\n                let y: Double = Foo(1.0);\n                let z: BigInt = Foo(10L);\n            }" : Unit
+            #30 165-171 "x: Int" : Int
+            #35 174-180 "Foo(1)" : Int
+            #36 174-177 "Foo" : (Int -> Int)
+            #39 177-180 "(1)" : Int
+            #40 178-179 "1" : Int
+            #42 202-211 "y: Double" : Double
+            #47 214-222 "Foo(1.0)" : Double
+            #48 214-217 "Foo" : (Double -> Double)
+            #51 217-222 "(1.0)" : Double
+            #52 218-221 "1.0" : Double
+            #54 244-253 "z: BigInt" : BigInt
+            #59 256-264 "Foo(10L)" : BigInt
+            #60 256-259 "Foo" : (BigInt -> BigInt)
+            #63 259-264 "(10L)" : BigInt
+            #64 260-263 "10L" : BigInt
         "##]],
     );
 }
 
 #[test]
-fn num_fail() {
+fn signed_fail() {
     check(
         r#"
         namespace A {
@@ -266,7 +266,7 @@ fn num_fail() {
             #60 252-255 "Foo" : (BigInt -> BigInt)
             #63 255-260 "(10L)" : BigInt
             #64 256-259 "10L" : BigInt
-            Error(Type(Error(MissingClassNum("'T", Span { lo: 87, hi: 88 }))))
+            Error(Type(Error(MissingClassSigned("'T", Span { lo: 87, hi: 88 }))))
         "##]],
     );
 }
@@ -276,11 +276,11 @@ fn transitive_class_check() {
     check(
         r#"
         namespace A {
-            function Foo<'T: Num>(a: 'T) : 'T {
-                -a
+            function Foo<'T: Mul>(a: 'T) : 'T {
+                a * a
             }
 
-            function Bar<'F: Num>(a: 'F) : 'F {
+            function Bar<'F: Mul>(a: 'F) : 'F {
                 Foo(a)
             }
 
@@ -295,33 +295,34 @@ fn transitive_class_check() {
         &expect![[r##"
             #8 56-63 "(a: 'T)" : Param<"'T": 0>
             #9 57-62 "a: 'T" : Param<"'T": 0>
-            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
-            #17 87-89 "-a" : Param<"'T": 0>
-            #18 88-89 "a" : Param<"'T": 0>
-            #26 138-145 "(a: 'F)" : Param<"'F": 0>
-            #27 139-144 "a: 'F" : Param<"'F": 0>
-            #33 151-189 "{\n                Foo(a)\n            }" : Param<"'F": 0>
-            #35 169-175 "Foo(a)" : Param<"'F": 0>
-            #36 169-172 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
-            #39 172-175 "(a)" : Param<"'F": 0>
-            #40 173-174 "a" : Param<"'F": 0>
-            #46 216-218 "()" : Unit
-            #50 226-362 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
-            #52 248-254 "x: Int" : Int
-            #57 257-263 "Bar(1)" : Int
-            #58 257-260 "Bar" : (Int -> Int)
-            #61 260-263 "(1)" : Int
-            #62 261-262 "1" : Int
-            #64 285-294 "y: Double" : Double
-            #69 297-305 "Bar(1.0)" : Double
-            #70 297-300 "Bar" : (Double -> Double)
-            #73 300-305 "(1.0)" : Double
-            #74 301-304 "1.0" : Double
-            #76 327-336 "z: BigInt" : BigInt
-            #81 339-347 "Bar(10L)" : BigInt
-            #82 339-342 "Bar" : (BigInt -> BigInt)
-            #85 342-347 "(10L)" : BigInt
-            #86 343-346 "10L" : BigInt
+            #15 69-106 "{\n                a * a\n            }" : Param<"'T": 0>
+            #17 87-92 "a * a" : Param<"'T": 0>
+            #18 87-88 "a" : Param<"'T": 0>
+            #21 91-92 "a" : Param<"'T": 0>
+            #29 141-148 "(a: 'F)" : Param<"'F": 0>
+            #30 142-147 "a: 'F" : Param<"'F": 0>
+            #36 154-192 "{\n                Foo(a)\n            }" : Param<"'F": 0>
+            #38 172-178 "Foo(a)" : Param<"'F": 0>
+            #39 172-175 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
+            #42 175-178 "(a)" : Param<"'F": 0>
+            #43 176-177 "a" : Param<"'F": 0>
+            #49 219-221 "()" : Unit
+            #53 229-365 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
+            #55 251-257 "x: Int" : Int
+            #60 260-266 "Bar(1)" : Int
+            #61 260-263 "Bar" : (Int -> Int)
+            #64 263-266 "(1)" : Int
+            #65 264-265 "1" : Int
+            #67 288-297 "y: Double" : Double
+            #72 300-308 "Bar(1.0)" : Double
+            #73 300-303 "Bar" : (Double -> Double)
+            #76 303-308 "(1.0)" : Double
+            #77 304-307 "1.0" : Double
+            #79 330-339 "z: BigInt" : BigInt
+            #84 342-350 "Bar(10L)" : BigInt
+            #85 342-345 "Bar" : (BigInt -> BigInt)
+            #88 345-350 "(10L)" : BigInt
+            #89 346-349 "10L" : BigInt
         "##]],
     );
 }
@@ -390,11 +391,11 @@ fn transitive_class_check_superset() {
     check(
         r#"
         namespace A {
-            function Foo<'T: Num>(a: 'T) : 'T {
-                -a
+            function Foo<'T: Sub>(a: 'T) : 'T {
+                a - a
             }
 
-            function Bar<'F: Num + Eq>(a: 'F) : 'F {
+            function Bar<'F: Sub + Eq>(a: 'F) : 'F {
                 Foo(a)
             }
 
@@ -409,33 +410,34 @@ fn transitive_class_check_superset() {
         &expect![[r##"
             #8 56-63 "(a: 'T)" : Param<"'T": 0>
             #9 57-62 "a: 'T" : Param<"'T": 0>
-            #15 69-103 "{\n                -a\n            }" : Param<"'T": 0>
-            #17 87-89 "-a" : Param<"'T": 0>
-            #18 88-89 "a" : Param<"'T": 0>
-            #27 143-150 "(a: 'F)" : Param<"'F": 0>
-            #28 144-149 "a: 'F" : Param<"'F": 0>
-            #34 156-194 "{\n                Foo(a)\n            }" : Param<"'F": 0>
-            #36 174-180 "Foo(a)" : Param<"'F": 0>
-            #37 174-177 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
-            #40 177-180 "(a)" : Param<"'F": 0>
-            #41 178-179 "a" : Param<"'F": 0>
-            #47 221-223 "()" : Unit
-            #51 231-367 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
-            #53 253-259 "x: Int" : Int
-            #58 262-268 "Bar(1)" : Int
-            #59 262-265 "Bar" : (Int -> Int)
-            #62 265-268 "(1)" : Int
-            #63 266-267 "1" : Int
-            #65 290-299 "y: Double" : Double
-            #70 302-310 "Bar(1.0)" : Double
-            #71 302-305 "Bar" : (Double -> Double)
-            #74 305-310 "(1.0)" : Double
-            #75 306-309 "1.0" : Double
-            #77 332-341 "z: BigInt" : BigInt
-            #82 344-352 "Bar(10L)" : BigInt
-            #83 344-347 "Bar" : (BigInt -> BigInt)
-            #86 347-352 "(10L)" : BigInt
-            #87 348-351 "10L" : BigInt
+            #15 69-106 "{\n                a - a\n            }" : Param<"'T": 0>
+            #17 87-92 "a - a" : Param<"'T": 0>
+            #18 87-88 "a" : Param<"'T": 0>
+            #21 91-92 "a" : Param<"'T": 0>
+            #30 146-153 "(a: 'F)" : Param<"'F": 0>
+            #31 147-152 "a: 'F" : Param<"'F": 0>
+            #37 159-197 "{\n                Foo(a)\n            }" : Param<"'F": 0>
+            #39 177-183 "Foo(a)" : Param<"'F": 0>
+            #40 177-180 "Foo" : (Param<"'F": 0> -> Param<"'F": 0>)
+            #43 180-183 "(a)" : Param<"'F": 0>
+            #44 181-182 "a" : Param<"'F": 0>
+            #50 224-226 "()" : Unit
+            #54 234-370 "{\n                let x: Int = Bar(1);\n                let y: Double = Bar(1.0);\n                let z: BigInt = Bar(10L);\n            }" : Unit
+            #56 256-262 "x: Int" : Int
+            #61 265-271 "Bar(1)" : Int
+            #62 265-268 "Bar" : (Int -> Int)
+            #65 268-271 "(1)" : Int
+            #66 269-270 "1" : Int
+            #68 293-302 "y: Double" : Double
+            #73 305-313 "Bar(1.0)" : Double
+            #74 305-308 "Bar" : (Double -> Double)
+            #77 308-313 "(1.0)" : Double
+            #78 309-312 "1.0" : Double
+            #80 335-344 "z: BigInt" : BigInt
+            #85 347-355 "Bar(10L)" : BigInt
+            #86 347-350 "Bar" : (BigInt -> BigInt)
+            #89 350-355 "(10L)" : BigInt
+            #90 351-354 "10L" : BigInt
         "##]],
     );
 }

@@ -209,20 +209,28 @@ impl std::fmt::Display for ClassConstraints {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClassConstraint {
+    /// Whether or not 'T can be compared via Eq to values of the same domain.
     Eq,
+    /// Whether or not 'T can be added to values of the same domain via the + operator.
     Add,
     Exp {
+        // `base` is inferred to be the self type
         power: Ty,
     },
     Iterable {
         item: Ty,
     },
+    Div,
+    Sub,
+    Mul,
+    Mod,
+    Ord,
+    Signed,
 
-    /// A class that is not built-in to the compiler.
-    NonNativeClass(Rc<str>),
-    Num,
     Integral,
     Show,
+    /// A class that is not built-in to the compiler.
+    NonNativeClass(Rc<str>),
 }
 
 impl std::fmt::Display for ClassConstraint {
@@ -233,9 +241,14 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Exp { power } => write!(f, "Exp<{power}>"),
             ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
             ClassConstraint::Add => write!(f, "Add"),
-            ClassConstraint::Num => write!(f, "Num"),
             ClassConstraint::Integral => write!(f, "Integral"),
             ClassConstraint::Show => write!(f, "Show"),
+            ClassConstraint::Div => write!(f, "Div"),
+            ClassConstraint::Sub => write!(f, "Sub"),
+            ClassConstraint::Mul => write!(f, "Mul"),
+            ClassConstraint::Mod => write!(f, "Mod"),
+            ClassConstraint::Ord => write!(f, "Ord"),
+            ClassConstraint::Signed => write!(f, "Signed"),
         }
     }
 }

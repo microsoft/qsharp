@@ -64,7 +64,12 @@ pub(super) enum Class {
         container: Ty,
         item: Ty,
     },
-    Num(Ty),
+    Mul(Ty),
+    Sub(Ty),
+    Div(Ty),
+    Ord(Ty),
+    Mod(Ty),
+    Signed(Ty),
     Show(Ty),
     Unwrap {
         wrapper: Ty,
@@ -83,7 +88,12 @@ impl Class {
             | Self::Adj(ty)
             | Self::Eq(ty)
             | Self::Integral(ty)
-            | Self::Num(ty)
+            | Self::Mul(ty)
+            | Self::Sub(ty)
+            | Self::Div(ty)
+            | Self::Mod(ty)
+            | Self::Ord(ty)
+            | Self::Signed(ty)
             | Self::Show(ty)
             | Self::Struct(ty) => {
                 vec![ty]
@@ -152,7 +162,13 @@ impl Class {
                 container: f(container),
                 item: f(item),
             },
-            Self::Num(ty) => Self::Num(f(ty)),
+            Self::Sub(ty) => Self::Sub(f(ty)),
+            Self::Mul(ty) => Self::Mul(f(ty)),
+            Self::Div(ty) => Self::Div(f(ty)),
+            Self::Ord(ty) => Self::Ord(f(ty)),
+            Self::Mod(ty) => Self::Mod(f(ty)),
+            Self::Signed(ty) => Self::Signed(f(ty)),
+
             Self::Show(ty) => Self::Show(f(ty)),
             Self::Unwrap { wrapper, base } => Self::Unwrap {
                 wrapper: f(wrapper),
@@ -198,16 +214,65 @@ impl Class {
                 vec![Error(ErrorKind::MissingClassInteger(ty.display(), span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
-            Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
-            Class::Num(ty) => (
+            Class::Sub(ty) if check_sub(&ty) => (Vec::new(), Vec::new()),
+            Class::Sub(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassNum(ty.display(), span))],
+                vec![Error(ErrorKind::MissingClassSub(ty.display(), span))],
+            ),
+            Class::Mul(ty) if check_mul(&ty) => (Vec::new(), Vec::new()),
+            Class::Mul(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassMul(ty.display(), span))],
+            ),
+            Class::Div(ty) if check_div(&ty) => (Vec::new(), Vec::new()),
+            Class::Div(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassDiv(ty.display(), span))],
+            ),
+            Class::Ord(ty) if check_ord(&ty) => (Vec::new(), Vec::new()),
+            Class::Ord(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassOrd(ty.display(), span))],
+            ),
+            Class::Signed(ty) if check_signed(&ty) => (Vec::new(), Vec::new()),
+            Class::Signed(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassSigned(ty.display(), span))],
+            ),
+            Class::Mod(ty) if check_mod(&ty) => (Vec::new(), Vec::new()),
+            Class::Mod(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassMod(ty.display(), span))],
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
             Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
+}
+
+fn check_mod(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Mod, ty)
+}
+
+fn check_signed(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Signed, ty)
+}
+
+fn check_ord(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Ord, ty)
+}
+
+fn check_div(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Div, ty)
+}
+
+fn check_mul(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Mul, ty)
+}
+
+fn check_sub(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Sub, ty)
 }
 
 /// Meta-level descriptions about the source of a type.
@@ -1279,15 +1344,14 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
     }
 }
 
-fn check_num(ty: &Ty) -> bool {
+/// Some constraints are just true if the type is numeric, this used to be the class Num, but now
+/// we support different operators as separate classes.
+fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
     match ty {
         Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
         Ty::Param { ref bounds, .. } => {
             // check if the bounds contain Num
-            bounds
-                .0
-                .iter()
-                .any(|bound| matches!(&bound, ClassConstraint::Num))
+            bounds.0.iter().any(|bound| *bound == *constraint)
         }
         _ => false,
     }
@@ -1386,7 +1450,12 @@ fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
             Constraint::Class(Class::NonPrimitive(name.clone()), span)
         }
         ClassConstraint::Show => Constraint::Class(Class::Show(ty), span),
-        ClassConstraint::Num => Constraint::Class(Class::Num(ty), span),
         ClassConstraint::Integral => Constraint::Class(Class::Integral(ty), span),
+        ClassConstraint::Ord => Constraint::Class(Class::Ord(ty), span),
+        ClassConstraint::Mul => Constraint::Class(Class::Mul(ty), span),
+        ClassConstraint::Div => Constraint::Class(Class::Div(ty), span),
+        ClassConstraint::Sub => Constraint::Class(Class::Sub(ty), span),
+        ClassConstraint::Signed => Constraint::Class(Class::Signed(ty), span),
+        ClassConstraint::Mod => Constraint::Class(Class::Mod(ty), span),
     }
 }

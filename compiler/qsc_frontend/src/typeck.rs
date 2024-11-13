@@ -102,10 +102,29 @@ enum ErrorKind {
     #[diagnostic(help("only arrays and ranges are iterable"))]
     #[diagnostic(code("Qsc.TypeCk.MissingClassIterable"))]
     MissingClassIterable(String, #[label] Span),
-    #[error("type {0} is not a number")]
+    #[error("Type {0} cannot be used in subtraction")]
     #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
-    #[diagnostic(code("Qsc.TypeCk.MissingClassNum"))]
-    MissingClassNum(String, #[label] Span),
+    #[diagnostic(code("Qsc.TypeCk.MissingClassSub"))]
+    MissingClassSub(String, #[label] Span),
+    #[error("Type {0} cannot be used in multiplication")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassMul"))]
+    MissingClassMul(String, #[label] Span),
+    #[error("Type {0} cannot be used in division")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassDiv"))]
+    MissingClassDiv(String, #[label] Span),
+    #[error("Type {0} cannot be used with comparison operators (less than/greater than)")]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassOrd"))]
+    MissingClassOrd(String, #[label] Span),
+    #[error("Type {0} cannot be used with the modulo operator")]
+    #[diagnostic(help("only BigInt and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassMod"))]
+    MissingClassMod(String, #[label] Span),
+    #[error("Type {0} cannot have a sign applied to it")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassSigned"))]
+    MissingClassSigned(String, #[label] Span),
     #[error("type {0} cannot be converted into a string")]
     #[diagnostic(code("Qsc.TypeCk.MissingClassShow"))]
     MissingClassShow(String, #[label] Span),

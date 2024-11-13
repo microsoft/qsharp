@@ -238,8 +238,13 @@ fn collect_names(
                     | Exp { .. }
                     | Iterable { .. }
                     | NonNativeClass(_)
-                    | Num
                     | Integral
+                    | Mod
+                    | Sub
+                    | Mul
+                    | Div
+                    | Signed
+                    | Ord
                     | Show => (),
                 }
 
@@ -254,7 +259,12 @@ fn collect_names(
                     Completion::new("Num".to_string(), CompletionItemKind::Class),
                     Completion::new("Integral".to_string(), CompletionItemKind::Class),
                     Completion::new("Show".to_string(), CompletionItemKind::Class),
-                    // omit Iterable for now because it isn't supported
+                    Completion::new("Signed".to_string(), CompletionItemKind::Class),
+                    Completion::new("Ord".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mod".to_string(), CompletionItemKind::Class),
+                    Completion::new("Sub".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mul".to_string(), CompletionItemKind::Class),
+                    Completion::new("Div".to_string(), CompletionItemKind::Class),
                 ]);
             }
         };
