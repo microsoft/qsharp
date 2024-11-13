@@ -277,10 +277,10 @@ impl<'a> Formatter<'a> {
                 effect_trim_comment(left, &mut edits, self.code);
                 effect_correct_indentation(left, whitespace, right, &mut edits, self.indent_level);
             }
-            (_, Comment) if matches!(left_delim_state, Delimiter::Open) => {
+            (_, Comment | Syntax(DocComment)) if matches!(left_delim_state, Delimiter::Open) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, self.indent_level);
             }
-            (_, Comment) => {
+            (_, Comment | Syntax(DocComment)) => {
                 if are_newlines_in_spaces {
                     effect_correct_indentation(
                         left,

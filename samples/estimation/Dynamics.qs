@@ -15,8 +15,6 @@ namespace QuantumDynamics {
     import Std.Math.*;
     import Std.Arrays.*;
 
-
-    @EntryPoint()
     operation Main() : Unit {
         // n : Int, m : Int, t: Double, u : Double, tstep : Double
 

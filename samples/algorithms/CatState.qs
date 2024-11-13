@@ -9,7 +9,6 @@
 namespace Sample {
     import Std.Diagnostics.*;
 
-    @EntryPoint()
     operation Main() : Result[] {
         use register = Qubit[5];
 

@@ -9,7 +9,6 @@ namespace Sample {
     import Std.Intrinsic.*;
     import Std.Math.*;
 
-    @EntryPoint()
     operation Main() : Int {
         let max = 100;
         Message($"Sampling a random number between 0 and {max}:");

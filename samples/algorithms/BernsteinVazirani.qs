@@ -13,7 +13,6 @@ namespace Sample {
     import Std.Math.*;
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : Int[] {
         // Consider a function 𝑓(𝑥⃗) on bitstrings 𝑥⃗ = (𝑥₀, …, 𝑥ₙ₋₁) of the form
         //     𝑓(𝑥⃗) ≔ Σᵢ 𝑥ᵢ 𝑟ᵢ

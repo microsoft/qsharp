@@ -13,7 +13,6 @@
 namespace Sample {
     import Std.Measurement.*;
 
-    @EntryPoint()
     operation Main() : (Result, Result[]) {
         // The `M` operation performs a measurement of a single qubit in the
         // computational basis, also known as the Pauli Z basis.
