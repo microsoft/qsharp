@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// Returns the string of the contents of the generated top-level index.md file.
+/// Returns the string of the table of contents for the standard library.
+/// This table of contents will be the content of the top-level index.md
+/// created during documentation generation.
 pub(super) fn table_of_contents() -> String {
     "# Q# standard library
 
