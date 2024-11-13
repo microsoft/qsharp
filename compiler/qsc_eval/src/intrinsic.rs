@@ -213,7 +213,7 @@ pub(crate) fn call(
             let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .filter_map(|q| q.clone().upgrade().map(|q| q.0))
+                .filter_map(|q| q.upgrade().map(|q| q.0))
                 .collect::<Vec<_>>();
             if qubits.len() != qubits_len {
                 return Err(Error::QubitUsedAfterRelease(arg_span));

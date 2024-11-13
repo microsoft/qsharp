@@ -55,7 +55,11 @@ use qsc_rir::{
     },
 };
 use rustc_hash::FxHashMap;
-use std::{collections::hash_map::Entry, rc::Rc, result::Result};
+use std::{
+    collections::hash_map::Entry,
+    rc::{Rc, Weak},
+    result::Result,
+};
 use thiserror::Error;
 
 /// Partially evaluates a program with the specified entry expression.
@@ -2306,7 +2310,9 @@ impl<'a> PartialEvaluator<'a> {
                         panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
                     };
                     input_type.push(qsc_rir::rir::Ty::Qubit);
-                    operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit.clone())));
+                    operands.push(
+                        self.map_eval_value_to_rir_operand(&Value::Qubit(Weak::clone(qubit))),
+                    );
                 }
             }
             _ => {

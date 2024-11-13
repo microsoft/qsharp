@@ -427,7 +427,7 @@ impl Value {
         match self {
             Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
             Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
-            Value::Qubit(q) => vec![q.clone()],
+            Value::Qubit(q) => vec![Weak::clone(q)],
             Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
 
             Value::BigInt(_)
