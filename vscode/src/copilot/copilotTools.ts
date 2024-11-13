@@ -100,7 +100,7 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
-      name: "SetActiveWorkspaces",
+      name: "SetActiveWorkspace",
       description:
         "Set the active workspace for this conversation by id. " +
         "Call this when you need to set what workspace is the active workspace being used in the context of the current conversation, " +
