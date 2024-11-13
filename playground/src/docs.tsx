@@ -32,7 +32,7 @@ export function processDocumentFiles(
     }
     // The next line contains "Zero-width space" unicode character
     // to allow line breaks before the period.
-    const newNamespace = "… " + match[1].replace(".", "​.");
+    const newNamespace = "… " + match[2].replace(".", "​.");
 
     if (contentByNamespace.has(newNamespace)) {
       const existingContent = contentByNamespace.get(newNamespace)!;
