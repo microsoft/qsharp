@@ -363,7 +363,6 @@ impl Range {
     }
 }
 
-// TODO: move qubit tracker here...
 pub struct Env {
     scopes: Vec<Scope>,
     qubits: FxHashSet<Rc<Qubit>>,
