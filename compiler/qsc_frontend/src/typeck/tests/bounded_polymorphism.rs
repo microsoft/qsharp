@@ -177,8 +177,8 @@ fn iter() {
             #48 246-254 "([true])" : Bool[]
             #49 247-253 "[true]" : Bool[]
             #50 248-252 "true" : Bool
-            Error(Type(Error(UnsupportedParametricClassBound(Span { lo: 112, hi: 113 }))))
-            "##]],
+            Error(Type(Error(UnrecognizedClass { span: Span { lo: 112, hi: 113 }, name: "Iterable" })))
+        "##]],
     );
 }
 

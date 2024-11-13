@@ -207,9 +207,8 @@ impl std::fmt::Display for ClassConstraints {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClassConstraint {
-    #[default]
     Eq,
     Add,
     Exp {

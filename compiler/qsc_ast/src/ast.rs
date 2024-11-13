@@ -1987,11 +1987,7 @@ pub struct TypeParameter {
 
 impl WithSpan for TypeParameter {
     fn with_span(self, span: Span) -> Self {
-        Self {
-            span,
-            ty: self.ty.with_span(span),
-            ..self
-        }
+        Self { span, ..self }
     }
 }
 
@@ -2097,30 +2093,16 @@ impl ClassConstraints {
         }
     }
 }
+
 impl std::fmt::Display for ClassConstraints {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // A + B + C[Int] + D
+        // A + B + C + D
         write!(
             f,
             "{}",
             self.0
                 .iter()
-                .map(|x| format!(
-                    "{}{}",
-                    x.name.name,
-                    if x.parameters.is_empty() {
-                        String::new()
-                    } else {
-                        format!(
-                            "[{}]",
-                            x.parameters
-                                .iter()
-                                .map(|x| x.ty.display())
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        )
-                    }
-                ))
+                .map(|x| format!("{}", x.name.name,))
                 .collect::<Vec<_>>()
                 .join(" + "),
         )

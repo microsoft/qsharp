@@ -514,7 +514,7 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
                 let res = self.compilation.get_res(p.ty.id);
                 if let Some(resolve::Res::Param { id, .. }) = res {
                     if *id == self.param_id {
-                        self.locations.push(p.span);
+                        self.locations.push(p.ty.span);
                     }
                 }
             });

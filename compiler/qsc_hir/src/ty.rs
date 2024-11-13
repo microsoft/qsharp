@@ -85,7 +85,9 @@ impl std::fmt::Display for ClassConstraints {
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ClassConstraint {
+    /// Whether or not 'T can be compared via Eq to values of the same domain.
     Eq,
+    /// Whether or not 'T can be added to values of the same domain via the + operator.
     Add,
     Exp {
         // `base` is inferred to be the self type

@@ -218,7 +218,45 @@ impl<'a> Display for AstCallableDecl<'a> {
                 .decl
                 .generics
                 .iter()
-                .map(|param| format!("{param}"))
+                .map(
+                    |AstTypeParameter {
+                         ty, constraints, ..
+                     }| {
+                        format!(
+                            "{}{}",
+                            ty.name,
+                            if constraints.0.is_empty() {
+                                Default::default()
+                            } else {
+                                format!(
+                                    ": {}",
+                                    constraints
+                                        .0
+                                        .iter()
+                                        .map(|bound| {
+                                            let constraint_parameters = bound
+                                                .parameters
+                                                .iter()
+                                                .map(|x| format!("{}", AstTy { ty: &x.ty }))
+                                                .collect::<Vec<_>>()
+                                                .join(", ");
+                                            format!(
+                                                "{}{}",
+                                                bound.name.name,
+                                                if constraint_parameters.is_empty() {
+                                                    Default::default()
+                                                } else {
+                                                    format!("[{constraint_parameters}]")
+                                                }
+                                            )
+                                        })
+                                        .collect::<Vec<_>>()
+                                        .join(" + ")
+                                )
+                            }
+                        )
+                    },
+                )
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(f, "<{type_params}>")?;
