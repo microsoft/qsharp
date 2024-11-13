@@ -86,15 +86,16 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       return item;
     });
 
-    let isEmptyOrWhitespace = true;
-    for (let i = 0; i < document.lineCount; i++) {
-      if (!document.lineAt(i).isEmptyOrWhitespace) {
-        isEmptyOrWhitespace = false;
-        break;
-      }
-    }
+    // Include the samples in contexts that are syntactically appropriate.
+    // The presence of the "namespace" keyword in the completion list is a
+    // hint that the cursor is at the top level.
+    const shouldIncludeSamples =
+      results.findIndex(
+        (i) =>
+          i.kind === vscode.CompletionItemKind.Keyword &&
+          i.label === "namespace",
+      ) !== -1;
 
-    // Include the samples list for empty documents
-    return !isEmptyOrWhitespace ? results : results.concat(this.samples);
+    return !shouldIncludeSamples ? results : results.concat(this.samples);
   }
 }
