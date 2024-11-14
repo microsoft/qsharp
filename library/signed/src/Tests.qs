@@ -8,7 +8,7 @@ import Measurement.MeasureSignedInteger;
 /// This entrypoint runs tests for the signed integer library.
 operation Main() : Unit {
     UnsignedOpTests();
-    Qtest.Operations.TestCases(MeasureSignedIntTests());
+    Fact(Qtest.Operations.CheckAllTestCases(MeasureSignedIntTests()), "SignedInt tests failed");
     SignedOpTests();
 
 }
