@@ -409,7 +409,7 @@ serializable_type! {
     },
     r#"export interface ICompletionItem {
         label: string;
-        kind: "function" | "interface" | "keyword" | "module" | "property" | "variable" | "typeParameter" | "field" ;
+        kind: "function" | "interface" | "keyword" | "module" | "property" | "variable" | "typeParameter" | "field" | "class";
         sortText?: string;
         detail?: string;
         additionalTextEdits?: ITextEdit[];
