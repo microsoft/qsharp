@@ -13,14 +13,19 @@
 
 // Classes that Q# currently supports are:
 // - `Eq`: denotes that a type can be compared to other values of the same type via the `==` operator.
-// - `Add`: denotes that a type can be added to other values of the same type via the `+` operator, and the return type of this addition is also of the same type.
+// - `Add`: denotes that a type can be added to other values of the same type via the `+` operator.
+// - `Mod`: denotes that a type can be used with the modulo (`%`) operator.
+// - `Sub`: denotes that a type can subtracted from other values of the same type via the  `-` operator.
+// - `Div`: denotes that a type can subtracted from other values of the same type via the  `/` operator.
+// - `Signed`: denotes that a type can be negated or made positive with `+` or `-` unary operator prefixes.
+// - `Ord`: denotes that a type can be used with comparison operators (`>`, `<`, `>=`, `<=`).
+// - `Num`: denotes that a type can be used in `>`, `>=`, `<`, `<=`, `/`, `%`, `*`, and `-` operator expressions.
 // - `Show`: denotes that a type can be converted to a string via format strings (`$"number: {num}"`).
 // - `Exp['T]`: denotes that a type can be raised to a power of type `'T`. The return type of exponentiation is the type of the base.
-// - `Num`: denotes that a type can be used in `>`, `>=`, `<`, `<=`, `/`, `%`, `*`, and `-` operator expressions.
 // - `Integral`: denotes that a type is an integer-ish type, i.e., can be used in following expressions using the following operators: `&&&`, `|||`, `^^^`, `<<<`, and `>>>`.
 
 // For example, we may want to write a function that checks if a list is full of entirely the same item. `f([3, 3, 3])` would be `true` and `f([3, 4])` would be false.
-function AllEqual<'T : Eq > (items : 'T[]) : Bool {
+function AllEqual<'T : Eq>(items : 'T[]) : Bool {
     let allEqual = true;
     for i in 1..Length(items) - 1 {
         if items[i] != items[i - 1] {
@@ -45,7 +50,7 @@ function Main() : Unit {
     let is_equal = AllEqual(["a", "b"]);
     Message($"{is_equal}");
 
-    let is_equal = AllEqual([[], [1]]); 
+    let is_equal = AllEqual([[], [1]]);
     Message($"{is_equal}");
 
     let is_equal = AllEqual([[1], [1]]);
