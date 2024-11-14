@@ -1116,12 +1116,12 @@ impl State {
                 if let Some(counter) = &mut self.qubit_counter {
                     counter.allocated(q.0);
                 }
-                Value::Qubit(Rc::downgrade(&q))
+                Value::Qubit(q.into())
             }
             "__quantum__rt__qubit_release" => {
                 let qubit = arg
                     .unwrap_qubit()
-                    .upgrade()
+                    .try_deref()
                     .ok_or(Error::QubitDoubleRelease(arg_span))?;
                 env.release_qubit(&qubit);
                 if sim.qubit_release(qubit.0) {
@@ -1620,14 +1620,14 @@ impl State {
 pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
     let mut qubits = FxHashSet::default();
     for ctl in ctls.iter().flat_map(Value::qubits) {
-        if let Some(ctl) = ctl.upgrade() {
+        if let Some(ctl) = ctl.try_deref() {
             if !qubits.insert(ctl) {
                 return false;
             }
         }
     }
     for qubit in tup.qubits() {
-        if let Some(qubit) = qubit.upgrade() {
+        if let Some(qubit) = qubit.try_deref() {
             if qubits.contains(&qubit) {
                 return false;
             }

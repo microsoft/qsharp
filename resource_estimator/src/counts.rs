@@ -557,15 +557,7 @@ impl Backend for LogicalCounter {
                 let qubits = qubits
                     .unwrap_array()
                     .iter()
-                    .map(|v| {
-                        v.clone()
-                            .unwrap_qubit()
-                            .upgrade()
-                            .expect(
-                                "qubits should be checked for liveness before call into backend",
-                            )
-                            .0
-                    })
+                    .map(|v| v.clone().unwrap_qubit().deref().0)
                     .collect::<Vec<_>>();
                 Some(
                     self.add_estimate(&estimates, layout, &qubits)

@@ -13,7 +13,7 @@ use crate::{error::PackageSpan, AsIndex, Error, Range as EvalRange};
 
 pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Array(Rc<Vec<Value>>),
     BigInt(BigInt),
@@ -23,7 +23,7 @@ pub enum Value {
     Global(StoreItemId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
-    Qubit(Weak<Qubit>),
+    Qubit(QubitRef),
     Range(Box<Range>),
     Result(Result),
     String(Rc<str>),
@@ -87,6 +87,58 @@ impl From<usize> for Result {
     }
 }
 
+/// Tracks a reference to a qubit. This reference may be invalid if the qubit has been released.
+/// A `QubitRef` can only be created by converting a `Rc<Qubit>` to a `QubitRef`, which will maintain
+/// a weak reference to the `Rc<Qubit>`. This allows the `QubitRef` to be cloned and passed around
+/// separately from tracking the qubit's lifetime, and requires the caller to call `try_deref` or `deref`
+/// to access the qubit, only getting the underlying `Rc<Qubit>` if it is still alive.
+#[derive(Clone, Debug)]
+pub struct QubitRef {
+    inner: Weak<Qubit>,
+}
+
+impl PartialEq for QubitRef {
+    fn eq(&self, other: &Self) -> bool {
+        match (self.try_deref(), other.try_deref()) {
+            (Some(a), Some(b)) => *a == *b,
+            _ => false,
+        }
+    }
+}
+
+impl From<&Rc<Qubit>> for QubitRef {
+    fn from(qubit: &Rc<Qubit>) -> Self {
+        Self {
+            inner: Rc::downgrade(qubit),
+        }
+    }
+}
+
+impl From<Rc<Qubit>> for QubitRef {
+    fn from(qubit: Rc<Qubit>) -> Self {
+        (&qubit).into()
+    }
+}
+
+impl QubitRef {
+    /// Attempts to dereference the `QubitRef` to get the underlying `Rc<Qubit>`. If the qubit has been
+    /// released, this will return `None`. Callers should check the result of this method and handle the
+    /// case where the qubit is no longer alive.
+    #[must_use]
+    pub fn try_deref(&self) -> Option<Rc<Qubit>> {
+        Weak::upgrade(&self.inner)
+    }
+
+    /// Dereferences the `QubitRef` to get the underlying `Rc<Qubit>`. If the qubit has been released, this
+    /// will panic. Callers should only use this method if they are certain the qubit is still alive.
+    /// # Panics
+    /// This will panic if the qubit has been released.
+    #[must_use]
+    pub fn deref(&self) -> Rc<Qubit> {
+        self.try_deref().expect("qubit should still be alive")
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Qubit(pub usize);
 
@@ -128,7 +180,7 @@ impl Display for Value {
             Value::Qubit(v) => write!(
                 f,
                 "Qubit{}",
-                (v.upgrade()
+                (v.try_deref()
                     .map_or_else(|| "<released>".to_string(), |v| v.0.to_string()))
             ),
             Value::Range(inner) => match (inner.start, inner.step, inner.end) {
@@ -184,31 +236,6 @@ impl Display for VarTy {
 
 thread_local! {
     static UNIT: Rc<[Value; 0]> = Rc::new([]);
-}
-
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Value::Array(a), Value::Array(b)) => a == b,
-            (Value::BigInt(a), Value::BigInt(b)) => a == b,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Closure(a), Value::Closure(b)) => a == b,
-            (Value::Double(a), Value::Double(b)) => a == b,
-            (Value::Global(a, b), Value::Global(c, d)) => a == c && b == d,
-            (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::Pauli(a), Value::Pauli(b)) => a == b,
-            (Value::Qubit(a), Value::Qubit(b)) => match (a.upgrade(), b.upgrade()) {
-                (Some(a), Some(b)) => a == b,
-                _ => false,
-            },
-            (Value::Range(a), Value::Range(b)) => a == b,
-            (Value::Result(a), Value::Result(b)) => a == b,
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::Tuple(a), Value::Tuple(b)) => a == b,
-            (Value::Var(a), Value::Var(b)) => a == b,
-            _ => false,
-        }
-    }
 }
 
 impl Value {
@@ -338,7 +365,7 @@ impl Value {
     /// # Panics
     /// This will panic if the [Value] is not a [`Value::Qubit`].
     #[must_use]
-    pub fn unwrap_qubit(self) -> Weak<Qubit> {
+    pub fn unwrap_qubit(self) -> QubitRef {
         let Value::Qubit(v) = self else {
             panic!("value should be Qubit, got {}", self.type_name());
         };
@@ -423,11 +450,11 @@ impl Value {
     /// Returns any qubits contained in the value as a vector. This does not
     /// consume the value, and will recursively search through any nested values.
     #[must_use]
-    pub fn qubits(&self) -> Vec<Weak<Qubit>> {
+    pub fn qubits(&self) -> Vec<QubitRef> {
         match self {
             Value::Array(arr) => arr.iter().flat_map(Value::qubits).collect(),
             Value::Closure(closure) => closure.fixed_args.iter().flat_map(Value::qubits).collect(),
-            Value::Qubit(q) => vec![Weak::clone(q)],
+            Value::Qubit(q) => vec![q.clone()],
             Value::Tuple(tup) => tup.iter().flat_map(Value::qubits).collect(),
 
             Value::BigInt(_)

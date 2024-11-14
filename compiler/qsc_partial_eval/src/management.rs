@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
-    val::{Qubit, Result, Value},
+    val::{Qubit, QubitRef, Result, Value},
 };
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
 use rustc_hash::FxHashSet;
@@ -26,8 +26,8 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
-    pub fn map_qubit(&self, q: &Weak<Qubit>) -> usize {
-        let q = q.upgrade().expect("qubit should still be alive");
+    pub fn map_qubit(&self, q: &QubitRef) -> usize {
+        let q = q.deref();
         *self
             .qubit_id_map
             .get(q.0)
@@ -45,7 +45,7 @@ impl ResourceManager {
     }
 
     /// Allocates a qubit by favoring available qubit IDs before using new ones.
-    pub fn allocate_qubit(&mut self) -> Weak<Qubit> {
+    pub fn allocate_qubit(&mut self) -> QubitRef {
         let qubit = if let Some(qubit) = self.qubits_in_use.iter().position(|in_use| !in_use) {
             self.qubits_in_use[qubit] = true;
             qubit
@@ -65,15 +65,15 @@ impl ResourceManager {
         }
         let q = Rc::new(Qubit(next_id));
         self.qubit_tracker.insert(Rc::clone(&q));
-        Rc::downgrade(&q)
+        q.into()
     }
 
     /// Releases a qubit ID for future use.
-    pub fn release_qubit(&mut self, q: &Weak<Qubit>) {
+    pub fn release_qubit(&mut self, q: &QubitRef) {
         let qubit = self.map_qubit(q);
         self.qubits_in_use[qubit] = false;
 
-        let q = q.upgrade().expect("qubit should still be alive");
+        let q = q.deref();
         self.qubit_id_map.remove(q.0);
         self.qubit_tracker.remove(&q);
     }

@@ -65,7 +65,7 @@ pub(crate) fn call(
             let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .filter_map(|q| q.clone().unwrap_qubit().upgrade().map(|q| q.0))
+                .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
                 .collect::<Vec<_>>();
             if qubits.len() != qubits_len {
                 return Err(Error::QubitUsedAfterRelease(arg_span));
@@ -86,7 +86,7 @@ pub(crate) fn call(
             let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .filter_map(|q| q.clone().unwrap_qubit().upgrade().map(|q| q.0))
+                .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
                 .collect::<Vec<_>>();
             if qubits.len() != qubits_len {
                 return Err(Error::QubitUsedAfterRelease(arg_span));
@@ -111,7 +111,7 @@ pub(crate) fn call(
         "CheckZero" => Ok(Value::Bool(
             sim.qubit_is_zero(
                 arg.unwrap_qubit()
-                    .upgrade()
+                    .try_deref()
                     .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                     .0,
             ),
@@ -194,7 +194,7 @@ pub(crate) fn call(
         "__quantum__qis__m__body" => Ok(Value::Result(
             sim.m(arg
                 .unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0)
                 .into(),
@@ -202,7 +202,7 @@ pub(crate) fn call(
         "__quantum__qis__mresetz__body" => Ok(Value::Result(
             sim.mresetz(
                 arg.unwrap_qubit()
-                    .upgrade()
+                    .try_deref()
                     .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                     .0,
             )
@@ -213,7 +213,7 @@ pub(crate) fn call(
             let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .filter_map(|q| q.upgrade().map(|q| q.0))
+                .filter_map(|q| q.try_deref().map(|q| q.0))
                 .collect::<Vec<_>>();
             if qubits.len() != qubits_len {
                 return Err(Error::QubitUsedAfterRelease(arg_span));
@@ -237,7 +237,7 @@ fn one_qubit_gate(
 ) -> Result<Value, Error> {
     gate(
         arg.unwrap_qubit()
-            .upgrade()
+            .try_deref()
             .ok_or(Error::QubitUsedAfterRelease(arg_span))?
             .0,
     );
@@ -255,11 +255,11 @@ fn two_qubit_gate(
     } else {
         gate(
             x.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
             y.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
         );
@@ -280,7 +280,7 @@ fn one_qubit_rotation(
         gate(
             angle,
             y.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
         );
@@ -299,15 +299,15 @@ fn three_qubit_gate(
     } else {
         gate(
             x.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
             y.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
             z.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
         );
@@ -330,11 +330,11 @@ fn two_qubit_rotation(
         gate(
             angle,
             y.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
             z.unwrap_qubit()
-                .upgrade()
+                .try_deref()
                 .ok_or(Error::QubitUsedAfterRelease(arg_span))?
                 .0,
         );
@@ -355,7 +355,7 @@ pub fn qubit_relabel(
     let left_len = left.len();
     let left = left
         .iter()
-        .filter_map(|q| q.clone().unwrap_qubit().upgrade().map(|q| q.0))
+        .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
         .collect::<Vec<_>>();
     if left.len() != left_len {
         return Err(Error::QubitUsedAfterRelease(arg_span));
@@ -364,7 +364,7 @@ pub fn qubit_relabel(
     let right_len = right.len();
     let right = right
         .iter()
-        .filter_map(|q| q.clone().unwrap_qubit().upgrade().map(|q| q.0))
+        .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
         .collect::<Vec<_>>();
     if right.len() != right_len {
         return Err(Error::QubitUsedAfterRelease(arg_span));
