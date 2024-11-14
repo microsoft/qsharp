@@ -354,7 +354,6 @@ test("Run samples", async () => {
   const testCases = samples.filter((x) => !x.omitFromTests);
 
   for await (const sample of testCases) {
-    console.log("Running " + sample.title);
     await compiler.run(
       { sources: [["main.qs", sample.code]] },
       "",
