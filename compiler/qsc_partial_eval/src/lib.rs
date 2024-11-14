@@ -1309,9 +1309,9 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
         args_span: PackageSpan,        // For diagnostic purposes only.
-        callee_expr_span: PackageSpan, // For diagnostic puprposes only.
+        callee_expr_span: PackageSpan, // For diagnostic purposes only.
     ) -> Result<Value, Error> {
-        // check qubits here!
+        // Check if any qubits passed as arguments have been released.
         let qubits = args_value.qubits();
         let qubits_len = qubits.len();
         if qubits_len > 0 {
