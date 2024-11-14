@@ -93,17 +93,23 @@ pub enum ClassConstraint {
         // `base` is inferred to be the self type
         power: Ty,
     },
-    Iterable {
-        item: Ty,
-    },
+    /// If 'T is iterable, then it can be iterated over and the items inside are yielded (of type `item`).
+    Iterable { item: Ty },
+    /// Whether or not 'T can be divided by values of the same domain via the / operator.
     Div,
+    /// Whether or not 'T can be subtracted from values of the same domain via the - operator.
     Sub,
+    /// Whether or not 'T can be multiplied by values of the same domain via the * operator.
     Mul,
+    /// Whether or not 'T can be taken modulo values of the same domain via the % operator.
     Mod,
+    /// Whether or not 'T can be compared via Ord to values of the same domain.
     Ord,
+    /// Whether or not 'T can be signed.
     Signed,
-
+    /// Whether or not 'T is an integral type (can be used in bit shifting operators).
     Integral,
+    /// Whether or not 'T can be displayed as a string (converted to a string).
     Show,
     /// A class that is not built-in to the compiler.
     NonNativeClass(Rc<str>),
