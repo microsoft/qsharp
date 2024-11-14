@@ -9,6 +9,14 @@
         "ref": "3195043",
         "path": "library/unstable"
       }
+    },
+    "Qtest": {
+      "github": {
+        "owner": "Microsoft",
+        "repo": "qsharp",
+        "ref": "b408eddb",
+        "path": "library/qtest"
+      }
     }
   },
   "files": [
