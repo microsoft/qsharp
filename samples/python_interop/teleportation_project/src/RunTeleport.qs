@@ -1,5 +1,5 @@
 namespace RunTeleport {
-    open TeleportLib;   // references the TeleportLib namespace in Teleport.qs
+    import TeleportOperations.Teleport.*;   // references the Teleport.qs file
 
     operation Main() : Unit {
         use msg = Qubit();
