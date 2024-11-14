@@ -52,7 +52,7 @@ jobs:
       - name: Build and Test
         run: python ./build.py --no-check --no-test --wasm --npm --play
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./playground/public
 
