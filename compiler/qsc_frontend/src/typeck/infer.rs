@@ -6,14 +6,15 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     hir::{ItemId, PrimField, Res},
     ty::{
-        Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, InferFunctorId, InferTyId,
-        Prim, Scheme, Ty, Udt,
+        Arrow, ClassConstraint, FunctorSet, FunctorSetValue, GenericArg, InferFunctorId, InferTyId,
+        Prim, Scheme, Ty, TypeParameter, Udt,
     },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    collections::{hash_map::Entry, VecDeque},
+    collections::{hash_map::Entry, BTreeSet, VecDeque},
     fmt::Debug,
+    rc::Rc,
 };
 
 const MAX_TY_RECURSION_DEPTH: i8 = 100;
@@ -63,12 +64,21 @@ pub(super) enum Class {
         container: Ty,
         item: Ty,
     },
-    Num(Ty),
+    Mul(Ty),
+    Sub(Ty),
+    Div(Ty),
+    Ord(Ty),
+    Mod(Ty),
+    Signed(Ty),
     Show(Ty),
     Unwrap {
         wrapper: Ty,
         base: Ty,
     },
+    // A user-defined class
+    // When we actually support this, and don't just use it to generate an error,
+    // it should have an ID here instead of a name
+    NonPrimitive(Rc<str>),
 }
 
 impl Class {
@@ -78,7 +88,12 @@ impl Class {
             | Self::Adj(ty)
             | Self::Eq(ty)
             | Self::Integral(ty)
-            | Self::Num(ty)
+            | Self::Mul(ty)
+            | Self::Sub(ty)
+            | Self::Div(ty)
+            | Self::Mod(ty)
+            | Self::Ord(ty)
+            | Self::Signed(ty)
             | Self::Show(ty)
             | Self::Struct(ty) => {
                 vec![ty]
@@ -92,6 +107,7 @@ impl Class {
             } => vec![container, index],
             Self::Iterable { container, .. } => vec![container],
             Self::Unwrap { wrapper, .. } => vec![wrapper],
+            Self::NonPrimitive(_) => Vec::new(),
         }
     }
 
@@ -146,12 +162,19 @@ impl Class {
                 container: f(container),
                 item: f(item),
             },
-            Self::Num(ty) => Self::Num(f(ty)),
+            Self::Sub(ty) => Self::Sub(f(ty)),
+            Self::Mul(ty) => Self::Mul(f(ty)),
+            Self::Div(ty) => Self::Div(f(ty)),
+            Self::Ord(ty) => Self::Ord(f(ty)),
+            Self::Mod(ty) => Self::Mod(f(ty)),
+            Self::Signed(ty) => Self::Signed(f(ty)),
+
             Self::Show(ty) => Self::Show(f(ty)),
             Self::Unwrap { wrapper, base } => Self::Unwrap {
                 wrapper: f(wrapper),
                 base: f(base),
             },
+            Self::NonPrimitive(name) => Self::NonPrimitive(name),
         }
     }
 
@@ -191,15 +214,65 @@ impl Class {
                 vec![Error(ErrorKind::MissingClassInteger(ty.display(), span))],
             ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
-            Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
-            Class::Num(ty) => (
+            Class::Sub(ty) if check_sub(&ty) => (Vec::new(), Vec::new()),
+            Class::Sub(ty) => (
                 Vec::new(),
-                vec![Error(ErrorKind::MissingClassNum(ty.display(), span))],
+                vec![Error(ErrorKind::MissingClassSub(ty.display(), span))],
+            ),
+            Class::Mul(ty) if check_mul(&ty) => (Vec::new(), Vec::new()),
+            Class::Mul(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassMul(ty.display(), span))],
+            ),
+            Class::Div(ty) if check_div(&ty) => (Vec::new(), Vec::new()),
+            Class::Div(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassDiv(ty.display(), span))],
+            ),
+            Class::Ord(ty) if check_ord(&ty) => (Vec::new(), Vec::new()),
+            Class::Ord(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassOrd(ty.display(), span))],
+            ),
+            Class::Signed(ty) if check_signed(&ty) => (Vec::new(), Vec::new()),
+            Class::Signed(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassSigned(ty.display(), span))],
+            ),
+            Class::Mod(ty) if check_mod(&ty) => (Vec::new(), Vec::new()),
+            Class::Mod(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassMod(ty.display(), span))],
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, &wrapper, base, span),
+            Class::NonPrimitive(_) => (vec![], vec![]),
         }
     }
+}
+
+fn check_mod(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Mod, ty)
+}
+
+fn check_signed(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Signed, ty)
+}
+
+fn check_ord(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Ord, ty)
+}
+
+fn check_div(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Div, ty)
+}
+
+fn check_mul(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Mul, ty)
+}
+
+fn check_sub(ty: &Ty) -> bool {
+    check_num_constraint(&ClassConstraint::Sub, ty)
 }
 
 /// Meta-level descriptions about the source of a type.
@@ -211,6 +284,7 @@ impl Class {
 /// so we need to track where types came from. This `TySource`
 /// struct allows us to know if a type originates from a divergent
 /// source, and if it doesn't, we generate an ambiguous type error.
+#[derive(Debug)]
 pub(super) enum TySource {
     Divergent,
     NotDivergent { span: Span },
@@ -226,7 +300,9 @@ impl TySource {
     }
 }
 
-/// An argument type and tags describing the call syntax.
+/// An argument type and tags describing the call syntax. This represents the type of something
+/// that appears in a _call_ to a _callable_, and an argument can be a hole, a given argument, or,
+/// in the most standard case, a tuple. Foo(1, 2, 3) is [`ArgTy::Tuple`], not [`ArgTy::Given`].
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
     /// A missing argument, indicating partial application.
@@ -238,6 +314,7 @@ pub(super) enum ArgTy {
 }
 
 impl ArgTy {
+    /// Applies a function `f` to each type in the argument type.
     fn map(self, f: &mut impl FnMut(Ty) -> Ty) -> Self {
         match self {
             Self::Hole(ty) => Self::Hole(f(ty)),
@@ -246,8 +323,14 @@ impl ArgTy {
         }
     }
 
+    /// Applies the argument type to a parameter type, generating constraints and errors.
     fn apply(&self, param: &Ty, span: Span) -> App {
         match (self, param) {
+            // If `arg` is a hole, then it doesn't matter what the param is,
+            // because the hole can be anything.
+            // However, we do know that the type of Arg must be Eq to the type of Param, so we
+            // add that to the constraints.
+            // Preserve the hole.
             (Self::Hole(arg), _) => App {
                 holes: vec![param.clone()],
                 constraints: vec![Constraint::Eq {
@@ -257,6 +340,10 @@ impl ArgTy {
                 }],
                 errors: Vec::new(),
             },
+            // If `arg` is a hole, then it doesn't matter what the param is,
+            // because the hole can be anything.
+            // However, we do know that the type of Arg must be Eq to the type of Param, so we
+            // add that to the constraints.
             (Self::Given(arg), _) => App {
                 holes: Vec::new(),
                 constraints: vec![Constraint::Eq {
@@ -266,6 +353,8 @@ impl ArgTy {
                 }],
                 errors: Vec::new(),
             },
+            // if both the arg and the param are tuples, then we must check
+            // the types of each element in the tuple and generate iterative applications.
             (Self::Tuple(args), Ty::Tuple(params)) => {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
@@ -295,6 +384,7 @@ impl ArgTy {
                     errors,
                 }
             }
+
             (Self::Tuple(_), Ty::Infer(_)) => App {
                 holes: Vec::new(),
                 constraints: vec![Constraint::Eq {
@@ -335,8 +425,10 @@ struct App {
 }
 
 #[derive(Debug)]
-enum Constraint {
+pub(super) enum Constraint {
+    // Constraint that says a type must satisfy a class
     Class(Class, Span),
+    // Constraint that says two types must be the same
     Eq {
         expected: Ty,
         actual: Ty,
@@ -349,6 +441,7 @@ enum Constraint {
     },
 }
 
+#[derive(Debug)]
 pub(super) struct Inferrer {
     solver: Solver,
     constraints: VecDeque<Constraint>,
@@ -383,6 +476,20 @@ impl Inferrer {
         self.constraints.push_back(Constraint::Class(class, span));
     }
 
+    /// Returns a unique type variable with specified constraints.
+    fn constrained_ty(
+        &mut self,
+        meta: TySource,
+        with_constraints: impl Fn(Ty) -> Box<[Constraint]>,
+    ) -> Ty {
+        let fresh = self.next_ty;
+        self.next_ty = fresh.successor();
+        self.ty_metadata.insert(fresh, meta);
+        let constraints = with_constraints(Ty::Infer(fresh));
+        self.constraints.extend(constraints);
+        Ty::Infer(fresh)
+    }
+
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh_ty(&mut self, meta: TySource) -> Ty {
         let fresh = self.next_ty;
@@ -404,8 +511,16 @@ impl Inferrer {
             .params()
             .iter()
             .map(|param| match param {
-                GenericParam::Ty(_) => GenericArg::Ty(self.fresh_ty(TySource::not_divergent(span))),
-                GenericParam::Functor(expected) => {
+                TypeParameter::Ty { bounds, .. } => {
+                    GenericArg::Ty(self.constrained_ty(TySource::not_divergent(span), |ty| {
+                        bounds
+                            .0
+                            .iter()
+                            .map(|x| into_constraint(ty.clone(), x, span))
+                            .collect()
+                    }))
+                }
+                TypeParameter::Functor(expected) => {
                     let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
                         expected: *expected,
@@ -469,6 +584,10 @@ impl Inferrer {
     pub(super) fn substitute_functor(&mut self, functors: &mut FunctorSet) {
         substitute_functor(&self.solver.solution, functors);
     }
+
+    pub(super) fn report_error(&mut self, error: impl Into<Error>) {
+        self.solver.errors.push(error.into());
+    }
 }
 
 #[derive(Debug)]
@@ -489,6 +608,9 @@ impl Solver {
         }
     }
 
+    /// Given a constraint, attempts to narrow the constraint by either
+    /// generating more specific constraints, or, if it cannot be narrowed further,
+    /// returns an empty vector.
     fn constrain(
         &mut self,
         udts: &FxHashMap<ItemId, Udt>,
@@ -512,15 +634,20 @@ impl Solver {
         }
     }
 
+    /// Attempts to narrow a class constraint, returning more specific constraints if any.
     fn class(
         &mut self,
         udts: &FxHashMap<ItemId, Udt>,
         class: Class,
         span: Span,
     ) -> Vec<Constraint> {
+        // true if a dependency of this class constraint is currently unknown, meaning we
+        // have to come back to it later.
+        // false if we know everything we need to know and this is solved
         let unknown_dependency = class.dependencies().into_iter().any(|ty| {
             if ty == &Ty::Err {
                 true
+                // if this needs to be inferred further, `unknown_ty` returns `Some(ty_id)`
             } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
                 self.pending_tys
                     .entry(infer)
@@ -621,7 +748,36 @@ impl Solver {
             (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
                 self.bind_ty(infer, ty.clone(), span)
             }
-            (Ty::Param(_, name1), Ty::Param(_, name2)) if name1 == name2 => Vec::new(),
+            (
+                Ty::Param {
+                    name: name1,
+                    id: id1,
+                    bounds: bounds1,
+                },
+                Ty::Param {
+                    name: _name2,
+                    id: id2,
+                    bounds: bounds2,
+                },
+            ) if id1 == id2 => {
+                // concat the two sets of bounds
+                let bounds: BTreeSet<ClassConstraint> = bounds1
+                    .0
+                    .iter()
+                    .chain(bounds2.0.iter())
+                    .map(Clone::clone)
+                    .collect();
+
+                let merged_ty = Ty::Param {
+                    name: name1.clone(),
+                    id: *id1,
+                    bounds: qsc_hir::ty::ClassConstraints(bounds.clone().into_iter().collect()),
+                };
+                bounds
+                    .into_iter()
+                    .map(|x| into_constraint(merged_ty.clone(), &x, span))
+                    .collect()
+            }
             (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
@@ -704,6 +860,8 @@ impl Solver {
     }
 }
 
+/// Replaces inferred tys with the underlying type that they refer to, if it has been solved
+/// already.
 fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
     fn substitute_ty_recursive(solution: &Solution, ty: &mut Ty, limit: i8) -> bool {
         if limit == 0 {
@@ -714,7 +872,7 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
             return false;
         }
         match ty {
-            Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => true,
+            Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => true,
             Ty::Array(item) => substitute_ty_recursive(solution, item, limit - 1),
             Ty::Arrow(arrow) => {
                 let a = substitute_ty_recursive(solution, &mut arrow.input, limit - 1);
@@ -757,19 +915,25 @@ fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     }
 }
 
-fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
-    match ty {
-        &Ty::Infer(infer) => match tys.get(infer) {
+// `Some(ty)` if `given_type` has not been solved for yet, `None` if it is fully known/non-inferred
+fn unknown_ty(solved_types: &IndexMap<InferTyId, Ty>, given_type: &Ty) -> Option<InferTyId> {
+    match given_type {
+        // if the given type is an inference type, check if we have solved for it
+        &Ty::Infer(infer) => match solved_types.get(infer) {
+            // if we have not solved for it, then indeed this is an unknown type
             None => Some(infer),
-            Some(ty) => unknown_ty(tys, ty),
+            // if we have solved for it, then we check if that solved type is itself
+            // solved. It could have been solved to another inference type
+            Some(solved_type) => unknown_ty(solved_types, solved_type),
         },
+        // the given type is not an inference type so it is not unknown
         _ => None,
     }
 }
 
 fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
     match ty {
-        Ty::Err | Ty::Param(_, _) | Ty::Prim(_) | Ty::Udt(_, _) => false,
+        Ty::Err | Ty::Param { .. } | Ty::Prim(_) | Ty::Udt(_, _) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
         Ty::Arrow(arrow) => {
             contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)
@@ -780,10 +944,14 @@ fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
 }
 
 fn check_add(ty: &Ty) -> bool {
-    matches!(
-        ty,
-        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
-    )
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_) => true,
+        Ty::Param { ref bounds, .. } => bounds
+            .0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Add)),
+        _ => false,
+    }
 }
 
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
@@ -810,6 +978,9 @@ fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constra
             vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
         );
     };
+
+    // generate constraints for the arg ty that correspond to any class constraints specified in
+    // the parameters
 
     let mut app = input.apply(&arrow.input, span);
     let expected = if app.holes.len() > 1 {
@@ -870,6 +1041,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     )
 }
 
+/// Checks that the class `Eq` is implemented for the given type.
 fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Prim(
@@ -891,6 +1063,21 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Eq
+
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Eq))
+            {
+                Some(_) => (Vec::new(), Vec::new()),
+                None => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
+                ),
+            }
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassEq(ty.display(), span))],
@@ -898,12 +1085,12 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     }
 }
 
-fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+fn check_exp(base: Ty, given_power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match base {
         Ty::Prim(Prim::BigInt) => (
             vec![Constraint::Eq {
                 expected: Ty::Prim(Prim::Int),
-                actual: power,
+                actual: given_power,
                 span,
             }],
             Vec::new(),
@@ -911,11 +1098,35 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         Ty::Prim(Prim::Double | Prim::Int) => (
             vec![Constraint::Eq {
                 expected: base,
-                actual: power,
+                actual: given_power,
                 span,
             }],
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Exp
+
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Exp { .. }))
+            {
+                Some(ClassConstraint::Exp {
+                    power: power_from_param,
+                }) => (
+                    vec![Constraint::Eq {
+                        actual: given_power,
+                        expected: power_from_param.clone(),
+                        span,
+                    }],
+                    Vec::new(),
+                ),
+                _ => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassExp(base.display(), span))],
+                ),
+            }
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassExp(base.display(), span))],
@@ -923,6 +1134,9 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     }
 }
 
+// i'm using the wildcard below to enforce that Ty::Param is always matched in the err branch, as
+// it shouldn't be constrained by HasField as long as we don't support structural typing
+#[allow(clippy::wildcard_in_or_patterns)]
 fn check_has_field(
     udts: &FxHashMap<ItemId, Udt>,
     record: &Ty,
@@ -966,7 +1180,9 @@ fn check_has_field(
                 ),
             }
         }
-        _ => (
+        // `HasField` cannot be used to constrain an arbitrary type parameter, it is used
+        // internally only, so it will never resolve to a ty param.
+        (_, Ty::Param { .. }) | _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassHasField(
                 record.display(),
@@ -1083,7 +1299,14 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Int) => true,
+        Ty::Param { ref bounds, .. } => bounds
+            .0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Integral)),
+        _ => false,
+    }
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
@@ -1104,6 +1327,13 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
             }],
             Vec::new(),
         ),
+        Ty::Param { .. } => (
+            Vec::default(),
+            vec![Error(ErrorKind::UnrecognizedClass {
+                span,
+                name: "Iterable".into(),
+            })],
+        ),
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassIterable(
@@ -1114,8 +1344,17 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
     }
 }
 
-fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
+/// Some constraints are just true if the type is numeric, this used to be the class Num, but now
+/// we support different operators as separate classes.
+fn check_num_constraint(constraint: &ClassConstraint, ty: &Ty) -> bool {
+    match ty {
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int) => true,
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Num
+            bounds.0.iter().any(|bound| *bound == *constraint)
+        }
+        _ => false,
+    }
 }
 
 fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
@@ -1132,6 +1371,20 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
+        Ty::Param { ref bounds, .. } => {
+            // check if the bounds contain Show
+            match bounds
+                .0
+                .iter()
+                .find(|bound| matches!(bound, ClassConstraint::Show))
+            {
+                Some(_) => (Vec::new(), Vec::new()),
+                None => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
+                ),
+            }
+        }
         _ => (
             Vec::new(),
             vec![Error(ErrorKind::MissingClassShow(ty.display(), span))],
@@ -1168,4 +1421,41 @@ fn check_unwrap(
             span,
         ))],
     )
+}
+
+/// Given an HIR class constraint, produce an actual type system constraint.
+fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
+    match bound {
+        ClassConstraint::Eq => Constraint::Class(Class::Eq(ty), span),
+        ClassConstraint::Exp { power } => Constraint::Class(
+            Class::Exp {
+                // `ty` here is basically `Self` -- so Exp[Double] is a type that can be raised to
+                // the power of a double.
+                // Exponentiation is a _closed_ operation, meaning the domain and codomain are the
+                // same.
+                base: ty.clone(),
+                power: power.clone(),
+            },
+            span,
+        ),
+        ClassConstraint::Add => Constraint::Class(Class::Add(ty), span),
+        ClassConstraint::Iterable { item } => Constraint::Class(
+            Class::Iterable {
+                item: item.clone(),
+                container: ty.clone(),
+            },
+            span,
+        ),
+        ClassConstraint::NonNativeClass(name) => {
+            Constraint::Class(Class::NonPrimitive(name.clone()), span)
+        }
+        ClassConstraint::Show => Constraint::Class(Class::Show(ty), span),
+        ClassConstraint::Integral => Constraint::Class(Class::Integral(ty), span),
+        ClassConstraint::Ord => Constraint::Class(Class::Ord(ty), span),
+        ClassConstraint::Mul => Constraint::Class(Class::Mul(ty), span),
+        ClassConstraint::Div => Constraint::Class(Class::Div(ty), span),
+        ClassConstraint::Sub => Constraint::Class(Class::Sub(ty), span),
+        ClassConstraint::Signed => Constraint::Class(Class::Signed(ty), span),
+        ClassConstraint::Mod => Constraint::Class(Class::Mod(ty), span),
+    }
 }

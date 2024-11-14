@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod bounded_polymorphism;
+
 use crate::{
     compile::{self, Offsetter},
     resolve::{self, Resolver},
@@ -123,7 +125,6 @@ fn compile(
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
     resolver.bind_and_resolve_imports_and_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
@@ -138,7 +139,6 @@ fn compile(
         .chain(ty_errors.into_iter().map(Into::into))
         .map(compile::Error)
         .collect();
-
     (package, tys, errors)
 }
 
@@ -1441,11 +1441,11 @@ fn unop_neg_bool() {
     check(
         "",
         "-false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 
@@ -1454,11 +1454,11 @@ fn unop_pos_bool() {
     check(
         "",
         "+false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 
@@ -4203,12 +4203,13 @@ fn undeclared_generic_param() {
     check(
         r#"namespace c{operation y(g: 'U): Unit {} }"#,
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-        "#]],
+            Error(Type(Error(MissingTy { span: Span { lo: 27, hi: 29 } })))
+        "##]],
     );
 }
 

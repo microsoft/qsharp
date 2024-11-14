@@ -85,20 +85,20 @@ impl Display for Ty {
 
 /// A type scheme.
 pub struct Scheme {
-    params: Vec<GenericParam>,
+    params: Vec<TypeParameter>,
     ty: Box<Arrow>,
 }
 
 impl Scheme {
     /// Creates a new type scheme.
     #[must_use]
-    pub fn new(params: Vec<GenericParam>, ty: Box<Arrow>) -> Self {
+    pub fn new(params: Vec<TypeParameter>, ty: Box<Arrow>) -> Self {
         Self { params, ty }
     }
 
     /// The generic parameters to the type.
     #[must_use]
-    pub fn params(&self) -> &[GenericParam] {
+    pub fn params(&self) -> &[TypeParameter] {
         &self.params
     }
 
@@ -178,20 +178,95 @@ fn instantiate_arrow_ty<'a>(
     })
 }
 
-impl Display for GenericParam {
+impl Display for TypeParameter {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty => write!(f, "type"),
-            GenericParam::Functor(min) => write!(f, "functor ({min})"),
+            TypeParameter::Ty { name, bounds } => {
+                write!(f, "type ({name}){bounds}")
+            }
+            TypeParameter::Functor(min) => write!(f, "functor ({min})"),
+        }
+    }
+}
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+
+impl std::fmt::Display for ClassConstraints {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            let bounds = self
+                .0
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(f, "{bounds}")
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ClassConstraint {
+    /// Whether or not 'T can be compared via Eq to values of the same domain.
+    Eq,
+    /// Whether or not 'T can be added to values of the same domain via the + operator.
+    Add,
+    Exp {
+        // `base` is inferred to be the self type
+        power: Ty,
+    },
+    /// If 'T is iterable, then it can be iterated over and the items inside are yielded (of type `item`).
+    Iterable { item: Ty },
+    /// Whether or not 'T can be divided by values of the same domain via the / operator.
+    Div,
+    /// Whether or not 'T can be subtracted from values of the same domain via the - operator.
+    Sub,
+    /// Whether or not 'T can be multiplied by values of the same domain via the * operator.
+    Mul,
+    /// Whether or not 'T can be taken modulo values of the same domain via the % operator.
+    Mod,
+    /// Whether or not 'T can be compared via Ord to values of the same domain.
+    Ord,
+    /// Whether or not 'T can be signed.
+    Signed,
+    /// Whether or not 'T is an integral type (can be used in bit shifting operators).
+    Integral,
+    /// Whether or not 'T can be displayed as a string (converted to a string).
+    Show,
+    /// A class that is not built-in to the compiler.
+    NonNativeClass(Rc<str>),
+}
+
+impl std::fmt::Display for ClassConstraint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ClassConstraint::Eq => write!(f, "Eq"),
+            ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
+            ClassConstraint::Exp { power } => write!(f, "Exp<{power}>"),
+            ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Add => write!(f, "Add"),
+            ClassConstraint::Integral => write!(f, "Integral"),
+            ClassConstraint::Show => write!(f, "Show"),
+            ClassConstraint::Div => write!(f, "Div"),
+            ClassConstraint::Sub => write!(f, "Sub"),
+            ClassConstraint::Mul => write!(f, "Mul"),
+            ClassConstraint::Mod => write!(f, "Mod"),
+            ClassConstraint::Ord => write!(f, "Ord"),
+            ClassConstraint::Signed => write!(f, "Signed"),
         }
     }
 }
 
 /// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
-pub enum GenericParam {
+pub enum TypeParameter {
     /// A type parameter.
-    Ty,
+    Ty {
+        name: Rc<str>,
+        bounds: ClassConstraints,
+    },
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }

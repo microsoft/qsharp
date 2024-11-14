@@ -37,7 +37,7 @@ fn test_missing_type() {
     let _ = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","range":{"end":{"character":33,"line":0},"start":{"character":32,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingTy","message":"type error: missing type in item signature\n\nhelp: a type must be provided for this item","range":{"end":{"character":33,"line":0},"start":{"character":32,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,

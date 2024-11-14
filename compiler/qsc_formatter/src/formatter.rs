@@ -562,7 +562,7 @@ impl<'a> Formatter<'a> {
         left_kind: &ConcreteTokenKind,
         right_kind: &ConcreteTokenKind,
     ) {
-        use qsc_frontend::keyword::Keyword;
+        use qsc_frontend::{keyword::Keyword, lex::cooked::ClosedBinOp};
         use ConcreteTokenKind::*;
         use TokenKind::*;
 
@@ -599,7 +599,7 @@ impl<'a> Formatter<'a> {
             {
                 self.type_param_state = TypeParameterListState::InTypeParamList;
             }
-            Syntax(AposIdent | Comma | Gt)
+            Syntax(AposIdent | Comma | Gt | ClosedBinOp(ClosedBinOp::Plus) | Ident | Colon)
                 if matches!(
                     self.type_param_state,
                     TypeParameterListState::InTypeParamList

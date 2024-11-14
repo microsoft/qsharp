@@ -7,8 +7,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Ident, Idents, NodeId, PathKind, SpecBody, SpecGen,
-        TopLevelNode,
+        self, CallableBody, CallableDecl, ClassConstraints, Ident, Idents, NodeId, PathKind,
+        SpecBody, SpecGen, TopLevelNode, TypeParameter,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -63,7 +63,10 @@ pub enum Res {
     /// A local variable.
     Local(NodeId),
     /// A type/functor parameter in the generics section of the parent callable decl.
-    Param(ParamId),
+    Param {
+        id: ParamId,
+        bounds: ClassConstraints,
+    },
     /// A primitive type.
     PrimTy(Prim),
     /// The unit type.
@@ -212,7 +215,7 @@ pub struct Scope {
     /// it is missed in the list. <a href=https://github.com/microsoft/qsharp/issues/897 />
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
-    ty_vars: FxHashMap<Rc<str>, ParamId>,
+    ty_vars: FxHashMap<Rc<str>, (ParamId, ClassConstraints)>,
 }
 
 #[derive(Debug, Clone)]
@@ -1164,13 +1167,26 @@ impl Resolver {
         }
     }
 
+    /// For a given callable declaration, bind the names of the type parameters
+    /// into the current scope. Tracks the constraints defined on the type parameters
+    /// as well, for later use in type checking.
     fn bind_type_parameters(&mut self, decl: &CallableDecl) {
-        decl.generics.iter().enumerate().for_each(|(ix, ident)| {
-            self.current_scope_mut()
-                .ty_vars
-                .insert(Rc::clone(&ident.name), ix.into());
-            self.names.insert(ident.id, Res::Param(ix.into()));
-        });
+        decl.generics
+            .iter()
+            .enumerate()
+            .for_each(|(ix, type_parameter)| {
+                self.current_scope_mut().ty_vars.insert(
+                    Rc::clone(&type_parameter.ty.name),
+                    (ix.into(), type_parameter.constraints.clone()),
+                );
+                self.names.insert(
+                    type_parameter.ty.id,
+                    Res::Param {
+                        id: ix.into(),
+                        bounds: type_parameter.constraints.clone(),
+                    },
+                );
+            });
     }
 
     fn push_scope(&mut self, span: Span, kind: ScopeKind) {
@@ -1396,8 +1412,8 @@ impl AstVisitor<'_> for With<'_> {
                     self.resolver.errors.push(e);
                 }
             }
-            ast::TyKind::Param(ident) => {
-                self.resolver.resolve_ident(NameKind::Ty, ident);
+            ast::TyKind::Param(TypeParameter { ty, .. }) => {
+                self.resolver.resolve_ident(NameKind::Ty, ty);
             }
             _ => ast_visit::walk_ty(self, ty),
         }
@@ -2334,8 +2350,11 @@ fn resolve_scope_locals(
                 }
             }
             NameKind::Ty => {
-                if let Some(&id) = scope.ty_vars.get(name) {
-                    return Some(Res::Param(id));
+                if let Some((id, bounds)) = scope.ty_vars.get(name) {
+                    return Some(Res::Param {
+                        id: *id,
+                        bounds: bounds.clone(),
+                    });
                 }
             }
         }
@@ -2373,10 +2392,15 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
             }
         }));
 
-        names.extend(scope.ty_vars.iter().map(|id| Local {
-            name: id.0.clone(),
-            kind: LocalKind::TyParam(*id.1),
-        }));
+        names.extend(
+            scope
+                .ty_vars
+                .iter()
+                .map(|(name, (id, _constraints))| Local {
+                    name: name.clone(),
+                    kind: LocalKind::TyParam(*id),
+                }),
+        );
     }
 
     // items

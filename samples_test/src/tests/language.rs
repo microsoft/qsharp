@@ -344,3 +344,19 @@ pub const WHILELOOPS_EXPECT: Expect = expect!["()"];
 pub const WHILELOOPS_EXPECT_DEBUG: Expect = expect!["()"];
 pub const WITHINAPPLY_EXPECT: Expect = expect!["()"];
 pub const WITHINAPPLY_EXPECT_DEBUG: Expect = expect!["()"];
+pub const CLASSCONSTRAINTS_EXPECT: Expect = expect![[r#"
+    true
+    false
+    false
+    false
+    false
+    true
+    ()"#]];
+pub const CLASSCONSTRAINTS_EXPECT_DEBUG: Expect = expect![[r#"
+    true
+    false
+    false
+    false
+    false
+    true
+    ()"#]];

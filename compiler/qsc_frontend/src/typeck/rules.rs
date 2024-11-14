@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Defines type system rules for Q#. The checker calls these rules on the AST.
+//! These rules use the inferrer to know what types to apply constraints to.
+
 use super::{
     convert,
     infer::{ArgTy, Class, Inferrer, TySource},
@@ -10,7 +13,7 @@ use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
     PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
-    TernOp, TyKind, UnOp,
+    TernOp, TyKind, TypeParameter, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -36,12 +39,16 @@ impl<T> Partial<T> {
     }
 }
 
+/// Contexts are currently only generated for exprs, stmts, and specs,
+/// They provide a context within which types are solved for.
+#[derive(Debug)]
 struct Context<'a> {
     names: &'a Names,
     globals: &'a FxHashMap<ItemId, Scheme>,
     table: &'a mut Table,
     return_ty: Option<Ty>,
     typed_holes: Vec<(NodeId, Span)>,
+    /// New nodes that will be introduced into the parent `Context` after this context terminates
     new: Vec<NodeId>,
     inferrer: &'a mut Inferrer,
 }
@@ -119,15 +126,31 @@ impl<'a> Context<'a> {
                 // we resolve exports to their original definition.
                 Some(
                     resolve::Res::Local(_)
-                    | resolve::Res::Param(_)
+                    | resolve::Res::Param { .. }
                     | resolve::Res::ExportedItem(_, _),
                 ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
+            TyKind::Param(TypeParameter {
+                ty, constraints: _, ..
+            }) => match self.names.get(ty.id) {
+                Some(Res::Param { id, bounds }) => {
+                    let (bounds, errs) = convert::class_constraints_from_ast(
+                        self.names,
+                        bounds,
+                        &mut Default::default(),
+                    );
+                    for err in errs {
+                        self.inferrer.report_error(err);
+                    }
+                    Ty::Param {
+                        name: ty.name.clone(),
+                        id: *id,
+                        bounds,
+                    }
+                }
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
@@ -615,7 +638,7 @@ impl<'a> Context<'a> {
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
                     panic!("expression should not resolve to type reference")
                 }
             },
@@ -702,7 +725,7 @@ impl<'a> Context<'a> {
                 converge(with_ctls)
             }
             UnOp::Neg | UnOp::Pos => {
-                self.inferrer.class(span, Class::Num(operand.ty.clone()));
+                self.inferrer.class(span, Class::Signed(operand.ty.clone()));
                 operand
             }
             UnOp::NotB => {
@@ -757,7 +780,7 @@ impl<'a> Context<'a> {
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty));
+                self.inferrer.class(lhs_span, Class::Ord(lhs.ty));
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::AndB | BinOp::OrB | BinOp::XorB => {
@@ -766,9 +789,24 @@ impl<'a> Context<'a> {
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
                 lhs
             }
-            BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
+            BinOp::Div => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
+                self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mul => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Sub => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mod => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mod(lhs.ty.clone()));
                 lhs
             }
             BinOp::Exp => {
