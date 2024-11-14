@@ -356,7 +356,7 @@ test("Run samples", async () => {
   for await (const sample of testCases) {
     console.log("Running " + sample.title);
     await compiler.run(
-      { sources: [[sample.title, sample.code]] },
+      { sources: [["main.qs", sample.code]] },
       "",
       1,
       resultsHandler,
