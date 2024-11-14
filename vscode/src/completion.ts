@@ -87,13 +87,14 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     });
 
     // Include the samples in contexts that are syntactically appropriate.
-    // The presence of the "namespace" keyword in the completion list is a
-    // hint that the cursor is at the top level.
+    // The presence of the "operation" keyword in the completion list is a
+    // hint that the cursor is at a point we can insert the sample code.
+    
     const shouldIncludeSamples =
       results.findIndex(
         (i) =>
           i.kind === vscode.CompletionItemKind.Keyword &&
-          i.label === "namespace",
+          i.label === "operation",
       ) !== -1;
 
     return !shouldIncludeSamples ? results : results.concat(this.samples);
