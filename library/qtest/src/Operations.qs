@@ -1,116 +1,80 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+import Util.TestCaseResult, Util.OutputMessage;
+import Std.Arrays.Mapped, Std.Arrays.All;
+
 /// # Summary
-/// Runs a series of named test operations with expected results.
+/// Runs a number of test cases and returns true if all tests passed, false otherwise.
+/// Prints a report of what passed and what failed as output.
 ///
-/// # Description
-/// Given an array of test names, test operations, and expected results (of the same type), returns `true`
-/// if all tests passed, and `false` if any one test failed.
-/// Prints the expected and received result for any failed tests.
+/// For a more flexible test running function, see `RunAllTestCases` which returns
+/// test results instead of printing out to output.
 ///
 /// # Input
-/// ## test_cases
-/// An array of five-arity tuples of the form `(test_name, num_qubits, qubit_prep_callable, callable_to_test, expected_result)`.
-/// `num_qubits` will be allocated in a qubit array and passed to `qubit_prep_callable` to prepare the state before executing 
-/// `callable_to_test`. Afterwards, `callable_to_test` will be called and its result will be compared to `expected_result`.
+/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// the first String is the name of the test, the function is the test case itself, and the
+/// final element of the tuple is the expected return value from the test case.
 ///
 /// # Example
 /// ```qsharp
-/// function Main() : Unit {
-///     TestCases([
-///         ("Should return 42", TestCaseOne, 42),
-///         ("Should add one", () => AddOne(5), 6)
-///     ]);
-/// }
-///
-/// function TestCaseOne() : Int {
-///     42
-/// }
-///
-/// function AddOne(x: Int) : Int {
-///     x + 1
-/// }
+/// CheckAllTestCases([("Should return 42", () -> 42, 42)]);
 /// ```
-operation TestCases<'Result : Eq + Show > (test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'Result, 'Result)[]) : Bool {
-    let failed_test_buf = TestCasesSilent(test_cases);
-    
-    if Length(failed_test_buf) == 0 {
-        Message($"{Length(test_cases)} test(s) passed.");
-        true
-    } else {
-        Message($"{Length(failed_test_buf)} tests failed.");
-        for item in failed_test_buf {
-            Message($"{item}")
-        }
-        false
-    }
+operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : Bool {
+    let test_results = RunAllTestCases(test_cases);
+
+    OutputMessage(test_results);
+
+    All(test_case -> test_case.did_pass, test_results)
+
 }
 
 /// # Summary
-/// Similar to `Qtest.Operations.TestCases`, but returns test failure info in an array of strings instead of directly messaging to
-/// output. Useful if you want to handle your own messaging when writing tests, for CI or similar.
-
-/// See `Qtest.Operations.TestCases` for more details.
-///
-/// # Description
-/// Given an array of test names, test functions, and expected results (of the same type), returns an array
-/// of strings representing all failed test cases (if any). Strings are of the form "test_name: expected {}, got {}"
-///
+/// Runs all given test cases and returns a `TestCaseResult` for each test, representing whether or not it passed
+/// and what the failure message, if any.
+/// This is a good alternative to `CheckAllTestCases` when you want custom output based on the results of your tests,
+/// or more control over how test results are rendered.
 /// # Input
-/// ## test_cases
-/// An array of five-arity tuples of the form `(test_name, num_qubits, qubit_prep_callable, callable_to_test, expected_result)`.
-/// `num_qubits` will be allocated in a qubit array and passed to `qubit_prep_callable` to prepare the state before executing 
-/// `callable_to_test`. Afterwards, `callable_to_test` will be called and its result will be compared to `expected_result`.
+/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// the first String is the name of the test, the function is the test case itself, and the
+/// final element of the tuple is the expected return value from the test case.
 ///
 /// # Example
 /// ```qsharp
-/// function Main() : Unit {
-///     let failure_messages = TestCasesSilent([
-///         ("Should return 42", TestCaseOne, 42),
-///         ("Should add one", () => AddOne(5), 6)
-///     ]);
-///     Std.Diagnostics.Fact(Length(failure_messages) == 0, "No tests should fail.")
-/// }
-///
-/// function TestCaseOne() : Int {
-///     42
-/// }
-///
-/// function AddOne(x: Int) : Int {
-///     x + 1
-/// }
+/// RunAllTestCases([("Should return 42", () -> 42, 42)]);
 /// ```
-operation TestCasesSilent<'Result : Eq + Show > (test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'Result, 'Result)[]) : String[] {
+operation RunAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : TestCaseResult[] {
     let num_tests = Length(test_cases);
-    mutable failed_test_buf = [];
 
-    for (name, num_qubits, prepare_state, case, result) in test_cases {
+    let num_tests = Length(test_cases);
+
+    MappedOperation((name, num_qubits, prepare_state, case, result) => {
         use qubits = Qubit[num_qubits];
         prepare_state(qubits);
-        let (did_pass, message) = TestCase(qubits, case, result)!;
-        if not did_pass {
-            set failed_test_buf = failed_test_buf + [$"{name}: {message}"];
-        }
+        let res = TestCase(name, qubits, case, result);
         ResetAll(qubits);
+        res
+    }, test_cases)
+}
+
+/// Helper function, copy of `Std.Arrays.Mapped` which works on operations instead
+/// of functions.
+operation MappedOperation<'T, 'U>(mapper : ('T => 'U), array : 'T[]) : 'U[] {
+    mutable mapped = [];
+    for element in array {
+        set mapped += [mapper(element)];
     }
-
-    failed_test_buf
-}
-struct TestCaseResult {
-    did_pass : Bool,
-    message : String,
+    mapped
 }
 
-operation TestCase<'Result : Eq + Show > (qubits: Qubit[], test_case : (Qubit[]) => 'Result, expected : 'Result) : TestCaseResult {
+/// Internal (non-exported) helper function. Runs a test case and produces a `TestCaseResult`
+operation TestCase<'T : Eq + Show>(name : String, qubits : Qubit[], test_case : (Qubit[]) => 'T, expected : 'T) : TestCaseResult {
     let result = test_case(qubits);
     if result == expected {
         new TestCaseResult { did_pass = true, message = "" }
     } else {
-        new TestCaseResult { did_pass = false, message = $"expected: {expected}, got: {result}" }
+        new TestCaseResult { did_pass = false, message = $"{name}: expected: {expected}, got: {result}" }
     }
 }
 
-
-
-export TestCases; 
+export CheckAllTestCases, RunAllTestCases; 
