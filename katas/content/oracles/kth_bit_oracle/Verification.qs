@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation KthBit_Oracle_Reference(x : Qubit[], k : Int) : Unit is Adj + Ctl {
         Z(x[k]);

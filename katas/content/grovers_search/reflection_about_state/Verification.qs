@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Math.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation ReflectionAboutState(
         qs : Qubit[],

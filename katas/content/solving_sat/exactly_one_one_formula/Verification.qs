@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Random.*;
 
     function F_Exactly1SATClause(args : Bool[], clause : (Int, Bool)[]) : Bool {

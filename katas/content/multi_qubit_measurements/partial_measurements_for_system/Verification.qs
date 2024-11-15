@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // Distinguish orthogonal states using partial measurements
     operation StatePrep_IsPlusPlusMinus(qs : Qubit[], state : Int, dummyVar : Double) : Unit is Adj {

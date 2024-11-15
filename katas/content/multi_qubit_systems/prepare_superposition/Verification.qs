@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation PrepareSuperposition_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[1]);

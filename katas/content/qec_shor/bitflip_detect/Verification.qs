@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation BitflipEncode(qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);

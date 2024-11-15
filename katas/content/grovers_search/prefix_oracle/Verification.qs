@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_StartsWith(args : Bool[], p : Bool[]) : Bool {
         for i in 0..Length(p) - 1 {

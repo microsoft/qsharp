@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation EvenOddNumbersSuperposition_Reference(qs : Qubit[], isEven : Bool) : Unit is Adj + Ctl {
         let N = Length(qs);

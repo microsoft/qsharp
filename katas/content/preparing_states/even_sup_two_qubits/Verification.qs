@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation AllBasisVectors_TwoQubits_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

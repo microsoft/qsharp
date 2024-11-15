@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_Product(x : Bool[], r : Bool[]) : Bool {
         mutable product = false;

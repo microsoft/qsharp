@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation ZeroAndBitstringSuperposition_Reference(qs : Qubit[], bits : Bool[]) : Unit is Adj + Ctl {
         H(qs[0]);

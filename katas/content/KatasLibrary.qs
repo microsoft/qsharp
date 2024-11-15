@@ -2,6 +2,24 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Katas {
+    import KatasUtils.*;
+    export
+        CheckOperationsAreEqualStrict,
+        CheckOperationsEquivalenceOnZeroState,
+        CheckOperationsEquivalenceOnInitialStateStrict,
+        CheckOperationsEquivalenceOnZeroStateStrict,
+        ShowQuantumStateComparison,
+        CheckOperationsEquivalenceOnZeroStateWithFeedback,
+        EntangleRegisters,
+        PrepDemoState,
+        DistinguishTwoStates_SingleQubit,
+        DistinguishStates_MultiQubit,
+        BoolArrayAsKetState,
+        IntArrayAsStateName,
+        CheckOracleImplementsFunction;
+}
+
+namespace KatasUtils {
     import Std.Arrays.*;
     import Std.Convert.*;
     import Std.Diagnostics.*;

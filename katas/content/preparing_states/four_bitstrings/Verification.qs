@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
     import Std.Random.*;
 

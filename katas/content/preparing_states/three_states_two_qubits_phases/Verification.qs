@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation ThreeStates_TwoQubits_Phases_Reference(qs : Qubit[]) : Unit is Adj {

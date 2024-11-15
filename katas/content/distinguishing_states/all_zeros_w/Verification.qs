@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation StatePrep_AllZerosOrWState(
         qs : Qubit[],

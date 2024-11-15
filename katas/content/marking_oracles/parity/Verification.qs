@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_Parity(x : Bool[]) : Bool {
         mutable parity = false;

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation IsSeven_PhaseOracle_Reference(x : Qubit[]) : Unit is Adj + Ctl {

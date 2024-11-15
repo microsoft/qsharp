@@ -2,7 +2,7 @@ namespace Kata.Verification {
     import Std.Arrays.*;
     import Std.Convert.*;
     import Std.Diagnostics.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation MultiControls(controls : Qubit[], target : Qubit, controlBits : Bool[]) : Unit is Adj + Ctl {
         within {

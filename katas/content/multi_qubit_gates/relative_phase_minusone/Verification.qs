@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Diagnostics.*;
 
     operation PrepareState(qs : Qubit[]) : Unit is Adj + Ctl {

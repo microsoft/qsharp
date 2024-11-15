@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Math.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // Distinguish specific orthogonal states
     // |ψ₊⟩ =   0.6 * |0⟩ + 0.8 * |1⟩,

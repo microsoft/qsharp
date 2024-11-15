@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Arrays.*;
 
     function F_BitSumDivisibleBy3(args : Bool[]) : Bool {

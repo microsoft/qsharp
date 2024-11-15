@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

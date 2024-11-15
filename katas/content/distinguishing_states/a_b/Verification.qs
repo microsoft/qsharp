@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     import Std.Convert.*;
     import Std.Math.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // |A⟩ =   cos(alpha) * |0⟩ + sin(alpha) * |1⟩,
     // |B⟩ = - sin(alpha) * |0⟩ + cos(alpha) * |1⟩.

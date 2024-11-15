@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation UnequalSuperposition_Reference(q : Qubit, alpha : Double) : Unit is Adj + Ctl {

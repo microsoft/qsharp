@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_PatternMatching(args : Bool[], a : Int[], r : Bool[]) : Bool {
         for i in 0..Length(a) - 1 {

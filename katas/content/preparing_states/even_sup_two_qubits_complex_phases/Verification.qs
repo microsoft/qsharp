@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation AllBasisVectorsWithComplexPhases_TwoQubits_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         // Qubit 0 is taken into |+⟩ and then z-rotated into |-⟩.

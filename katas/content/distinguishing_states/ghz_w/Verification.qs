@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation GHZ_State_Reference(qs : Qubit[]) : Unit is Adj {
         H(qs[0]);

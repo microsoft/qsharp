@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Diagnostics.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation TeleportEntanglementSwappingTestLoop(
         entanglementSwapping : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit)

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_Kth_Bit(x : Bool[], k : Int) : Bool {
         x[k]

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Diagnostics.*;
 
     operation FlipQubit(q : Qubit) : Unit is Adj + Ctl {

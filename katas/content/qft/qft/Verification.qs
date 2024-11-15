@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation LibraryQFT(qs : Qubit[]) : Unit is Adj + Ctl {
         ApplyQFT(Reversed(qs));

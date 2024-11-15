@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation AllStatesWithParitySuperposition_Reference(qs : Qubit[], parity : Int) : Unit is Adj + Ctl {
         if Length(qs) == 1 {

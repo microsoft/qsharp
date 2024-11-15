@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation EntangleThreeQubits_Wrapper(qs : Qubit[]) : Unit is Adj {
         Kata.EntangleThreeQubits(qs[0], qs[1], qs[2]);

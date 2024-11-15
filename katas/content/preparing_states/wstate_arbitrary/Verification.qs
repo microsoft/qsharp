@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation WState_Arbitrary_Reference(qs : Qubit[]) : Unit is Adj + Ctl {

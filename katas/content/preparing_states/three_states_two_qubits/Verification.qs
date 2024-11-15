@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     // Reference solution that does not use measurements (to be adjointable)

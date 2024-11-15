@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation IsSeven_MarkingOracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {

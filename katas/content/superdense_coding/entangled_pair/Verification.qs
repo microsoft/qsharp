@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation CreateEntangledPair_Wrapper(qs : Qubit[]) : Unit is Adj {
         Kata.CreateEntangledPair(qs[0], qs[1]);

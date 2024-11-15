@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Convert.*;
 
     function F_DivisibleBy3(args : Bool[]) : Bool {

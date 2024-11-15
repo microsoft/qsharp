@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation BinaryFractionClassical_Alternative(q : Qubit, j : Bool[]) : Unit is Adj + Ctl {

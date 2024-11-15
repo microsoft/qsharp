@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_ContainsSubstring(args : Bool[], r : Bool[]) : Bool {
         let N = Length(args);

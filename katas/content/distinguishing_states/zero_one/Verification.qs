@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Diagnostics.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation StatePrep_IsQubitOne(q : Qubit, state : Int) : Unit is Adj {
         if state == 1 {

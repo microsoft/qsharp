@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation AllBellStates_Reference(qs : Qubit[], index : Int) : Unit is Adj + Ctl {
         H(qs[0]);

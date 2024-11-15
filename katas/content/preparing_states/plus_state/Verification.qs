@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation PlusState_Reference(q : Qubit) : Unit is Adj + Ctl {
         H(q);

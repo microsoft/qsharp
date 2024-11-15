@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_Periodic(args : Bool[]) : Bool {
         let N = Length(args);

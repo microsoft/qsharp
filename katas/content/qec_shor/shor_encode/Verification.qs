@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     import Std.Convert.*;
     import Std.Diagnostics.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation ShorEncode_Reference(qs : Qubit[]) : Unit is Adj + Ctl {

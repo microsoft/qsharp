@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation Hardy_State_Reference(qs : Qubit[]) : Unit is Adj {

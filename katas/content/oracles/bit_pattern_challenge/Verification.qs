@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation ArbitraryBitPattern_Oracle_Challenge_Reference(x : Qubit[], pattern : Bool[]) : Unit is Adj + Ctl {
         within {

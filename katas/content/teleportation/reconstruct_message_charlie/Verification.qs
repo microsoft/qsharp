@@ -2,7 +2,7 @@ namespace Kata.Verification {
     import Std.Convert.*;
     import Std.Diagnostics.*;
     import Std.Math.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation ReconstructMessageWhenThreeEntangledQubitsTestLoop(
         reconstructMessage : (Qubit, (Bool, Bool), Bool) => Unit

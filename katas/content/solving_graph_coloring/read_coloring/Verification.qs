@@ -2,7 +2,7 @@ namespace Kata.Verification {
     import Std.Diagnostics.*;
     import Std.Arrays.*;
     import Std.Convert.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

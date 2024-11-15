@@ -1,6 +1,6 @@
 namespace Kata.Verification {
     import Std.Arrays.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     function F_Exactly1One(args : Bool[]) : Bool {
         return Count(x -> x, args) == 1;

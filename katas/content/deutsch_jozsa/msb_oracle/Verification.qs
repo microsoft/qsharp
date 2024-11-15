@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
     import Std.Math.*;
 
     operation PhaseOracle_MostSignificantBit_Reference(x : Qubit[]) : Unit is Adj + Ctl {

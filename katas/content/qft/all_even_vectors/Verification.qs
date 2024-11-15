@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     operation AllEvenVectors_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         for q in qs[...Length(qs) - 2] {

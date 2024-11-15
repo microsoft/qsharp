@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // Two qubit parity Measurement
     operation StatePrep_ParityMeasurement(qs : Qubit[], state : Int, alpha : Double) : Unit is Adj {

@@ -2,7 +2,7 @@ namespace Kata.Verification {
     import Std.Arrays.*;
     import Std.Convert.*;
     import Std.Diagnostics.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // Hardcoded graphs used for testing the vertex coloring problem:
     //  - trivial graph with zero edges

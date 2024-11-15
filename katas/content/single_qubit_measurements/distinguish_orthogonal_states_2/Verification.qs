@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     import Std.Convert.*;
     import Std.Math.*;
-    import Std.Katas.*;
+    import KatasUtils.*;
 
     // Distinguish states |A❭ and |B❭
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,
