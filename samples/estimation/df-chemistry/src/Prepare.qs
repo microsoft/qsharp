@@ -5,8 +5,8 @@ import Std.Convert.*;
 import Std.Diagnostics.*;
 import Std.Intrinsic.*;
 import Std.Math.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
-import Microsoft.Quantum.Unstable.TableLookup.*;
+import Std.Arithmetic.*;
+import Std.TableLookup.*;
 
 // ------------------------------------- //
 // State preparation (public operations) //

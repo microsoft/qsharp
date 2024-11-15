@@ -10,7 +10,7 @@ import Std.Convert.*;
 import Std.Diagnostics.*;
 import Std.Random.*;
 import Std.Math.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
+import Std.Arithmetic.*;
 import Std.Arrays.*;
 
 operation Main() : (Int, Int) {
