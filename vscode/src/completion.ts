@@ -89,7 +89,17 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       return item;
     });
 
-    // Include the samples list for empty documents
-    return document.lineCount > 0 ? results : results.concat(this.samples);
+    // Include the samples in contexts that are syntactically appropriate.
+    // The presence of the "operation" keyword in the completion list is a
+    // hint that the cursor is at a point we can insert the sample code.
+
+    const shouldIncludeSamples =
+      results.findIndex(
+        (i) =>
+          i.kind === vscode.CompletionItemKind.Keyword &&
+          i.label === "operation",
+      ) !== -1;
+
+    return !shouldIncludeSamples ? results : results.concat(this.samples);
   }
 }
