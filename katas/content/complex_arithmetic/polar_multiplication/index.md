@@ -20,4 +20,4 @@ Return the product of $x$ and $y$ as a complex polar number $x \cdot y = r_{3}e^
   Is the value of $\theta$ in the product incorrect? Remember you might have to check your boundaries and adjust it to be in the range requested.
 </details>
 
-> Q# function `TimesCP` from `Microsoft.Quantum.Math` namespace multiplies two complex numbers, but it doesn't normalize the argument of the resulting number. For educational purposes, try to do this task by hand.
+> Q# function `TimesCP` from `Std.Math` namespace multiplies two complex numbers, but it doesn't normalize the argument of the resulting number. For educational purposes, try to do this task by hand.

@@ -7,4 +7,4 @@ A floating-point number $x$, $0 \le x \le 1$.
 
 **Goal:** Generate $0$ or $1$ with probability of $0$ equal to $x$ and probability of $1$ equal to $1 - x$.
 
-> Q# namespace `Microsoft.Quantum.Math` includes useful functions `Sqrt`, `ArcCos`, and `ArcSin`.
+> Q# namespace `Std.Math` includes useful functions `Sqrt`, `ArcCos`, and `ArcSin`.

@@ -67,7 +67,7 @@ For example, $3+4i$ or $-5-7i$ are valid complex numbers. Note that purely real 
 When performing operations on complex numbers, it's often helpful to treat them as polynomials in terms of $i$.
 Let's see how to do the main arithmetic operations on complex numbers.
 
-> In Q#, complex numbers are represented as user-defined struct type `Complex` from the `Microsoft.Quantum.Math` namespace.
+> In Q#, complex numbers are represented as user-defined struct type `Complex` from the `Std.Math` namespace.
 >
 > Given a complex number $x = a + bi$, you can access its real and imaginary parts using their names: `let (a, b) = (x.Real, x.Imag);`.
 >
@@ -233,7 +233,7 @@ Another way to think about this is that you're taking a point that is $1$ unit a
 A complex number of the format $r \cdot e^{i\theta}$ will be represented by a point which is $r$ units away from the origin, in the direction specified by the angle $\theta$.
 Sometimes $\theta$ will be referred to as the number's **argument** or **phase**.
 
-> In Q#, complex numbers in polar form are represented as user-defined struct type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace.
+> In Q#, complex numbers in polar form are represented as user-defined struct type `ComplexPolar` from the `Std.Math` namespace.
 >
 > Given a complex number $x = r \cdot e^{i\theta}$, you can access its magnitude and phase using their names: `let r = x.Magnitude;` and `let theta = x.Argument;`.
 >

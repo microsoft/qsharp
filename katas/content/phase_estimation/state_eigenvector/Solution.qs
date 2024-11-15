@@ -1,5 +1,5 @@
 namespace Kata {
-    import Microsoft.Quantum.Diagnostics.CheckZero;
+    import Std.Diagnostics.CheckZero;
     operation IsEigenvector(U : Qubit => Unit, P : Qubit => Unit is Adj) : Bool {
         use q = Qubit();
         P(q);

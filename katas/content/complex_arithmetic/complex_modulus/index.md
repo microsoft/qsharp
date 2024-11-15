@@ -9,4 +9,4 @@
 
 </details>
 
-> Q# function `AbsComplex` from `Microsoft.Quantum.Math` namespace gets the absolute value of a complex number. For educational purposes, try to do this task by hand.
+> Q# function `AbsComplex` from `Std.Math` namespace gets the absolute value of a complex number. For educational purposes, try to do this task by hand.
