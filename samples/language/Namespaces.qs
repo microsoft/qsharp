@@ -12,7 +12,7 @@
 import Std.Diagnostics.*;
 
 function Main() : Result[] {
-    // `DumpMachine` is in the Microsoft.Quantum.Diagnostics namespace
+    // `DumpMachine` is in the Std.Diagnostics namespace
     DumpMachine();
     return [];
 }

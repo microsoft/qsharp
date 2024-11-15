@@ -41,8 +41,9 @@ function populateSamples(vfs: MemFS) {
   vfs.createDirectory(playgroundRootUri.with({ path: "/samples" }));
 
   samples.forEach((sample) => {
+    const sanitized_file_name = sample.title.replace(/\W/g, ""); // Remove non-word characters
     vfs.writeFile(
-      playgroundRootUri.with({ path: `/samples/${sample.title}.qs` }),
+      playgroundRootUri.with({ path: `/samples/${sanitized_file_name}.qs` }),
       encoder.encode(sample.code),
       { create: true, overwrite: true },
     );

@@ -9,18 +9,14 @@
 /// described in [[Quantum 5, 433 (2021)](https://quantum-journal.org/papers/q-2021-04-15-433/)].
 /// Our implementation incorporates all techniques described in the paper, except for
 /// carry runways.
-namespace PrecalculatedEstimates {
-    import Std.ResourceEstimation.*;
+import Std.ResourceEstimation.*;
 
-    @EntryPoint()
-    operation FactoringFromLogicalCounts() : Unit {
-        use qubits = Qubit[12581];
+operation Main() : Unit {
+    use qubits = Qubit[12581];
 
-        AccountForEstimates(
-            [TCount(12), RotationCount(12), RotationDepth(12), CczCount(3731607428), MeasurementCount(1078154040)],
-            PSSPCLayout(),
-            qubits
-        );
-    }
-
+    AccountForEstimates(
+        [TCount(12), RotationCount(12), RotationDepth(12), CczCount(3731607428), MeasurementCount(1078154040)],
+        PSSPCLayout(),
+        qubits
+    );
 }
