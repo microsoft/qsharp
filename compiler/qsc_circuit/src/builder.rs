@@ -303,7 +303,7 @@ impl Builder {
                 self.push_list::<'(', ')'>(vals, qubits, classical_args);
             }
             Value::Qubit(q) => {
-                qubits.push(self.map(q.0));
+                qubits.push(self.map(q.deref().0));
             }
             v => {
                 let _ = write!(classical_args, "{v}");

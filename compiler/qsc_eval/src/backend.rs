@@ -384,7 +384,7 @@ impl Backend for SparseSim {
                     .clone()
                     .unwrap_array()
                     .iter()
-                    .map(|q| q.clone().unwrap_qubit().0)
+                    .map(|q| q.clone().unwrap_qubit().deref().0)
                     .collect::<Vec<_>>();
                 let q = self.sim.allocate();
                 // The new qubit is by-definition in the |0⟩ state, so by reversing the sign of the
@@ -415,7 +415,7 @@ impl Backend for SparseSim {
                 }
             }
             "ApplyIdleNoise" => {
-                let q = arg.unwrap_qubit().0;
+                let q = arg.unwrap_qubit().deref().0;
                 self.apply_noise(q);
                 Some(Ok(Value::unit()))
             }

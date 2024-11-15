@@ -337,10 +337,10 @@ fn block_mutable_nested_scopes_shadowing_expr() {
 fn block_qubit_use_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -349,11 +349,11 @@ fn block_qubit_use_expr() {
 fn block_qubit_use_use_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit();
             use q1 = Qubit();
-            q1
-        }"},
+            $"{q1}"
+        }"#},
         &expect!["Qubit1"],
     );
 }
@@ -362,13 +362,13 @@ fn block_qubit_use_use_expr() {
 fn block_qubit_use_reuse_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             {
                 use q = Qubit();
             }
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -377,12 +377,12 @@ fn block_qubit_use_reuse_expr() {
 fn block_qubit_use_scope_reuse_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit() {
             }
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -391,10 +391,10 @@ fn block_qubit_use_scope_reuse_expr() {
 fn block_qubit_use_array_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit[3];
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["[Qubit0, Qubit1, Qubit2]"],
     );
 }
@@ -428,10 +428,10 @@ fn block_qubit_use_array_invalid_count_expr() {
 fn block_qubit_use_tuple_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = (Qubit[3], Qubit(), Qubit());
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["([Qubit0, Qubit1, Qubit2], Qubit3, Qubit4)"],
     );
 }
@@ -440,10 +440,10 @@ fn block_qubit_use_tuple_expr() {
 fn block_qubit_use_nested_tuple_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = (Qubit[3], (Qubit(), Qubit()));
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
     );
 }
