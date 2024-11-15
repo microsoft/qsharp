@@ -13,7 +13,7 @@ import
     Std.Arrays.*,
     Std.ResourceEstimation.BeginEstimateCaching,
     Std.ResourceEstimation.EndEstimateCaching,
-    ArithmeticUtils.ApplyAndAssuming0Target;
+    Std.ArithmeticUtils.ApplyAndAssuming0Target;
 
 /// # Summary
 /// Performs table lookup using a SELECT network
