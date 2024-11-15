@@ -12,7 +12,7 @@
 // Classes that Q# currently supports are:
 // - `Eq`: denotes that a type can be compared to other values of the same type via the `==` operator.
 // - `Add`: denotes that a type can be added to other values of the same type via the `+` operator.
-// - `Mul`: denotes that a type can be used with the modulo (`*`) operator.
+// - `Mul`: denotes that a type can be used with the multiplication (`*`) operator.
 // - `Mod`: denotes that a type can be used with the modulo (`%`) operator.
 // - `Sub`: denotes that a type can subtracted from other values of the same type via the  `-` operator.
 // - `Div`: denotes that a type can subtracted from other values of the same type via the  `/` operator.
