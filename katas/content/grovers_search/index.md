@@ -56,7 +56,7 @@ for which the formula evaluates to true (or to decide that such assignment doesn
 This is exactly the definition of the search problem, with the input $x$ defined as the set of variables used in the formula and $f(x)$ - as the formula itself.
 - Vertex coloring problem aims to find an assignment of colors to the vertices of a given graph that would satisfy the given constraints. In this case, $x$ describes the colors assigned to the vertices, and $f(x)$ is $1$ if the constraints are satisfied or $0$ otherwise.
 
-You will learn more about appliyng Grover's search to solving specific problems in later katas.
+You will learn more about applying Grover's search to solving specific problems in later katas.
 This kata focuses on Grover's search algorithm itself rather than on applying it to a specific problem, so 
 it uses a very simple function definition as an example.
 
@@ -168,7 +168,7 @@ After applying $R$ iterations of Grover's search the state of the system will be
 
 $$\sin{(2R+1)\theta}\ket{\text{good}} + \cos{(2R+1)\theta}\ket{\text{bad}}$$
 
-At firat, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\text{good}}$ - the states that are solutions to the problem.
+At first, each iteration brings the state of the system closer to the vertical axis, increasing the probability of measuring one of the basis states that are part of $\ket{\text{good}}$ - the states that are solutions to the problem.
 
 @[exercise]({
     "id": "grovers_search__phase_oracle",
@@ -198,7 +198,7 @@ The optimal number of iterations to use in Grover's search algorithm is typicall
 after which the success probability of the algorithm - the probability of measuring one of the "good" states - is maximized.
 
 Geometrically, this means that the state vector should be rotated to be as close to the vertical axis as possible.
-Mathematically, this means maximizing the ampitude $\sin{(2R+1)\theta}$ of the state $\ket{\text{good}}$ 
+Mathematically, this means maximizing the amplitude $\sin{(2R+1)\theta}$ of the state $\ket{\text{good}}$ 
 in the superposition.
 With either definition, the goal is to have the angle $(2R+1)\theta$ that describes the system after $R$ rotations
 as close to $\frac{\pi}{2}$ as possible:
@@ -279,8 +279,8 @@ In fact, the first iteration is likely to decrease the probability of success!
 
 The last two scenarios are a lot easier to handle classically. 
 Indeed, a randomly selected classical value has a probability of being a problem solution $p = \frac{M}{N} > \frac{1}{2}$! 
-If we repeat the random selection of the variable $k$ times, the probability of success grows to $1-(1-p)^k$, thus by increasing $k$ we can get this probabilty as close to $1$ as we need.
-For example, For $p=0.5$ and $k=10$ the probality of success is about $99.9\%$.
+If we repeat the random selection of the variable $k$ times, the probability of success grows to $1-(1-p)^k$, thus by increasing $k$ we can get this probability as close to $1$ as we need.
+For example, For $p=0.5$ and $k=10$ the probability of success is about $99.9\%$.
 
 #### Unknown number of solutions
 

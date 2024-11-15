@@ -1,5 +1,5 @@
 /// # Sample
-/// Bernstein-Vazirani algorithm
+/// Bernstein-Vazirani Algorithm
 ///
 /// # Description
 /// The Bernstein-Vazirani algorithm determines the value of a bit string

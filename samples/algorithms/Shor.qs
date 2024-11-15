@@ -1,5 +1,5 @@
 /// # Sample
-/// Shor's algorithm
+/// Shor's Algorithm
 ///
 /// # Description
 /// Shor's algorithm is a quantum algorithm for finding the prime factors of an
