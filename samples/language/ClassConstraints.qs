@@ -4,8 +4,6 @@
 // # Description
 // Q# supports constraining generic types via _class constraints_. The formal term for this concept is bounded polymorphism,
 // or parametric polymorphism.
-// The currently supported classes are `Exp`, for exponentiation; `Eq`, for comparison via the `==` operator; `Add`, for addition via the `+` operator;
-// `Num`, if a type is numeric; `Integral`, if a type is a form of integer; and `Show`, if a type can be rendered as a string.
 
 // A generic type, or type parameter, is specified on a callable declaration to signify that a function can take multiple types of data as input.
 // For a generic type parameter to be useful, we need to be able to know enough about it to operate on it. This is where class constraints come in. By specifying
@@ -14,12 +12,12 @@
 // Classes that Q# currently supports are:
 // - `Eq`: denotes that a type can be compared to other values of the same type via the `==` operator.
 // - `Add`: denotes that a type can be added to other values of the same type via the `+` operator.
+// - `Mul`: denotes that a type can be used with the modulo (`*`) operator.
 // - `Mod`: denotes that a type can be used with the modulo (`%`) operator.
 // - `Sub`: denotes that a type can subtracted from other values of the same type via the  `-` operator.
 // - `Div`: denotes that a type can subtracted from other values of the same type via the  `/` operator.
 // - `Signed`: denotes that a type can be negated or made positive with `+` or `-` unary operator prefixes.
 // - `Ord`: denotes that a type can be used with comparison operators (`>`, `<`, `>=`, `<=`).
-// - `Num`: denotes that a type can be used in `>`, `>=`, `<`, `<=`, `/`, `%`, `*`, and `-` operator expressions.
 // - `Show`: denotes that a type can be converted to a string via format strings (`$"number: {num}"`).
 // - `Exp['T]`: denotes that a type can be raised to a power of type `'T`. The return type of exponentiation is the type of the base.
 // - `Integral`: denotes that a type is an integer-ish type, i.e., can be used in following expressions using the following operators: `&&&`, `|||`, `^^^`, `<<<`, and `>>>`.

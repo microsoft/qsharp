@@ -59,7 +59,9 @@ pub(super) enum Error {
         span: Span,
     },
     #[error("unrecognized class constraint {name}")]
-    #[help("supported classes are Eq, Add, Exp, Integral, Num, and Show")]
+    #[help(
+        "supported classes are Eq, Add, Sub, Mul, Div, Mod, Signed, Ord, Exp, Integral, and Show"
+    )]
     #[diagnostic(code("Qsc.LowerAst.UnrecognizedClass"))]
     UnrecognizedClass {
         #[label]

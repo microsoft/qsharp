@@ -256,7 +256,6 @@ fn collect_names(
                         CompletionItemKind::Class,
                         Some("Exp['Power]".into()),
                     ),
-                    Completion::new("Num".to_string(), CompletionItemKind::Class),
                     Completion::new("Integral".to_string(), CompletionItemKind::Class),
                     Completion::new("Show".to_string(), CompletionItemKind::Class),
                     Completion::new("Signed".to_string(), CompletionItemKind::Class),
