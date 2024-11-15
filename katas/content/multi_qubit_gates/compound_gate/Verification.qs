@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Katas.*;
+    import Std.Math.*;
 
-    operation CompoundGate (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation CompoundGate(qs : Qubit[]) : Unit is Adj + Ctl {
         S(qs[0]);
         I(qs[1]); // this line can be omitted, since it doesn't change the qubit state
         Y(qs[2]);
@@ -18,8 +18,7 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
-                "transformation");
+            Message("Hint: examine how your solution transforms the given state and compare it with the expected " + "transformation");
             ShowQuantumStateComparison(3, PrepDemoState, solution, reference);
         }
 

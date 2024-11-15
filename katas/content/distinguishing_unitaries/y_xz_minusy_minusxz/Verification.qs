@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

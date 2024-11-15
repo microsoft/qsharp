@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    
+    import Std.Katas.*;
+
     operation EntangleThreeQubits_Wrapper(qs : Qubit[]) : Unit is Adj {
         Kata.EntangleThreeQubits(qs[0], qs[1], qs[2]);
     }
@@ -12,6 +12,6 @@ namespace Kata.Verification {
             EntangleThreeQubitsWrapper_Reference,
             3
         );
-        
+
     }
 }

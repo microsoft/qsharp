@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ArraysEqualD(actual : Double[][], expected : Double[][]) : Bool {
         if Length(actual) != Length(expected) {

@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation Or_Oracle(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);

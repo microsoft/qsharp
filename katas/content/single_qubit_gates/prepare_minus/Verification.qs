@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
     operation PrepareMinus(q : Qubit) : Unit is Adj + Ctl {
         X(q);
@@ -16,8 +16,7 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine the state prepared by your solution and compare it with the state it " +
-                "is expected to prepare.");
+            Message("Hint: examine the state prepared by your solution and compare it with the state it " + "is expected to prepare.");
             ShowQuantumStateComparison(1, qs => (), solution, reference);
         }
         isCorrect

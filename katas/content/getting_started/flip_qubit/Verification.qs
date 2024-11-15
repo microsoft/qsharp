@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Katas.*;
+    import Std.Diagnostics.*;
 
     operation FlipQubit(q : Qubit) : Unit is Adj + Ctl {
         X(q);
@@ -18,8 +18,7 @@ namespace Kata.Verification {
         } else {
             Message("Incorrect.");
             Message("Look out for hints when your solution is incorrect.");
-            Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " +
-                "is expected to have.");
+            Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " + "is expected to have.");
             ShowQuantumStateComparison(1, (qs => ()), solution, reference);
         }
         isCorrect

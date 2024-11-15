@@ -1,11 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import Std.Random.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
         use q = Qubit();
-        for _ in 1 .. 4 {
+        for _ in 1..4 {
             // repeat 4 times since we are testing a measurement and wrong basis still might get
             // the correct answer, reduces probability of false positives
             let result = Kata.AliceQuantum(false, q);

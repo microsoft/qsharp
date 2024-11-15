@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function InnerProduct_Reference() : Complex {
         return Complex(-18., 72.);
@@ -14,7 +14,7 @@ namespace Kata.Verification {
             Message($"Expected {ComplexAsString(expected)}, actual {ComplexAsString(actual)}");
             return false;
         }
-        
+
         Message("Correct!");
         return true;
     }

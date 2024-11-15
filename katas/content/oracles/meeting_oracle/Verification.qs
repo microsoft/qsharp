@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
     operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
@@ -23,8 +23,8 @@ namespace Kata.Verification {
     }
 
     operation ApplyMeetingOracle(qs : Qubit[], oracle : (Qubit[], Qubit[], Qubit) => Unit is Adj + Ctl) : Unit is Adj + Ctl {
-        let x = qs[0 .. 4];
-        let jasmine = qs[5 .. 9];
+        let x = qs[0..4];
+        let jasmine = qs[5..9];
         let target = qs[10];
         oracle(x, jasmine, target);
     }
@@ -38,9 +38,7 @@ namespace Kata.Verification {
 
         if not isCorrect {
             Message("Incorrect.");
-            Message("Hint: check that you're flipping the state of the target qubit for the correct inputs, " +
-                "that you're uncomputing any changes you did to the input qubits correctly, " +
-                "and that you're returning any temporarily allocated qubits to the zero state.");
+            Message("Hint: check that you're flipping the state of the target qubit for the correct inputs, " + "that you're uncomputing any changes you did to the input qubits correctly, " + "and that you're returning any temporarily allocated qubits to the zero state.");
             return false;
         }
         Message("Correct!");

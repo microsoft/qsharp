@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Katas.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
-    operation PhaseFlip (q : Qubit) : Unit is Adj + Ctl {
+    operation PhaseFlip(q : Qubit) : Unit is Adj + Ctl {
         S(q);
     }
 
@@ -17,8 +17,7 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
-                "is expected to have.");
+            Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " + "is expected to have.");
             ShowQuantumStateComparison(1, qs => Ry(ArcTan2(0.8, 0.6) * 2.0, qs[0]), solution, reference);
         }
         isCorrect

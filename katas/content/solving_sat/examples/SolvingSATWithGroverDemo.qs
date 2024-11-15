@@ -1,8 +1,8 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation SolvingSATWithGroverDemo() : Unit {
@@ -11,9 +11,9 @@ namespace Kata {
         // (x₀ ∨ x₁) ∧ (¬x₀ ∨ ¬x₁) ∧ ¬x₂
         let formula = [[(0, true), (1, true)], [(0, false), (1, false)], [(2, false)]];
         let markingOracle = Oracle_SATFormula(_, _, formula);
-        for iterations in 0 .. 9 {
+        for iterations in 0..9 {
             mutable success = 0;
-            for _ in 1 .. 100 {
+            for _ in 1..100 {
                 let res = GroversSearch(n, markingOracle, iterations);
                 if F_SATFormula(res, formula) {
                     set success += 1;
@@ -25,7 +25,7 @@ namespace Kata {
 
     operation GroversSearch(
         n : Int,
-        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl, 
+        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
         iterations : Int
     ) : Bool[] {
         use qs = Qubit[n];
@@ -40,7 +40,7 @@ namespace Kata {
         meanStatePrep(qs);
 
         // Do Grover's iterations.
-        for _ in 1 .. iterations {
+        for _ in 1..iterations {
             // Apply the phase oracle.
             phaseOracle(qs);
 
@@ -54,8 +54,8 @@ namespace Kata {
 
     operation ApplyMarkingOracleAsPhaseOracle(
         markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
-        qubits : Qubit[])
-    : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);
@@ -67,8 +67,8 @@ namespace Kata {
 
     operation ReflectionAboutState(
         qs : Qubit[],
-        statePrep : Qubit[] => Unit is Adj + Ctl)
-    : Unit is Adj + Ctl {
+        statePrep : Qubit[] => Unit is Adj + Ctl
+    ) : Unit is Adj + Ctl {
         within {
             Adjoint statePrep(qs);
         } apply {
@@ -80,7 +80,7 @@ namespace Kata {
         within {
             ApplyToEachA(X, qs);
         } apply {
-            Controlled Z(qs[1 ...], qs[0]);
+            Controlled Z(qs[1...], qs[0]);
         }
         R(PauliI, 2.0 * PI(), qs[0]);
     }
@@ -88,7 +88,7 @@ namespace Kata {
     operation Oracle_SATFormula(x : Qubit[], y : Qubit, formula : (Int, Bool)[][]) : Unit is Adj + Ctl {
         use aux = Qubit[Length(formula)];
         within {
-            for i in 0 .. Length(formula) - 1 {
+            for i in 0..Length(formula) - 1 {
                 Oracle_SATClause(x, aux[i], formula[i]);
             }
         } apply {
@@ -112,7 +112,7 @@ namespace Kata {
     operation Oracle_Or(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         ApplyControlledOnInt(0, X, x, y);
         X(y);
-    }        
+    }
 
     operation Oracle_And(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);

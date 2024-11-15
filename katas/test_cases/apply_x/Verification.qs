@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
+    import Std.Diagnostics.*;
 
     operation CheckSolution() : Bool {
         VerifySingleQubitOperation(Kata.ApplyX, ApplyX)
@@ -15,13 +14,12 @@ namespace Kata.Verification {
 
     operation VerifySingleQubitOperation(
         op : (Qubit => Unit is Adj + Ctl),
-        reference : (Qubit => Unit is Adj + Ctl))
-    : Bool {
+        reference : (Qubit => Unit is Adj + Ctl)
+    ) : Bool {
         use (control, target) = (Qubit(), Qubit());
         within {
             H(control);
-        }
-        apply {
+        } apply {
             Controlled op([control], target);
             Adjoint Controlled reference([control], target);
         }

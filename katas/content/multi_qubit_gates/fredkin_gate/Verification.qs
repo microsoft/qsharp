@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import Std.Katas.*;
 
-    operation FredkinGate (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation FredkinGate(qs : Qubit[]) : Unit is Adj + Ctl {
         Controlled SWAP([qs[0]], (qs[1], qs[2]));
     }
 
@@ -15,8 +15,7 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine the state prepared by your solution and compare it with the state it " +
-                "is expected to prepare.");
+            Message("Hint: examine the state prepared by your solution and compare it with the state it " + "is expected to prepare.");
             ShowQuantumStateComparison(3, PrepDemoState, solution, reference);
         }
 

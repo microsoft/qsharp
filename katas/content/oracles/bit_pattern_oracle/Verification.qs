@@ -1,16 +1,16 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Katas.*;
 
-    operation ArbitraryBitPattern_Oracle_Reference(x : Qubit[], y : Qubit, pattern : Bool[]) : Unit  is Adj + Ctl {
+    operation ArbitraryBitPattern_Oracle_Reference(x : Qubit[], y : Qubit, pattern : Bool[]) : Unit is Adj + Ctl {
         ApplyControlledOnBitString(pattern, X, x, y);
     }
 
     // ------------------------------------------------------
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1 .. 3 {
-            for k in 0 .. 2^N - 1 {
+        for N in 1..3 {
+            for k in 0..2^N - 1 {
                 let pattern = IntAsBoolArray(k, N);
 
                 let sol = ApplyOracle(_, Kata.ArbitraryBitPattern_Oracle(_, _, pattern));
@@ -19,8 +19,7 @@ namespace Kata.Verification {
 
                 if not isCorrect {
                     Message("Incorrect.");
-                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
-                        $"transformation for the {N}-bit oracle for the pattern {pattern}");
+                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " + $"transformation for the {N}-bit oracle for the pattern {pattern}");
                     ShowQuantumStateComparison(N + 1, qs => PrepDemoState(qs[...N - 1]), sol, ref);
                     return false;
                 }

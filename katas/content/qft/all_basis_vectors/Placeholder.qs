@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation AllBasisVectors(qs : Qubit[]) : Unit is Adj + Ctl {
         // Implement your solution here...

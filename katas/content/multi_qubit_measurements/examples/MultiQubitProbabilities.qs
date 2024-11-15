@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation CalculateProbabilities() : Unit {

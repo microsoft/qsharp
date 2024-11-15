@@ -1,24 +1,24 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
-    operation PhaseOracle_Zero (x : Qubit[]) : Unit {
+    operation PhaseOracle_Zero(x : Qubit[]) : Unit {
         // Do nothing...
     }
 
-    operation PhaseOracle_One (x : Qubit[]) : Unit {
+    operation PhaseOracle_One(x : Qubit[]) : Unit {
         // Apply a global phase of -1
         R(PauliI, 2.0 * PI(), x[0]);
     }
 
-    operation PhaseOracle_Xmod2 (x : Qubit[]) : Unit {
+    operation PhaseOracle_Xmod2(x : Qubit[]) : Unit {
         let N = Length(x);
         // Array elements are indexed 0 through Length(x) - 1, inclusive.
         Z(x[N - 1]);
     }
 
     @EntryPoint()
-    operation OracleImplementationDemo () : Unit {
+    operation OracleImplementationDemo() : Unit {
         use qs = Qubit[2];
         Ry(2.0 * ArcCos(0.5), qs[0]);
         Ry(2.0 * ArcCos(0.6), qs[1]);
