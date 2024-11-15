@@ -19,7 +19,7 @@ _The Japanese word for "form", a pattern of learning and practicing new skills._
             <td rowspan="2" style="border:none;">
                 @[svg]({"path": "./media/Copilot.svg"})
             </td>
-            <td style="border:none;">
+            <td role="heading" aria-level="4" style="border:none;">
                 <b>Self-paced AI-assisted learning</b>
             </td>
         </tr>
@@ -32,7 +32,7 @@ _The Japanese word for "form", a pattern of learning and practicing new skills._
             <td rowspan="2" style="border:none;">
                 @[svg]({"path": "./media/Computing.svg"})
             </td>
-            <td style="border:none;">
+            <td role="heading" aria-level="4" style="border:none;">
                 <b>Focused on quantum computing and programming</b>
             </td>
         </tr>
@@ -45,7 +45,7 @@ _The Japanese word for "form", a pattern of learning and practicing new skills._
             <td rowspan="2" style="border:none;">
                 @[svg]({"path": "./media/Coding.svg"})
             </td>
-            <td style="border:none;">
+            <td role="heading" aria-level="4" style="border:none;">
                 <b>Tutorials with theory and interactive hands-on exercises</b>
             </td>
         </tr>
