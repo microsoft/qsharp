@@ -52,7 +52,7 @@ import
 ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
 ///
 /// # See Also
-/// - Unstable.StatePreparation.ApproximatelyPreparePureStateCP
+/// - Std.StatePreparation.ApproximatelyPreparePureStateCP
 operation PreparePureStateD(coefficients : Double[], qubits : Qubit[]) : Unit is Adj + Ctl {
     let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(Complex(a, 0.0)), coefficients);
     ApproximatelyPreparePureStateCP(0.0, coefficientsAsComplexPolar, qubits);
