@@ -450,7 +450,7 @@ fn check_param_length(
 ) -> bool {
     let num_given_parameters = bound.parameters.len();
     let num_parameters = match &*bound.name.name {
-        "Eq" | "Add" | "Integral" | "Num" | "Show" => 0,
+        "Eq" | "Add" | "Integral" | "Mod" | "Mul" | "Sub" | "Div" | "Signed" | "Ord" | "Show" => 0,
         "Iterable" | "Exp" => 1,
         _ => return false,
     };
