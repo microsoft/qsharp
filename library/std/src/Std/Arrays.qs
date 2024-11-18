@@ -505,7 +505,7 @@ function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, arr
 /// An array `'U[]` of elements that are mapped by the `action` operation.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Mapped
+/// - [Std.Arrays.Mapped](xref:Qdk.Std.Arrays.Mapped)
 operation ForEach<'T, 'U>(action : ('T => 'U), array : 'T[]) : 'U[] {
     mutable output = [];
     for element in array {
