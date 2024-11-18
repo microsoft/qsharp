@@ -54,7 +54,7 @@ operation ApplyToEach<'T>(singleElementOperation : ('T => Unit), register : 'T[]
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Canon.ApplyToEach
+/// - [Std.Canon.ApplyToEach](xref:Qdk.Std.Canon.ApplyToEach)
 operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Adj), register : 'T[]) : Unit is Adj {
     for item in register {
         singleElementOperation(item);
@@ -83,7 +83,7 @@ operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Adj), registe
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Canon.ApplyToEach
+/// - [Std.Canon.ApplyToEach](xref:Qdk.Std.Canon.ApplyToEach)
 operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Ctl), register : 'T[]) : Unit is Ctl {
     for item in register {
         singleElementOperation(item);
@@ -112,7 +112,7 @@ operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Ctl), registe
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Canon.ApplyToEach
+/// - [Std.Canon.ApplyToEach](xref:Qdk.Std.Canon.ApplyToEach)
 operation ApplyToEachCA<'T>(singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[]) : Unit is Adj + Ctl {
     for item in register {
         singleElementOperation(item);

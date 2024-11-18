@@ -463,7 +463,7 @@ operation R1(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
 ///
 /// WARNING:
 /// This operation uses the **opposite** sign convention from
-/// Microsoft.Quantum.Intrinsic.R.
+/// Std.Intrinsic.R.
 ///
 /// # Input
 /// ## numerator
@@ -523,7 +523,7 @@ operation ResetAll(qubits : Qubit[]) : Unit {
 ///
 /// WARNING:
 /// This operation uses the **opposite** sign convention from
-/// Microsoft.Quantum.Intrinsic.R.
+/// Std.Intrinsic.R.
 ///
 /// # Input
 /// ## pauli
