@@ -15,10 +15,13 @@
 /// in VS-Code's Command Palette.
 operation Main() : Result {
   use q = Qubit();
+  H(q);
   Mx(q)
 }
 
 @Measurement()
+@SimulatableIntrinsic()
 operation Mx(q: Qubit) : Result {
-  body intrinsic;
+  H(q);
+  M(q)
 }

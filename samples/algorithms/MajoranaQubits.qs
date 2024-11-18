@@ -12,7 +12,9 @@ namespace Main {
     operation Main() : (Result, Result) {
         use qs = Qubit[2];
         GateSet.BellPair(qs[0], qs[1]);
-        GateSet.BellMeasurement(qs[0], qs[1])
+        let res = GateSet.BellMeasurement(qs[0], qs[1]);
+        ResetAll(qs);
+        res
     }
 }
 
@@ -63,31 +65,38 @@ namespace GateSet {
 /// A set of custom measurements exposed from a hardware
 /// provider using Majorana Qubits.
 namespace HardwareProvider {
+    @SimulatableIntrinsic()
     operation X(q: Qubit) : Unit {
-        body intrinsic;
+        Std.Intrinsic.X(q);
     }
 
+    @SimulatableIntrinsic()
     operation Z(q: Qubit) : Unit {
-        body intrinsic;
+        Std.Intrinsic.Z(q);
     }
 
     @Measurement()
+    @SimulatableIntrinsic()
     operation Mx(q: Qubit) : Result {
-        body intrinsic;
+        H(q);
+        M(q)
     }
 
     @Measurement()
+    @SimulatableIntrinsic()
     operation Mz(q: Qubit) : Result {
-        body intrinsic;
+        M(q)
     }
 
     @Measurement()
+    @SimulatableIntrinsic()
     operation Mxx(q1: Qubit, q2: Qubit) : Result {
-        body intrinsic;
+        Std.Intrinsic.Measure([PauliX, PauliX], [q1, q2])
     }
 
     @Measurement()
+    @SimulatableIntrinsic()
     operation Mzz(q1: Qubit, q2: Qubit) : Result {
-        body intrinsic;
+        Std.Intrinsic.Measure([PauliZ, PauliZ], [q1, q2])
     }
 }
