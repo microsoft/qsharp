@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import Util.TestCaseResult, Util.OutputMessage;
-import Std.Arrays.Mapped, Std.Arrays.All;
+import Std.Arrays.Mapped, Std.Arrays.All, Std.Arrays.Enumerated;
 
 /// # Summary
 /// Runs a number of test cases and returns true if all tests passed, false otherwise.
@@ -47,6 +47,26 @@ function RunAllTestCases<'T : Eq + Show>(test_cases : (String, () -> 'T, 'T)[]) 
     Mapped((name, case, result) -> TestCase(name, case, result), test_cases)
 }
 
+/// # Summary
+/// Given a function to test and an array of test cases of the form (input, expected_output), and a test mode, runs the test cases and returns the result of the test mode.
+///
+/// # Inputs
+/// - `test_suite_name` : A string representing the name of the test suite.
+/// - `func` : The function to test.
+/// - `test_cases` : An array of tuples of the form (input, expected_output).
+/// - `mode` : A function that takes an array of tuples of the form (test_name, test_case, expected_output) and returns a value of type 'U.
+///            Intended to be either `Qtest.Functions.CheckAllTestCases` or `Qtest.Functions.RunAllTestCases`.
+///
+/// # Example
+/// ```qsharp
+/// TestMatrix("Add One", x -> x + 1 [(2, 3), (3, 4)], CheckAllTestCases);
+/// ```
+
+function TestMatrix<'T, 'O : Show + Eq, 'U>(test_suite_name : String, func : 'T -> 'O, test_cases : ('T, 'O)[], mode : ((String, () -> 'O, 'O)[]) -> 'U) : 'U {
+    let test_cases_qs = Mapped((ix, (input, expected)) -> (test_suite_name + $" {ix + 1}", () -> func(input), expected), Enumerated(test_cases));
+    mode(test_cases_qs)
+}
+
 /// Internal (non-exported) helper function. Runs a test case and produces a `TestCaseResult`
 function TestCase<'T : Eq + Show>(name : String, test_case : () -> 'T, expected : 'T) : TestCaseResult {
     let result = test_case();
@@ -57,4 +77,4 @@ function TestCase<'T : Eq + Show>(name : String, test_case : () -> 'T, expected 
     }
 }
 
-export CheckAllTestCases, RunAllTestCases; 
+export CheckAllTestCases, RunAllTestCases, TestMatrix; 
