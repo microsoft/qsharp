@@ -12,7 +12,7 @@ import Std.Arrays.Mapped, Std.Arrays.All;
 /// test results instead of printing out to output.
 ///
 /// # Input
-/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// Takes a list of test cases. A test case is a tuple of `(String, () -> 'T, 'T)`, where
 /// the first String is the name of the test, the function is the test case itself, and the
 /// final element of the tuple is the expected return value from the test case.
 ///
@@ -33,7 +33,7 @@ function CheckAllTestCases<'T : Eq + Show>(test_cases : (String, () -> 'T, 'T)[]
 /// This is a good alternative to `CheckAllTestCases` when you want custom output based on the results of your tests,
 /// or more control over how test results are rendered.
 /// # Input
-/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// Takes a list of test cases. A test case is a tuple of `(String, () -> 'T, 'T)`, where
 /// the first String is the name of the test, the function is the test case itself, and the
 /// final element of the tuple is the expected return value from the test case.
 ///

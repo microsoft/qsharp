@@ -12,13 +12,13 @@ import Std.Arrays.Mapped, Std.Arrays.All;
 /// test results instead of printing out to output.
 ///
 /// # Input
-/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// Takes a list of test cases. A test case is a tuple of `(String, () => 'T, 'T)`, where
 /// the first String is the name of the test, the function is the test case itself, and the
 /// final element of the tuple is the expected return value from the test case.
 ///
 /// # Example
 /// ```qsharp
-/// CheckAllTestCases([("Should return 42", () -> 42, 42)]);
+/// CheckAllTestCases([("Should return 42", () => 42, 42)]);
 /// ```
 operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : Bool {
     let test_results = RunAllTestCases(test_cases);
@@ -35,13 +35,13 @@ operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[])
 /// This is a good alternative to `CheckAllTestCases` when you want custom output based on the results of your tests,
 /// or more control over how test results are rendered.
 /// # Input
-/// Takes a list of test cases. A test case is a tuple of `(String, () -> T, 'T)`, where
+/// Takes a list of test cases. A test case is a tuple of `(String, () => 'T, 'T)`, where
 /// the first String is the name of the test, the function is the test case itself, and the
 /// final element of the tuple is the expected return value from the test case.
 ///
 /// # Example
 /// ```qsharp
-/// RunAllTestCases([("Should return 42", () -> 42, 42)]);
+/// RunAllTestCases([("Should return 42", () => 42, 42)]);
 /// ```
 operation RunAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : TestCaseResult[] {
     let num_tests = Length(test_cases);
