@@ -29,14 +29,14 @@ namespace GateSet {
     /// Source: [1] Figure 3.
     operation CNOT(control : Qubit, target : Qubit) : Unit {
         use ancilla = Qubit();
-        let a = HardwareProvider.Mzz(control, target);
-        let b = HardwareProvider.Mxx(target, ancilla);
-        let c = HardwareProvider.Mx(target);
+        let a = Mzz(control, target);
+        let b = Mxx(target, ancilla);
+        let c = Mx(target);
         if b == One {
-            HardwareProvider.Z(control);
+            Z(control);
         }
         if [a, c] == [One, One] {
-            HardwareProvider.X(ancilla);
+            X(ancilla);
         }
     }
 
@@ -44,59 +44,69 @@ namespace GateSet {
     /// Source: [1] Figure 18a.
     operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
         // Bring the qubits to their ground state.
-        HardwareProvider.Mz(q1);
-        HardwareProvider.Mz(q2);
+        Mz(q1);
+        Mz(q2);
 
         // Bell Pair preparation
-        if HardwareProvider.Mxx(q1, q2) == One {
-            HardwareProvider.Z(q2);
+        if Mxx(q1, q2) == One {
+            Z(q2);
         }
     }
 
     /// Measure a Bell Pair.
     /// Source: [1] Figure 18b.
     operation BellMeasurement(q1 : Qubit, q2 : Qubit) : (Result, Result) {
-        let z = HardwareProvider.Mzz(q1, q2);
-        let x = HardwareProvider.Mxx(q1, q2);
+        let z = Mzz(q1, q2);
+        let x = Mxx(q1, q2);
         (x, z)
+    }
+
+    /// User friendly wrapper around the Mx hardware gate.
+    operation Mx(q : Qubit) : Result {
+        HardwareProvider.__quantum__qis__mx__body(q)
+    }
+
+    /// User friendly wrapper around the Mz hardware gate.
+    operation Mz(q : Qubit) : Result {
+        HardwareProvider.__quantum__qis__mz__body(q)
+    }
+
+    /// User friendly wrapper around the Mxx hardware gate.
+    operation Mxx(q1 : Qubit, q2 : Qubit) : Result {
+        HardwareProvider.__quantum__qis__mxx__body(q1, q2)
+    }
+
+    /// User friendly wrapper around the Mzz hardware gate.
+    operation Mzz(q1 : Qubit, q2 : Qubit) : Result {
+        HardwareProvider.__quantum__qis__mzz__body(q1, q2)
     }
 }
 
 /// A set of custom measurements exposed from a hardware
 /// provider using Majorana Qubits.
 namespace HardwareProvider {
-    @SimulatableIntrinsic()
-    operation X(q : Qubit) : Unit {
-        Std.Intrinsic.X(q);
-    }
-
-    @SimulatableIntrinsic()
-    operation Z(q : Qubit) : Unit {
-        Std.Intrinsic.Z(q);
-    }
-
     @Measurement()
     @SimulatableIntrinsic()
-    operation Mx(q : Qubit) : Result {
+    operation __quantum__qis__mx__body(q : Qubit) : Result {
         H(q);
         M(q)
     }
 
     @Measurement()
     @SimulatableIntrinsic()
-    operation Mz(q : Qubit) : Result {
+    operation __quantum__qis__mz__body(q : Qubit) : Result {
         M(q)
     }
 
     @Measurement()
     @SimulatableIntrinsic()
-    operation Mxx(q1 : Qubit, q2 : Qubit) : Result {
+    operation __quantum__qis__mxx__body(q1 : Qubit, q2 : Qubit) : Result {
         Std.Intrinsic.Measure([PauliX, PauliX], [q1, q2])
     }
 
     @Measurement()
     @SimulatableIntrinsic()
-    operation Mzz(q1 : Qubit, q2 : Qubit) : Result {
+    operation __quantum__qis__mzz__body(q1 : Qubit, q2 : Qubit) : Result {
         Std.Intrinsic.Measure([PauliZ, PauliZ], [q1, q2])
     }
 }
