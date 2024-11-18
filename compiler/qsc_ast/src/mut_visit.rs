@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
     FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 use qsc_data_structures::span::Span;
 
@@ -164,7 +164,17 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
 pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_span(&mut decl.span);
     vis.visit_ident(&mut decl.name);
-    decl.generics.iter_mut().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter_mut().for_each(|p| {
+        vis.visit_ident(&mut p.ty);
+        p.constraints.0.iter_mut().for_each(|b| {
+            vis.visit_ident(&mut b.name);
+            b.parameters
+                .iter_mut()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
+                    vis.visit_ty(ty);
+                });
+        });
+    });
     vis.visit_pat(&mut decl.input);
     vis.visit_ty(&mut decl.output);
     decl.functors
@@ -226,7 +236,21 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         }
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Param(name) => vis.visit_ident(name),
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
+            for bound in &mut bounds.0 {
+                vis.visit_ident(&mut bound.name);
+                bound.parameters.iter_mut().for_each(
+                    |crate::ast::ConstraintParameter { ref mut ty, .. }| {
+                        vis.visit_ty(ty);
+                    },
+                );
+            }
+            vis.visit_ident(ty);
+        }
         TyKind::Path(path) => vis.visit_path_kind(path),
         TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
     }

@@ -2402,12 +2402,12 @@ fn derive_runtime_features_for_value_kind_associated_to_type(
         value_kind: ValueKind,
         prim: Prim,
     ) -> RuntimeFeatureFlags {
-        let ValueKind::Element(runtime_kind) = value_kind else {
-            panic!("expected element variant of value kind");
-        };
-
-        if matches!(runtime_kind, RuntimeKind::Static) {
-            return RuntimeFeatureFlags::empty();
+        match value_kind {
+            ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static)
+            | ValueKind::Element(RuntimeKind::Static) => {
+                return RuntimeFeatureFlags::empty();
+            }
+            _ => (),
         }
 
         match prim {
@@ -2515,6 +2515,7 @@ fn map_input_pattern_to_input_expressions(
     match &pat.kind {
         PatKind::Bind(_) | PatKind::Discard => vec![expr_id.expr],
         PatKind::Tuple(pats) => {
+            // Map each one of the elements in the pattern to an expression in the tuple.
             let pats = &pats[skip_ahead..];
             let expr = package_store.get_expr(expr_id);
             if let ExprKind::Tuple(exprs) = &expr.kind {
@@ -2533,8 +2534,10 @@ fn map_input_pattern_to_input_expressions(
                 }
                 input_param_exprs
             } else {
-                assert!(pats.len() == 1);
-                vec![expr_id.expr]
+                // All elements in the pattern map to the same expression.
+                // This is one of the boundaries where we can lose specific information since we are "unpacking" the
+                // tuple represented by a single expression.
+                vec![expr_id.expr; pats.len()]
             }
         }
     }

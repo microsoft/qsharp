@@ -143,7 +143,7 @@ impl Backend for CustomSim {
         match name {
             "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),
             "Check" => Some(Err("cannot verify input".to_string())),
-            _ => None,
+            _ => self.sim.custom_intrinsic(name, arg),
         }
     }
 }
@@ -522,6 +522,18 @@ fn dump_register_qubits_not_unique_fails() {
 }
 
 #[test]
+fn dump_register_qubits_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+        let q = { use q = Qubit(); q };
+        Microsoft.Quantum.Diagnostics.DumpRegister([q]);
+    }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn dump_register_target_in_minus_with_other_in_zero() {
     check_intrinsic_output(
         "",
@@ -632,6 +644,18 @@ fn check_zero_false() {
             isZero
         }"},
         &expect!["false"],
+    );
+}
+
+#[test]
+fn check_zero_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            Microsoft.Quantum.Diagnostics.CheckZero(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -917,6 +941,18 @@ fn rx() {
 }
 
 #[test]
+fn rx_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__rx__body(3.14, q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn rxx() {
     check_intrinsic_result(
         "",
@@ -939,6 +975,19 @@ fn rxx() {
 }
 
 #[test]
+fn rxx_qubits_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q1 = { use q = Qubit(); q };
+            let q2 = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__rxx__body(3.14, q1, q2)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn ry() {
     check_intrinsic_result(
         "",
@@ -953,6 +1002,18 @@ fn ry() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn ry_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__ry__body(3.14, q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -979,6 +1040,19 @@ fn ryy() {
 }
 
 #[test]
+fn ryy_qubits_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q1 = { use q = Qubit(); q };
+            let q2 = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__ryy__body(3.14, q1, q2)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn rz() {
     check_intrinsic_result(
         "",
@@ -997,6 +1071,18 @@ fn rz() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn rz_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__rz__body(3.14, q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1031,6 +1117,19 @@ fn rzz() {
 }
 
 #[test]
+fn rzz_qubits_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q1 = { use q = Qubit(); q };
+            let q2 = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__rzz__body(3.14, q1, q2)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn h() {
     check_intrinsic_result(
         "",
@@ -1044,6 +1143,18 @@ fn h() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn h_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__h__body(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1071,6 +1182,18 @@ fn s() {
 }
 
 #[test]
+fn s_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__s__body(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn sadj() {
     check_intrinsic_result(
         "",
@@ -1090,6 +1213,18 @@ fn sadj() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn sadj_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__s__adj(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1121,6 +1256,18 @@ fn t() {
 }
 
 #[test]
+fn t_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__t__body(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn tadj() {
     check_intrinsic_result(
         "",
@@ -1148,6 +1295,18 @@ fn tadj() {
 }
 
 #[test]
+fn tadj_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__t__adj(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn x() {
     check_intrinsic_result(
         "",
@@ -1165,6 +1324,18 @@ fn x() {
 }
 
 #[test]
+fn x_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__x__body(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn y() {
     check_intrinsic_result(
         "",
@@ -1178,6 +1349,18 @@ fn y() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn y_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__y__body(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1203,6 +1386,18 @@ fn z() {
 }
 
 #[test]
+fn z_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__z__body(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn swap() {
     check_intrinsic_result(
         "",
@@ -1224,6 +1419,19 @@ fn swap() {
 }
 
 #[test]
+fn swap_qubits_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q1 = { use q = Qubit(); q };
+            let q2 = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__swap__body(q1, q2)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn reset() {
     check_intrinsic_result(
         "",
@@ -1238,6 +1446,18 @@ fn reset() {
             Microsoft.Quantum.Diagnostics.CheckZero(q1)
         }"#},
         &expect!["true"],
+    );
+}
+
+#[test]
+fn reset_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__reset__body(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1289,6 +1509,18 @@ fn m() {
 }
 
 #[test]
+fn m_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__m__body(q)
+        }"},
+        &expect!["qubit used after release"],
+    );
+}
+
+#[test]
 fn mresetz() {
     check_intrinsic_result(
         "",
@@ -1309,6 +1541,18 @@ fn mresetz() {
             (res2, Microsoft.Quantum.Diagnostics.CheckZero(q1))
         }"#},
         &expect!["(One, true)"],
+    );
+}
+
+#[test]
+fn mresetz_qubit_already_released_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            QIR.Intrinsic.__quantum__qis__mresetz__body(q)
+        }"},
+        &expect!["qubit used after release"],
     );
 }
 
@@ -1387,6 +1631,19 @@ fn qubit_release_non_zero_failure() {
             X(q);
         }"},
         &expect!["Qubit0 released while not in |0⟩ state"],
+    );
+}
+
+#[test]
+fn qubit_double_release_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+                let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+                QIR.Runtime.__quantum__rt__qubit_release(q);
+                QIR.Runtime.__quantum__rt__qubit_release(q);
+            }"},
+        &expect!["qubit double release"],
     );
 }
 
@@ -1593,5 +1850,37 @@ fn start_counting_qubits_called_twice_before_stop_fails() {
             Std.Diagnostics.StartCountingQubits();
         }"},
         &expect!["qubits already counted"],
+    );
+}
+
+#[test]
+fn check_pauli_noise() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            import Std.Diagnostics.*;
+            use q = Qubit();
+            ConfigurePauliNoise(BitFlipNoise(1.0));
+            ApplyIdleNoise(q);
+            ConfigurePauliNoise(NoNoise());
+            DumpMachine();
+            Reset(q);
+        }"},
+        &expect![[r#"
+            STATE:
+            |1⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn applyidlenoise_qubit_already_released_fails() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            let q = { use q = Qubit(); q };
+            Std.Diagnostics.ApplyIdleNoise(q);
+        }"},
+        &expect!["qubit used after release"],
     );
 }

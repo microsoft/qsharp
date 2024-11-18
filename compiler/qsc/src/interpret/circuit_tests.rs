@@ -514,6 +514,34 @@ fn custom_intrinsic_mixed_args() {
 }
 
 #[test]
+fn custom_intrinsic_apply_idle_noise() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        import Std.Diagnostics.*;
+        @EntryPoint()
+        operation Main() : Unit {
+            ConfigurePauliNoise(BitFlipNoise(1.0));
+            use q = Qubit();
+            ApplyIdleNoise(q);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    // ConfigurePauliNoise has no qubit arguments so it shouldn't show up.
+    // ApplyIdleNoise is a quantum operation so it shows up.
+    expect![[r#"
+        q_0     ApplyIdleNoise
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn operation_with_qubits() {
     let mut interpreter = interpreter(
         r"

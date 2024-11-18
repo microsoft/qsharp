@@ -20,7 +20,10 @@ export function processDocumentFiles(
   docFiles: IDocFile[],
 ): Map<string, string> {
   const contentByNamespace = new Map<string, string>();
-  const regex = new RegExp("^qsharp.namespace: Microsoft.Quantum.(.+)$", "m");
+  const regex = new RegExp(
+    "^qsharp\\.namespace: (Microsoft\\.Quantum|Std)\\.(.+)$",
+    "m",
+  );
 
   for (const doc of docFiles) {
     const match = regex.exec(doc.metadata); // Parse namespace out of metadata
@@ -29,7 +32,7 @@ export function processDocumentFiles(
     }
     // The next line contains "Zero-width space" unicode character
     // to allow line breaks before the period.
-    const newNamespace = "… " + match[1].replace(".", "​.");
+    const newNamespace = "… " + match[2].replace(".", "​.");
 
     if (contentByNamespace.has(newNamespace)) {
       const existingContent = contentByNamespace.get(newNamespace)!;

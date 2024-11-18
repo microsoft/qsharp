@@ -3,10 +3,6 @@
   "license": "MIT",
   "files": [
     "src/legacy_api.qs",
-    "src/unstable_arithmetic.qs",
-    "src/unstable_arithmetic_internal.qs",
-    "src/unstable_state_preparation.qs",
-    "src/unstable_table_lookup.qs",
     "src/QIR/Intrinsic.qs",
     "src/Std/Arrays.qs",
     "src/Std/Canon.qs",
@@ -19,6 +15,10 @@
     "src/Std/Measurement.qs",
     "src/Std/Random.qs",
     "src/Std/Range.qs",
-    "src/Std/ResourceEstimation.qs"
+    "src/Std/ResourceEstimation.qs",
+    "src/Std/Arithmetic.qs",
+    "src/Std/ArithmeticUtils.qs",
+    "src/Std/StatePreparation.qs",
+    "src/Std/TableLookup.qs"
   ]
 }

@@ -102,6 +102,16 @@ fn expected_word_kinds(
     source_contents: &str,
     cursor_offset: u32,
 ) -> WordKinds {
+    // We should not retun any completions in comments.
+    // This compensates for a bug in [`possible_words_at_offset_in_source`] .
+    // Ideally, that function would be aware of the comment context and not
+    // return any completions, however this is difficult to do today because
+    // of the parser's unawareness of comment tokens.
+    // So we do a simple check here where we have access to the full source contents.
+    if in_comment(source_contents, cursor_offset) {
+        return WordKinds::empty();
+    }
+
     match &compilation.kind {
         CompilationKind::OpenProject {
             package_graph_sources,
@@ -119,6 +129,16 @@ fn expected_word_kinds(
             cursor_offset,
         ),
     }
+}
+
+fn in_comment(source_contents: &str, cursor_offset: u32) -> bool {
+    // find the last newline before the cursor
+    let last_line_start = source_contents[..cursor_offset as usize]
+        .rfind('\n')
+        .unwrap_or(0);
+    // find the last comment start before the cursor
+    let last_comment_start = source_contents[last_line_start..cursor_offset as usize].rfind("//");
+    last_comment_start.is_some()
 }
 
 /// Collects hardcoded completions from the given set of parser predictions.
@@ -203,6 +223,48 @@ fn collect_names(
                 let fields = Fields::new(compilation, &ast_context);
 
                 groups.push(fields.fields());
+            }
+            NameKind::PrimitiveClass => {
+                // we know the types of the primitive classes, so we can just return them
+                // hard coded here.
+                // If we ever support user-defined primitive classes, we'll need to change this.
+
+                // this is here to force us to update completions if a new primitive class
+                // constraint is supported
+                use qsc::hir::ty::ClassConstraint::*;
+                match Add {
+                    Add
+                    | Eq
+                    | Exp { .. }
+                    | Iterable { .. }
+                    | NonNativeClass(_)
+                    | Integral
+                    | Mod
+                    | Sub
+                    | Mul
+                    | Div
+                    | Signed
+                    | Ord
+                    | Show => (),
+                }
+
+                groups.push(vec![
+                    Completion::new("Add".to_string(), CompletionItemKind::Class),
+                    Completion::new("Eq".to_string(), CompletionItemKind::Class),
+                    Completion::with_detail(
+                        "Exp".to_string(),
+                        CompletionItemKind::Class,
+                        Some("Exp['Power]".into()),
+                    ),
+                    Completion::new("Integral".to_string(), CompletionItemKind::Class),
+                    Completion::new("Show".to_string(), CompletionItemKind::Class),
+                    Completion::new("Signed".to_string(), CompletionItemKind::Class),
+                    Completion::new("Ord".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mod".to_string(), CompletionItemKind::Class),
+                    Completion::new("Sub".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mul".to_string(), CompletionItemKind::Class),
+                    Completion::new("Div".to_string(), CompletionItemKind::Class),
+                ]);
             }
         };
     }

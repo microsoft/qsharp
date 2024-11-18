@@ -1,6 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Type checks a Q# AST and produces a typed HIR.
+//! `check`ing references `rules` within contexts to produce context-aware constraints. The inferrer is used
+//! within `rules` to assist in the production of constraints from rules.
+//! For example, a rule might say that if a statement is an expression, it must
+//! return `Unit`. The inferrer would then be used to get the inferred type out of
+//! the expression, giving us a type id, which we can then constrain to `Unit`.
 mod check;
 pub(super) mod convert;
 mod infer;
@@ -8,6 +14,7 @@ mod rules;
 #[cfg(test)]
 mod tests;
 
+use convert::TyConversionError;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -21,6 +28,8 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
+/// This [`Table`] builds up mappings from items to typed HIR UDTs  _and_ nodes to
+/// their term HIR type and generic arguments, if any exist.
 #[derive(Debug, Default, Clone)]
 pub struct Table {
     pub udts: FxHashMap<ItemId, Udt>,
@@ -93,10 +102,29 @@ enum ErrorKind {
     #[diagnostic(help("only arrays and ranges are iterable"))]
     #[diagnostic(code("Qsc.TypeCk.MissingClassIterable"))]
     MissingClassIterable(String, #[label] Span),
-    #[error("type {0} is not a number")]
+    #[error("Type {0} cannot be used in subtraction")]
     #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
-    #[diagnostic(code("Qsc.TypeCk.MissingClassNum"))]
-    MissingClassNum(String, #[label] Span),
+    #[diagnostic(code("Qsc.TypeCk.MissingClassSub"))]
+    MissingClassSub(String, #[label] Span),
+    #[error("Type {0} cannot be used in multiplication")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassMul"))]
+    MissingClassMul(String, #[label] Span),
+    #[error("Type {0} cannot be used in division")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassDiv"))]
+    MissingClassDiv(String, #[label] Span),
+    #[error("Type {0} cannot be used with comparison operators (less than/greater than)")]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassOrd"))]
+    MissingClassOrd(String, #[label] Span),
+    #[error("Type {0} cannot be used with the modulo operator")]
+    #[diagnostic(help("only BigInt and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassMod"))]
+    MissingClassMod(String, #[label] Span),
+    #[error("Type {0} cannot have a sign applied to it")]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingClassSigned"))]
+    MissingClassSigned(String, #[label] Span),
     #[error("type {0} cannot be converted into a string")]
     #[diagnostic(code("Qsc.TypeCk.MissingClassShow"))]
     MissingClassShow(String, #[label] Span),
@@ -107,10 +135,6 @@ enum ErrorKind {
     #[error("expected superset of {0}, found {1}")]
     #[diagnostic(code("Qsc.TypeCk.MissingFunctor"))]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
-    #[error("missing type in item signature")]
-    #[diagnostic(help("types cannot be inferred for global declarations"))]
-    #[diagnostic(code("Qsc.TypeCk.MissingItemTy"))]
-    MissingItemTy(#[label] Span),
     #[error("found hole with type {0}")]
     #[diagnostic(help("replace this hole with an expression of the expected type"))]
     #[diagnostic(code("Qsc.TypeCk.TyHole"))]
@@ -119,4 +143,59 @@ enum ErrorKind {
     #[diagnostic(help("provide a type annotation"))]
     #[diagnostic(code("Qsc.TypeCk.AmbiguousTy"))]
     AmbiguousTy(#[label] Span),
+    #[error("missing type in item signature")]
+    #[diagnostic(help("a type must be provided for this item"))]
+    #[diagnostic(code("Qsc.TypeCk.MissingTy"))]
+    MissingTy {
+        #[label]
+        span: Span,
+    },
+    #[error("unrecognized class constraint {name}")]
+    #[help(
+        "supported classes are Eq, Add, Sub, Mul, Div, Mod, Signed, Ord, Exp, Integral, and Show"
+    )]
+    #[diagnostic(code("Qsc.TypeCk.UnrecognizedClass"))]
+    UnrecognizedClass {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("class constraint is recursive via {name}")]
+    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[diagnostic(code("Qsc.TypeCk.RecursiveClassConstraint"))]
+    RecursiveClassConstraint {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("expected {expected} parameters for constraint, found {found}")]
+    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
+    IncorrectNumberOfConstraintParameters {
+        expected: usize,
+        found: usize,
+        #[label]
+        span: Span,
+    },
+}
+
+impl From<TyConversionError> for Error {
+    fn from(err: TyConversionError) -> Self {
+        use TyConversionError::*;
+        match err {
+            MissingTy { span } => Error(ErrorKind::MissingTy { span }),
+            UnrecognizedClass { span, name } => Error(ErrorKind::UnrecognizedClass { span, name }),
+            RecursiveClassConstraint { span, name } => {
+                Error(ErrorKind::RecursiveClassConstraint { span, name })
+            }
+            IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            } => Error(ErrorKind::IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            }),
+        }
+    }
 }

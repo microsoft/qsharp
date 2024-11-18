@@ -486,7 +486,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The generic parameters to the callable.
-    pub generics: Box<[Box<Ident>]>,
+    pub generics: Box<[TypeParameter]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -510,9 +510,13 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
+            let mut buf = Vec::with_capacity(self.generics.len());
             for param in &self.generics {
-                write!(indent, "\n{param}")?;
+                buf.push(format!("{param}"));
             }
+
+            let buf = buf.join(",\n");
+            write!(indent, "\n{buf}")?;
             indent = set_indentation(indent, 1);
         }
         write!(indent, "\ninput: {}", self.input)?;
@@ -674,7 +678,7 @@ pub enum TyKind {
     /// A named type.
     Path(PathKind),
     /// A type parameter.
-    Param(Box<Ident>),
+    Param(TypeParameter),
     /// A tuple type.
     Tuple(Box<[Ty]>),
     /// An invalid type.
@@ -1966,5 +1970,141 @@ impl ImportOrExportItem {
                 }
             }
         }
+    }
+}
+
+/// A [`TypeParameter`] is a generic type variable with optional bounds (constraints).
+#[derive(Default, Debug, PartialEq, Eq, Clone, Hash)]
+pub struct TypeParameter {
+    /// Class constraints specified for this type parameter -- any type variable passed in
+    /// as an argument to these parameters must satisfy these constraints.
+    pub constraints: ClassConstraints,
+    /// The name of the type parameter.
+    pub ty: Ident,
+    /// The span of the full type parameter, including its name and its constraints.
+    pub span: Span,
+}
+
+impl WithSpan for TypeParameter {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl TypeParameter {
+    /// Instantiates a new `TypeParameter` with the given type name, constraints, and span.
+    #[must_use]
+    pub fn new(ty: Ident, bounds: ClassConstraints, span: Span) -> Self {
+        Self {
+            ty,
+            constraints: bounds,
+            span,
+        }
+    }
+}
+
+impl std::fmt::Display for TypeParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // 'A: Eq + Ord + Clone
+        write!(
+            f,
+            "{}{}",
+            self.ty.name,
+            if self.constraints.0.is_empty() {
+                Default::default()
+            } else {
+                format!(": {}", self.constraints)
+            }
+        )
+    }
+}
+
+/// A list of class constraints, used when constraining a type parameter.
+#[derive(Default, Debug, PartialEq, Eq, Clone, Hash)]
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+
+/// An individual class constraint, used when constraining a type parameter.
+/// To understand this concept, think of parameters in a function signature -- the potential arguments that can
+/// be passed to them are constrained by what type is specified. Type-level parameters are no different, and
+/// the type variables that are passed to a type parameter must satisfy the constraints specified in the type parameter.
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct ClassConstraint {
+    /// The name of the constraint.
+    pub name: Ident,
+    /// Parameters for a constraint. For example, `Iterator` has a parameter `T` in `Iterator<T>` -- this
+    /// is the type of the item that is coming out of the iterator.
+    pub parameters: Box<[ConstraintParameter]>,
+}
+
+impl std::fmt::Display for ClassConstraint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Iterator<T>
+        write!(
+            f,
+            "{}{}",
+            self.name.name,
+            if self.parameters.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "[{}]",
+                    self.parameters
+                        .iter()
+                        .map(|x| x.ty.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        )
+    }
+}
+
+/// An individual constraint parameter is a type that is passed to a constraint, such as `T` in `Iterator<T>`.
+/// #[derive(Default, `PartialEq`, Eq, Clone, Hash, Debug)]
+#[derive(Default, PartialEq, Eq, Clone, Hash, Debug)]
+pub struct ConstraintParameter {
+    /// The type variable being passed as a constraint parameter.
+    pub ty: Ty,
+}
+
+impl WithSpan for ConstraintParameter {
+    fn with_span(self, span: Span) -> Self {
+        Self {
+            ty: self.ty.with_span(span),
+        }
+    }
+}
+
+impl ClassConstraint {
+    /// Getter for the `span` field of the `name` field (the name of the class constraint).
+    #[must_use]
+    pub fn span(&self) -> Span {
+        self.name.span
+    }
+}
+
+impl ClassConstraints {
+    /// The conjoined span of all of the bounds
+    #[must_use]
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span().lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span().hi).unwrap_or_default(),
+        }
+    }
+}
+
+impl std::fmt::Display for ClassConstraints {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // A + B + C + D
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|x| format!("{}", x.name.name,))
+                .collect::<Vec<_>>()
+                .join(" + "),
+        )
     }
 }

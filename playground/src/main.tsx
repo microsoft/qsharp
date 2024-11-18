@@ -287,6 +287,9 @@ function registerMonacoLanguageServiceProviders(
             case "field":
               kind = monaco.languages.CompletionItemKind.Field;
               break;
+            case "class":
+              kind = monaco.languages.CompletionItemKind.Class;
+              break;
           }
           return {
             label: i.label,

@@ -13,6 +13,8 @@ use crate::{
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
+mod class_completions;
+
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
     let actual_completions =
@@ -119,6 +121,13 @@ fn check_with_dependency(
 
     expect.assert_debug_eq(&checked_completions);
     assert_no_duplicates(actual_completions);
+}
+
+fn check_no_completions(source_with_cursor: &str) {
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+    let actual_completions =
+        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
+    assert_eq!(actual_completions.items, Vec::default());
 }
 
 fn assert_no_duplicates(mut actual_completions: CompletionList) {
@@ -4075,42 +4084,55 @@ fn incomplete_return_type_in_partial_callable_signature() {
 
 #[test]
 fn no_path_segment_completion_inside_attr() {
-    check(
+    check_no_completions(
         "namespace Test {
 
         @Config(FakeStdLib.↘)
         function Main() : Unit {
         }
     }",
-        &["Fake", "not", "Test"],
-        &expect![[r#"
-            [
-                None,
-                None,
-                None,
-            ]
-        "#]],
     );
 }
 
 #[test]
 fn no_completion_inside_attr() {
-    check(
+    check_no_completions(
         "namespace Test {
 
         @Config(↘)
         function Main() : Unit {
-            let FakeStdLib = new Foo { bar = 3 };
-            FakeStdLib.↘
         }
     }",
-        &["Fake", "not", "Test"],
-        &expect![[r#"
-            [
-                None,
-                None,
-                None,
-            ]
-        "#]],
+    );
+}
+
+#[test]
+fn in_comment() {
+    check_no_completions(
+        "namespace Test {
+            import Foo;
+            // Hello there ↘
+            import Bar;
+        }",
+    );
+}
+
+#[test]
+fn in_doc_comment() {
+    check_no_completions(
+        "namespace Test {
+            import Foo;
+            /// Hello there ↘
+            import Bar;
+        }",
+    );
+}
+
+#[test]
+fn in_trailing_comment() {
+    check_no_completions(
+        "namespace Test {
+            import Foo; // Hello there ↘
+        }",
     );
 }

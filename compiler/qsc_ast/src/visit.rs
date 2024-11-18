@@ -5,7 +5,7 @@ use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
     FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
     PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
-    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -149,7 +149,17 @@ pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
-    decl.generics.iter().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter().for_each(|p| {
+        vis.visit_ident(&p.ty);
+        p.constraints.0.iter().for_each(|b| {
+            vis.visit_ident(&b.name);
+            b.parameters
+                .iter()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
+                    vis.visit_ty(ty);
+                });
+        });
+    });
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
     decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
@@ -201,7 +211,22 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path_kind(path),
-        TyKind::Param(name) => vis.visit_ident(name),
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
+            for bound in &bounds.0 {
+                vis.visit_ident(&bound.name);
+
+                bound.parameters.iter().for_each(
+                    |crate::ast::ConstraintParameter { ty, .. }| {
+                        vis.visit_ty(ty);
+                    },
+                );
+            }
+            vis.visit_ident(ty);
+        }
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
     }
 }

@@ -37,7 +37,7 @@ fn test_missing_type() {
     let _ = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingItemTy","message":"type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations","range":{"end":{"character":33,"line":0},"start":{"character":32,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
+            expect![[r#"{"result":{"code":"Qsc.TypeCk.MissingTy","message":"type error: missing type in item signature\n\nhelp: a type must be provided for this item","range":{"end":{"character":33,"line":0},"start":{"character":32,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
             count.set(count.get() + 1);
         },
         1,
@@ -504,17 +504,20 @@ fn test_doc_gen() {
     let docs = qsc_doc_gen::generate_docs::generate_docs(None, None, None);
     assert!(docs.len() > 100);
     for (name, metadata, contents) in docs {
-        // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
+        // filename will be something like "Std.Canon/ApplyToEachC.md"
         let filename = name.to_string();
         // Text is the full markdown including initial metadata inside '---' blocks
         let text = format!("{metadata}\n\n{contents}");
         if filename.eq("toc.yml") {
-            assert!(text.contains("uid: Qdk.Microsoft.Quantum.Core"));
-        } else {
+            assert!(text.contains("uid: Qdk.Std.Core"));
+        } else if !filename.eq("index.md") {
             assert!(std::path::Path::new(&filename)
                 .extension()
                 .map_or(false, |ext| ext.eq_ignore_ascii_case("md")));
-            assert!(text.starts_with("---\n"));
+            assert!(
+                text.starts_with("---\n"),
+                "file {name} does not start with metadata\ncontents: {text}"
+            );
         }
     }
 }
