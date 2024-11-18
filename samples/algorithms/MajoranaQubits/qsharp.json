@@ -1,0 +1,12 @@
+{
+    "lints": [
+        {
+            "lint": "deprecatedWithOperator",
+            "level": "error"
+        },
+        {
+            "lint": "deprecatedDoubleColonOperator",
+            "level": "error"
+        }
+    ]
+}

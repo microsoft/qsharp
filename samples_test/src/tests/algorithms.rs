@@ -178,8 +178,6 @@ pub const JOINTMEASUREMENT_EXPECT_DEBUG: Expect = expect![[r#"
     STATE:
     |11⟩: 1.0000+0.0000𝑖
     (Zero, [One, One])"#]];
-pub const MAJORANAQUBITS_EXPECT: Expect = expect!["(Zero, Zero)"];
-pub const MAJORANAQUBITS_EXPECT_DEBUG: Expect = expect!["(Zero, Zero)"];
 pub const MEASUREMENT_EXPECT: Expect = expect!["(Zero, [Zero, Zero])"];
 pub const MEASUREMENT_EXPECT_DEBUG: Expect = expect!["(Zero, [Zero, Zero])"];
 pub const PHASEFLIPCODE_EXPECT: Expect = expect![[r#"
