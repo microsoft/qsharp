@@ -12,8 +12,9 @@ import Std.Arrays.Mapped, Std.Arrays.All;
 /// test results instead of printing out to output.
 ///
 /// # Input
-/// Takes a list of test cases. A test case is a tuple of `(String, () => 'T, 'T)`, where
-/// the first String is the name of the test, the function is the test case itself, and the
+/// Takes a list of test cases. A test case is a tuple of `(String, Int, Qubit[] => Unit, Qubit[] => 'T, 'T)`, where
+/// the first String is the name of the test, the int is the number of qubits to allocate for this test,
+/// the first function is a qubit state prep function to be run before the test, the second function is the test case itself, and the
 /// final element of the tuple is the expected return value from the test case.
 ///
 /// # Example
