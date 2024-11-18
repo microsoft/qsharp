@@ -14,14 +14,14 @@
 /// Try running the command `Q#: Get QIR for the current Q# program`
 /// in VS-Code's Command Palette.
 operation Main() : Result {
-  use q = Qubit();
-  H(q);
-  Mx(q)
+    use q = Qubit();
+    H(q);
+    Mx(q)
 }
 
 @Measurement()
 @SimulatableIntrinsic()
-operation Mx(q: Qubit) : Result {
-  H(q);
-  M(q)
+operation Mx(q : Qubit) : Result {
+    H(q);
+    M(q)
 }
