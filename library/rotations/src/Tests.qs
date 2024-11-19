@@ -1,12 +1,10 @@
-import HammingWeightPhasing.HammingWeightPhasing;
-import Std.Diagnostics.CheckOperationsAreEqual;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import Std.Diagnostics.Fact;
+import Std.Diagnostics.CheckOperationsAreEqual, Std.Diagnostics.Fact;
 import Std.Math.HammingWeightI;
 
-import HammingWeightPhasing.WithHammingWeight;
+import HammingWeightPhasing.HammingWeightPhasing, HammingWeightPhasing.WithHammingWeight;
 
 operation Main() : Unit {
     TestHammingWeight();
