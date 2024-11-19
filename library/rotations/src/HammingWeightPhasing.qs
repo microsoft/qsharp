@@ -4,7 +4,7 @@
 import Std.Arrays.Enumerated, Std.Arrays.Most, Std.Arrays.Partitioned, Std.Arrays.Tail;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
-import Std.Math.Floor, Std.Math.Lg;
+import Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
 
 operation HammingWeightPhasing(angle: Double, qs : Qubit[]) : Unit {
     WithHammingWeight(qs, (sum) => {
@@ -32,7 +32,9 @@ internal operation WithHammingWeight(qs : Qubit[], action : Qubit[] => Unit) : U
         WithSum(qs[0], qs[1..1], qs[2..2], action);
     } else {
         let power = Floor(Lg(IntAsDouble(n - 1)));
-        let split = Partitioned([n - 2^power, 2^power - 1], qs);
+        let (leftLen, rightLen) = (n - 2^power, 2^power - 1);
+        // handle corner case if n is power of 2
+        let split = Partitioned([MinI(leftLen, rightLen), MaxI(leftLen, rightLen)], qs);
         Fact(Length(split) == 3 and Length(split[2]) == 1, $"Unexpected split for n = {n}");
 
         WithHammingWeight(split[0], (leftHW) => {
